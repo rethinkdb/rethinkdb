@@ -1,0 +1,7 @@
+desc: sindex api (#602)
+tests:
+
+  - cd: r.db('test').table_create('times_api')
+    def: tbl = r.table('sindex_api')
+
+  - cd: r.db('test').table_drop('times_api')

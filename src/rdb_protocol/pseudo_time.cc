@@ -282,7 +282,7 @@ void rcheck_time_valid(const datum_t *time) {
                 if (tz_valid(it->second->as_str())) {
                     continue;
                 } else {
-                    msg = strprintf("invalide timezone string `%s`",
+                    msg = strprintf("invalid timezone string `%s`",
                                     it->second->trunc_print().c_str());
                     break;
                 }

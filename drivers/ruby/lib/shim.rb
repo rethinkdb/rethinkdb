@@ -1,4 +1,5 @@
 require 'json'
+require 'time'
 
 module RethinkDB
   module Shim
@@ -82,6 +83,13 @@ module RethinkDB
       return t
     end
 
+    def timezone_from_offset(offset)
+      raw_offset = offset.abs
+      raw_hours = raw_offset / 3600
+      raw_minutes = (raw_offset / 60) - (raw_hours * 60)
+      return (offset < 0 ? "-" : "+") + sprintf("%02d:%02d", raw_hours, raw_minutes);
+    end
+
     def fast_expr(x, context, allow_json)
       return x if x.class == RQL
       if @@datum_types.include?(x.class)
@@ -116,6 +124,11 @@ module RethinkDB
           ap
         }
         return RQL.new(t, nil, context)
+      when Time
+        return fast_expr({ '$reql_type$' => 'TIME',
+                           'epoch_time'  => x.to_f,
+                           'timezone'    => timezone_from_offset(x.utc_offset)},
+                         context, allow_json)
       when Proc
         t = RQL.new(nil, nil, context).new_func(&x).to_pb
         return RQL.new(t, nil, context)

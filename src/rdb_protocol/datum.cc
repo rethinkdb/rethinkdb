@@ -177,7 +177,13 @@ std::string datum_t::get_reql_type() const {
     r_sanity_check(get_type() == R_OBJECT);
     auto maybe_reql_type = r_object->find(reql_type_string);
     r_sanity_check(maybe_reql_type != r_object->end());
-    r_sanity_check(maybe_reql_type->second->get_type() == R_STR);
+    rcheck(maybe_reql_type->second->get_type() == R_STR,
+           base_exc_t::GENERIC,
+           strprintf("Error: Field `%s` must be a string (got `%s` of type %s):\n%s",
+                     reql_type_string,
+                     maybe_reql_type->second->trunc_print().c_str(),
+                     maybe_reql_type->second->get_type_name().c_str(),
+                     trunc_print().c_str()));
     return maybe_reql_type->second->as_str();
 }
 
@@ -315,7 +321,7 @@ void datum_t::rcheck_valid_pt(const std::string s) const {
         return;
     }
 
-    rfail(base_exc_t::GENERIC, "Invalidatable type %s.", get_type_name().c_str());
+    rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
 }
 
 void datum_t::maybe_rcheck_valid_pt(const std::string s) const {
