@@ -1354,7 +1354,6 @@ module 'DataExplorerView', ->
                             element.type = 'string'
                             start = i
                         continue
-                    
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
@@ -2300,9 +2299,7 @@ module 'DataExplorerView', ->
 
             @raw_query = @codemirror.getValue()
 
-            @query = @raw_query.replace(/(\s)*\/\/.*\n/g, '\n')
-            @query = @query.replace(/(\s)*\/\*[^]*\*\//g, '')
-            @query = @replace_new_lines_in_query @query # Save it because we'll use it in @callback_multilples_queries
+            @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
             # Execute the query
             try
@@ -2336,6 +2333,7 @@ module 'DataExplorerView', ->
                 full_query += @queries[@index]
 
                 try
+                    console.log full_query
                     rdb_query = @evaluate(full_query)
                 catch err
                     @.$('.loading_query_img').hide()
@@ -2511,7 +2509,8 @@ module 'DataExplorerView', ->
         #   world')
         # becomes
         #   r.expr('hello\nworld')
-        replace_new_lines_in_query: (query) ->
+        #  We also remove comments from the query
+        clean_query: (query) ->
             is_parsing_string = false
             start = 0
 
@@ -2519,6 +2518,7 @@ module 'DataExplorerView', ->
             for char, i in query
                 if to_skip > 0
                     to_skip--
+                    start++
                     continue
 
                 if is_parsing_string is true
@@ -2537,11 +2537,15 @@ module 'DataExplorerView', ->
 
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
-                        to_skip = result_inline_comment[0].length-1
+                        result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
+                        start = i
+                        to_skip = result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
-                        to_skip = result_multiple_line_comment[0].length-1
+                        result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
+                        start = i
+                        to_skip = result_multiple_line_comment[0].length
                         continue
             if is_parsing_string
                 result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
