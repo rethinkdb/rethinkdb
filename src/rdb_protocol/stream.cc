@@ -179,29 +179,64 @@ bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right
     return json_cmp(left.sindex_key->get(), right.sindex_key->get()) < 0;
 }
 
+/* This function is a big monolithic mess right now. This is because a lot of
+ * complexity got squeezed in to it. How we got in to this situation is that we
+ * have this nasty edge case with sorting that comes from the fact that we
+ * truncate secondary index keys when they're too long. Because we do this if a
+ * users creates long sindex keys the btree sorting algorithm won't accurately
+ * sort. Two adjacent keys which are long enough that their difference occur
+ * after the truncation point will be sorted as equal but aren't actually
+ * equal. To compensate for this on values with oversized sindex keys we send
+ * back the full sindex value as json and do the remaining sorting on the
+ * parser side in this function. */
+
+/* On top of this there's added complexity due to the fact that we need to
+ * return hints whether successive values are equal. This is for the case when
+ * a user wants to sort by and index and use another field as the tiebreaker.
+ * The sorting by the other field is done above but it needs to know which
+ * elements had the same index value so it knows what to apply the sorting too.
+ * */
 hinted_json_t batched_rget_stream_t::sorting_hint_next() {
     if (!sorting_buffer.empty()) {
+        /* A non empty sorting buffer means we already got a batch of
+         * ambigiously sorted values and sorted them. So now we can just pop
+         * one off the front and return it. */
         boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
         bool is_new_key = check_and_set_last_key(sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
         return std::make_pair((is_new_key ? START : CONTINUE), datum);
     } else {
         for (;;) {
+            /* In this loop we load data in to the sorting buffer until we can
+             * be sure that the next value to be returned is in it. (Or we hit
+             * the limit at which point we error.) */
             boost::optional<rget_item_t> item = head();
-            std::string key = (item ? key_to_unescaped_str(item->key) : std::string());
-            std::string skey = ql::datum_t::extract_secondary(key);
             if (!item) {
                 break;
-            } else if (!ql::datum_t::key_is_truncated(item->key)) {
+            }
+
+            std::string key = key_to_unescaped_str(item->key);
+            std::string skey = ql::datum_t::extract_secondary(key);
+
+            if (!ql::datum_t::key_is_truncated(item->key)) {
                 if (sorting_buffer.empty()) {
+                    /* We have an untruncated key and the sorting buffer is
+                     * empty. This means we have the next value. */
                     pop();
                     bool is_new_key = check_and_set_last_key(skey);
                     return std::make_pair((is_new_key ? START : CONTINUE), item->data);
                 } else {
+                    /* We have an untruncated key but there's data in the
+                     * sorting buffer. That means this value definitely isn't
+                     * the next value but we know that something in the sorting
+                     * buffer is. Time to sort the sorting buffer. */
                     break;
                 }
             } else if (sorting_buffer.empty() ||
                        skey == key_in_sorting_buffer) {
+                /* We have a truncated key and the sorting buffer is either
+                 * empty or contains only keys which could be greater than this
+                 * one. Put the data in to the sorting buffer. */
                 if (sorting_buffer.empty()) {
                     key_in_sorting_buffer = skey;
                 }
@@ -215,14 +250,14 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
             } else {
                 /* We have a truncated key and things in the sorting_buffer but
                  * the things in the sorting buffer don't have the same
-                 * truncated key as the item. This means we break and start
-                 * returning things from the sorting buffer.. */
+                 * truncated key as the item. This means the next key to be
+                 * returned is in the sorting buffer. We're done loading data.
+                 * */
                 break;
             }
         }
     }
 
-    /* The sorting buffer should now have unsorted data in it. Time to sort it. */
     if (sorting_buffer.empty()) {
         /* Nothing in the sorting buffer, this means we don't have any data to
          * return so we return nothing. */
@@ -231,6 +266,7 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
         /* There's data in the sorting_buffer time to sort it. */
         std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                   &rget_item_sindex_key_less);
+        /* Now we can finally return a value from the sorting buffer. */
         boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
         bool is_new_key = check_and_set_last_key(sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
