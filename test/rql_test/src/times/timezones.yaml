@@ -1,0 +1,33 @@
+desc: Test basic timezone manipulation
+tests:
+  - def: t1 = r.time(2013, r.july, 29, 23, 30, 0)
+
+  - def: tutc1 = t1.in_timezone("Z")
+  - def: tutc2 = t1.in_timezone("+00:00")
+  - def: tutc3 = t1.in_timezone("-00:00")
+  - def: tutcs = r([tutc1, tutc2, tutc3])
+
+  - def: tm1 = t1.in_timezone("-00:59")
+  - def: tm2 = t1.in_timezone("-01:00")
+  - def: tm3 = t1.in_timezone("-01:01")
+  - def: tms = r([tm1, tm2, tm3])
+
+  - def: tp1 = t1.in_timezone("+00:59")
+  - def: tp2 = t1.in_timezone("+01:00")
+  - def: tp3 = t1.in_timezone("+01:01")
+  - def: tps = r([tp1, tp2, tp3])
+
+  - def: ts = tutcs.union(tms).union(tps).union([t1])
+
+  - rb: r([t1.timezone, t1.day])
+    ot: ([nil, 29])
+
+  - rb: tutcs.map{|x| [x.timezone, x.day]}
+    ot: ([["Z", 29], ["+00:00", 29], ["-00:00", 29]])
+  - rb: tms.map{|x| [x.timezone, x.day]}
+    ot: ([["-00:59", 29], ["-01:00", 29], ["-01:01", 29]])
+  - rb: tps.map{|x| [x.timezone, x.day]}
+    ot: ([["+00:59", 30], ["+01:00", 30], ["+01:01", 30]])
+
+  - rb: ts.concat_map{|x| ts.map{|y| x - y}}.distinct
+    ot: ([0])
