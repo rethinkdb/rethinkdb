@@ -6,23 +6,21 @@
 
 #include "errors.hpp"
 
-/* two_level_array_t is a tree that always has exactly two levels. Its computational complexity is
-similar to that of an array, but it neither allocates all of its memory at once nor needs to
-realloc() as it grows.
+/* two_level_array_t is a tree that always has exactly two levels. Its computational
+complexity is similar to that of an array, but it neither allocates all of its memory
+at once nor needs to realloc() as it grows.  It also doesn't have a "size" -- it is
+an infinite array.  If a get() is called on an index in the array that set() has
+never been called for, the result will be value_t().
 
-It is parameterized on a value type, 'value_t'. It makes the following assumptions about value_t:
-1. value_t has a default constructor value_t() that has no side effects, and its destructor has no
-    side effects.
-2. value_t supports conversion to bool
-3. bool(value_t()) == false
-4. bool(any other instance of value_t) == true
-Pointer types work well for value_t.
+It is parameterized on a value type, 'value_t'. It makes the following assumptions
+about value_t:
 
-If a get() is called on an index in the array that set() has never been called for, the result will
-be value_t().
+1. value_t has a default constructor value_t() that has no side effects, and its
+   destructor has no side effects.
 
-It is also parameterized at compile-time on the maximum number of elements in the array and on the
-size of the chunks to use.
+2. value_t has a good equality operator, where value_t() == value_t(), and
+   distinguishable values don't compare equal.
+
 */
 
 template <class value_t>
@@ -67,7 +65,7 @@ public:
     void set(size_t key, value_t value) {
         const size_t chunk_id = chunk_for_key(key);
         if (chunk_id >= chunks.size() || chunks[chunk_id] == NULL) {
-            if (!value) {
+            if (value == value_t()) {
                 return;
             } else {
                 if (chunk_id >= chunks.size()) {
@@ -79,11 +77,11 @@ public:
 
         chunk_t *chunk = chunks[chunk_id];
         const size_t index = index_for_key(key);
-        if (chunk->values[index]) {
+        if (!(chunk->values[index] == value_t())) {
             --chunk->count;
         }
         chunk->values[index] = value;
-        if (value) {
+        if (!(value == value_t())) {
             ++chunk->count;
         }
 

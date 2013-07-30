@@ -20,18 +20,19 @@ struct index_block_info_t {
           recency(_recency),
           ser_block_size(_ser_block_size) { }
 
-
     // For two_level_array_t.
-    operator bool() const {
-        return !(offset == flagged_off64_t::unused()
-                 && recency == repli_timestamp_t::invalid
-                 && ser_block_size == 0);
+    bool operator==(const index_block_info_t &other) const {
+        return offset == other.offset &&
+            recency == other.recency &&
+            ser_block_size == other.ser_block_size;
     }
 
     flagged_off64_t offset;
     repli_timestamp_t recency;
     uint32_t ser_block_size;
 } __attribute__((__packed__));
+
+
 
 class in_memory_index_t {
     two_level_array_t<index_block_info_t> infos_;
