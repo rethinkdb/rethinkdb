@@ -2538,7 +2538,7 @@ module 'DataExplorerView', ->
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
-                        result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
+                        result_query += query.slice(start, i).replace(/\n/g, '')
                         start = i
                         to_skip = result_multiple_line_comment[0].length-1
                         start += result_multiple_line_comment[0].length
