@@ -193,6 +193,7 @@ uint64_t linux_file_t::get_size() {
 }
 
 void linux_file_t::set_size(size_t size) {
+    CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
     int res;
     do {
         res = ftruncate(fd.get(), size);
