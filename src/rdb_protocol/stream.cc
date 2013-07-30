@@ -379,7 +379,11 @@ bool batched_rget_stream_t::check_and_set_last_key(const std::string &key) {
 }
 bool batched_rget_stream_t::check_and_set_last_key(boost::shared_ptr<scoped_cJSON_t> key) {
     boost::shared_ptr<scoped_cJSON_t> *last_key_json;
-    if (!(last_key_json = boost::get<boost::shared_ptr<scoped_cJSON_t> >(&last_key))) {
+    /* Notice we check both for a last_key value which is a std::string and a
+     * last_key value which is an empty shared_ptr the latter is only present
+     * immediately after construction. */
+    if (!(last_key_json = boost::get<boost::shared_ptr<scoped_cJSON_t> >(&last_key)) ||
+        !(*last_key_json)) {
         last_key = key;
         return true;
     } else {

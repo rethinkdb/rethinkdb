@@ -304,7 +304,6 @@ private:
                     next_element = d.second;
                     break;
                 } else {
-                    guarantee(d.first == query_language::CONTINUE);
                     data.push_back(d.second);
                     rcheck(data.size() <= sort_el_limit,
                            base_exc_t::GENERIC,
