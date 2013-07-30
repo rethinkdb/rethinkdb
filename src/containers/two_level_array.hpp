@@ -130,7 +130,7 @@ public:
 
     value_t &operator[](size_t key) {
         const size_t chunk_id = chunk_for_key(key);
-        if (chunk_id > chunks.size()) {
+        if (chunk_id >= chunks.size()) {
             chunks.resize(chunk_id + 1, NULL);
         }
 
