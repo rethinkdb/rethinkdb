@@ -86,10 +86,10 @@ id_t env_t::rememberValue(const v8::Handle<v8::Value> &value) {
     // Save this value in a persistent handle so it isn't deallocated when
     // its scope is destructed.
     
-#ifdef V8_PRE_3_19
-    boost::shared_ptr<v8::Persistent<v8::Value> > persistent_handle(new v8::Persistent<v8::Value>(value));
-#else
     boost::shared_ptr<v8::Persistent<v8::Value> > persistent_handle(new v8::Persistent<v8::Value>());
+#ifdef V8_PRE_3_19
+    *persistent_handle = v8::Persistent<v8::Value>::New(value);
+#else
     persistent_handle->Reset(v8::Isolate::GetCurrent(), value);
 #endif
 
