@@ -1,0 +1,60 @@
+desc: Test basic time arithmetic
+tests:
+  - def: rt1 = 1375147296.60081
+  - def: rt2 = 1375147296.60082
+  - def: rt3 = 1375147297.60081
+  - def: rt4 = 2375147296.60081
+
+  - def: t1 = r.epoch_time(rt1)
+  - def: t2 = r.epoch_time(rt2)
+  - def: t3 = r.epoch_time(rt3)
+  - def: t4 = r.epoch_time(rt4)
+
+  # We run into double precision with the first one
+  - rb: ((t2 - t1) * 100000).do{|x| (x > 0.99) & (x < 1.01)}
+    ot: true
+  - rb: t3 - t1
+    ot: 1
+  - rb: t4 - t1
+    ot: 1000000000
+
+  - rb: ((t1 - t2) * 100000).do{|x| (x < -0.99) & (x > -1.01)}
+    ot: true
+  - rb: t1 - t3
+    ot: -1
+  - rb: t1 - t4
+    ot: -1000000000
+
+  - rb: (t1 + (t2 - t1))
+    ot: rt2
+  - rb: (t1 + (t3 - t1))
+    ot: rt3
+  - rb: (t1 + (t4 - t1))
+    ot: rt4
+  - rb: (t1 + (rt2 - rt1))
+    ot: rt2
+  - rb: (t1 + (rt3 - rt1))
+    ot: rt3
+  - rb: (t1 + (rt4 - rt1))
+    ot: rt4
+
+  - rb: (t2 - (rt2 - rt1))
+    ot: rt1
+  - rb: (t3 - (rt3 - rt1))
+    ot: rt1
+  - rb: (t4 - (rt4 - rt1))
+    ot: rt1
+
+  - rb: (t2 + (t1 - t2))
+    ot: rt1
+  - rb: (t3 + (t1 - t3))
+    ot: rt1
+  - rb: (t4 + (t1 - t4))
+    ot: rt1
+  - rb: (t2 + (rt1 - rt2))
+    ot: rt1
+  - rb: (t3 + (rt1 - rt3))
+    ot: rt1
+  - rb: (t4 + (rt1 - rt4))
+    ot: rt1
+
