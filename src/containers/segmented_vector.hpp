@@ -28,18 +28,6 @@ public:
     }
 
 public:
-    element_t &operator[](size_t i) {
-        return get(i);
-    }
-
-    const element_t &operator[](size_t i) const {
-        return const_get(i);
-    }
-
-    element_t &get(size_t i) {
-        return const_cast<element_t &>(const_get(i));
-    }
-
     size_t size() const {
         return size_;
     }
@@ -48,15 +36,20 @@ public:
         return size_ == 0;
     }
 
+    element_t &operator[](size_t index) {
+        guarantee(index < size_, "index = %zu, size_ = %zu", index, size_);
+        segment_t *seg = segments_[index / ELEMENTS_PER_SEGMENT];
+        return seg->elements[index % ELEMENTS_PER_SEGMENT];
+    }
+
     void push_back(const element_t &element) {
         size_t old_size = size_;
         set_size(old_size + 1);
-        get(old_size) = element;
+        (*this)[old_size] = element;
     }
 
     element_t &back() {
-        guarantee(size_ > 0);
-        return get(size_ - 1);
+        return (*this)[size_ - 1];
     }
 
     void pop_back() {
@@ -64,6 +57,7 @@ public:
         set_size(size_ - 1);
     }
 
+private:
     // Note: sometimes elements will be initialized before you ask the
     // array to grow to that size (e.g. one hundred elements might be
     // initialized even though the array might be of size 1).
@@ -83,22 +77,6 @@ public:
         }
 
         size_ = new_size;
-    }
-
-    // This form of set_size fills the newly allocated space with a value
-    void set_size(size_t new_size, element_t fill) {
-        size_t old_size = size_;
-        set_size(new_size);
-        for (; old_size < new_size; old_size++) (*this)[old_size] = fill;
-    }
-
-private:
-    const element_t &const_get(size_t i) const {
-        rassert(i < size_, "i is %zu, size is %zu", i, size_);
-
-        segment_t *segment = segments_[i / ELEMENTS_PER_SEGMENT];
-        rassert(segment != NULL);
-        return segment->elements[i % ELEMENTS_PER_SEGMENT];
     }
 
     DISABLE_COPYING(segmented_vector_t);
