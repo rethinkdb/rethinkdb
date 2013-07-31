@@ -50,7 +50,7 @@ const boost::local_time::local_date_time epoch(raw_epoch, utc);
 // so this is probably a slight superset of what we actually need to handle.  We
 // may also need to catch the following exceptions in the future, but I omitted
 // them because we never seem to encounter them and they might catch legitimate
-// non-boost exceptions as well.
+// non-boost exceptions as well:
 // * std::out_of_range
 // * std::invalid_argument
 // * std::runtime_error
@@ -101,11 +101,12 @@ const datum_t dummy_datum;
 
 enum date_format_t { UNSET, MONTH_DAY, WEEKCOUNT, DAYCOUNT };
 
+// This is where we do our sanitization.
 namespace sanitize {
 using namespace std;
 
-const datum_t dummy_datum;
-
+// Copy n digits from `s` to the end of `*p_out`, starting at `*p_at`.
+// Increment `*p_at` by the number of digits copied.  Throw on any error.
 void mandatory_digits(const string &s, size_t n, size_t *p_at, string *p_out) {
     for (size_t i = 0; i < n; ++i) {
         size_t at = (*p_at)++;
@@ -121,6 +122,9 @@ void mandatory_digits(const string &s, size_t n, size_t *p_at, string *p_out) {
 }
 
 enum optional_char_default_behavior_t { INCLUDE, EXCLUDE };
+// If `s[*p_at]` is `c`, increment `*p_at` and add `c` to the end of `*p_out`.
+// Otherwise, if `default_behavior` is `INCLUDE`, add `c` to the end of `*p_out`
+// anyway.  Return whether or not `*p_at` was incremented.
 bool optional_char(const string &s, char c, size_t *p_at, string *p_out,
                    optional_char_default_behavior_t default_behavior = INCLUDE) {
     bool consumed = false;
@@ -137,12 +141,7 @@ bool optional_char(const string &s, char c, size_t *p_at, string *p_out,
     return consumed;
 }
 
-char get(const string &s, size_t at) {
-    rcheck_datum(at < s.size(), base_exc_t::GENERIC,
-                 strprintf("Truncated date string `%s`.", s.c_str()));
-    return s[at];
-}
-
+// Sanitize a date, and return which format it's in.
 string date(const string &s, date_format_t *df_out) {
     string out;
     size_t at = 0;
@@ -152,6 +151,8 @@ string date(const string &s, date_format_t *df_out) {
         *df_out = MONTH_DAY;
         return out + "-01-01";
     }
+    // We need to keep track of this because YYYY-MM and YYYYMMDD are valid, but
+    // YYYYMM is not.  I don't write these standards.
     bool year_hyphen = optional_char(s, '-', &at, &out);
     if (optional_char(s, 'W', &at, &out, EXCLUDE)) {
         *df_out = WEEKCOUNT;
@@ -179,6 +180,7 @@ string date(const string &s, date_format_t *df_out) {
     return out;
 }
 
+// Sanitize a time.
 string time(const string &s) {
     string out;
     size_t at = 0;
@@ -199,10 +201,14 @@ string time(const string &s) {
             mandatory_digits(s, 1, &at, &out);
             read += 1;
         }
+        // This rcheck is debatable -- we could also just discard the digits, or
+        // round.  (Boost truncates during printing, and only prints with second
+        // or microsecond precision.)
         rcheck_datum(read <= 6, base_exc_t::GENERIC,
                      strprintf("Time string `%s` contains `%zu` digits after the "
                                "decimal point, but RethinkDB only supports microsecond "
                                "precision in ISO 8601 parsing.", s.c_str(), read));
+        // Always pad to 6 digits after the decimal.
         while (read++ < 6) {
             out += '0';
         }
@@ -215,6 +221,7 @@ string time(const string &s) {
     return out;
 }
 
+// Sanitize a timezone.
 string tz(const string &s) {
     if (s == "Z") {
         return s;
@@ -237,6 +244,7 @@ string tz(const string &s) {
     return out;
 }
 
+// Sanitize an ISO 8601 string.
 string iso8601(const string &s, date_format_t *df_out) {
     string date_s, time_s, tz_s;
     size_t tloc, start, sign_loc;
@@ -269,6 +277,8 @@ bool hours_valid(char l, char r) {
 bool minutes_valid(char l, char r) {
     return ('0' <= l && l <= '5') && ('0' <= r && r <= '9');
 }
+// This does more than sanitization; it checks that the numbers are within
+// bounds.
 bool tz_valid(const std::string &tz) {
     try {
         std::string s = sanitize::tz(tz);
@@ -283,6 +293,9 @@ bool tz_valid(const std::string &tz) {
     return false;
 }
 
+// Sanitize the timezone we retrieve from a boost local time.  Boost local time
+// gives a slight superset of ISO 8601 even when only fed ISO 8601 timezones, so
+// we adjust for that here.
 std::string sanitize_boost_tz(const std::string &tz, const rcheckable_t *target) {
     if (tz == "UTC+00" || tz == "") {
         return "";
@@ -369,7 +382,7 @@ time_t time_to_boost(counted_t<const datum_t> d) {
 
     if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
         boost::local_time::time_zone_ptr zone(
-            new boost::local_time::posix_time_zone(tz->as_str()));
+            new boost::local_time::posix_time_zone(sanitize::tz(tz->as_str())));
         return time_t(t, zone);
     } else {
         return time_t(t, utc);
@@ -384,6 +397,7 @@ const std::locale no_tz_format =
 std::string time_to_iso8601(counted_t<const datum_t> d) {
     try {
         std::ostringstream ss;
+        ss.exceptions(std::ios_base::failbit);
         if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
             ss.imbue(tz_format);
         } else {

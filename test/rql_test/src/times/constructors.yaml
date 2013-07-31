@@ -29,8 +29,8 @@ tests:
   - def: dates = ["2013", "2013-01", "2013-01-01", "20130101", "2013-001", "2013001"]
   - def: ctime = "13:00:00"
   - def: times = ["13", "13:00", "1300", "13:00:00", "13:00:00.000000", "130000.000000"]
-  - def: ctz = "-07:00"
-  - def: tzs = ["-07", "-0700", "-07:00"]
+  - def: ctz = "+00:00"
+  - def: tzs = ["Z", "+00", "-00", "+0000", "+00:00"]
   - def: dts = dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
   - rb: r(dts).map{|x| r.iso8601(x).to_iso8601}.distinct.eq([cdate+"T"+ctime+ctz])
     ot: true
