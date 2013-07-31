@@ -31,7 +31,6 @@ public:
     void writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                       file_account_t *account, linux_iocallback_t *cb);
 
-
     void read_blocking(int64_t offset, size_t length, void *buf);
     void write_blocking(int64_t offset, size_t length, const void *buf);
 
