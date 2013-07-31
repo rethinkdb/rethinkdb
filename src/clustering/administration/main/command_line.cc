@@ -396,8 +396,11 @@ std::string get_web_path(boost::optional<std::string> web_static_directory, char
 }
 
 std::string get_web_path(const std::map<std::string, options::values_t> &opts, char **argv) {
-    boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
-    return get_web_path(web_static_directory, argv);
+    if (!exists_option(opts, "--no-http-admin")) {
+        boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
+        return get_web_path(web_static_directory, argv);
+    }
+    return std::string();
 }
 
 // Note that this defaults to the peer port if no port is specified
