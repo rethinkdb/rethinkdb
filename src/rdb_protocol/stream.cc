@@ -179,6 +179,10 @@ bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right
     return json_cmp(left.sindex_key->get(), right.sindex_key->get()) < 0;
 }
 
+bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &right) {
+    return json_cmp(left.sindex_key->get(), right.sindex_key->get()) > 0;
+}
+
 /* This function is a big monolithic mess right now. This is because a lot of
  * complexity got squeezed in to it. How we got in to this situation is that we
  * have this nasty edge case with sorting that comes from the fact that we
@@ -275,8 +279,16 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
         return std::make_pair(CONTINUE, boost::shared_ptr<scoped_cJSON_t>());
     } else {
         /* There's data in the sorting_buffer time to sort it. */
-        std::sort(sorting_buffer.begin(), sorting_buffer.end(),
-                  &rget_item_sindex_key_less);
+        if (sorting == ASCENDING) {
+            std::sort(sorting_buffer.begin(), sorting_buffer.end(),
+                      &rget_item_sindex_key_less);
+        } else if (sorting == DESCENDING) {
+            std::sort(sorting_buffer.begin(), sorting_buffer.end(),
+                      &rget_item_sindex_key_greater);
+        } else {
+            r_sanity_check(false);
+        }
+
         /* Now we can finally return a value from the sorting buffer. */
         boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
         bool is_new_key = check_and_set_last_key(sorting_buffer.front().sindex_key);

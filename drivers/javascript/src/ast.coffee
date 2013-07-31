@@ -97,7 +97,6 @@ class RDBVal extends TermBase
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
-    orderBy: varar(1, null, (fields...) -> new OrderBy {}, @, fields...)
     distinct: ar () -> new Distinct {}, @
     count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
@@ -130,6 +129,22 @@ class RDBVal extends TermBase
 
     info: ar () -> new Info {}, @
     sample: ar (count) -> new Sample {}, @, count
+
+    orderBy: (attrsAndOpts...) ->
+        # Default if no opts dict provided
+        opts = {}
+        attrs = attrsAndOpts
+
+        # Look for opts dict
+        perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
+        if perhapsOptDict and
+                ((perhapsOptDict instanceof Object) and
+                not (perhapsOptDict instanceof TermBase) and
+                not (perhapsOptDict instanceof Function))
+            opts = perhapsOptDict
+            attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
+
+        new OrderBy opts, @, attrs...
 
 class DatumTerm extends RDBVal
     args: []
