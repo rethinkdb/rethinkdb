@@ -15,15 +15,21 @@ mock_file_t::mock_file_t(mode_t mode, std::vector<char> *data) : mode_(mode), da
 }
 mock_file_t::~mock_file_t() { }
 
-uint64_t mock_file_t::get_size() { return data_->size(); }
-void mock_file_t::set_size(size_t size) { data_->resize(size, 0); }
-void mock_file_t::set_size_at_least(size_t size) {
+int64_t mock_file_t::get_size() { return data_->size(); }
+
+void mock_file_t::set_size(int64_t size) {
+    guarantee(size <= SIZE_MAX);
+    data_->resize(size, 0);
+}
+
+void mock_file_t::set_size_at_least(int64_t size) {
+    guarantee(size <= SIZE_MAX);
     if (data_->size() < size) {
         data_->resize(size, 0);
     }
 }
 
-void mock_file_t::read_async(size_t offset, size_t length, void *buf,
+void mock_file_t::read_async(int64_t offset, size_t length, void *buf,
                              UNUSED file_account_t *account, linux_iocallback_t *cb) {
     read_blocking(offset, length, buf);
     // RSI: This is to silence the serializer disk_structure.cc reader_t
@@ -31,7 +37,7 @@ void mock_file_t::read_async(size_t offset, size_t length, void *buf,
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
 }
 
-void mock_file_t::write_async(size_t offset, size_t length, const void *buf,
+void mock_file_t::write_async(int64_t offset, size_t length, const void *buf,
                               UNUSED file_account_t *account, linux_iocallback_t *cb,
                               UNUSED wrap_in_datasyncs_t wrap_in_datasyncs) {
     write_blocking(offset, length, buf);
@@ -40,14 +46,14 @@ void mock_file_t::write_async(size_t offset, size_t length, const void *buf,
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
 }
 
-void mock_file_t::read_blocking(size_t offset, size_t length, void *buf) {
+void mock_file_t::read_blocking(int64_t offset, size_t length, void *buf) {
     guarantee(mode_ & mode_read);
     verify_aligned_file_access(data_->size(), offset, length, buf);
     guarantee(!(offset > SIZE_MAX - length || offset + length > data_->size()));
     memcpy(buf, data_->data() + offset, length);
 }
 
-void mock_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
+void mock_file_t::write_blocking(int64_t offset, size_t length, const void *buf) {
     guarantee(mode_ & mode_write);
     verify_aligned_file_access(data_->size(), offset, length, buf);
     guarantee(!(offset > SIZE_MAX - length || offset + length > data_->size()));

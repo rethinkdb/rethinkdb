@@ -56,16 +56,16 @@ public:
         mode_truncate = 1 << 3
     };
 
-    uint64_t get_size();
-    void set_size(size_t size);
-    void set_size_at_least(size_t size);
+    int64_t get_size();
+    void set_size(int64_t size);
+    void set_size_at_least(int64_t size);
 
-    void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
-    void write_async(size_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,
+    void read_async(int64_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
+    void write_async(int64_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,
                      wrap_in_datasyncs_t wrap_in_datasyncs);
 
-    void read_blocking(size_t offset, size_t length, void *buf);
-    void write_blocking(size_t offset, size_t length, const void *buf);
+    void read_blocking(int64_t offset, size_t length, void *buf);
+    void write_blocking(int64_t offset, size_t length, const void *buf);
 
     bool coop_lock_and_check();
 
@@ -75,11 +75,11 @@ public:
     ~linux_file_t();
 
 private:
-    linux_file_t(scoped_fd_t &&fd, uint64_t file_size, linux_disk_manager_t *diskmgr);
+    linux_file_t(scoped_fd_t &&fd, int64_t file_size, linux_disk_manager_t *diskmgr);
     friend file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
 
     scoped_fd_t fd;
-    uint64_t file_size;
+    int64_t file_size;
 
     linux_disk_manager_t *diskmgr;
 
@@ -94,7 +94,7 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.
-void verify_aligned_file_access(size_t file_size, size_t offset, size_t length, const void *buf);
+void verify_aligned_file_access(size_t file_size, int64_t offset, size_t length, const void *buf);
 
 // Makes blocking syscalls.  Upon error, returns the errno value.
 int perform_datasync(fd_t fd);

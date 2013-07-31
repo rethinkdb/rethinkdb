@@ -93,7 +93,7 @@ public:
         stack_stats.submit(a);
     }
 
-    void submit_write(fd_t fd, const void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb,
+    void submit_write(fd_t fd, const void *buf, size_t count, int64_t offset, void *account, linux_iocallback_t *cb,
                       bool wrap_in_datasyncs) {
         int calling_thread = get_thread_id();
 
@@ -108,7 +108,7 @@ public:
                                a));
     }
 
-    void submit_read(fd_t fd, void *buf, size_t count, size_t offset, void *account, linux_iocallback_t *cb) {
+    void submit_read(fd_t fd, void *buf, size_t count, int64_t offset, void *account, linux_iocallback_t *cb) {
         int calling_thread = get_thread_id();
 
         action_t *a = new action_t;
@@ -178,7 +178,7 @@ io_backender_t::~io_backender_t() { }
 
 /* Disk file object */
 
-linux_file_t::linux_file_t(scoped_fd_t &&_fd, uint64_t _file_size, linux_disk_manager_t *_diskmgr)
+linux_file_t::linux_file_t(scoped_fd_t &&_fd, int64_t _file_size, linux_disk_manager_t *_diskmgr)
     : fd(std::move(_fd)), file_size(_file_size), diskmgr(_diskmgr) {
     // TODO: Why do we care whether we're in a thread pool?  (Maybe it's that you can't create a
     // file_account_t outside of the thread pool?  But they're associated with the diskmgr,
@@ -188,11 +188,11 @@ linux_file_t::linux_file_t(scoped_fd_t &&_fd, uint64_t _file_size, linux_disk_ma
     }
 }
 
-uint64_t linux_file_t::get_size() {
+int64_t linux_file_t::get_size() {
     return file_size;
 }
 
-void linux_file_t::set_size(size_t size) {
+void linux_file_t::set_size(int64_t size) {
     CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
     int res;
     do {
@@ -206,14 +206,14 @@ void linux_file_t::set_size(size_t size) {
     file_size = size;
 }
 
-void linux_file_t::set_size_at_least(size_t size) {
+void linux_file_t::set_size_at_least(int64_t size) {
     /* Grow in large chunks at a time */
     if (file_size < size) {
         set_size(ceil_aligned(size, DEVICE_BLOCK_SIZE * 128));
     }
 }
 
-void linux_file_t::read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *callback) {
+void linux_file_t::read_async(int64_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *callback) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
     verify_aligned_file_access(file_size, offset, length, buf);
     diskmgr->submit_read(fd.get(), buf, length, offset,
@@ -221,7 +221,7 @@ void linux_file_t::read_async(size_t offset, size_t length, void *buf, file_acco
         callback);
 }
 
-void linux_file_t::write_async(size_t offset, size_t length, const void *buf,
+void linux_file_t::write_async(int64_t offset, size_t length, const void *buf,
                                file_account_t *account, linux_iocallback_t *callback,
                                wrap_in_datasyncs_t wrap_in_datasyncs) {
     rassert(diskmgr, "No diskmgr has been constructed (are we running without an event queue?)");
@@ -233,7 +233,8 @@ void linux_file_t::write_async(size_t offset, size_t length, const void *buf,
                           wrap_in_datasyncs == WRAP_IN_DATASYNCS);
 }
 
-void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
+void linux_file_t::read_blocking(int64_t offset, size_t length, void *buf) {
+    CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
     verify_aligned_file_access(file_size, offset, length, buf);
     ssize_t res;
     do {
@@ -243,7 +244,7 @@ void linux_file_t::read_blocking(size_t offset, size_t length, void *buf) {
     guarantee(size_t(res) == length, "Blocking read from file failed.");
 }
 
-void linux_file_t::write_blocking(size_t offset, size_t length, const void *buf) {
+void linux_file_t::write_blocking(int64_t offset, size_t length, const void *buf) {
     verify_aligned_file_access(file_size, offset, length, buf);
     ssize_t res;
     do {
@@ -275,7 +276,7 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR size_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
+void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
     rassert(offset + length <= file_size);
     rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));
@@ -358,7 +359,7 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 
     file_open_result_t open_res = (fcntl_res == -1 ? file_open_result_t(file_open_result_t::BUFFERED, 0) : file_open_result_t(file_open_result_t::DIRECT, 0));
 
-    uint64_t file_size = get_file_size(fd.get());
+    int64_t file_size = get_file_size(fd.get());
 
     // TODO: We have a very minor correctness issue here, which is that
     // we don't guarantee data durability for newly created database files.
