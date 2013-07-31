@@ -19,15 +19,16 @@ tests:
 
   - def: ts = tutcs.union(tms).union(tps).union([t1])
 
-  - rb: r([t1.timezone, t1.day])
+  - cd: r([t1.timezone, t1.day])
     ot: ([nil, 29])
 
-  - rb: tutcs.map{|x| [x.timezone, x.day]}
+  - cd: tutcs.map{|x| [x.timezone, x.day]}
     ot: ([["Z", 29], ["+00:00", 29], ["-00:00", 29]])
-  - rb: tms.map{|x| [x.timezone, x.day]}
+  - cd: tms.map{|x| [x.timezone, x.day]}
     ot: ([["-00:59", 29], ["-01:00", 29], ["-01:01", 29]])
-  - rb: tps.map{|x| [x.timezone, x.day]}
+  - cd: tps.map{|x| [x.timezone, x.day]}
     ot: ([["+00:59", 30], ["+01:00", 30], ["+01:01", 30]])
 
-  - rb: ts.concat_map{|x| ts.map{|y| x - y}}.distinct
+# They're all the same time, just in different timezones.
+  - cd: ts.concat_map{|x| ts.map{|y| x - y}}.distinct
     ot: ([0])
