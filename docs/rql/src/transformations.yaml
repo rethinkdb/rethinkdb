@@ -137,6 +137,13 @@ commands:
           js: r.table('marvel').orderBy('enemiesVanquished', 'damselsSaved').run(conn, callback)
           py: r.table('marvel').order_by('enemies_vanquished', 'damsels_saved').run(conn)
           rb: r.table('marvel').order_by(:enemies_vanquished, :damsels_saved).run(conn)
+      - description: Indexes can be used to perform more efficient orderings.
+          Notice that the index ordering always has highes precedence. Thus the
+          following example is equivalent to the one above.
+        code:
+          js: r.table('marvel').orderBy('damselsSaved', {index:'enemiesVanquished'}).run(conn, callback)
+          py: r.table('marvel').order_by('damsels_saved', index='enemies_vanquished').run(conn)
+          rb: r.table('marvel').order_by(:enemies_vanquished, :index => :damsels_saved).run(conn)
       - description: Let's lead with our best vanquishers by specify descending ordering.
         code:
           js: |-
