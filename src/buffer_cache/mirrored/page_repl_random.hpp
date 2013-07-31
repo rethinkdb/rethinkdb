@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "buffer_cache/types.hpp"
+#include "containers/segmented_vector.hpp"
 #include "config/args.hpp"
 
 /* The random page replacement algorithm needs to be able to quickly choose a random
@@ -72,7 +73,7 @@ public:
 private:
     size_t unload_threshold;
     cache_t *cache;
-    std::vector<evictable_t *> array;
+    segmented_vector_t<evictable_t *> array;
 };
 
 #endif  // BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_

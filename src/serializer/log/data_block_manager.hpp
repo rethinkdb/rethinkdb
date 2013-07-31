@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_
 #define SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_
 
@@ -6,9 +6,9 @@
 
 #include "arch/types.hpp"
 #include "containers/bitset.hpp"
-#include "containers/infinite_array.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/scoped.hpp"
+#include "containers/two_level_array.hpp"
 #include "perfmon/types.hpp"
 #include "serializer/log/config.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -166,7 +166,7 @@ private:
 
     /* Contains a pointer to every gc_entry_t, regardless of what its current state
        is */
-    infinite_array_t<gc_entry_t *> entries;
+    two_level_array_t<gc_entry_t *> entries;
 
     /* Contains every extent in the gc_entry_t::state_reconstructing state */
     intrusive_list_t<gc_entry_t> reconstructed_extents;

@@ -2,8 +2,7 @@
 #ifndef SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 #define SERIALIZER_LOG_LBA_IN_MEMORY_INDEX_HPP_
 
-
-#include "containers/infinite_array.hpp"
+#include "containers/two_level_array.hpp"
 #include "config/args.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/lba/disk_format.hpp"
@@ -21,11 +20,11 @@ struct index_block_info_t {
           recency(_recency),
           ser_block_size(_ser_block_size) { }
 
-
-
+    // For two_level_array_t.
     bool operator==(const index_block_info_t &other) const {
-        return offset == other.offset && recency == other.recency
-            && ser_block_size == other.ser_block_size;
+        return offset == other.offset &&
+            recency == other.recency &&
+            ser_block_size == other.ser_block_size;
     }
 
     flagged_off64_t offset;
@@ -33,8 +32,10 @@ struct index_block_info_t {
     uint32_t ser_block_size;
 } __attribute__((__packed__));
 
+
+
 class in_memory_index_t {
-    infinite_array_t<index_block_info_t> infos_;
+    two_level_array_t<index_block_info_t> infos_;
     block_id_t end_block_id_;
 
 public:

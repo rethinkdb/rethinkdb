@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_FIFO_CHECKER_HPP_
 #define CONCURRENCY_FIFO_CHECKER_HPP_
 
@@ -163,9 +163,6 @@ public:
     plain_sink_t();
 
     void check_out(order_token_t token);
-
-    // Used for infinite_array_t.
-    bool operator==(const plain_sink_t &other) const;
 #else
     plain_sink_t() { }
 

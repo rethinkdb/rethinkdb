@@ -13,7 +13,6 @@
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "containers/scoped.hpp"
-#include "containers/infinite_array.hpp"
 #include "perfmon/types.hpp"
 #include "repli_timestamp.hpp"
 
@@ -156,9 +155,9 @@ private:
     friend class scc_buf_lock_t<inner_cache_t>;
 
     /* CRC checking stuff */
-    infinite_array_t<crc_t> crc_map;
+    two_level_array_t<crc_t> crc_map;
     /* order checking stuff */
-    infinite_array_t<plain_sink_t> sink_map;
+    two_level_nevershrink_array_t<plain_sink_t> sink_map;
 };
 
 #include "buffer_cache/semantic_checking.tcc"
