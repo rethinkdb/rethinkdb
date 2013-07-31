@@ -119,6 +119,57 @@ const boost::local_time::time_zone_ptr utc(
     new boost::local_time::posix_time_zone("UTC"));
 const boost::local_time::local_date_time epoch(raw_epoch, utc);
 
+// Boost's documentation on what errors may be thrown where is somewhat lacking,
+// so this is probably a slight superset of what we actually need to handle.  We
+// may also need to catch the following exceptions in the future, but I omitted
+// them because we never seem to encounter them and they might catch legitimate
+// non-boost exceptions as well.
+// * std::out_of_range
+// * std::invalid_argument
+// * std::runtime_error
+#define HANDLE_BOOST_ERRORS(TARGET)                                     \
+      catch (const boost::gregorian::bad_year &e) {                     \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::gregorian::bad_month &e) {                    \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::gregorian::bad_day_of_month &e) {             \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::gregorian::bad_weekday &e) {                  \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::local_time::bad_offset &e) {                  \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::local_time::bad_adjustment &e) {              \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::local_time::time_label_invalid &e) {          \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::local_time::dst_not_valid &e) {               \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::local_time::ambiguous_result &e) {            \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::local_time::data_not_accessible &e) {         \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const boost::local_time::bad_field_count &e) {             \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    } catch (const std::ios_base::failure &e) {                         \
+        rfail_target(TARGET, base_exc_t::GENERIC,                       \
+                     "Error in time logic: %s.", e.what());             \
+    }                                                                   \
+
+// Produces a datum_exc_t instead
+const datum_t dummy_datum;
+#define HANDLE_BOOST_ERRORS_NO_TARGET HANDLE_BOOST_ERRORS(&dummy_datum)
+
 bool hours_valid(char l, char r) {
     return ((l == '0' || l == '1') && ('0' <= r && r <= '9'))
         || ((l == '2') && ('0' <= r && r <= '4'));
@@ -180,19 +231,21 @@ counted_t<const datum_t> boost_to_time(time_t t, const rcheckable_t *target) {
 
 counted_t<const datum_t> iso8601_to_time(
     const std::string &s, const rcheckable_t *target) {
-    time_t t(boost::date_time::not_a_date_time);
-    for (size_t i = 0; i < num_input_formats; ++i) {
-        std::istringstream ss(s);
-        ss.imbue(input_formats[i]);
-        ss >> t;
-        if (t != time_t(boost::date_time::not_a_date_time)) {
-            break;
+    try {
+        time_t t(boost::date_time::not_a_date_time);
+        for (size_t i = 0; i < num_input_formats; ++i) {
+            std::istringstream ss(s);
+            ss.imbue(input_formats[i]);
+            ss >> t;
+            if (t != time_t(boost::date_time::not_a_date_time)) {
+                break;
+            }
         }
-    }
-    rcheck_target(target, base_exc_t::GENERIC,
-                  t != time_t(boost::date_time::not_a_date_time),
-                  strprintf("Failed to parse `%s` as ISO 8601 time.", s.c_str()));
-    return boost_to_time(t, target);
+        rcheck_target(target, base_exc_t::GENERIC,
+                      t != time_t(boost::date_time::not_a_date_time),
+                      strprintf("Failed to parse `%s` as ISO 8601 time.", s.c_str()));
+        return boost_to_time(t, target);
+    } HANDLE_BOOST_ERRORS(target);
 }
 
 const int64_t sec_incr = INT_MAX;
@@ -236,14 +289,16 @@ const std::locale tz_format =
 const std::locale no_tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F"));
 std::string time_to_iso8601(counted_t<const datum_t> d) {
-    std::ostringstream ss;
-    if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
-        ss.imbue(tz_format);
-    } else {
-        ss.imbue(no_tz_format);
-    }
-    ss << time_to_boost(d);
-    return ss.str();
+    try {
+        std::ostringstream ss;
+        if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
+            ss.imbue(tz_format);
+        } else {
+            ss.imbue(no_tz_format);
+        }
+        ss << time_to_boost(d);
+        return ss.str();
+    } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
 double time_to_epoch_time(counted_t<const datum_t> d) {
@@ -251,8 +306,10 @@ double time_to_epoch_time(counted_t<const datum_t> d) {
 }
 
 counted_t<const datum_t> time_now() {
-    ptime_t t = boost::posix_time::microsec_clock::universal_time();
-    return make_time((t - raw_epoch).total_microseconds() / 1000000.0);
+    try {
+        ptime_t t = boost::posix_time::microsec_clock::universal_time();
+        return make_time((t - raw_epoch).total_microseconds() / 1000000.0);
+    } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
 int time_cmp(const datum_t &x, const datum_t &y) {
@@ -347,16 +404,18 @@ counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
 counted_t<const datum_t> make_time(
     int year, int month, int day, int hours, int minutes, double seconds,
     std::string tz, const rcheckable_t *target) {
-    ptime_t ptime(date_t(year, month, day), dur_t(hours, minutes, 0));
-    add_seconds_to_ptime(&ptime, seconds);
-    tz = sanitize_tz(tz, target);
-    if (tz != "") {
-        boost::local_time::time_zone_ptr zone(
-            new boost::local_time::posix_time_zone(tz));
-        return boost_to_time(time_t(ptime, zone), target);
-    } else {
-        return boost_to_time(time_t(ptime, utc), target);
-    }
+    try {
+        ptime_t ptime(date_t(year, month, day), dur_t(hours, minutes, 0));
+        add_seconds_to_ptime(&ptime, seconds);
+        tz = sanitize_tz(tz, target);
+        if (tz != "") {
+            boost::local_time::time_zone_ptr zone(
+                new boost::local_time::posix_time_zone(tz));
+            return boost_to_time(time_t(ptime, zone), target);
+        } else {
+            return boost_to_time(time_t(ptime, utc), target);
+        }
+    } HANDLE_BOOST_ERRORS(target);
 }
 
 counted_t<const datum_t> time_add(counted_t<const datum_t> x,
@@ -403,28 +462,30 @@ counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
 }
 
 double time_portion(counted_t<const datum_t> time, time_component_t c) {
-    ptime_t ptime = time_to_boost(time).local_time();
-    switch (c) {
-    case YEAR: return ptime.date().year();
-    case MONTH: return ptime.date().month();
-    case DAY: return ptime.date().day();
-    case DAY_OF_WEEK: {
-        // We use the ISO 8601 convention which counts from 1 and starts with Monday.
-        int d = ptime.date().day_of_week();
-        return d == 0 ? 7 : d;
-    } unreachable();
-    case DAY_OF_YEAR: return ptime.date().day_of_year();
-    case HOURS: return ptime.time_of_day().hours();
-    case MINUTES: return ptime.time_of_day().minutes();
-    case SECONDS: {
-        dur_t dur = ptime.time_of_day();
-        double microsec = dur.total_microseconds();
-        double sec = dur.total_seconds();
-        return dur.seconds() + ((microsec - sec * 1000000) / 1000000.0);
-    } unreachable();
-    default: unreachable();
-    }
-    unreachable();
+    try {
+        ptime_t ptime = time_to_boost(time).local_time();
+        switch (c) {
+        case YEAR: return ptime.date().year();
+        case MONTH: return ptime.date().month();
+        case DAY: return ptime.date().day();
+        case DAY_OF_WEEK: {
+            // We use the ISO 8601 convention which counts from 1 and starts with Monday.
+            int d = ptime.date().day_of_week();
+            return d == 0 ? 7 : d;
+        } unreachable();
+        case DAY_OF_YEAR: return ptime.date().day_of_year();
+        case HOURS: return ptime.time_of_day().hours();
+        case MINUTES: return ptime.time_of_day().minutes();
+        case SECONDS: {
+            dur_t dur = ptime.time_of_day();
+            double microsec = dur.total_microseconds();
+            double sec = dur.total_seconds();
+            return dur.seconds() + ((microsec - sec * 1000000) / 1000000.0);
+        } unreachable();
+        default: unreachable();
+        }
+        unreachable();
+    } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
 time_t boost_date(time_t boost_time) {
@@ -435,13 +496,18 @@ time_t boost_date(time_t boost_time) {
 
 counted_t<const datum_t> time_date(counted_t<const datum_t> time,
                                    const rcheckable_t *target) {
-    return boost_to_time(boost_date(time_to_boost(time)), target);
+    try {
+        return boost_to_time(boost_date(time_to_boost(time)), target);
+    } HANDLE_BOOST_ERRORS(target);
 }
 
 counted_t<const datum_t> time_of_day(counted_t<const datum_t> time) {
-    time_t boost_time = time_to_boost(time);
-    double sec = (boost_time - boost_date(boost_time)).total_microseconds() / 1000000.0;
-    return make_counted<const datum_t>(sec);
+    try {
+        time_t boost_time = time_to_boost(time);
+        double sec =
+            (boost_time - boost_date(boost_time)).total_microseconds() / 1000000.0;
+        return make_counted<const datum_t>(sec);
+    } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
 } //namespace pseudo

@@ -1,0 +1,26 @@
+desc: Test basic time arithmetic
+tests:
+  - rb: r.epoch_time(1).to_epoch_time
+    ot: 1
+  - rb: r.epoch_time(-1).to_epoch_time
+    ot: -1
+  - rb: r.epoch_time(1.5555555).to_epoch_time
+    ot: (1.5555555)
+# Any manipulation truncates to 6 digits
+  - rb: r.epoch_time(1.5555555).to_iso8601
+    ot: ("1970-01-01T00:00:01.555555")
+  - rb: r.epoch_time(1.5555555).seconds
+    ot: (1.555555)
+
+  - rb: r.epoch_time(253430000000).year
+    ot: (10000)
+  - rb: r.epoch_time(253440000000).year
+    ot: err("RqlRuntimeError", "Error in time logic:"" Year is out of valid range:"" 1400..10000.", [])
+  - rb: r.epoch_time(253440000000).to_epoch_time
+    ot: (253440000000)
+  - rb: r.epoch_time(-17980000000).year
+    ot: (1400)
+  - rb: r.epoch_time(-17990000000).year
+    ot: err("RqlRuntimeError", "Error in time logic:"" Year is out of valid range:"" 1400..10000.", [])
+  - rb: r.epoch_time(-17990000000).to_epoch_time
+    ot: (-17990000000)
