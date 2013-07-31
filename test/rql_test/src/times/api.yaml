@@ -87,7 +87,6 @@ tests:
   - cd: (r.now - r.now)
     ot: 0
 
-
   - cd: r([r.monday, r.tuesday, r.wednesday, r.thursday, r.friday, r.saturday, r.sunday])
     ot: ([1, 2, 3, 4, 5, 6, 7])
   - cd: r([r.january, r.february, r.march, r.april, r.may, r.june,
