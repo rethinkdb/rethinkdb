@@ -19,21 +19,21 @@ public:
     mock_file_t(mode_t mode, std::vector<char> *data);
     ~mock_file_t();
 
-    uint64_t get_size();
-    void set_size(size_t size);
-    void set_size_at_least(size_t size);
+    int64_t get_size();
+    void set_size(int64_t size);
+    void set_size_at_least(int64_t size);
 
-    void read_async(size_t offset, size_t length, void *buf,
+    void read_async(int64_t offset, size_t length, void *buf,
                     file_account_t *account, linux_iocallback_t *cb);
-    void write_async(size_t offset, size_t length, const void *buf,
+    void write_async(int64_t offset, size_t length, const void *buf,
                      file_account_t *account, linux_iocallback_t *cb,
                      wrap_in_datasyncs_t wrap_in_datasyncs);
-    void writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
+    void writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                       file_account_t *account, linux_iocallback_t *cb);
 
 
-    void read_blocking(size_t offset, size_t length, void *buf);
-    void write_blocking(size_t offset, size_t length, const void *buf);
+    void read_blocking(int64_t offset, size_t length, void *buf);
+    void write_blocking(int64_t offset, size_t length, const void *buf);
 
     void *create_account(UNUSED int priority, UNUSED int outstanding_requests_limit) {
         // We don't care about accounts.  Return an arbitrary non-null pointer.

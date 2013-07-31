@@ -112,20 +112,21 @@ public:
     file_t() { }
 
     virtual ~file_t() { }
-    virtual uint64_t get_size() = 0;
-    virtual void set_size(size_t size) = 0;
-    virtual void set_size_at_least(size_t size) = 0;
+    virtual int64_t get_size() = 0;
+    virtual void set_size(int64_t size) = 0;
+    virtual void set_size_at_least(int64_t size) = 0;
 
-    virtual void read_async(size_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb) = 0;
-    virtual void write_async(size_t offset, size_t length, const void *buf,
+    virtual void read_async(int64_t offset, size_t length, void *buf,
+                            file_account_t *account, linux_iocallback_t *cb) = 0;
+    virtual void write_async(int64_t offset, size_t length, const void *buf,
                              file_account_t *account, linux_iocallback_t *cb,
                              wrap_in_datasyncs_t wrap_in_datasyncs) = 0;
     // writev_async doesn't provide the atomicity guarantees of writev.
-    virtual void writev_async(size_t offset, size_t length, scoped_array_t<iovec> &&bufs,
+    virtual void writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                               file_account_t *account, linux_iocallback_t *cb) = 0;
 
-    virtual void read_blocking(size_t offset, size_t length, void *buf) = 0;
-    virtual void write_blocking(size_t offset, size_t length, const void *buf) = 0;
+    virtual void read_blocking(int64_t offset, size_t length, void *buf) = 0;
+    virtual void write_blocking(int64_t offset, size_t length, const void *buf) = 0;
 
     virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
     virtual void destroy_account(void *account) = 0;
