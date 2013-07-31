@@ -32,18 +32,30 @@ void mock_file_t::set_size_at_least(int64_t size) {
 
 void mock_file_t::read_async(int64_t offset, size_t length, void *buf,
                              UNUSED file_account_t *account, linux_iocallback_t *cb) {
-    read_blocking(offset, length, buf);
-    // TODO: This is to silence the serializer disk_structure.cc reader_t
-    // use-after-free bug: https://github.com/rethinkdb/rethinkdb/issues/738
+    guarantee(mode_ & mode_read);
+    verify_aligned_file_access(data_->size(), offset, length, buf);
+    guarantee(!(offset > static_cast<int64_t>(SIZE_MAX - length)
+                || offset + length > data_->size()));
+    memcpy(buf, data_->data() + offset, length);
+
+    // TODO: This spawn_sometime call is to silence the serializer
+    // disk_structure.cc reader_t use-after-free bug:
+    // https://github.com/rethinkdb/rethinkdb/issues/738
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
 }
 
 void mock_file_t::write_async(int64_t offset, size_t length, const void *buf,
                               UNUSED file_account_t *account, linux_iocallback_t *cb,
                               UNUSED wrap_in_datasyncs_t wrap_in_datasyncs) {
-    write_blocking(offset, length, buf);
-    // TODO: This is to silence the serializer disk_structure.cc reader_t
-    // use-after-free bug: https://github.com/rethinkdb/rethinkdb/issues/738
+    guarantee(mode_ & mode_write);
+    verify_aligned_file_access(data_->size(), offset, length, buf);
+    guarantee(!(offset > static_cast<int64_t>(SIZE_MAX - length)
+                || offset + length > data_->size()));
+    memcpy(data_->data() + offset, buf, length);
+
+    // TODO: This spawn_sometime call is to silence the serializer
+    // disk_structure.cc reader_t use-after-free bug:
+    // https://github.com/rethinkdb/rethinkdb/issues/738
     coro_t::spawn_sometime(std::bind(&linux_iocallback_t::on_io_complete, cb));
 }
 
@@ -55,22 +67,6 @@ void mock_file_t::writev_async(int64_t offset, size_t length, scoped_array_t<iov
     fill_bufs_from_source(bufvec, 1, bufs.data(), bufs.size(), 0);
 
     write_async(offset, length, buf.data(), account, cb, NO_DATASYNCS);
-}
-
-void mock_file_t::read_blocking(int64_t offset, size_t length, void *buf) {
-    guarantee(mode_ & mode_read);
-    verify_aligned_file_access(data_->size(), offset, length, buf);
-    guarantee(!(offset > static_cast<int64_t>(SIZE_MAX - length)
-                || offset + length > data_->size()));
-    memcpy(buf, data_->data() + offset, length);
-}
-
-void mock_file_t::write_blocking(int64_t offset, size_t length, const void *buf) {
-    guarantee(mode_ & mode_write);
-    verify_aligned_file_access(data_->size(), offset, length, buf);
-    guarantee(!(offset > static_cast<int64_t>(SIZE_MAX - length)
-                || offset + length > data_->size()));
-    memcpy(data_->data() + offset, buf, length);
 }
 
 bool mock_file_t::coop_lock_and_check() {

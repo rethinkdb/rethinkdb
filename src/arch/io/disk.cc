@@ -310,27 +310,6 @@ void linux_file_t::writev_async(int64_t offset, size_t length,
 
 }
 
-void linux_file_t::read_blocking(int64_t offset, size_t length, void *buf) {
-    CT_ASSERT(sizeof(off_t) == sizeof(int64_t));
-    verify_aligned_file_access(file_size, offset, length, buf);
-    ssize_t res;
-    do {
-        res = pread(fd.get(), buf, length, offset);
-    } while (res == -1 && errno == EINTR);
-
-    guarantee(size_t(res) == length, "Blocking read from file failed.");
-}
-
-void linux_file_t::write_blocking(int64_t offset, size_t length, const void *buf) {
-    verify_aligned_file_access(file_size, offset, length, buf);
-    ssize_t res;
-    do {
-        res = pwrite(fd.get(), buf, length, offset);
-    } while (res == -1 && errno == EINTR);
-
-    guarantee(size_t(res) == length, "Blocking write from file failed.");
-}
-
 bool linux_file_t::coop_lock_and_check() {
     if (flock(fd.get(), LOCK_EX | LOCK_NB) != 0) {
         rassert(errno == EWOULDBLOCK);

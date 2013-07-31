@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef UNITTEST_MOCK_FILE_HPP_
 #define UNITTEST_MOCK_FILE_HPP_
 
@@ -30,9 +30,6 @@ public:
                      wrap_in_datasyncs_t wrap_in_datasyncs);
     void writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                       file_account_t *account, linux_iocallback_t *cb);
-
-    void read_blocking(int64_t offset, size_t length, void *buf);
-    void write_blocking(int64_t offset, size_t length, const void *buf);
 
     void *create_account(UNUSED int priority, UNUSED int outstanding_requests_limit) {
         // We don't care about accounts.  Return an arbitrary non-null pointer.

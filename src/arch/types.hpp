@@ -125,9 +125,6 @@ public:
     virtual void writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                               file_account_t *account, linux_iocallback_t *cb) = 0;
 
-    virtual void read_blocking(int64_t offset, size_t length, void *buf) = 0;
-    virtual void write_blocking(int64_t offset, size_t length, const void *buf) = 0;
-
     virtual void *create_account(int priority, int outstanding_requests_limit) = 0;
     virtual void destroy_account(void *account) = 0;
 
