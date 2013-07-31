@@ -37,11 +37,11 @@ private:
     };
     std::vector<chunk_t *> chunks;
 
-    static size_t chunk_for_key(key_t key) {
+    static size_t chunk_for_key(size_t key) {
         size_t chunk_id = key / CHUNK_SIZE;
         return chunk_id;
     }
-    static size_t index_for_key(key_t key) {
+    static size_t index_for_key(size_t key) {
         return key % CHUNK_SIZE;
     }
 
@@ -110,11 +110,11 @@ private:
     };
     std::vector<chunk_t *> chunks;
 
-    static size_t chunk_for_key(key_t key) {
+    static size_t chunk_for_key(size_t key) {
         size_t chunk_id = key / CHUNK_SIZE;
         return chunk_id;
     }
-    static size_t index_for_key(key_t key) {
+    static size_t index_for_key(size_t key) {
         return key % CHUNK_SIZE;
     }
 
