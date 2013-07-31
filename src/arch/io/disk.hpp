@@ -94,7 +94,7 @@ void crash_due_to_inaccessible_database_file(const char *path, file_open_result_
 
 // Runs some assertios to make sure that we're aligned to DEVICE_BLOCK_SIZE, not overrunning the
 // file size, and that buf is not null.
-void verify_aligned_file_access(size_t file_size, int64_t offset, size_t length, const void *buf);
+void verify_aligned_file_access(int64_t file_size, int64_t offset, size_t length, const void *buf);
 
 // Makes blocking syscalls.  Upon error, returns the errno value.
 int perform_datasync(fd_t fd);

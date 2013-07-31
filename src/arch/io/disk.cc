@@ -276,10 +276,10 @@ linux_file_t::~linux_file_t() {
     // scoped_fd_t's destructor takes care of close()ing the file
 }
 
-void verify_aligned_file_access(DEBUG_VAR size_t file_size, DEBUG_VAR int64_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
+void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t offset, DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
-    rassert(offset + length <= file_size);
-    rassert(divides(DEVICE_BLOCK_SIZE, intptr_t(buf)));
+    rassert(static_cast<int64_t>(offset + length) <= file_size);
+    rassert(divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf)));
     rassert(divides(DEVICE_BLOCK_SIZE, offset));
     rassert(divides(DEVICE_BLOCK_SIZE, length));
 }
