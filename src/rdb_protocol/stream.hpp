@@ -132,6 +132,7 @@ private:
     void pop();
     rdb_protocol_t::rget_read_t get_rget();
     void read_more();
+    bool check_and_set_key_in_sorting_buffer(const std::string &key);
 
     /* Returns true if the passed value is new. */
     bool check_and_set_last_key(const std::string &key);

@@ -29,6 +29,9 @@ tests:
     - cd: tbl.index_create('a')
       ot: ({'created':1})
 
+    - py: "tbl.index_create('truncated_a', lambda x: ['a' * 300, x['a']])"
+      ot: ({'created':1})
+
     - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
       js: |
         tbl2.insert(function(){
@@ -131,6 +134,9 @@ tests:
     - py: tbl.order_by('id', index='a').nth(0)
       js: tbl.orderBy('id', {index:'a'}).nth(0)
       rb: tbl.order_by('id', :index => :a).nth(0)
+      ot: ({'id':0,'a':0})
+
+    - py: tbl.order_by('id', index='truncated_a').nth(0)
       ot: ({'id':0,'a':0})
 
     - py: "tbl.order_by(lambda x: [x['a'], x['id']])[0]"

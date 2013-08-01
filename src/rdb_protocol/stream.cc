@@ -247,15 +247,10 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
                      * buffer is. Time to sort the sorting buffer. */
                     break;
                 }
-            } else if (sorting_buffer.empty() ||
-                       skey == key_in_sorting_buffer) {
+            } else if (check_and_set_key_in_sorting_buffer(skey)) {
                 /* We have a truncated key and the sorting buffer is either
                  * empty or contains only keys which could be greater than this
                  * one. Put the data in to the sorting buffer. */
-                if (sorting_buffer.empty()) {
-                    key_in_sorting_buffer = skey;
-                }
-
                 pop();
                 sorting_buffer.push_back(*item);
                 rcheck_target(parent, ql::base_exc_t::GENERIC,
@@ -278,6 +273,7 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
          * return so we return nothing. */
         return std::make_pair(CONTINUE, boost::shared_ptr<scoped_cJSON_t>());
     } else {
+        debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
         if (sorting == ASCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
@@ -419,6 +415,22 @@ void batched_rget_stream_t::read_more() {
             rfail_toplevel(ql::base_exc_t::GENERIC,
                            "cannot perform read: %s", e.what());
         }
+    }
+}
+
+bool batched_rget_stream_t::check_and_set_key_in_sorting_buffer(const std::string &key) {
+    if (sorting_buffer.empty()) {
+        key_in_sorting_buffer = key;
+        return true;
+    } else if (strncmp(key_in_sorting_buffer.data(), key.data(),
+               std::min(key_in_sorting_buffer.size(), key.size()))
+                == 0) {
+        if (key.size() > key_in_sorting_buffer.size()) {
+            key_in_sorting_buffer = key;
+        }
+        return true;
+    } else {
+        return false;
     }
 }
 

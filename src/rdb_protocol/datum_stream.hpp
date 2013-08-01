@@ -302,6 +302,7 @@ private:
                 }
 
                 if (d.first == query_language::START && !data.empty()) {
+                    //debugf("Got a new value:\n %s\n", d.second->print().c_str());
                     next_element = d.second;
                     break;
                 } else {
@@ -313,6 +314,9 @@ private:
                 }
             }
         }
+        //for (auto it = data.begin(); it != data.end(); ++it) {
+        //    debugf("Datum:\n%s\n", (*it)->print().c_str());
+        //}
         std::sort(data.begin(), data.end(), lt_cmp);
     }
     T lt_cmp;
