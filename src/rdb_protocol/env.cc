@@ -18,24 +18,6 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
-void env_t::cache_js_func(const std::string &s, uint64_t timeout_ms, counted_t<val_t> f) {
-    if (js_funcs.size() >= cache_size) {
-        auto oldest_func = js_funcs.begin();
-        for (auto it = ++js_funcs.begin(); it != js_funcs.end(); ++it) {
-            if (it->second.first < oldest_func->second.first) {
-                oldest_func = it;
-            }
-        }
-        js_funcs.erase(oldest_func);
-    }
-    js_funcs.insert(std::make_pair(std::make_pair(s, timeout_ms), std::make_pair(current_microtime(), f)));
-}
-
-counted_t<val_t> env_t::get_js_func(const std::string &s, uint64_t timeout_ms) {
-    auto it = js_funcs.find(std::make_pair(s, timeout_ms));
-    return (it == js_funcs.end()) ? counted_t<val_t>() : it->second.second;
-}
-
 bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
     protob_t<Term> arg = make_counted_term();
@@ -204,12 +186,12 @@ void env_t::join_and_wait_to_propagate(
     }
 }
 
-boost::shared_ptr<js_runner_t> env_t::get_js_runner() {
+js_runner_t *env_t::get_js_runner() {
     r_sanity_check(extproc_pool != NULL);
-    if (!js_runner->connected()) {
-        js_runner->begin(extproc_pool, interruptor);
+    if (!js_runner.connected()) {
+        js_runner.begin(extproc_pool, interruptor);
     }
-    return js_runner;
+    return &js_runner;
 }
 
 env_t::env_t(
@@ -224,7 +206,6 @@ env_t::env_t(
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
     _semilattice_metadata,
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-    boost::shared_ptr<js_runner_t> _js_runner,
     signal_t *_interruptor,
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
@@ -238,13 +219,9 @@ env_t::env_t(
     databases_semilattice_metadata(_databases_semilattice_metadata),
     semilattice_metadata(_semilattice_metadata),
     directory_read_manager(_directory_read_manager),
-    js_runner(_js_runner),
     DEBUG_ONLY(eval_callback(NULL), )
     interruptor(_interruptor),
-    this_machine(_this_machine) {
-
-    guarantee(js_runner);
-}
+    this_machine(_this_machine) { }
 
 env_t::env_t(signal_t *_interruptor)
   : uuid(generate_uuid()),

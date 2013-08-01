@@ -19,7 +19,10 @@ namespace ql {
 
 class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
 public:
-    func_t(env_t *env, js_id_t id, uint64_t timeout_ms, counted_t<term_t> parent);
+    func_t(env_t *env,
+           const std::string &_js_source,
+           uint64_t timeout_ms,
+           counted_t<term_t> parent);
     func_t(env_t *env, protob_t<const Term> _source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
@@ -74,7 +77,7 @@ private:
     counted_t<term_t> js_parent;
     env_t *js_env;
     boost::shared_ptr<js_runner_t> js_runner;
-    js_scoped_id_t js_id;
+    std::string js_source;
     uint64_t js_timeout_ms;
 };
 

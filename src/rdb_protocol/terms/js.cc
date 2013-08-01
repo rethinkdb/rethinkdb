@@ -29,17 +29,13 @@ private:
         }
 
         std::string source = arg(0)->as_datum()->as_str();
-        if (counted_t<val_t> cached_func = env->get_js_func(source, timeout_ms)) {
-            return cached_func;
-        }
 
         // JS runner configuration is limited to setting an execution timeout.
         js_runner_t::req_config_t config;
         config.timeout_ms = timeout_ms;
 
-        boost::shared_ptr<js_runner_t> js_runner = env->get_js_runner();
         try {
-            js_result_t result = js_runner->eval(source, config);
+            js_result_t result = env->get_js_runner()->eval(source, config);
             return boost::apply_visitor(
                 js_result_visitor_t(env, source, timeout_ms, this->counted_from_this()),
                 result);

@@ -37,25 +37,6 @@ private:
     std::string info;
 };
 
-// Useful for managing ID lifetimes.
-class js_scoped_id_t {
-public:
-    explicit js_scoped_id_t(js_runner_t *_parent, js_id_t _id = INVALID_ID);
-    ~js_scoped_id_t();
-
-    bool empty() const;
-    js_id_t get() const;
-
-    js_id_t release();
-    void reset(js_id_t _id = INVALID_ID);
-
-private:
-    js_runner_t *parent;
-    js_id_t id;
-
-    DISABLE_COPYING(js_scoped_id_t);
-};
-
 // A handle to a running "javascript evaluator" job.
 class js_runner_t {
 public:
@@ -77,21 +58,23 @@ public:
                      const req_config_t &config);
 
     // Calls a previously compiled function.
-    js_result_t call(js_id_t id,
+    js_result_t call(const std::string &source,
                      const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
                      const req_config_t &config);
 
+private:
+    static const size_t CACHE_SIZE;
+
+    void cache_id(js_id_t id, const std::string &source);
+    void trim_cache();
+
     // Invalidates an ID, dereferencing the object it refers to in the
     // javascript evaluator process.
-    void release(js_id_t id);
+    void release_id(js_id_t id);
 
-private:
-    void note_id(js_id_t id);
 
     class job_data_t;
-
     scoped_ptr_t<job_data_t> job_data;
-
 
     DISABLE_COPYING(js_runner_t);
 };

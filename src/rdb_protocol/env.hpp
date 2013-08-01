@@ -29,15 +29,6 @@ public:
     const uuid_u uuid;
 
 public:
-    // Javascript functions are cached based on their source line and the timeout optarg
-    void cache_js_func(const std::string &s, uint64_t timeout_ms, counted_t<val_t> f);
-    counted_t<val_t> get_js_func(const std::string &s, uint64_t timeout_ms);
-private:
-    static const size_t cache_size = 100;
-    std::map<std::pair<std::string, uint64_t>,
-             std::pair<microtime_t, counted_t<val_t> > > js_funcs;
-
-public:
     // returns whether or not there was a key conflict
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
@@ -115,7 +106,6 @@ public:
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-        boost::shared_ptr<js_runner_t> _js_runner,
         signal_t *_interruptor,
         uuid_u _this_machine,
         const std::map<std::string, wire_func_t> &_optargs);
@@ -146,25 +136,12 @@ public:
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
     }
 private:
-    // Ideally this would be a scoped_ptr_t<js_runner_t>. We used to copy
-    // `runtime_environment_t` to capture scope, which is why this is a
-    // `boost::shared_ptr`. But now we pass scope around separately, so this
-    // could be changed.
-    //
-    // Note that js_runner is "lazily initialized": we only call
-    // js_runner->begin() once we know we need to evaluate javascript. This
-    // means we only allocate a worker process to queries that actually need
-    // javascript execution.
-    //
-    // In the future we might want to be even finer-grained than this, and
-    // release worker jobs once we know we no longer need JS execution, or
-    // multiplex queries onto worker processes.
-    boost::shared_ptr<js_runner_t> js_runner;
+    js_runner_t js_runner;
 
 public:
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
-    boost::shared_ptr<js_runner_t> get_js_runner();
+    js_runner_t *get_js_runner();
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {

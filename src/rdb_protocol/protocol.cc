@@ -529,7 +529,6 @@ public:
                      ->get_watchable(),
                  ctx->cluster_metadata,
                  NULL,
-                 boost::make_shared<js_runner_t>(),
                  interruptor,
                  ctx->machine_id,
                  std::map<std::string, ql::wire_func_t>())
@@ -1231,7 +1230,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                    ->get_watchable(),
                ctx->cluster_metadata,
                NULL,
-               boost::make_shared<js_runner_t>(),
                &interruptor,
                ctx->machine_id,
                std::map<std::string, ql::wire_func_t>())
@@ -1385,7 +1383,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                    get_thread_id()].get()->get_watchable(),
                ctx->cluster_metadata,
                0,
-               boost::make_shared<js_runner_t>(),
                &interruptor,
                ctx->machine_id,
                std::map<std::string, ql::wire_func_t>()),

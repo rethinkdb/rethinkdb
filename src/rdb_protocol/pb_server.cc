@@ -47,7 +47,6 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
 
     bool response_needed = true;
     try {
-        boost::shared_ptr<js_runner_t> js_runner = boost::make_shared<js_runner_t>();
         int thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
         scoped_ptr_t<ql::env_t> env(
@@ -56,7 +55,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
                 ctx->cross_thread_database_watchables[thread]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
-                js_runner, interruptor, ctx->machine_id,
+                interruptor, ctx->machine_id,
                 std::map<std::string, ql::wire_func_t>()));
         // `ql::run` will set the status code
         ql::run(q, &env, response_out, stream_cache2, &response_needed);

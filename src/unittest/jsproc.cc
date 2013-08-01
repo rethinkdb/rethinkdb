@@ -49,9 +49,9 @@ void run_call_timeout_test() {
 
     config.timeout_ms = 10;
 
-    ASSERT_THROW(js_runner.call(*any_id,
-                                 std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
-                                 config), interrupted_exc_t);
+    ASSERT_THROW(js_runner.call(loop_source,
+                                std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
+                                config), interrupted_exc_t);
     ASSERT_FALSE(js_runner.connected());
 }
 
@@ -106,7 +106,7 @@ void run_eval_and_call_test() {
     ASSERT_TRUE(js_id != NULL);
 
     // Call the function
-    result = js_runner.call(*js_id,
+    result = js_runner.call(source_code,
                             std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
                             config);
     ASSERT_TRUE(js_runner.connected());
@@ -144,7 +144,7 @@ void run_broken_function_test() {
     ASSERT_TRUE(js_id != NULL);
 
     // Call the function
-    result = js_runner.call(*js_id,
+    result = js_runner.call(source_code,
                             std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
                             config);
     ASSERT_TRUE(js_runner.connected());

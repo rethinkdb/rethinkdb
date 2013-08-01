@@ -179,7 +179,6 @@ private:
     friend class instance_t;
 
     uuid_u machine_id;
-    boost::shared_ptr<js_runner_t> js_runner;
     cluster_semilattice_metadata_t metadata;
     extproc_spawner_t extproc_spawner;
 

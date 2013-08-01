@@ -186,8 +186,7 @@ mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_
 }
 
 test_rdb_env_t::test_rdb_env_t() :
-    machine_id(generate_uuid()), // Not like we actually care
-    js_runner(new js_runner_t())
+    machine_id(generate_uuid()) // Not like we actually care
 {
     machine_semilattice_metadata_t machine;
     name_string_t machine_name;
@@ -270,7 +269,6 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            databases_metadata,
                            dummy_semilattice_controller.get_view(),
                            NULL,
-                           test_env->js_runner,
                            &interruptor,
                            test_env->machine_id,
                            std::map<std::string, ql::wire_func_t>()));

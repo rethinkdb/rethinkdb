@@ -5,7 +5,7 @@ YAML_FILES=$(shell find $(SRC) -name '*.yaml')
 DRIVER_FILES=$(wildcard $(DRIVERS)/*)
 TEST_FILES=$(patsubst $(DRIVERS)/driver.%,build/test.%,$(DRIVER_FILES))
 
-BUILD_DIR='../../build/release'
+BUILD_DIR='../../build/debug'
 TEST_DEFAULT_PORT=0
 SHARD=0
 TEST=.*
