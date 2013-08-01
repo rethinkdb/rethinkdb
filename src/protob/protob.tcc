@@ -98,9 +98,20 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
     int chosen_thread = (next_thread++) % get_num_db_threads();
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
-    context_t ctx;
+
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->make_overcomplicated(&conn);
+
+#ifdef __linux
+    linux_event_watcher_t *ew = conn->get_event_watcher();
+    linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
+    wait_any_t interruptor(&conn_interrupted, shutdown_signal());
+    context_t ctx;
+    ctx.interruptor = &interruptor;
+#else
+    context_t ctx;
+    ctx.interruptor = shutdown_signal();
+#endif  // __linux
 
     std::string init_error;
 
@@ -180,15 +191,6 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
                 if (force_response) {
                     send(forced_response, conn.get(), &ct_keepalive);
                 } else {
-#ifdef __linux
-                    linux_event_watcher_t *ew = conn->get_event_watcher();
-                    linux_event_watcher_t::watch_t conn_interrupted(
-                        ew, poll_event_rdhup);
-                    wait_any_t interruptor(&conn_interrupted, shutdown_signal());
-                    ctx.interruptor = &interruptor;
-#else
-                    ctx.interruptor = shutdown_signal();
-#endif  // __linux
                     response_t response;
                     bool response_needed = f(request, &response, &ctx);
                     if (response_needed) {
