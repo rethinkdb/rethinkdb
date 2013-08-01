@@ -1,10 +1,11 @@
-#include "rdb_protocol/terms/terms.hpp"
-
+#define __STDC_LIMIT_MACROS
+#include <stdint.h>
 #include <string>
 
+#include "rdb_protocol/terms/terms.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/js.hpp"
+#include "extproc/js_runner.hpp"
 
 namespace ql {
 
@@ -15,34 +16,41 @@ public:
 private:
 
     virtual counted_t<val_t> eval_impl() {
+        // Optarg seems designed to take a default value as the second argument
+        // but nowhere else is this actually used.
+        uint64_t timeout_ms = 5000;
+        counted_t<val_t> timeout_opt = optarg("timeout");
+        if (timeout_opt) {
+            if (timeout_opt->as_num() > static_cast<double>(UINT64_MAX) / 1000) {
+                timeout_ms = UINT64_MAX;
+            } else {
+                timeout_ms = timeout_opt->as_num() * 1000;
+            }
+        }
+
         std::string source = arg(0)->as_datum()->as_str();
-        if (counted_t<val_t> cached_func = env->get_js_func(source)) {
+        if (counted_t<val_t> cached_func = env->get_js_func(source, timeout_ms)) {
             return cached_func;
         }
 
-        boost::shared_ptr<js::runner_t> js = env->get_js_runner();
-
-        // Optarg seems designed to take a default value as the second argument
-        // but nowhere else is this actually used.
-        double timeout_s = 5.0;
-        counted_t<val_t> timeout_opt = optarg("timeout");
-        if (timeout_opt) {
-            timeout_s = timeout_opt->as_num();
-        }
-
         // JS runner configuration is limited to setting an execution timeout.
-        js::runner_t::req_config_t config;
-        config.timeout_ms = timeout_s * 1000;
+        js_runner_t::req_config_t config;
+        config.timeout_ms = timeout_ms;
 
+        boost::shared_ptr<js_runner_t> js_runner = env->get_js_runner();
         try {
-            js::js_result_t result = js->eval(source, &config);
+            js_result_t result = js_runner->eval(source, config);
             return boost::apply_visitor(
-                js_result_visitor_t(env, source, this->counted_from_this()),
+                js_result_visitor_t(env, source, timeout_ms, this->counted_from_this()),
                 result);
+        } catch (const js_worker_exc_t &e) {
+            rfail(base_exc_t::GENERIC,
+                  "Javascript query '%s' caused a crash in a worker process.",
+                  source.c_str());
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC,
-                  "JavaScript query `%s` timed out after %.2G seconds.",
-                  source.c_str(), timeout_s);
+                  "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
+                  source.c_str(), timeout_ms / 1000, timeout_ms % 1000);
         }
     }
     virtual const char *name() const { return "javascript"; }
