@@ -117,7 +117,7 @@ tests:
 
     - py: tbl.order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).nth(0)
-     #rb: tbl.order_by('a', :index => :id)[0]
+      rb: tbl.order_by('a', :index => :id)[0]
       ot: ({'id':0, 'a':0})
 
     - py: "tbl.order_by(lambda x: x['id'])[0]"
@@ -143,7 +143,7 @@ tests:
 
     - py: tbl.order_by('id', index=r.desc('a')).nth(0)
       js: tbl.orderBy('id', {index:r.desc('a')}).nth(0)
-     #rb: tbl.order_by('id', :index => r.desc(:a)).nth(0)
+      rb: tbl.order_by('id', :index => r.desc(:a)).nth(0)
       ot: ({'id':3,'a':3})
 
     - py: "tbl.order_by(r.desc(lambda x: x['a']), lambda x: x['id'])[0]"
@@ -156,7 +156,7 @@ tests:
 
     - py: tbl.order_by(r.desc('id'), index='a').nth(0)
       js: tbl.orderBy(r.desc('id'), {index:'a'}).nth(0)
-     #rb: tbl.order_by(r.desc('id'), :index => :a).nth(0)
+      rb: tbl.order_by(r.desc('id'), :index => :a).nth(0)
       ot: ({'id':96,'a':0})
 
     - cd: tbl.order_by('id').type_of()
@@ -167,7 +167,7 @@ tests:
 
     - py: tbl.order_by('missing').order_by(index='id').nth(0)
       js: tbl.order_by('missing').order_by({index:'id'}).nth(0)
-     #rb: tbl.order_by('missing').order_by(:index => :id).nth(0)
+      rb: tbl.order_by('missing').order_by(:index => :id).nth(0)
       ot: ({'id':0, 'a':0})
 
     - cd: tbl.order_by('id', 'missing').nth(0)
@@ -175,7 +175,7 @@ tests:
 
     - py: tbl.order_by('missing', index='id').nth(0)
       js: tbl.order_by('missing', {index:'id'}).nth(0)
-     #rb: tbl.order_by('missing', :index => :id).nth(0)
+      rb: tbl.order_by('missing', :index => :id).nth(0)
       ot: ({'id':0, 'a':0})
 
     - py: "tbl.order_by(r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')"
@@ -184,12 +184,12 @@ tests:
       ot: true
 
     - py: "tbl.order_by(index=r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')"
-     #rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by{|x| 0 - x[:id]}.coerce_to("ARRAY"))
+      rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by{|x| 0 - x[:id]}.coerce_to("ARRAY"))
       js: tbl.order_by({index:r.desc('id')}).coerce_to("ARRAY").eq(tbl.order_by(function (x) { return r.expr(0).sub(x('id')); }).coerce_to("ARRAY"))
       ot: true
 
     - py: "tbl.order_by(index=r.desc('id')).coerce_to('ARRAY') == tbl.order_by(r.desc('id')).coerce_to('ARRAY')"
-     #rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by(r.desc(:id)).coerce_to("ARRAY"))
+      rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by(r.desc(:id)).coerce_to("ARRAY"))
       js: tbl.order_by({index:r.desc('id')}).coerce_to("ARRAY").eq(tbl.order_by(r.desc('id')).coerce_to("ARRAY"))
       ot: true
 
