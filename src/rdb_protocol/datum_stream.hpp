@@ -56,6 +56,36 @@ public:
     // element.)  (Wrapper around `next_batch_impl`.)
     std::vector<counted_t<const datum_t> > next_batch();
 
+    /* sorting_hint_next returns that same value that next would but in
+     * addition it tells you whether or not this is part of a batch which
+     * compare equal with respect to an index sorting. For example suppose you
+     * have data like so (ommitting the id field):
+     *
+     * {id: 0, sid: 1}, {id: 1, sid : 1}, {id: 2, sid : 2}, {id: 3, sid : 3} {id: 4, sid : 3}
+     *
+     * with a secondary index on the attribute "sid" this function will return:
+     * (START,    {id: 0, sid : 1})--+
+     * (CONTINUE, {id: 1, sid : 1})--+-- These 2 could be swapped
+     * (START,    {id: 2, sid : 2})
+     * (START,    {id: 3, sid : 3})--+
+     * (CONTINUE, {id: 4, sid : 3})--+-- These 2 could be swapped
+     * (CONTINUE, NULL)
+     *
+     * Why is this needed:
+     * This is needed in the case where you are sorting by an index but using a
+     * second attribute as a tiebreaker. For example:
+     *
+     * table.order_by("id", index="sid")
+     *
+     * the sort_datum_stream_t above us needs to get batches which have the
+     * same "sid" and then, only within those batches does it order by "id".
+     *
+     * Note: The only datum_stream_t that implements a meaningful version of
+     * this functions is lazy_datum_stream_t, that's because that's the only
+     * stream which could be used to do an indexed sort. Other implementations
+     * of datum_stream_t always return CONTINUE this is because there data is
+     * equivalent to data which has all compared equally and should all be
+     * sorted together by sort_datum_stream_t. */
     virtual hinted_datum_t sorting_hint_next();
 
 protected:
