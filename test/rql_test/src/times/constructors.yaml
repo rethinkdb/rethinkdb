@@ -1,28 +1,28 @@
 desc: Test basic time arithmetic
 tests:
-  - rb: r.epoch_time(1).to_epoch_time
+  - cd: r.epoch_time(1).to_epoch_time()
     ot: 1
-  - rb: r.epoch_time(-1).to_epoch_time
+  - cd: r.epoch_time(-1).to_epoch_time()
     ot: -1
-  - rb: r.epoch_time(1.5555555).to_epoch_time
+  - cd: r.epoch_time(1.5555555).to_epoch_time()
     ot: (1.5555555)
 # Any manipulation truncates to 6 digits
-  - rb: r.epoch_time(1.5555555).to_iso8601
+  - cd: r.epoch_time(1.5555555).to_iso8601()
     ot: ("1970-01-01T00:00:01.555555")
-  - rb: r.epoch_time(1.5555555).seconds
+  - cd: r.epoch_time(1.5555555).seconds()
     ot: (1.555555)
 
-  - rb: r.epoch_time(253430000000).year
+  - cd: r.epoch_time(253430000000).year()
     ot: (10000)
-  - rb: r.epoch_time(253440000000).year
+  - cd: r.epoch_time(253440000000).year()
     ot: err("RqlRuntimeError", "Error in time logic:"" Year is out of valid range:"" 1400..10000.", [])
-  - rb: r.epoch_time(253440000000).to_epoch_time
+  - cd: r.epoch_time(253440000000).to_epoch_time()
     ot: (253440000000)
-  - rb: r.epoch_time(-17980000000).year
+  - cd: r.epoch_time(-17980000000).year()
     ot: (1400)
-  - rb: r.epoch_time(-17990000000).year
+  - cd: r.epoch_time(-17990000000).year()
     ot: err("RqlRuntimeError", "Error in time logic:"" Year is out of valid range:"" 1400..10000.", [])
-  - rb: r.epoch_time(-17990000000).to_epoch_time
+  - cd: r.epoch_time(-17990000000).to_epoch_time()
     ot: (-17990000000)
 
   - def: cdate = "2013-01-01"
@@ -31,6 +31,9 @@ tests:
   - def: times = ["13", "13:00", "1300", "13:00:00", "13:00:00.000000", "130000.000000"]
   - def: ctz = "+00:00"
   - def: tzs = ["Z", "+00", "-00", "+0000", "+00:00"]
-  - def: dts = dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - def:
+      rb: dts = dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
+      py: dts = [d+'T'+t+tz for d in dates for t in times for tz in tzs]
   - rb: r(dts).map{|x| r.iso8601(x).to_iso8601}.distinct.eq([cdate+"T"+ctime+ctz])
+    py: (r.expr(dts).map(lambda x:r.iso8601(x).to_iso8601()).distinct() == [cdate+"T"+ctime+ctz])
     ot: true

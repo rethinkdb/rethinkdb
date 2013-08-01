@@ -5,30 +5,37 @@ tests:
   - def: tutc1 = t1.in_timezone("Z")
   - def: tutc2 = t1.in_timezone("+00:00")
   - def: tutc3 = t1.in_timezone("-00:00")
-  - def: tutcs = r([tutc1, tutc2, tutc3])
+  - def: tutcs = r.expr([tutc1, tutc2, tutc3])
 
   - def: tm1 = t1.in_timezone("-00:59")
   - def: tm2 = t1.in_timezone("-01:00")
   - def: tm3 = t1.in_timezone("-01:01")
-  - def: tms = r([tm1, tm2, tm3])
+  - def: tms = r.expr([tm1, tm2, tm3])
 
   - def: tp1 = t1.in_timezone("+00:59")
   - def: tp2 = t1.in_timezone("+01:00")
   - def: tp3 = t1.in_timezone("+01:01")
-  - def: tps = r([tp1, tp2, tp3])
+  - def: tps = r.expr([tp1, tp2, tp3])
 
   - def: ts = tutcs.union(tms).union(tps).union([t1])
 
-  - cd: r([t1.timezone, t1.day])
-    ot: ([nil, 29])
+  - cd: r.expr([t1.timezone(), t1.day()])
+    ot:
+      rb: ([nil, 29])
+      py: ([None, 29])
+      js: ([null, 29])
 
-  - cd: tutcs.map{|x| [x.timezone, x.day]}
+  - rb: tutcs.map{|x| [x.timezone, x.day]}
+    py: tutcs.map(lambda x:[x.timezone(), x.day()])
     ot: ([["Z", 29], ["+00:00", 29], ["-00:00", 29]])
-  - cd: tms.map{|x| [x.timezone, x.day]}
+  - rb: tms.map{|x| [x.timezone, x.day]}
+    py: tms.map(lambda x:[x.timezone(), x.day()])
     ot: ([["-00:59", 29], ["-01:00", 29], ["-01:01", 29]])
-  - cd: tps.map{|x| [x.timezone, x.day]}
+  - rb: tps.map{|x| [x.timezone, x.day]}
+    py: tps.map(lambda x:[x.timezone(), x.day()])
     ot: ([["+00:59", 30], ["+01:00", 30], ["+01:01", 30]])
 
 # They're all the same time, just in different timezones.
-  - cd: ts.concat_map{|x| ts.map{|y| x - y}}.distinct
+  - rb: ts.concat_map{|x| ts.map{|y| x - y}}.distinct
+    py: ts.concat_map(lambda x:ts.map(lambda y:x - y)).distinct()
     ot: ([0])
