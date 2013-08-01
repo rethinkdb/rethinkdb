@@ -187,6 +187,7 @@ void env_t::join_and_wait_to_propagate(
 }
 
 js_runner_t *env_t::get_js_runner() {
+    assert_thread();
     r_sanity_check(extproc_pool != NULL);
     if (!js_runner.connected()) {
         js_runner.begin(extproc_pool, interruptor);
