@@ -278,7 +278,7 @@ public:
                         const protob_t<const Backtrace> &bt_src)
         : eager_datum_stream_t(env, bt_src),
         lt_cmp(_lt_cmp), src(_src), is_arr_(false) {
-        guarantee(src.has());
+        r_sanity_check(src.has());
         load_data();
     }
 
@@ -302,7 +302,7 @@ private:
         return is_arr_;
     }
     void load_data() {
-        guarantee(data.empty());
+        r_sanity_check(data.empty());
 
         if (counted_t<const datum_t> arr = src->as_array()) {
             if (is_arr_) {
