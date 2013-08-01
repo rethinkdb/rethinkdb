@@ -32,6 +32,9 @@ tests:
     - py: "tbl.index_create('truncated_a', lambda x: ['a' * 300, x['a']])"
       ot: ({'created':1})
 
+    - py: "tbl.index_create('error_prone', lambda x: 1/x['a'])"
+      ot: ({'created':1})
+
     - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
       js: |
         tbl2.insert(function(){
@@ -138,6 +141,9 @@ tests:
 
     - py: tbl.order_by('id', index='truncated_a').nth(0)
       ot: ({'id':0,'a':0})
+
+    - py: tbl.order_by('id', index='error_prone').nth(0)
+      ot: ({'id':3,'a':3})
 
     - py: "tbl.order_by(lambda x: [x['a'], x['id']])[0]"
       js: tbl.orderBy(function (x) { return [x('a'), x('id')]; }).nth(0)
