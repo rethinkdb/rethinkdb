@@ -136,9 +136,13 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
         return;
     }
 
-    if (!init_error.empty()) {
-        conn->write(init_error.c_str(), init_error.length() + 1, &ct_keepalive);
-        conn->shutdown_write();
+    try {
+        if (!init_error.empty()) {
+            conn->write(init_error.c_str(), init_error.length() + 1, &ct_keepalive);
+            conn->shutdown_write();
+            return;
+        }
+    } catch (const tcp_conn_write_closed_exc_t &) {
         return;
     }
 
