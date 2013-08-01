@@ -18,13 +18,13 @@ mock_file_t::~mock_file_t() { }
 int64_t mock_file_t::get_size() { return data_->size(); }
 
 void mock_file_t::set_size(int64_t size) {
-    guarantee(size <= static_cast<int64_t>(SIZE_MAX));
+    guarantee(0 <= size && static_cast<uint64_t>(size) <= SIZE_MAX);
     data_->resize(size, 0);
 }
 
 void mock_file_t::set_size_at_least(int64_t size) {
-    guarantee(size <= static_cast<int64_t>(SIZE_MAX));
-    if (static_cast<int64_t>(data_->size()) < size) {
+    guarantee(0 <= size && static_cast<uint64_t>(size) <= SIZE_MAX);
+    if (data_->size() < static_cast<uint64_t>(size)) {
         data_->resize(size, 0);
     }
 }
@@ -49,7 +49,8 @@ void mock_file_t::write_async(int64_t offset, size_t length, const void *buf,
 void mock_file_t::read_blocking(int64_t offset, size_t length, void *buf) {
     guarantee(mode_ & mode_read);
     verify_aligned_file_access(data_->size(), offset, length, buf);
-    guarantee(!(offset > static_cast<int64_t>(SIZE_MAX - length)
+    guarantee(!(offset < 0
+                || static_cast<uint64_t>(offset) > SIZE_MAX - length
                 || offset + length > data_->size()));
     memcpy(buf, data_->data() + offset, length);
 }
@@ -57,7 +58,8 @@ void mock_file_t::read_blocking(int64_t offset, size_t length, void *buf) {
 void mock_file_t::write_blocking(int64_t offset, size_t length, const void *buf) {
     guarantee(mode_ & mode_write);
     verify_aligned_file_access(data_->size(), offset, length, buf);
-    guarantee(!(offset > static_cast<int64_t>(SIZE_MAX - length)
+    guarantee(!(offset < 0
+                || static_cast<uint64_t>(offset) > SIZE_MAX - length
                 || offset + length > data_->size()));
     memcpy(data_->data() + offset, buf, length);
 }
