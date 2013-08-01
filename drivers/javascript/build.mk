@@ -69,7 +69,7 @@ $(JS_PKG_DIR)/node_modules: $(JS_PKG_DIR)
 	  false \
 	)
 
-$(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) js-dependencies | $(BROWSERIFY)
+$(JS_BUILD_DIR)/rethinkdb.js: $(JS_PKG_DIR) $(JS_PKG_DIR)/node_modules | $(BROWSERIFY)
 	$P BROWSERIFY
 	cd $(JS_PKG_DIR) && \
 		$(abspath $(BROWSERIFY)) --require ./rethinkdb:rethinkdb --outfile $(abspath $@)
