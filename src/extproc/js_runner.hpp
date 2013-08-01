@@ -38,7 +38,7 @@ private:
 };
 
 // A handle to a running "javascript evaluator" job.
-class js_runner_t {
+class js_runner_t : public home_thread_mixin_t {
 public:
     js_runner_t();
     ~js_runner_t();

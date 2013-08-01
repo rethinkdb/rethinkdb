@@ -41,7 +41,7 @@ private:
                 result);
         } catch (const js_worker_exc_t &e) {
             rfail(base_exc_t::GENERIC,
-                  "Javascript query '%s' caused a crash in a worker process.",
+                  "Javascript query `%s` caused a crash in a worker process.",
                   source.c_str());
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC,

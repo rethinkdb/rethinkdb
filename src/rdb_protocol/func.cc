@@ -110,7 +110,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
                 result = js_env->get_js_runner()->call(js_source, json_args, config);
             } catch (const js_worker_exc_t &e) {
                 rfail(base_exc_t::GENERIC,
-                      "Javascript query '%s' caused a crash in a worker process.",
+                      "Javascript query `%s` caused a crash in a worker process.",
                       js_source.c_str());
             } catch (const interrupted_exc_t &e) {
                 rfail(base_exc_t::GENERIC,

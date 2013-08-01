@@ -70,6 +70,7 @@ public:
 js_runner_t::js_runner_t() { }
 
 js_runner_t::~js_runner_t() {
+    assert_thread();
     if (job_data.has()) {
         // Have the worker job exit its loop - if anything fails,
         //  don't worry, the worker will be cleaned up
@@ -86,11 +87,13 @@ js_runner_t::~js_runner_t() {
 }
 
 bool js_runner_t::connected() const {
+    assert_thread();
     return job_data.has();
 }
 
 // Starts the javascript function in the worker process
 void js_runner_t::begin(extproc_pool_t *pool, signal_t *interruptor) {
+    assert_thread();
     if (interruptor == NULL) {
         job_data.init(new job_data_t(pool));
     } else {
@@ -100,6 +103,7 @@ void js_runner_t::begin(extproc_pool_t *pool, signal_t *interruptor) {
 
 js_result_t js_runner_t::eval(const std::string &source,
                               const req_config_t &config) {
+    assert_thread();
     guarantee(job_data.has());
 
     js_result_t result;
@@ -107,7 +111,7 @@ js_result_t js_runner_t::eval(const std::string &source,
     // Check if this is a function we already have cached
     auto it = job_data->id_cache.find(source);
     if (it != job_data->id_cache.end()) {
-        result = it->first;
+        result = it->second.id;
         return result;
     }
 
@@ -135,31 +139,33 @@ js_result_t js_runner_t::eval(const std::string &source,
 js_result_t js_runner_t::call(const std::string &source,
                               const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
                               const req_config_t &config) {
+    assert_thread();
     guarantee(job_data.has());
 
-    // Find the cached function
-    auto it = job_data->id_cache.find(source);
-    if (it == job_data->id_cache.end()) {
-        // If not found, re-eval the source
-        js_result_t eval_result = eval(source, config);
-        js_id_t *any_id = boost::get<js_id_t>(&eval_result);
-        guarantee(any_id != NULL);
-
-        it = job_data->id_cache.find(source);
-        guarantee(it != job_data->id_cache.end());
-    }
+    // This will retrieve the function from the cache if it's there, or re-eval it
+    js_result_t result = eval(source, config);
+    js_id_t *fn_id = boost::get<js_id_t>(&result);
+    guarantee(fn_id != NULL);
 
     object_buffer_t<js_timeout_t::sentry_t> sentry;
     sentry.create(&job_data->js_timeout, config.timeout_ms);
 
     try {
-        return job_data->js_job.call(it->second.id, args);
+        result = job_data->js_job.call(*fn_id, args);
     } catch (...) {
         // Sentry must be destroyed before the js_timeout
         sentry.reset();
         job_data.reset();
         throw;
     }
+
+    // If the call returned a function, cache it
+    js_id_t *any_id = boost::get<js_id_t>(&result);
+    if (any_id != NULL) {
+        cache_id(*any_id, source);
+    }
+
+    return result;
 }
 
 void js_runner_t::cache_id(js_id_t id, const std::string &source) {
