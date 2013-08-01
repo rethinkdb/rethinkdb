@@ -123,7 +123,7 @@ private:
         }
         if (counted_t<val_t> index = optarg("index")) {
             rcheck(tbl.has(), base_exc_t::GENERIC,
-                   "Indexed order_by can only be performed on a TABLE.");
+                   "Indexed order_by can only be performed on a SELECTION.");
             sorting_t sorting = UNORDERED;
             for (int i = 0; i < get_src()->optargs_size(); ++i) {
                 if (get_src()->optargs(i).key() == "index") {
