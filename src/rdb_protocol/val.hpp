@@ -201,7 +201,7 @@ public:
         } else if (get_type().is_convertible(type_t::TABLE)) {
             return strprintf("table(\"%s\")", as_table()->name.c_str());
         } else if (get_type().is_convertible(type_t::SELECTION)) {
-            return strprintf("OPAQUE SELECTION ON %s",
+            return strprintf("OPAQUE SELECTION ON table(%s)",
                              as_selection().first->name.c_str());
         } else {
             // TODO: Do something smarter here?
