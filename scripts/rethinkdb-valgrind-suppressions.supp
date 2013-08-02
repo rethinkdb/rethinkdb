@@ -142,3 +142,34 @@
     fun:_ZN6google8protobuf*
 }
 
+{
+    GoogleProtobufStaticDescriptorInitializer
+    Memcheck:Leak
+    ...
+    fun:_ZN56StaticDescriptorInitializer_*
+}
+
+{
+    v8Globals
+    Memcheck:Leak
+    ...
+    fun:_ZN2v88internal*
+    ...
+    fun:call_init
+}
+
+{
+    v8hashmap
+    Memcheck:Leak
+    ...
+    fun:_GLOBAL__sub_I_hashmap.cc
+    fun:call_init
+}
+
+{
+    v8scopes
+    Memcheck:Leak
+    ...
+    fun:_GLOBAL__sub_I_scopes.cc
+    fun:call_init
+}
