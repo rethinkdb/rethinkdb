@@ -186,4 +186,4 @@ counted_t<term_t> make_zip_term(env_t *env, protob_t<const Term> term) {
     return make_counted<zip_term_t>(env, term);
 }
 
-} //namespace ql
+} // namespace ql

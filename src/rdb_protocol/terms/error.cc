@@ -90,4 +90,4 @@ counted_t<term_t> make_default_term(env_t *env, protob_t<const Term> term) {
 }
 
 
-} //namespace ql
+} // namespace ql

@@ -71,10 +71,10 @@ private:
         /* This switch exists just to make sure that we don't get a bogus value
          * for the shortcut. */
         switch (shortcut) {
-            case NO_SHORTCUT: //fallthru
-            case CONSTANT_SHORTCUT: //fallthru
-            case GET_FIELD_SHORTCUT: //fallthru
-            case PLUCK_SHORTCUT: //fallthru
+            case NO_SHORTCUT: // fallthru
+            case CONSTANT_SHORTCUT: // fallthru
+            case GET_FIELD_SHORTCUT: // fallthru
+            case PLUCK_SHORTCUT: // fallthru
                 break;
             default:
                 rfail(base_exc_t::GENERIC,

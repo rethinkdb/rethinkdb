@@ -243,5 +243,5 @@ counted_t<term_t> make_portion_term(env_t *env, protob_t<const Term> term,
     return make_counted<portion_term_t>(env, term, component);
 }
 
-} //namespace ql
+} // namespace ql
 

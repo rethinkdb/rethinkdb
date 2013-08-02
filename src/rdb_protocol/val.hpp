@@ -253,6 +253,6 @@ private:
 };
 
 
-}  //namespace ql
+}  // namespace ql
 
 #endif // RDB_PROTOCOL_VAL_HPP_

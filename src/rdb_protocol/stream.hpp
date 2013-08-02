@@ -139,6 +139,6 @@ private:
     direction_t direction;
 };
 
-} //namespace query_language
+} // namespace query_language
 
 #endif  // RDB_PROTOCOL_STREAM_HPP_

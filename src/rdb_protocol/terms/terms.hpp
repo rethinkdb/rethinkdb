@@ -150,6 +150,6 @@ counted_t<term_t> make_insert_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_replace_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_foreach_term(env_t *env, protob_t<const Term> term);
 
-} //namespace ql
+} // namespace ql
 
 #endif  // RDB_PROTOCOL_TERMS_TERMS_HPP_

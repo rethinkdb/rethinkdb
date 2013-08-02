@@ -637,5 +637,5 @@ void time_to_str_key(const datum_t &d, std::string *str_out) {
     d.get(epoch_time_key)->num_to_str_key(str_out);
 }
 
-} //namespace pseudo
-} //namespace ql
+} // namespace pseudo
+} // namespace ql
