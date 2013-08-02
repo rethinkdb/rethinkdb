@@ -28,4 +28,38 @@ tests:
   - rb: tbl.between(r(t1).in_timezone("Z"), t4, :right_bound => 'closed').count
     ot: 4
 
+  - rb: tbl.update{|row| {:a => row[:id]}}[:replaced]
+    ot: 5
+  - rb: tbl.index_create('a')
+    ot: ({:created => 1})
+
+  - rb: tbl.between(ts, te, :index => 'a').count
+    ot: 5
+  - rb: tbl.between(t1, t4, :index => 'a').count
+    ot: 3
+  - rb: tbl.between(t1, t4, :right_bound => 'closed', :index => 'a').count
+    ot: 4
+  - rb: tbl.between(r(ts).in_timezone("+06:00"), te, :index => 'a').count
+    ot: 5
+  - rb: tbl.between(t1, r(t4).in_timezone("+08:00"), :index => 'a').count
+    ot: 3
+  - rb: tbl.between(r(t1).in_timezone("Z"), t4, :right_bound => 'closed', :index => 'a').count
+    ot: 4
+
+  - rb: tbl.index_create('b'){|row| r.branch(row[:id] < t4, row[:a], nil)}
+    ot: ({:created => 1})
+
+  - rb: tbl.between(ts, te, :index => 'b').count
+    ot: 3
+  - rb: tbl.between(t1, t4, :index => 'b').count
+    ot: 3
+  - rb: tbl.between(t1, t4, :right_bound => 'closed', :index => 'b').count
+    ot: 3
+  - rb: tbl.between(r(ts).in_timezone("+06:00"), te, :index => 'b').count
+    ot: 3
+  - rb: tbl.between(t1, r(t4).in_timezone("+08:00"), :index => 'b').count
+    ot: 3
+  - rb: tbl.between(r(t1).in_timezone("Z"), t4, :right_bound => 'closed', :index => 'b').count
+    ot: 3
+
   - cd: r.db('test').table_drop('times_api')
