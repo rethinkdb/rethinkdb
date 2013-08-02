@@ -400,6 +400,11 @@ const std::locale no_tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F"));
 std::string time_to_iso8601(counted_t<const datum_t> d) {
     try {
+        time_t t = time_to_boost(d);
+        int year = t.date().year();
+        rcheck_datum(year >= 0 && year <= 9999, base_exc_t::GENERIC,
+                     strprintf("Year `%d` out of valid ISO 8601 range [0, 9999].",
+                               year));
         std::ostringstream ss;
         ss.exceptions(std::ios_base::failbit);
         if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {

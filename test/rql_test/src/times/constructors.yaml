@@ -14,6 +14,8 @@ tests:
 
   - rb: r.epoch_time(253430000000).year
     ot: (10000)
+  - rb: r.epoch_time(253430000000).to_iso8601
+    ot: err("RqlRuntimeError", "Year `10000` out of valid ISO 8601 range [0, 9999].", [])
   - rb: r.epoch_time(253440000000).year
     ot: err("RqlRuntimeError", "Error in time logic:"" Year is out of valid range:"" 1400..10000.", [])
   - rb: r.epoch_time(253440000000).to_epoch_time
@@ -64,3 +66,4 @@ tests:
   - def: subrunner = class << bad_dts_in_tz; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:dt => x[:dt], :tz => x[:tz], :s => RethinkDB::RQL.new.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run(*args)}); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
   - rb: bad_dts_in_tz
     ot: ([])
+
