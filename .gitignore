@@ -39,3 +39,6 @@ mk/gen/*
 test/rql_test/run/
 drivers/python/rethinkdb/ql2_pb2.py
 external/re2/obj/
+drivers/python/rethinkdb/ql2.pb.cc
+drivers/python/rethinkdb/ql2.pb.h
+drivers/python/rethinkdb_pbcpp.so

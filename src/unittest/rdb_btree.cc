@@ -12,7 +12,7 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 

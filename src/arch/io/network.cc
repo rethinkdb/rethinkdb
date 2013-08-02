@@ -603,7 +603,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
     const int RDB_LISTEN_BACKLOG = 256;
 
     // Start listening to connections
-    for (ssize_t i = 0; i < socks.size(); ++i) {
+    for (size_t i = 0; i < socks.size(); ++i) {
         int res = listen(socks[i].get(), RDB_LISTEN_BACKLOG);
         guarantee_err(res == 0, "Couldn't listen to the socket");
 
@@ -628,7 +628,7 @@ int linux_nonthrowing_tcp_listener_t::get_port() const {
 }
 
 void linux_nonthrowing_tcp_listener_t::init_sockets() {
-    for (ssize_t i = 0; i < socks.size(); ++i) {
+    for (size_t i = 0; i < socks.size(); ++i) {
         if (event_watchers[i].has()) {
             event_watchers[i].reset();
         }
@@ -724,7 +724,7 @@ fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t:
     scoped_array_t<scoped_ptr_t<linux_event_watcher_t::watch_t> > watches(event_watchers.size());
     wait_any_t waiter(lock.get_drain_signal());
 
-    for (ssize_t i = 0; i < event_watchers.size(); ++i) {
+    for (size_t i = 0; i < event_watchers.size(); ++i) {
         watches[i].init(new linux_event_watcher_t::watch_t(event_watchers[i].get(), poll_event_in));
         waiter.add(watches[i].get());
     }
@@ -735,10 +735,10 @@ fd_t linux_nonthrowing_tcp_listener_t::wait_for_any_socket(const auto_drainer_t:
         return -1;
     }
 
-    for (ssize_t i = 0; i < watches.size(); ++i) {
+    for (size_t i = 0; i < watches.size(); ++i) {
         // This rather convoluted expression is to make sure we don't starve out higher-indexed interfaces
         //  because connections are coming in too fast on the lower interfaces, unlikely but valid
-        ssize_t index = (last_used_socket_index + i + 1) % watches.size();
+        size_t index = (last_used_socket_index + i + 1) % watches.size();
         if (watches[index]->is_pulsed()) {
             last_used_socket_index = index;
             return socks[index].get();
@@ -785,9 +785,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
 
             /* Delay before retrying. We use pulse_after_time() instead of nap() so that we will
             be interrupted immediately if something wants to shut us down. */
-            signal_timer_t backoff_delay_timer(backoff_delay_ms);
-            wait_any_t waiter(&backoff_delay_timer, lock.get_drain_signal());
-            waiter.wait_lazily_unordered();
+            nap(backoff_delay_ms, lock.get_drain_signal());
 
             /* Exponentially increase backoff time */
             if (backoff_delay_ms < max_backoff_delay_ms) backoff_delay_ms *= 2;

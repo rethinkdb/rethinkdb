@@ -77,14 +77,11 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
-        mailbox_callback_mode_inline),
+        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
-        mailbox_callback_mode_inline),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
-        mailbox_callback_mode_inline)
+        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
 {
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
@@ -151,8 +148,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         cond_t backfiller_is_up_to_date;
         mailbox_t<void()> ack_mbox(
             mailbox_manager_,
-            boost::bind(&cond_t::pulse, &backfiller_is_up_to_date),
-            mailbox_callback_mode_inline);
+            boost::bind(&cond_t::pulse, &backfiller_is_up_to_date));
 
         resource_access_t<replier_business_card_t<protocol_t> > replier_access(replier);
         send(mailbox_manager_, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
@@ -251,14 +247,11 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5),
-        mailbox_callback_mode_inline),
+        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6),
-        mailbox_callback_mode_inline),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5),
-        mailbox_callback_mode_inline)
+        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
 {
     branch_birth_certificate_t<protocol_t> this_branch_history;
     {
@@ -372,8 +365,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     intro_receiver_t<protocol_t> intro_receiver;
     typename listener_business_card_t<protocol_t>::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1),
-                      mailbox_callback_mode_inline);
+                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1));
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t<protocol_t> >(

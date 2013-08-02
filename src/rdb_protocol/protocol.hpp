@@ -32,6 +32,7 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 
+class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
 template <class> class cross_thread_watchable_variable_t;
@@ -42,8 +43,6 @@ template <class> class namespace_repo_t;
 template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
-
-namespace extproc { class pool_group_t; }
 
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
@@ -143,7 +142,7 @@ struct rdb_protocol_t {
 
     struct context_t {
         context_t();
-        context_t(extproc::pool_group_t *_pool_group,
+        context_t(extproc_pool_t *_extproc_pool,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
                   boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
@@ -151,7 +150,7 @@ struct rdb_protocol_t {
                   uuid_u _machine_id);
         ~context_t();
 
-        extproc::pool_group_t *pool_group;
+        extproc_pool_t *extproc_pool;
         namespace_repo_t<rdb_protocol_t> *ns_repo;
 
         /* These arrays contain a watchable for each thread.
@@ -303,7 +302,7 @@ struct rdb_protocol_t {
                     direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
-              sindex_region(sindex_range.to_region()),
+              sindex_region(sindex_range->to_region()),
               merge_sort(_merge_sort), direction(_direction) { }
 
         rget_read_t(const region_t &_sindex_region,
@@ -370,7 +369,7 @@ struct rdb_protocol_t {
 
         /* The actual sindex range to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        sindex_range_t sindex_range;
+        boost::optional<sindex_range_t> sindex_range;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */

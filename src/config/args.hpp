@@ -16,7 +16,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define SERIALIZER_VERSION_STRING "1.6"
+#define SERIALIZER_VERSION_STRING "1.8.alpha"
 
 /**
  * Basic configuration parameters.
@@ -68,19 +68,13 @@
 #define IO_BUFFER_SIZE                            (4 * KILOBYTE)
 
 // Size of the device block size (in bytes)
-#define DEVICE_BLOCK_SIZE                         (4 * KILOBYTE)
+#define DEVICE_BLOCK_SIZE                         512
 
 // Size of each btree node (in bytes) on disk
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
-// Maximum number of data blocks
-#define MAX_DATA_EXTENTS                          (TERABYTE / (16 * KILOBYTE))
-
 // Size of each extent (in bytes)
 #define DEFAULT_EXTENT_SIZE                       (512 * KILOBYTE)
-
-// Max number of blocks which can be read ahead in one i/o transaction (if enabled)
-#define MAX_READ_AHEAD_BLOCKS 32
 
 // Ratio of free ram to use for the cache by default
 // TODO: DEFAULT_MAX_CACHE_RATIO is unused. Should it be deleted?
@@ -103,9 +97,8 @@
 #define DEFAULT_MAX_CONCURRENT_FLUSHES            1
 
 // If more than this many bytes of dirty data accumulate in the cache, then write
-// transactions will be throttled.
-// A value of 0 means that it will automatically be set to MAX_UNSAVED_DATA_LIMIT_FRACTION
-// times the max cache size
+// transactions will be throttled.  A value of 0 means that it will automatically be
+// set to MAX_UNSAVED_DATA_LIMIT_FRACTION times the max cache size
 #define DEFAULT_UNSAVED_DATA_LIMIT                (4096 * MEGABYTE)
 
 // The unsaved data limit cannot exceed this fraction of the max cache size
@@ -144,15 +137,6 @@
 // How many timestamps we store in a leaf node.  We store the
 // NUM_LEAF_NODE_EARLIER_TIMES+1 most-recent timestamps.
 #define NUM_LEAF_NODE_EARLIER_TIMES               4
-
-// We assume there will never be more than this many blocks. The value
-// is computed by dividing 1 TB by the smallest reasonable block size.
-// This value currently fits in 32 bits, and so block_id_t is a uint32_t.
-#define MAX_BLOCK_ID                              (TERABYTE / KILOBYTE)
-
-// We assume that there will never be more than this many blocks held in memory by the cache at
-// any one time. The value is computed by dividing 50 GB by the smallest reasonable block size.
-#define MAX_BLOCKS_IN_MEMORY                      (50 * GIGABYTE / KILOBYTE)
 
 
 // Special block IDs.  These don't really belong here because they're
@@ -200,11 +184,6 @@
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
 #define LBA_READ_BUFFER_SIZE                      GIGABYTE
-
-// How many different places in each file we should be writing to at once, not counting the
-// metablock or LBA
-#define MAX_ACTIVE_DATA_EXTENTS                   64
-#define DEFAULT_ACTIVE_DATA_EXTENTS               1
 
 #define COROUTINE_STACK_SIZE                      131072
 

@@ -249,8 +249,7 @@ void cluster_namespace_interface_t<protocol_t>::perform_outdated_read(
     try {
         cond_t done;
         mailbox_t<void(typename protocol_t::read_response_t)> cont(mailbox_manager,
-                                                                   boost::bind(&outdated_read_store_result<protocol_t>, &results->at(i), _1, &done),
-                                                                   mailbox_callback_mode_inline);
+                                                                   boost::bind(&outdated_read_store_result<protocol_t>, &results->at(i), _1, &done));
 
         send(mailbox_manager, direct_reader_to_contact->direct_reader_access->access().read_mailbox, direct_reader_to_contact->sharded_op, cont.get_address());
         wait_any_t waiter(direct_reader_to_contact->direct_reader_access->get_failed_signal(), &done);

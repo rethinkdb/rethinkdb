@@ -103,6 +103,7 @@ void post_construct_and_drain_queue(
         boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
         auto_drainer_t::lock_t lock)
     THROWS_NOTHING;
+
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
 void bring_sindexes_up_to_date(
@@ -319,7 +320,7 @@ typedef boost::variant<rdb_modification_report_t,
 }  // namespace rdb_protocol_details
 
 rdb_protocol_t::context_t::context_t()
-    : pool_group(NULL), ns_repo(NULL),
+    : extproc_pool(NULL), ns_repo(NULL),
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
     directory_read_manager(NULL),
@@ -327,7 +328,7 @@ rdb_protocol_t::context_t::context_t()
 { }
 
 rdb_protocol_t::context_t::context_t(
-    extproc::pool_group_t *_pool_group,
+    extproc_pool_t *_extproc_pool,
     namespace_repo_t<rdb_protocol_t> *_ns_repo,
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         _cluster_metadata,
@@ -336,7 +337,7 @@ rdb_protocol_t::context_t::context_t(
     directory_read_manager_t<cluster_directory_metadata_t>
         *_directory_read_manager,
     machine_id_t _machine_id)
-    : pool_group(_pool_group), ns_repo(_ns_repo),
+    : extproc_pool(_extproc_pool), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
       cluster_metadata(_cluster_metadata),
@@ -520,7 +521,7 @@ public:
                             rdb_protocol_t::context_t *ctx,
                             signal_t *interruptor)
         : responses(_responses), count(_count), response_out(_response_out),
-          ql_env(ctx->pool_group,
+          ql_env(ctx->extproc_pool,
                  ctx->ns_repo,
                  ctx->cross_thread_namespace_watchables[get_thread_id()].get()
                      ->get_watchable(),
@@ -528,7 +529,6 @@ public:
                      ->get_watchable(),
                  ctx->cluster_metadata,
                  NULL,
-                 boost::make_shared<js::runner_t>(),
                  interruptor,
                  ctx->machine_id,
                  std::map<std::string, ql::wire_func_t>())
@@ -1152,7 +1152,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
             Term filter_term;
-            rget.sindex_range.write_filter_func(
+            rget.sindex_range->write_filter_func(
                 &ql_env, &filter_term, sindex_mapping.get_term());
             Backtrace dummy_backtrace;
             ql::propagate_backtrace(&filter_term, &dummy_backtrace);
@@ -1222,7 +1222,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         token_pair(_token_pair),
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
-        ql_env(ctx->pool_group,
+        ql_env(ctx->extproc_pool,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[get_thread_id()].get()
                    ->get_watchable(),
@@ -1230,7 +1230,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                    ->get_watchable(),
                ctx->cluster_metadata,
                NULL,
-               boost::make_shared<js::runner_t>(),
                &interruptor,
                ctx->machine_id,
                std::map<std::string, ql::wire_func_t>())
@@ -1376,7 +1375,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         token_pair(_token_pair),
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
-        ql_env(ctx->pool_group,
+        ql_env(ctx->extproc_pool,
                ctx->ns_repo,
                ctx->cross_thread_namespace_watchables[
                    get_thread_id()].get()->get_watchable(),
@@ -1384,7 +1383,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                    get_thread_id()].get()->get_watchable(),
                ctx->cluster_metadata,
                0,
-               boost::make_shared<js::runner_t>(),
                &interruptor,
                ctx->machine_id,
                std::map<std::string, ql::wire_func_t>()),
