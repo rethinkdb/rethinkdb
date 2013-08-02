@@ -378,7 +378,6 @@ void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
     *t += boost::posix_time::microseconds(microsec);
 }
 
-
 time_t time_to_boost(counted_t<const datum_t> d) {
     double raw_sec = d->get(epoch_time_key)->as_num();
     ptime_t t(date_t(1970, 1, 1));
@@ -392,7 +391,6 @@ time_t time_to_boost(counted_t<const datum_t> d) {
         return time_t(t, utc);
     }
 }
-
 
 const std::locale tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F%Q"));
@@ -630,6 +628,13 @@ counted_t<const datum_t> time_of_day(counted_t<const datum_t> time) {
             (boost_time - boost_date(boost_time)).total_microseconds() / 1000000.0;
         return make_counted<const datum_t>(sec);
     } HANDLE_BOOST_ERRORS_NO_TARGET;
+}
+
+void time_to_str_key(const datum_t &d, std::string *str_out) {
+    // We need to prepend "P" and append a character less than [a-zA-Z] so that
+    // different pseudotypes sort correctly.
+    str_out->append(std::string("P") + time_string + ":");
+    d.get(epoch_time_key)->num_to_str_key(str_out);
 }
 
 } //namespace pseudo

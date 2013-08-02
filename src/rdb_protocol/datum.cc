@@ -59,15 +59,15 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     case R_OBJECT: {
         r_object = new std::map<std::string, counted_t<const datum_t> >();
     } break;
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
 
 datum_t::~datum_t() {
     switch (type) {
-    case R_NULL: //fallthru
-    case R_BOOL: //fallthru
+    case R_NULL: // fallthru
+    case R_BOOL: // fallthru
     case R_NUM: break;
     case R_STR: {
         r_sanity_check(r_str != NULL);
@@ -195,7 +195,7 @@ std::string raw_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
-    case datum_t::UNINITIALIZED: //fallthru
+    case datum_t::UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -219,6 +219,17 @@ std::string datum_t::trunc_print() const {
         s += "...";
     }
     return s;
+}
+
+void datum_t::pt_to_str_key(std::string *str_out) const {
+    r_sanity_check(is_pt());
+    if (get_reql_type() == pseudo::time_string) {
+        pseudo::time_to_str_key(*this, str_out);
+    } else {
+        rfail(base_exc_t::GENERIC,
+              "Cannot use psuedotype %s as a primary or secondary key value .",
+              get_type_name().c_str());
+    }
 }
 
 void datum_t::num_to_str_key(std::string *str_out) const {
@@ -281,14 +292,19 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         case R_STR: item->str_to_str_key(str_out); break;
         case R_BOOL: item->bool_to_str_key(str_out); break;
         case R_ARRAY: item->array_to_str_key(str_out); break;
-        case R_NULL: //fallthru
-        case R_OBJECT: //fallthru
-        item->type_error(
-            strprintf("Secondary keys must be a number, string, bool, or array "
-                      "(got %s of type %s).", item->print().c_str(),
-                      item->get_type_name().c_str()));
-        break;
-        case UNINITIALIZED: //fallthru
+        case R_OBJECT:
+            if (item->is_pt()) {
+                item->pt_to_str_key(str_out);
+                break;
+            }
+            // fallthru
+        case R_NULL:
+            item->type_error(
+                strprintf("Secondary keys must be a number, string, bool, or array "
+                          "(got %s of type %s).", item->print().c_str(),
+                          item->get_type_name().c_str()));
+            break;
+        case UNINITIALIZED: // fallthru
         default:
             unreachable();
         }
@@ -337,13 +353,19 @@ std::string datum_t::print_primary() const {
     case R_STR: str_to_str_key(&s); break;
     case R_BOOL: bool_to_str_key(&s); break;
     case R_ARRAY: array_to_str_key(&s); break;
-    case R_NULL: //fallthru
-    case R_OBJECT: //fallthru
+    case R_OBJECT:
+        if (is_pt()) {
+            pt_to_str_key(&s);
+            break;
+        }
+        // fallthru
+    case R_NULL: // fallthru
         type_error(strprintf(
-            "Primary keys must be either a number, bool, or string (got %s of type %s).",
-            print().c_str(), get_type_name().c_str()));
+            "Primary keys must be either a number, bool, pseudotype or string "
+            "(got type %s):\n%s",
+            get_type_name().c_str(), trunc_print().c_str()));
         break;
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default:
         unreachable();
     }
@@ -375,11 +397,13 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
         bool_to_str_key(&s);
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
+    } else if (type == R_OBJECT && is_pt()) {
+        pt_to_str_key(&s);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, bool, or array "
-            "(got %s of type %s).",
-            print().c_str(), get_type_name().c_str()));
+            "Secondary keys must be a number, string, bool, pseudotype, or array "
+            "(got type %s):\n%s",
+            get_type_name().c_str(), trunc_print().c_str()));
     }
 
     s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - 1) +
@@ -409,6 +433,8 @@ store_key_t datum_t::truncated_secondary() const {
         bool_to_str_key(&s);
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
+    } else if (type == R_OBJECT && is_pt()) {
+        pt_to_str_key(&s);
     } else {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, or array "
@@ -584,7 +610,7 @@ cJSON *datum_t::as_raw_json() const {
         }
         return obj.release();
     } break;
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -598,18 +624,18 @@ counted_t<datum_stream_t>
 datum_t::as_datum_stream(env_t *env,
                          const protob_t<const Backtrace> &backtrace) const {
     switch (get_type()) {
-    case R_NULL: //fallthru
-    case R_BOOL: //fallthru
-    case R_NUM:  //fallthru
-    case R_STR:  //fallthru
-    case R_OBJECT: //fallthru
+    case R_NULL: // fallthru
+    case R_BOOL: // fallthru
+    case R_NUM:  // fallthru
+    case R_STR:  // fallthru
+    case R_OBJECT: // fallthru
         type_error(strprintf("Cannot convert %s to SEQUENCE",
                              get_type_name().c_str()));
     case R_ARRAY:
         return make_counted<array_datum_stream_t>(env,
                                                   this->counted_from_this(),
                                                   backtrace);
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -722,7 +748,7 @@ int datum_t::cmp(const datum_t &rhs) const {
             return 0;
         }
     } unreachable();
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -837,7 +863,7 @@ void datum_t::write_to_protobuf(Datum *d) const {
             it->second->write_to_protobuf(ap->mutable_val());
         }
     } break;
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -904,5 +930,4 @@ archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
     return ARCHIVE_SUCCESS;
 }
 
-
-} //namespace ql
+} // namespace ql

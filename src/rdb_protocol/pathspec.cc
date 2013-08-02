@@ -219,4 +219,4 @@ bool contains(counted_t<const datum_t> datum,
         return false;
     }
 }
-} //namespace ql
+} // namespace ql
