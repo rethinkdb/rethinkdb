@@ -14,13 +14,12 @@ class extproc_spawner_t;
 
 class extproc_worker_t {
 public:
-    extproc_worker_t(scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > *_interruptors,
-                     extproc_spawner_t *_spawner);
+    explicit extproc_worker_t(extproc_spawner_t *_spawner);
     ~extproc_worker_t();
 
     // Called whenever the worker changes hands (system -> user -> system)
-    void acquired(signal_t *_user_interruptor);
-    void released(); // Returns true if the worker process has failed
+    void acquired(signal_t *_interruptor);
+    void released(signal_t *user_interruptor); // Returns true if the worker process has failed
 
     // We accept jobs as functions that take a read stream and write stream
     //  so that they can communicate back to the job in the main process
@@ -46,12 +45,7 @@ private:
 
     object_buffer_t<socket_stream_t> socket_stream;
 
-    // Interruptors for the parent side
-    scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > *interruptors;
-    signal_t *user_interruptor;
-
-    // Used to combine the interruptors from the pool and the user
-    object_buffer_t<wait_any_t> combined_interruptor;
+    signal_t *interruptor;
 };
 
 #endif /* EXTPROC_EXTPROC_WORKER_HPP_ */

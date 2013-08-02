@@ -93,8 +93,8 @@ counted_t<val_t> op_term_t::optarg(const std::string &key) {
     if (it != optargs.end()) {
         return it->second->eval();
     }
-    counted_t<val_t> ret = env->get_optarg(key);
-    return ret;
+    // returns counted_t<val_t>() if the key isn't found
+    return env->get_optarg(key);
 }
 
 counted_t<func_t> op_term_t::lazy_literal_optarg(const std::string &key) {

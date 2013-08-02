@@ -46,7 +46,8 @@ private:
 class orderby_term_t : public op_term_t {
 public:
     orderby_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1, -1)), src_term(term) { }
+        : op_term_t(env, term, argspec_t(1, -1),
+          optargspec_t({"index"})), src_term(term) { }
 private:
     enum order_direction_t { ASC, DESC };
     class lt_cmp_t {
@@ -120,9 +121,28 @@ private:
         } else {
             seq = v0->as_seq();
         }
-        counted_t<datum_stream_t> s
-            = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
-        return tbl.has() ? new_val(s, tbl) : new_val(s);
+        if (counted_t<val_t> index = optarg("index")) {
+            rcheck(tbl.has(), base_exc_t::GENERIC,
+                   "Indexed order_by can only be performed on a SELECTION.");
+            sorting_t sorting = UNORDERED;
+            for (int i = 0; i < get_src()->optargs_size(); ++i) {
+                if (get_src()->optargs(i).key() == "index") {
+                    if (get_src()->optargs(i).val().type() == Term::DESC) {
+                        sorting = DESCENDING;
+                    } else {
+                        sorting = ASCENDING;
+                    }
+                }
+            }
+            r_sanity_check(sorting != UNORDERED);
+            seq = tbl->get_sorted(index->as_str(), sorting, backtrace());
+        }
+
+        if (!comparisons.empty()) {
+            seq = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
+        }
+
+        return tbl.has() ? new_val(seq, tbl) : new_val(seq);
     }
 
     virtual const char *name() const { return "orderby"; }

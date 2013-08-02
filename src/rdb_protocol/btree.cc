@@ -20,7 +20,6 @@
 #include "rdb_protocol/transform_visitors.hpp"
 
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
-typedef std::list<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > keyed_json_list_t;
 
 #define MAX_RDB_VALUE_SIZE MAX_IN_NODE_VALUE_SIZE
 
@@ -621,6 +620,7 @@ public:
                                               const key_range_t &range,
                                               const key_range_t &_primary_key_range,
                                               direction_t _direction,
+                                              boost::optional<ql::map_wire_func_t> _sindex_function,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -632,8 +632,12 @@ public:
         primary_key_range(_primary_key_range),
         direction(_direction)
     {
+        if (_sindex_function) {
+            sindex_function = _sindex_function->compile(_ql_env);
+        }
         init(range);
     }
+
     void init(const key_range_t &range) {
         try {
             if (direction == FORWARD) {
@@ -668,27 +672,37 @@ public:
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
+        store_key_t store_key(key);
         if (bad_init) {
             return false;
         }
         if (primary_key_range) {
             std::string pk = ql::datum_t::unprint_secondary(
-                    key_to_unescaped_str(store_key_t(key)));
+                    key_to_unescaped_str(store_key));
             if (!primary_key_range->contains_key(store_key_t(pk))) {
                 return true;
             }
         }
         try {
-            store_key_t store_key(key);
             if ((response->last_considered_key < store_key && direction == FORWARD) ||
                 (response->last_considered_key > store_key && direction == BACKWARD)) {
                 response->last_considered_key = store_key;
             }
 
             const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+            boost::shared_ptr<scoped_cJSON_t> first_value = get_data(rdb_value, transaction);
 
             json_list_t data;
-            data.push_back(get_data(rdb_value, transaction));
+            data.push_back(first_value);
+
+            counted_t<const ql::datum_t> sindex_value;
+
+            if (sindex_function &&
+                ql::datum_t::key_is_truncated(store_key)) {
+                counted_t<const ql::datum_t> datum_value = 
+                    make_counted<const ql::datum_t>(first_value);
+                sindex_value = sindex_function->call(datum_value)->as_datum();
+            }
 
             // Apply transforms to the data
             {
@@ -722,7 +736,13 @@ public:
                 for (json_list_t::iterator it =  data.begin();
                                            it != data.end();
                                            ++it) {
-                    stream->push_back(std::make_pair(store_key_t(key), *it));
+                    if (sindex_value) {
+                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
+                                    sindex_value->as_json(), *it));
+                    } else {
+                        stream->push_back(rdb_protocol_details::rget_item_t(store_key, *it));
+                    }
+
                     cumulative_size += estimate_rget_response_size(*it);
                 }
 
@@ -763,6 +783,8 @@ public:
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
     direction_t direction;
+
+    counted_t<ql::func_t> sindex_function;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -812,8 +834,10 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
                     direction_t direction,
+                    const boost::optional<ql::map_wire_func_t> &map_wire_func,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, direction, response);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
+            range, pk_range, direction, map_wire_func, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {

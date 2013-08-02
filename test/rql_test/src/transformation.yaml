@@ -26,6 +26,15 @@ tests:
       rb: tbl.insert((0..99).map{ |i| { :id => i, :a => i % 4 } })
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':100})
 
+    - cd: tbl.index_create('a')
+      ot: ({'created':1})
+
+    - py: "tbl.index_create('truncated_a', lambda x: ['a' * 300, x['a']])"
+      ot: ({'created':1})
+
+    - py: "tbl.index_create('error_prone', lambda x: 1/x['a'])"
+      ot: ({'created':1})
+
     - py: tbl2.insert([{'id':i, 'b':i%4} for i in xrange(100)])
       js: |
         tbl2.insert(function(){
@@ -112,6 +121,11 @@ tests:
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
 
+    - py: tbl.order_by(index='id')[0]
+      js: tbl.orderBy({index:'id'}).nth(0)
+      rb: tbl.order_by('a', :index => :id)[0]
+      ot: ({'id':0, 'a':0})
+
     - py: "tbl.order_by(lambda x: x['id'])[0]"
       js: tbl.orderBy(function (x) { return x('id'); }).nth(0)
       rb: tbl.order_by{|x| x[:id]}[0]
@@ -120,12 +134,28 @@ tests:
     - cd: tbl.order_by('a', 'id').nth(0)
       ot: ({'id':0,'a':0})
 
+    - py: tbl.order_by('id', index='a').nth(0)
+      js: tbl.orderBy('id', {index:'a'}).nth(0)
+      rb: tbl.order_by('id', :index => :a).nth(0)
+      ot: ({'id':0,'a':0})
+
+    - py: tbl.order_by('id', index='truncated_a').nth(0)
+      ot: ({'id':0,'a':0})
+
+    - py: tbl.order_by('id', index='error_prone').nth(0)
+      ot: ({'id':3,'a':3})
+
     - py: "tbl.order_by(lambda x: [x['a'], x['id']])[0]"
       js: tbl.orderBy(function (x) { return [x('a'), x('id')]; }).nth(0)
       rb: tbl.order_by{|x| [x[:a], x[:id]]}[0]
       ot: ({'id':0, 'a':0})
 
     - cd: tbl.order_by(r.desc('a'), r.asc('id')).nth(0)
+      ot: ({'id':3,'a':3})
+
+    - py: tbl.order_by('id', index=r.desc('a')).nth(0)
+      js: tbl.orderBy('id', {index:r.desc('a')}).nth(0)
+      rb: tbl.order_by('id', :index => r.desc(:a)).nth(0)
       ot: ({'id':3,'a':3})
 
     - py: "tbl.order_by(r.desc(lambda x: x['a']), lambda x: x['id'])[0]"
@@ -136,13 +166,28 @@ tests:
     - cd: tbl.order_by(r.asc('a'), r.desc('id')).nth(0)
       ot: ({'id':96,'a':0})
 
+    - py: tbl.order_by(r.desc('id'), index='a').nth(0)
+      js: tbl.orderBy(r.desc('id'), {index:'a'}).nth(0)
+      rb: tbl.order_by(r.desc('id'), :index => :a).nth(0)
+      ot: ({'id':96,'a':0})
+
     - cd: tbl.order_by('id').type_of()
       ot: "'SELECTION'"
 
     - cd: tbl.order_by('missing').order_by('id').nth(0)
       ot: ({'id':0, 'a':0})
 
+    - py: tbl.order_by('missing').order_by(index='id').nth(0)
+      js: tbl.order_by('missing').order_by({index:'id'}).nth(0)
+      rb: tbl.order_by('missing').order_by(:index => :id).nth(0)
+      ot: ({'id':0, 'a':0})
+
     - cd: tbl.order_by('id', 'missing').nth(0)
+      ot: ({'id':0, 'a':0})
+
+    - py: tbl.order_by('missing', index='id').nth(0)
+      js: tbl.order_by('missing', {index:'id'}).nth(0)
+      rb: tbl.order_by('missing', :index => :id).nth(0)
       ot: ({'id':0, 'a':0})
 
     - py: "tbl.order_by(r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')"
@@ -150,6 +195,15 @@ tests:
       js: tbl.order_by(r.desc('id')).coerce_to("ARRAY").eq(tbl.order_by(function (x) { return r.expr(0).sub(x('id')); }).coerce_to("ARRAY"))
       ot: true
 
+    - py: "tbl.order_by(index=r.desc('id')).coerce_to('ARRAY') == tbl.order_by(lambda x: 0 - x['id']).coerce_to('ARRAY')"
+      rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by{|x| 0 - x[:id]}.coerce_to("ARRAY"))
+      js: tbl.order_by({index:r.desc('id')}).coerce_to("ARRAY").eq(tbl.order_by(function (x) { return r.expr(0).sub(x('id')); }).coerce_to("ARRAY"))
+      ot: true
+
+    - py: "tbl.order_by(index=r.desc('id')).coerce_to('ARRAY') == tbl.order_by(r.desc('id')).coerce_to('ARRAY')"
+      rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by(r.desc(:id)).coerce_to("ARRAY"))
+      js: tbl.order_by({index:r.desc('id')}).coerce_to("ARRAY").eq(tbl.order_by(r.desc('id')).coerce_to("ARRAY"))
+      ot: true
 
     # test skip
     - cd: tbl.skip(1).count()

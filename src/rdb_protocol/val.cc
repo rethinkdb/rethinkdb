@@ -405,21 +405,33 @@ counted_t<datum_stream_t> table_t::get_rows(
         const protob_t<const Backtrace> &bt) {
     return make_counted<lazy_datum_stream_t>(
         env, use_outdated, access.get(),
-        left_bound, left_bound_open, right_bound, right_bound_open, bt);
+        left_bound, left_bound_open, right_bound, right_bound_open, UNORDERED, bt);
 }
 
 counted_t<datum_stream_t> table_t::get_sindex_rows(
         counted_t<const datum_t> left_bound, bool left_bound_open,
         counted_t<const datum_t> right_bound, bool right_bound_open,
         const std::string &sindex_id, const protob_t<const Backtrace> &bt) {
-    return make_counted<lazy_datum_stream_t>(
-        env, use_outdated, access.get(),
-        left_bound, left_bound_open, right_bound, right_bound_open, sindex_id, bt);
+    return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
+        left_bound, left_bound_open, right_bound, right_bound_open,
+        sindex_id, UNORDERED, bt);
+}
+
+counted_t<datum_stream_t> table_t::get_sorted(const std::string &sindex_id,
+                                              sorting_t sorting,
+                                              const protob_t<const Backtrace> &bt) {
+    if (sindex_id == pkey) {
+        return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
+                                                 sorting, bt);
+    } else {
+        return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
+                                                 sindex_id, sorting, bt);
+    }
 }
 
 counted_t<datum_stream_t> table_t::as_datum_stream() {
     return make_counted<lazy_datum_stream_t>(
-        env, use_outdated, access.get(), backtrace());
+        env, use_outdated, access.get(), UNORDERED, backtrace());
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }

@@ -336,7 +336,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         auto result_stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&get_result.result);
         guarantee(result_stream);
         ASSERT_EQ(1u, result_stream->size());
-        EXPECT_EQ(0, query_language::json_cmp(generate_document(0, it->second)->get(), result_stream->at(0).second->get()));
+        EXPECT_EQ(0, query_language::json_cmp(generate_document(0, it->second)->get(), result_stream->at(0).data->get()));
     }
 }
 

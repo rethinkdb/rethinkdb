@@ -26,14 +26,23 @@ enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
 namespace ql { class env_t; }
 namespace query_language {
 
+typedef rdb_protocol_details::rget_item_t rget_item_t;
+
 typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
+typedef std::deque<rget_item_t> extended_json_deque_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
+
+enum sorting_hint_t {START, CONTINUE};
+
+typedef std::pair<sorting_hint_t, boost::shared_ptr<scoped_cJSON_t> > hinted_json_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
     json_stream_t() { }
     // Returns a null value when end of stream is reached.
     virtual boost::shared_ptr<scoped_cJSON_t> next() = 0;  // MAY THROW
+
+    virtual hinted_json_t sorting_hint_next();
 
     virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace);
     virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &,
@@ -88,24 +97,25 @@ private:
 class batched_rget_stream_t : public json_stream_t {
 public:
     /* Primary key rget. */
-    batched_rget_stream_t(
-        const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
         signal_t *_interruptor,
         counted_t<const ql::datum_t> left_bound, bool left_bound_open,
         counted_t<const ql::datum_t> right_bound, bool right_bound_open,
         const std::map<std::string, ql::wire_func_t> &_optargs,
-        bool _use_outdated);
+        bool _use_outdated, sorting_t sorting,
+        ql::rcheckable_t *_parent);
 
     /* Sindex rget. */
-    batched_rget_stream_t(
-        const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
         signal_t *_interruptor, const std::string &_sindex_id,
-        const std::map<std::string, ql::wire_func_t> &_optargs,
-        bool _use_outdated,
         counted_t<const ql::datum_t> _sindex_start_value, bool start_value_open,
-        counted_t<const ql::datum_t> _sindex_end_value, bool right_value_open);
+        counted_t<const ql::datum_t> _sindex_end_value, bool end_value_open,
+        const std::map<std::string, ql::wire_func_t> &_optargs, bool _use_outdated,
+        sorting_t sorting, ql::rcheckable_t *_parent);
 
     boost::shared_ptr<scoped_cJSON_t> next();
+
+    hinted_json_t sorting_hint_next();
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace);
     result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
@@ -117,15 +127,33 @@ public:
     };
 
 private:
+    boost::optional<rget_item_t> head();
+    void pop();
     rdb_protocol_t::rget_read_t get_rget();
     void read_more();
+    bool check_and_set_key_in_sorting_buffer(const std::string &key);
+
+    /* Returns true if the passed value is new. */
+    bool check_and_set_last_key(const std::string &key);
+    bool check_and_set_last_key(boost::shared_ptr<scoped_cJSON_t>);
 
     rdb_protocol_details::transform_t transform;
     namespace_repo_t<rdb_protocol_t>::access_t ns_access;
     signal_t *interruptor;
     boost::optional<std::string> sindex_id;
 
-    json_list_t data;
+    /* This needs to use an extended_json_list_t because that includes
+     * information about the secondary index key of the object which is needed
+     * for sorting. */
+    /* TODO We could potentially put a json_list_t in here in cases when we're not
+     * sorting to save some space. */
+    extended_json_deque_t data;
+    extended_json_deque_t sorting_buffer;
+
+    std::string key_in_sorting_buffer;
+
+    boost::variant<boost::shared_ptr<scoped_cJSON_t>, std::string> last_key;
+
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
@@ -135,8 +163,9 @@ private:
 
     boost::optional<backtrace_t> table_scan_backtrace;
 
-    bool merge_sort;
-    direction_t direction;
+    sorting_t sorting;
+
+    ql::rcheckable_t *parent;
 };
 
 } //namespace query_language

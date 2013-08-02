@@ -4,13 +4,10 @@
 
 #include "utils.hpp"
 #include "containers/scoped.hpp"
-#include "containers/intrusive_list.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/cross_thread_signal.hpp"
-#include "concurrency/promise.hpp"
-#include "arch/io/concurrency.hpp"
-
-class extproc_worker_t;
+#include "concurrency/cross_thread_semaphore.hpp"
+#include "extproc/extproc_worker.hpp"
 
 // Extproc pool is used to acquire and release workers from any thread,
 //  must be created from within the thread pool
@@ -19,54 +16,29 @@ public:
     explicit extproc_pool_t(size_t worker_count);
     ~extproc_pool_t();
 
-    extproc_worker_t *acquire_worker(signal_t *interruptor);
-    void release_worker(extproc_worker_t *worker);
+    // Get the signal for the current thread that will indicate when this object is being
+    //  destroyed, make sure to combine with any other interruptors or shutdown may hang
+    signal_t *get_shutdown_signal();
+
+    // Get the semaphore of workers to obtain a lock (may be done from any thread)
+    cross_thread_semaphore_t<extproc_worker_t> *get_worker_semaphore();
 
 private:
-    extproc_worker_t *acquire_internal(signal_t *user_interruptor);
-    void release_internal(extproc_worker_t *worker);
-
-    class worker_request_t;
-
-    // Class used to queue up requests for workers
-    class request_node_t : public intrusive_list_node_t<request_node_t> {
-    public:
-        explicit request_node_t(promise_t<extproc_worker_t *> *_promise_out);
-
-        bool is_abandoned() const;
-        int get_thread() const;
-
-        void abandon();
-
-        void fulfill_promise(extproc_worker_t *worker);
-
-    private:
-        // The thread that the request is for, have to switch here to fulfill
-        int thread_id;
-
-        // Where to store the worker when we have it
-        promise_t<extproc_worker_t *> *promise_out;
-    };
-
-    void pass_worker_coroutine(request_node_t *request,
-                               extproc_worker_t *worker);
-
-    // Mutex to control access to 'workers' and 'request_queue'
-    system_mutex_t worker_mutex;
-
-    // Pointers to all workers available in this instance, when a worker is taken, it
-    //  will be replaced by NULL in the array, and replaced when done
-    size_t available_worker_index;
-    scoped_array_t<extproc_worker_t *> workers;
-
-    // The list of requests (added from any thread, protected by worker_mutex)
-    intrusive_list_t<request_node_t> request_queue;
-
     // The interruptor to be pulsed when shutting down
     cond_t interruptor;
 
     // Crossthreaded interruptors to notify workers on any thread when we are shutting down
-    scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > ct_interruptors;
+    //  (this is its own class so we can initialize everything in the initializer list)
+    class ct_interruptors_t {
+    public:
+        explicit ct_interruptors_t(signal_t *shutdown_signal);
+        signal_t *get();
+    private:
+        scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > ct_signals;
+    } ct_interruptors;
+
+    // Cross-threaded semaphore allowing workers to be acquired from any thread
+    cross_thread_semaphore_t<extproc_worker_t> worker_semaphore;
 };
 
 #endif /* EXTPROC_EXTPROC_POOL_HPP_ */

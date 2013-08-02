@@ -171,6 +171,7 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
                     direction_t direction,
+                    const boost::optional<ql::map_wire_func_t> &map_wire_func,
                     rget_read_response_t *response);
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
