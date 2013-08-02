@@ -2,6 +2,8 @@
 #ifndef ARCH_TIMING_HPP_
 #define ARCH_TIMING_HPP_
 
+#include <memory>
+
 #include "concurrency/signal.hpp"
 #include "arch/timer.hpp"
 
