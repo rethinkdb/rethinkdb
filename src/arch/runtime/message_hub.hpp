@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_MESSAGE_HUB_HPP_
 #define ARCH_RUNTIME_MESSAGE_HUB_HPP_
 
@@ -15,15 +15,12 @@
 
 class linux_thread_pool_t;
 
-// TODO: perhaps we can issue cache prefetching commands to the CPU to
-// speed up the process of sending messages across cores.
-
 /* There is one message hub per thread, NOT one message hub for the entire program.
 
 Each message hub stores messages that are going from that message hub's home thread to
 other threads. It keeps a separate queue for messages destined for each other thread. */
 
-class linux_message_hub_t {
+class linux_message_hub_t : private linux_event_callback_t {
 public:
     typedef intrusive_list_t<linux_thread_message_t> msg_list_t;
 
@@ -74,23 +71,11 @@ private:
     msg_list_t incoming_messages_;
     spinlock_t incoming_messages_lock_;
 
-    /* We keep one notify_t for each other message hub that we interact with. When it has
-    messages for us, it signals the appropriate notify_t from our set of notify_ts. We get
-    the notification and call push_messages on the sender in reply. */
-    struct notify_t : public linux_event_callback_t
-    {
-    public:
-        /* message_hubs[i]->notify[j].on_event() is called when thread #j has messages for
-        thread #i. */
-        void on_event(int events);
+    void on_event(int events);
 
-    public:
-        system_event_t event;                    // the eventfd to notify
-
-        /* hub->notify[i].parent = hub */
-        linux_message_hub_t *parent;
-    };
-    notify_t *notify_;
+    // The eventfd (or pipe-based alternative) notified after the first incoming
+    // message is put onto incoming_messages_.
+    system_event_t event_;
 
     /* The thread that we queue messages originating from. (Recall that there is one
     message_hub_t per thread.) */

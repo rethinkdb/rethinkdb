@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/runtime/message_hub.hpp"
 
 #include <math.h>
@@ -17,18 +17,7 @@
 linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool, int current_thread)
     : queue_(queue), thread_pool_(thread_pool), current_thread_(current_thread) {
 
-    // We have to do this through dynamically, otherwise we might
-    // allocate far too many file descriptors since this is what the
-    // constructor of the system_event_t object (which is a member of
-    // notify_t) does.
-    notify_ = new notify_t[thread_pool_->n_threads];
-
-    for (int i = 0; i < thread_pool_->n_threads; i++) {
-        // Create notify fd for other cores that send work to us
-        notify_[i].parent = this;
-
-        queue_->watch_resource(notify_[i].event.get_notify_fd(), poll_event_in, &notify_[i]);
-    }
+    queue_->watch_resource(event_.get_notify_fd(), poll_event_in, this);
 }
 
 linux_message_hub_t::~linux_message_hub_t() {
@@ -37,8 +26,6 @@ linux_message_hub_t::~linux_message_hub_t() {
     }
 
     guarantee(incoming_messages_.empty());
-
-    delete[] notify_;
 }
 
 void linux_message_hub_t::do_store_message(unsigned int nthread, linux_thread_message_t *msg) {
@@ -81,31 +68,34 @@ void linux_message_hub_t::store_message_sometime(unsigned int nthread, linux_thr
 
 
 void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
+    bool do_wake_up;
     {
         spinlock_acq_t acq(&incoming_messages_lock_);
+        do_wake_up = incoming_messages_.empty();
         incoming_messages_.push_back(msg);
     }
 
     // Wakey wakey eggs and bakey
-    notify_[current_thread_].event.wakey_wakey();
+    if (do_wake_up) {
+        event_.wakey_wakey();
+    }
 }
 
-void linux_message_hub_t::notify_t::on_event(int events) {
-
+void linux_message_hub_t::on_event(int events) {
     if (events != poll_event_in) {
         logERR("Unexpected event mask: %d", events);
     }
 
-    // Read from the event so level-triggered mechanism such as poll
-    // don't pester us and use 100% cpu
-    event.consume_wakey_wakeys();
+    // You must read wakey-wakeys so that the pipe-based implementation doesn't fill
+    // up and so that poll-based event triggering doesn't infinite-loop.
+    event_.consume_wakey_wakeys();
 
     msg_list_t msg_list;
 
     // Pull the messages
     {
-        spinlock_acq_t acq(&parent->incoming_messages_lock_);
-        msg_list.append_and_clear(&parent->incoming_messages_);
+        spinlock_acq_t acq(&incoming_messages_lock_);
+        msg_list.append_and_clear(&incoming_messages_);
     }
 
 #ifndef NDEBUG
@@ -117,7 +107,7 @@ void linux_message_hub_t::notify_t::on_event(int events) {
 #ifndef NDEBUG
         if (m->reloop_count_ > 0) {
             --m->reloop_count_;
-            parent->do_store_message(parent->current_thread_, m);
+            do_store_message(current_thread_, m);
             continue;
         }
 #endif
@@ -144,7 +134,8 @@ void linux_message_hub_t::push_messages() {
             {
                 spinlock_acq_t acq(&thread_pool_->threads[i]->message_hub.incoming_messages_lock_);
 
-                //We only need to do a wake up if the global
+                // We only need to do a wake up if we're the first people to do a
+                // wake up.
                 do_wake_up = thread_pool_->threads[i]->message_hub.incoming_messages_.empty();
 
                 thread_pool_->threads[i]->message_hub.incoming_messages_.append_and_clear(&queue->msg_local_list);
@@ -152,7 +143,7 @@ void linux_message_hub_t::push_messages() {
 
             // Wakey wakey, perhaps eggs and bakey
             if (do_wake_up) {
-                thread_pool_->threads[i]->message_hub.notify_[current_thread_].event.wakey_wakey();
+                thread_pool_->threads[i]->message_hub.event_.wakey_wakey();
             }
         }
     }
