@@ -354,7 +354,8 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
                                 DEBUG_VAR size_t length, DEBUG_VAR const void *buf) {
     rassert(buf);
     rassert(static_cast<int64_t>(offset + length) <= file_size);
-    rassert(divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf)));
+    rassert(divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf)),
+            "buf = %p", buf);
     rassert(divides(DEVICE_BLOCK_SIZE, offset));
     rassert(divides(DEVICE_BLOCK_SIZE, length));
 }
