@@ -1,5 +1,7 @@
 from ast import *
 import ql2_pb2 as p
+import datetime
+import pytz
 
 """
 All top level functions defined here are the starting points for RQL queries
@@ -110,3 +112,37 @@ def type_of(val):
 
 def info(val):
     return Info(val)
+
+def time(*args):
+    return Time(*args)
+
+def iso8601(string):
+    return ISO8601(string)
+
+def epoch_time(number):
+    return EpochTime(number)
+
+def now():
+    return Now()
+
+## Time enum values
+monday      = type('', (RqlTopLevelQuery,), {'tt':p.Term.MONDAY})()
+tuesday     = type('', (RqlTopLevelQuery,), {'tt':p.Term.TUESDAY})()
+wednesday   = type('', (RqlTopLevelQuery,), {'tt':p.Term.WEDNESDAY})()
+thursday    = type('', (RqlTopLevelQuery,), {'tt':p.Term.THURSDAY})()
+friday      = type('', (RqlTopLevelQuery,), {'tt':p.Term.FRIDAY})()
+saturday    = type('', (RqlTopLevelQuery,), {'tt':p.Term.SATURDAY})()
+sunday      = type('', (RqlTopLevelQuery,), {'tt':p.Term.SUNDAY})()
+
+january     = type('', (RqlTopLevelQuery,), {'tt':p.Term.JANUARY})()
+february    = type('', (RqlTopLevelQuery,), {'tt':p.Term.FEBRUARY})()
+march       = type('', (RqlTopLevelQuery,), {'tt': p.Term.MARCH})()
+april       = type('', (RqlTopLevelQuery,), {'tt': p.Term.APRIL})()
+may         = type('', (RqlTopLevelQuery,), {'tt': p.Term.MAY})()
+june        = type('', (RqlTopLevelQuery,), {'tt': p.Term.JUNE})()
+july        = type('', (RqlTopLevelQuery,), {'tt': p.Term.JULY})()
+august      = type('', (RqlTopLevelQuery,), {'tt': p.Term.AUGUST})()
+september   = type('', (RqlTopLevelQuery,), {'tt': p.Term.SEPTEMBER})()
+october     = type('', (RqlTopLevelQuery,), {'tt': p.Term.OCTOBER})()
+november    = type('', (RqlTopLevelQuery,), {'tt': p.Term.NOVEMBER})()
+december    = type('', (RqlTopLevelQuery,), {'tt': p.Term.DECEMBER})()

@@ -10,17 +10,19 @@ tests:
   - def: t2 = r.epoch_time(rt2)
   - def: t3 = r.epoch_time(rt3)
   - def: t4 = r.epoch_time(rt4)
-  - def: ts = r([t1, t2, t3, t4])
+  - def: ts = r.expr([t1, t2, t3, t4])
 
   # We run into double precision with the first one
   - rb: ((t2 - t1) * 100000).do{|x| (x > 0.99) & (x < 1.01)}
+    py: ((t2 - t1) * 100000).do(lambda x:(x > 0.99) & (x < 1.01))
     ot: true
-  - rb: t3 - t1
+  - cd: t3 - t1
     ot: 1
-  - rb: t4 - t1
+  - cd: t4 - t1
     ot: 1000000000
 
   - rb: ((t1 - t2) * 100000).do{|x| (x < -0.99) & (x > -1.01)}
+    py: ((t1 - t2) * 100000).do(lambda x:(x < -0.99) & (x > -1.01))
     ot: true
   - rb: t1 - t3
     ot: -1
@@ -28,13 +30,17 @@ tests:
     ot: -1000000000
 
   - rb: ts.map{|x| t1 + (x - t1)}.map{|x| x.to_epoch_time}
+    py: ts.map(lambda x:t1 + (x - t1)).map(lambda x:x.to_epoch_time())
     ot: ([rt1, rt2, rt3, rt4])
   - rb: ts.map{|x| (t1 + x) - t1}.map{|x| x.to_epoch_time}
+    py: ts.map(lambda x:(t1 + x) - t1).map(lambda x:x.to_epoch_time())
     ot: err("RqlRuntimeError", "Expected type NUMBER but found PSEUDOTYPE(TIME).", [])
   - rb: ts.map{|x| t1 - (t1 - x)}.map{|x| x.to_epoch_time}
+    py: ts.map(lambda x:t1 - (t1 - x)).map(lambda x:x.to_epoch_time())
     ot: ([rt1, rt2, rt3, rt4])
 
   - rb: ts.map{|x| ts.map{|y| [x < y, x <= y, x.eq(y), x.ne(y), x >= y, x > y]}}
+    py: ts.map(lambda x:ts.map(lambda y:[x < y, x <= y, x == y, x != y, x >= y, x > y]))
     ot: ([[[false, true,  true,  false, true,  false],
            [true,  true,  false, true,  false, false],
            [true,  true,  false, true,  false, false],
@@ -52,11 +58,14 @@ tests:
            [false, false, false, true,  true,  true],
            [false, true,  true,  false, true,  false]]])
 
-  - def: datum_types = r([nil, true, false, 1, "1", [1], {"1" => 1}])
+  - def:
+      rb: datum_types = r([nil, true, false, 1, "1", [1], {"1" => 1}])
+      py: datum_types = r.expr([None, true, false, 1, "1", [1], {"1":1}])
 
 # Test comparisons, from both directions (there was a problem where
 # the directions had different behavior).
   - rb: datum_types.map{|x| [[x, t1], [t1, x]].map{|xy| xy[0].do{|x| xy[1].do{|y| [x < y, x <= y, x.eq(y), x.ne(y), x >= y, x > y]}}}}
+    py: datum_types.map(lambda x:r.expr([[x, t1], [t1, x]]).map(lambda xy:xy[0].do(lambda x:xy[1].do(lambda y:[x < y, x <= y, x == y, x != y, x >= y, x > y]))))
     ot: ([[[true,  true,  false, true,  false, false],
            [false, false, false, true,  true,  true]],
           [[true,  true,  false, true,  false, false],
@@ -73,6 +82,7 @@ tests:
            [false, false, false, true,  true,  true]]])
 
   - rb: ts.map{|a| ts.map{|b| ts.map{|c| b.during(a, c)}}}
+    py: ts.map(lambda a:ts.map(lambda b:ts.map(lambda c:b.during(a, c))))
     ot: ([[[false, true,  true,  true],
            [false, false, true,  true],
            [false, false, false, true],
@@ -91,6 +101,7 @@ tests:
            [false, false, false, false]]])
 
   - rb: ts.map{|a| ts.map{|b| ts.map{|c| b.during(a, c, :left_bound => :open)}}}
+    py: ts.map(lambda a:ts.map(lambda b:ts.map(lambda c:b.during(a, c, left_bound='open'))))
     ot: ([[[false, false, false, false],
            [false, false, true,  true],
            [false, false, false, true],
@@ -109,6 +120,7 @@ tests:
            [false, false, false, false]]])
 
   - rb: ts.map{|a| ts.map{|b| ts.map{|c| b.during(a, c, :right_bound => :closed)}}}
+    py: ts.map(lambda a:ts.map(lambda b:ts.map(lambda c:b.during(a, c, right_bound='closed'))))
     ot: ([[[true,  true,  true,  true],
            [false, true,  true,  true],
            [false, false, true,  true],
@@ -127,6 +139,7 @@ tests:
            [false, false, false, true]]])
 
   - rb: ts.map{|a| ts.map{|b| ts.map{|c| b.during(a, c, :left_bound => :open, :right_bound => :closed)}}}
+    py: ts.map(lambda a:ts.map(lambda b:ts.map(lambda c:b.during(a, c, left_bound='open', right_bound='closed'))))
     ot: ([[[false, false, false, false],
            [false, true,  true,  true],
            [false, false, true,  true],
@@ -145,4 +158,5 @@ tests:
            [false, false, false, false]]])
 
   - rb: ts.map{|x| x.date + x.time_of_day}.map{|x| x.to_epoch_time}
+    py: ts.map(lambda x:x.date() + x.time_of_day()).map(lambda x:x.to_epoch_time())
     ot: rts

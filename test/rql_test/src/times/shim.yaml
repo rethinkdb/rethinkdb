@@ -1,10 +1,16 @@
 desc: Test the native shims.
 tests:
-  - cd: r(Time.at(1375147296.60081)).to_iso8601
+  - def: t = 1375147296.60081
+
+  - rb: r(Time.at(t)).to_iso8601
+    py: r.expr(datetime.fromtimestamp(t, pytz.timezone('US/Pacific'))).to_iso8601()
     ot: ("2013-07-29T18:21:36.600810-07:00")
-  - cd: r(Time.at(1375147296.60081).utc).to_iso8601
+  - rb: r(Time.at(t).utc).to_iso8601
+    py: r.expr(datetime.fromtimestamp(t, pytz.utc)).to_iso8601()
     ot: ("2013-07-30T01:21:36.600810+00:00")
-  - cd: r(Time.at(1375147296.60081)).to_epoch_time
+  - rb: r(Time.at(t)).to_epoch_time
+    py: r.expr(datetime.fromtimestamp(t, pytz.timezone('US/Pacific'))).to_epoch_time()
     ot: (1375147296.60081)
-  - cd: r(Time.at(1375147296.60081).utc).to_epoch_time
+  - rb: r(Time.at(t).utc).to_epoch_time
+    py: r.expr(datetime.fromtimestamp(t, pytz.utc)).to_epoch_time()
     ot: (1375147296.60081)

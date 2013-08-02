@@ -10,23 +10,29 @@ tests:
   - def: t2 = r.epoch_time(rt2)
   - def: t3 = r.epoch_time(rt3)
   - def: t4 = r.epoch_time(rt4)
-  - def: ts = r([t1, t2, t3, t4])
+  - def: ts = r.expr([t1, t2, t3, t4])
 
   - rb: ts.map{|x| x.date}.map{|x| x.to_epoch_time}
+    py: ts.map(lambda x:x.date()).map(lambda x:x.to_epoch_time())
     ot: ([1375142400, 1375142400, 1375142400, 2375136000])
-  - rb: ts.map{|x| x.date.time_of_day}
+  - rb: ts.map(lambd x:x.date.time_of_day())
     ot: ([0, 0, 0, 0])
   - rb: ts.map{|x| x.time_of_day}
+    py: ts.map(lambda x:x.time_of_day())
     ot: ([4896.60081, 4896.60082, 4897.60081, 11296.60081])
 
   - rb: ts.map{|x| [x.year, x.month, x.day, x.hours, x.minutes, x.seconds]}
+    py: ts.map(lambda x:[x.year(), x.month(), x.day(), x.hours(), x.minutes(), x.seconds()])
     ot: ([[2013, 7, 30, 1, 21, 36.60081],
           [2013, 7, 30, 1, 21, 36.60082],
           [2013, 7, 30, 1, 21, 37.60081],
           [2045, 4, 7, 3, 8, 16.60081]])
   - rb: ts.map{|x| r.time(x.year, x.month, x.day, x.hours, x.minutes, x.seconds, x.timezone)}.map{|x| x.to_epoch_time}
+    py: ts.map(lambda x:r.time(x.year(), x.month(), x.day(), x.hours(), x.minutes(), x.seconds(), x.timezone())).map(lambda x:x.to_epoch_time())
     ot: rts
   - rb: ts.map{|x| r.time(x.year, x.month, x.day, x.hours, x.minutes, x.seconds, x.timezone)}.union(ts).map{|x| x.to_iso8601}.distinct.count.sub(ts.count)
+    py: ts.map(lambda x:r.time(x.year(), x.month(), x.day(), x.hours(), x.minutes(), x.seconds(), x.timezone())).union(ts).map(lambda x:x.to_iso8601()).distinct().count().sub(ts.count())
     ot: 0
   - rb: ts.map{|x| [x.day_of_week, x.day_of_year]}
+    py: ts.map(lambda x:[x.day_of_week(), x.day_of_year()])
     ot: [[2, 211], [2, 211], [2, 211], [5, 97]]
