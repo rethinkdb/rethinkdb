@@ -124,11 +124,6 @@ module RethinkDB
           ap
         }
         return RQL.new(t, nil, context)
-      when Time
-        return fast_expr({ '$reql_type$' => 'TIME',
-                           'epoch_time'  => x.to_f,
-                           'timezone'    => timezone_from_offset(x.utc_offset)},
-                         context, allow_json)
       when Proc
         t = RQL.new(nil, nil, context).new_func(&x).to_pb
         return RQL.new(t, nil, context)
@@ -136,11 +131,28 @@ module RethinkDB
       end
     end
 
+    def reql_typify tree
+      case tree
+      when Array
+        return tree.map{|x| reql_typify(x)}
+      when Hash
+        return Hash[tree.map{|k,v| [k, reql_typify(v)]}]
+      when Time
+        return {
+          '$reql_type$' => 'TIME',
+          'epoch_time'  => tree.to_f,
+          'timezone'    => timezone_from_offset(tree.utc_offset)
+        }
+      else
+        return tree
+      end
+    end
+
     def expr(x, opts={})
       allow_json = opts[:allow_json]
       unbound_if @body
       context = RPP.sanitize_context(caller)
-      res = fast_expr(x, context, allow_json)
+      res = fast_expr(reql_typify(x), context, allow_json)
       return res if res.class == RQL
       return RQL.new(any_to_pb(res, context), nil, context)
     end

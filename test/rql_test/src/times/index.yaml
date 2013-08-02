@@ -4,4 +4,28 @@ tests:
   - cd: r.db('test').table_create('times_api')
     def: tbl = r.table('times_api')
 
+  - def: ts = {"timezone"=>"-07:00", "epoch_time"=>1375445162.0872, "$reql_type$"=>"TIME"}
+  - def: t1 = {"timezone"=>"-07:00", "epoch_time"=>1375445163.0872, "$reql_type$"=>"TIME"}
+  - def: t2 = {"timezone"=>"-07:00", "epoch_time"=>1375445163.08832, "$reql_type$"=>"TIME"}
+  - def: t3 = {"timezone"=>"-07:00", "epoch_time"=>1375445163.08943, "$reql_type$"=>"TIME"}
+  - def: t4 = {"timezone"=>"-07:00", "epoch_time"=>1375445163.09055, "$reql_type$"=>"TIME"}
+  - def: t5 = {"timezone"=>"-07:00", "epoch_time"=>1375445163.09166, "$reql_type$"=>"TIME"}
+  - def: te = {"timezone"=>"-07:00", "epoch_time"=>1375445164.0872, "$reql_type$"=>"TIME"}
+
+  - rb: tbl.insert([{:id => t1}, {:id => t2}, {:id => t3}, {:id => t4}, {:id => t5}])[:inserted]
+    ot: 5
+
+  - rb: tbl.between(ts, te).count
+    ot: 5
+  - rb: tbl.between(t1, t4).count
+    ot: 3
+  - rb: tbl.between(t1, t4, :right_bound => 'closed').count
+    ot: 4
+  - rb: tbl.between(r(ts).in_timezone("+06:00"), te).count
+    ot: 5
+  - rb: tbl.between(t1, r(t4).in_timezone("+08:00")).count
+    ot: 3
+  - rb: tbl.between(r(t1).in_timezone("Z"), t4, :right_bound => 'closed').count
+    ot: 4
+
   - cd: r.db('test').table_drop('times_api')
