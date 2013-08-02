@@ -136,20 +136,6 @@
 }
 
 {
-    GoogleProtobuf
-    Memcheck:Leak
-    ...
-    fun:_ZN6google8protobuf*
-}
-
-{
-    GoogleProtobufStaticDescriptorInitializer
-    Memcheck:Leak
-    ...
-    fun:_ZN56StaticDescriptorInitializer_*
-}
-
-{
     v8Globals
     Memcheck:Leak
     ...
