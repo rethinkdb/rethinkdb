@@ -99,45 +99,33 @@ void cJSON_Delete(cJSON *c)
 }
 
 /* Parse the input text to generate a number, and populate the result into item. */
-static const char *parse_number(cJSON *item,const char *num)
-{
-        double n=0,sign=1,scale=0;int subscale=0,signsubscale=1;
-
-        /* Could use sscanf for this? */
-        if (*num=='-') sign=-1,num++;        /* Has sign? */
-        if (*num=='0') num++;                        /* is zero */
-        if (*num>='1' && *num<='9')        do        n=(n*10.0)+(*num++ -'0');        while (*num>='0' && *num<='9');        /* Number? */
-        if (*num=='.' && num[1]>='0' && num[1]<='9') {num++;                do        n=(n*10.0)+(*num++ -'0'),scale--; while (*num>='0' && *num<='9');}        /* Fractional part? */
-        if (*num=='e' || *num=='E')                /* Exponent? */
-        {        num++;if (*num=='+') num++;        else if (*num=='-') signsubscale=-1,num++;                /* With sign? */
-                while (*num>='0' && *num<='9') subscale=(subscale*10)+(*num++ - '0');        /* Number? */
-        }
-
-        n=sign*n*pow(10.0,(scale+subscale*signsubscale));        /* number = +/- number.fraction * 10^+/- exponent */
-
-        item->valuedouble=n;
-        item->valueint=(int)n;
-        item->type=cJSON_Number;
-        return num;
+static const char *parse_number(cJSON *item, const char *num) {
+    double n;
+    int offset;
+    // `%lg` differs from the JSON spec in two ways: it accepts numbers prefixed
+    // with `+`, and it accepts hexadecimal floats (sometimes).  We don't need
+    // to check for numbers prefixed with `+` because `parse_value` only calls
+    // us if `item[0]` is `-` or `[0-9]`.  We check for hexadecimal floats below
+    // (cJSON's convention is to just ignore trailing garbage).
+    if (num[0] == '0' && (num[1] == 'x' || num[1] == 'X')) {
+        n = 0;
+        offset = 1;
+    } else {
+        sscanf(num, "%lg%n", &n, &offset);
+    }
+    item->valuedouble = n;
+    item->valueint = (int)n;
+    item->type = cJSON_Number;
+    return num + offset;
 }
 
 /* Render the number nicely from the given item into a string. */
-static char *print_number(cJSON *item)
-{
-        char *str;
-        double d=item->valuedouble;
-        guarantee(isfinite(d));
-        if (fabs(((double)item->valueint)-d)<=DBL_EPSILON && d<=INT_MAX && d>=INT_MIN)
-        {
-                str=(char*)cJSON_malloc(21);        /* 2^64+1 can be represented in 21 chars. */
-                if (str) sprintf(str,"%d",item->valueint);  // NOLINT(runtime/printf)
-        }
-        else
-        {
-                str=(char*)cJSON_malloc(512);        /* This is a correct tradeoff. */
-                if (str) sprintf(str, "%.32g", d);
-        }
-        return str;
+static char *print_number(cJSON *item) {
+    char *str;
+    double d = item->valuedouble;
+    guarantee(isfinite(d));
+    asprintf(&str, "%.20g", d);
+    return str;
 }
 
 /* Parse the input text into an unescaped cstring, and populate item. */
