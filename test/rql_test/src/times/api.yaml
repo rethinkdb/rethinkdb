@@ -69,11 +69,11 @@ tests:
 # Construction/Conversion
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").to_epoch_time()
     ot: (1375140600.1)
-  - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").timezone
+  - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").timezone()
     ot: ("-07:00")
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1).to_epoch_time()
     ot: (1375140600.1)
-  - cd: r.time(2013, r.july, 29, 23, 30, 0.1).timezone
+  - cd: r.time(2013, r.july, 29, 23, 30, 0.1).timezone()
     ot: (null)
   - cd: r.time(2013, r.july, 29, 23, 30).to_epoch_time()
     ot: err("RqlRuntimeError", "Got 5 arguments to TIME (expected 3, 4, 6 or 7).", [])
@@ -81,11 +81,11 @@ tests:
     ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
   - cd: r.time(2013, r.july, 29, "-07:00").to_epoch_time()
     ot: 1375056000
-  - cd: r.time(2013, r.july, 29, "-07:00").timezone
+  - cd: r.time(2013, r.july, 29, "-07:00").timezone()
     ot: ("-07:00")
   - cd: r.time(2013, r.july, 29).to_epoch_time()
     ot: 1375056000
-  - cd: r.time(2013, r.july, 29).timezone
+  - cd: r.time(2013, r.july, 29).timezone()
     ot: (null)
   - cd: r.iso8601("2013-07-30T20:56:05-07:00").to_epoch_time()
     ot: 1375242965

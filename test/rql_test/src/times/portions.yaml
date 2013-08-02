@@ -15,7 +15,8 @@ tests:
   - rb: ts.map{|x| x.date}.map{|x| x.to_epoch_time}
     py: ts.map(lambda x:x.date()).map(lambda x:x.to_epoch_time())
     ot: ([1375142400, 1375142400, 1375142400, 2375136000])
-  - rb: ts.map(lambd x:x.date.time_of_day())
+  - rb: ts.map{|x| x.date().time_of_day()}
+    py: ts.map(lambda x:x.date().time_of_day())
     ot: ([0, 0, 0, 0])
   - rb: ts.map{|x| x.time_of_day}
     py: ts.map(lambda x:x.time_of_day())
