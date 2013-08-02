@@ -85,9 +85,6 @@ private:
         void on_event(int events);
 
     public:
-        /* hub->notify[j].notifier_thread == j */
-        int notifier_thread;
-
         system_event_t event;                    // the eventfd to notify
 
         /* hub->notify[i].parent = hub */

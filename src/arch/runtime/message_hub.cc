@@ -25,7 +25,6 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue, linux_threa
 
     for (int i = 0; i < thread_pool_->n_threads; i++) {
         // Create notify fd for other cores that send work to us
-        notify_[i].notifier_thread = i;
         notify_[i].parent = this;
 
         queue_->watch_resource(notify_[i].event.get_notify_fd(), poll_event_in, &notify_[i]);
