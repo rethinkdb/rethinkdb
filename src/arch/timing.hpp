@@ -1,8 +1,6 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_TIMING_HPP_
 #define ARCH_TIMING_HPP_
-
-#include <memory>
 
 #include "concurrency/signal.hpp"
 #include "arch/timer.hpp"
