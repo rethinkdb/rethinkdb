@@ -402,6 +402,8 @@ std::string time_to_iso8601(counted_t<const datum_t> d) {
     try {
         time_t t = time_to_boost(d);
         int year = t.date().year();
+        // Boost also accepts year 10000.  I don't think any real users will hit
+        // that edge case, but better safe than sorry.
         rcheck_datum(year >= 0 && year <= 9999, base_exc_t::GENERIC,
                      strprintf("Year `%d` out of valid ISO 8601 range [0, 9999].",
                                year));

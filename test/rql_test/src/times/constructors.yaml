@@ -66,4 +66,3 @@ tests:
   - def: subrunner = class << bad_dts_in_tz; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:dt => x[:dt], :tz => x[:tz], :s => RethinkDB::RQL.new.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run(*args)}); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
   - rb: bad_dts_in_tz
     ot: ([])
-
