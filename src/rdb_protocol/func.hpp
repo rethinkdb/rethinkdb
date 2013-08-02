@@ -17,7 +17,7 @@
 
 namespace ql {
 
-class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
+class func_t : public single_threaded_countable_t<func_t>, public pb_rcheckable_t {
 public:
     func_t(env_t *env, js::id_t id, counted_t<term_t> parent);
     func_t(env_t *env, protob_t<const Term> _source);
@@ -120,13 +120,12 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *stream);
 
 private:
-    // We cache a separate function for every environment.
-    std::map<uuid_u, counted_t<func_t> > cached_funcs;
-
+    friend class env_t;
     // source is never null, even when wire_func_t is default-constructed.
     protob_t<Term> source;
     boost::optional<Term> default_filter_val;
     std::map<int64_t, Datum> scope;
+    uuid_u uuid;
 };
 
 void debug_print(printf_buffer_t *buf, const wire_func_t &func);
@@ -166,7 +165,9 @@ public:
 class gmr_wire_func_t {
 public:
     gmr_wire_func_t() { }
-    gmr_wire_func_t(env_t *env, counted_t<func_t> _group, counted_t<func_t> _map, counted_t<func_t> _reduce)
+    gmr_wire_func_t(env_t *env, counted_t<func_t> _group,
+                    counted_t<func_t> _map,
+                    counted_t<func_t> _reduce)
         : group(env, _group), map(env, _map), reduce(env, _reduce) { }
     counted_t<func_t> compile_group(env_t *env) { return group.compile(env); }
     counted_t<func_t> compile_map(env_t *env) { return map.compile(env); }

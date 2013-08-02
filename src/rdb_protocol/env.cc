@@ -17,6 +17,40 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
+counted_t<func_t> env_t::get_or_compile_func(const wire_func_t *wf) {
+    assert_thread();
+    auto it = cached_funcs.find(wf->uuid);
+    if (it == cached_funcs.end()) {
+        push_scope(&wf->scope);
+        try {
+            it = cached_funcs.insert(
+                std::make_pair(
+                    wf->uuid, compile_term(this, wf->source)->eval()->as_func())).first;
+            if (wf->default_filter_val) {
+                it->second->set_default_filter_val(
+                    make_counted<func_t>(
+                        this, make_counted_term_copy(*wf->default_filter_val)));
+            }
+        } catch (const base_exc_t &e) {
+            // If we have a non-`base_exc_t` exception, we don't want to pop the
+            // scope because we might have corruption, and we might fail a check
+            // and try to throw again while this exception is on the stack.  (We
+            // only need to pop the scope for a `base_exc_t` exception because
+            // that's the only kind of exception that we might recover from in
+            // the ReQL layer, which is the only case where the un-popped scope
+            // might matter.)
+            pop_scope();
+            throw;
+        }
+        pop_scope();
+    }
+    return it->second;
+}
+
+void env_t::precache_func(const wire_func_t *wf, counted_t<func_t> func) {
+    cached_funcs[wf->uuid] = func;
+}
+
 void env_t::cache_js_func(const std::string &s, counted_t<val_t> f) {
     if (js_funcs.size() >= cache_size) {
         auto oldest_func = js_funcs.begin();
@@ -143,17 +177,15 @@ void env_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
         (*out)[it->first] = it->second.top();
     }
 }
-void env_t::push_scope(std::map<int64_t, Datum> *in) {
+void env_t::push_scope(const std::map<int64_t, Datum> *in) {
     scope_stack.push(std::vector<std::pair<int, counted_t<const datum_t> > >());
 
-    for (std::map<int64_t, Datum>::iterator it = in->begin(); it != in->end(); ++it) {
+    for (auto it = in->begin(); it != in->end(); ++it) {
         scope_stack.top().push_back(
             std::make_pair(it->first, make_counted<datum_t>(&it->second)));
     }
 
     for (size_t i = 0; i < scope_stack.top().size(); ++i) {
-        //        &scope_stack.top()[i].second,
-        //        scope_stack.top()[i].second);
         push_var(scope_stack.top()[i].first, &scope_stack.top()[i].second);
     }
 }
@@ -228,8 +260,7 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
-  : uuid(generate_uuid()),
-    optargs(_optargs),
+  : optargs(_optargs),
     next_gensym_val(-2),
     implicit_depth(0),
     pool(_pool_group->get()),
@@ -247,8 +278,7 @@ env_t::env_t(
 }
 
 env_t::env_t(signal_t *_interruptor)
-  : uuid(generate_uuid()),
-    next_gensym_val(-2),
+  : next_gensym_val(-2),
     implicit_depth(0),
     pool(NULL),
     ns_repo(NULL),
