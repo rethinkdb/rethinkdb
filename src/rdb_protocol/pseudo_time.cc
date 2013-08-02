@@ -153,7 +153,7 @@ string date(const string &s, date_format_t *df_out) {
     }
     // We need to keep track of this because YYYY-MM and YYYYMMDD are valid, but
     // YYYYMM is not.  I don't write these standards.
-    bool year_hyphen = optional_char(s, '-', &at, &out);
+    bool first_hyphen = optional_char(s, '-', &at, &out);
     if (optional_char(s, 'W', &at, &out, EXCLUDE)) {
         *df_out = WEEKCOUNT;
         mandatory_digits(s, 2, &at, &out);
@@ -168,10 +168,12 @@ string date(const string &s, date_format_t *df_out) {
     } else {
         *df_out = MONTH_DAY;
         mandatory_digits(s, 2, &at, &out);
-        if (year_hyphen && at == s.size()) {
+        if (first_hyphen && at == s.size()) {
             return out + "-01";
         }
-        optional_char(s, '-', &at, &out);
+        bool second_hyphen = optional_char(s, '-', &at, &out);
+        rcheck_datum(!(first_hyphen ^ second_hyphen), base_exc_t::GENERIC,
+                     strprintf("Date string `%s` must have 0 or 2 hyphens.", s.c_str()));
         mandatory_digits(s, 2, &at, &out);
     }
     rcheck_datum(at == s.size(), base_exc_t::GENERIC,
@@ -188,12 +190,14 @@ string time(const string &s) {
     if (at == s.size()) {
         return out + ":00:00.000000";
     }
-    optional_char(s, ':', &at, &out);
+    bool first_colon = optional_char(s, ':', &at, &out);
     mandatory_digits(s, 2, &at, &out);
     if (at == s.size()) {
         return out + ":00.000000";
     }
-    optional_char(s, ':', &at, &out);
+    bool second_colon = optional_char(s, ':', &at, &out);
+    rcheck_datum(!(first_colon ^ second_colon), base_exc_t::GENERIC,
+                 strprintf("Time string `%s` must have 0 or 2 colons.", s.c_str()));
     mandatory_digits(s, 2, &at, &out);
     if (optional_char(s, '.', &at, &out)) {
         size_t read = 0;
