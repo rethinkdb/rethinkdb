@@ -382,8 +382,6 @@ scoped_malloc_t<ser_buffer_t> log_serializer_t::malloc() {
         malloc_aligned(static_config.block_size().ser_value(),
                        DEVICE_BLOCK_SIZE));
 
-    rassert(divides(DEVICE_BLOCK_SIZE, reinterpret_cast<intptr_t>(buf.get())));
-
     // Initialize the block sequence id...
     buf->ser_header.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
     return buf;
