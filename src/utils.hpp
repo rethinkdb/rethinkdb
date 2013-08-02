@@ -60,7 +60,7 @@ struct cache_line_padded_t {
     char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
 
-void *malloc_aligned(size_t size, size_t alignment = 64);
+void *malloc_aligned(size_t size, size_t alignment);
 
 template <class T1, class T2>
 T1 ceil_aligned(T1 value, T2 alignment) {
