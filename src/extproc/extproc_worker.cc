@@ -20,12 +20,10 @@ NORETURN bool worker_exit_fn(read_stream_t *stream_in, write_stream_t *) {
     ::_exit(exit_code);
 }
 
-extproc_worker_t::extproc_worker_t(scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > *_interruptors,
-                                   extproc_spawner_t *_spawner) :
+extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
     spawner(_spawner),
     worker_pid(-1),
-    interruptors(_interruptors),
-    user_interruptor(NULL) { }
+    interruptor(NULL) { }
 
 extproc_worker_t::~extproc_worker_t() {
     if (worker_pid != -1) {
@@ -50,7 +48,7 @@ extproc_worker_t::~extproc_worker_t() {
     }
 }
 
-void extproc_worker_t::acquired(signal_t *_user_interruptor) {
+void extproc_worker_t::acquired(signal_t *_interruptor) {
     // Only start the worker process once the worker is acquired for the first time
     // This will also repair a killed worker
 
@@ -62,22 +60,26 @@ void extproc_worker_t::acquired(signal_t *_user_interruptor) {
     }
 
     // Apply the user interruptor to our stream along with the extproc pool's interruptor
-    user_interruptor = _user_interruptor;
-    if (user_interruptor == NULL) {
-        socket_stream.get()->set_interruptor((*interruptors)[get_thread_id()].get());
-    } else {
-        combined_interruptor.create((*interruptors)[get_thread_id()].get(), user_interruptor);
-        socket_stream.get()->set_interruptor(combined_interruptor.get());
-    }
+    guarantee(interruptor == NULL);
+    interruptor = _interruptor;
+    guarantee(interruptor != NULL);
+    socket_stream.get()->set_interruptor(interruptor);
 }
 
-void extproc_worker_t::released() {
+void extproc_worker_t::released(signal_t *user_interruptor) {
+    guarantee(interruptor != NULL);
     bool errored = false;
 
     // If we were interrupted by the user, we can't count on the worker being valid
     if (user_interruptor != NULL && user_interruptor->is_pulsed()) {
         errored = true;
     } else {
+        // Set up a timeout interruptor for the final write/read
+        signal_timer_t timeout;
+        wait_any_t final_interruptor(&timeout, interruptor);
+        socket_stream->set_interruptor(&final_interruptor);
+        timeout.start(100); // Allow 100ms for the child to respond
+
         // Trade magic numbers with worker process to see if it is still coherent
         try {
             write_message_t msg;
@@ -85,16 +87,6 @@ void extproc_worker_t::released() {
             int res = send_write_message(socket_stream.get(), &msg);
             if (res != 0) { throw std::runtime_error("failed to send magic number"); }
 
-            // Set up a timeout interruptor for the final read
-            // We don't include the extproc pool's interruptor here for good reason
-            signal_timer_t timeout;
-            wait_any_t final_interruptor(&timeout);
-            if (user_interruptor != NULL) {
-                final_interruptor.add(user_interruptor);
-            }
-            socket_stream->set_interruptor(&final_interruptor);
-
-            timeout.start(100); // Allow 100ms for the child to respond
 
             uint64_t magic_from_child;
             res = deserialize(socket_stream.get(), &magic_from_child);
@@ -102,9 +94,8 @@ void extproc_worker_t::released() {
                 throw std::runtime_error("did not receive magic number");
             }
         } catch (...) {
-            // Only log this if there is a serious problem
-            // This would indicate a job is not reading out all its data
-            if (user_interruptor == NULL || !user_interruptor->is_pulsed()) {
+            // This would indicate a job is hanging or not reading out all its data
+            if (!final_interruptor.is_pulsed() || timeout.is_pulsed()) {
                 logERR("worker process failed to resynchronize with main process");
             }
             errored = true;
@@ -112,10 +103,7 @@ void extproc_worker_t::released() {
     }
 
     socket_stream.reset();
-
-    if (combined_interruptor.has()) {
-        combined_interruptor.reset();
-    }
+    interruptor = NULL;
 
     // If anything went wrong, we just kill the worker and recreate it later
     if (errored) {
