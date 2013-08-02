@@ -1,9 +1,6 @@
 desc: sindex api (#602)
 tests:
 
-  - cd: r.db('test').table_create('times_api')
-    def: tbl = r.table('sindex_api')
-
 # Type shims -- see shim.yaml
 
   - def: rt1 = 1375147296.60081
@@ -100,5 +97,3 @@ tests:
   - cd: r([r.january, r.february, r.march, r.april, r.may, r.june,
            r.july, r.august, r.september, r.october, r.november, r.december])
     ot: ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-
-  - cd: r.db('test').table_drop('times_api')
