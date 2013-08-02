@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_PAGE_MAP_HPP_
 #define BUFFER_CACHE_MIRRORED_PAGE_MAP_HPP_
 
@@ -10,28 +10,29 @@
 class mc_inner_buf_t;
 
 class array_map_t {
-    typedef mc_inner_buf_t inner_buf_t;
-
 public:
-    array_map_t() { }
+    array_map_t() : count(0) { }
 
     ~array_map_t() {
-        rassert(array.size() == 0);
+        rassert(count == 0);
     }
 
-    static void constructing_inner_buf(inner_buf_t *gbuf);
-    static void destroying_inner_buf(inner_buf_t *gbuf);
+    static void constructing_inner_buf(mc_inner_buf_t *gbuf);
+    static void destroying_inner_buf(mc_inner_buf_t *gbuf);
 
-    inner_buf_t *find(block_id_t block_id) {
+    mc_inner_buf_t *find(block_id_t block_id) {
         return array.get(block_id);
     }
 
-    unsigned int size() {
-        return array.size();
+    size_t num_pages() const {
+        return count;
     }
 
 private:
-    two_level_array_t<inner_buf_t*, MAX_BLOCK_ID> array;
+    two_level_array_t<mc_inner_buf_t *> array;
+
+    // The count of non-null array entries.
+    size_t count;
 
     DISABLE_COPYING(array_map_t);
 };

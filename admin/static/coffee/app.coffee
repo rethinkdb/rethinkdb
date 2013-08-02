@@ -3,6 +3,7 @@
 # application. We should refactor this at some point, but I'm leaving
 # it as is for now.
 
+
 modal_registry = []
 clear_modals = ->
     modal.hide_modal() for modal in modal_registry
@@ -149,7 +150,7 @@ collections_ready = ->
 
 collect_reql_doc = ->
     $.ajax
-        url: '/js/reql_docs.json?v='+window.VERSION
+        url: 'js/reql_docs.json?v='+window.VERSION
         dataType: 'json'
         contentType: 'application/json'
         success: set_reql_docs
@@ -216,6 +217,8 @@ collect_stat_data = ->
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
 $ ->
+    window.r = require('rethinkdb')
+
     render_loading()
     bind_dev_tools()
 

@@ -34,7 +34,8 @@ void runCrossThreadWatchabletest() {
             }
             {
                 on_thread_t switcher(1);
-                signal_timer_t timer(5000);
+                signal_timer_t timer;
+                timer.start(5000);
                 ctw->get_watchable()->run_until_satisfied(boost::bind(&equals, expected_value, _1), &timer);
             }
         }
@@ -50,7 +51,8 @@ void runCrossThreadWatchabletest() {
             }
             {
                 on_thread_t switcher(1);
-                signal_timer_t timer(5000);
+                signal_timer_t timer;
+                timer.start(5000);
                 ctw->get_watchable()->run_until_satisfied(boost::bind(&equals, expected_value, _1), &timer);
             }
         }

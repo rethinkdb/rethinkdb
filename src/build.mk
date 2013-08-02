@@ -104,6 +104,14 @@ RT_CXXFLAGS += -DWEB_ASSETS_DIR_NAME='"$(WEB_ASSETS_DIR_NAME)"'
 RT_CXXFLAGS += $(CXXPATHDS)
 RT_CXXFLAGS += -Wall -Wextra
 
+# Force 64-bit off_t size on Linux -- also, sizeof(off_t) will be
+# checked by a compile-time assertion.
+ifeq ($(OS),Linux)
+  RT_CXXFLAGS += -D_FILE_OFFSET_BITS=64
+endif
+
+
+
 ifneq (1,$(ALLOW_WARNINGS))
   RT_CXXFLAGS += -Werror
 endif
@@ -251,6 +259,10 @@ endif
 
 ifeq ($(LEGACY_PROC_STAT),1)
   RT_CXXFLAGS += -DLEGACY_PROC_STAT
+endif
+
+ifeq ($(V8_PRE_3_19),1)
+  RT_CXXFLAGS += -DV8_PRE_3_19
 endif
 
 RT_CXXFLAGS += -I$(PROTO_DIR)

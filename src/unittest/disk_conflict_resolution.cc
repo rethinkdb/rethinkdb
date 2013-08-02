@@ -101,9 +101,17 @@ struct test_driver_t {
             data.resize(a->get_offset() + a->get_count(), 0);
         }
         if (a->get_is_read()) {
-            memcpy(a->get_buf(), data.data() + a->get_offset(), a->get_count());
+            iovec *a_vecs;
+            size_t a_size;
+            a->get_bufs(&a_vecs, &a_size);
+            iovec source_vecs[1] = { { data.data(), data.size() } };
+            fill_bufs_from_source(a_vecs, a_size, source_vecs, 1, a->get_offset());
         } else {
-            memcpy(data.data() + a->get_offset(), a->get_buf(), a->get_count());
+            iovec *a_vecs;
+            size_t a_size;
+            a->get_bufs(&a_vecs, &a_size);
+            iovec dest_vecs[1] = { { data.data() + a->get_offset(), a->get_count() } };
+            fill_bufs_from_source(dest_vecs, 1, a_vecs, a_size, 0);
         }
 
         conflict_resolver.done(a);
@@ -283,6 +291,29 @@ void cause_test_failure() {
 TEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
 };
+
+TEST(DiskConflictTest, FillBufsFromSource) {
+    // A 27-element array.
+    char s[] = "abcdefghijklmnopqrstuvwxyz";
+
+    iovec source[5] = { { s + 0, 5 },
+                        { s + 5, 5 },
+                        { s + 10, 7 },
+                        { s + 17, 9 },
+                        { s + 26, 1 } };
+
+    // A 20-element array.
+    char t[sizeof(s) - 7];
+    memset(t, 'A', sizeof(t));
+    iovec dest[3] = { { t + 0, 5 },
+                      { t + 5, 5 },
+                      { t + 10, 10 } };
+
+    fill_bufs_from_source(dest, 3, source, 5, 7);
+
+    ASSERT_EQ('\0', t[sizeof(t) - 1]);
+    ASSERT_EQ(std::string(s + 7), std::string(t));
+}
 
 }  // namespace unittest
 

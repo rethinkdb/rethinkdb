@@ -22,7 +22,7 @@ static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 60*1000;
 class stats_request_record_t {
 public:
     explicit stats_request_record_t(mailbox_manager_t *mbox_manager)
-        : response_mailbox(mbox_manager, boost::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1), mailbox_callback_mode_inline)
+        : response_mailbox(mbox_manager, boost::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1))
     { }
     promise_t<perfmon_result_t> stats;
     mailbox_t<void(perfmon_result_t)> response_mailbox;
@@ -162,7 +162,8 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
      * get_stat function  has gone out of existence we'll never get a response.
      * Thus we need to have a time out.
      */
-    signal_timer_t timer(static_cast<int>(timeout)); // WTF? why is it accepting an int? negative milliseconds, anyone?
+    signal_timer_t timer;
+    timer.start(static_cast<int64_t>(timeout)); // WTF? why is it accepting an int? negative milliseconds, anyone?
 
     for (peers_to_metadata_t::iterator it  = peers_to_metadata.begin();
                                        it != peers_to_metadata.end();

@@ -26,7 +26,7 @@ def expr(val):
         return Datum(val)
 
 # Like expr but attempts to serialize as much of the value as JSON
-# as possible. 
+# as possible.
 def exprJSON(val):
     if isinstance(val, RqlQuery):
         return val
@@ -274,7 +274,10 @@ class RqlQuery(object):
     # in cases of ambiguity
     def __getitem__(self, index):
         if isinstance(index, slice):
-            return Slice(self, index.start or 0, index.stop or -1)
+            if index.stop:
+                return Slice(self, index.start or 0, index.stop)
+            else:
+                return Slice(self, index.start or 0, -1, right_bound='closed')
         elif isinstance(index, int):
             return Nth(self, index)
         elif isinstance(index, types.StringTypes):
@@ -292,8 +295,8 @@ class RqlQuery(object):
     def indexes_of(self, val):
         return IndexesOf(self,func_wrap(val))
 
-    def slice(self, left=None, right=None):
-        return Slice(self, left, right)
+    def slice(self, left, right, left_bound=(), right_bound=()):
+        return Slice(self, left, right, left_bound=left_bound, right_bound=right_bound)
 
     def skip(self, index):
         return Skip(self, index)
@@ -316,8 +319,8 @@ class RqlQuery(object):
     def order_by(self, *obs, **kwargs):
         return OrderBy(self, *obs, **kwargs)
 
-    def between(self, left_bound=None, right_bound=None, index=()):
-        return Between(self, left_bound, right_bound, index=index)
+    def between(self, left=None, right=None, left_bound=(), right_bound=(), index=()):
+        return Between(self, left, right, left_bound=left_bound, right_bound=right_bound, index=index)
 
     def distinct(self):
         return Distinct(self)
@@ -389,7 +392,7 @@ class RqlBiOperQuery(RqlQuery):
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([name+'='+optargs[name] for name in optargs.keys()])
+        args.extend([T(k, '=', v) for k,v in optargs.items()])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -398,7 +401,7 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([k+'='+v for k,v in optargs.items()])
+        restargs.extend([T(k, '=', v) for k,v in optargs.items()])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')

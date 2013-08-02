@@ -1,4 +1,46 @@
+# Release 1.7.3 (Nights of Cabiria)
+
+Released on 2013-07-19
+
+Bug fix update.
+
+* RethinkDB no longer fails to create the data directory when using `--daemon` (#1191)
+
+--
+
+# Release 1.7.2 (Nights of Cabiria)
+
+Released on 2013-07-18
+
+Bug fix update.
+
+* Fixed `wire_func_t` serialization that caused inserts to fail (#1155)
+* Fixed a bug in the JavaScript driver that caused asynchronous connections to fail (#1150)
+* Removed `nice_crash` and `nice_guarantee` to improve error messages and logging (#1144)
+* `rethinkdb import` now warns when unexpected files are found (#1143)
+* `rethinkdb import` now correctly imports nested objects (#1142)
+* Fixed the connection timeout in the JavaScript driver (#1140)
+* Fixed `r.without` (#1139)
+* Add a warning to `rethinkdb dump` about indexes and cluster config (#1137)
+* Fixed the `debian/rules` makefile to properly build the rethinkdb-dbg package (#1130)
+* Allow multiple instances with different port offsets in the init script (#1126)
+* Fixed `make install` to not use `/dev/stdin` (#1125)
+* Added missing files to the OS X uninstall script (#1123)
+* Fixed the documentation for insert with the returnVals flag in JavaScript (#1122)
+* No longer cache `index.html` in the web UI (#1117)
+* The init script now waits for rethinkdb to stop before restarting (#1115)
+* `rethinkdb` porcelain now removes the new directory if it fails (#1070)
+* Added cooperative locking to the rethinkdb data directory to detect conflicts earlier (#1109)
+* Improved the comments in the sample configuration file (#1078)
+* Config file parsing now allows options that apply to other modes of rethinkdb (#1077)
+* The init script now creates folders with the correct permissions (#1069)
+* Client drivers now time out if the connection handshake takes too long (#1033)
+
+--
+
 # Release 1.7.1 (Nights of Cabiria)
+
+Released on 2013-07-04
 
 Bug fix update.
 

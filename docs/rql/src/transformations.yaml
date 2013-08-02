@@ -65,7 +65,7 @@ commands:
       - description: Get a list of heroes and their nemeses, excluding any heroes whose nemesis isn't in an evil organization.
         code:
           rb: "r.table('marvel').with_fields(:id, {:nemesis => {:evil_organization => true}})"
-          py: "r.table('marvel').with_fields('id', {'nemesis' : {'evil_organization' => True}})"
+          py: "r.table('marvel').with_fields('id', {'nemesis' : {'evil_organization' : True}})"
           js: "r.table('marvel').withFields('id', {'nemesis' : {'evil_organization' : true}})"
       - description: The nested syntax can quickly become overly verbose so there's a shorthand.
         code:

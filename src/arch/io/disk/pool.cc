@@ -2,6 +2,9 @@
 #include "arch/io/disk/pool.hpp"
 
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
 
 #include "arch/io/disk.hpp"
 #include "config/args.hpp"
@@ -16,11 +19,10 @@ int blocker_pool_queue_depth(int max_concurrent_io_requests) {
 
 void debug_print(printf_buffer_t *buf,
                  const pool_diskmgr_action_t &action) {
-    buf->appendf("pool_diskmgr_action{is_read=%s, fd=%d, buf=%p, count=%zu, "
+    buf->appendf("pool_diskmgr_action{is_read=%s, fd=%d, count=%zu, "
                  "offset=%" PRIi64 ", errno=%d}",
                  action.get_is_read() ? "true" : "false",
                  action.get_fd(),
-                 action.get_buf(),
                  action.get_count(),
                  action.get_offset(),
                  action.get_succeeded() ? 0 : action.get_errno());
@@ -51,21 +53,63 @@ void pool_diskmgr_t::action_t::run() {
         }
     }
 
-    ssize_t res;
-    do {
-        if (is_read) {
-            res = pread(fd, buf, count, offset);
-        } else {
-            res = pwrite(fd, buf, count, offset);
-        }
-    } while (res == -1 && errno == EINTR);
+    ssize_t sum = 0;
+    {
+        iovec *vecs;
+        size_t vecs_len;
+        get_bufs(&vecs, &vecs_len);
+#ifndef USE_WRITEV
+#error "USE_WRITEV not defined.  Did you include pool.hpp?"
+#elif USE_WRITEV
+        const size_t vecs_increment = IOV_MAX;
+        size_t len;
+        int64_t partial_offset = offset;
+        for (size_t i = 0; i < vecs_len; i += len) {
+            len = std::min(vecs_increment, vecs_len - i);
+            ssize_t res;
+            do {
+                if (is_read) {
+                    res = preadv(fd, vecs + i, len, partial_offset);
+                } else {
+                    res = pwritev(fd, vecs + i, len, partial_offset);
+                }
+            } while (res == -1 && errno == EINTR);
 
-    if (res == -1) {
-        io_result = -errno;
-        return;
+            if (res == -1) {
+                io_result = -errno;
+                return;
+            }
+
+            int64_t lensum = 0;
+            for (size_t j = i; j < i + len; ++j) {
+                lensum += vecs[j].iov_len;
+            }
+            guarantee(lensum == res);
+
+            partial_offset += lensum;
+            sum += res;
+        }
+#else  // USE_WRITEV
+        guarantee(vecs_len == 1);
+        ssize_t res;
+        do {
+            if (is_read) {
+                res = pread(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
+            } else {
+                res = pwrite(fd, vecs[0].iov_base, vecs[0].iov_len, offset);
+            }
+        } while (res == -1 && errno == EINTR);
+
+        if (res == -1) {
+            io_result = -errno;
+            return;
+        }
+
+        sum = res;
+#endif  // USE_WRITEV
     }
 
-    io_result = res;
+    io_result = sum;
 
     if (wrap_in_datasyncs) {
         int errcode = perform_datasync(fd);

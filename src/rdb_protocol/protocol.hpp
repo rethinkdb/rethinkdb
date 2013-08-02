@@ -20,6 +20,7 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
@@ -32,6 +33,7 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 
+class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
 template <class> class cross_thread_watchable_variable_t;
@@ -42,8 +44,6 @@ template <class> class namespace_repo_t;
 template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
-
-namespace extproc { class pool_group_t; }
 
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
@@ -148,7 +148,7 @@ struct rget_item_t {
         : key(_key), sindex_key(_sindex_key), data(_data) { }
 
     store_key_t key;
-    boost::shared_ptr<scoped_cJSON_t> sindex_key;
+    boost::optional<boost::shared_ptr<scoped_cJSON_t> > sindex_key;
     boost::shared_ptr<scoped_cJSON_t> data;
     RDB_MAKE_ME_SERIALIZABLE_3(key, sindex_key, data);
 };
@@ -175,7 +175,7 @@ struct rdb_protocol_t {
 
     struct context_t {
         context_t();
-        context_t(extproc::pool_group_t *_pool_group,
+        context_t(extproc_pool_t *_extproc_pool,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
                   boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
@@ -183,7 +183,7 @@ struct rdb_protocol_t {
                   uuid_u _machine_id);
         ~context_t();
 
-        extproc::pool_group_t *pool_group;
+        extproc_pool_t *extproc_pool;
         namespace_repo_t<rdb_protocol_t> *ns_repo;
 
         /* These arrays contain a watchable for each thread.
@@ -302,6 +302,22 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+
+    class sindex_range_t {
+    public:
+        sindex_range_t() { }
+        sindex_range_t(counted_t<const ql::datum_t> _start, bool _start_open,
+                       counted_t<const ql::datum_t> _end, bool _end_open)
+            : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
+        void write_filter_func(ql::env_t *env, Term *filter,
+                               const Term &sindex_mapping) const;
+        region_t to_region() const;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    private:
+        counted_t<const ql::datum_t> start, end;
+        bool start_open, end_open;
+      };
+
     class rget_read_t {
     public:
         rget_read_t() { }
@@ -311,51 +327,34 @@ struct rdb_protocol_t {
             : region(_region), sorting(_sorting) {
         }
 
-        void init_sindexes(counted_t<const ql::datum_t> start,
-                           counted_t<const ql::datum_t> end) {
-            sindex_start_value = start;
-            sindex_end_value = end;
-        }
 
         rget_read_t(const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value,
+                    sindex_range_t _sindex_range,
                     sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(rdb_protocol_t::sindex_key_range(
-                                _sindex_start_value != NULL
-                                  ? _sindex_start_value->truncated_secondary()
-                                  : store_key_t::min(),
-                                _sindex_end_value != NULL
-                                  ? _sindex_end_value->truncated_secondary()
-                                  : store_key_t::max())),
-              sorting(_sorting) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              sindex_range(_sindex_range),
+              sindex_region(sindex_range->to_region()),
+              sorting(_sorting) { }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value,
+                    sindex_range_t _sindex_range,
                     sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region), sorting(_sorting) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              sindex_range(_sindex_range),
+              sindex_region(_sindex_region), sorting(_sorting) { }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value,
+                    sindex_range_t _sindex_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
                     sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
+              sindex_range(_sindex_range),
               sindex_region(_sindex_region),
               transform(_transform), optargs(_optargs),
-              sorting(_sorting) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              sorting(_sorting) { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
@@ -394,10 +393,9 @@ struct rdb_protocol_t {
         /* The sindex from which we're reading. */
         boost::optional<std::string> sindex;
 
-        /* The actual sindex values to use for bounds, since the sindex key may
+        /* The actual sindex range to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        counted_t<const ql::datum_t> sindex_start_value;
-        counted_t<const ql::datum_t> sindex_end_value;
+        boost::optional<sindex_range_t> sindex_range;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */

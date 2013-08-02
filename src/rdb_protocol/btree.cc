@@ -145,7 +145,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     blob.write_from_string(sered_data, txn, 0);
 
     // Actually update the leaf, if needed.
-    kv_location->value.reinterpret_swap(new_value);
+    kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
     //                                                                  ^^^^^ That means the key isn't expired.

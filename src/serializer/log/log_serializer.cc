@@ -10,7 +10,9 @@
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/types.hpp"
+#include "logger.hpp"
 #include "perfmon/perfmon.hpp"
+#include "serializer/log/data_block_manager.hpp"
 
 filepath_file_opener_t::filepath_file_opener_t(const serializer_filepath_t &filepath, io_backender_t *backender)
     : filepath_(filepath), backender_(backender), opened_temporary_(false) { }
@@ -86,7 +88,7 @@ void filepath_file_opener_t::unlink_serializer_file() {
 }
 
 #ifdef SEMANTIC_SERIALIZER_CHECK
-void filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
+void filepath_file_opener_t::open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out) {
     const std::string semantic_filepath = filepath_.permanent_path() + "_semantic";
     int semantic_fd;
     do {
@@ -97,7 +99,7 @@ void filepath_file_opener_t::open_semantic_checking_file(int *fd_out) {
     if (semantic_fd == INVALID_FD) {
         fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(errno).c_str());
     } else {
-        *fd_out = semantic_fd;
+        file_out->init(new linux_semantic_checking_file_t(semantic_fd));
     }
 }
 #endif  // SEMANTIC_SERIALIZER_CHECK
@@ -119,8 +121,8 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
       pm_serializer_data_extents_reclaimed(),
       pm_serializer_data_extents_gced(),
       pm_serializer_data_blocks_written(),
-      pm_serializer_old_garbage_blocks(),
-      pm_serializer_old_total_blocks(),
+      pm_serializer_old_garbage_block_bytes(),
+      pm_serializer_old_total_block_bytes(),
       pm_serializer_lba_gcs(),
       parent_collection_membership(parent, &serializer_collection, "serializer"),
       stats_membership(&serializer_collection,
@@ -137,8 +139,8 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_data_extents_reclaimed, "serializer_data_extents_reclaimed",
           &pm_serializer_data_extents_gced, "serializer_data_extents_gced",
           &pm_serializer_data_blocks_written, "serializer_data_blocks_written",
-          &pm_serializer_old_garbage_blocks, "serializer_old_garbage_blocks",
-          &pm_serializer_old_total_blocks, "serializer_old_total_blocks",
+          &pm_serializer_old_garbage_block_bytes, "serializer_old_garbage_block_bytes",
+          &pm_serializer_old_total_block_bytes, "serializer_old_total_block_bytes",
           &pm_serializer_lba_gcs, "serializer_lba_gcs",
           NULLPTR)
 { }
@@ -271,7 +273,7 @@ struct ls_start_existing_fsm_t :
             for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(id);
                 if (offset.has_value()) {
-                    ser->data_block_manager->mark_live(offset.get_value());
+                    ser->data_block_manager->mark_live(offset.get_value(), ser->lba_index->get_block_size(id));
                 }
             }
             ser->data_block_manager->end_reconstruct();
@@ -375,38 +377,22 @@ log_serializer_t::~log_serializer_t() {
     rassert(active_write_count == 0);
 }
 
-void *log_serializer_t::malloc() {
-    // TODO: we shouldn't use malloc_aligned here, we should use our
-    // custom allocation system instead (and use corresponding
-    // free). This is tough because serializer object may not be on
-    // the same core as the cache that's using it, so we should expose
-    // the malloc object in a different way.
-    char *data = reinterpret_cast<char *>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
+scoped_malloc_t<ser_buffer_t> log_serializer_t::malloc() {
+    scoped_malloc_t<ser_buffer_t> buf(
+        malloc_aligned(static_config.block_size().ser_value(),
+                       DEVICE_BLOCK_SIZE));
 
     // Initialize the block sequence id...
-    reinterpret_cast<ls_buf_data_t *>(data)->block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
-
-    data += sizeof(ls_buf_data_t);
-    return reinterpret_cast<void *>(data);
+    buf->ser_header.block_sequence_id = NULL_BLOCK_SEQUENCE_ID;
+    return buf;
 }
 
-// TODO: Make this parameter const void.
-void *log_serializer_t::clone(void *_data) {
-    // TODO: we shouldn't use malloc_aligned here, we should use our
-    // custom allocation system instead (and use corresponding
-    // free). This is tough because serializer object may not be on
-    // the same core as the cache that's using it, so we should expose
-    // the malloc object in a different way.
-    char *data = reinterpret_cast<char*>(malloc_aligned(static_config.block_size().ser_value(), DEVICE_BLOCK_SIZE));
-    memcpy(data, reinterpret_cast<char*>(_data) - sizeof(ls_buf_data_t), static_config.block_size().ser_value());
-    data += sizeof(ls_buf_data_t);
-    return reinterpret_cast<void *>(data);
-}
-
-void log_serializer_t::free(void *ptr) {
-    char *data = reinterpret_cast<char *>(ptr);
-    data -= sizeof(ls_buf_data_t);
-    ::free(reinterpret_cast<void *>(data));
+scoped_malloc_t<ser_buffer_t> log_serializer_t::clone(const ser_buffer_t *_data) {
+    scoped_malloc_t<ser_buffer_t> buf(
+        malloc_aligned(static_config.block_size().ser_value(),
+                       DEVICE_BLOCK_SIZE));
+    memcpy(buf.get(), _data, static_config.block_size().ser_value());
+    return buf;
 }
 
 file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
@@ -415,49 +401,19 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account) {
+void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token,
+                                  ser_buffer_t *buf, file_account_t *io_account) {
     assert_thread();
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    block_read(token, buf, io_account, &cb);
-    cb.wait();
-}
+    guarantee(token.has());
+    guarantee(state == state_ready);
 
-// TODO(sam): block_read can call the callback before it returns. Is this acceptable?
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) {
-    assert_thread();
-    struct my_cb_t : public iocallback_t {
-        void on_io_complete() {
-            stats->pm_serializer_block_reads.end(&pm_time);
-            if (cb) cb->on_io_complete();
-            delete this;
-        }
-        my_cb_t(iocallback_t *_cb, const counted_t<ls_block_token_pointee_t>& _tok, log_serializer_stats_t *_stats) : cb(_cb), tok(_tok), stats(_stats) {}
-        iocallback_t *cb;
-        // tok is needed to ensure the block remains alive for appropriate period of time.
-        counted_t<ls_block_token_pointee_t> tok;
-        ticks_t pm_time;
-        log_serializer_stats_t *stats;
-    };
+    ticks_t pm_time;
+    stats->pm_serializer_block_reads.begin(&pm_time);
 
-    my_cb_t *readcb = new my_cb_t(cb, token, stats.get());
+    data_block_manager->read(token->offset_, token->block_size().ser_value(),
+                             buf, io_account);
 
-    stats->pm_serializer_block_reads.begin(&readcb->pm_time);
-
-    ls_block_token_pointee_t *ls_token = token.get();
-    rassert(ls_token);
-    assert_thread();
-    rassert(state == state_ready);
-    rassert(token_offsets.find(ls_token) != token_offsets.end());
-
-    rassert(state == state_ready);
-
-    std::map<ls_block_token_pointee_t *, int64_t>::const_iterator token_offsets_it = token_offsets.find(ls_token);
-    rassert(token_offsets_it != token_offsets.end());
-
-    const int64_t offset = token_offsets_it->second;
-    data_block_manager->read(offset, buf, io_account, readcb);
+    stats->pm_serializer_block_reads.end(&pm_time);
 }
 
 // God this is such a hack.
@@ -498,6 +454,7 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
              ++write_op_it) {
             const index_write_op_t& op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
+            uint32_t ser_block_size = lba_index->get_ser_block_size(op.block_id);
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
@@ -511,23 +468,23 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
 
                 // Write new token to index, or remove from index as appropriate.
                 if (token.has()) {
-                    ls_block_token_pointee_t *ls_token = token.get();
-                    rassert(ls_token);
-                    std::map<ls_block_token_pointee_t *, int64_t>::const_iterator to_it = token_offsets.find(ls_token);
-                    rassert(to_it != token_offsets.end());
-                    offset = flagged_off64_t::make(to_it->second);
+                    offset = flagged_off64_t::make(token->offset_);
+                    ser_block_size = token->block_size().ser_value();
 
                     /* mark the life */
-                    data_block_manager->mark_live(offset.get_value());
+                    data_block_manager->mark_live(offset.get_value(), token->block_size());
                 } else {
                     offset = flagged_off64_t::unused();
+                    ser_block_size = 0;
                 }
             }
 
             repli_timestamp_t recency = op.recency ? op.recency.get()
                 : lba_index->get_block_recency(op.block_id);
 
-            lba_index->set_block_info(op.block_id, recency, offset, io_account, &context.extent_txn);
+            lba_index->set_block_info(op.block_id, recency,
+                                      offset, ser_block_size,
+                                      io_account, &context.extent_txn);
         }
     }
 
@@ -616,44 +573,34 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
 }
 
 counted_t<ls_block_token_pointee_t>
-log_serializer_t::generate_block_token(int64_t offset) {
+log_serializer_t::generate_block_token(int64_t offset, block_size_t block_size) {
     assert_thread();
-    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset));
+    counted_t<ls_block_token_pointee_t> ret(new ls_block_token_pointee_t(this, offset, block_size));
     return ret;
 }
 
-counted_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) {
+std::vector<counted_t<ls_block_token_pointee_t> >
+log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
+                               file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
-    // TODO: Implement a duration sampler perfmon for this
-    ++stats->pm_serializer_block_writes;
+    stats->pm_serializer_block_writes += write_infos.size();
 
-    const int64_t offset = data_block_manager->write(buf, block_id, true, io_account, cb, true);
-
-    return generate_block_token(offset);
+    std::vector<counted_t<ls_block_token_pointee_t> > result
+        = data_block_manager->many_writes(write_infos, true, io_account, cb);
+    guarantee(result.size() == write_infos.size());
+    return result;
 }
-
-counted_t<ls_block_token_pointee_t>
-log_serializer_t::block_write(const void *buf, block_id_t block_id, file_account_t *io_account) {
-    assert_thread();
-    rassert(block_id != NULL_BLOCK_ID, "If this assertion fails, inform Sam and remove the assertion.");
-    return serializer_block_write(this, buf, block_id, io_account);
-}
-
 
 void log_serializer_t::register_block_token(ls_block_token_pointee_t *token, int64_t offset) {
     assert_thread();
-    DEBUG_VAR std::pair<std::map<ls_block_token_pointee_t *, int64_t>::iterator, bool> insert_res
-        = token_offsets.insert(std::make_pair(token, offset));
-    rassert(insert_res.second);
+    rassert(token->offset_ == offset);  // Assert *token was constructed properly.
 
-    const bool first_token_for_offset = offset_tokens.find(offset) == offset_tokens.end();
-    if (first_token_for_offset) {
-        // Mark offset live in GC
-        data_block_manager->mark_token_live(offset);
+    auto location = offset_tokens.find(offset);
+    if (location == offset_tokens.end()) {
+        data_block_manager->mark_live_tokenwise_with_offset(offset);
     }
 
-    offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(offset, token));
+    offset_tokens.insert(location, std::make_pair(offset, token));
 }
 
 bool log_serializer_t::tokens_exist_for_offset(int64_t off) {
@@ -667,13 +614,11 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
     ASSERT_NO_CORO_WAITING;
 
     rassert(!expecting_no_more_tokens);
-    std::map<ls_block_token_pointee_t *, int64_t>::iterator token_offset_it = token_offsets.find(token);
-    rassert(token_offset_it != token_offsets.end());
 
     {
         typedef std::multimap<int64_t, ls_block_token_pointee_t *>::iterator ot_iter;
         ot_iter erase_it = offset_tokens.end();
-        for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token_offset_it->second);
+        for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token->offset_);
              range.first != range.second;
              ++range.first) {
             if (range.first->second == token) {
@@ -686,16 +631,13 @@ void log_serializer_t::unregister_block_token(ls_block_token_pointee_t *token) {
         offset_tokens.erase(erase_it);
     }
 
-    const bool last_token_for_offset = offset_tokens.find(token_offset_it->second) == offset_tokens.end();
+    const bool last_token_for_offset = offset_tokens.find(token->offset_) == offset_tokens.end();
     if (last_token_for_offset) {
         // Mark offset garbage in GC
-        data_block_manager->mark_token_garbage(token_offset_it->second);
+        data_block_manager->mark_garbage_tokenwise_with_offset(token->offset_);
     }
 
-    token_offsets.erase(token_offset_it);
-
-    rassert(token_offsets.empty() == offset_tokens.empty());
-    if (token_offsets.empty() && offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
+    if (offset_tokens.empty() && state == state_shutting_down && shutdown_state == shutdown_waiting_on_block_tokens) {
 #ifndef NDEBUG
         expecting_no_more_tokens = true;
 #endif
@@ -713,25 +655,26 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(current_offset);
 
     if (range.first != range.second) {
+        // We need this weird inclusive-range logic because we modify offset_tokens
+        // while we iterate over the range.
         --range.second;
 
         bool last_time = false;
         while (!last_time) {
             last_time = (range.first == range.second);
-            std::map<ls_block_token_pointee_t*, int64_t>::iterator token_offsets_iter = token_offsets.find(range.first->second);
-            guarantee(token_offsets_iter != token_offsets.end());
-            guarantee(token_offsets_iter->second == current_offset);
+            ls_block_token_pointee_t *const token = range.first->second;
+            guarantee(token->offset_ == current_offset);
 
-            token_offsets_iter->second = new_offset;
-            offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(new_offset, range.first->second));
+            token->offset_ = new_offset;
+            offset_tokens.insert(std::pair<int64_t, ls_block_token_pointee_t *>(new_offset, token));
 
             ot_iter prev = range.first;
             ++range.first;
             offset_tokens.erase(prev);
         }
 
-        data_block_manager->mark_token_garbage(current_offset);
-        data_block_manager->mark_token_live(new_offset);
+        data_block_manager->mark_garbage_tokenwise_with_offset(current_offset);
+        data_block_manager->mark_live_tokenwise_with_offset(new_offset);
     }
 }
 
@@ -764,11 +707,9 @@ counted_t<ls_block_token_pointee_t> log_serializer_t::index_read(block_id_t bloc
         return counted_t<ls_block_token_pointee_t>();
     }
 
-    flagged_off64_t offset = lba_index->get_block_offset(block_id);
-    if (offset.has_value()) {
-        counted_t<ls_block_token_pointee_t> ret(
-            new ls_block_token_pointee_t(this, offset.get_value()));
-        return ret;
+    index_block_info_t info = lba_index->get_block_info(block_id);
+    if (info.offset.has_value()) {
+        return generate_block_token(info.offset.get_value(), block_size_t::unsafe_make(info.ser_block_size));
     } else {
         return counted_t<ls_block_token_pointee_t>();
     }
@@ -826,8 +767,7 @@ bool log_serializer_t::next_shutdown_step() {
     // The datablock manager uses block tokens, so it goes before.
     if (shutdown_state == shutdown_waiting_on_datablock_manager) {
         shutdown_state = shutdown_waiting_on_block_tokens;
-        rassert(!(token_offsets.empty() ^ offset_tokens.empty()));
-        if (!(token_offsets.empty() && offset_tokens.empty())) {
+        if (!offset_tokens.empty()) {
             shutdown_in_one_shot = false;
             return false;
         } else {
@@ -911,16 +851,6 @@ void log_serializer_t::consider_start_gc() {
 }
 
 
-bool log_serializer_t::disable_gc(gc_disable_callback_t *cb) {
-    assert_thread();
-    return data_block_manager->disable_gc(cb);
-}
-
-void log_serializer_t::enable_gc() {
-    assert_thread();
-    data_block_manager->enable_gc();
-}
-
 void log_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
@@ -938,14 +868,19 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
     }
 }
 
-bool log_serializer_t::offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
+void log_serializer_t::offer_buf_to_read_ahead_callbacks(
+        block_id_t block_id,
+        scoped_malloc_t<ser_buffer_t> &&buf,
+        const counted_t<standard_block_token_t>& token,
+        repli_timestamp_t recency_timestamp) {
     assert_thread();
-    for (size_t i = 0; i < read_ahead_callbacks.size(); ++i) {
-        if (read_ahead_callbacks[i]->offer_read_ahead_buf(block_id, buf, token, recency_timestamp)) {
-            return true;
-        }
+
+    scoped_malloc_t<ser_buffer_t> local_buf = std::move(buf);
+    for (size_t i = 0; local_buf.has() && i < read_ahead_callbacks.size(); ++i) {
+        read_ahead_callbacks[i]->offer_read_ahead_buf(block_id,
+                                                      &local_buf,
+                                                      token, recency_timestamp);
     }
-    return false;
 }
 
 bool log_serializer_t::should_perform_read_ahead() {
@@ -953,8 +888,11 @@ bool log_serializer_t::should_perform_read_ahead() {
     return dynamic_config.read_ahead && !read_ahead_callbacks.empty();
 }
 
-ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer, int64_t initial_offset)
-    : serializer_(serializer), ref_count_(0) {
+ls_block_token_pointee_t::ls_block_token_pointee_t(log_serializer_t *serializer,
+                                                   int64_t initial_offset,
+                                                   block_size_t initial_block_size)
+    : serializer_(serializer), ref_count_(0),
+      block_size_(initial_block_size), offset_(initial_offset) {
     serializer_->assert_thread();
     serializer_->register_block_token(this, initial_offset);
 }

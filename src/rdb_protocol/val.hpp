@@ -33,11 +33,13 @@ public:
     counted_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
     counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
-    counted_t<datum_stream_t> get_rows(counted_t<const datum_t> left_bound,
-                                       counted_t<const datum_t> right_bound,
-                                       const protob_t<const Backtrace> &bt);
+    counted_t<datum_stream_t> get_rows(
+        counted_t<const datum_t> left_bound, bool left_bound_open,
+        counted_t<const datum_t> right_bound, bool right_bound_open,
+        const protob_t<const Backtrace> &bt);
     counted_t<datum_stream_t> get_sindex_rows(
-        counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
+        counted_t<const datum_t> left_bound, bool left_bound_open,
+        counted_t<const datum_t> right_bound, bool right_bound_open,
         const std::string &sindex_id, const protob_t<const Backtrace> &bt);
 
     counted_t<datum_stream_t> get_sorted(

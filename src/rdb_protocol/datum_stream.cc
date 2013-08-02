@@ -122,7 +122,8 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     sorting_t sorting, const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, counted_t<datum_t>(), counted_t<datum_t>(),
+                      *ns_access, env->interruptor,
+                      counted_t<datum_t>(), false, counted_t<datum_t>(), false,
                       env->get_all_optargs(), use_outdated, sorting, this))
 { }
 
@@ -134,31 +135,35 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
+                      counted_t<datum_t>(), false, counted_t<datum_t>(), false,
                       env->get_all_optargs(), use_outdated,
-                      counted_t<datum_t>(), counted_t<datum_t>(),
                       sorting, this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
+    counted_t<const datum_t> left_bound, bool left_bound_open,
+    counted_t<const datum_t> right_bound, bool right_bound_open,
     sorting_t sorting, const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, left_bound, right_bound,
+                      *ns_access, env->interruptor,
+                      left_bound, left_bound_open, right_bound, right_bound_open,
                       env->get_all_optargs(), use_outdated, sorting,
                       this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
-    const std::string &sindex_id, sorting_t sorting, const protob_t<const Backtrace> &bt_src)
+    counted_t<const datum_t> left_bound, bool left_bound_open,
+    counted_t<const datum_t> right_bound, bool right_bound_open,
+    const std::string &sindex_id, sorting_t sorting,
+    const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
-                      env->get_all_optargs(), use_outdated, left_bound,
-                      right_bound, sorting, this))
+                      left_bound, left_bound_open, right_bound, right_bound_open,
+                      env->get_all_optargs(), use_outdated, sorting, this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
@@ -189,14 +194,15 @@ counted_t<datum_stream_t> lazy_datum_stream_t::filter(counted_t<func_t> f) {
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
-rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(const rdb_protocol_details::terminal_variant_t &t) {
-    return json_stream->apply_terminal(t,
-                                       env,
-                                       query_language::backtrace_t());
+rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(
+    const rdb_protocol_details::terminal_variant_t &t) {
+    return json_stream->apply_terminal(
+        t, env, query_language::backtrace_t());
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::count() {
-    rdb_protocol_t::rget_read_response_t::result_t res = run_terminal(count_wire_func_t());
+    rdb_protocol_t::rget_read_response_t::result_t res =
+        run_terminal(count_wire_func_t());
     return boost::get<counted_t<const datum_t> >(res);
 }
 
@@ -342,7 +348,7 @@ slice_datum_stream_t::slice_datum_stream_t(env_t *env, size_t _left, size_t _rig
       left(_left), right(_right) { }
 
 counted_t<const datum_t> slice_datum_stream_t::next_impl() {
-    if (left > right || index > right) {
+    if (left >= right || index >= right) {
         return counted_t<const datum_t>();
     }
 

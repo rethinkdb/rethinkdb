@@ -92,29 +92,41 @@ block_id_t lba_list_t::end_block_id() {
     return in_memory_index.end_block_id();
 }
 
-flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
+index_block_info_t lba_list_t::get_block_info(block_id_t block) {
     rassert(state == state_ready);
+    return in_memory_index.get_block_info(block);
+}
 
-    return in_memory_index.get_block_info(block).offset;
+flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
+    return get_block_info(block).offset;
+}
+
+uint32_t lba_list_t::get_ser_block_size(block_id_t block) {
+    return get_block_info(block).ser_block_size;
+}
+
+block_size_t lba_list_t::get_block_size(block_id_t block) {
+    return block_size_t::unsafe_make(get_block_info(block).ser_block_size);
 }
 
 repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
-    rassert(state == state_ready);
-
-    return in_memory_index.get_block_info(block).recency;
+    return get_block_info(block).recency;
 }
 
-void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency, flagged_off64_t offset, file_account_t *io_account, extent_transaction_t *txn) {
+void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
+                                flagged_off64_t offset, uint32_t ser_block_size,
+                                file_account_t *io_account, extent_transaction_t *txn) {
     rassert(state == state_ready);
 
-    in_memory_index.set_block_info(block, recency, offset);
+    in_memory_index.set_block_info(block, recency, offset, ser_block_size);
 
     /* Strangely enough, this works even with the GC. Here's the reasoning: If the GC is
     waiting for the disk structure lock, then sync() will never be called again on the
     current disk_structure, so it's meaningless but harmless to call add_entry(). However,
     since our changes are also being put into the in_memory_index, they will be
     incorporated into the new disk_structure that the GC creates, so they won't get lost. */
-    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, io_account, txn);
+    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, ser_block_size,
+                                                         io_account, txn);
 }
 
 class lba_syncer_t :
@@ -201,7 +213,11 @@ public:
             block_id_t block_id = id;
             flagged_off64_t off = owner->get_block_offset(block_id);
             if (off.has_value()) {
-                owner->disk_structures[i]->add_entry(block_id, owner->get_block_recency(block_id), off, io_account, txn);
+                uint32_t ser_block_size = owner->get_ser_block_size(block_id);
+                owner->disk_structures[i]->add_entry(block_id,
+                                                     owner->get_block_recency(block_id),
+                                                     off, ser_block_size,
+                                                     io_account, txn);
             }
         }
 

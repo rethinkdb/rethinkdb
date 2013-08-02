@@ -1211,8 +1211,7 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<
 struct admin_stats_request_t {
     explicit admin_stats_request_t(mailbox_manager_t *mailbox_manager) :
         response_mailbox(mailbox_manager,
-                         boost::bind(&promise_t<perfmon_result_t>::pulse, &stats_promise, _1),
-                         mailbox_callback_mode_inline) { }
+                         boost::bind(&promise_t<perfmon_result_t>::pulse, &stats_promise, _1)) { }
     promise_t<perfmon_result_t> stats_promise;
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };
@@ -1224,7 +1223,8 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
     std::set<machine_id_t> machine_filters;
     std::set<namespace_id_t> namespace_filters;
     std::string stat_filter;
-    signal_timer_t timer(5000); // 5 second timeout to get all stats
+    signal_timer_t timer;
+    timer.start(5000); // 5 second timeout to get all stats
 
     // Check command params for namespace or machine filter
     std::map<std::string, std::vector<std::string> >::const_iterator id_filter_it = data.params.find("id-filter");

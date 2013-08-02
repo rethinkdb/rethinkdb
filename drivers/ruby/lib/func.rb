@@ -26,7 +26,7 @@ module RethinkDB
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
       :javascript => -1, :filter => {:with_block => 0, :without => 1},
-      :orderby => -1
+      :orderby => -1, :slice => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -133,10 +133,8 @@ module RethinkDB
       elsif ind.class == Symbol || ind.class == String
         return get_field(ind)
       elsif ind.class == Range
-        if ind.end == 0 && ind.exclude_end?
-          raise ArgumentError, "Cannot slice to an excluded end of 0."
-        end
-        return slice(ind.begin, ind.end - (ind.exclude_end? ? 1 : 0))
+        return slice(ind.begin, ind.end, :right_bound =>
+                     (ind.exclude_end? ? 'open' : 'closed'))
       end
       raise ArgumentError, "[] cannot handle #{ind.inspect} of type #{ind.class}."
     end

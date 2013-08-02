@@ -44,6 +44,11 @@ bool optargspec_t::contains(const std::string &key) const {
     return legal_args.count(key) != 0;
 }
 
+optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const {
+    optargspec_t ret(args);
+    ret.legal_args.insert(legal_args.begin(), legal_args.end());
+    return ret;
+}
 
 op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)

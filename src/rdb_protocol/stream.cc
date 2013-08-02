@@ -2,9 +2,12 @@
 #include "rdb_protocol/stream.hpp"
 
 #include "btree/keys.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 #include "rdb_protocol/datum_stream.hpp"
+
+#pragma GCC diagnostic ignored "-Wshadow"
 
 namespace query_language {
 
@@ -105,18 +108,18 @@ boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rd
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
     signal_t *_interruptor,
-    counted_t<const ql::datum_t> left_bound,
-    counted_t<const ql::datum_t> right_bound,
+    counted_t<const ql::datum_t> left_bound, bool left_bound_open,
+    counted_t<const ql::datum_t> right_bound, bool right_bound_open,
     const std::map<std::string, ql::wire_func_t> &_optargs,
     bool _use_outdated, sorting_t _sorting,
     ql::rcheckable_t *_parent)
     : ns_access(_ns_access), interruptor(_interruptor),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
-      range(key_range_t::closed,
+      range(left_bound_open ? key_range_t::open : key_range_t::closed,
             left_bound.has()
               ? store_key_t(left_bound->print_primary())
               : store_key_t::min(),
-            key_range_t::closed,
+            right_bound_open ? key_range_t::open : key_range_t::closed,
             right_bound.has()
               ? store_key_t(right_bound->print_primary())
               : store_key_t::max()),
@@ -128,10 +131,9 @@ batched_rget_stream_t::batched_rget_stream_t(
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
     signal_t *_interruptor, const std::string &_sindex_id,
-    const std::map<std::string, ql::wire_func_t> &_optargs,
-    bool _use_outdated,
-    counted_t<const ql::datum_t> _sindex_start_value,
-    counted_t<const ql::datum_t> _sindex_end_value,
+    counted_t<const ql::datum_t> _sindex_start_value, bool start_value_open,
+    counted_t<const ql::datum_t> _sindex_end_value, bool end_value_open,
+    const std::map<std::string, ql::wire_func_t> &_optargs, bool _use_outdated,
     sorting_t _sorting, ql::rcheckable_t *_parent)
     : ns_access(_ns_access),
       interruptor(_interruptor),
@@ -140,8 +142,8 @@ batched_rget_stream_t::batched_rget_stream_t(
       started(false),
       optargs(_optargs),
       use_outdated(_use_outdated),
-      sindex_start_value(_sindex_start_value),
-      sindex_end_value(_sindex_end_value),
+      sindex_range(_sindex_start_value, start_value_open,
+                   _sindex_end_value, end_value_open),
       range(rdb_protocol_t::sindex_key_range(
                 _sindex_start_value != NULL
                   ? _sindex_start_value->truncated_secondary()
@@ -176,11 +178,11 @@ void batched_rget_stream_t::pop() {
 }
 
 bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right) {
-    return json_cmp(left.sindex_key->get(), right.sindex_key->get()) < 0;
+    return json_cmp((*left.sindex_key)->get(), (*right.sindex_key)->get()) < 0;
 }
 
 bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &right) {
-    return json_cmp(left.sindex_key->get(), right.sindex_key->get()) > 0;
+    return json_cmp((*left.sindex_key)->get(), (*right.sindex_key)->get()) > 0;
 }
 
 /* This function is a big monolithic mess right now. This is because a lot of
@@ -217,7 +219,8 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
          * ambigiously sorted values and sorted them. So now we can just pop
          * one off the front and return it. */
         boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
-        bool is_new_key = check_and_set_last_key(sorting_buffer.front().sindex_key);
+        r_sanity_check(sorting_buffer.front().sindex_key);
+        bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
         return std::make_pair((is_new_key ? START : CONTINUE), datum);
     } else {
@@ -287,7 +290,7 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
 
         /* Now we can finally return a value from the sorting buffer. */
         boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
-        bool is_new_key = check_and_set_last_key(sorting_buffer.front().sindex_key);
+        bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
         return std::make_pair((is_new_key ? START : CONTINUE), datum);
     }
@@ -350,8 +353,7 @@ rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
     } else {
         return rdb_protocol_t::rget_read_t(rdb_protocol_t::region_t(range),
                                            *sindex_id,
-                                           sindex_start_value,
-                                           sindex_end_value,
+                                           sindex_range,
                                            transform,
                                            optargs,
                                            sorting);

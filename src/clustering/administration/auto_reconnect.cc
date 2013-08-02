@@ -73,7 +73,8 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine,
     try {
         while (true) {
             connectivity_cluster_run->join(last_known_address);
-            signal_timer_t timer(backoff_ms);
+            signal_timer_t timer;
+            timer.start(backoff_ms);
             wait_interruptible(&timer, &interruptor);
             guarantee(backoff_ms * backoff_growth_rate > backoff_ms, "rounding screwed it up");
             backoff_ms = std::min(static_cast<int>(backoff_ms * backoff_growth_rate), max_backoff_ms);
