@@ -251,7 +251,7 @@ struct rdb_protocol_t {
         bool truncated;
         store_key_t last_considered_key;
 
-        rget_read_response_t() { }
+        rget_read_response_t() : truncated(false) { }
         rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated, const store_key_t &_last_considered_key)
             : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated),
               last_considered_key(_last_considered_key)
