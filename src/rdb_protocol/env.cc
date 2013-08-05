@@ -52,24 +52,6 @@ void env_t::precache_func(const wire_func_t *wf, counted_t<func_t> func) {
     cached_funcs[wf->uuid] = func;
 }
 
-void env_t::cache_js_func(const std::string &s, counted_t<val_t> f) {
-    if (js_funcs.size() >= cache_size) {
-        auto oldest_func = js_funcs.begin();
-        for (auto it = ++js_funcs.begin(); it != js_funcs.end(); ++it) {
-            if (it->second.first < oldest_func->second.first) {
-                oldest_func = it;
-            }
-        }
-        js_funcs.erase(oldest_func);
-    }
-    js_funcs.insert(std::make_pair(s, std::make_pair(current_microtime(), f)));
-}
-
-counted_t<val_t> env_t::get_js_func(const std::string &s) {
-    auto it = js_funcs.find(s);
-    return (it == js_funcs.end()) ? counted_t<val_t>() : it->second.second;
-}
-
 bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
     protob_t<Term> arg = make_counted_term();
