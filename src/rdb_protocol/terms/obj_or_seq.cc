@@ -152,7 +152,7 @@ private:
         datum_ptr_t res(datum_t::R_OBJECT);
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));
-        clobber |= res.add(pseudo::value_key, arg(1)->as_datum());
+        clobber |= res.add(pseudo::value_key, arg(0, LITERAL_OK)->as_datum());
         r_sanity_check(!clobber);
         std::set<std::string> permissible_ptypes;
         permissible_ptypes.insert("literal");
@@ -169,7 +169,7 @@ private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
         counted_t<const datum_t> d = v0->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            d = d->merge(arg(i)->as_datum());
+            d = d->merge(arg(i, LITERAL_OK)->as_datum());
         }
         return new_val(d);
     }
@@ -187,7 +187,7 @@ private:
 
         std::vector<counted_t<const datum_t> > paths;
         for (size_t i = 1; i < num_args(); ++i) {
-            paths.push_back(arg(i, LITERAL_OK)->as_datum());
+            paths.push_back(arg(i)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(paths), this);
         return new_val_bool(contains(obj, pathspec));
@@ -219,6 +219,9 @@ counted_t<term_t> make_pluck_term(env_t *env, protob_t<const Term> term) {
 }
 counted_t<term_t> make_without_term(env_t *env, protob_t<const Term> term) {
     return make_counted<without_term_t>(env, term);
+}
+counted_t<term_t> make_literal_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<literal_term_t>(env, term);
 }
 counted_t<term_t> make_merge_term(env_t *env, protob_t<const Term> term) {
     return make_counted<merge_term_t>(env, term);

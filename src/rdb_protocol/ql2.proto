@@ -547,6 +547,9 @@ message Term {
         OCTOBER = 123;
         NOVEMBER = 124;
         DECEMBER = 125;
+
+        // Indicates to MERGE to replace the other object rather than merge it.
+        LITERAL = 137; // JSON -> Merging
     }
     optional TermType type = 1;
 
