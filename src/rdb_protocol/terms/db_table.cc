@@ -84,9 +84,9 @@ private:
         directory_metadata = env->directory_read_manager->get_root_view();
     }
 
-    virtual std::string write_eval_impl() = 0;
-    virtual counted_t<val_t> eval_impl() {
-        std::string op = write_eval_impl();
+    virtual std::string write_eval_impl(eval_flags_t flags) = 0;
+    virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
+        std::string op = write_eval_impl(flags);
         datum_ptr_t res(datum_t::R_OBJECT);
         UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
         return new_val(res.to_counted());
@@ -100,7 +100,7 @@ class db_term_t : public meta_op_t {
 public:
     db_term_t(env_t *env, protob_t<const Term> term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(0), this);
         uuid_u uuid;
         {
@@ -119,7 +119,7 @@ public:
     db_create_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual std::string write_eval_impl() {
+    virtual std::string write_eval_impl(UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(0), this);
 
         rethreading_metadata_accessor_t meta(this);
@@ -168,7 +168,7 @@ public:
                         optargspec_t({"datacenter", "primary_key",
                                     "cache_size", "durability"})) { }
 private:
-    virtual std::string write_eval_impl() {
+    virtual std::string write_eval_impl(UNUSED eval_flags_t flags) {
         uuid_u dc_id = nil_uuid();
         if (counted_t<val_t> v = optarg("datacenter")) {
             name_string_t name = get_name(v, this);
@@ -263,7 +263,7 @@ public:
     db_drop_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual std::string write_eval_impl() {
+    virtual std::string write_eval_impl(UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(0), this);
 
         rethreading_metadata_accessor_t meta(this);
@@ -308,7 +308,7 @@ public:
     table_drop_term_t(env_t *env, protob_t<const Term> term) :
         meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual std::string write_eval_impl() {
+    virtual std::string write_eval_impl(UNUSED eval_flags_t flags) {
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
@@ -352,7 +352,7 @@ public:
     db_list_term_t(env_t *env, protob_t<const Term> term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         datum_ptr_t arr(datum_t::R_ARRAY);
         std::vector<std::string> dbs;
         {
@@ -378,7 +378,7 @@ public:
     table_list_term_t(env_t *env, protob_t<const Term> term) :
         meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         datum_ptr_t arr(datum_t::R_ARRAY);
         uuid_u db_id;
         if (num_args() == 0) {
@@ -413,7 +413,7 @@ public:
     table_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> t = optarg("use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
         counted_t<const db_t> db;
@@ -438,7 +438,7 @@ class get_term_t : public op_term_t {
 public:
     get_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
         counted_t<const datum_t> pkey = arg(1)->as_datum();
         counted_t<const datum_t> row = table->get_row(pkey);
@@ -452,7 +452,7 @@ public:
     get_all_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
         counted_t<val_t> index = optarg("index");
         if (index && index->as_str() != table->get_pkey()) {

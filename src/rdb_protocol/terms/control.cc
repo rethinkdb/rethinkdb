@@ -16,7 +16,7 @@ public:
     all_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         for (size_t i = 0; i < num_args(); ++i) {
             counted_t<val_t> v = arg(i);
             if (!v->as_bool() || i == num_args() - 1) {
@@ -33,7 +33,7 @@ public:
     any_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         for (size_t i = 0; i < num_args(); ++i) {
             counted_t<val_t> v = arg(i);
             if (v->as_bool()) {
@@ -49,7 +49,7 @@ class branch_term_t : public op_term_t {
 public:
     branch_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(3)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         bool b = arg(0)->as_bool();
         return b ? arg(1) : arg(2);
     }
@@ -62,7 +62,7 @@ public:
     funcall_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1), optargspec_t({"_SHORTCUT_"})) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         function_shortcut_t shortcut = CONSTANT_SHORTCUT;
         if (counted_t<val_t> v = optarg("_SHORTCUT_")) {
             shortcut = static_cast<function_shortcut_t>(v->as_num());

@@ -36,7 +36,7 @@ public:
 
 private:
     virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
-    virtual counted_t<val_t> eval_impl() { return real->eval(); }
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) { return real->eval(); }
     protob_t<const Term> in;
     protob_t<Term> out;
 

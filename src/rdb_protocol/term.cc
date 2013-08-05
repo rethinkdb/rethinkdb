@@ -330,7 +330,7 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-counted_t<val_t> term_t::eval() {
+counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
     DEBUG_ONLY_CODE(env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
@@ -339,7 +339,7 @@ counted_t<val_t> term_t::eval() {
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl();
+            counted_t<val_t> ret = eval_impl(eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;

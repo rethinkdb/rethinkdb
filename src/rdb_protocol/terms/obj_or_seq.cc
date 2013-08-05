@@ -62,7 +62,7 @@ public:
     }
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) = 0;
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(0);
         counted_t<const datum_t> d;
 
@@ -166,7 +166,7 @@ private:
 
         std::vector<counted_t<const datum_t> > paths;
         for (size_t i = 1; i < num_args(); ++i) {
-            paths.push_back(arg(i)->as_datum());
+            paths.push_back(arg(i, LITERAL_OK)->as_datum());
         }
         pathspec_t pathspec(make_counted<const datum_t>(paths), this);
         return new_val_bool(contains(obj, pathspec));

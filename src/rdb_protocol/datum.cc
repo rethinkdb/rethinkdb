@@ -10,11 +10,14 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/pseudo_literal.hpp"
 #include "stl_utils.hpp"
 
 namespace ql {
 
 const char* const datum_t::reql_type_string = "$reql_type$";
+
+std::set<std::string> datum_ptr_t::default_allowed_ptypes = std::set<std::string>();
 
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
@@ -340,8 +343,34 @@ void datum_t::rcheck_valid_pt(const std::string s) const {
     rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
 }
 
+void datum_t::rcheck_valid_pt(const std::set<std::string> &allowed_pts) const {
+    rcheck_is_pt();
+
+    if (get_reql_type() == pseudo::time_string) {
+        pseudo::rcheck_time_valid(this);
+        return;
+    }
+
+    if (get_reql_type() == pseudo::literal_string) {
+        rcheck(std_contains(allowed_pts, pseudo::literal_string),
+               base_exc_t::GENERIC,
+               "Stray literal keyword found, literal can only be present in merge.");
+        pseudo::rcheck_literal_valid(this);
+        return;
+    }
+
+    rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
+}
+
 void datum_t::maybe_rcheck_valid_pt(const std::string s) const {
     if (is_pt(s)) {
+        rcheck_valid_pt(s);
+    }
+}
+
+
+void datum_t::maybe_rcheck_valid_pt(const std::set<std::string> &s) const {
+    if (is_pt()) {
         rcheck_valid_pt(s);
     }
 }

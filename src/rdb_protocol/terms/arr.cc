@@ -31,7 +31,7 @@ class append_term_t : public pend_term_t {
 public:
     append_term_t(env_t *env, protob_t<const Term> term) : pend_term_t(env, term) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return pend(AP);
     }
     virtual const char *name() const { return "append"; }
@@ -41,7 +41,7 @@ class prepend_term_t : public pend_term_t {
 public:
     prepend_term_t(env_t *env, protob_t<const Term> term) : pend_term_t(env, term) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return pend(PRE);
     }
     virtual const char *name() const { return "prepend"; }
@@ -68,7 +68,7 @@ class nth_term_t : public op_term_t {
 public:
     nth_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
         int32_t n = arg(1)->as_int<int32_t>();
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -103,7 +103,7 @@ public:
     is_empty_term_t(env_t *env, protob_t<const Term> term) :
         op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
       bool is_empty = !arg(0)->as_seq()->next().has();
       return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
     }
@@ -116,7 +116,7 @@ public:
     slice_term_t(env_t *env, protob_t<const Term> term)
         : bounded_op_term_t(env, term, argspec_t(3)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
         int64_t fake_l = arg(1)->as_int<int64_t>();
         int64_t fake_r = arg(2)->as_int<int64_t>();
@@ -189,7 +189,7 @@ public:
     limit_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
         counted_t<table_t> t;
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
@@ -210,7 +210,7 @@ public:
     set_insert_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<const datum_t> arr = arg(0)->as_datum();
         counted_t<const datum_t> new_el = arg(1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
@@ -235,7 +235,7 @@ public:
     set_union_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
@@ -262,7 +262,7 @@ public:
     set_intersection_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
@@ -288,7 +288,7 @@ public:
     set_difference_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<const datum_t> arr1 = arg(0)->as_datum();
         counted_t<const datum_t> arr2 = arg(1)->as_datum();
         std::set<counted_t<const datum_t> > el_set;
@@ -322,7 +322,7 @@ public:
               argspec_t argspec, index_method_t index_method)
         : op_term_t(env, term, argspec), index_method_(index_method) { }
     virtual void modify(size_t index, datum_ptr_t *array) = 0;
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         datum_ptr_t arr(arg(0)->as_datum()->as_array());
         size_t index;
         if (index_method_ == ELEMENTS) {
@@ -398,7 +398,7 @@ class indexes_of_term_t : public op_term_t {
 public:
     indexes_of_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(1);
         counted_t<func_t> fun;
         if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
@@ -416,7 +416,7 @@ public:
     contains_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<datum_stream_t> seq = arg(0)->as_seq();
         std::vector<counted_t<const datum_t> > required_els;
         std::vector<counted_t<func_t> > required_funcs;

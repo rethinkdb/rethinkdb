@@ -15,7 +15,7 @@ public:
     }
 private:
     virtual bool is_deterministic_impl() const { return true; }
-    virtual counted_t<val_t> eval_impl() { return raw_val; }
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) { return raw_val; }
     virtual const char *name() const { return "datum"; }
     counted_t<val_t> raw_val;
 };
@@ -26,7 +26,7 @@ public:
                     double constant, const char *name)
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(make_counted<const datum_t>(_constant));
     }
     virtual const char *name() const { return _name; }
@@ -39,7 +39,7 @@ public:
     make_array_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         datum_ptr_t acc(datum_t::R_ARRAY);
         for (size_t i = 0; i < num_args(); ++i) {
             acc.add(arg(i)->as_datum());
@@ -54,10 +54,12 @@ public:
     make_obj_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
+        bool literal_ok = flags & LITERAL_OK;
+        eval_flags_t new_flags = literal_ok ? LITERAL_OK : NO_FLAGS;
         datum_ptr_t acc(datum_t::R_OBJECT);
         for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-            bool dup = acc.add(it->first, it->second->eval()->as_datum());
+            bool dup = acc.add(it->first, it->second->eval(new_flags)->as_datum());
             rcheck(!dup, base_exc_t::GENERIC,
                    strprintf("Duplicate key in object: %s.", it->first.c_str()));
         }

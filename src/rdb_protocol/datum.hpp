@@ -125,8 +125,10 @@ public:
 
     // Check that we have a valid pseudotype.  Implies `rcheck_is_pt`.
     void rcheck_valid_pt(const std::string s = "") const;
+    void rcheck_valid_pt(const std::set<std::string> &allowed_pts) const;
     // If we have a pseudotype, check that it's valid.
     void maybe_rcheck_valid_pt(const std::string s = "") const;
+    void maybe_rcheck_valid_pt(const std::set<std::string> &allowed_pts) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
@@ -206,8 +208,9 @@ class datum_ptr_t {
 public:
     template<class... Args>
     datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
-    counted_t<const datum_t> to_counted() {
-        ptr()->maybe_rcheck_valid_pt();
+    counted_t<const datum_t> to_counted(
+        const std::set<std::string> &allowed_ptypes = default_allowed_ptypes) {
+        ptr()->maybe_rcheck_valid_pt(allowed_ptypes);
         return counted_t<const datum_t>(_p.release());
     }
     const datum_t *operator->() const { return const_ptr(); }
@@ -236,6 +239,8 @@ private:
         return _p.get();
     }
     scoped_ptr_t<datum_t> _p;
+
+    static std::set<std::string> default_allowed_ptypes;
 };
 
 #ifndef NDEBUG

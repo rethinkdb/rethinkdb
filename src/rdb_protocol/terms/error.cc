@@ -11,7 +11,7 @@ public:
     error_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         if (num_args() == 0) {
             rfail(base_exc_t::EMPTY_USER, "Empty ERROR term outside a default block.");
         } else {
@@ -27,7 +27,7 @@ public:
     default_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<const datum_t> func_arg;
         scoped_ptr_t<exc_t> err;
         counted_t<val_t> v;

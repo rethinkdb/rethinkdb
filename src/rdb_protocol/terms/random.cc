@@ -10,7 +10,7 @@ class sample_term_t : public op_term_t {
 public:
     sample_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         int64_t num_int = arg(1)->as_int();
         rcheck(num_int >= 0,
                base_exc_t::GENERIC,
