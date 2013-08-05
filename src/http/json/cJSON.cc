@@ -124,7 +124,8 @@ static char *print_number(cJSON *item) {
     char *str;
     double d = item->valuedouble;
     guarantee(isfinite(d));
-    asprintf(&str, "%.20g", d);
+    int ret = asprintf(&str, "%.20g", d);
+    guarantee(ret);
     return str;
 }
 
