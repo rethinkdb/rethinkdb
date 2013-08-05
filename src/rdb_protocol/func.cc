@@ -190,30 +190,21 @@ protob_t<const Term> func_t::get_source() {
 
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
-    : source(make_counted_term_copy(*func->source)) {
+    : source(make_counted_term_copy(*func->source)), uuid(generate_uuid()) {
     if (func->default_filter_val.has()) {
         default_filter_val = *func->default_filter_val->source.get();
     }
     if (env) {
-        cached_funcs[env->uuid] = func;
+        env->precache_func(this, func);
     }
-
     func->dump_scope(&scope);
 }
 wire_func_t::wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope)
-    : source(make_counted_term_copy(_source)), scope(_scope) { }
+    : source(make_counted_term_copy(_source)), scope(_scope), uuid(generate_uuid()) { }
 
 counted_t<func_t> wire_func_t::compile(env_t *env) {
-    if (cached_funcs.count(env->uuid) == 0) {
-        env->push_scope(&scope);
-        cached_funcs[env->uuid] = compile_term(env, source)->eval()->as_func();
-        if (default_filter_val) {
-            cached_funcs[env->uuid]->set_default_filter_val(
-                make_counted<func_t>(env, make_counted_term_copy(*default_filter_val)));
-        }
-        env->pop_scope();
-    }
-    return cached_funcs[env->uuid];
+    r_sanity_check(!uuid.is_unset() && !uuid.is_nil());
+    return env->get_or_compile_func(this);
 }
 
 void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
@@ -221,6 +212,7 @@ void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime
     msg << *source;
     msg << default_filter_val;
     msg << scope;
+    msg << uuid;
 }
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
@@ -230,7 +222,9 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
     if (res != ARCHIVE_SUCCESS) { return res; }
     res = deserialize(stream, &default_filter_val);
     if (res != ARCHIVE_SUCCESS) { return res; }
-    return deserialize(stream, &scope);
+    res = deserialize(stream, &scope);
+    if (res != ARCHIVE_SUCCESS) { return res; }
+    return deserialize(stream, &uuid);
 }
 
 func_term_t::func_term_t(env_t *env, protob_t<const Term> term)
