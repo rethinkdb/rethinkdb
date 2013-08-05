@@ -152,7 +152,7 @@ private:
         datum_ptr_t res(datum_t::R_OBJECT);
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));
-        clobber |= res.add(pseudo::value_key, arg(0, LITERAL_OK)->as_datum());
+        clobber |= res.add(pseudo::value_key, arg(0)->as_datum());
         r_sanity_check(!clobber);
         std::set<std::string> permissible_ptypes;
         permissible_ptypes.insert("literal");
