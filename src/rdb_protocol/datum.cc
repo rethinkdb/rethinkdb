@@ -691,10 +691,17 @@ MUST_USE bool datum_t::delete_field(const std::string &key) {
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
+    if (get_type() != R_OBJECT) { return rhs; }
+
     datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        UNUSED bool b = d.add(it->first, it->second, CLOBBER);
+        counted_t<const datum_t> sub_lhs = d->get(it->first);
+        if (it->second->get_type() == R_OBJECT && sub_lhs) {
+            UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
+        } else {
+            UNUSED bool b = d.add(it->first, it->second, CLOBBER);
+        }
     }
     return d.to_counted();
 }
