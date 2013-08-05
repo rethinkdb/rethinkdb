@@ -196,6 +196,13 @@ public:
     std::string print() {
         if (get_type().is_convertible(type_t::DATUM)) {
             return as_datum()->print();
+        } else if (get_type().is_convertible(type_t::DB)) {
+            return strprintf("db(\"%s\")", as_db()->name.c_str());
+        } else if (get_type().is_convertible(type_t::TABLE)) {
+            return strprintf("table(\"%s\")", as_table()->name.c_str());
+        } else if (get_type().is_convertible(type_t::SELECTION)) {
+            return strprintf("OPAQUE SELECTION ON table(%s)",
+                             as_selection().first->name.c_str());
         } else {
             // TODO: Do something smarter here?
             return strprintf("OPAQUE VALUE %s", get_type().name());
@@ -206,8 +213,12 @@ public:
         if (get_type().is_convertible(type_t::DATUM)) {
             return as_datum()->trunc_print();
         } else {
-            // TODO: Do something smarter here?
-            return strprintf("OPAQUE VALUE %s", get_type().name());
+            std::string s = print();
+            if (s.size() > datum_t::trunc_len) {
+                s.erase(s.begin() + (datum_t::trunc_len - 3), s.end());
+                s += "...";
+            }
+            return s;
         }
     }
 
@@ -242,6 +253,6 @@ private:
 };
 
 
-}  //namespace ql
+}  // namespace ql
 
 #endif // RDB_PROTOCOL_VAL_HPP_

@@ -122,4 +122,4 @@ bool op_term_t::is_deterministic_impl() const {
     return true;
 }
 
-} //namespace ql
+} // namespace ql

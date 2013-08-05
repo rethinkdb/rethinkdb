@@ -131,7 +131,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
 
-    //TODO unnecessary copies they must go away.
+    // TODO unnecessary copies they must go away.
     write_message_t wm;
     wm << data;
     vector_stream_t stream;
@@ -140,13 +140,13 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 
     blob_t blob(new_value->value_ref(), blob::btree_maxreflen);
 
-    //TODO more copies, good lord
+    // TODO more copies, good lord
     blob.append_region(txn, stream.vector().size());
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, txn, 0);
 
     // Actually update the leaf, if needed.
-    kv_location->value.reinterpret_swap(new_value);
+    kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
     //                                                                  ^^^^^ That means the key isn't expired.
@@ -496,7 +496,7 @@ void sindex_erase_range(const key_range_t &key_range,
         btree_erase_range_generic(sizer, sindex_access->btree, &tester,
                 &deleter, NULL, NULL, txn, sindex_access->super_block.get(), interruptor, release_superblock);
     } catch (const interrupted_exc_t &) {
-        //We were interrupted. That's fine nothing to be done about it.
+        // We were interrupted. That's fine nothing to be done about it.
     }
 }
 
@@ -575,7 +575,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         txn, superblock, interruptor);
 
-    //auto_drainer_t is destructed here so this waits for other coros to finish.
+    // auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
 // This is actually a kind of misleading name. This function estimates the size of a cJSON object
@@ -973,11 +973,11 @@ void rdb_update_single_sindex(
     int success = deserialize(&read_stream, &mapping);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-    //TODO we just use a NULL environment here. People should not be able
-    //to do anything that requires an environment like gets from other
-    //tables etc. but we don't have a nice way to disallow those things so
-    //for now we pass null and it will segfault if an illegal sindex
-    //mapping is passed.
+    // TODO we just use a NULL environment here. People should not be able
+    // to do anything that requires an environment like gets from other
+    // tables etc. but we don't have a nice way to disallow those things so
+    // for now we pass null and it will segfault if an illegal sindex
+    // mapping is passed.
     cond_t non_interruptor;
     ql::env_t env(&non_interruptor);
 
@@ -1009,7 +1009,7 @@ void rdb_update_single_sindex(
                     kv_location_delete(&kv_location, sindex_key,
                                        sindex->btree, repli_timestamp_t::distant_past, txn);
                 }
-                //The keyvalue location gets destroyed here.
+                // The keyvalue location gets destroyed here.
             }
             super_block = return_superblock_local.wait();
         } catch (const ql::base_exc_t &) {

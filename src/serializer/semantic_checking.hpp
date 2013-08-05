@@ -11,7 +11,6 @@
 
 #include "arch/types.hpp"
 #include "config/args.hpp"
-#include "containers/two_level_array.hpp"
 #include "serializer/serializer.hpp"
 
 /* This is a thin wrapper around the log serializer that makes sure that the
@@ -28,20 +27,17 @@ class semantic_checking_serializer_t :
     public serializer_t
 {
 private:
-    struct reader_t;
-
     inner_serializer_t inner_serializer;
-    two_level_array_t<scs_block_info_t, MAX_BLOCK_ID> blocks;
+    two_level_array_t<scs_block_info_t> blocks;
     int last_index_write_started, last_index_write_finished;
-    int semantic_fd;
-    std::set<const void *> malloced_bufs;
+    scoped_ptr_t<semantic_checking_file_t> semantic_file;
 
     // Helper functions
-    uint32_t compute_crc(const void *buf);
+    uint32_t compute_crc(const void *buf, block_size_t block_size) const;
     void update_block_info(block_id_t block_id, scs_block_info_t info);
 
     counted_t< scs_block_token_t<inner_serializer_t> > wrap_token(block_id_t block_id, scs_block_info_t info, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
-    counted_t< scs_block_token_t<inner_serializer_t> > wrap_buf_token(block_id_t block_id, const void *buf, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
+    counted_t< scs_block_token_t<inner_serializer_t> > wrap_buf_token(block_id_t block_id, ser_buffer_t *buf, counted_t<typename serializer_traits_t<inner_serializer_t>::block_token_type> inner_token);
 
     void read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf);
 
@@ -53,20 +49,18 @@ public:
     semantic_checking_serializer_t(dynamic_config_t config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);
     ~semantic_checking_serializer_t();
 
-    void *malloc();
-    void *clone(void *data);
-    void free(void *ptr);
+    scoped_malloc_t<ser_buffer_t> malloc();
+    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *data);
 
     file_account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
     counted_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
 
-    void block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account, iocallback_t *callback);
-    void block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, void *buf, file_account_t *io_account);
+    void block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, ser_buffer_t *buf, file_account_t *io_account);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    counted_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    counted_t< scs_block_token_t<inner_serializer_t> > block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    std::vector<counted_t< scs_block_token_t<inner_serializer_t> > >
+    block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
 
     block_size_t get_block_size() const;
 
@@ -79,12 +73,6 @@ public:
 
     void register_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(UNUSED serializer_read_ahead_callback_t *cb);
-
-public:
-    typedef typename inner_serializer_t::gc_disable_callback_t gc_disable_callback_t;
-    bool disable_gc(gc_disable_callback_t *cb);
-    void enable_gc();
-
 };
 
 #endif /* SERIALIZER_SEMANTIC_CHECKING_HPP_ */

@@ -27,7 +27,8 @@ class val_t;
 
 namespace pseudo {
 class datum_cmp_t;
-} //namespace pseudo
+void time_to_str_key(const datum_t &d, std::string *str_out);
+} // namespace pseudo
 
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `el` or
@@ -170,6 +171,8 @@ private:
 
     void check_str_validity(const std::string &str);
 
+    friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
+    void pt_to_str_key(std::string *str_out) const;
     void num_to_str_key(std::string *str_out) const;
     void str_to_str_key(std::string *str_out) const;
     void bool_to_str_key(std::string *str_out) const;
@@ -283,7 +286,7 @@ public:
     virtual int operator()(const datum_t& x, const datum_t& y) const = 0;
     virtual ~datum_cmp_t() { }
 };
-} //namespace pseudo
+} // namespace pseudo
 
 } // namespace ql
 #endif // RDB_PROTOCOL_DATUM_HPP_

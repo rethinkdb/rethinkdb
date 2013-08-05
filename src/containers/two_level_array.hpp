@@ -1,120 +1,144 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_TWO_LEVEL_ARRAY_HPP_
 #define CONTAINERS_TWO_LEVEL_ARRAY_HPP_
 
+#include <vector>
+
 #include "errors.hpp"
 
-/* two_level_array_t is a tree that always has exactly two levels. Its computational complexity is
-similar to that of an array, but it neither allocates all of its memory at once nor needs to
-realloc() as it grows.
+/* two_level_array_t is a tree that always has exactly two levels. Its computational
+complexity is similar to that of an array, but it neither allocates all of its memory
+at once nor needs to realloc() as it grows.  It also doesn't have a "size" -- it is
+an infinite array.  If a get() is called on an index in the array that set() has
+never been called for, the result will be value_t().
 
-It is parameterized on a value type, 'value_t'. It makes the following assumptions about value_t:
-1. value_t has a default constructor value_t() that has no side effects, and its destructor has no
-    side effects.
-2. value_t supports conversion to bool
-3. bool(value_t()) == false
-4. bool(any other instance of value_t) == true
-Pointer types work well for value_t.
+It is parameterized on a value type, 'value_t'. It makes the following assumptions
+about value_t:
 
-If a get() is called on an index in the array that set() has never been called for, the result will
-be value_t().
+1. value_t has a default constructor value_t() that has no side effects, and its
+   destructor has no side effects.
 
-It is also parameterized at compile-time on the maximum number of elements in the array and on the
-size of the chunks to use.
+2. value_t has a good equality operator, where value_t() == value_t(), and
+   distinguishable values don't compare equal.
+
 */
 
-#define DEFAULT_TWO_LEVEL_ARRAY_CHUNK_SIZE (1 << 16)
-
-template <class value_t, int max_size, int chunk_size = DEFAULT_TWO_LEVEL_ARRAY_CHUNK_SIZE>
+template <class value_t>
 class two_level_array_t {
-public:
-    typedef unsigned int key_t;
-
 private:
-    static const unsigned int num_chunks = max_size / chunk_size + 1;
-    unsigned int count;
+    static const size_t CHUNK_SIZE = 1 << 16;
 
     struct chunk_t {
         chunk_t()
             : count(0), values()   // default-initialize each value in values
             { }
-        unsigned int count;
-        value_t values[chunk_size];
+        size_t count;
+        value_t values[CHUNK_SIZE];
     };
-    chunk_t **chunks;
+    std::vector<chunk_t *> chunks;
 
-    static unsigned int chunk_for_key(key_t key) {
-        unsigned int chunk_id = key / chunk_size;
-        rassert(chunk_id < num_chunks, "chunk_id < num_chunks: %u < %u", chunk_id, num_chunks);
+    static size_t chunk_for_key(size_t key) {
+        size_t chunk_id = key / CHUNK_SIZE;
         return chunk_id;
     }
-    static unsigned int index_for_key(key_t key) {
-        return key % chunk_size;
+    static size_t index_for_key(size_t key) {
+        return key % CHUNK_SIZE;
     }
 
 public:
-    two_level_array_t() : count(0), chunks(new chunk_t*[num_chunks]) {
-        for (unsigned int i = 0; i < num_chunks; i++) {
-            chunks[i] = NULL;
-        }
-    }
+    two_level_array_t() { }
     ~two_level_array_t() {
-        for (unsigned int i = 0; i < num_chunks; i++) {
-            delete chunks[i];
-        }
-        delete[] chunks;
-    }
-
-    value_t& operator[](key_t key) {
-        unsigned int chunk_id = chunk_for_key(key);
-        if (chunks[chunk_id]) {
-            return chunks[chunk_id]->values[index_for_key(key)];
-        } else {
-            chunk_t *chunk = chunks[chunk_id] = new chunk_t;
-            return chunk->values[index_for_key(key)];
+        for (auto it = chunks.begin(); it != chunks.end(); ++it) {
+            delete *it;
         }
     }
 
-    value_t get(key_t key) const {
-        unsigned int chunk_id = chunk_for_key(key);
-        if (chunks[chunk_id]) {
+    value_t get(size_t key) const {
+        size_t chunk_id = chunk_for_key(key);
+        if (chunk_id < chunks.size() && chunks[chunk_id] != NULL) {
             return chunks[chunk_id]->values[index_for_key(key)];
         } else {
             return value_t();
         }
     }
 
-    void set(key_t key, value_t value) {
-        unsigned int chunk_id = chunk_for_key(key);
+    void set(size_t key, value_t value) {
+        const size_t chunk_id = chunk_for_key(key);
+        if (chunk_id >= chunks.size() || chunks[chunk_id] == NULL) {
+            if (value == value_t()) {
+                return;
+            } else {
+                if (chunk_id >= chunks.size()) {
+                    chunks.resize(chunk_id + 1, NULL);
+                }
+                chunks[chunk_id] = new chunk_t;
+            }
+        }
+
         chunk_t *chunk = chunks[chunk_id];
-
-        if (!value && !chunk) {
-            /* If the user is inserting a zero value into an already-empty chunk, exit early so we
-            don't create a new empty chunk */
-            return;
-        }
-
-        if (!chunk) chunk = chunks[chunk_id] = new chunk_t;
-
-        if (chunk->values[index_for_key(key)]) {
+        const size_t index = index_for_key(key);
+        if (!(chunk->values[index] == value_t())) {
             --chunk->count;
-            --count;
         }
-        chunk->values[index_for_key(key)] = value;
-        if (value) {
+        chunk->values[index] = value;
+        if (!(value == value_t())) {
             ++chunk->count;
-            ++count;
         }
 
         if (chunk->count == 0) {
             chunks[chunk_id] = NULL;
             delete chunk;
+
+            while (!chunks.empty() && chunks.back() == NULL) {
+                chunks.pop_back();
+            }
+        }
+    }
+};
+
+
+template <class value_t>
+class two_level_nevershrink_array_t {
+private:
+    static const size_t CHUNK_SIZE = 1 << 16;
+
+    struct chunk_t {
+        chunk_t()
+            : values()   // default-initialize each value in values
+            { }
+        value_t values[CHUNK_SIZE];
+    };
+    std::vector<chunk_t *> chunks;
+
+    static size_t chunk_for_key(size_t key) {
+        size_t chunk_id = key / CHUNK_SIZE;
+        return chunk_id;
+    }
+    static size_t index_for_key(size_t key) {
+        return key % CHUNK_SIZE;
+    }
+
+public:
+    two_level_nevershrink_array_t() { }
+    ~two_level_nevershrink_array_t() {
+        for (auto it = chunks.begin(); it != chunks.end(); ++it) {
+            delete *it;
         }
     }
 
-    unsigned int size() {
-        return count;
+    value_t &operator[](size_t key) {
+        const size_t chunk_id = chunk_for_key(key);
+        if (chunk_id >= chunks.size()) {
+            chunks.resize(chunk_id + 1, NULL);
+        }
+
+        if (chunks[chunk_id] == NULL) {
+            chunks[chunk_id] = new chunk_t;
+        }
+
+        return chunks[chunk_id]->values[index_for_key(key)];
     }
 };
+
 
 #endif // CONTAINERS_TWO_LEVEL_ARRAY_HPP_

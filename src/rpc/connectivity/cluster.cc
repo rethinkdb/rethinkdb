@@ -10,7 +10,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/semaphore.hpp"
-#include "containers/archive/vector_stream.hpp"
+#include "containers/archive/string_stream.hpp"
 #include "containers/object_buffer.hpp"
 #include "containers/uuid.hpp"
 #include "logger.hpp"
@@ -216,7 +216,8 @@ void connectivity_cluster_t::run_t::connect_to_peer(const peer_address_t *addres
                                                     bool *successful_join,
                                                     semaphore_t *rate_control) THROWS_NOTHING {
     // Wait to start the connection attempt, max time is one second per address
-    signal_timer_t timeout(index * 1000);
+    signal_timer_t timeout;
+    timeout.start(index * 1000);
     try {
         wait_any_t interrupt(&timeout, drainer_lock.get_drain_signal());
         rate_control->co_lock_interruptible(&interrupt);
@@ -725,8 +726,7 @@ void connectivity_cluster_t::run_t::handle(
                 if (deserialize_and_check(conn, &message, peername))
                     break;
 
-                std::vector<char> vec(message.begin(), message.end());
-                vector_read_stream_t stream(&vec);
+                string_read_stream_t stream(std::move(message), 0);
                 message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
             }
         } catch (const fake_archive_exc_t &) {
@@ -799,7 +799,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.
-    vector_stream_t buffer;
+    string_stream_t buffer;
     {
         ASSERT_FINITE_CORO_WAITING;
         callback->write(&buffer);
@@ -814,7 +814,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         debug_print(&buf, dest);
         buf.appendf("\n");
         fprintf(stderr, "%s", buf.c_str());
-        print_hd(buffer.vector().data(), 0, buffer.vector().size());
+        print_hd(buffer.str()->data(), 0, buffer.str()->size());
     }
 #endif
 
@@ -844,14 +844,14 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         conn_structure_lock = it->second.second;
     }
 
+    size_t bytes_sent = buffer.str().size();
+
     if (conn_structure->conn == NULL) {
         // We're sending a message to ourself
         guarantee(dest == me);
         // We could be on any thread here! Oh no!
-        vector_read_stream_t buffer2(&buffer.vector());
-        current_run->message_handler->on_message(me, &buffer2);
-        conn_structure->pm_bytes_sent.record(buffer.vector().size());
-
+        string_read_stream_t read_stream(std::move(buffer.str()), 0);
+        current_run->message_handler->on_message(me, &read_stream);
     } else {
         guarantee(dest != me);
         on_thread_t threader(conn_structure->conn->home_thread());
@@ -862,10 +862,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
         {
             write_message_t msg;
-            std::string buffer_str(buffer.vector().begin(), buffer.vector().end());
-            msg << buffer_str;
+            msg << buffer.str();
             int res = send_write_message(conn_structure->conn, &msg);
-            conn_structure->pm_bytes_sent.record(buffer.vector().size());
             if (res) {
                 /* Close the other half of the connection to make sure that
                    `connectivity_cluster_t::run_t::handle()` notices that something is
@@ -876,6 +874,8 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
             }
         }
     }
+
+    conn_structure->pm_bytes_sent.record(bytes_sent);
 }
 
 void connectivity_cluster_t::kill_connection(peer_id_t peer) THROWS_NOTHING {

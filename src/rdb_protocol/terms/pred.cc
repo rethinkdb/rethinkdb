@@ -75,4 +75,4 @@ counted_t<term_t> make_not_term(env_t *env, protob_t<const Term> term) {
     return make_counted<not_term_t>(env, term);
 }
 
-} //namespace ql
+} // namespace ql

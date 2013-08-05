@@ -41,4 +41,4 @@ counted_t<term_t> make_implicit_var_term(env_t *env, protob_t<const Term> term) 
     return make_counted<implicit_var_term_t>(env, term);
 }
 
-} //namespace ql
+} // namespace ql

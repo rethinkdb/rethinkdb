@@ -31,7 +31,8 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
         hash_region_t<key_range_t>::universe());
     rdb_protocol_t::read_t empty_read(empty_rget_read);
     for (;;) {
-        signal_timer_t start_poll(poll_ms);
+        signal_timer_t start_poll;
+        start_poll.start(poll_ms);
         wait_interruptible(&start_poll, interruptor);
         try {
             // Make sure the namespace still exists in the metadata, if not, abort
@@ -51,6 +52,6 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
             // TODO: We should not use order_token_t::ignore.
             ns_access.get_namespace_if()->read(empty_read, &read_res, order_token_t::ignore, interruptor);
             break;
-        } catch (const cannot_perform_query_exc_t &e) { } //continue loop
+        } catch (const cannot_perform_query_exc_t &e) { } // continue loop
     }
 }

@@ -42,10 +42,6 @@ private:
             if (res) { throw fake_archive_exc_t(); }
             parent->inbox.insert(i);
         }
-        void read(mailbox_write_callback_t *_writer) {
-            write_impl_t *writer = static_cast<write_impl_t*>(_writer);
-            parent->inbox.insert(writer->arg);
-        }
     private:
         dummy_mailbox_t *parent;
     };
@@ -55,7 +51,7 @@ public:
     friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, int);
 
     explicit dummy_mailbox_t(mailbox_manager_t *m) :
-        reader(this), mailbox(m, mailbox_home_thread, &reader)
+        reader(this), mailbox(m, &reader)
         { }
     void expect(int message) {
         EXPECT_EQ(1u, inbox.count(message));
@@ -184,7 +180,7 @@ void run_typed_mailbox_test() {
     connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m, boost::bind(&string_push_back, &inbox, _1), mailbox_callback_mode_inline);
+    mailbox_t<void(std::string)> mbox(&m, boost::bind(&string_push_back, &inbox, _1));
 
     mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 

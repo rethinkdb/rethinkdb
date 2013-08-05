@@ -12,6 +12,11 @@ commands:
       py: "$PARENT.coerce_to(type_name)"
       rb: "$PARENT.coerce_to(type_name)"
 
+    name:
+      py: coerce_to 
+      rb: coerce_to 
+      js: coerceTo 
+
     io:
       - - sequence
         - array

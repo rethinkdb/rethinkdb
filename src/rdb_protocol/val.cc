@@ -30,7 +30,7 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
         namespaces_metadata_change(&namespaces_metadata);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
         ns_searcher(&namespaces_metadata_change.get()->namespaces);
-    //TODO: fold into iteration below
+    // TODO: fold into iteration below
     namespace_predicate_t pred(&table_name, &db_id);
     uuid_u id = meta_get_uuid(&ns_searcher, pred,
                               strprintf("Table `%s` does not exist.",
@@ -669,4 +669,4 @@ void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
                   type_t(expected_raw_type).name(), type.name(), print().c_str()));
 }
 
-} //namespace ql
+} // namespace ql

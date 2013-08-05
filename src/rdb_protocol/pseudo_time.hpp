@@ -45,7 +45,9 @@ counted_t<const datum_t> time_date(counted_t<const datum_t> time,
                                    const rcheckable_t *target);
 counted_t<const datum_t> time_of_day(counted_t<const datum_t> time);
 
-} //namespace pseudo
-} //namespace ql
+void time_to_str_key(const datum_t &d, std::string *str_out);
 
-#endif //RDB_PROTOCOL_PSEUDO_TIME_HPP_
+} // namespace pseudo
+} // namespace ql
+
+#endif // RDB_PROTOCOL_PSEUDO_TIME_HPP_

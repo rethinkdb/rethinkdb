@@ -30,7 +30,8 @@ public:
 
     // Put entries in an LBA and then call sync() to write to disk
     void add_entry(block_id_t block_id, repli_timestamp_t recency,
-                   flagged_off64_t offset, file_account_t *io_account,
+                   flagged_off64_t offset, uint32_t ser_block_size,
+                   file_account_t *io_account,
                    extent_transaction_t *txn);
     struct sync_callback_t {
         virtual void on_lba_sync() = 0;

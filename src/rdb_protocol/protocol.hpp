@@ -32,6 +32,7 @@
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 
+class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
 template <class> class cross_thread_watchable_variable_t;
@@ -42,8 +43,6 @@ template <class> class namespace_repo_t;
 template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
-
-namespace extproc { class pool_group_t; }
 
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
@@ -143,7 +142,7 @@ struct rdb_protocol_t {
 
     struct context_t {
         context_t();
-        context_t(extproc::pool_group_t *_pool_group,
+        context_t(extproc_pool_t *_extproc_pool,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
                   boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
@@ -151,7 +150,7 @@ struct rdb_protocol_t {
                   uuid_u _machine_id);
         ~context_t();
 
-        extproc::pool_group_t *pool_group;
+        extproc_pool_t *extproc_pool;
         namespace_repo_t<rdb_protocol_t> *ns_repo;
 
         /* These arrays contain a watchable for each thread.
@@ -161,7 +160,7 @@ struct rdb_protocol_t {
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata;
         boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
-        cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
+        cond_t interruptor; // TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         uuid_u machine_id;
     };
@@ -177,9 +176,9 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
-        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
-        typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
+        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; // Present if there was no terminal
+        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; // Present if the terminal was a groupedmapreduce
+        typedef boost::shared_ptr<scoped_cJSON_t> atom_t; // Present if the terminal was a reduction
 
         struct length_t {
             int length;
@@ -229,12 +228,12 @@ struct rdb_protocol_t {
     };
 
     struct distribution_read_response_t {
-        //Supposing the map has keys:
-        //k1, k2 ... kn
-        //with k1 < k2 < .. < kn
-        //Then k1 == left_key
-        //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
-        //key_counts[kn] = the number of keys in [kn, right_key)
+        // Supposing the map has keys:
+        // k1, k2 ... kn
+        // with k1 < k2 < .. < kn
+        // Then k1 == left_key
+        // and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
+        // key_counts[kn] = the number of keys in [kn, right_key)
         region_t region;
         std::map<store_key_t, int64_t> key_counts;
 
@@ -303,7 +302,7 @@ struct rdb_protocol_t {
                     direction_t _direction = FORWARD)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
-              sindex_region(sindex_range.to_region()),
+              sindex_region(sindex_range->to_region()),
               merge_sort(_merge_sort), direction(_direction) { }
 
         rget_read_t(const region_t &_sindex_region,
@@ -370,7 +369,7 @@ struct rdb_protocol_t {
 
         /* The actual sindex range to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        sindex_range_t sindex_range;
+        boost::optional<sindex_range_t> sindex_range;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */
@@ -471,9 +470,9 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    //TODO we're reusing the enums from row writes and reads to avoid name
-    //shadowing. Nothing really wrong with this but maybe they could have a
-    //more generic name.
+    // TODO we're reusing the enums from row writes and reads to avoid name
+    // shadowing. Nothing really wrong with this but maybe they could have a
+    // more generic name.
     struct sindex_create_response_t {
         bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -759,6 +758,6 @@ struct range_key_tester_t : public key_tester_t {
 
     const rdb_protocol_t::region_t *delete_range;
 };
-} //namespace rdb_protocol_details
+} // namespace rdb_protocol_details
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

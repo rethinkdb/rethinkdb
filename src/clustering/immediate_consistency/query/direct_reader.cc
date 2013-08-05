@@ -10,7 +10,7 @@ direct_reader_t<protocol_t>::direct_reader_t(
         store_view_t<protocol_t> *svs_) :
     mailbox_manager(mm),
     svs(svs_),
-    read_mailbox(mm, boost::bind(&direct_reader_t<protocol_t>::on_read, this, _1, _2), mailbox_callback_mode_inline)
+    read_mailbox(mm, boost::bind(&direct_reader_t<protocol_t>::on_read, this, _1, _2))
     { }
 
 template <class protocol_t>

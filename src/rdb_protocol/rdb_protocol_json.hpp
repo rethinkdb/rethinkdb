@@ -32,6 +32,6 @@ private:
 
 void require_type(const cJSON *, int type, const backtrace_t &);
 
-} //namespace query_language
+} // namespace query_language
 
 #endif /* RDB_PROTOCOL_RDB_PROTOCOL_JSON_HPP_ */

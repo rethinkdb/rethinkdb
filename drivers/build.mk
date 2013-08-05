@@ -4,7 +4,7 @@ DRIVERS_DIR := $(TOP)/drivers
 
 PROTOC_BASE := $(dir $(patsubst %/,%,$(dir $(PROTOC))))
 
-include $(DRIVERS_DIR)/javascript/src/build.mk
+include $(DRIVERS_DIR)/javascript/build.mk
 
 .PHONY: drivers
 ifeq ($(BUILD_DRIVERS), 1)

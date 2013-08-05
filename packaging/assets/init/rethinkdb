@@ -161,7 +161,7 @@ do
     port_offset=${port_offset:-0}
     if [ "${driver_port:-$((default_driver_port+port_offset))}" = "$default_driver_port" -o \
          "${cluster_port:-$((default_cluster_port+port_offset))}" = "$default_cluster_port" -o \
-         "${http-port:-$((default_http_port+port_offset))}" = "$default_http_port" -o ]; then
+         "${http-port:-$((default_http_port+port_offset))}" = "$default_http_port" ]; then
         if $default_ports_available; then
             default_ports_available=false
         else

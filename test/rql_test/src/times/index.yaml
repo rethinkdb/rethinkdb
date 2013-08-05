@@ -1,0 +1,113 @@
+desc: sindex api (#602)
+tests:
+
+  - cd: r.db('test').table_create('times_api')
+    def: tbl = r.table('times_api')
+
+  - def:
+      rb: ts={"timezone"=>"-07:00","epoch_time"=>1375445162.0872,"$reql_type$"=>"TIME"}
+      py: ts={"timezone":"-07:00","epoch_time":1375445162.0872,"$reql_type$":"TIME"}
+  - def:
+      rb: t1={"timezone"=>"-07:00","epoch_time"=>1375445163.0872,"$reql_type$"=>"TIME"}
+      py: t1={"timezone":"-07:00","epoch_time":1375445163.0872,"$reql_type$":"TIME"}
+  - def:
+      rb: t2={"timezone"=>"-07:00","epoch_time"=>1375445163.08832,"$reql_type$"=>"TIME"}
+      py: t2={"timezone":"-07:00","epoch_time":1375445163.08832,"$reql_type$":"TIME"}
+  - def:
+      rb: t3={"timezone"=>"-07:00","epoch_time"=>1375445163.08943,"$reql_type$"=>"TIME"}
+      py: t3={"timezone":"-07:00","epoch_time":1375445163.08943,"$reql_type$":"TIME"}
+  - def:
+      rb: t4={"timezone"=>"-07:00","epoch_time"=>1375445163.09055,"$reql_type$"=>"TIME"}
+      py: t4={"timezone":"-07:00","epoch_time":1375445163.09055,"$reql_type$":"TIME"}
+  - def:
+      rb: t5={"timezone"=>"-07:00","epoch_time"=>1375445163.09166,"$reql_type$"=>"TIME"}
+      py: t5={"timezone":"-07:00","epoch_time":1375445163.09166,"$reql_type$":"TIME"}
+  - def:
+      rb: te={"timezone"=>"-07:00","epoch_time"=>1375445164.0872,"$reql_type$"=>"TIME"}
+      py: te={"timezone":"-07:00","epoch_time":1375445164.0872,"$reql_type$":"TIME"}
+
+  - def:
+      rb: trows = [{:id => t1}, {:id => t2}, {:id => t3}, {:id => t4}, {:id => t5}]
+      py: trows = [{'id':t1}, {'id':t2}, {'id':t3}, {'id':t4}, {'id':t5}]
+  - cd: tbl.insert(trows)['inserted']
+    ot: 5
+
+  - cd: tbl.between(ts, te).count()
+    ot: 5
+  - cd: tbl.between(t1, t4).count()
+    ot: 3
+  - cd: tbl.between(t1, t4, :right_bound => 'closed').count()
+    py: tbl.between(t1, t4, right_bound='closed').count()
+    ot: 4
+  - cd: tbl.between(r.expr(ts).in_timezone("+06:00"), te).count()
+    ot: 5
+  - cd: tbl.between(t1, r.expr(t4).in_timezone("+08:00")).count()
+    ot: 3
+  - cd: tbl.between(r.expr(t1).in_timezone("Z"), t4, :right_bound => 'closed').count()
+    py: tbl.between(r.expr(t1).in_timezone("Z"), t4, right_bound='closed').count()
+    ot: 4
+
+  - cd: tbl.update{|row| {:a => row[:id]}}['replaced']
+    py: tbl.update(lambda row:{'a':row['id']})['replaced']
+    ot: 5
+  - cd: tbl.index_create('a')
+    ot: ({'created':1})
+
+  - cd: tbl.between(ts, te, :index => 'a').count()
+    py: tbl.between(ts, te, index='a').count()
+    ot: 5
+  - cd: tbl.between(t1, t4, :index => 'a').count()
+    py: tbl.between(t1, t4, index='a').count()
+    ot: 3
+  - cd: tbl.between(t1, t4, :right_bound => 'closed', :index => 'a').count()
+    py: tbl.between(t1, t4, right_bound='closed', index='a').count()
+    ot: 4
+  - cd: tbl.between(r.expr(ts).in_timezone("+06:00"), te, :index => 'a').count()
+    py: tbl.between(r.expr(ts).in_timezone("+06:00"), te, index='a').count()
+    ot: 5
+  - cd: tbl.between(t1, r.expr(t4).in_timezone("+08:00"), :index => 'a').count()
+    py: tbl.between(t1, r.expr(t4).in_timezone("+08:00"), index='a').count()
+    ot: 3
+  - cd: tbl.between(r.expr(t1).in_timezone("Z"), t4, :right_bound => 'closed', :index => 'a').count()
+    py: tbl.between(r.expr(t1).in_timezone("Z"), t4, right_bound='closed', index='a').count()
+    ot: 4
+
+  - cd: tbl.index_create('b'){|row| r.branch(row[:id] < t4, row[:a], nil)}
+    py: tbl.index_create('b', lambda row:r.branch(row['id'] < t4, row['a'], null))
+    ot: ({'created':1})
+
+  - cd: tbl.between(ts, te, :index => 'b').count()
+    py: tbl.between(ts, te, index='b').count()
+    ot: 3
+  - cd: tbl.between(t1, t4, :index => 'b').count()
+    py: tbl.between(t1, t4, index='b').count()
+    ot: 3
+  - cd: tbl.between(t1, t4, :right_bound => 'closed', :index => 'b').count()
+    py: tbl.between(t1, t4, right_bound='closed', index='b').count()
+    ot: 3
+  - cd: tbl.between(r.expr(ts).in_timezone("+06:00"), te, :index => 'b').count()
+    py: tbl.between(r.expr(ts).in_timezone("+06:00"), te, index='b').count()
+    ot: 3
+  - cd: tbl.between(t1, r.expr(t4).in_timezone("+08:00"), :index => 'b').count()
+    py: tbl.between(t1, r.expr(t4).in_timezone("+08:00"), index='b').count()
+    ot: 3
+  - cd: tbl.between(r.expr(t1).in_timezone("Z"), t4, :right_bound => 'closed', :index => 'b').count()
+    py: tbl.between(r.expr(t1).in_timezone("Z"), t4, right_bound='closed', index='b').count()
+    ot: 3
+
+  - def:
+      rb: oldtime = Time.at(1375147296.60081)
+      py: oldtime = datetime.fromtimestamp(1375147296.60081, pytz.timezone('US/Pacific'))
+  - def:
+      rb: curtime = Time.now
+      py: curtime = datetime.now()
+
+  - cd: tbl.insert([{'id':oldtime}])['inserted']
+    ot: 1
+  # - cd: tbl.insert([{'id':oldtime}, {'id':curtime}])['inserted']
+  #   ot: 1
+
+  - cd: tbl.get(oldtime)['id'].type_of()
+    ot: ("PSEUDOTYPE(TIME)")
+
+  - cd: r.db('test').table_drop('times_api')

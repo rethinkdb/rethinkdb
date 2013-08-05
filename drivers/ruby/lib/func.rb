@@ -20,7 +20,7 @@ module RethinkDB
       :update => {:with_block => 0, :without => 1},
       :insert => 1,
       :delete => -1,
-      :reduce => -1, :between => -1, :grouped_map_reduce => -1,
+      :reduce => -1, :between => 2, :grouped_map_reduce => -1,
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
       :javascript => -1, :filter => {:with_block => 0, :without => 1},

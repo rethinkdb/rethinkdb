@@ -23,7 +23,7 @@
 #include "clustering/administration/proc_stats.hpp"
 #include "clustering/administration/reactor_driver.hpp"
 #include "clustering/administration/sys_stats.hpp"
-#include "extproc/pool.hpp"
+#include "extproc/extproc_pool.hpp"
 #include "memcached/tcp_conn.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "mock/dummy_protocol_parser.hpp"
@@ -62,7 +62,6 @@ bool service_address_ports_t::is_bind_all() const {
 }
 
 bool do_serve(
-    extproc::spawner_info_t *spawner_info,
     io_backender_t *io_backender,
     bool i_am_a_server,
     // NB. filepath & persistent_file are used iff i_am_a_server is true.
@@ -75,8 +74,7 @@ bool do_serve(
     signal_t *stop_cond,
     const boost::optional<std::string> &config_file) {
     try {
-        guarantee(spawner_info);
-        extproc::pool_group_t extproc_pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
+        extproc_pool_t extproc_pool(get_num_threads());
 
         local_issue_tracker_t local_issue_tracker;
 
@@ -220,7 +218,7 @@ bool do_serve(
                 field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
             &mc_ctx);
 
-        rdb_protocol_t::context_t rdb_ctx(&extproc_pool_group,
+        rdb_protocol_t::context_t rdb_ctx(&extproc_pool,
                                           NULL,
                                           semilattice_manager_cluster.get_root_view(),
                                           auth_manager_cluster.get_root_view(),
@@ -414,8 +412,7 @@ bool do_serve(
     return true;
 }
 
-bool serve(extproc::spawner_info_t *spawner_info,
-           io_backender_t *io_backender,
+bool serve(io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
@@ -424,8 +421,7 @@ bool serve(extproc::spawner_info_t *spawner_info,
            std::string web_assets,
            signal_t *stop_cond,
            const boost::optional<std::string>& config_file) {
-    return do_serve(spawner_info,
-                    io_backender,
+    return do_serve(io_backender,
                     true,
                     base_path,
                     cluster_persistent_file,
@@ -437,16 +433,14 @@ bool serve(extproc::spawner_info_t *spawner_info,
                     config_file);
 }
 
-bool serve_proxy(extproc::spawner_info_t *spawner_info,
-                 const peer_address_set_t &joins,
+bool serve_proxy(const peer_address_set_t &joins,
                  service_address_ports_t address_ports,
                  std::string web_assets,
                  signal_t *stop_cond,
                  const boost::optional<std::string>& config_file) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
-    return do_serve(spawner_info,
-                    NULL,
+    return do_serve(NULL,
                     false,
                     base_path_t(""),
                     NULL,

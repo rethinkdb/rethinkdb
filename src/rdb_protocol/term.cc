@@ -381,4 +381,4 @@ counted_t<val_t> term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
 }
 
-} //namespace ql
+} // namespace ql

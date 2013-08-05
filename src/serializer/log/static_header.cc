@@ -63,8 +63,12 @@ void co_static_header_read(file_t *file, static_header_read_callback_t *callback
     }
 
     if (memcmp(buffer->version, SERIALIZER_VERSION_STRING, sizeof(SERIALIZER_VERSION_STRING)) != 0) {
-        fail_due_to_user_error("File version is incorrect. This file was created with RethinkDB's serializer version %s, "
-            "but you are trying to read it with version %s.", buffer->version, SERIALIZER_VERSION_STRING);
+        fail_due_to_user_error("File version is incorrect. This file was created with "
+                               "RethinkDB's serializer version %s, but you are trying "
+                               "to read it with version %s.  See "
+                               "http://rethinkdb.com/docs/backup/ for information on "
+                               "backing up and restoring data.",
+                               buffer->version, SERIALIZER_VERSION_STRING);
     }
     memcpy(data_out, buffer->data, data_size);
     callback->on_static_header_read();

@@ -47,6 +47,13 @@ void *scc_buf_lock_t<inner_cache_t>::get_data_write() {
 }
 
 template<class inner_cache_t>
+void *scc_buf_lock_t<inner_cache_t>::get_data_write(uint32_t cache_block_size) {
+    rassert(internal_buf_lock.has());
+    has_been_changed = true;
+    return internal_buf_lock->get_data_write(cache_block_size);
+}
+
+template<class inner_cache_t>
 void scc_buf_lock_t<inner_cache_t>::mark_deleted() {
     rassert(internal_buf_lock.has());
     internal_buf_lock->mark_deleted();
@@ -185,8 +192,13 @@ void scc_cache_t<inner_cache_t>::create_cache_account(int priority, scoped_ptr_t
 }
 
 template<class inner_cache_t>
-bool scc_cache_t<inner_cache_t>::offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp) {
-    return inner_cache.offer_read_ahead_buf(block_id, buf, token, recency_timestamp);
+void scc_cache_t<inner_cache_t>::offer_read_ahead_buf(
+        block_id_t block_id,
+        scoped_malloc_t<ser_buffer_t> *buf,
+        const counted_t<standard_block_token_t>& token,
+        repli_timestamp_t recency_timestamp) {
+    inner_cache.offer_read_ahead_buf(block_id, buf,
+                                     token, recency_timestamp);
 }
 
 template<class inner_cache_t>

@@ -176,7 +176,8 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
                     &ref_count_is_zero);
                 wait_interruptible(&ref_count_is_zero, keepalive.get_drain_signal());
             }
-            signal_timer_t expiration_timer(NAMESPACE_INTERFACE_EXPIRATION_MS);
+            signal_timer_t expiration_timer;
+            expiration_timer.start(NAMESPACE_INTERFACE_EXPIRATION_MS);
             cond_t ref_count_is_nonzero;
             assignment_sentry_t<cond_t *> notify_if_ref_count_becomes_nonzero(
                 &cache_entry->pulse_when_ref_count_becomes_nonzero,

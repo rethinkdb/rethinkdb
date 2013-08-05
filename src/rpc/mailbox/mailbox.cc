@@ -34,13 +34,12 @@ std::string raw_mailbox_t::address_t::human_readable() const {
     return strprintf("%s:%d:%" PRIu64, uuid_to_str(peer.get_uuid()).c_str(), thread, mailbox_id);
 }
 
-raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_thread_mode_t tm, mailbox_read_callback_t *_callback) :
+raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_read_callback_t *_callback) :
     manager(m),
-    thread_mode(tm),
-    mailbox_id(thread_mode == mailbox_any_thread ?
-                   manager->register_mailbox_all_threads(this) :
-                   manager->register_mailbox_one_thread(this)),
-    callback(_callback) { }
+    mailbox_id(manager->register_mailbox(this)),
+    callback(_callback) {
+    // Do nothing
+}
 
 raw_mailbox_t::~raw_mailbox_t() {
     assert_thread();
@@ -50,12 +49,7 @@ raw_mailbox_t::~raw_mailbox_t() {
 raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
     address_t a;
     a.peer = manager->get_connectivity_service()->get_me();
-    if (thread_mode == mailbox_any_thread) {
-        a.thread = address_t::ANY_THREAD;
-    } else {
-        guarantee(thread_mode == mailbox_home_thread);
-        a.thread = home_thread();
-    }
+    a.thread = home_thread();
     a.mailbox_id = mailbox_id;
     return a;
 }
@@ -86,23 +80,8 @@ private:
 void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, mailbox_write_callback_t *callback) {
     guarantee(src);
     guarantee(!dest.is_nil());
-
-    if (dest.peer == src->get_connectivity_service()->get_me()) {
-        // Message is local, we can skip the connectivity service and serialization/deserialization
-        //   and call the mailbox directly
-        object_buffer_t<on_thread_t> rethreader;
-        if (dest.thread != raw_mailbox_t::address_t::ANY_THREAD) {
-            rethreader.create(dest.thread);
-        }
-
-        raw_mailbox_t *mbox = src->mailbox_tables.get()->find_mailbox(dest.mailbox_id);
-        if (mbox != NULL) {
-            mbox->callback->read(callback);
-        }
-    } else {
-        raw_mailbox_writer_t writer(dest.thread, dest.mailbox_id, callback);
-        src->message_service->send_message(dest.peer, &writer);
-    }
+    raw_mailbox_writer_t writer(dest.thread, dest.mailbox_id, callback);
+    src->message_service->send_message(dest.peer, &writer);
 }
 
 mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
@@ -110,20 +89,11 @@ mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
     { }
 
 mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
-    next_local_mailbox_id = (UINT64_MAX / get_num_threads()) * get_thread_id();
-    next_global_mailbox_id = next_local_mailbox_id;
-
-    // Make local mailbox ids odd and global mailbox ids even so we can do some extra checks and stuff
-    if (next_local_mailbox_id & 1) {
-        ++next_global_mailbox_id;
-    } else {
-        ++next_local_mailbox_id;
-    }
+    next_mailbox_id = (UINT64_MAX / get_num_threads()) * get_thread_id();
 }
 
 mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
-    guarantee(mailboxes.empty(), "Please destroy all mailboxes before destroying "
-                       "the cluster");
+    guarantee(mailboxes.empty(), "Please destroy all mailboxes before destroying the cluster");
 }
 
 raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::id_t id) {
@@ -135,7 +105,7 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
     }
 }
 
-void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *stream) {
+void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, string_read_stream_t *stream) {
     int dest_thread;
     raw_mailbox_t::id_t dest_mailbox_id;
     {
@@ -150,71 +120,44 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, read_stream_t *
         dest_thread = get_thread_id();
     }
 
-    /* TODO: This is probably horribly inefficient; we switch to another
-    thread and back before we parse the next message. */
-    on_thread_t thread_switcher(dest_thread);
+    coro_t::spawn_now_dangerously(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
+                                              this, dest_thread, dest_mailbox_id, stream));
+}
+
+void mailbox_manager_t::mailbox_read_coroutine(int dest_thread,
+                                               raw_mailbox_t::id_t dest_mailbox_id,
+                                               string_read_stream_t *stream) {
+    // Take the string from the read stream, so it can be deallocated in the caller
+    std::string stream_data;
+    int64_t data_offset = 0;
+    stream->swap(&stream_data, &data_offset);
+
+    on_thread_t rethreader(dest_thread);
+
+    // Construct a new stream to use
+    string_read_stream_t new_stream(std::move(stream_data), data_offset);
 
     raw_mailbox_t *mbox = mailbox_tables.get()->find_mailbox(dest_mailbox_id);
-    if (mbox) {
-        auto_drainer_t::lock_t lock(&mbox->drainer);
-        mbox->callback->read(stream);
-    } else {
-        /* Ignore it, because it's impossible to write code in such a way that
-        messages will never be received for dead mailboxes. */
+    if (mbox != NULL) {
+        mbox->callback->read(&new_stream);
     }
 }
 
-raw_mailbox_t::id_t mailbox_manager_t::generate_local_id() {
-    raw_mailbox_t::id_t id = mailbox_tables.get()->next_local_mailbox_id;
-    mailbox_tables.get()->next_local_mailbox_id += 2;
+raw_mailbox_t::id_t mailbox_manager_t::generate_mailbox_id() {
+    raw_mailbox_t::id_t id = ++mailbox_tables.get()->next_mailbox_id;
     return id;
 }
 
-raw_mailbox_t::id_t mailbox_manager_t::generate_global_id() {
-    raw_mailbox_t::id_t id = mailbox_tables.get()->next_global_mailbox_id;
-    mailbox_tables.get()->next_global_mailbox_id += 2;
-    return id;
-}
-
-raw_mailbox_t::id_t mailbox_manager_t::register_mailbox_one_thread(raw_mailbox_t *mb) {
-    raw_mailbox_t::id_t id = generate_local_id();
-    register_mailbox_internal(mb, id);
-    return id;
-}
-
-raw_mailbox_t::id_t mailbox_manager_t::register_mailbox_all_threads(raw_mailbox_t *mb) {
-    raw_mailbox_t::id_t id = generate_global_id();
-    pmap(get_num_threads(), boost::bind(&mailbox_manager_t::register_mailbox_wrapper, this, mb, id, _1));
-    return id;
-}
-
-void mailbox_manager_t::register_mailbox_wrapper(raw_mailbox_t *mb, raw_mailbox_t::id_t id, int thread) {
-    on_thread_t rethreader(thread);
-    register_mailbox_internal(mb, id);
-}
-
-void mailbox_manager_t::register_mailbox_internal(raw_mailbox_t *mb, raw_mailbox_t::id_t id) {
+raw_mailbox_t::id_t mailbox_manager_t::register_mailbox(raw_mailbox_t *mb) {
+    raw_mailbox_t::id_t id = generate_mailbox_id();
     std::map<raw_mailbox_t::id_t, raw_mailbox_t *> *mailboxes = &mailbox_tables.get()->mailboxes;
     std::pair<std::map<raw_mailbox_t::id_t, raw_mailbox_t *>::iterator, bool> res
         = mailboxes->insert(std::make_pair(id, mb));
     guarantee(res.second);  // Assert a new element was inserted.
+    return id;
 }
 
 void mailbox_manager_t::unregister_mailbox(raw_mailbox_t::id_t id) {
-    // If the id is local, only remove it from this thread, otherwise only remove it from all threads
-    if (id & 1) { // An odd id indicates a local mailbox
-        unregister_mailbox_internal(id);
-    } else {
-        pmap(get_num_threads(), boost::bind(&mailbox_manager_t::unregister_mailbox_wrapper, this, id, _1));
-    }
-}
-
-void mailbox_manager_t::unregister_mailbox_wrapper(raw_mailbox_t::id_t id, int thread) {
-    on_thread_t rethreader(thread);
-    unregister_mailbox_internal(id);
-}
-
-void mailbox_manager_t::unregister_mailbox_internal(raw_mailbox_t::id_t id) {
     size_t num_elements_erased = mailbox_tables.get()->mailboxes.erase(id);
     guarantee(num_elements_erased == 1);
 }

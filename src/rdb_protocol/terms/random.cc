@@ -64,4 +64,4 @@ counted_t<term_t> make_sample_term(env_t *env, protob_t<const Term> term) {
     return counted_t<sample_term_t>(new sample_term_t(env, term));
 }
 
-} //namespace ql
+} // namespace ql

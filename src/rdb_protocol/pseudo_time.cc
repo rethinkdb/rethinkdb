@@ -153,7 +153,7 @@ string date(const string &s, date_format_t *df_out) {
     }
     // We need to keep track of this because YYYY-MM and YYYYMMDD are valid, but
     // YYYYMM is not.  I don't write these standards.
-    bool year_hyphen = optional_char(s, '-', &at, &out);
+    bool first_hyphen = optional_char(s, '-', &at, &out);
     if (optional_char(s, 'W', &at, &out, EXCLUDE)) {
         *df_out = WEEKCOUNT;
         mandatory_digits(s, 2, &at, &out);
@@ -168,10 +168,12 @@ string date(const string &s, date_format_t *df_out) {
     } else {
         *df_out = MONTH_DAY;
         mandatory_digits(s, 2, &at, &out);
-        if (year_hyphen && at == s.size()) {
+        if (first_hyphen && at == s.size()) {
             return out + "-01";
         }
-        optional_char(s, '-', &at, &out);
+        bool second_hyphen = optional_char(s, '-', &at, &out);
+        rcheck_datum(!(first_hyphen ^ second_hyphen), base_exc_t::GENERIC,
+                     strprintf("Date string `%s` must have 0 or 2 hyphens.", s.c_str()));
         mandatory_digits(s, 2, &at, &out);
     }
     rcheck_datum(at == s.size(), base_exc_t::GENERIC,
@@ -188,12 +190,14 @@ string time(const string &s) {
     if (at == s.size()) {
         return out + ":00:00.000000";
     }
-    optional_char(s, ':', &at, &out);
+    bool first_colon = optional_char(s, ':', &at, &out);
     mandatory_digits(s, 2, &at, &out);
     if (at == s.size()) {
         return out + ":00.000000";
     }
-    optional_char(s, ':', &at, &out);
+    bool second_colon = optional_char(s, ':', &at, &out);
+    rcheck_datum(!(first_colon ^ second_colon), base_exc_t::GENERIC,
+                 strprintf("Time string `%s` must have 0 or 2 colons.", s.c_str()));
     mandatory_digits(s, 2, &at, &out);
     if (optional_char(s, '.', &at, &out)) {
         size_t read = 0;
@@ -374,7 +378,6 @@ void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
     *t += boost::posix_time::microseconds(microsec);
 }
 
-
 time_t time_to_boost(counted_t<const datum_t> d) {
     double raw_sec = d->get(epoch_time_key)->as_num();
     ptime_t t(date_t(1970, 1, 1));
@@ -389,13 +392,19 @@ time_t time_to_boost(counted_t<const datum_t> d) {
     }
 }
 
-
 const std::locale tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F%Q"));
 const std::locale no_tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F"));
 std::string time_to_iso8601(counted_t<const datum_t> d) {
     try {
+        time_t t = time_to_boost(d);
+        int year = t.date().year();
+        // Boost also accepts year 10000.  I don't think any real users will hit
+        // that edge case, but better safe than sorry.
+        rcheck_datum(year >= 0 && year <= 9999, base_exc_t::GENERIC,
+                     strprintf("Year `%d` out of valid ISO 8601 range [0, 9999].",
+                               year));
         std::ostringstream ss;
         ss.exceptions(std::ios_base::failbit);
         if (counted_t<const datum_t> tz = d->get(timezone_key, NOTHROW)) {
@@ -621,5 +630,12 @@ counted_t<const datum_t> time_of_day(counted_t<const datum_t> time) {
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
-} //namespace pseudo
-} //namespace ql
+void time_to_str_key(const datum_t &d, std::string *str_out) {
+    // We need to prepend "P" and append a character less than [a-zA-Z] so that
+    // different pseudotypes sort correctly.
+    str_out->append(std::string("P") + time_string + ":");
+    d.get(epoch_time_key)->num_to_str_key(str_out);
+}
+
+} // namespace pseudo
+} // namespace ql
