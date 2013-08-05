@@ -228,8 +228,6 @@ class TestGroup:
             code = [code]
         elif code == None:
             code = []
-            if not (isinstance(obj, dict) and obj.keys() == ['def']):
-                print 'Missing %s test for %s' % (lang, '-'.join(self.path) + '-' + str(index))
 
         # Construct the appropriate representation for each test in this language
         return (map(lambda src: Langs.repr_query_for(lang, src), code), runopts)
