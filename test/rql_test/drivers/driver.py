@@ -199,7 +199,8 @@ class PyTestDriver:
         print 'Connecting to CPP server on port ' + str(CPPPORT)
         print ''
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
-        r.db_create('test').run(self.cpp_conn)
+        if 'test' not in r.db_list().run(self.cpp_conn):
+            r.db_create('test').run(self.cpp_conn)
         self.scope = {}
 
     def define(self, expr):
