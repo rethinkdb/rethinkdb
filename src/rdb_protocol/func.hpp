@@ -125,6 +125,7 @@ private:
     protob_t<Term> source;
     boost::optional<Term> default_filter_val;
     std::map<int64_t, Datum> scope;
+    // This uuid is used for the func cache in `env_t`.
     uuid_u uuid;
 };
 
