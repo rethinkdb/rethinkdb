@@ -6,6 +6,7 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pathspec.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/pseudo_literal.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -138,6 +139,26 @@ private:
         return new_val(unproject(obj, pathspec, DONT_RECURSE));
     }
     virtual const char *name() const { return "without"; }
+};
+
+class literal_term_t : public op_term_t {
+public:
+    literal_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
+        rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
+               "Stray literal keyword found. Literal is only valid inside of merge.");
+        datum_ptr_t res(datum_t::R_OBJECT);
+        bool clobber = res.add(datum_t::reql_type_string,
+                               make_counted<const datum_t>(pseudo::literal_string));
+        clobber |= res.add(pseudo::value_key, arg(1)->as_datum());
+        r_sanity_check(!clobber);
+        std::set<std::string> permissible_ptypes;
+        permissible_ptypes.insert("literal");
+        return new_val(res.to_counted(permissible_ptypes));
+    }
+    virtual const char *name() const { return "literal"; }
 };
 
 class merge_term_t : public obj_or_seq_op_term_t {

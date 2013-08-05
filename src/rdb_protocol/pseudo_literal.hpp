@@ -7,7 +7,7 @@
 namespace ql {
 namespace pseudo {
 extern const char *const literal_string;
-extern const char *const value_string;
+extern const char *const value_key;
 
 void rcheck_literal_valid(const datum_t *lit);
 
