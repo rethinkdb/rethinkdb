@@ -27,15 +27,19 @@ tests:
 
   - rb: tutcs.map{|x| [x.timezone, x.day]}
     py: tutcs.map(lambda x:[x.timezone(), x.day()])
+    js: tutcs.map([r.row.timezone(), r.row.day()])
     ot: ([["Z", 29], ["+00:00", 29], ["-00:00", 29]])
   - rb: tms.map{|x| [x.timezone, x.day]}
     py: tms.map(lambda x:[x.timezone(), x.day()])
+    js: tms.map([r.row.timezone(), r.row.day()])
     ot: ([["-00:59", 29], ["-01:00", 29], ["-01:01", 29]])
   - rb: tps.map{|x| [x.timezone, x.day]}
     py: tps.map(lambda x:[x.timezone(), x.day()])
+    js: tps.map([r.row.timezone(), r.row.day()])
     ot: ([["+00:59", 30], ["+01:00", 30], ["+01:01", 30]])
 
 # They're all the same time, just in different timezones.
   - rb: ts.concat_map{|x| ts.map{|y| x - y}}.distinct
     py: ts.concat_map(lambda x:ts.map(lambda y:x - y)).distinct()
+    js: ts.concatMap(function(x) { return ts.map(function(y) { return x.sub(y); }); }).distinct()
     ot: ([0])

@@ -201,6 +201,23 @@ class RDBVal extends TermBase
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
 
+    toISO8601: ar () -> new ToISO8601 {}, @
+    toEpochTime: ar () -> new ToEpochTime {}, @
+    inTimezone: ar (tzstr) -> new InTimezone {}, @, tzstr
+    during: aropt (t2, t3, opts) -> new During opts, @, t2, t3
+    date: ar () -> new RQLDate {}, @
+    timeOfDay: ar () -> new TimeOfDay {}, @
+    timezone: ar () -> new Timezone {}, @
+
+    year: ar () -> new Year {}, @
+    month: ar () -> new Month {}, @
+    day: ar () -> new Day {}, @
+    dayOfWeek: ar () -> new DayOfWeek {}, @
+    dayOfYear: ar () -> new DayOfYear {}, @
+    hours: ar () -> new Hours {}, @
+    minutes: ar () -> new Minutes {}, @
+    seconds: ar () -> new Seconds {}, @
+
 class DatumTerm extends RDBVal
     args: []
     optargs: {}
@@ -729,6 +746,81 @@ class Desc extends RDBOp
     tt: "DESC"
     st: 'desc'
 
+class ISO8601 extends RDBOp
+    tt: 'ISO8601'
+    st: 'iso8601'
+
+class ToISO8601 extends RDBOp
+    tt: 'TO_ISO8601'
+    mt: 'toISO8601'
+
+class EpochTime extends RDBOp
+    tt: 'EPOCH_TIME'
+    st: 'epochTime'
+
+class ToEpochTime extends RDBOp
+    tt: 'TO_EPOCH_TIME'
+    mt: 'toEpochTime'
+
+class Now extends RDBOp
+    tt: 'NOW'
+    st: 'now'
+
+class InTimezone extends RDBOp
+    tt: 'IN_TIMEZONE'
+    mt: 'inTimezone'
+
+class During extends RDBOp
+    tt: 'DURING'
+    mt: 'during'
+
+class RQLDate extends RDBOp
+    tt: 'DATE'
+    mt: 'date'
+
+class TimeOfDay extends RDBOp
+    tt: 'TIME_OF_DAY'
+    mt: 'timeOfDay'
+
+class Timezone extends RDBOp
+    tt: 'TIMEZONE'
+    mt: 'timezone'
+
+class Year extends RDBOp
+    tt: 'YEAR'
+    mt: 'year'
+
+class Month extends RDBOp
+    tt: 'MONTH'
+    mt: 'month'
+
+class Day extends RDBOp
+    tt: 'DAY'
+    mt: 'day'
+
+class DayOfWeek extends RDBOp
+    tt: 'DAY_OF_WEEK'
+    mt: 'dayOfWeek'
+
+class DayOfYear extends RDBOp
+    tt: 'DAY_OF_YEAR'
+    mt: 'dayOfYear'
+
+class Hours extends RDBOp
+    tt: 'HOURS'
+    mt: 'hours'
+
+class Minutes extends RDBOp
+    tt: 'MINUTES'
+    mt: 'minutes'
+
+class Seconds extends RDBOp
+    tt: 'SECONDS'
+    mt: 'seconds'
+
+class Time extends RDBOp
+    tt: 'TIME'
+    st: 'time'
 
 # All top level exported functions
 
@@ -741,6 +833,8 @@ rethinkdb.expr = ar (val) ->
         val
     else if val instanceof Function
         new Func {}, val
+    else if val instanceof Date
+        new ISO8601 {}, val.toISOString()
     else if Array.isArray val
         new MakeArray {}, val...
     else if val == Object(val)
@@ -831,6 +925,32 @@ rethinkdb.mod = ar (a, b) -> new Mod {}, a, b
 
 rethinkdb.typeOf = ar (val) -> new TypeOf {}, val
 rethinkdb.info = ar (val) -> new Info {}, val
+
+rethinkdb.iso8601 = ar (str) -> new ISO8601 {}, str
+rethinkdb.epochTime = ar (num) -> new EpochTime {}, num
+rethinkdb.now = ar () -> new Now {}
+rethinkdb.time = varar 3, 7, (args...) -> new Time {}, args...
+
+rethinkdb.monday = new (class extends RDBOp then tt: 'MONDAY')()
+rethinkdb.tuesday = new (class extends RDBOp then tt: 'TUESDAY')()
+rethinkdb.wednesday = new (class extends RDBOp then tt: 'WEDNESDAY')()
+rethinkdb.thursday = new (class extends RDBOp then tt: 'THURSDAY')()
+rethinkdb.friday = new (class extends RDBOp then tt: 'FRIDAY')()
+rethinkdb.saturday = new (class extends RDBOp then tt: 'SATURDAY')()
+rethinkdb.sunday = new (class extends RDBOp then tt: 'SUNDAY')()
+
+rethinkdb.january = new (class extends RDBOp then tt: 'JANUARY')()
+rethinkdb.february = new (class extends RDBOp then tt: 'FEBRUARY')()
+rethinkdb.march = new (class extends RDBOp then tt: 'MARCH')()
+rethinkdb.april = new (class extends RDBOp then tt: 'APRIL')()
+rethinkdb.may = new (class extends RDBOp then tt: 'MAY')()
+rethinkdb.june = new (class extends RDBOp then tt: 'JUNE')()
+rethinkdb.july = new (class extends RDBOp then tt: 'JULY')()
+rethinkdb.august = new (class extends RDBOp then tt: 'AUGUST')()
+rethinkdb.september = new (class extends RDBOp then tt: 'SEPTEMBER')()
+rethinkdb.october = new (class extends RDBOp then tt: 'OCTOBER')()
+rethinkdb.november = new (class extends RDBOp then tt: 'NOVEMBER')()
+rethinkdb.december = new (class extends RDBOp then tt: 'DECEMBER')()
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb
