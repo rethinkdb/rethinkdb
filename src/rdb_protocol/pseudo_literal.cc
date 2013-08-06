@@ -3,7 +3,7 @@
 namespace ql {
 namespace pseudo {
 
-const char *const literal_string = "literal";
+const char *const literal_string = "LITERAL";
 const char *const value_key = "value";
 
 
