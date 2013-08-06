@@ -1107,3 +1107,7 @@ class Asc(RqlTopLevelQuery):
 class Desc(RqlTopLevelQuery):
     tt = p.Term.DESC
     st = 'desc'
+
+class Literal(RqlTopLevelQuery):
+    tt = p.Term.LITERAL
+    st = 'literal'

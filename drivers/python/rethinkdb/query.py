@@ -125,7 +125,7 @@ def epoch_time(number):
 def now():
     return Now()
 
-## Time enum values
+# Time enum values
 monday      = type('', (RqlTopLevelQuery,), {'tt':p.Term.MONDAY})()
 tuesday     = type('', (RqlTopLevelQuery,), {'tt':p.Term.TUESDAY})()
 wednesday   = type('', (RqlTopLevelQuery,), {'tt':p.Term.WEDNESDAY})()
@@ -146,3 +146,7 @@ september   = type('', (RqlTopLevelQuery,), {'tt': p.Term.SEPTEMBER})()
 october     = type('', (RqlTopLevelQuery,), {'tt': p.Term.OCTOBER})()
 november    = type('', (RqlTopLevelQuery,), {'tt': p.Term.NOVEMBER})()
 december    = type('', (RqlTopLevelQuery,), {'tt': p.Term.DECEMBER})()
+
+# Merge values
+def literal(val):
+    return Literal(val)
