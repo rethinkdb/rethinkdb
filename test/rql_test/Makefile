@@ -23,13 +23,7 @@ DRIVER_PORT ?= 28015+$(PORT_OFFSET)
 CLUSTER_PORT ?= 29015+$(PORT_OFFSET)
 EXECUTABLE := $(BUILD_DIR)/rethinkdb
 
-JS_DRIVER := node_modules/rethinkdb/.
-
 .SILENT:
-
-$(JS_DRIVER): ../../build/packages/js/.
-	test -d node_modules/rethinkdb/ || mkdir -p node_modules
-	npm -d install ../../build/packages/js
 
 .PHONY: run
 run: $(TEST_FILES) cursor connect
@@ -49,7 +43,7 @@ py_polyglot: $(TEST_FILES)
 	./test-runner run \"$(BUILD_DIR)\" \"py\"
 
 .PHONY: js_polyglot
-js_polyglot: $(TEST_FILES) $(JS_DRIVER)
+js_polyglot: $(TEST_FILES)
 	./test-runner run \"$(BUILD_DIR)\" \"js\"
 
 .PHONY: rb_polyglot
@@ -78,7 +72,7 @@ py_connect: connections/connection.py
 	python connections/connection.py $(BUILD_DIR) $(TEST_DEFAULT_PORT)
 
 .PHONY: js_connect
-js_connect: connections/connection.js $(JS_DRIVER)
+js_connect: connections/connection.js
 	mkdir -p run
 	BUILD_DIR=$(BUILD_DIR) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
 	    _mocha connections/connection.js
@@ -88,7 +82,7 @@ cursor:
 	python connections/cursor_test.py $(BUILD_DIR)
 
 .PHONY: js_cursor
-js_cursor: $(JS_DRIVER)
+js_cursor:
 	python connections/cursor_test.py $(BUILD_DIR) js
 
 .PHONY: py_cursor
