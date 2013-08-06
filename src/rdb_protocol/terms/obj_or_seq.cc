@@ -144,7 +144,7 @@ private:
 class literal_term_t : public op_term_t {
 public:
     literal_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1)) { }
+        : op_term_t(env, term, argspec_t(0,1)) { }
 private:
     virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
@@ -153,7 +153,10 @@ private:
         datum_ptr_t res(datum_t::R_OBJECT);
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));
-        clobber |= res.add(pseudo::value_key, arg(0)->as_datum());
+        if (num_args() == 1) {
+            clobber |= res.add(pseudo::value_key, arg(0)->as_datum());
+        }
+
         r_sanity_check(!clobber);
         std::set<std::string> permissible_ptypes;
         permissible_ptypes.insert("literal");

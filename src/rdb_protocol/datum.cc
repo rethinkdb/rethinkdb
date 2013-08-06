@@ -705,8 +705,12 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
         } else {
             if (is_literal) {
                 counted_t<const datum_t> value = it->second->get(pseudo::value_key, NOTHROW);
-                r_sanity_check(value);
-                UNUSED bool b = d.add(it->first, value, CLOBBER);
+                if (value) {
+                    UNUSED bool b = d.add(it->first, value, CLOBBER);
+                } else {
+                    bool b = d.delete_field(it->first);
+                    r_sanity_check(b);
+                }
             } else {
                 UNUSED bool b = d.add(it->first, it->second, CLOBBER);
             }
