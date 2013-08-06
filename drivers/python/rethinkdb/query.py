@@ -148,5 +148,8 @@ november    = type('', (RqlTopLevelQuery,), {'tt': p.Term.NOVEMBER})()
 december    = type('', (RqlTopLevelQuery,), {'tt': p.Term.DECEMBER})()
 
 # Merge values
-def literal(val):
-    return Literal(val)
+def literal(val=()):
+    if val:
+        return Literal(val)
+    else:
+        return Literal()

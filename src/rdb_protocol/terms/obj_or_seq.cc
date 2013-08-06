@@ -159,7 +159,7 @@ private:
 
         r_sanity_check(!clobber);
         std::set<std::string> permissible_ptypes;
-        permissible_ptypes.insert("literal");
+        permissible_ptypes.insert(pseudo::literal_string);
         return new_val(res.to_counted(permissible_ptypes));
     }
     virtual const char *name() const { return "literal"; }

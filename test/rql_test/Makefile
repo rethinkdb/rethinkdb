@@ -24,7 +24,7 @@ JS_DRIVER := node_modules/rethinkdb/.
 .SILENT:
 
 $(JS_DRIVER): ../../build/packages/js/.
-	test -d node_modules/rethinkdb/ || mkdir mode_modules
+	test -d node_modules/rethinkdb/ || mkdir -p node_modules
 	npm install ../../build/packages/js
 
 .PHONY: run
