@@ -158,13 +158,13 @@ commands:
       - description: You can use a function for ordering instead of just selecting an attribute.
         code:
           js: r.table('marvel').orderBy(function (doc) { return doc('enemiesVanquished') + doc('damselsSaved'); }).run(conn, callback)
-          py: "r.table('marvel').orderBy(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved']).run(conn)"
-          rb: r.table('marvel').orderBy(lambda {|doc| doc[:enemiesVanquished] + doc[:damselsSaved]}).run(conn)
+          py: "r.table('marvel').order_by(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved']).run(conn)"
+          rb: r.table('marvel').order_by(lambda {|doc| doc[:enemiesVanquished] + doc[:damselsSaved]}).run(conn)
       - description: Functions can also be used descendingly.
         code:
           js: r.table('marvel').orderBy(r.desc(function (doc) { return doc('enemiesVanquished') + doc('damselsSaved'); })).run(conn, callback)
-          py: "r.table('marvel').orderBy(r.desc(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved'])).run(conn)"
-          rb: r.table('marvel').orderBy(r.desc(lambda {|doc| doc[:enemiesVanquished] + doc[:damselsSaved]})).run(conn)
+          py: "r.table('marvel').order_by(r.desc(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved'])).run(conn)"
+          rb: r.table('marvel').order_by(r.desc(lambda {|doc| doc[:enemiesVanquished] + doc[:damselsSaved]})).run(conn)
 
   - tag: skip
     section: transformations
