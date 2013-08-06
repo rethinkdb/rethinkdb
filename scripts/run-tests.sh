@@ -106,6 +106,7 @@ else
 fi
 
 if [[ -z "$OUTPUT_WIDTH" ]]; then
+    export TERM=${TERM:-dumb}
     export OUTPUT_WIDTH=`tput cols`
 fi
 
