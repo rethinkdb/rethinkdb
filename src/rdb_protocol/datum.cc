@@ -340,6 +340,16 @@ void datum_t::rcheck_valid_pt(const std::string s) const {
         return;
     }
 
+    if (get_reql_type() == pseudo::literal_string) {
+        BREAKPOINT;
+        rcheck(s == pseudo::literal_string,
+               base_exc_t::GENERIC,
+               "Stray literal keyword found, literal can only be present inside merge "
+               "and cannot nest inside other literals.");
+        pseudo::rcheck_literal_valid(this);
+        return;
+    }
+
     rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
 }
 
@@ -708,8 +718,7 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
                 if (value) {
                     UNUSED bool b = d.add(it->first, value, CLOBBER);
                 } else {
-                    bool b = d.delete_field(it->first);
-                    r_sanity_check(b);
+                    UNUSED bool b = d.delete_field(it->first);
                 }
             } else {
                 UNUSED bool b = d.add(it->first, it->second, CLOBBER);
@@ -856,7 +865,8 @@ void datum_t::init_from_pb(const Datum *d) {
                    strprintf("Duplicate key %s in object.", key.c_str()));
             (*r_object)[key] = make_counted<datum_t>(&ap->val());
         }
-        maybe_rcheck_valid_pt();
+        std::set<std::string> allowed_ptypes = { pseudo::literal_string };
+        maybe_rcheck_valid_pt(allowed_ptypes);
     } break;
     default: unreachable();
     }

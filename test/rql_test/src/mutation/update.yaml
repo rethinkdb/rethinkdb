@@ -69,6 +69,10 @@ tests:
     - cd: tbl.get(12)
       ot: ({'id':12, 'a':12})
 
+    # undo the point update
+    - cd: tbl.get(12).update({'a':r.literal()})
+      ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
+
     # Update selection of table
 
     - py: tbl.between(10, 20).update(lambda row:{'a':row['id']})

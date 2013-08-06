@@ -60,12 +60,18 @@ private:
 class funcall_term_t : public op_term_t {
 public:
     funcall_term_t(env_t *env, protob_t<const Term> term)
-        : op_term_t(env, term, argspec_t(1, -1), optargspec_t({"_SHORTCUT_"})) { }
+        : op_term_t(env, term, argspec_t(1, -1),
+          optargspec_t({"_SHORTCUT_", "_EVAL_FLAGS_"})) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(eval_flags_t) {
         function_shortcut_t shortcut = CONSTANT_SHORTCUT;
+        eval_flags_t flags = NO_FLAGS;
         if (counted_t<val_t> v = optarg("_SHORTCUT_")) {
             shortcut = static_cast<function_shortcut_t>(v->as_num());
+        }
+
+        if (counted_t<val_t> v = optarg("_EVAL_FLAGS_")) {
+            flags = static_cast<eval_flags_t>(v->as_num());
         }
 
         /* This switch exists just to make sure that we don't get a bogus value
@@ -80,7 +86,7 @@ private:
                 rfail(base_exc_t::GENERIC,
                       "Unrecognized value `%d` for _SHORTCUT_ argument.", shortcut);
         }
-        counted_t<func_t> f = arg(0)->as_func(shortcut);
+        counted_t<func_t> f = arg(0, flags)->as_func(shortcut);
         std::vector<counted_t<const datum_t> > args;
         for (size_t i = 1; i < num_args(); ++i) args.push_back(arg(i)->as_datum());
         return f->call(args);

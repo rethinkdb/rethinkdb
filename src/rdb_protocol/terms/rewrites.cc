@@ -312,7 +312,11 @@ private:
                     N2(EQ, NVAR(new_row), NDATUM(datum_t::R_NULL)),
                     NVAR(old_row),
                     N2(MERGE, NVAR(old_row), NVAR(new_row))),
-                 N2(FUNCALL, *arg = in->args(1), NVAR(old_row)))));
+                 N2(FUNCALL, *arg = in->args(1), NVAR(old_row));
+                 OPT1(FUNCALL, "_EVAL_FLAGS_",
+                      NDATUM(static_cast<double>(LITERAL_OK))))
+              OPT1(FUNCALL, "_EVAL_FLAGS_",
+                NDATUM(static_cast<double>(LITERAL_OK)))));
         return out;
     }
     virtual const char *name() const { return "update"; }
