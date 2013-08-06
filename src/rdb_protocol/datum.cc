@@ -354,7 +354,8 @@ void datum_t::rcheck_valid_pt(const std::set<std::string> &allowed_pts) const {
     if (get_reql_type() == pseudo::literal_string) {
         rcheck(std_contains(allowed_pts, pseudo::literal_string),
                base_exc_t::GENERIC,
-               "Stray literal keyword found, literal can only be present in merge.");
+               "Stray literal keyword found, literal can only be present inside merge "
+               "and cannot nest inside other literals.");
         pseudo::rcheck_literal_valid(this);
         return;
     }
