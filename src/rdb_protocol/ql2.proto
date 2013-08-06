@@ -197,6 +197,7 @@ message Datum {
 //     Database
 //     Function
 //     Ordering - used only by ORDER_BY
+//     Pathspec -- an object, string, or array that specifies a path
 //   Error
 message Term {
     enum TermType {
@@ -286,15 +287,15 @@ message Term {
         // Check whether an object contains all the specified fields,
         // or filters a sequence so that all objects inside of it
         // contain all the specified fields.
-        HAS_FIELDS = 32; // OBJECT, STRING... -> BOOL
+        HAS_FIELDS = 32; // OBJECT, Pathspec... -> BOOL
         // x.with_fields(...) <=> x.has_fields(...).pluck(...)
-        WITH_FIELDS = 96; // Sequence, STRING... -> Sequence
+        WITH_FIELDS = 96; // Sequence, Pathspec... -> Sequence
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
-        PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
+        PLUCK    = 33; // Sequence, Pathspec... -> Sequence | OBJECT, Pathspec... -> OBJECT
         // Get a subset of an object by selecting some attributes to discard, or
         // map that over a sequence.  (Both unpick and without, polymorphic.)
-        WITHOUT  = 34; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
+        WITHOUT  = 34; // Sequence, Pathspec... -> Sequence | OBJECT, Pathspec... -> OBJECT
         // Merge objects (right-preferential)
         MERGE    = 35; // OBJECT... -> OBJECT | Sequence -> Sequence
 
@@ -368,19 +369,19 @@ message Term {
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT |
-                       // SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT |
-                       // StreamSelection, OBJECT,      {non_atomic:BOOL, durability:STRING} -> OBJECT |
-                       // SingleSelection, OBJECT,      {non_atomic:BOOL, durability:STRING} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
+                       // SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
+                       // StreamSelection, OBJECT,      {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
+                       // SingleSelection, OBJECT,      {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
         // Deletes all the rows in a selection.
-        DELETE   = 54; // StreamSelection, {durability:STRING} -> OBJECT | SingleSelection -> OBJECT
+        DELETE   = 54; // StreamSelection, {durability:STRING, return_vals:BOOL} -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
         // to be replaced, and then discards it and stores the result of that
         // call.
-        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING} -> OBJECT
+        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
         // Inserts into a table.  If `upsert` is true, overwrites entries with
         // the same primary key (otherwise errors).
-        INSERT   = 56; // Table, OBJECT, {upsert:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL, durability:STRING} -> OBJECT
+        INSERT   = 56; // Table, OBJECT, {upsert:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
 
         // * Administrative OPs
         // Creates a database with a particular name.
