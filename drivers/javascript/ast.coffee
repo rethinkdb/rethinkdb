@@ -729,6 +729,10 @@ class Desc extends RDBOp
     tt: "DESC"
     st: 'desc'
 
+class Literal extends RDBOp
+    tt: "LITERAL"
+    st: 'literal'
+
 
 # All top level exported functions
 
@@ -831,6 +835,8 @@ rethinkdb.mod = ar (a, b) -> new Mod {}, a, b
 
 rethinkdb.typeOf = ar (val) -> new TypeOf {}, val
 rethinkdb.info = ar (val) -> new Info {}, val
+
+rethinkdb.literal = varar 0, 1, (args...) -> new Literal {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb
