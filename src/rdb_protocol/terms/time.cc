@@ -30,7 +30,7 @@ private:
     counted_t<val_t> eval_impl() {
         return new_val(
             make_counted<const datum_t>(
-                pseudo::time_to_iso8601(arg(0)->as_pt(pseudo::time_string))));
+                pseudo::time_to_iso8601(arg(0)->as_ptype(pseudo::time_string))));
     }
     virtual const char *name() const { return "to_iso8601"; }
 };
@@ -55,7 +55,7 @@ private:
     counted_t<val_t> eval_impl() {
         return new_val(
             make_counted<const datum_t>(
-                pseudo::time_to_epoch_time(arg(0)->as_pt(pseudo::time_string))));
+                pseudo::time_to_epoch_time(arg(0)->as_ptype(pseudo::time_string))));
     }
     virtual const char *name() const { return "to_epoch_time"; }
 };
@@ -81,7 +81,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     counted_t<val_t> eval_impl() {
-        return new_val(pseudo::time_in_tz(arg(0)->as_pt(pseudo::time_string),
+        return new_val(pseudo::time_in_tz(arg(0)->as_ptype(pseudo::time_string),
                                           arg(1)->as_datum()));
     }
     virtual const char *name() const { return "in_timezone"; }
@@ -93,9 +93,9 @@ public:
         : bounded_op_term_t(env, term, argspec_t(3)) { }
 private:
     counted_t<val_t> eval_impl() {
-        counted_t<const datum_t> t = arg(0)->as_pt(pseudo::time_string);
-        counted_t<const datum_t> lb = arg(1)->as_pt(pseudo::time_string);
-        counted_t<const datum_t> rb = arg(2)->as_pt(pseudo::time_string);
+        counted_t<const datum_t> t = arg(0)->as_ptype(pseudo::time_string);
+        counted_t<const datum_t> lb = arg(1)->as_ptype(pseudo::time_string);
+        counted_t<const datum_t> rb = arg(2)->as_ptype(pseudo::time_string);
         int lcmp = pseudo::time_cmp(*lb, *t);
         int rcmp = pseudo::time_cmp(*t, *rb);
         return new_val_bool(!(lcmp == 1 || (lcmp == 0 && left_open())
@@ -110,7 +110,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     counted_t<val_t> eval_impl() {
-        return new_val(pseudo::time_date(arg(0)->as_pt(pseudo::time_string), this));
+        return new_val(pseudo::time_date(arg(0)->as_ptype(pseudo::time_string), this));
     }
     virtual const char *name() const { return "date"; }
 };
@@ -121,7 +121,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     counted_t<val_t> eval_impl() {
-        return new_val(pseudo::time_of_day(arg(0)->as_pt(pseudo::time_string)));
+        return new_val(pseudo::time_of_day(arg(0)->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "time_of_day"; }
 };
@@ -132,7 +132,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     counted_t<val_t> eval_impl() {
-        return new_val(pseudo::time_tz(arg(0)->as_pt(pseudo::time_string)));
+        return new_val(pseudo::time_tz(arg(0)->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "timezone"; }
 };
@@ -144,7 +144,7 @@ public:
         : op_term_t(env, term, argspec_t(1)), component(_component) { }
 private:
     counted_t<val_t> eval_impl() {
-        double d = pseudo::time_portion(arg(0)->as_pt(pseudo::time_string), component);
+        double d = pseudo::time_portion(arg(0)->as_ptype(pseudo::time_string), component);
         return new_val(make_counted<const datum_t>(d));
     }
     virtual const char *name() const {
