@@ -5,6 +5,7 @@ tests:
 
   - def: rt1 = 1375147296.60081
   - def: t1 = r.epoch_time(rt1)
+  - def: t2 = r.epoch_time(rt1 + 1000)
 
 # Arithmetic
   - cd: (t1 + 1000).to_epoch_time()
@@ -35,6 +36,24 @@ tests:
     ot: true
   - cd: (t1 > t1)
     js: t1.gt(t1)
+    ot: false
+  - cd: (t1 < t2)
+    js: t1.lt(t2)
+    ot: true
+  - cd: (t1 <= t2)
+    js: t1.le(t2)
+    ot: true
+  - cd: (t1.eq(t2))
+    py: (t1 == t2)
+    ot: false
+  - cd: (t1.ne(t2))
+    py: (t1 != t2)
+    ot: true
+  - cd: (t1 >= t2)
+    js: t1.ge(t2)
+    ot: false
+  - cd: (t1 > t2)
+    js: t1.gt(t2)
     ot: false
 
 # Predicates
