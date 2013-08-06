@@ -178,7 +178,7 @@ public:
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
     counted_t<const datum_t> as_datum(); // prefer the 4 below
-    counted_t<const datum_t> as_pt(const std::string s = "");
+    counted_t<const datum_t> as_ptype(const std::string s = "");
     bool as_bool();
     double as_num();
     template<class T>

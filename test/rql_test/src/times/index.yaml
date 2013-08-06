@@ -40,6 +40,11 @@ tests:
     js: tbl.insert(trows)('inserted')
     ot: 5
 
+  - def: bad_insert = [{'id':r.expr(t1).in_timezone("Z")}]
+  - cd: tbl.insert(bad_insert)['first_error']
+    js: tbl.insert(bad_insert)('first_error')
+    ot: ("Duplicate primary key.")
+
   - cd: tbl.between(ts, te).count()
     ot: 5
   - cd: tbl.between(t1, t4).count()
