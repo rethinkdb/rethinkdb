@@ -73,18 +73,11 @@ void run_generic_global_startup_behavior() {
 }
 
 startup_shutdown_t::startup_shutdown_t() {
-#ifndef NDEBUG
-  rlimit core_limit;
-  core_limit.rlim_cur = 100 * MEGABYTE;
-  core_limit.rlim_max = 200 * MEGABYTE;
-  setrlimit(RLIMIT_CORE, &core_limit);
-#endif
-
-  run_generic_global_startup_behavior();
+    run_generic_global_startup_behavior();
 }
 
 startup_shutdown_t::~startup_shutdown_t() {
-  google::protobuf::ShutdownProtobufLibrary();
+    google::protobuf::ShutdownProtobufLibrary();
 }
 
 

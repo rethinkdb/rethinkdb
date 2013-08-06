@@ -10,6 +10,13 @@
 #include "config/args.hpp"
 
 int main(int argc, char *argv[]) {
+#ifndef NDEBUG
+    rlimit core_limit;
+    core_limit.rlim_cur = 100 * MEGABYTE;
+    core_limit.rlim_max = 200 * MEGABYTE;
+    setrlimit(RLIMIT_CORE, &core_limit);
+#endif
+
     startup_shutdown_t startup_shutdown;
 
     std::set<std::string> subcommands_that_look_like_flags;
