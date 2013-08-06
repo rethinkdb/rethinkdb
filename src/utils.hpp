@@ -28,7 +28,11 @@
 class Term;
 void pb_print(Term *t);
 
-void run_generic_global_startup_behavior();
+class startup_shutdown_t {
+public:
+  startup_shutdown_t();
+  ~startup_shutdown_t();
+};
 
 struct const_charslice {
     const char *beg, *end;

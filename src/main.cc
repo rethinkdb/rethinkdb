@@ -1,8 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <sys/resource.h>
 
-#include <google/protobuf/stubs/common.h>
-
 #include <set>
 
 #include "clustering/administration/main/command_line.hpp"
@@ -10,25 +8,6 @@
 #include "utils.hpp"
 #include "help.hpp"
 #include "config/args.hpp"
-
-class startup_shutdown_t {
-public:
-    startup_shutdown_t() {
-#ifndef NDEBUG
-        rlimit core_limit;
-        core_limit.rlim_cur = 100 * MEGABYTE;
-        core_limit.rlim_max = 200 * MEGABYTE;
-        setrlimit(RLIMIT_CORE, &core_limit);
-#endif
-
-        run_generic_global_startup_behavior();
-    }
-
-    ~startup_shutdown_t() {
-        google::protobuf::ShutdownProtobufLibrary();
-    }
-
-};
 
 int main(int argc, char *argv[]) {
     startup_shutdown_t startup_shutdown;
