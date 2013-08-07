@@ -3,7 +3,7 @@ require 'time'
 
 module RethinkDB
   module Shim
-    def self.datum_to_native d
+    def self.datum_to_native(d, opts)
       raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
       dt = Datum::DatumType
       case d.type
@@ -11,13 +11,21 @@ module RethinkDB
       when dt::R_STR then d.r_str
       when dt::R_BOOL then d.r_bool
       when dt::R_NULL then nil
-      when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native d2}
-      when dt::R_OBJECT then Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val)]}]
+      when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native(d2, opts)}
+      when dt::R_OBJECT then
+        obj = Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val, opts)]}]
+        if obj["$reql_type$"] == "TIME" && opts[:time_format] != 'raw'
+          t = Time.at(obj['epoch_time'])
+          tz = obj['timezone']
+          (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+        else
+          obj
+        end
       else raise RqlRuntimeError, "Unimplemented."
       end
     end
 
-    def self.response_to_native(r, orig_term)
+    def self.response_to_native(r, orig_term, opts)
       rt = Response::ResponseType
       if r.backtrace
         bt = r.backtrace.frames.map {|x|
@@ -29,9 +37,9 @@ module RethinkDB
 
       begin
         case r.type
-        when rt::SUCCESS_ATOM then datum_to_native(r.response[0])
-        when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d)}
-        when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d)}
+        when rt::SUCCESS_ATOM then datum_to_native(r.response[0], opts)
+        when rt::SUCCESS_PARTIAL then r.response.map{|d| datum_to_native(d, opts)}
+        when rt::SUCCESS_SEQUENCE then r.response.map{|d| datum_to_native(d, opts)}
         when rt::RUNTIME_ERROR then
           raise RqlRuntimeError, "#{r.response[0].r_str}"
         when rt::COMPILE_ERROR then # TODO: remove?

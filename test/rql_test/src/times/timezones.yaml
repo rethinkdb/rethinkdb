@@ -28,7 +28,7 @@ tests:
   - rb: tutcs.map{|x| [x.timezone, x.day]}
     py: tutcs.map(lambda x:[x.timezone(), x.day()])
     js: tutcs.map([r.row.timezone(), r.row.day()])
-    ot: ([["Z", 29], ["+00:00", 29], ["-00:00", 29]])
+    ot: ([["+00:00", 29], ["+00:00", 29], ["-00:00", 29]])
   - rb: tms.map{|x| [x.timezone, x.day]}
     py: tms.map(lambda x:[x.timezone(), x.day()])
     js: tms.map([r.row.timezone(), r.row.day()])

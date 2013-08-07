@@ -28,6 +28,7 @@ class val_t;
 namespace pseudo {
 class datum_cmp_t;
 void time_to_str_key(const datum_t &d, std::string *str_out);
+void sanitize_time(datum_t *time);
 } // namespace pseudo
 
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
@@ -123,14 +124,6 @@ public:
     counted_t<datum_stream_t> as_datum_stream(
         env_t *env, const protob_t<const Backtrace> &backtrace) const;
 
-    // Check that we have a valid pseudotype.  Implies `rcheck_is_pt`.
-    void rcheck_valid_ptype(const std::string s = "") const;
-    void rcheck_valid_ptype(const std::set<std::string> &allowed_pts) const;
-
-    // If we have a pseudotype, check that it's valid.
-    void maybe_rcheck_valid_ptype(const std::string s = "") const;
-    void maybe_rcheck_valid_ptype(const std::set<std::string> &allowed_pts) const;
-
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
     // would compare lexicographcally, while dispareate types are compared
@@ -152,8 +145,10 @@ public:
 
     void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
+    void rcheck_is_ptype(const std::string s = "") const;
 private:
     friend class datum_ptr_t;
+    friend void pseudo::sanitize_time(datum_t *time);
     void add(counted_t<const datum_t> val); // add to an array
     // change an element of an array
     void change(size_t index, counted_t<const datum_t> val);
@@ -182,7 +177,8 @@ private:
     void array_to_str_key(std::string *str_out) const;
 
     int pseudo_cmp(const datum_t &rhs) const;
-    void rcheck_is_ptype(const std::string s = "") const; // prefer `rcheck_valid_ptype`
+    static const std::set<std::string> _allowed_pts;
+    void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
 
     type_t type;
     union {
@@ -211,7 +207,7 @@ public:
     datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
     counted_t<const datum_t> to_counted(
         const std::set<std::string> &allowed_ptypes = default_allowed_ptypes) {
-        ptr()->maybe_rcheck_valid_ptype(allowed_ptypes);
+        ptr()->maybe_sanitize_ptype(allowed_ptypes);
         return counted_t<const datum_t>(_p.release());
     }
     const datum_t *operator->() const { return const_ptr(); }

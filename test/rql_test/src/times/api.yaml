@@ -3,17 +3,17 @@ tests:
 
 # Type shims -- see shim.yaml
 
-  - def: rt1 = 1375147296.60081
+  - def: rt1 = 1375147296.6812
   - def: t1 = r.epoch_time(rt1)
   - def: t2 = r.epoch_time(rt1 + 1000)
 
 # Arithmetic
   - cd: (t1 + 1000).to_epoch_time()
     js: t1.add(1000).toEpochTime()
-    ot: (1375148296.60081)
+    ot: (1375148296.681)
   - cd: (t1 - 1000).to_epoch_time()
     js: t1.sub(1000).toEpochTime()
-    ot: (1375146296.60081)
+    ot: (1375146296.681)
   - cd: (t1 - (t1 - 1000))
     js: t1.sub(t1.sub(1000))
     ot: 1000
@@ -77,7 +77,7 @@ tests:
   - cd: t1.date().to_epoch_time()
     ot: 1375142400
   - cd: t1.time_of_day()
-    ot: (4896.60081)
+    ot: (4896.681)
   - cd: t1.year()
     ot: 2013
   - cd: t1.month()
@@ -93,7 +93,7 @@ tests:
   - cd: t1.minutes()
     ot: 21
   - cd: t1.seconds()
-    ot: 36.60081
+    ot: 36.681
 
 # Construction/Conversion
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").to_epoch_time()

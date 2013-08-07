@@ -614,7 +614,7 @@ counted_t<const datum_t> val_t::as_ptype(const std::string s) {
     try {
         counted_t<const datum_t> d = as_datum();
         r_sanity_check(d.has());
-        d->rcheck_valid_ptype(s);
+        d->rcheck_is_ptype(s);
         return d;
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());

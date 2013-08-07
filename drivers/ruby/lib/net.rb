@@ -133,11 +133,11 @@ module RethinkDB
       res = run_internal(q, all_opts[:noreply])
       return res if !res
       if res.type == Response::ResponseType::SUCCESS_PARTIAL
-        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, true)
+        Cursor.new(Shim.response_to_native(res, msg, opts), msg, self, q.token, true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
-        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, false)
+        Cursor.new(Shim.response_to_native(res, msg, opts), msg, self, q.token, false)
       else
-        Shim.response_to_native(res, msg)
+        Shim.response_to_native(res, msg, opts)
       end
     end
 

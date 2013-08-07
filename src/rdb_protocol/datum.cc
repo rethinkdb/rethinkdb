@@ -15,6 +15,8 @@
 
 namespace ql {
 
+const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
+
 const char* const datum_t::reql_type_string = "$reql_type$";
 
 std::set<std::string> datum_ptr_t::default_allowed_ptypes = std::set<std::string>();
@@ -45,7 +47,7 @@ datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
 datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
     : type(R_OBJECT),
       r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) {
-    maybe_rcheck_valid_ptype();
+    maybe_sanitize_ptype();
 }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
@@ -143,7 +145,7 @@ void datum_t::init_json(cJSON *json) {
             rcheck(!conflict, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in JSON.", el->string));
         }
-        maybe_rcheck_valid_ptype();
+        maybe_sanitize_ptype();
     } break;
     default: unreachable();
     }
@@ -324,6 +326,24 @@ int datum_t::pseudo_cmp(const datum_t &rhs) const {
     rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
 }
 
+void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
+    if (is_ptype()) {
+        if (get_reql_type() == pseudo::time_string) {
+            pseudo::sanitize_time(this);
+            return;
+        }
+        if (get_reql_type() == pseudo::literal_string) {
+            rcheck(std_contains(allowed_pts, pseudo::literal_string),
+                   base_exc_t::GENERIC,
+                   "Stray literal keyword found, literal can only be present inside "
+                   "merge and cannot nest inside other literals.");
+            pseudo::rcheck_literal_valid(this);
+            return;
+        }
+        rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
+    }
+}
+
 void datum_t::rcheck_is_ptype(const std::string s) const {
     rcheck(is_ptype(), base_exc_t::GENERIC,
            (s == ""
@@ -331,58 +351,6 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
             : strprintf("Not a %s pseudotype: `%s`.",
                         s.c_str(),
                         trunc_print().c_str())));
-}
-
-void datum_t::rcheck_valid_ptype(const std::string s) const {
-    rcheck_is_ptype(s);
-    if (get_reql_type() == pseudo::time_string) {
-        pseudo::rcheck_time_valid(this);
-        return;
-    }
-
-    if (get_reql_type() == pseudo::literal_string) {
-        rcheck(s == pseudo::literal_string,
-               base_exc_t::GENERIC,
-               "Stray literal keyword found, literal can only be present inside merge "
-               "and cannot nest inside other literals.");
-        pseudo::rcheck_literal_valid(this);
-        return;
-    }
-
-    rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
-}
-
-void datum_t::rcheck_valid_ptype(const std::set<std::string> &allowed_pts) const {
-    rcheck_is_ptype();
-
-    if (get_reql_type() == pseudo::time_string) {
-        pseudo::rcheck_time_valid(this);
-        return;
-    }
-
-    if (get_reql_type() == pseudo::literal_string) {
-        rcheck(std_contains(allowed_pts, pseudo::literal_string),
-               base_exc_t::GENERIC,
-               "Stray literal keyword found, literal can only be present inside merge "
-               "and cannot nest inside other literals.");
-        pseudo::rcheck_literal_valid(this);
-        return;
-    }
-
-    rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
-}
-
-void datum_t::maybe_rcheck_valid_ptype(const std::string s) const {
-    if (is_ptype(s)) {
-        rcheck_valid_ptype(s);
-    }
-}
-
-
-void datum_t::maybe_rcheck_valid_ptype(const std::set<std::string> &s) const {
-    if (is_ptype()) {
-        rcheck_valid_ptype(s);
-    }
 }
 
 std::string datum_t::print_primary() const {
@@ -865,7 +833,7 @@ void datum_t::init_from_pb(const Datum *d) {
             (*r_object)[key] = make_counted<datum_t>(&ap->val());
         }
         std::set<std::string> allowed_ptypes = { pseudo::literal_string };
-        maybe_rcheck_valid_ptype(allowed_ptypes);
+        maybe_sanitize_ptype(allowed_ptypes);
     } break;
     default: unreachable();
     }
