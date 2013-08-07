@@ -40,7 +40,7 @@ void run_with_broadcaster(
     in_memory_branch_history_manager_t<rdb_protocol_t> branch_history_manager;
 
     // io backender
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_directness_t::buffered_desired);
 
     /* Create some structures for the rdb_protocol_t::context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak

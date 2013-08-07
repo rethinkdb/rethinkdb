@@ -49,7 +49,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
         temp_files.push_back(new temp_file_t);
     }
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_directness_t::buffered_desired);
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
