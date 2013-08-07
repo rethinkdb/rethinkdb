@@ -3,6 +3,7 @@ import types
 import sys
 import datetime
 import time
+import re
 import json as py_json
 from threading import Lock
 from errors import *
@@ -457,6 +458,32 @@ class RqlMethodQuery(RqlQuery):
 
         return T(args[0], '.', self.st, '(', restargs, ')')
 
+class RqlTzinfo(datetime.tzinfo):
+
+    def __init__(self, offsetstr):
+        hours, minutes = map(int, offsetstr.split(':'))
+
+        self.offsetstr = offsetstr
+        self.delta = datetime.timedelta(hours=hours, minutes=minutes)
+
+    def utcoffset(self, dt):
+        return self.delta
+
+    def tzname(self, dt):
+        return offsetstr
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+def reql_type_time_to_datetime(obj):
+    if not obj.has_key('epoch_time'):
+        raise RqlDriverError('psudo-type TIME object %s does not have expected field "epoch_time".' % py_json.dumps(obj))
+
+    if obj.has_key('timezone'):
+        return datetime.datetime.fromtimestamp(obj['epoch_time'], RqlTzinfo(obj['timezone']))
+    else:
+        return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
+
 # This class handles the conversion of RQL terminal types in both directions
 # Going to the server though it does not support R_ARRAY or R_OBJECT as those
 # are alternately handled by the MakeArray and MakeObject nodes. Why do this?
@@ -515,6 +542,17 @@ class Datum(RqlQuery):
             obj = {}
             for pair in datum.r_object:
                 obj[pair.key] = Datum.deconstruct(pair.val)
+
+            # Thanks to "psudo-types" we can't yet be quite sure if this object is meant to
+            # be an object or something else. We need a second layer of type switching, this
+            # time on an obfuscated field "$reql_type$" rather than the datum type field we
+            # already switched on.
+            if obj.has_key('$reql_type$'):
+                if obj['$reql_type$'] == 'TIME':
+                    return reql_type_time_to_datetime(obj)
+                else:
+                    raise RqlDriverError("Unknown psudo-type %" % obj['$reql_type$'])
+
             return obj
         else:
             raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
