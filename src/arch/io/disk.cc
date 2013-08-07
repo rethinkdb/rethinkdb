@@ -187,9 +187,9 @@ private:
     DISABLE_COPYING(linux_disk_manager_t);
 };
 
-io_backender_t::io_backender_t(file_direct_io_mode_t _directness,
+io_backender_t::io_backender_t(file_direct_io_mode_t _direct_io_mode,
                                int max_concurrent_io_requests)
-    : directness(_directness),
+    : direct_io_mode(_direct_io_mode),
       diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
                                        DEFAULT_IO_BATCH_FACTOR,
                                        max_concurrent_io_requests,
@@ -197,7 +197,7 @@ io_backender_t::io_backender_t(file_direct_io_mode_t _directness,
 
 io_backender_t::~io_backender_t() { }
 
-file_direct_io_mode_t io_backender_t::get_directness() const { return directness; }
+file_direct_io_mode_t io_backender_t::get_direct_io_mode() const { return direct_io_mode; }
 
 
 /* Disk file object */
@@ -427,7 +427,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     // the latter works on OS X.
     file_open_result_t open_res;
 
-    switch (backender->get_directness()) {
+    switch (backender->get_direct_io_mode()) {
     case file_direct_io_mode_t::direct_desired: {
 #ifdef __linux__
         // fcntl(2) is documented to take an argument of type long, not of type int, with the

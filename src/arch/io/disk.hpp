@@ -27,14 +27,14 @@ public:
     // This takes what is effectively a global flag whether to use O_DIRECT here.  Nothing technical
     // stops us from specifying this on a file-by-file basis, but right now there's no desire for
     // that.  See https://github.com/rethinkdb/rethinkdb/issues/97#issuecomment-19778177 .
-    io_backender_t(file_direct_io_mode_t directness,
+    io_backender_t(file_direct_io_mode_t direct_io_mode,
                    int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
     ~io_backender_t();
     linux_disk_manager_t *get_diskmgr_ptr() { return diskmgr.get(); }
-    file_direct_io_mode_t get_directness() const;
+    file_direct_io_mode_t get_direct_io_mode() const;
 
 protected:
-    const file_direct_io_mode_t directness;
+    const file_direct_io_mode_t direct_io_mode;
     perfmon_collection_t stats;
     scoped_ptr_t<linux_disk_manager_t> diskmgr;
 
