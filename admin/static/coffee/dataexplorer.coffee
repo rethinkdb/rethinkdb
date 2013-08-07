@@ -2914,7 +2914,7 @@ module 'DataExplorerView', ->
         json_to_table: (result) =>
             # While an Array type is never returned by the driver, we still build an Array in the data explorer
             # when a cursor is returned (since we just print @limit results)
-            if not result.constructor? or (result.constructor isnt ArrayResult and result.constructor isnt Array)
+            if not result.constructor? or result.constructor isnt Array
                 result = [result]
 
             keys_count =
@@ -3028,7 +3028,7 @@ module 'DataExplorerView', ->
             else if value is undefined
                 data['value'] = 'undefined'
                 data['classname'] = 'jta_undefined'
-            else if value.constructor? and (value.constructor is ArrayResult or value.constructor is Array)
+            else if value.constructor? and value.constructor is Array
                 if value.length is 0
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'
