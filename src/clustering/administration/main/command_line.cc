@@ -551,7 +551,7 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 
 void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &machine_name,
-                          const file_direct_io_mode_t directness,
+                          const file_direct_io_mode_t direct_io_mode,
                           const int max_concurrent_io_requests,
                           bool *const result_out) {
     machine_id_t our_machine_id = generate_uuid();
@@ -564,7 +564,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
-    io_backender_t io_backender(directness, max_concurrent_io_requests);
+    io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -654,7 +654,7 @@ std::string uname_msr() {
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          const serve_info_t &serve_info,
-                         const file_direct_io_mode_t directness,
+                         const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
@@ -666,7 +666,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    io_backender_t io_backender(directness, max_concurrent_io_requests);
+    io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -725,7 +725,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
-                             const file_direct_io_mode_t directness,
+                             const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
                              const bool new_directory,
                              const serve_info_t &serve_info,
@@ -733,7 +733,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              bool *const result_out) {
     if (!new_directory) {
         run_rethinkdb_serve(base_path, serve_info,
-                            directness, max_concurrent_io_requests,
+                            direct_io_mode, max_concurrent_io_requests,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
@@ -766,7 +766,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         }
 
         run_rethinkdb_serve(base_path, serve_info,
-                            directness, max_concurrent_io_requests,
+                            direct_io_mode, max_concurrent_io_requests,
                             &our_machine_id, &cluster_metadata,
                             data_directory_lock, result_out);
     }
@@ -1093,7 +1093,7 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
     return true;
 }
 
-file_direct_io_mode_t parse_directness_option(const std::map<std::string, options::values_t> &opts) {
+file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
     return exists_option(opts, "--no-direct-io") ?
         file_direct_io_mode_t::buffered_desired :
         file_direct_io_mode_t::direct_desired;
@@ -1143,12 +1143,12 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         initialize_logfile(opts, base_path);
 
-        const file_direct_io_mode_t directness = parse_directness_option(opts);
+        const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_create, base_path,
                                      machine_name,
-                                     directness,
+                                     direct_io_mode,
                                      max_concurrent_io_requests,
                                      &result),
                            num_workers);
@@ -1268,12 +1268,12 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
-        const file_direct_io_mode_t directness = parse_directness_option(opts);
+        const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_serve, base_path,
                                      serve_info,
-                                     directness,
+                                     direct_io_mode,
                                      max_concurrent_io_requests,
                                      static_cast<machine_id_t*>(NULL),
                                      static_cast<cluster_semilattice_metadata_t*>(NULL),
@@ -1618,13 +1618,13 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
-        const file_direct_io_mode_t directness = parse_directness_option(opts);
+        const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
 
         bool result;
         run_in_thread_pool(std::bind(&run_rethinkdb_porcelain,
                                      base_path,
                                      machine_name,
-                                     directness,
+                                     direct_io_mode,
                                      max_concurrent_io_requests,
                                      is_new_directory,
                                      serve_info,
