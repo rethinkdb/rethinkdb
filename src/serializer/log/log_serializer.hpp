@@ -55,7 +55,6 @@ typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 // Used to open a file (with the given filepath) for the log serializer.
 class filepath_file_opener_t : public serializer_file_opener_t {
 public:
-    // RSI: Remove default parameter.
     filepath_file_opener_t(const serializer_filepath_t &filepath,
                            io_backender_t *backender);
     ~filepath_file_opener_t();
