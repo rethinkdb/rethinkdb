@@ -29,7 +29,24 @@ deconstructDatum = (datum) ->
             obj = {}
             for pair in datum.r_object
                 obj[pair.key] = deconstructDatum(pair.val)
-            obj
+
+            # An R_OBJECT may be a regular object or a "psudo-type" so we need a
+            # second layer of type switching here on the obfuscated field "$reql_type$"
+            switch obj['$reql_type$']
+                when 'TIME'
+                    if not obj['epoch_time']?
+                        throw new err.RqlDriverError "psudo-type TIME #{obj} object missing expected field 'epoch_time'."
+
+                    # We ignore the timezone field of the psudo-type TIME object. JS dates do not support timezones.
+                    # By converting to a native date object we are intentionally throwing out timezone information.
+
+                    # field "epoch_time" is in seconds but the Date constructor expects milliseconds
+                    (new Date(obj['epoch_time']*1000))
+                when undefined
+                    # Regular object
+                    obj
+                else
+                    throw new err.RqlDriverError "Unknown psudo-type #{obj['$reql_type$']}."
         },
             => throw new err.RqlDriverError "Unknown Datum type"
         )
