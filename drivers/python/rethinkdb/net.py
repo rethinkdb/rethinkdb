@@ -153,13 +153,9 @@ class Connection(object):
             pair.key = k
             expr(v).build(pair.val)
 
-        noreply = False
-        if 'noreply' in global_opt_args:
-            noreply = global_opt_args['noreply']
-
         # Compile query to protobuf
         term.build(query.query)
-        return self._send_query(query, term, noreply)
+        return self._send_query(query, term, global_opt_args)
 
     def _continue(self, orig_query, orig_term):
         query = p.Query()
@@ -173,7 +169,7 @@ class Connection(object):
         query.token = orig_query.token
         return self._send_query(query, orig_term)
 
-    def _send_query(self, query, term, noreply=False):
+    def _send_query(self, query, term, opts={}):
 
         # Error if this connection has closed
         if not self.socket:
@@ -184,7 +180,7 @@ class Connection(object):
         query_header = struct.pack("<L", len(query_protobuf))
         self.socket.sendall(query_header + query_protobuf)
 
-        if noreply:
+        if opts.has_key('noreply') and opts['noreply']:
             return None
 
         # Get response
@@ -220,6 +216,10 @@ class Connection(object):
             # This response is corrupted or not intended for us.
             raise RqlDriverError("Unexpected response received.")
 
+        time_format = 'native'
+        if opts.has_key('time_format'):
+            time_format = opts['time_format']
+
         # Error responses
         if response.type == p.Response.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
@@ -239,14 +239,14 @@ class Connection(object):
 
         # Sequence responses
         elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
-            chunk = [Datum.deconstruct(datum) for datum in response.response]
+            chunk = [Datum.deconstruct(datum, time_format) for datum in response.response]
             return Cursor(self, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
 
         # Atom response
         elif response.type == p.Response.SUCCESS_ATOM:
             if len(response.response) < 1:
                 return None
-            return Datum.deconstruct(response.response[0])
+            return Datum.deconstruct(response.response[0], time_format)
 
         # Default for unknown response types
         else:

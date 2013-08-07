@@ -519,7 +519,7 @@ class Datum(RqlQuery):
         return repr(self.data)
 
     @staticmethod
-    def deconstruct(datum):
+    def deconstruct(datum, time_format='native'):
         if datum.type == p.Datum.R_NULL:
             return None
         elif datum.type == p.Datum.R_BOOL:
@@ -549,7 +549,14 @@ class Datum(RqlQuery):
             # already switched on.
             if obj.has_key('$reql_type$'):
                 if obj['$reql_type$'] == 'TIME':
-                    return reql_type_time_to_datetime(obj)
+                    if time_format == 'native':
+                        # Convert to native python datetime object
+                        return reql_type_time_to_datetime(obj)
+                    elif time_format == 'raw':
+                        # Just return the raw `{'$reql_type':...}` dict
+                        return obj
+                    else:
+                        raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
                 else:
                     raise RqlDriverError("Unknown psudo-type %" % obj['$reql_type$'])
 
