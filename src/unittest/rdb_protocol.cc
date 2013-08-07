@@ -249,7 +249,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
             rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(0, query_language::json_cmp(stream->at(0).second->get(), data->get()));
+            ASSERT_EQ(0, query_language::json_cmp(stream->at(0).data->get(), data->get()));
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }

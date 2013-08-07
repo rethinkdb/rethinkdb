@@ -20,6 +20,7 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
@@ -62,6 +63,23 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MI
 
 RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
+
+enum sorting_t {
+    UNORDERED,
+    ASCENDING,
+    DESCENDING
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
+
+inline bool forward(sorting_t sorting) {
+    return sorting == ASCENDING || sorting == UNORDERED;
+}
+
+inline bool backward(sorting_t sorting) {
+    return !forward(sorting);
+}
+
 
 namespace rdb_protocol_details {
 
@@ -120,6 +138,21 @@ void bring_sindexes_up_to_date(
         transaction_t *txn)
     THROWS_NOTHING;
 
+struct rget_item_t {
+    rget_item_t() { }
+    rget_item_t(const store_key_t &_key, boost::shared_ptr<scoped_cJSON_t> _data)
+        : key(_key), data(_data) { }
+
+    rget_item_t(const store_key_t &_key, boost::shared_ptr<scoped_cJSON_t> _sindex_key,
+                boost::shared_ptr<scoped_cJSON_t> _data)
+        : key(_key), sindex_key(_sindex_key), data(_data) { }
+
+    store_key_t key;
+    boost::optional<boost::shared_ptr<scoped_cJSON_t> > sindex_key;
+    boost::shared_ptr<scoped_cJSON_t> data;
+    RDB_MAKE_ME_SERIALIZABLE_3(key, sindex_key, data);
+};
+
 } // namespace rdb_protocol_details
 
 
@@ -176,7 +209,7 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; // Present if there was no terminal
+        typedef std::vector<rdb_protocol_details::rget_item_t> stream_t; // Present if there was no terminal
         typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; // Present if the terminal was a groupedmapreduce
         typedef boost::shared_ptr<scoped_cJSON_t> atom_t; // Present if the terminal was a reduction
 
@@ -218,7 +251,7 @@ struct rdb_protocol_t {
         bool truncated;
         store_key_t last_considered_key;
 
-        rget_read_response_t() { }
+        rget_read_response_t() : truncated(false) { }
         rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated, const store_key_t &_last_considered_key)
             : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated),
               last_considered_key(_last_considered_key)
@@ -290,52 +323,45 @@ struct rdb_protocol_t {
         rget_read_t() { }
 
         explicit rget_read_t(const region_t &_region,
-                             bool _merge_sort = false,
-                             direction_t _direction = FORWARD)
-            : region(_region), merge_sort(_merge_sort), direction(_direction) {
+                             sorting_t _sorting = UNORDERED)
+            : region(_region), sorting(_sorting) {
         }
 
 
         rget_read_t(const std::string &_sindex,
                     sindex_range_t _sindex_range,
-                    bool _merge_sort = false,
-                    direction_t _direction = FORWARD)
+                    sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
               sindex_region(sindex_range->to_region()),
-              merge_sort(_merge_sort), direction(_direction) { }
+              sorting(_sorting) { }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
                     sindex_range_t _sindex_range,
-                    bool _merge_sort = false,
-                    direction_t _direction = FORWARD)
+                    sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
-              sindex_region(_sindex_region), merge_sort(_merge_sort),
-              direction(_direction) { }
+              sindex_region(_sindex_region), sorting(_sorting) { }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
                     sindex_range_t _sindex_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    bool _merge_sort = false,
-                    direction_t _direction = FORWARD)
+                    sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
               sindex_region(_sindex_region),
               transform(_transform), optargs(_optargs),
-              merge_sort(_merge_sort), direction(_direction) { }
+              sorting(_sorting) { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    bool _merge_sort = false,
-                    direction_t _direction = FORWARD)
+                    sorting_t _sorting = UNORDERED)
             : region(_region), transform(_transform),
-              optargs(_optargs), merge_sort(_merge_sort),
-              direction(_direction) {
+              optargs(_optargs), sorting(_sorting) {
             rassert(optargs.size() != 0);
         }
 
@@ -379,12 +405,8 @@ struct rdb_protocol_t {
         boost::optional<rdb_protocol_details::terminal_t> terminal;
         std::map<std::string, ql::wire_func_t> optargs;
 
-        /* Whether or not to merge sort the results from different shards. */
-        bool merge_sort;
-
-        /* Whether to start with the minimum key and work our way up or go the
-         * other way around. */
-        direction_t direction;
+        /* How to sort the data. */
+        sorting_t sorting;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

@@ -321,8 +321,8 @@ class RqlQuery(object):
     def concat_map(self, func):
         return ConcatMap(self, func_wrap(func))
 
-    def order_by(self, *obs):
-        return OrderBy(self, *obs)
+    def order_by(self, *obs, **kwargs):
+        return OrderBy(self, *obs, **kwargs)
 
     def between(self, left=None, right=None, left_bound=(), right_bound=(), index=()):
         return Between(self, left, right, left_bound=left_bound, right_bound=right_bound, index=index)

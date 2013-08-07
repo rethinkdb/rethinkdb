@@ -55,6 +55,10 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
     }
 }
 
+hinted_datum_t datum_stream_t::sorting_hint_next() {
+    return std::make_pair(query_language::CONTINUE, next());
+}
+
 counted_t<const datum_t> eager_datum_stream_t::count() {
     int64_t i = 0;
     for (;;) {
@@ -115,37 +119,51 @@ counted_t<const datum_t> eager_datum_stream_t::as_array() {
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    const protob_t<const Backtrace> &bt_src)
+    sorting_t sorting, const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor,
                       counted_t<datum_t>(), false, counted_t<const datum_t>(), false,
-                      env->get_all_optargs(), use_outdated))
+                      env->get_all_optargs(), use_outdated, sorting, this))
+{ }
+
+lazy_datum_stream_t::lazy_datum_stream_t(
+        env_t *env, bool use_outdated,
+        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+        const std::string &sindex_id, sorting_t sorting,
+        const protob_t<const Backtrace> &bt_src)
+    : datum_stream_t(env, bt_src),
+      json_stream(new query_language::batched_rget_stream_t(
+                      *ns_access, env->interruptor, sindex_id,
+                      counted_t<datum_t>(), false, counted_t<datum_t>(), false,
+                      env->get_all_optargs(), use_outdated,
+                      sorting, this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
     counted_t<const datum_t> left_bound, bool left_bound_open,
     counted_t<const datum_t> right_bound, bool right_bound_open,
-    const protob_t<const Backtrace> &bt_src)
+    sorting_t sorting, const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor,
                       left_bound, left_bound_open, right_bound, right_bound_open,
-                      env->get_all_optargs(), use_outdated))
+                      env->get_all_optargs(), use_outdated, sorting,
+                      this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
     counted_t<const datum_t> left_bound, bool left_bound_open,
     counted_t<const datum_t> right_bound, bool right_bound_open,
-    const std::string &sindex_id,
+    const std::string &sindex_id, sorting_t sorting,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
-                      env->get_all_optargs(), use_outdated,
-                      left_bound, left_bound_open, right_bound, right_bound_open))
+                      left_bound, left_bound_open, right_bound, right_bound_open,
+                      env->get_all_optargs(), use_outdated, sorting, this))
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
@@ -235,6 +253,13 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
         }
         return map.to_arr();
     }
+}
+
+hinted_datum_t lazy_datum_stream_t::sorting_hint_next() {
+    query_language::hinted_json_t hinted_json = json_stream->sorting_hint_next();
+    boost::shared_ptr<scoped_cJSON_t> json = hinted_json.second;
+    return std::make_pair(hinted_json.first, 
+            json ? make_counted<datum_t>(json) : counted_t<datum_t>());
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::next_impl() {

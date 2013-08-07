@@ -174,7 +174,7 @@ commands:
         code:
           js: "r.table('marvel').groupBy({'abilities' : {'primary' : true}}, r.avg('strength')).run(conn, callback)"
           py: "r.table('marvel').group_by({'abilities' : {'primary' : True}}, r.avg('strength')).run(conn)"
-          rb: "r.table('marvel').group_by({:abilities => {:primary : true}}, r.avg(:strength)).run(conn)"
+          rb: "r.table('marvel').group_by({:abilities => {:primary => true}}, r.avg(:strength)).run(conn)"
       - description: The nested syntax can quickly become verbose so there's a shortcut.
         code:
           js: "r.table('marvel').groupBy({'abilities' : 'primary'}, r.avg('strength')).run(conn, callback)"
@@ -200,7 +200,7 @@ commands:
 
       - description: Has Iron Man ever defeated Superman in battle?
         code:
-          rb: r.table('marvel').get('ironman')[:battles].contains{|battle| battle[:winner].eq('ironman') & battel[:loser].eq('superman')}
+          rb: r.table('marvel').get('ironman')[:battles].contains{|battle| battle[:winner].eq('ironman') & battle[:loser].eq('superman')}
           py: |
             r.table('marvel').get('ironman')['battles'].contains(lambda battle: (battle['winner'] == 'ironman') & (battle['loser'] == 'superman'))
-          js: r.table('marvel').get('ironman')('battles').contains(function (battle) {return battle('winner').eq('ironman').and(battle('loser').eq('superman')))
+          js: r.table('marvel').get('ironman')('battles').contains(function (battle) {return battle('winner').eq('ironman').and(battle('loser').eq('superman'));})

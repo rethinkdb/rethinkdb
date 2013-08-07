@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #if defined(LEGACY_LINUX) && !defined(NO_EVENTFD)
 
 #include <sys/syscall.h>
@@ -25,4 +25,4 @@ int eventfd_write(int fd, eventfd_t value) {
   return (res == sizeof(eventfd_t)) ? 0 : -1;
 }
 
-#endif
+#endif  // defined(LEGACY_LINUX) && !defined(NO_EVENTFD)

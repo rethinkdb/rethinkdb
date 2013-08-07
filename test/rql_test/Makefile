@@ -29,7 +29,7 @@ JS_DRIVER := node_modules/rethinkdb/.
 
 $(JS_DRIVER): ../../build/packages/js/.
 	test -d node_modules/rethinkdb/ || mkdir -p node_modules
-	npm install ../../build/packages/js
+	npm -d install ../../build/packages/js
 
 .PHONY: run
 run: $(TEST_FILES) cursor connect

@@ -656,14 +656,14 @@ private:
         rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
         // A vanilla range get
         // First we need to determine the cutoff key:
-        rg_response->last_considered_key = (rg.direction == FORWARD ? store_key_t::max() : store_key_t::min());
+        rg_response->last_considered_key = forward(rg.sorting) ? store_key_t::max() : store_key_t::min();
         for (size_t i = 0; i < count; ++i) {
             const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
             guarantee(rr != NULL);
 
             if (rr->truncated &&
-                    ((rg_response->last_considered_key > rr->last_considered_key && rg.direction == FORWARD) ||
-                     (rg_response->last_considered_key < rr->last_considered_key && rg.direction == BACKWARD))) {
+                    ((rg_response->last_considered_key > rr->last_considered_key && forward(rg.sorting)) ||
+                     (rg_response->last_considered_key < rr->last_considered_key && backward(rg.sorting)))) {
                 rg_response->last_considered_key = rr->last_considered_key;
             }
         }
@@ -671,7 +671,7 @@ private:
         rg_response->result = stream_t();
         stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
 
-        if (!rg.merge_sort) {
+        if (rg.sorting == UNORDERED) {
             for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -680,8 +680,8 @@ private:
                 const stream_t *stream = boost::get<stream_t>(&(rr->result));
 
                 for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
-                    if ((it->first <= rg_response->last_considered_key && rg.direction == FORWARD) ||
-                            (it->first >= rg_response->last_considered_key && rg.direction == BACKWARD)) {
+                    if ((it->key <= rg_response->last_considered_key && forward(rg.sorting)) ||
+                            (it->key >= rg_response->last_considered_key && backward(rg.sorting))) {
                         res_stream->push_back(*it);
                     }
                 }
@@ -701,7 +701,7 @@ private:
             }
 
             while (true) {
-                store_key_t key_to_beat = (rg.direction == FORWARD ? store_key_t::max() : store_key_t::min());
+                store_key_t key_to_beat = (forward(rg.sorting) ? store_key_t::max() : store_key_t::min());
                 bool found_value = false;
                 stream_t::const_iterator *value = NULL;
 
@@ -710,13 +710,13 @@ private:
                         continue;
                     }
 
-                    if ((rg.direction == FORWARD &&
-                                it->first->first <= key_to_beat &&
-                                it->first->first <= rg_response->last_considered_key) ||
-                            (rg.direction == BACKWARD &&
-                             it->first->first >= key_to_beat &&
-                             it->first->first >= rg_response->last_considered_key)) {
-                        key_to_beat = it->first->first;
+                    if ((forward(rg.sorting) &&
+                                it->first->key <= key_to_beat &&
+                                it->first->key <= rg_response->last_considered_key) ||
+                            (backward(rg.sorting) &&
+                             it->first->key >= key_to_beat &&
+                             it->first->key >= rg_response->last_considered_key)) {
+                        key_to_beat = it->first->key;
                         found_value = true;
                         value = &it->first;
                     }
@@ -1107,12 +1107,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
         ql_env.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
-        rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);
+        rget_read_response_t *res =
+            boost::get<rget_read_response_t>(&response->response);
 
         if (!rget.sindex) {
             // Normal rget
-            rdb_rget_slice(btree, rget.region.inner, txn, superblock, &ql_env,
-                    rget.transform, rget.terminal, rget.direction, res);
+            rdb_rget_slice(btree, rget.region.inner, txn, superblock,
+                    &ql_env, rget.transform, rget.terminal,
+                    (forward(rget.sorting) ? FORWARD : BACKWARD), res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
@@ -1164,11 +1166,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
                                             sindex_filter, backtrace_t()));
 
+            bool is_ordered = rget.sorting != UNORDERED;
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
                     rget.sindex_region->inner,
                     txn, sindex_sb.get(), &ql_env, sindex_transform,
-                    rget.terminal, rget.region.inner, rget.direction, res);
+                    rget.terminal, rget.region.inner,
+                    (forward(rget.sorting) ? FORWARD : BACKWARD),
+                    (is_ordered ? sindex_mapping : boost::optional<ql::map_wire_func_t>()),
+                    res);
         }
     }
 
@@ -1709,9 +1715,9 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_range_t,
                            start, end, start_open, end_open);
-RDB_IMPL_ME_SERIALIZABLE_9(rdb_protocol_t::rget_read_t, region, sindex,
+RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_range,
-                           transform, terminal, optargs, merge_sort, direction);
+                           transform, terminal, optargs, sorting);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);

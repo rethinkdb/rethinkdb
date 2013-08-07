@@ -12,6 +12,8 @@ class json_stream_t;
 }
 
 namespace ql {
+typedef query_language::sorting_hint_t sorting_hint_t;
+typedef std::pair<sorting_hint_t, counted_t<const datum_t> > hinted_datum_t;
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
@@ -54,10 +56,43 @@ public:
     // element.)  (Wrapper around `next_batch_impl`.)
     std::vector<counted_t<const datum_t> > next_batch();
 
+    /* sorting_hint_next returns that same value that next would but in
+     * addition it tells you whether or not this is part of a batch which
+     * compare equal with respect to an index sorting. For example suppose you
+     * have data like so (ommitting the id field):
+     *
+     * {id: 0, sid: 1}, {id: 1, sid : 1}, {id: 2, sid : 2}, {id: 3, sid : 3} {id: 4, sid : 3}
+     *
+     * with a secondary index on the attribute "sid" this function will return:
+     * (START,    {id: 0, sid : 1})--+
+     * (CONTINUE, {id: 1, sid : 1})--+-- These 2 could be swapped
+     * (START,    {id: 2, sid : 2})
+     * (START,    {id: 3, sid : 3})--+
+     * (CONTINUE, {id: 4, sid : 3})--+-- These 2 could be swapped
+     * (CONTINUE, NULL)
+     *
+     * Why is this needed:
+     * This is needed in the case where you are sorting by an index but using a
+     * second attribute as a tiebreaker. For example:
+     *
+     * table.order_by("id", index="sid")
+     *
+     * the sort_datum_stream_t above us needs to get batches which have the
+     * same "sid" and then, only within those batches does it order by "id".
+     *
+     * Note: The only datum_stream_t that implements a meaningful version of
+     * this functions is lazy_datum_stream_t, that's because that's the only
+     * stream which could be used to do an indexed sort. Other implementations
+     * of datum_stream_t always return CONTINUE this is because there data is
+     * equivalent to data which has all compared equally and should all be
+     * sorted together by sort_datum_stream_t. */
+    virtual hinted_datum_t sorting_hint_next();
+
 protected:
     env_t *env;
 
 private:
+
     static const size_t MAX_BATCH_SIZE = 100;
 
     // Returns NULL upon end of stream.
@@ -160,21 +195,21 @@ class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        sorting_t sorting, const protob_t<const Backtrace> &bt_src);
+    lazy_datum_stream_t(env_t *env, bool use_outdated,
+                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        const std::string &sindex_id, sorting_t sorting,
                         const protob_t<const Backtrace> &bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        counted_t<const datum_t> left_bound,
-                        bool left_bound_open,
-                        counted_t<const datum_t> right_bound,
-                        bool right_bound_open,
-                        const protob_t<const Backtrace> &bt_src);
+                        counted_t<const datum_t> left_bound, bool left_bound_open,
+                        counted_t<const datum_t> right_bound, bool right_bound_open,
+                        sorting_t sorting, const protob_t<const Backtrace> &bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        counted_t<const datum_t> left_bound,
-                        bool left_bound_open,
-                        counted_t<const datum_t> right_bound,
-                        bool right_bound_open,
-                        const std::string &sindex_id,
+                        counted_t<const datum_t> left_bound, bool left_bound_open,
+                        counted_t<const datum_t> right_bound, bool right_bound_open,
+                        const std::string &sindex_id, sorting_t sorting,
                         const protob_t<const Backtrace> &bt_src);
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
@@ -191,6 +226,9 @@ public:
     virtual counted_t<const datum_t> as_array() {
         return counted_t<const datum_t>();  // Cannot be converted implicitly.
     }
+protected:
+    virtual hinted_datum_t sorting_hint_next();
+
 private:
     counted_t<const datum_t> next_impl();
 
@@ -238,34 +276,40 @@ class sort_datum_stream_t : public eager_datum_stream_t {
 public:
     sort_datum_stream_t(env_t *env, const T &_lt_cmp, counted_t<datum_stream_t> _src,
                         const protob_t<const Backtrace> &bt_src)
-        : eager_datum_stream_t(env, bt_src), lt_cmp(_lt_cmp),
-          src(_src), data_index(-1), is_arr_(false) {
-        guarantee(src.has());
+        : eager_datum_stream_t(env, bt_src),
+        lt_cmp(_lt_cmp), src(_src), is_arr_(false) {
+        r_sanity_check(src.has());
         load_data();
     }
 
     counted_t<const datum_t> next_impl() {
-        r_sanity_check(data_index >= 0);
-        if (data_index >= static_cast<int>(data.size())) {
-            //            ^^^^^^^^^^^^^^^^ this is safe because of `load_data`
-            return counted_t<const datum_t>();
-        } else {
-            counted_t<const datum_t> ret = data[data_index];
-            ++data_index;
-            return ret;
+        if (data.empty()) {
+            load_data();
+            if (data.empty()) {
+                return counted_t<const datum_t>();
+            }
         }
+
+        counted_t<const datum_t> res = data.front();
+        data.pop_front();
+        return res;
     }
 private:
-    virtual counted_t<const datum_t> as_array() {
+    counted_t<const datum_t> as_array() {
         return is_arr() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
     }
     bool is_arr() {
         return is_arr_;
     }
     void load_data() {
-        if (data_index != -1) return;
-        data_index = 0;
+        r_sanity_check(data.empty());
+
         if (counted_t<const datum_t> arr = src->as_array()) {
+            if (is_arr_) {
+                /* We already loaded data from the array which means there's no
+                 * more data. */
+                return;
+            }
             is_arr_ = true;
             rcheck(arr->size() <= sort_el_limit,
                    base_exc_t::GENERIC,
@@ -275,23 +319,41 @@ private:
                 data.push_back(arr->get(i));
             }
         } else {
-            is_arr_ = false;
-            size_t sort_els = 0;
-            while (counted_t<const datum_t> d = src->next()) {
-                rcheck(++sort_els <= sort_el_limit,
-                       base_exc_t::GENERIC,
-                       strprintf("Can only sort at most %zu elements.",
-                                 sort_el_limit));
-                data.push_back(d);
+            if (next_element) {
+                data.push_back(next_element);
+                next_element = counted_t<const datum_t>();
+            }
+
+            hinted_datum_t d;
+            for (;;) {
+                d = src->sorting_hint_next();
+                if (!d.second) {
+                    break;
+                }
+
+                if (d.first == query_language::START && !data.empty()) {
+                    //debugf("Got a new value:\n %s\n", d.second->print().c_str());
+                    next_element = d.second;
+                    break;
+                } else {
+                    data.push_back(d.second);
+                    rcheck(data.size() <= sort_el_limit,
+                           base_exc_t::GENERIC,
+                           strprintf("Can only sort at most %zu elements.",
+                                     sort_el_limit));
+                }
             }
         }
+        //for (auto it = data.begin(); it != data.end(); ++it) {
+        //    debugf("Datum:\n%s\n", (*it)->print().c_str());
+        //}
         std::sort(data.begin(), data.end(), lt_cmp);
     }
     T lt_cmp;
     counted_t<datum_stream_t> src;
 
-    int data_index;
-    std::vector<counted_t<const datum_t> > data;
+    std::deque<counted_t<const datum_t> > data;
+    counted_t<const datum_t> next_element;
     bool is_arr_;
 };
 
