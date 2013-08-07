@@ -30,7 +30,7 @@ void run_with_broadcaster(
     in_memory_branch_history_manager_t<memcached_protocol_t> branch_history_manager;
 
     // io backender
-    io_backender_t io_backender(file_directness_t::buffered_desired);
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     /* Set up a broadcaster and initial listener */
     test_store_t<memcached_protocol_t> initial_store(&io_backender, &order_source, static_cast<memcached_protocol_t::context_t *>(NULL));

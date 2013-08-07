@@ -187,7 +187,7 @@ private:
     DISABLE_COPYING(linux_disk_manager_t);
 };
 
-io_backender_t::io_backender_t(file_directness_t _directness,
+io_backender_t::io_backender_t(file_direct_io_mode_t _directness,
                                int max_concurrent_io_requests)
     : directness(_directness),
       diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
@@ -197,7 +197,7 @@ io_backender_t::io_backender_t(file_directness_t _directness,
 
 io_backender_t::~io_backender_t() { }
 
-file_directness_t io_backender_t::get_directness() const { return directness; }
+file_direct_io_mode_t io_backender_t::get_directness() const { return directness; }
 
 
 /* Disk file object */
@@ -428,7 +428,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     file_open_result_t open_res;
 
     switch (backender->get_directness()) {
-    case file_directness_t::direct_desired: {
+    case file_direct_io_mode_t::direct_desired: {
 #ifdef __linux__
         // fcntl(2) is documented to take an argument of type long, not of type int, with the
         // F_SETFL command, on Linux.  But POSIX says it's supposed to take an int?  Passing long
@@ -447,7 +447,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                                       file_open_result_t::DIRECT,
                                       0);
     } break;
-    case file_directness_t::buffered_desired: {
+    case file_direct_io_mode_t::buffered_desired: {
         open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
     } break;
     default:

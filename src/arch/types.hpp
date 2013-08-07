@@ -89,7 +89,7 @@ typedef linux_tcp_conn_descriptor_t tcp_conn_descriptor_t;
 class linux_tcp_conn_t;
 typedef linux_tcp_conn_t tcp_conn_t;
 
-enum class file_directness_t {
+enum class file_direct_io_mode_t {
     direct_desired,
     buffered_desired
 };

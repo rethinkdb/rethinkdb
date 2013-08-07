@@ -15,7 +15,7 @@ namespace unittest {
 void run_sindex_low_level_operations_test() {
     temp_file_t temp_file;
 
-    io_backender_t io_backender(file_directness_t::buffered_desired);
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -93,7 +93,7 @@ TEST(BTreeSindex, LowLevelOps) {
 void run_sindex_btree_store_api_test() {
     temp_file_t temp_file;
 
-    io_backender_t io_backender(file_directness_t::buffered_desired);
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
