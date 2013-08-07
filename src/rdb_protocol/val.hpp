@@ -42,6 +42,10 @@ public:
         counted_t<const datum_t> right_bound, bool right_bound_open,
         const std::string &sindex_id, const protob_t<const Backtrace> &bt);
 
+    counted_t<datum_stream_t> get_sorted(
+        const std::string &sindex_id, sorting_t sorting,
+        const protob_t<const Backtrace> &bt);
+
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
 

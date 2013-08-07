@@ -15,6 +15,8 @@ module RethinkDB
     # only be removed from the argument list and treated as an optarg
     # if it's a Hash.  A positive value is necessary for functions
     # that can take a hash for the last non-optarg argument.
+    # NOTE: we search for the optarg after we apply the rewrite rules below.
+    # For example we need to use orderby not order_by
     @@optarg_offsets = {
       :replace => {:with_block => 0, :without => 1},
       :update => {:with_block => 0, :without => 1},
@@ -24,7 +26,7 @@ module RethinkDB
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
       :javascript => -1, :filter => {:with_block => 0, :without => 1},
-      :slice => -1, :during => -1
+      :slice => -1, :during => -1, :orderby => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,

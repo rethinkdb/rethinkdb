@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <sys/resource.h>
 
 #include <set>
@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     setrlimit(RLIMIT_CORE, &core_limit);
 #endif
 
-    run_generic_global_startup_behavior();
+    startup_shutdown_t startup_shutdown;
 
     std::set<std::string> subcommands_that_look_like_flags;
     subcommands_that_look_like_flags.insert("--version");

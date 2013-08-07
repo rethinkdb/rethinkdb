@@ -29,6 +29,8 @@
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
+#include <google/protobuf/stubs/common.h>
+
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
@@ -69,6 +71,15 @@ void run_generic_global_startup_behavior() {
     }
 
 }
+
+startup_shutdown_t::startup_shutdown_t() {
+    run_generic_global_startup_behavior();
+}
+
+startup_shutdown_t::~startup_shutdown_t() {
+    google::protobuf::ShutdownProtobufLibrary();
+}
+
 
 // fast-ish non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {

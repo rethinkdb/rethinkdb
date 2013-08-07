@@ -20,10 +20,10 @@ $(CPP_PB_FILE): $(PROTO_FILE)
 	$(PROTOC) --cpp_out=$(PBCPP_SRC) -I$(PROTO_FILE_DIR) $(PROTO_FILE)
 
 $(PBCPP): $(PBCPP_BUILT)
-	cp $(PBCPP_BUILT) $(PBCPP)
+	test ! -e $< || cp $< $@
 
 $(PBCPP_BUILT): $(CPP_PB_FILE)
-	python setup.py build 
+	python setup.py build
 
 clean:
 	rm -f $(PYTHON_PB_FILE)

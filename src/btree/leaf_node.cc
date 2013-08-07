@@ -1616,14 +1616,16 @@ leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &
 leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
     leaf::find_key(&leaf_node, key, &index);
-    const leaf::entry_t *entry = leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]);
-    const btree_key_t *ekey = leaf::entry_key(entry);
-    if (index < leaf_node.num_pairs && entry_is_live(entry) &&
-        sized_strcmp(ekey->contents, ekey->size, key->contents, key->size) == 0) {
-        return leaf_node_t::reverse_iterator(&leaf_node, index);
-    } else {
-        return ++leaf_node_t::reverse_iterator(&leaf_node, index);
+    if (index < leaf_node.num_pairs) {
+        const leaf::entry_t *entry = leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]);
+        const btree_key_t *ekey = leaf::entry_key(entry);
+        if (entry_is_live(entry) &&
+            sized_strcmp(ekey->contents, ekey->size, key->contents, key->size) == 0) {
+            return leaf_node_t::reverse_iterator(&leaf_node, index);
+        }
     }
+
+    return ++leaf_node_t::reverse_iterator(&leaf_node, index);
 }
 
 }  // namespace leaf

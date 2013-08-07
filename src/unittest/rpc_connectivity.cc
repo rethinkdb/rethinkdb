@@ -5,6 +5,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
 #include "containers/scoped.hpp"
+#include "containers/archive/socket_stream.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/connectivity/multiplexer.hpp"
@@ -562,24 +563,63 @@ TEST(RPCConnectivityTest, PeerIDSemanticsMultiThread) {
     unittest::run_in_thread_pool(&run_peer_id_semantics_test, 3);
 }
 
-/* `CheckHeaders` makes sure that we close the connection if we get a malformed header. */
-void run_check_headers_test() {
+fd_t connect_to_node(const ip_and_port_t &ip_port) {
+    struct sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(ip_port.port().value());
+    addr.sin_addr = ip_port.ip().get_addr();
+    bzero(addr.sin_zero, sizeof(addr.sin_zero));
 
+    fd_t sock(::socket(AF_INET, SOCK_STREAM, 0));
+    guarantee_err(sock != INVALID_FD, "could not open socket to connect to cluster node");
+    int res = ::connect(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
+    guarantee_err(res == 0, "could not connect to cluster node");
+    return sock;
+}
+
+// Make sure each side of the connection is closed
+void check_tcp_closed(socket_stream_t *stream) {
+    // Allow 6 seconds before timing out
+    signal_timer_t interruptor;
+    interruptor.start(6000);
+
+    stream->set_interruptor(&interruptor);
+
+    try {
+        char buffer[1024];
+        int64_t res;
+        do {
+            res = stream->read(&buffer, 1024);
+        } while (res != 0);
+
+        do {
+            let_stuff_happen();
+            res = stream->write("a", 1);
+        } while(res != -1);
+    } catch (const interrupted_exc_t &ex) {
+        FAIL() << "test took too long to detect connection was down";
+    }
+
+    ASSERT_FALSE(stream->is_write_open());
+    ASSERT_FALSE(stream->is_read_open());
+}
+
+// `CheckHeaders` makes sure that we close the connection if we get a malformed header.
+void run_check_headers_test() {
     // Set up a cluster node.
     connectivity_cluster_t c1;
     connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, NULL, 0, NULL);
 
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
-    std::set<ip_and_port_t> c1_ips = addr.ips();
-    cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(c1_ips.begin()->ip(), c1_ips.begin()->port().value(), &cond, 0);
+    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
+    socket_stream_t stream(sock.get());
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
     {
         scoped_array_t<char> data(len + 1);
-        int64_t read = force_read(&conn, data.data(), len);
+        int64_t read = force_read(&stream, data.data(), len);
         ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
         ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
@@ -588,20 +628,16 @@ void run_check_headers_test() {
     // Send it an initially okay-looking but ultimately malformed header.
     const int64_t initlen = 10;
     ASSERT_TRUE(initlen < len); // sanity check
-    ASSERT_TRUE(initlen == conn.write(connectivity_cluster_t::cluster_proto_header.c_str(), initlen));
+    ASSERT_TRUE(initlen == stream.write(connectivity_cluster_t::cluster_proto_header.c_str(), initlen));
     let_stuff_happen();
-    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+    ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send malformed continuation.
     char badchar = connectivity_cluster_t::cluster_proto_header[initlen] ^ 0x7f;
-    ASSERT_EQ(1, conn.write(&badchar, 1));
+    ASSERT_EQ(1, stream.write(&badchar, 1));
     let_stuff_happen();
 
-    // Try to write something, and discover that the other end has shut down.
-    UNUSED int64_t res = conn.write("a", 1);
-    let_stuff_happen();
-    ASSERT_FALSE(conn.is_write_open());
-    ASSERT_FALSE(conn.is_read_open());
+    check_tcp_closed(&stream);
 }
 
 TEST(RPCConnectivityTest, CheckHeaders) {
@@ -616,15 +652,14 @@ void run_different_version_test() {
 
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
-    std::set<ip_and_port_t> c1_ips = addr.ips();
-    cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(c1_ips.begin()->ip(), c1_ips.begin()->port().value(), &cond, 0);
+    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
+    socket_stream_t stream(sock.get());
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
     {
         scoped_array_t<char> data(len + 1);
-        int64_t read = force_read(&conn, data.data(), len);
+        int64_t read = force_read(&stream, data.data(), len);
         ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
         ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
@@ -632,24 +667,20 @@ void run_different_version_test() {
 
     // Send the base header
     ASSERT_EQ(len,
-              conn.write(connectivity_cluster_t::cluster_proto_header.c_str(),
-                         connectivity_cluster_t::cluster_proto_header.length()));
+              stream.write(connectivity_cluster_t::cluster_proto_header.c_str(),
+                           connectivity_cluster_t::cluster_proto_header.length()));
     let_stuff_happen();
-    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+    ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send bad version
     write_message_t bad_version_msg;
     bad_version_msg << std::string("0.1.1b");
     bad_version_msg << connectivity_cluster_t::cluster_arch_bitsize;
     bad_version_msg << connectivity_cluster_t::cluster_build_mode;
-    ASSERT_FALSE(send_write_message(&conn, &bad_version_msg));
+    ASSERT_FALSE(send_write_message(&stream, &bad_version_msg));
     let_stuff_happen();
 
-    // Try to write something, and discover that the other end has shut down.
-    UNUSED int64_t res = conn.write("a", 1);
-    let_stuff_happen();
-    ASSERT_FALSE(conn.is_write_open());
-    ASSERT_FALSE(conn.is_read_open());
+    check_tcp_closed(&stream);
 }
 
 TEST(RPCConnectivityTest, DifferentVersion) {
@@ -664,15 +695,14 @@ void run_different_arch_test() {
 
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
-    std::set<ip_and_port_t> c1_ips = addr.ips();
-    cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(c1_ips.begin()->ip(), c1_ips.begin()->port().value(), &cond, 0);
+    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
+    socket_stream_t stream(sock.get());
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
     {
         scoped_array_t<char> data(len + 1);
-        int64_t read = force_read(&conn, data.data(), len);
+        int64_t read = force_read(&stream, data.data(), len);
         ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
         ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
@@ -680,24 +710,20 @@ void run_different_arch_test() {
 
     // Send the base header
     ASSERT_EQ(len,
-              conn.write(connectivity_cluster_t::cluster_proto_header.c_str(),
-                         connectivity_cluster_t::cluster_proto_header.length()));
+              stream.write(connectivity_cluster_t::cluster_proto_header.c_str(),
+                           connectivity_cluster_t::cluster_proto_header.length()));
     let_stuff_happen();
-    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+    ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send the expected version but bad arch bitsize
     write_message_t bad_arch_msg;
     bad_arch_msg << connectivity_cluster_t::cluster_version;
     bad_arch_msg << std::string("96bit");
     bad_arch_msg << connectivity_cluster_t::cluster_build_mode;
-    ASSERT_FALSE(send_write_message(&conn, &bad_arch_msg));
+    ASSERT_FALSE(send_write_message(&stream, &bad_arch_msg));
     let_stuff_happen();
 
-    // Try to write something, and discover that the other end has shut down.
-    UNUSED int64_t res = conn.write("a", 1);
-    let_stuff_happen();
-    ASSERT_FALSE(conn.is_write_open());
-    ASSERT_FALSE(conn.is_read_open());
+    check_tcp_closed(&stream);
 }
 
 TEST(RPCConnectivityTest, DifferentArch) {
@@ -705,22 +731,20 @@ TEST(RPCConnectivityTest, DifferentArch) {
 }
 
 void run_different_build_mode_test() {
-
     // Set up a cluster node.
     connectivity_cluster_t c1;
     connectivity_cluster_t::run_t cr1(&c1, get_unittest_addresses(), peer_address_t(), ANY_PORT, NULL, 0, NULL);
 
     // Manually connect to the cluster.
     peer_address_t addr = c1.get_peer_address(c1.get_me());
-    std::set<ip_and_port_t> c1_ips = addr.ips();
-    cond_t cond;                // dummy signal
-    tcp_conn_stream_t conn(c1_ips.begin()->ip(), c1_ips.begin()->port().value(), &cond, 0);
+    scoped_fd_t sock(connect_to_node(*addr.ips().begin()));
+    socket_stream_t stream(sock.get());
 
     // Read & check its header.
     const int64_t len = connectivity_cluster_t::cluster_proto_header.length();
     {
         scoped_array_t<char> data(len + 1);
-        int64_t read = force_read(&conn, data.data(), len);
+        int64_t read = force_read(&stream, data.data(), len);
         ASSERT_GE(read, 0);
         data[read] = 0;         // null-terminate
         ASSERT_STREQ(connectivity_cluster_t::cluster_proto_header.c_str(), data.data());
@@ -728,24 +752,20 @@ void run_different_build_mode_test() {
 
     // Send the base header
     ASSERT_EQ(len,
-              conn.write(connectivity_cluster_t::cluster_proto_header.c_str(),
-                         connectivity_cluster_t::cluster_proto_header.length()));
+              stream.write(connectivity_cluster_t::cluster_proto_header.c_str(),
+                           connectivity_cluster_t::cluster_proto_header.length()));
     let_stuff_happen();
-    ASSERT_TRUE(conn.is_read_open() && conn.is_write_open());
+    ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send the expected version but bad arch bitsize
     write_message_t bad_build_mode_msg;
     bad_build_mode_msg << connectivity_cluster_t::cluster_version;
     bad_build_mode_msg << connectivity_cluster_t::cluster_arch_bitsize;
     bad_build_mode_msg << std::string("build mode activated");
-    ASSERT_FALSE(send_write_message(&conn, &bad_build_mode_msg));
+    ASSERT_FALSE(send_write_message(&stream, &bad_build_mode_msg));
     let_stuff_happen();
 
-    // Try to write something, and discover that the other end has shut down.
-    UNUSED int64_t res = conn.write("a", 1);
-    let_stuff_happen();
-    ASSERT_FALSE(conn.is_write_open());
-    ASSERT_FALSE(conn.is_read_open());
+    check_tcp_closed(&stream);
 }
 
 TEST(RPCConnectivityTest, DifferentBuildMode) {

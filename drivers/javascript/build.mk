@@ -51,17 +51,17 @@ js-clean:
 
 .PHONY: js-install
 js-install: NPM_PREFIX=.
-js-install: $(JS_PKG_DIR)
+js-install: $(JS_PKG_DIR) | $(NPM_DEP)
 	$P NPM-INSTALL $(JS_PKG_DIR)
-	MAKEFLAGS= npm install $(JS_PKG_DIR) --prefix $(NPM_PREFIX)
+	MAKEFLAGS= $(NPM) install $(JS_PKG_DIR) --prefix $(NPM_PREFIX)
 
 .PHONY: js-dependencies
 js-dependencies: $(JS_PKG_DIR)/node_modules
 
-$(JS_PKG_DIR)/node_modules: $(JS_PKG_DIR)
+$(JS_PKG_DIR)/node_modules: $(JS_PKG_DIR) | $(NPM_DEP)
 	$P NPM-I dependencies
 	( cd $(JS_PKG_DIR) && \
-	  MAKEFLAGS= npm install --prefix $(abspath $(JS_PKG_DIR)) \
+	  MAKEFLAGS= $(abspath $(NPM)) install --prefix $(abspath $(JS_PKG_DIR)) \
 	    > $(abspath $(JS_PKG_DIR)/.npm_install_log) 2>&1 \
 	) || ( \
 	  echo === npm install failed === ; \

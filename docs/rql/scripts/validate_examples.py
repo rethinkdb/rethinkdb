@@ -39,7 +39,7 @@ print 'Running python validation.'
 """ % port)
         elif lang == 'js':
             out.write("""
-var r = require("../../../drivers/javascript/build/rethinkdb");
+var r = require("../../../build/packages/js/rethinkdb");
 var callback = (function() { });
 var cur = {next:(function(){}), hasNext:(function(){}), each:(function(){}), toArray:(function(){})};
 r.connect({port:%d}, function(err, conn) {

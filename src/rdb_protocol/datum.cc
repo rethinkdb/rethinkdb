@@ -426,6 +426,13 @@ std::string datum_t::unprint_secondary(
     return secondary_and_primary.substr(separator + 1, std::string::npos);
 }
 
+std::string datum_t::extract_secondary(
+        const std::string &secondary_and_primary) {
+    size_t separator = secondary_and_primary.find_last_of('\0');
+
+    return secondary_and_primary.substr(0, separator);
+}
+
 // This function returns a store_key_t suitable for searching by a secondary-index.
 //  This is needed because secondary indexes may be truncated, but the amount truncated
 //  depends on the length of the primary key.  Since we do not know how much was truncated,
@@ -449,14 +456,12 @@ store_key_t datum_t::truncated_secondary() const {
             print().c_str(), get_type_name().c_str()));
     }
 
-    const size_t max_trunc_size = MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
-
     // If the key does not need truncation, add a null byte at the end to filter out more
     //  potential results
-    if (s.length() < max_trunc_size) {
+    if (s.length() < max_trunc_size()) {
         s += std::string(1, '\0');
     } else {
-        s.erase(max_trunc_size);
+        s.erase(max_trunc_size());
     }
 
     return store_key_t(s);
@@ -837,6 +842,14 @@ void datum_t::init_from_pb(const Datum *d) {
     } break;
     default: unreachable();
     }
+}
+
+size_t datum_t::max_trunc_size() {
+    return MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
+}
+
+bool datum_t::key_is_truncated(const store_key_t &key) {
+    return key.size() == MAX_KEY_SIZE;
 }
 
 void datum_t::rdb_serialize(write_message_t &msg /*NOLINT*/) const {
