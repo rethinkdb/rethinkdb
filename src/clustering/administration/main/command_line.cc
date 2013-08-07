@@ -550,7 +550,10 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
 }
 
 
-void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &machine_name,
+void run_rethinkdb_create(const base_path_t &base_path,
+                          const name_string_t &machine_name,
+                          const file_directness_t directness,
+                          const int max_concurrent_io_requests,
                           bool *const result_out) {
     machine_id_t our_machine_id = generate_uuid();
 
@@ -562,7 +565,7 @@ void run_rethinkdb_create(const base_path_t &base_path, const name_string_t &mac
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(directness, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -652,6 +655,7 @@ std::string uname_msr() {
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          const serve_info_t &serve_info,
+                         const file_directness_t directness,
                          const int max_concurrent_io_requests,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
@@ -663,8 +667,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    // RSI: Pass the user-specified parameter here.
-    io_backender_t io_backender(file_directness_t::direct_desired, max_concurrent_io_requests);
+    io_backender_t io_backender(directness, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -723,13 +726,15 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
 void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const name_string_t &machine_name,
+                             const file_directness_t directness,
                              const int max_concurrent_io_requests,
                              const bool new_directory,
                              const serve_info_t &serve_info,
                              directory_lock_t *data_directory_lock,
                              bool *const result_out) {
     if (!new_directory) {
-        run_rethinkdb_serve(base_path, serve_info, max_concurrent_io_requests,
+        run_rethinkdb_serve(base_path, serve_info,
+                            directness, max_concurrent_io_requests,
                             NULL, NULL, data_directory_lock,
                             result_out);
     } else {
@@ -762,7 +767,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         }
 
         run_rethinkdb_serve(base_path, serve_info,
-                            max_concurrent_io_requests,
+                            directness, max_concurrent_io_requests,
                             &our_machine_id, &cluster_metadata,
                             data_directory_lock, result_out);
     }
@@ -815,6 +820,9 @@ options::help_section_t get_file_options(std::vector<options::option_t> *options
                                              strprintf("%d", DEFAULT_MAX_CONCURRENT_IO_REQUESTS)));
     help.add("--io-threads n",
              "how many simultaneous I/O operations can happen at the same time");
+    options_out->push_back(options::option_t(options::names_t("--no-direct-io"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--no-direct-io", "disable direct I/O");
     return help;
 }
 
@@ -1073,6 +1081,24 @@ void output_named_error(const options::named_error_t &ex, const std::vector<opti
     }
 }
 
+MUST_USE bool parse_io_threads_option(const std::map<std::string, options::values_t> &opts,
+                                      int *max_concurrent_io_requests_out) {
+    int max_concurrent_io_requests = get_single_int(opts, "--io-threads");
+    if (max_concurrent_io_requests <= 0
+        || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
+        fprintf(stderr, "ERROR: io-threads must be between 1 and %lld\n",
+                MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
+        return false;
+    }
+    *max_concurrent_io_requests_out = max_concurrent_io_requests;
+    return true;
+}
+
+file_directness_t parse_directness_option(const std::map<std::string, options::values_t> &opts) {
+    return exists_option(opts, "--no-direct-io") ?
+        file_directness_t::buffered_desired :
+        file_directness_t::direct_desired;
+}
 
 int main_rethinkdb_create(int argc, char *argv[]) {
     std::vector<options::option_t> options;
@@ -1099,6 +1125,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
+        int max_concurrent_io_requests;
+        if (!parse_io_threads_option(opts, &max_concurrent_io_requests)) {
+            return EXIT_FAILURE;
+        }
+
         const int num_workers = get_cpu_count();
 
         bool is_new_directory = false;
@@ -1113,8 +1144,14 @@ int main_rethinkdb_create(int argc, char *argv[]) {
 
         initialize_logfile(opts, base_path);
 
+        const file_directness_t directness = parse_directness_option(opts);
+
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path, machine_name, &result),
+        run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path,
+                                       machine_name,
+                                       directness,
+                                       max_concurrent_io_requests,
+                                       &result),
                            num_workers);
 
         if (result) {
@@ -1167,19 +1204,6 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
             throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(errno).c_str()).c_str());
         }
     }
-    return true;
-}
-
-MUST_USE bool parse_io_threads_option(const std::map<std::string, options::values_t> &opts,
-                                      int *max_concurrent_io_requests_out) {
-    int max_concurrent_io_requests = get_single_int(opts, "--io-threads");
-    if (max_concurrent_io_requests <= 0
-        || max_concurrent_io_requests > MAXIMUM_MAX_CONCURRENT_IO_REQUESTS) {
-        fprintf(stderr, "ERROR: io-threads must be between 1 and %lld\n",
-                MAXIMUM_MAX_CONCURRENT_IO_REQUESTS);
-        return false;
-    }
-    *max_concurrent_io_requests_out = max_concurrent_io_requests;
     return true;
 }
 
@@ -1245,9 +1269,12 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
+        const file_directness_t directness = parse_directness_option(opts);
+
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
                                        serve_info,
+                                       directness,
                                        max_concurrent_io_requests,
                                        static_cast<machine_id_t*>(NULL),
                                        static_cast<cluster_semilattice_metadata_t*>(NULL),
@@ -1592,10 +1619,13 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         serve_info_t serve_info(joins, address_ports, web_path,
                                 get_optional_option(opts, "--config-file"));
 
+        const file_directness_t directness = parse_directness_option(opts);
+
         bool result;
         run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
                                        base_path,
                                        machine_name,
+                                       directness,
                                        max_concurrent_io_requests,
                                        is_new_directory,
                                        serve_info,

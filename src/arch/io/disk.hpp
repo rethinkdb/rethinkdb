@@ -27,7 +27,6 @@ public:
     // This takes what is effectively a global flag whether to use O_DIRECT here.  Nothing technical
     // stops us from specifying this on a file-by-file basis, but right now there's no desire for
     // that.  See https://github.com/rethinkdb/rethinkdb/issues/97#issuecomment-19778177 .
-    // RSI: Remove default parameter for file_directness_t.
     io_backender_t(file_directness_t directness = file_directness_t::direct_desired,
                    int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
     ~io_backender_t();
