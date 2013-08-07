@@ -341,7 +341,6 @@ void datum_t::rcheck_valid_pt(const std::string s) const {
     }
 
     if (get_reql_type() == pseudo::literal_string) {
-        BREAKPOINT;
         rcheck(s == pseudo::literal_string,
                base_exc_t::GENERIC,
                "Stray literal keyword found, literal can only be present inside merge "
