@@ -1,7 +1,6 @@
 from ast import *
 import ql2_pb2 as p
 import datetime
-import pytz
 
 """
 All top level functions defined here are the starting points for RQL queries
