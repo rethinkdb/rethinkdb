@@ -7,7 +7,7 @@
 #include "serializer/config.hpp"
 
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
-                                                           const serializer_filepath_t& filename,
+                                                           const serializer_filepath_t &filename,
                                                            perfmon_collection_t *stats_parent)
     : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID),
       perfmon_membership(stats_parent, &perfmon_collection, filename.permanent_path().c_str())

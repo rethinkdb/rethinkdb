@@ -57,8 +57,7 @@ class filepath_file_opener_t : public serializer_file_opener_t {
 public:
     // RSI: Remove default parameter.
     filepath_file_opener_t(const serializer_filepath_t &filepath,
-                           io_backender_t *backender,
-                           file_directness_t directness = file_directness_t::direct_desired);
+                           io_backender_t *backender);
     ~filepath_file_opener_t();
 
     // The path of the final position of the file.
@@ -83,9 +82,6 @@ private:
 
     // The filepath of the final position of the file.
     const serializer_filepath_t filepath_;
-
-    // Whether to use try for direct or whether we want buffered I/O.
-    const file_directness_t directness_;
 
     io_backender_t *const backender_;
 

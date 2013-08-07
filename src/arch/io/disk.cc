@@ -187,13 +187,18 @@ private:
     DISABLE_COPYING(linux_disk_manager_t);
 };
 
-io_backender_t::io_backender_t(int max_concurrent_io_requests)
-    : diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
+io_backender_t::io_backender_t(file_directness_t _directness,
+                               int max_concurrent_io_requests)
+    : directness(_directness),
+      diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
                                        DEFAULT_IO_BATCH_FACTOR,
                                        max_concurrent_io_requests,
                                        &stats)) { }
 
 io_backender_t::~io_backender_t() { }
+
+file_directness_t io_backender_t::get_directness() const { return directness; }
+
 
 /* Disk file object */
 
@@ -360,7 +365,6 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
 }
 
 file_open_result_t open_file(const char *path, const int mode, io_backender_t *backender,
-                             const file_directness_t directness,
                              scoped_ptr_t<file_t> *out) {
     // Construct file flags
 
@@ -423,7 +427,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     // the latter works on OS X.
     file_open_result_t open_res;
 
-    switch (directness) {
+    switch (backender->get_directness()) {
     case file_directness_t::direct_desired: {
 #ifdef __linux__
         // fcntl(2) is documented to take an argument of type long, not of type int, with the
@@ -439,13 +443,11 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 #error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
 #endif  // __linux__, defined(__APPLE__)
         open_res = file_open_result_t(fcntl_res == -1 ?
-                                      file_open_result_t::BUFFERED :
+                                      file_open_result_t::BUFFERED_FALLBACK :
                                       file_open_result_t::DIRECT,
                                       0);
     } break;
     case file_directness_t::buffered_desired: {
-        // Should we lie?  Never lie.  A caller that could pass nondirect_desired needs to be smart
-        // when it decides whether to give a warning.
         open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
     } break;
     default:

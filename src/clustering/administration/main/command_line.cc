@@ -651,7 +651,7 @@ std::string uname_msr() {
 }
 
 void run_rethinkdb_serve(const base_path_t &base_path,
-                         const serve_info_t& serve_info,
+                         const serve_info_t &serve_info,
                          const int max_concurrent_io_requests,
                          const machine_id_t *our_machine_id,
                          const cluster_semilattice_metadata_t *cluster_metadata,
@@ -663,7 +663,8 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    io_backender_t io_backender(max_concurrent_io_requests);
+    // RSI: Pass the user-specified parameter here.
+    io_backender_t io_backender(file_directness_t::direct_desired, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
