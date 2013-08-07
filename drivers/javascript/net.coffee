@@ -252,8 +252,10 @@ class TcpConnection extends Connection
 
         timeout = setTimeout( (()=>
             @rawSocket.destroy()
-            @emit 'error', new RqlDriverError "Handshake timedout"
+            @emit 'error', new err.RqlDriverError "Handshake timedout"
         ), @timeout*1000)
+
+        @rawSocket.once 'error', => clearTimeout(timeout)
 
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
