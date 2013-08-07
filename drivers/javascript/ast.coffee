@@ -45,29 +45,27 @@ class TermBase
 
         # Parse out run options from connOrOptions object
         if connOrOptions? and connOrOptions.constructor is Object
-            useOutdated = !!connOrOptions.useOutdated
-            noreply = !!connOrOptions.noreply
             for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>}."
+                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat']
+                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, time_format: <string>}."
             conn = connOrOptions.connection
+            opts = connOrOptions
         else
-            useOutdated = null
-            noreply = null
             conn = connOrOptions
+            opts = {}
 
         # This only checks that the argument is of the right type, connection
         # closed errors will be handled elsewhere
         unless conn? and conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."
+            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> time_format: <string>}."
 
         # We only require a callback if noreply isn't set
-        if not noreply and typeof(cb) isnt 'function'
+        if not opts.noreply and typeof(cb) isnt 'function'
             throw new err.RqlDriverError "Second argument to `run` must be a callback to invoke "+
-                                     "with either an error or the result of the query."
+                                         "with either an error or the result of the query."
 
         try
-            conn._start @, cb, useOutdated, noreply
+            conn._start @, cb, opts
         catch e
             # It was decided that, if we can, we prefer to invoke the callback
             # with any errors rather than throw them as normal exceptions.
