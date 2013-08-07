@@ -22,7 +22,7 @@ public:
         guarantee(namestr && op);
     }
 
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<const datum_t> acc = arg(0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             acc = (this->*op)(acc, arg(i)->as_datum());
@@ -115,7 +115,7 @@ class mod_term_t : public op_term_t {
 public:
     mod_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         int64_t i0 = arg(0)->as_int();
         int64_t i1 = arg(1)->as_int();
         rcheck(i1, base_exc_t::GENERIC, "Cannot take a number modulo 0.");

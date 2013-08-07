@@ -129,7 +129,7 @@ public:
     coerce_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> val = arg(0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
@@ -251,7 +251,7 @@ public:
     typeof_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
@@ -267,7 +267,7 @@ class info_term_t : public op_term_t {
 public:
     info_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(val_info(arg(0)));
     }
 

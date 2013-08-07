@@ -230,7 +230,7 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
 func_term_t::func_term_t(env_t *env, protob_t<const Term> term)
     : term_t(env, term), func(make_counted<func_t>(env, term)) { }
 
-counted_t<val_t> func_term_t::eval_impl() {
+counted_t<val_t> func_term_t::eval_impl(UNUSED eval_flags_t flags) {
     return new_val(func);
 }
 

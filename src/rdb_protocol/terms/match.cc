@@ -12,7 +12,7 @@ public:
     match_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         std::string str = arg(0)->as_str();
         RE2 regexp(arg(1)->as_str());
         if (!regexp.ok()) {

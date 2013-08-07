@@ -26,7 +26,7 @@ public:
     asc_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return arg(0);
     }
     virtual const char *name() const { return "asc"; }
@@ -37,7 +37,7 @@ public:
     desc_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return arg(0);
     }
     virtual const char *name() const { return "desc"; }
@@ -94,7 +94,7 @@ private:
         std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
     };
 
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
@@ -137,7 +137,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         scoped_ptr_t<datum_stream_t> s(
             new sort_datum_stream_t<bool (*)(
                 counted_t<const datum_t>,

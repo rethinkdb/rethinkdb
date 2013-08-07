@@ -14,7 +14,7 @@ public:
     }
 private:
     counted_t<const datum_t> *datum_val; // pointer to variable's slot in argument array
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(*datum_val);
     }
     virtual const char *name() const { return "var"; }
@@ -28,7 +28,7 @@ public:
     }
 private:
     counted_t<const datum_t> *datum_val;
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(*datum_val);
     }
     virtual const char *name() const { return "implicit_var"; }

@@ -41,5 +41,5 @@ tests:
     js: ts.map(r.time(r.row.year(), r.row.month(), r.row.day(), r.row.hours(), r.row.minutes(), r.row.seconds(), r.row.timezone())).union(ts).map(r.row.toISO8601()).distinct().count().sub(ts.count())
     ot: 0
   - rb: ts.map{|x| [x.day_of_week, x.day_of_year]}
-    py: ts.map([r.row.dayOfWeek(), r.row.dayOfYear()])
+    cd: ts.map([r.row.day_of_week(), r.row.day_of_year()])
     ot: [[2, 211], [2, 211], [2, 211], [5, 97]]

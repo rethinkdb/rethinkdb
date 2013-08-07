@@ -177,7 +177,8 @@ private:
     void array_to_str_key(std::string *str_out) const;
 
     int pseudo_cmp(const datum_t &rhs) const;
-    void maybe_sanitize_ptype();
+    static const std::set<std::string> _allowed_pts;
+    void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
 
     type_t type;
     union {
@@ -204,8 +205,9 @@ class datum_ptr_t {
 public:
     template<class... Args>
     datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
-    counted_t<const datum_t> to_counted() {
-        ptr()->maybe_sanitize_ptype();
+    counted_t<const datum_t> to_counted(
+        const std::set<std::string> &allowed_ptypes = default_allowed_ptypes) {
+        ptr()->maybe_sanitize_ptype(allowed_ptypes);
         return counted_t<const datum_t>(_p.release());
     }
     const datum_t *operator->() const { return const_ptr(); }
@@ -234,6 +236,8 @@ private:
         return _p.get();
     }
     scoped_ptr_t<datum_t> _p;
+
+    static std::set<std::string> default_allowed_ptypes;
 };
 
 #ifndef NDEBUG

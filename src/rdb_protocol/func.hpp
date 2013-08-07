@@ -204,7 +204,7 @@ public:
     func_term_t(env_t *env, protob_t<const Term> term);
 private:
     virtual bool is_deterministic_impl() const;
-    virtual counted_t<val_t> eval_impl();
+    virtual counted_t<val_t> eval_impl(eval_flags_t flags);
     virtual const char *name() const { return "func"; }
     counted_t<func_t> func;
 };

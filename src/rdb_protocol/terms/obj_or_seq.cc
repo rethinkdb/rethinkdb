@@ -6,6 +6,7 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pathspec.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/pseudo_literal.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -62,7 +63,7 @@ public:
     }
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) = 0;
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(0);
         counted_t<const datum_t> d;
 
@@ -140,6 +141,30 @@ private:
     virtual const char *name() const { return "without"; }
 };
 
+class literal_term_t : public op_term_t {
+public:
+    literal_term_t(env_t *env, protob_t<const Term> term)
+        : op_term_t(env, term, argspec_t(0,1)) { }
+private:
+    virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
+        rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
+               "Stray literal keyword found, literal can only be present inside merge "
+               "and cannot nest inside other literals.");
+        datum_ptr_t res(datum_t::R_OBJECT);
+        bool clobber = res.add(datum_t::reql_type_string,
+                               make_counted<const datum_t>(pseudo::literal_string));
+        if (num_args() == 1) {
+            clobber |= res.add(pseudo::value_key, arg(0)->as_datum());
+        }
+
+        r_sanity_check(!clobber);
+        std::set<std::string> permissible_ptypes;
+        permissible_ptypes.insert(pseudo::literal_string);
+        return new_val(res.to_counted(permissible_ptypes));
+    }
+    virtual const char *name() const { return "literal"; }
+};
+
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
     merge_term_t(env_t *env, protob_t<const Term> term) :
@@ -148,7 +173,7 @@ private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
         counted_t<const datum_t> d = v0->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            d = d->merge(arg(i)->as_datum());
+            d = d->merge(arg(i, LITERAL_OK)->as_datum());
         }
         return new_val(d);
     }
@@ -198,6 +223,9 @@ counted_t<term_t> make_pluck_term(env_t *env, protob_t<const Term> term) {
 }
 counted_t<term_t> make_without_term(env_t *env, protob_t<const Term> term) {
     return make_counted<without_term_t>(env, term);
+}
+counted_t<term_t> make_literal_term(env_t *env, protob_t<const Term> term) {
+    return make_counted<literal_term_t>(env, term);
 }
 counted_t<term_t> make_merge_term(env_t *env, protob_t<const Term> term) {
     return make_counted<merge_term_t>(env, term);

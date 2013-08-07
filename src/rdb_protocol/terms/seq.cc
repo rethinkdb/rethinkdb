@@ -17,7 +17,7 @@ public:
     count_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         if (num_args() == 1) {
             return new_val(arg(0)->as_seq()->count());
         } else if (arg(1)->get_type().is_convertible(val_t::type_t::FUNC)) {
@@ -36,7 +36,7 @@ public:
     map_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(arg(0)->as_seq()->map(arg(1)->as_func()));
     }
     virtual const char *name() const { return "map"; }
@@ -47,7 +47,7 @@ public:
     concatmap_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func()));
     }
     virtual const char *name() const { return "concatmap"; }
@@ -59,7 +59,7 @@ public:
         : op_term_t(env, term, argspec_t(2), optargspec_t({"default"})),
           default_filter_val(lazy_literal_optarg("default")) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(0);
         counted_t<val_t> v1 = arg(1);
         counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
@@ -83,7 +83,7 @@ public:
     reduce_term_t(env_t *env, protob_t<const Term> term) :
         op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(arg(0)->as_seq()->reduce(optarg("base"),
                                                 arg(1)->as_func()));
     }
@@ -96,7 +96,7 @@ public:
     between_term_t(env_t *env, protob_t<const Term> term)
         : bounded_op_term_t(env, term, argspec_t(3), optargspec_t({"index"})) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> tbl = arg(0)->as_table();
         counted_t<const datum_t> lb = arg(1)->as_datum();
         if (lb->get_type() == datum_t::R_NULL) {
@@ -138,7 +138,7 @@ public:
     union_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         std::vector<counted_t<datum_stream_t> > streams;
         for (size_t i = 0; i < num_args(); ++i) {
             streams.push_back(arg(i)->as_seq());
@@ -155,7 +155,7 @@ public:
     zip_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(arg(0)->as_seq()->zip());
     }
     virtual const char *name() const { return "zip"; }

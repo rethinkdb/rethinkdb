@@ -10,11 +10,16 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/pseudo_literal.hpp"
 #include "stl_utils.hpp"
 
 namespace ql {
 
+const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
+
 const char* const datum_t::reql_type_string = "$reql_type$";
+
+std::set<std::string> datum_ptr_t::default_allowed_ptypes = std::set<std::string>();
 
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
@@ -321,6 +326,24 @@ int datum_t::pseudo_cmp(const datum_t &rhs) const {
     rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
 }
 
+void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
+    if (is_ptype()) {
+        if (get_reql_type() == pseudo::time_string) {
+            pseudo::sanitize_time(this);
+            return;
+        }
+        if (get_reql_type() == pseudo::literal_string) {
+            rcheck(std_contains(allowed_pts, pseudo::literal_string),
+                   base_exc_t::GENERIC,
+                   "Stray literal keyword found, literal can only be present inside "
+                   "merge and cannot nest inside other literals.");
+            pseudo::rcheck_literal_valid(this);
+            return;
+        }
+        rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
+    }
+}
+
 void datum_t::rcheck_is_ptype(const std::string s) const {
     rcheck(is_ptype(), base_exc_t::GENERIC,
            (s == ""
@@ -328,16 +351,6 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
             : strprintf("Not a %s pseudotype: `%s`.",
                         s.c_str(),
                         trunc_print().c_str())));
-}
-
-void datum_t::maybe_sanitize_ptype() {
-    if (is_ptype()) {
-        if (get_reql_type() == pseudo::time_string) {
-            pseudo::sanitize_time(this);
-            return;
-        }
-        rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
-    }
 }
 
 std::string datum_t::print_primary() const {
@@ -656,10 +669,28 @@ MUST_USE bool datum_t::delete_field(const std::string &key) {
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
+    if (get_type() != R_OBJECT || rhs->get_type() != R_OBJECT) { return rhs; }
+
     datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        UNUSED bool b = d.add(it->first, it->second, CLOBBER);
+        counted_t<const datum_t> sub_lhs = d->get(it->first, NOTHROW);
+        bool is_literal = it->second->is_ptype(pseudo::literal_string);
+
+        if (it->second->get_type() == R_OBJECT && sub_lhs && !is_literal) {
+            UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
+        } else {
+            if (is_literal) {
+                counted_t<const datum_t> value = it->second->get(pseudo::value_key, NOTHROW);
+                if (value) {
+                    UNUSED bool b = d.add(it->first, value, CLOBBER);
+                } else {
+                    UNUSED bool b = d.delete_field(it->first);
+                }
+            } else {
+                UNUSED bool b = d.add(it->first, it->second, CLOBBER);
+            }
+        }
     }
     return d.to_counted();
 }
@@ -801,7 +832,8 @@ void datum_t::init_from_pb(const Datum *d) {
                    strprintf("Duplicate key %s in object.", key.c_str()));
             (*r_object)[key] = make_counted<datum_t>(&ap->val());
         }
-        maybe_sanitize_ptype();
+        std::set<std::string> allowed_ptypes = { pseudo::literal_string };
+        maybe_sanitize_ptype(allowed_ptypes);
     } break;
     default: unreachable();
     }

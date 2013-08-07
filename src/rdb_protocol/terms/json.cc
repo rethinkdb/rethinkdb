@@ -8,7 +8,7 @@ public:
     json_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         std::string data = arg(0)->as_str();
         scoped_cJSON_t cjson(cJSON_Parse(data.c_str()));
         rcheck(cjson.get() != NULL, base_exc_t::GENERIC,

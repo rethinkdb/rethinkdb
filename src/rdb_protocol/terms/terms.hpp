@@ -82,6 +82,7 @@ counted_t<term_t> make_get_field_term(env_t *env, protob_t<const Term> term);
 // obj_or_seq.cc
 counted_t<term_t> make_pluck_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_without_term(env_t *env, protob_t<const Term> term);
+counted_t<term_t> make_literal_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_merge_term(env_t *env, protob_t<const Term> term);
 counted_t<term_t> make_has_fields_term(env_t *env, protob_t<const Term> term);
 

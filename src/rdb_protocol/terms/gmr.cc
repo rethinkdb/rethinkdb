@@ -11,7 +11,7 @@ public:
     gmr_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(4), optargspec_t({ "base" })) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> baseval = optarg("base");
         counted_t<const datum_t> base = baseval.has() ?
             baseval->as_datum() :

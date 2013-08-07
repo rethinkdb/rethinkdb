@@ -56,6 +56,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::PLUCK:              return make_pluck_term(env, t);
     case Term::WITHOUT:            return make_without_term(env, t);
     case Term::MERGE:              return make_merge_term(env, t);
+    case Term::LITERAL:            return make_literal_term(env, t);
     case Term::BETWEEN:            return make_between_term(env, t);
     case Term::REDUCE:             return make_reduce_term(env, t);
     case Term::MAP:                return make_map_term(env, t);
@@ -330,7 +331,7 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-counted_t<val_t> term_t::eval() {
+counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
     DEBUG_ONLY_CODE(env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
@@ -339,7 +340,7 @@ counted_t<val_t> term_t::eval() {
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl();
+            counted_t<val_t> ret = eval_impl(eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;

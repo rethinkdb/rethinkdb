@@ -746,6 +746,10 @@ class Desc extends RDBOp
     tt: "DESC"
     st: 'desc'
 
+class Literal extends RDBOp
+    tt: "LITERAL"
+    st: 'literal'
+
 class ISO8601 extends RDBOp
     tt: 'ISO8601'
     st: 'iso8601'
@@ -925,6 +929,8 @@ rethinkdb.mod = ar (a, b) -> new Mod {}, a, b
 
 rethinkdb.typeOf = ar (val) -> new TypeOf {}, val
 rethinkdb.info = ar (val) -> new Info {}, val
+
+rethinkdb.literal = varar 0, 1, (args...) -> new Literal {}, args...
 
 rethinkdb.iso8601 = ar (str) -> new ISO8601 {}, str
 rethinkdb.epochTime = ar (num) -> new EpochTime {}, num

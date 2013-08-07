@@ -10,7 +10,7 @@ public:
     keys_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<const datum_t> d = arg(0)->as_datum();
         const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
         datum_ptr_t arr(datum_t::R_ARRAY);

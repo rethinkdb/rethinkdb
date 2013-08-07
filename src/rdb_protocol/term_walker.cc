@@ -148,6 +148,7 @@ private:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
+        case Term::LITERAL:
         case Term::BETWEEN:
         case Term::REDUCE:
         case Term::MAP:
@@ -301,6 +302,7 @@ private:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
+        case Term::LITERAL:
         case Term::BETWEEN:
         case Term::ORDERBY:
         case Term::DISTINCT:

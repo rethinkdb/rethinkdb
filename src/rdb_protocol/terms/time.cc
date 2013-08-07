@@ -15,7 +15,7 @@ public:
     iso8601_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
         return new_val(pseudo::iso8601_to_time(v->as_str(), v.get()));
     }
@@ -27,7 +27,7 @@ public:
     to_iso8601_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(
             make_counted<const datum_t>(
                 pseudo::time_to_iso8601(arg(0)->as_ptype(pseudo::time_string))));
@@ -40,7 +40,7 @@ public:
     epoch_time_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
         return new_val(pseudo::make_time(v->as_num()));
     }
@@ -52,7 +52,7 @@ public:
     to_epoch_time_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(
             make_counted<const datum_t>(
                 pseudo::time_to_epoch_time(arg(0)->as_ptype(pseudo::time_string))));
@@ -65,7 +65,7 @@ public:
     now_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(0)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         // This should never get called because we rewrite `now` calls to a
         // constant so that they're deterministic.
         r_sanity_check(false);
@@ -80,7 +80,7 @@ public:
     in_timezone_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(pseudo::time_in_tz(arg(0)->as_ptype(pseudo::time_string),
                                           arg(1)->as_datum()));
     }
@@ -92,7 +92,7 @@ public:
     during_term_t(env_t *env, protob_t<const Term> term)
         : bounded_op_term_t(env, term, argspec_t(3)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<const datum_t> t = arg(0)->as_ptype(pseudo::time_string);
         counted_t<const datum_t> lb = arg(1)->as_ptype(pseudo::time_string);
         counted_t<const datum_t> rb = arg(2)->as_ptype(pseudo::time_string);
@@ -109,7 +109,7 @@ public:
     date_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(pseudo::time_date(arg(0)->as_ptype(pseudo::time_string), this));
     }
     virtual const char *name() const { return "date"; }
@@ -120,7 +120,7 @@ public:
     time_of_day_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(pseudo::time_of_day(arg(0)->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "time_of_day"; }
@@ -131,7 +131,7 @@ public:
     timezone_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return new_val(pseudo::time_tz(arg(0)->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "timezone"; }
@@ -143,7 +143,7 @@ public:
                    pseudo::time_component_t _component)
         : op_term_t(env, term, argspec_t(1)), component(_component) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         double d = pseudo::time_portion(arg(0)->as_ptype(pseudo::time_string), component);
         return new_val(make_counted<const datum_t>(d));
     }
@@ -168,7 +168,7 @@ public:
     time_term_t(env_t *env, protob_t<const Term> term)
         : op_term_t(env, term, argspec_t(3, 7)) { }
 private:
-    counted_t<val_t> eval_impl() {
+    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         if (num_args() != 3 && num_args() != 4 && num_args() != 6 && num_args() != 7) {
             rfail(base_exc_t::GENERIC,
                   "Got %zu arguments to TIME (expected 3, 4, 6 or 7).", num_args());
