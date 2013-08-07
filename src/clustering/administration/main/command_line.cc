@@ -18,8 +18,7 @@
 #include <sys/sysctl.h>
 #endif
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "arch/io/disk.hpp"
 #include "arch/os_signal.hpp"
@@ -1147,11 +1146,11 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         const file_directness_t directness = parse_directness_option(opts);
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_create, base_path,
-                                       machine_name,
-                                       directness,
-                                       max_concurrent_io_requests,
-                                       &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_create, base_path,
+                                     machine_name,
+                                     directness,
+                                     max_concurrent_io_requests,
+                                     &result),
                            num_workers);
 
         if (result) {
@@ -1272,14 +1271,14 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         const file_directness_t directness = parse_directness_option(opts);
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_serve, base_path,
-                                       serve_info,
-                                       directness,
-                                       max_concurrent_io_requests,
-                                       static_cast<machine_id_t*>(NULL),
-                                       static_cast<cluster_semilattice_metadata_t*>(NULL),
-                                       &data_directory_lock,
-                                       &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_serve, base_path,
+                                     serve_info,
+                                     directness,
+                                     max_concurrent_io_requests,
+                                     static_cast<machine_id_t*>(NULL),
+                                     static_cast<cluster_semilattice_metadata_t*>(NULL),
+                                     &data_directory_lock,
+                                     &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1323,7 +1322,7 @@ int main_rethinkdb_admin(int argc, char *argv[]) {
         const int num_workers = get_cpu_count();
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_admin, joins, canonical_addresses, client_port, command_args, exit_on_failure, &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_admin, joins, canonical_addresses, client_port, command_args, exit_on_failure, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1390,7 +1389,7 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                 get_optional_option(opts, "--config-file"));
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_proxy, serve_info, &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_proxy, serve_info, &result),
                            num_workers);
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
     } catch (const options::named_error_t &ex) {
@@ -1622,15 +1621,15 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         const file_directness_t directness = parse_directness_option(opts);
 
         bool result;
-        run_in_thread_pool(boost::bind(&run_rethinkdb_porcelain,
-                                       base_path,
-                                       machine_name,
-                                       directness,
-                                       max_concurrent_io_requests,
-                                       is_new_directory,
-                                       serve_info,
-                                       &data_directory_lock,
-                                       &result),
+        run_in_thread_pool(std::bind(&run_rethinkdb_porcelain,
+                                     base_path,
+                                     machine_name,
+                                     directness,
+                                     max_concurrent_io_requests,
+                                     is_new_directory,
+                                     serve_info,
+                                     &data_directory_lock,
+                                     &result),
                            num_workers);
 
         return result ? EXIT_SUCCESS : EXIT_FAILURE;
