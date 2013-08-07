@@ -55,7 +55,10 @@ typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 // Used to open a file (with the given filepath) for the log serializer.
 class filepath_file_opener_t : public serializer_file_opener_t {
 public:
-    filepath_file_opener_t(const serializer_filepath_t &filepath, io_backender_t *backender);
+    // RSI: Remove default parameter.
+    filepath_file_opener_t(const serializer_filepath_t &filepath,
+                           io_backender_t *backender,
+                           file_directness_t directness = file_directness_t::direct_desired);
     ~filepath_file_opener_t();
 
     // The path of the final position of the file.
@@ -79,7 +82,11 @@ private:
     std::string current_file_name() const;
 
     // The filepath of the final position of the file.
-    serializer_filepath_t filepath_;
+    const serializer_filepath_t filepath_;
+
+    // Whether to use try for direct or whether we want buffered I/O.
+    const file_directness_t directness_;
+
     io_backender_t *const backender_;
 
     // Makes sure that only one member function gets called at a time.  Some of them are blocking,

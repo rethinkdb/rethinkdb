@@ -360,7 +360,7 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
 }
 
 file_open_result_t open_file(const char *path, const int mode, io_backender_t *backender,
-                             const linux_file_t::directness_t directness,
+                             const file_directness_t directness,
                              scoped_ptr_t<file_t> *out) {
     // Construct file flags
 
@@ -424,7 +424,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     file_open_result_t open_res;
 
     switch (directness) {
-    case linux_file_t::direct_desired: {
+    case file_directness_t::direct_desired: {
 #ifdef __linux__
         // fcntl(2) is documented to take an argument of type long, not of type int, with the
         // F_SETFL command, on Linux.  But POSIX says it's supposed to take an int?  Passing long
@@ -443,7 +443,7 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
                                       file_open_result_t::DIRECT,
                                       0);
     } break;
-    case linux_file_t::buffered_desired: {
+    case file_directness_t::buffered_desired: {
         // Should we lie?  Never lie.  A caller that could pass nondirect_desired needs to be smart
         // when it decides whether to give a warning.
         open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
