@@ -187,13 +187,18 @@ private:
     DISABLE_COPYING(linux_disk_manager_t);
 };
 
-io_backender_t::io_backender_t(int max_concurrent_io_requests)
-    : diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
+io_backender_t::io_backender_t(file_direct_io_mode_t _direct_io_mode,
+                               int max_concurrent_io_requests)
+    : direct_io_mode(_direct_io_mode),
+      diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
                                        DEFAULT_IO_BATCH_FACTOR,
                                        max_concurrent_io_requests,
                                        &stats)) { }
 
 io_backender_t::~io_backender_t() { }
+
+file_direct_io_mode_t io_backender_t::get_direct_io_mode() const { return direct_io_mode; }
+
 
 /* Disk file object */
 
@@ -359,7 +364,8 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
     rassert(divides(DEVICE_BLOCK_SIZE, length));
 }
 
-file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out) {
+file_open_result_t open_file(const char *path, const int mode, io_backender_t *backender,
+                             scoped_ptr_t<file_t> *out) {
     // Construct file flags
 
     // Let's have a sanity check for our attempt to check whether O_DIRECT and O_NOATIME are
@@ -419,22 +425,36 @@ file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
     // the latter works on OS X.
+    file_open_result_t open_res;
+
+    switch (backender->get_direct_io_mode()) {
+    case file_direct_io_mode_t::direct_desired: {
 #ifdef __linux__
-    // fcntl(2) is documented to take an argument of type long, not of type int, with the F_SETFL
-    // command, on Linux.  But POSIX says it's supposed to take an int?  Passing long should be
-    // generally fine, with either the x86 or amd64 calling convention, on another system (that
-    // supports O_DIRECT) but we use "#ifdef __linux__" (and not "#ifdef O_DIRECT") specifically to
-    // avoid such concerns.
-    int fcntl_res = fcntl(fd.get(), F_SETFL, static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
+        // fcntl(2) is documented to take an argument of type long, not of type int, with the
+        // F_SETFL command, on Linux.  But POSIX says it's supposed to take an int?  Passing long
+        // should be generally fine, with either the x86 or amd64 calling convention, on another
+        // system (that supports O_DIRECT) but we use "#ifdef __linux__" (and not "#ifdef O_DIRECT")
+        // specifically to avoid such concerns.
+        const int fcntl_res = fcntl(fd.get(), F_SETFL,
+                                    static_cast<long>(flags | O_DIRECT));  // NOLINT(runtime/int)
 #elif defined(__APPLE__)
-    int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
+        const int fcntl_res = fcntl(fd.get(), F_NOCACHE, 1);
 #else
 #error "Figure out how to do direct I/O and fsync correctly (despite your operating system's lies) on your platform."
 #endif  // __linux__, defined(__APPLE__)
+        open_res = file_open_result_t(fcntl_res == -1 ?
+                                      file_open_result_t::BUFFERED_FALLBACK :
+                                      file_open_result_t::DIRECT,
+                                      0);
+    } break;
+    case file_direct_io_mode_t::buffered_desired: {
+        open_res = file_open_result_t(file_open_result_t::BUFFERED, 0);
+    } break;
+    default:
+        unreachable();
+    }
 
-    file_open_result_t open_res = (fcntl_res == -1 ? file_open_result_t(file_open_result_t::BUFFERED, 0) : file_open_result_t(file_open_result_t::DIRECT, 0));
-
-    int64_t file_size = get_file_size(fd.get());
+    const int64_t file_size = get_file_size(fd.get());
 
     // TODO: We have a very minor correctness issue here, which is that
     // we don't guarantee data durability for newly created database files.

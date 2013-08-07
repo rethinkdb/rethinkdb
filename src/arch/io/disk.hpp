@@ -24,20 +24,32 @@ class linux_disk_manager_t;
 
 class io_backender_t : public home_thread_mixin_debug_only_t {
 public:
-    explicit io_backender_t(int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
+    // This takes what is effectively a global flag whether to use O_DIRECT here.  Nothing technical
+    // stops us from specifying this on a file-by-file basis, but right now there's no desire for
+    // that.  See https://github.com/rethinkdb/rethinkdb/issues/97#issuecomment-19778177 .
+    io_backender_t(file_direct_io_mode_t direct_io_mode,
+                   int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
     ~io_backender_t();
     linux_disk_manager_t *get_diskmgr_ptr() { return diskmgr.get(); }
+    file_direct_io_mode_t get_direct_io_mode() const;
 
 protected:
+    const file_direct_io_mode_t direct_io_mode;
     perfmon_collection_t stats;
     scoped_ptr_t<linux_disk_manager_t> diskmgr;
+
 private:
     DISABLE_COPYING(io_backender_t);
 };
 
 // A file_open_result_t is either FILE_OPEN_DIRECT, FILE_OPEN_BUFFERED, or an errno value.
 struct file_open_result_t {
-    enum outcome_t { DIRECT, BUFFERED, ERROR };
+    enum outcome_t {
+        DIRECT,  // file opened in direct I/O mode
+        BUFFERED,  // file deliberately opened in buffered mode
+        BUFFERED_FALLBACK,  // attempted direct I/O mode, failed
+        ERROR  // error in opening file
+    };
     outcome_t outcome;
     int errsv;
 
@@ -77,7 +89,9 @@ public:
 
 private:
     linux_file_t(scoped_fd_t &&fd, int64_t file_size, linux_disk_manager_t *diskmgr);
-    friend file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
+    friend file_open_result_t open_file(const char *path, int mode,
+                                        io_backender_t *backender,
+                                        scoped_ptr_t<file_t> *out);
 
     scoped_fd_t fd;
     int64_t file_size;
@@ -100,7 +114,9 @@ private:
     scoped_fd_t fd_;
 };
 
-file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
+file_open_result_t open_file(const char *path, int mode,
+                             io_backender_t *backender,
+                             scoped_ptr_t<file_t> *out);
 
 void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
 
