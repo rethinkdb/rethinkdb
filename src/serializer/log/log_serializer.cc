@@ -32,14 +32,17 @@ std::string filepath_file_opener_t::current_file_name() const {
 }
 
 void filepath_file_opener_t::open_serializer_file(const std::string &path, int extra_flags, scoped_ptr_t<file_t> *file_out) {
-    const file_open_result_t res = open_direct_file(path.c_str(),
-                                                    linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
-                                                    backender_,
-                                                    file_out);
+    // RSI: Support directness flag.
+    const file_open_result_t res = open_file(path.c_str(),
+                                             linux_file_t::mode_read | linux_file_t::mode_write | extra_flags,
+                                             backender_,
+                                             linux_file_t::direct_desired,
+                                             file_out);
     if (res.outcome == file_open_result_t::ERROR) {
         crash_due_to_inaccessible_database_file(path.c_str(), res);
     }
 
+    // RSI: When we support the directness flag, make this warning printed at the right times.
     if (res.outcome == file_open_result_t::BUFFERED) {
         logWRN("Could not turn off filesystem caching for database file: \"%s\" "
                "(Is the file located on a filesystem that doesn't support direct I/O "

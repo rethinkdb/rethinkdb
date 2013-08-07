@@ -49,6 +49,11 @@ struct file_open_result_t {
 
 class linux_file_t : public file_t {
 public:
+    enum directness_t {
+        direct_desired,
+        buffered_desired
+    };
+
     enum mode_t {
         mode_read = 1 << 0,
         mode_write = 1 << 1,
@@ -77,7 +82,10 @@ public:
 
 private:
     linux_file_t(scoped_fd_t &&fd, int64_t file_size, linux_disk_manager_t *diskmgr);
-    friend file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
+    friend file_open_result_t open_file(const char *path, int mode,
+                                        io_backender_t *backender,
+                                        directness_t directness,
+                                        scoped_ptr_t<file_t> *out);
 
     scoped_fd_t fd;
     int64_t file_size;
@@ -100,7 +108,9 @@ private:
     scoped_fd_t fd_;
 };
 
-file_open_result_t open_direct_file(const char *path, int mode, io_backender_t *backender, scoped_ptr_t<file_t> *out);
+file_open_result_t open_file(const char *path, int mode, io_backender_t *backender,
+                             linux_file_t::directness_t directness,
+                             scoped_ptr_t<file_t> *out);
 
 void crash_due_to_inaccessible_database_file(const char *path, file_open_result_t open_res) NORETURN;
 
