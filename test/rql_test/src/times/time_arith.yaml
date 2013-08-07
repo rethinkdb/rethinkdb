@@ -1,9 +1,9 @@
 desc: Test basic time arithmetic
 tests:
-  - def: rt1 = 1375147296.60081
-  - def: rt2 = 1375147296.60082
-  - def: rt3 = 1375147297.60081
-  - def: rt4 = 2375147296.60081
+  - def: rt1 = 1375147296.681
+  - def: rt2 = 1375147296.682
+  - def: rt3 = 1375147297.681
+  - def: rt4 = 2375147296.681
   - def: rts = [rt1, rt2, rt3, rt4]
 
   - def: t1 = r.epoch_time(rt1)
@@ -13,9 +13,9 @@ tests:
   - def: ts = r.expr([t1, t2, t3, t4])
 
   # We run into double precision with the first one
-  - rb: ((t2 - t1) * 100000).do{|x| (x > 0.99) & (x < 1.01)}
-    py: ((t2 - t1) * 100000).do(lambda x:(x > 0.99) & (x < 1.01))
-    js: t2.sub(t1).mul(100000).do(r.row.gt(0.99).and(r.row.lt(1.01)))
+  - rb: ((t2 - t1) * 1000).do{|x| (x > 0.99) & (x < 1.01)}
+    py: ((t2 - t1) * 1000).do(lambda x:(x > 0.99) & (x < 1.01))
+    js: t2.sub(t1).mul(1000).do(r.row.gt(0.99).and(r.row.lt(1.01)))
     ot: true
   - cd: t3 - t1
     js: t3.sub(t1)
@@ -24,9 +24,9 @@ tests:
     js: t4.sub(t1)
     ot: 1000000000
 
-  - rb: ((t1 - t2) * 100000).do{|x| (x < -0.99) & (x > -1.01)}
-    py: ((t1 - t2) * 100000).do(lambda x:(x < -0.99) & (x > -1.01))
-    js: t1.sub(t2).mul(100000).do(r.row.lt(-0.99).and(r.row.gt(-1.01)))
+  - rb: ((t1 - t2) * 1000).do{|x| (x < -0.99) & (x > -1.01)}
+    py: ((t1 - t2) * 1000).do(lambda x:(x < -0.99) & (x > -1.01))
+    js: t1.sub(t2).mul(1000).do(r.row.lt(-0.99).and(r.row.gt(-1.01)))
     ot: true
   - cd: t1 - t3
     js: t1.sub(t3)

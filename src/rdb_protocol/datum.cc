@@ -42,7 +42,7 @@ datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
 datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
     : type(R_OBJECT),
       r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) {
-    maybe_rcheck_valid_ptype();
+    maybe_sanitize_ptype();
 }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
@@ -140,7 +140,7 @@ void datum_t::init_json(cJSON *json) {
             rcheck(!conflict, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in JSON.", el->string));
         }
-        maybe_rcheck_valid_ptype();
+        maybe_sanitize_ptype();
     } break;
     default: unreachable();
     }
@@ -330,19 +330,13 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
-void datum_t::rcheck_valid_ptype(const std::string s) const {
-    rcheck_is_ptype(s);
-    if (get_reql_type() == pseudo::time_string) {
-        pseudo::rcheck_time_valid(this);
-        return;
-    }
-
-    rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
-}
-
-void datum_t::maybe_rcheck_valid_ptype(const std::string s) const {
-    if (is_ptype(s)) {
-        rcheck_valid_ptype(s);
+void datum_t::maybe_sanitize_ptype() {
+    if (is_ptype()) {
+        if (get_reql_type() == pseudo::time_string) {
+            pseudo::sanitize_time(this);
+            return;
+        }
+        rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
     }
 }
 
@@ -807,7 +801,7 @@ void datum_t::init_from_pb(const Datum *d) {
                    strprintf("Duplicate key %s in object.", key.c_str()));
             (*r_object)[key] = make_counted<datum_t>(&ap->val());
         }
-        maybe_rcheck_valid_ptype();
+        maybe_sanitize_ptype();
     } break;
     default: unreachable();
     }
