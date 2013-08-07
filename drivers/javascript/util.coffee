@@ -23,7 +23,7 @@ module.exports.aropt = (fun) -> (args...) ->
     expectedPosArgs = fun.length - 1
     perhapsOptDict = args[expectedPosArgs]
 
-    if perhapsOptDict? and (perhapsOptDict.constructor isnt Object)
+    if perhapsOptDict? and (Object.prototype.toString.call(perhapsOptDict) isnt '[object Object]')
         perhapsOptDict = null
 
     numPosArgs = args.length - (if perhapsOptDict? then 1 else 0)
