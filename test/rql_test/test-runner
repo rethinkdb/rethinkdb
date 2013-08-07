@@ -73,7 +73,10 @@ class JsLang(SrcLang):
 
     # Converts cannonical form (underscore separation) to camel case
     def nametranslate(self, name):
-        return re.sub('_[a-z]', lambda m: m.group()[1].upper(), name)
+        if not re.search('__', name):
+            return re.sub('_[a-z]', lambda m: m.group()[1].upper(), name)
+        else:
+            return re.sub('__', '_', name)
 
 class RbLang(SrcLang):
     def rb_str_repr(self, string):
@@ -228,8 +231,6 @@ class TestGroup:
             code = [code]
         elif code == None:
             code = []
-            if not (isinstance(obj, dict) and obj.keys() == ['def']):
-                print 'Missing %s test for %s' % (lang, '-'.join(self.path) + '-' + str(index))
 
         # Construct the appropriate representation for each test in this language
         return (map(lambda src: Langs.repr_query_for(lang, src), code), runopts)

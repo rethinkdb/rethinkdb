@@ -5,41 +5,70 @@ tests:
 
   - def: rt1 = 1375147296.60081
   - def: t1 = r.epoch_time(rt1)
+  - def: t2 = r.epoch_time(rt1 + 1000)
 
 # Arithmetic
   - cd: (t1 + 1000).to_epoch_time()
+    js: t1.add(1000).toEpochTime()
     ot: (1375148296.60081)
   - cd: (t1 - 1000).to_epoch_time()
+    js: t1.sub(1000).toEpochTime()
     ot: (1375146296.60081)
   - cd: (t1 - (t1 - 1000))
+    js: t1.sub(t1.sub(1000))
     ot: 1000
 
 # Comparisons
   - cd: (t1 < t1)
+    js: t1.lt(t1)
     ot: false
   - cd: (t1 <= t1)
+    js: t1.le(t1)
     ot: true
-  - rb: (t1.eq(t1))
+  - cd: (t1.eq(t1))
     py: (t1 == t1)
     ot: true
-  - rb: (t1.ne(t1))
+  - cd: (t1.ne(t1))
     py: (t1 != t1)
     ot: false
   - cd: (t1 >= t1)
+    js: t1.ge(t1)
     ot: true
   - cd: (t1 > t1)
+    js: t1.gt(t1)
+    ot: false
+  - cd: (t1 < t2)
+    js: t1.lt(t2)
+    ot: true
+  - cd: (t1 <= t2)
+    js: t1.le(t2)
+    ot: true
+  - cd: (t1.eq(t2))
+    py: (t1 == t2)
+    ot: false
+  - cd: (t1.ne(t2))
+    py: (t1 != t2)
+    ot: true
+  - cd: (t1 >= t2)
+    js: t1.ge(t2)
+    ot: false
+  - cd: (t1 > t2)
+    js: t1.gt(t2)
     ot: false
 
 # Predicates
   - cd: t1.during(t1, t1 + 1000)
+    js: t1.during(t1, t1.add(1000))
     ot: true
   - rb: t1.during(t1, t1 + 1000, :left_bound => :open)
     py: t1.during(t1, t1 + 1000, left_bound='open')
+    js: t1.during(t1, t1.add(1000), {leftBound:'open'})
     ot: false
   - cd: t1.during(t1, t1)
     ot: false
   - rb: t1.during(t1, t1, :right_bound => :closed)
     py: t1.during(t1, t1, right_bound='closed')
+    js: t1.during(t1, t1, {rightBound:'closed'})
     ot: true
 
 # Time Zone Manipulation -- see timezones.yaml
@@ -90,10 +119,12 @@ tests:
   - cd: r.iso8601("2013-07-30T20:56:05-07:00").to_epoch_time()
     ot: 1375242965
   - cd: r.epoch_time(1375242965).in_timezone("-07:00").to_iso8601()
+    js: r.epochTime(1375242965).inTimezone("-07:00").toISO8601()
     ot: ("2013-07-30T20:56:05-07:00")
   - cd: r.now().type_of()
     ot: ("PSEUDOTYPE(TIME)")
   - cd: (r.now() - r.now())
+    js: r.now().sub(r.now())
     ot: 0
 
   - cd: r.expr([r.monday, r.tuesday, r.wednesday, r.thursday, r.friday, r.saturday, r.sunday])

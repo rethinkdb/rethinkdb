@@ -429,14 +429,14 @@ counted_t<const datum_t> time_now() {
 }
 
 int time_cmp(const datum_t &x, const datum_t &y) {
-    r_sanity_check(x.is_pt(time_string));
-    r_sanity_check(y.is_pt(time_string));
+    r_sanity_check(x.is_ptype(time_string));
+    r_sanity_check(y.is_ptype(time_string));
     return x.get(epoch_time_key)->cmp(*y.get(epoch_time_key));
 }
 
 void rcheck_time_valid(const datum_t *time) {
     r_sanity_check(time != NULL);
-    r_sanity_check(time->is_pt(time_string));
+    r_sanity_check(time->is_ptype(time_string));
     std::string msg;
     bool has_epoch_time = false;
     for (auto it = time->as_object().begin(); it != time->as_object().end(); ++it) {
@@ -485,7 +485,7 @@ void rcheck_time_valid(const datum_t *time) {
 }
 
 counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
-    r_sanity_check(time->is_pt(time_string));
+    r_sanity_check(time->is_ptype(time_string));
     if (counted_t<const datum_t> tz = time->get(timezone_key, NOTHROW)) {
         return tz;
     } else {
@@ -495,7 +495,7 @@ counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
 
 counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
                                     counted_t<const datum_t> tz) {
-    r_sanity_check(t->is_pt(time_string));
+    r_sanity_check(t->is_ptype(time_string));
     datum_ptr_t t2(t->as_object());
     if (tz->get_type() == datum_t::R_NULL) {
         UNUSED bool b = t2.delete_field(timezone_key);
@@ -541,11 +541,11 @@ counted_t<const datum_t> make_time(
 counted_t<const datum_t> time_add(counted_t<const datum_t> x,
                                   counted_t<const datum_t> y) {
     counted_t<const datum_t> time, duration;
-    if (x->is_pt(time_string)) {
+    if (x->is_ptype(time_string)) {
         time = x;
         duration = y;
     } else {
-        r_sanity_check(y->is_pt(time_string));
+        r_sanity_check(y->is_ptype(time_string));
         time = y;
         duration = x;
     }
@@ -563,9 +563,9 @@ counted_t<const datum_t> time_add(counted_t<const datum_t> x,
 
 counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
                                   counted_t<const datum_t> time_or_duration) {
-    r_sanity_check(time->is_pt(time_string));
+    r_sanity_check(time->is_ptype(time_string));
 
-    if (time_or_duration->is_pt(time_string)) {
+    if (time_or_duration->is_ptype(time_string)) {
         return make_counted<const datum_t>(
             time->get(epoch_time_key)->as_num()
             - time_or_duration->get(epoch_time_key)->as_num());

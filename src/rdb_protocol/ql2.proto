@@ -506,47 +506,63 @@ message Term {
         // Prints a time as an ISO 8601 time.
         TO_ISO8601 = 100; // PSEUDOTYPE(TIME) -> STRING
 
+        // Returns a time given seconds since epoch in UTC.
         EPOCH_TIME = 101; // NUMBER -> PSEUDOTYPE(TIME)
+        // Returns seconds since epoch in UTC given a time.
         TO_EPOCH_TIME = 102; // PSEUDOTYPE(TIME) -> NUMBER
 
+        // The time the query was received by the server.
         NOW = 103; // -> PSEUDOTYPE(TIME)
+        // Puts a time into an ISO 8601 timezone.
         IN_TIMEZONE = 104; // PSEUDOTYPE(TIME), STRING -> PSEUDOTYPE(TIME)
+        // a.during(b, c) returns whether a is in the range [b, c)
         DURING = 105; // PSEUDOTYPE(TIME), PSEUDOTYPE(TIME), PSEUDOTYPE(TIME) -> BOOL
+        // Retrieves the date portion of a time.
         DATE = 106; // PSEUDOTYPE(TIME) -> PSEUDOTYPE(TIME)
+        // x.time_of_day == x.date - x
         TIME_OF_DAY = 126; // PSEUDOTYPE(TIME) -> NUMBER
+        // Returns the timezone of a time.
         TIMEZONE = 127; // PSEUDOTYPE(TIME) -> STRING
 
-        YEAR = 128;
-        MONTH = 129;
-        DAY = 130;
-        DAY_OF_WEEK = 131;
-        DAY_OF_YEAR = 132;
-        HOURS = 133;
-        MINUTES = 134;
-        SECONDS = 135;
+        // These access the various components of a time.
+        YEAR = 128; // PSEUDOTYPE(TIME) -> NUMBER
+        MONTH = 129; // PSEUDOTYPE(TIME) -> NUMBER
+        DAY = 130; // PSEUDOTYPE(TIME) -> NUMBER
+        DAY_OF_WEEK = 131; // PSEUDOTYPE(TIME) -> NUMBER
+        DAY_OF_YEAR = 132; // PSEUDOTYPE(TIME) -> NUMBER
+        HOURS = 133; // PSEUDOTYPE(TIME) -> NUMBER
+        MINUTES = 134; // PSEUDOTYPE(TIME) -> NUMBER
+        SECONDS = 135; // PSEUDOTYPE(TIME) -> NUMBER
 
-        TIME = 136;
+        // Construct a time from a date and optional timezone or a
+        // date+time and optional timezone.
+        TIME = 136; // NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
+                    // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
+                    // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
+                    // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
 
-        MONDAY = 107;
-        TUESDAY = 108;
-        WEDNESDAY = 109;
-        THURSDAY = 110;
-        FRIDAY = 111;
-        SATURDAY = 112;
-        SUNDAY = 113;
+        // Constants for ISO 8601 days of the week.
+        MONDAY = 107;    // -> 1
+        TUESDAY = 108;   // -> 2
+        WEDNESDAY = 109; // -> 3
+        THURSDAY = 110;  // -> 4
+        FRIDAY = 111;    // -> 5
+        SATURDAY = 112;  // -> 6
+        SUNDAY = 113;    // -> 7
 
-        JANUARY = 114;
-        FEBRUARY = 115;
-        MARCH = 116;
-        APRIL = 117;
-        MAY = 118;
-        JUNE = 119;
-        JULY = 120;
-        AUGUST = 121;
-        SEPTEMBER = 122;
-        OCTOBER = 123;
-        NOVEMBER = 124;
-        DECEMBER = 125;
+        // Constants for ISO 8601 months.
+        JANUARY = 114;   // -> 1
+        FEBRUARY = 115;  // -> 2
+        MARCH = 116;     // -> 3
+        APRIL = 117;     // -> 4
+        MAY = 118;       // -> 5
+        JUNE = 119;      // -> 6
+        JULY = 120;      // -> 7
+        AUGUST = 121;    // -> 8
+        SEPTEMBER = 122; // -> 9
+        OCTOBER = 123;   // -> 10
+        NOVEMBER = 124;  // -> 11
+        DECEMBER = 125;  // -> 12
 
         // Indicates to MERGE to replace the other object rather than merge it.
         LITERAL = 137; // JSON -> Merging

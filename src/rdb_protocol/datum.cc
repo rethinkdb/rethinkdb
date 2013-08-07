@@ -45,7 +45,7 @@ datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
 datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
     : type(R_OBJECT),
       r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) {
-    maybe_rcheck_valid_pt();
+    maybe_rcheck_valid_ptype();
 }
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
@@ -143,7 +143,7 @@ void datum_t::init_json(cJSON *json) {
             rcheck(!conflict, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in JSON.", el->string));
         }
-        maybe_rcheck_valid_pt();
+        maybe_rcheck_valid_ptype();
     } break;
     default: unreachable();
     }
@@ -168,12 +168,12 @@ datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
 
 datum_t::type_t datum_t::get_type() const { return type; }
 
-bool datum_t::is_pt() const {
+bool datum_t::is_ptype() const {
     return type == R_OBJECT && std_contains(*r_object, reql_type_string);
 }
 
-bool datum_t::is_pt(const std::string &reql_type) const {
-    return (reql_type == "") ? is_pt() : is_pt() && get_reql_type() == reql_type;
+bool datum_t::is_ptype(const std::string &reql_type) const {
+    return (reql_type == "") ? is_ptype() : is_ptype() && get_reql_type() == reql_type;
 }
 
 std::string datum_t::get_reql_type() const {
@@ -204,7 +204,7 @@ std::string raw_type_name(datum_t::type_t type) {
 }
 
 std::string datum_t::get_type_name() const {
-    if (is_pt()) {
+    if (is_ptype()) {
         return "PSEUDOTYPE(" + get_reql_type() + ")";
     } else {
         return raw_type_name(type);
@@ -225,7 +225,7 @@ std::string datum_t::trunc_print() const {
 }
 
 void datum_t::pt_to_str_key(std::string *str_out) const {
-    r_sanity_check(is_pt());
+    r_sanity_check(is_ptype());
     if (get_reql_type() == pseudo::time_string) {
         pseudo::time_to_str_key(*this, str_out);
     } else {
@@ -296,7 +296,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         case R_BOOL: item->bool_to_str_key(str_out); break;
         case R_ARRAY: item->array_to_str_key(str_out); break;
         case R_OBJECT:
-            if (item->is_pt()) {
+            if (item->is_ptype()) {
                 item->pt_to_str_key(str_out);
                 break;
             }
@@ -316,7 +316,7 @@ void datum_t::array_to_str_key(std::string *str_out) const {
 }
 
 int datum_t::pseudo_cmp(const datum_t &rhs) const {
-    r_sanity_check(is_pt());
+    r_sanity_check(is_ptype());
     if (get_reql_type() == pseudo::time_string) {
         return pseudo::time_cmp(*this, rhs);
     }
@@ -324,8 +324,8 @@ int datum_t::pseudo_cmp(const datum_t &rhs) const {
     rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
 }
 
-void datum_t::rcheck_is_pt(const std::string s) const {
-    rcheck(is_pt(), base_exc_t::GENERIC,
+void datum_t::rcheck_is_ptype(const std::string s) const {
+    rcheck(is_ptype(), base_exc_t::GENERIC,
            (s == ""
             ? strprintf("Not a pseudotype: `%s`.", trunc_print().c_str())
             : strprintf("Not a %s pseudotype: `%s`.",
@@ -333,8 +333,8 @@ void datum_t::rcheck_is_pt(const std::string s) const {
                         trunc_print().c_str())));
 }
 
-void datum_t::rcheck_valid_pt(const std::string s) const {
-    rcheck_is_pt(s);
+void datum_t::rcheck_valid_ptype(const std::string s) const {
+    rcheck_is_ptype(s);
     if (get_reql_type() == pseudo::time_string) {
         pseudo::rcheck_time_valid(this);
         return;
@@ -352,8 +352,8 @@ void datum_t::rcheck_valid_pt(const std::string s) const {
     rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
 }
 
-void datum_t::rcheck_valid_pt(const std::set<std::string> &allowed_pts) const {
-    rcheck_is_pt();
+void datum_t::rcheck_valid_ptype(const std::set<std::string> &allowed_pts) const {
+    rcheck_is_ptype();
 
     if (get_reql_type() == pseudo::time_string) {
         pseudo::rcheck_time_valid(this);
@@ -372,16 +372,16 @@ void datum_t::rcheck_valid_pt(const std::set<std::string> &allowed_pts) const {
     rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
 }
 
-void datum_t::maybe_rcheck_valid_pt(const std::string s) const {
-    if (is_pt(s)) {
-        rcheck_valid_pt(s);
+void datum_t::maybe_rcheck_valid_ptype(const std::string s) const {
+    if (is_ptype(s)) {
+        rcheck_valid_ptype(s);
     }
 }
 
 
-void datum_t::maybe_rcheck_valid_pt(const std::set<std::string> &s) const {
-    if (is_pt()) {
-        rcheck_valid_pt(s);
+void datum_t::maybe_rcheck_valid_ptype(const std::set<std::string> &s) const {
+    if (is_ptype()) {
+        rcheck_valid_ptype(s);
     }
 }
 
@@ -393,7 +393,7 @@ std::string datum_t::print_primary() const {
     case R_BOOL: bool_to_str_key(&s); break;
     case R_ARRAY: array_to_str_key(&s); break;
     case R_OBJECT:
-        if (is_pt()) {
+        if (is_ptype()) {
             pt_to_str_key(&s);
             break;
         }
@@ -436,7 +436,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
         bool_to_str_key(&s);
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
-    } else if (type == R_OBJECT && is_pt()) {
+    } else if (type == R_OBJECT && is_ptype()) {
         pt_to_str_key(&s);
     } else {
         type_error(strprintf(
@@ -472,7 +472,7 @@ store_key_t datum_t::truncated_secondary() const {
         bool_to_str_key(&s);
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
-    } else if (type == R_OBJECT && is_pt()) {
+    } else if (type == R_OBJECT && is_ptype()) {
         pt_to_str_key(&s);
     } else {
         type_error(strprintf(
@@ -707,7 +707,7 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         counted_t<const datum_t> sub_lhs = d->get(it->first, NOTHROW);
-        bool is_literal = it->second->is_pt(pseudo::literal_string);
+        bool is_literal = it->second->is_ptype(pseudo::literal_string);
 
         if (it->second->get_type() == R_OBJECT && sub_lhs && !is_literal) {
             UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
@@ -749,9 +749,9 @@ int derived_cmp(T a, T b) {
 }
 
 int datum_t::cmp(const datum_t &rhs) const {
-    if (is_pt() && !rhs.is_pt()) {
+    if (is_ptype() && !rhs.is_ptype()) {
         return 1;
-    } else if (!is_pt() && rhs.is_pt()) {
+    } else if (!is_ptype() && rhs.is_ptype()) {
         return -1;
     }
 
@@ -777,7 +777,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        if (is_pt()) {
+        if (is_ptype()) {
             if (get_reql_type() != rhs.get_reql_type()) {
                 return derived_cmp(get_reql_type(), rhs.get_reql_type());
             }
@@ -865,7 +865,7 @@ void datum_t::init_from_pb(const Datum *d) {
             (*r_object)[key] = make_counted<datum_t>(&ap->val());
         }
         std::set<std::string> allowed_ptypes = { pseudo::literal_string };
-        maybe_rcheck_valid_pt(allowed_ptypes);
+        maybe_rcheck_valid_ptype(allowed_ptypes);
     } break;
     default: unreachable();
     }

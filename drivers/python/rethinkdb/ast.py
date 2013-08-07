@@ -1,7 +1,7 @@
 import ql2_pb2 as p
 import types
 import sys
-from datetime import datetime
+import datetime
 import time
 import json as py_json
 from threading import Lock
@@ -16,24 +16,8 @@ def expr(val):
     '''
     if isinstance(val, RqlQuery):
         return val
-    elif isinstance(val, datetime):
-        # A datetime is represented to the server as an object with a special
-        # format rather than as a separate datum type. This is done to retain
-        # JSON compatibility even if it comes with possible collision problems.
-        if not val.tzinfo:
-            raise RqlDriverError("Cannot convert datetime to ReQL time value without timestamp.")
-
-        timezone_delta = val.tzinfo.utcoffset(val) # yes, this is not a typo, utcoffset requires
-                                                   # that you pass the date twice
-
-        offset_seconds = timezone_delta.total_seconds()
-        offset_string = "%s%02d:%02d" % ('+' if offset_seconds > 0 else '-', abs(offset_seconds / (60 * 60)), abs(offset_seconds % (60 * 60)))
-
-        return MakeObj({
-            "$reql_type$": "TIME",
-            "epoch_time":  time.mktime(val.timetuple()),
-            "timezone":    offset_string
-        })
+    elif isinstance(val, datetime.datetime):
+        return ISO8601(val.isoformat())
     elif isinstance(val, list):
         return MakeArray(*val)
     elif isinstance(val, dict):

@@ -80,8 +80,8 @@ public:
     void write_to_protobuf(Datum *out) const;
 
     type_t get_type() const;
-    bool is_pt() const;
-    bool is_pt(const std::string &reql_type) const;
+    bool is_ptype() const;
+    bool is_ptype(const std::string &reql_type) const;
     std::string get_reql_type() const;
     std::string get_type_name() const;
     std::string print() const;
@@ -124,11 +124,12 @@ public:
         env_t *env, const protob_t<const Backtrace> &backtrace) const;
 
     // Check that we have a valid pseudotype.  Implies `rcheck_is_pt`.
-    void rcheck_valid_pt(const std::string s = "") const;
-    void rcheck_valid_pt(const std::set<std::string> &allowed_pts) const;
+    void rcheck_valid_ptype(const std::string s = "") const;
+    void rcheck_valid_ptype(const std::set<std::string> &allowed_pts) const;
+
     // If we have a pseudotype, check that it's valid.
-    void maybe_rcheck_valid_pt(const std::string s = "") const;
-    void maybe_rcheck_valid_pt(const std::set<std::string> &allowed_pts) const;
+    void maybe_rcheck_valid_ptype(const std::string s = "") const;
+    void maybe_rcheck_valid_ptype(const std::set<std::string> &allowed_pts) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
@@ -181,7 +182,7 @@ private:
     void array_to_str_key(std::string *str_out) const;
 
     int pseudo_cmp(const datum_t &rhs) const;
-    void rcheck_is_pt(const std::string s = "") const; // prefer `rcheck_valid_pt`
+    void rcheck_is_ptype(const std::string s = "") const; // prefer `rcheck_valid_ptype`
 
     type_t type;
     union {
@@ -210,7 +211,7 @@ public:
     datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
     counted_t<const datum_t> to_counted(
         const std::set<std::string> &allowed_ptypes = default_allowed_ptypes) {
-        ptr()->maybe_rcheck_valid_pt(allowed_ptypes);
+        ptr()->maybe_rcheck_valid_ptype(allowed_ptypes);
         return counted_t<const datum_t>(_p.release());
     }
     const datum_t *operator->() const { return const_ptr(); }

@@ -56,7 +56,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::PLUCK:              return make_pluck_term(env, t);
     case Term::WITHOUT:            return make_without_term(env, t);
     case Term::MERGE:              return make_merge_term(env, t);
-    case Term::LITERAL:            return make_literal_term(env, t); 
+    case Term::LITERAL:            return make_literal_term(env, t);
     case Term::BETWEEN:            return make_between_term(env, t);
     case Term::REDUCE:             return make_reduce_term(env, t);
     case Term::MAP:                return make_map_term(env, t);
