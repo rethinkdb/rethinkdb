@@ -187,7 +187,7 @@ $(V8_SRC_DIR):
 
 $(V8_INT_LIB): $(V8_INT_DIR)
 	$P MAKE v8
-	$(EXTERN_MAKE) -C $(V8_INT_DIR) native $(SUPPORT_LOG_REDIRECT)
+	$(EXTERN_MAKE) -C $(V8_INT_DIR) native CXXFLAGS=-Wno-array-bounds $(SUPPORT_LOG_REDIRECT)
 	$P AR $@
 	find $(V8_INT_DIR) -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ar cqs $(V8_INT_LIB);
 
