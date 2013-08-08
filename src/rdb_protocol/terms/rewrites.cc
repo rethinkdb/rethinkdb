@@ -45,7 +45,7 @@ private:
 
 class groupby_term_t : public rewrite_term_t {
 public:
-    groupby_term_t(env_t *env, protob_t<const Term> term)
+    groupby_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -164,7 +164,7 @@ private:
 
 class inner_join_term_t : public rewrite_term_t {
 public:
-    inner_join_term_t(env_t *env, protob_t<const Term> term)
+    inner_join_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -197,7 +197,7 @@ public:
 
 class outer_join_term_t : public rewrite_term_t {
 public:
-    outer_join_term_t(env_t *env, protob_t<const Term> term) :
+    outer_join_term_t(env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -244,7 +244,7 @@ public:
 
 class eq_join_term_t : public rewrite_term_t {
 public:
-    eq_join_term_t(env_t *env, protob_t<const Term> term) :
+    eq_join_term_t(env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
 
@@ -274,7 +274,7 @@ private:
 
 class delete_term_t : public rewrite_term_t {
 public:
-    delete_term_t(env_t *env, protob_t<const Term> term)
+    delete_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
 
@@ -292,7 +292,7 @@ private:
 
 class update_term_t : public rewrite_term_t {
 public:
-    update_term_t(env_t *env, protob_t<const Term> term)
+    update_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -324,7 +324,7 @@ private:
 
 class skip_term_t : public rewrite_term_t {
 public:
-    skip_term_t(env_t *env, protob_t<const Term> term)
+    skip_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static protob_t<Term> rewrite(UNUSED env_t *env, protob_t<const Term> in,
@@ -340,7 +340,7 @@ private:
 
 class difference_term_t : public rewrite_term_t {
 public:
-    difference_term_t(env_t *env, protob_t<const Term> term)
+    difference_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -360,7 +360,7 @@ private:
 
 class with_fields_term_t : public rewrite_term_t {
 public:
-    with_fields_term_t(env_t *env, protob_t<const Term> term)
+    with_fields_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
 private:
     static protob_t<Term> rewrite(UNUSED env_t *env, protob_t<const Term> in,
@@ -383,31 +383,31 @@ private:
      virtual const char *name() const { return "with_fields"; }
 };
 
-counted_t<term_t> make_skip_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_skip_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<skip_term_t>(env, term);
 }
-counted_t<term_t> make_groupby_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_groupby_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<groupby_term_t>(env, term);
 }
-counted_t<term_t> make_inner_join_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_inner_join_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<inner_join_term_t>(env, term);
 }
-counted_t<term_t> make_outer_join_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_outer_join_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<outer_join_term_t>(env, term);
 }
-counted_t<term_t> make_eq_join_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_eq_join_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<eq_join_term_t>(env, term);
 }
-counted_t<term_t> make_update_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_update_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<update_term_t>(env, term);
 }
-counted_t<term_t> make_delete_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_delete_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<delete_term_t>(env, term);
 }
-counted_t<term_t> make_difference_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_difference_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<difference_term_t>(env, term);
 }
-counted_t<term_t> make_with_fields_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_with_fields_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<with_fields_term_t>(env, term);
 }
 

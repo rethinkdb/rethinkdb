@@ -9,7 +9,7 @@ namespace ql {
 
 class match_term_t : public op_term_t {
 public:
-    match_term_t(env_t *env, protob_t<const Term> term)
+    match_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -65,7 +65,7 @@ private:
     virtual const char *name() const { return "match"; }
 };
 
-counted_t<term_t> make_match_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_match_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<match_term_t>(env, term);
 }
 

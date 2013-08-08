@@ -23,7 +23,7 @@ namespace ql {
 
 class asc_term_t : public op_term_t {
 public:
-    asc_term_t(env_t *env, protob_t<const Term> term)
+    asc_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -34,7 +34,7 @@ private:
 
 class desc_term_t : public op_term_t {
 public:
-    desc_term_t(env_t *env, protob_t<const Term> term)
+    desc_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -45,7 +45,7 @@ private:
 
 class orderby_term_t : public op_term_t {
 public:
-    orderby_term_t(env_t *env, protob_t<const Term> term)
+    orderby_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1),
           optargspec_t({"index"})), src_term(term) { }
 private:
@@ -153,7 +153,7 @@ private:
 
 class distinct_term_t : public op_term_t {
 public:
-    distinct_term_t(env_t *env, protob_t<const Term> term)
+    distinct_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
@@ -178,16 +178,16 @@ private:
     virtual const char *name() const { return "distinct"; }
 };
 
-counted_t<term_t> make_orderby_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_orderby_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<orderby_term_t>(env, term);
 }
-counted_t<term_t> make_distinct_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_distinct_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<distinct_term_t>(env, term);
 }
-counted_t<term_t> make_asc_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_asc_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<asc_term_t>(env, term);
 }
-counted_t<term_t> make_desc_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_desc_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<desc_term_t>(env, term);
 }
 

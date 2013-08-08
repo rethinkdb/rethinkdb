@@ -7,7 +7,7 @@ namespace ql {
 
 class pend_term_t : public op_term_t {
 public:
-    pend_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+    pend_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 protected:
     enum which_pend_t {PRE, AP};
     counted_t<val_t> pend(which_pend_t which_pend) {
@@ -29,7 +29,7 @@ protected:
 
 class append_term_t : public pend_term_t {
 public:
-    append_term_t(env_t *env, protob_t<const Term> term) : pend_term_t(env, term) { }
+    append_term_t(env_t *env, const protob_t<const Term> &term) : pend_term_t(env, term) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return pend(AP);
@@ -39,7 +39,7 @@ private:
 
 class prepend_term_t : public pend_term_t {
 public:
-    prepend_term_t(env_t *env, protob_t<const Term> term) : pend_term_t(env, term) { }
+    prepend_term_t(env_t *env, const protob_t<const Term> &term) : pend_term_t(env, term) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         return pend(PRE);
@@ -66,7 +66,7 @@ uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out
 
 class nth_term_t : public op_term_t {
 public:
-    nth_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+    nth_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
@@ -100,7 +100,7 @@ private:
 
 class is_empty_term_t : public op_term_t {
 public:
-    is_empty_term_t(env_t *env, protob_t<const Term> term) :
+    is_empty_term_t(env_t *env, const protob_t<const Term> &term) :
         op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -113,7 +113,7 @@ private:
 // TODO: this kinda sucks.
 class slice_term_t : public bounded_op_term_t {
 public:
-    slice_term_t(env_t *env, protob_t<const Term> term)
+    slice_term_t(env_t *env, const protob_t<const Term> &term)
         : bounded_op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -186,7 +186,7 @@ private:
 
 class limit_term_t : public op_term_t {
 public:
-    limit_term_t(env_t *env, protob_t<const Term> term)
+    limit_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -207,7 +207,7 @@ private:
 
 class set_insert_term_t : public op_term_t {
 public:
-    set_insert_term_t(env_t *env, protob_t<const Term> term)
+    set_insert_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -232,7 +232,7 @@ private:
 
 class set_union_term_t : public op_term_t {
 public:
-    set_union_term_t(env_t *env, protob_t<const Term> term)
+    set_union_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -259,7 +259,7 @@ private:
 
 class set_intersection_term_t : public op_term_t {
 public:
-    set_intersection_term_t(env_t *env, protob_t<const Term> term)
+    set_intersection_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -285,7 +285,7 @@ private:
 
 class set_difference_term_t : public op_term_t {
 public:
-    set_difference_term_t(env_t *env, protob_t<const Term> term)
+    set_difference_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -342,7 +342,7 @@ private:
 
 class insert_at_term_t : public at_term_t {
 public:
-    insert_at_term_t(env_t *env, protob_t<const Term> term)
+    insert_at_term_t(env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
     void modify(size_t index, datum_ptr_t *array) {
@@ -355,7 +355,7 @@ private:
 
 class splice_at_term_t : public at_term_t {
 public:
-    splice_at_term_t(env_t *env, protob_t<const Term> term)
+    splice_at_term_t(env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
     void modify(size_t index, datum_ptr_t *array) {
@@ -367,7 +367,7 @@ private:
 
 class delete_at_term_t : public at_term_t {
 public:
-    delete_at_term_t(env_t *env, protob_t<const Term> term)
+    delete_at_term_t(env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(2, 3), ELEMENTS) { }
 private:
     void modify(size_t index, datum_ptr_t *array) {
@@ -384,7 +384,7 @@ private:
 
 class change_at_term_t : public at_term_t {
 public:
-    change_at_term_t(env_t *env, protob_t<const Term> term)
+    change_at_term_t(env_t *env, const protob_t<const Term> &term)
         : at_term_t(env, term, argspec_t(3), ELEMENTS) { }
 private:
     void modify(size_t index, datum_ptr_t *array) {
@@ -396,7 +396,7 @@ private:
 
 class indexes_of_term_t : public op_term_t {
 public:
-    indexes_of_term_t(env_t *env, protob_t<const Term> term) : op_term_t(env, term, argspec_t(2)) { }
+    indexes_of_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(1);
@@ -413,7 +413,7 @@ private:
 
 class contains_term_t : public op_term_t {
 public:
-    contains_term_t(env_t *env, protob_t<const Term> term)
+    contains_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -452,67 +452,67 @@ private:
     virtual const char *name() const { return "contains"; }
 };
 
-counted_t<term_t> make_contains_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_contains_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<contains_term_t>(env, term);
 }
 
-counted_t<term_t> make_append_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_append_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<append_term_t>(env, term);
 }
 
-counted_t<term_t> make_prepend_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_prepend_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<prepend_term_t>(env, term);
 }
 
-counted_t<term_t> make_nth_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_nth_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<nth_term_t>(env, term);
 }
 
-counted_t<term_t> make_is_empty_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_is_empty_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<is_empty_term_t>(env, term);
 }
 
-counted_t<term_t> make_slice_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_slice_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<slice_term_t>(env, term);
 }
 
-counted_t<term_t> make_limit_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_limit_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<limit_term_t>(env, term);
 }
 
-counted_t<term_t> make_set_insert_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_set_insert_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<set_insert_term_t>(env, term);
 }
 
-counted_t<term_t> make_set_union_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_set_union_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<set_union_term_t>(env, term);
 }
 
-counted_t<term_t> make_set_intersection_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_set_intersection_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<set_intersection_term_t>(env, term);
 }
 
-counted_t<term_t> make_set_difference_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_set_difference_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<set_difference_term_t>(env, term);
 }
 
-counted_t<term_t> make_insert_at_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_insert_at_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<insert_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_delete_at_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_delete_at_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<delete_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_change_at_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_change_at_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<change_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_splice_at_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_splice_at_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<splice_at_term_t>(env, term);
 }
 
-counted_t<term_t> make_indexes_of_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_indexes_of_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<indexes_of_term_t>(env, term);
 }
 

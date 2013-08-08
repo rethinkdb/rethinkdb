@@ -201,7 +201,7 @@ public:
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
-    func_term_t(env_t *env, protob_t<const Term> term);
+    func_term_t(env_t *env, const protob_t<const Term> &term);
 private:
     virtual bool is_deterministic_impl() const;
     virtual counted_t<val_t> eval_impl(eval_flags_t flags);

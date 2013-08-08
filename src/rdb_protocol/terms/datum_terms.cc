@@ -36,7 +36,7 @@ private:
 
 class make_array_term_t : public op_term_t {
 public:
-    make_array_term_t(env_t *env, protob_t<const Term> term)
+    make_array_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
@@ -51,7 +51,7 @@ private:
 
 class make_obj_term_t : public op_term_t {
 public:
-    make_obj_term_t(env_t *env, protob_t<const Term> term)
+    make_obj_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
     virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
@@ -68,17 +68,17 @@ private:
     virtual const char *name() const { return "make_obj"; }
 };
 
-counted_t<term_t> make_datum_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_datum_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<datum_term_t>(env, term);
 }
-counted_t<term_t> make_constant_term(env_t *env, protob_t<const Term> term,
+counted_t<term_t> make_constant_term(env_t *env, const protob_t<const Term> &term,
                                      double constant, const char *name) {
     return make_counted<constant_term_t>(env, term, constant, name);
 }
-counted_t<term_t> make_make_array_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_make_array_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_array_term_t>(env, term);
 }
-counted_t<term_t> make_make_obj_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_make_obj_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_obj_term_t>(env, term);
 }
 

@@ -105,7 +105,7 @@ private:
 
 class pluck_term_t : public obj_or_seq_op_term_t {
 public:
-    pluck_term_t(env_t *env, protob_t<const Term> term) :
+    pluck_term_t(env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
@@ -124,7 +124,7 @@ private:
 
 class without_term_t : public obj_or_seq_op_term_t {
 public:
-    without_term_t(env_t *env, protob_t<const Term> term) :
+    without_term_t(env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
@@ -143,7 +143,7 @@ private:
 
 class literal_term_t : public op_term_t {
 public:
-    literal_term_t(env_t *env, protob_t<const Term> term)
+    literal_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0,1)) { }
 private:
     virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
@@ -167,7 +167,7 @@ private:
 
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
-    merge_term_t(env_t *env, protob_t<const Term> term) :
+    merge_term_t(env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
@@ -182,7 +182,7 @@ private:
 
 class has_fields_term_t : public obj_or_seq_op_term_t {
 public:
-    has_fields_term_t(env_t *env, protob_t<const Term> term)
+    has_fields_term_t(env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
@@ -201,7 +201,7 @@ private:
 
 class get_field_term_t : public obj_or_seq_op_term_t {
 public:
-    get_field_term_t(env_t *env, protob_t<const Term> term)
+    get_field_term_t(env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> obj_eval(counted_t<val_t> v0) {
@@ -210,24 +210,24 @@ private:
     virtual const char *name() const { return "get_field"; }
 };
 
-counted_t<term_t> make_get_field_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_get_field_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_field_term_t>(env, term);
 }
 
-counted_t<term_t> make_has_fields_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_has_fields_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<has_fields_term_t>(env, term);
 }
 
-counted_t<term_t> make_pluck_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_pluck_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<pluck_term_t>(env, term);
 }
-counted_t<term_t> make_without_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_without_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<without_term_t>(env, term);
 }
-counted_t<term_t> make_literal_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_literal_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<literal_term_t>(env, term);
 }
-counted_t<term_t> make_merge_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_merge_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<merge_term_t>(env, term);
 }
 

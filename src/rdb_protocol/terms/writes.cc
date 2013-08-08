@@ -73,7 +73,7 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
 
 class insert_term_t : public op_term_t {
 public:
-    insert_term_t(env_t *env, protob_t<const Term> term)
+    insert_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"upsert", "durability", "return_vals"})) { }
 
@@ -168,7 +168,7 @@ private:
 
 class replace_term_t : public op_term_t {
 public:
-    replace_term_t(env_t *env, protob_t<const Term> term)
+    replace_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"non_atomic", "durability", "return_vals"})) { }
 
@@ -232,7 +232,7 @@ private:
 
 class foreach_term_t : public op_term_t {
 public:
-    foreach_term_t(env_t *env, protob_t<const Term> term)
+    foreach_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
@@ -264,13 +264,13 @@ private:
     virtual const char *name() const { return "foreach"; }
 };
 
-counted_t<term_t> make_insert_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_insert_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<insert_term_t>(env, term);
 }
-counted_t<term_t> make_replace_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_replace_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<replace_term_t>(env, term);
 }
-counted_t<term_t> make_foreach_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_foreach_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<foreach_term_t>(env, term);
 }
 

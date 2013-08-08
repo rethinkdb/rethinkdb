@@ -7,7 +7,7 @@ namespace ql {
 
 class var_term_t : public op_term_t {
 public:
-    var_term_t(env_t *env, protob_t<const Term> term)
+    var_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) {
         int var = arg(0)->as_int<int>();
         datum_val = env->top_var(var, this);
@@ -22,7 +22,7 @@ private:
 
 class implicit_var_term_t : public op_term_t {
 public:
-    implicit_var_term_t(env_t *env, protob_t<const Term> term) :
+    implicit_var_term_t(env_t *env, const protob_t<const Term> &term) :
         op_term_t(env, term, argspec_t(0)) {
         datum_val = env->top_implicit(this);
     }
@@ -34,10 +34,10 @@ private:
     virtual const char *name() const { return "implicit_var"; }
 };
 
-counted_t<term_t> make_var_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_var_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<var_term_t>(env, term);
 }
-counted_t<term_t> make_implicit_var_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_implicit_var_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<implicit_var_term_t>(env, term);
 }
 
