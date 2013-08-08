@@ -20,6 +20,12 @@ module RethinkDB
       c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
       opts = {} if opts.nil?
       opts = {opts => true} if opts.class != Hash
+      if (tf = opts[:time_format])
+        opts[:time_format] = (tf = tf.to_s)
+        if tf != 'raw' && tf != 'native'
+          raise ArgumentError, "`time_format` must be 'raw' or 'native' (got `#{tf}`)."
+        end
+      end
       if !c
         raise ArgumentError, "No connection specified!\n" \
         "Use `query.run(conn)` or `conn.repl(); query.run`."
