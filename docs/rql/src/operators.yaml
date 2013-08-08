@@ -28,7 +28,7 @@ commands:
         - array
       - - time 
         - time
-        - duration
+        - number
 
 
     examples:
@@ -76,7 +76,7 @@ commands:
         - time
       - - time
         - time
-        - duration
+        - number
 
 
     examples:
