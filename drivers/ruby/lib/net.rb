@@ -265,11 +265,23 @@ module RethinkDB
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
-          @mutex.synchronize do
-            @data[protob.token] = protob
-            if (@waiters[protob.token])
-              cond = @waiters.delete protob.token
-              cond.signal
+          if protob.token == -1
+            @mutex.synchronize do
+              @waiters.keys.each {|k|
+                @data[k] = protob
+                if @waiters[k]
+                  cond = @waiters.delete k
+                  cond.signal
+                end
+              }
+            end
+          else
+            @mutex.synchronize do
+              @data[protob.token] = protob
+              if @waiters[protob.token]
+                cond = @waiters.delete protob.token
+                cond.signal
+              end
             end
           end
         end
