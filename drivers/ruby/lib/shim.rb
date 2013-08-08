@@ -139,12 +139,17 @@ module RethinkDB
       end
     end
 
-    def reql_typify tree
+    def check_depth depth
+      raise RqlRuntimeError, "Maximum expression depth of 20 exceeded." if depth > 20
+    end
+
+    def reql_typify(tree, depth=0)
+      check_depth(depth)
       case tree
       when Array
-        return tree.map{|x| reql_typify(x)}
+        return tree.map{|x| reql_typify(x, depth+1)}
       when Hash
-        return Hash[tree.map{|k,v| [k, reql_typify(v)]}]
+        return Hash[tree.map{|k,v| [k, reql_typify(v, depth+1)]}]
       when Time
         return {
           '$reql_type$' => 'TIME',
