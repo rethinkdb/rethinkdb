@@ -537,11 +537,11 @@ class Datum(RqlQuery):
         elif datum.type == p.Datum.R_STR:
             return datum.r_str
         elif datum.type == p.Datum.R_ARRAY:
-            return [Datum.deconstruct(e) for e in datum.r_array]
+            return [Datum.deconstruct(e, time_format) for e in datum.r_array]
         elif datum.type == p.Datum.R_OBJECT:
             obj = {}
             for pair in datum.r_object:
-                obj[pair.key] = Datum.deconstruct(pair.val)
+                obj[pair.key] = Datum.deconstruct(pair.val, time_format)
 
             # Thanks to "psudo-types" we can't yet be quite sure if this object is meant to
             # be an object or something else. We need a second layer of type switching, this

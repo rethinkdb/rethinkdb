@@ -34,17 +34,18 @@ from errors import *
 from ast import Datum, DB, expr
 
 class Cursor(object):
-    def __init__(self, conn, query, term, chunk, complete):
-        self.chunks = [chunk]
+    def __init__(self, conn, opts, query, term, chunk, complete):
         self.conn = conn
+        self.opts = opts
         self.query = query
         self.term = term
+        self.chunks = [chunk]
         self.end_flag = complete
 
     def _read_more(self):
         if self.end_flag:
             return False
-        other = self.conn._continue(self.query, self.term)
+        other = self.conn._continue(self.query, self.term, self.opts)
         self.chunks.extend(other.chunks)
         self.end_flag = other.end_flag
         return True
@@ -157,11 +158,11 @@ class Connection(object):
         term.build(query.query)
         return self._send_query(query, term, global_opt_args)
 
-    def _continue(self, orig_query, orig_term):
+    def _continue(self, orig_query, orig_term, opts):
         query = p.Query()
         query.type = p.Query.CONTINUE
         query.token = orig_query.token
-        return self._send_query(query, orig_term)
+        return self._send_query(query, orig_term, opts)
 
     def _end(self, orig_query, orig_term):
         query = p.Query()
@@ -240,7 +241,7 @@ class Connection(object):
         # Sequence responses
         elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
             chunk = [Datum.deconstruct(datum, time_format) for datum in response.response]
-            return Cursor(self, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
+            return Cursor(self, opts, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
 
         # Atom response
         elif response.type == p.Response.SUCCESS_ATOM:

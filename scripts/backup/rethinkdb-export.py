@@ -5,11 +5,39 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import sys, os, datetime, time, copy, json, traceback, csv, string
-import multiprocessing, multiprocessing.queues
+import multiprocessing, multiprocessing.queues, subprocess, re
 from optparse import OptionParser
 
 try:
     import rethinkdb as r
+
+    # Check that the version of the driver is up-to-date
+    version_ok = True
+    try:
+        output = subprocess.check_output(["pip", "show", "rethinkdb"])
+        version_found = False
+
+        for line in output.split("\n"):
+            match = re.match("^Version: ([0-9]+)\.([0-9]+)\.([0-9]+)", line)
+            if match is not None:
+                version_found = True
+                minimum_version = [1, 8, 0]
+                installed_version = [int(match.group(1)), int(match.group(2)), int(match.group(3))]
+
+                if installed_version < minimum_version:
+                    version_ok = False
+
+        if not version_found:
+            raise RuntimeError("Could not parse a version from pip output.")
+    except:
+        print "Could not determine rethinkdb python client version: `pip show rethinkdb` failed."
+        exit(1)
+
+    if not version_ok:
+        print "Incompatible version of rethinkdb python client installed."
+        print "Update it via `pip install --upgrade rethinkdb`"
+        exit(1)
+
 except ImportError:
     print "The RethinkDB python driver is required to use this command."
     print "Please install the driver via `pip install rethinkdb`."
@@ -158,7 +186,7 @@ def write_table_metadata(conn, db, table, base_path):
     out.close()
 
 def read_table_into_queue(conn, db, table, task_queue, exit_event):
-    for row in r.db(db).table(table).run(conn):
+    for row in r.db(db).table(table).run(conn, time_format="raw"):
         if exit_event.is_set():
             break
         task_queue.put([row])
@@ -292,7 +320,7 @@ def run_clients(options, db_table_set):
             error = error_queue.get()
             print >> sys.stderr, "Traceback: %s" % (error[2])
             print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
-            raise RuntimeError("errors occurred during import")
+            raise RuntimeError("errors occurred during export")
 
 def main():
     try:
