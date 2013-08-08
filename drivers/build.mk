@@ -7,11 +7,7 @@ PROTOC_BASE := $(dir $(patsubst %/,%,$(dir $(PROTOC))))
 include $(DRIVERS_DIR)/javascript/build.mk
 
 .PHONY: drivers
-ifeq ($(BUILD_DRIVERS), 1)
-  drivers: js-driver ruby-driver python-driver
-else
-  drivers: js-driver
-endif
+drivers: js-driver ruby-driver python-driver
 
 $(DRIVERS_DIR)/ruby/lib/ql2.pb.rb: $(TOP)/src/rdb_protocol/ql2.proto
 	$(MAKE) -C $(DRIVERS_DIR)/ruby
@@ -26,4 +22,8 @@ $(DRIVERS_DIR)/python/rethinkdb/ql2_pb2.py: $(TOP)/src/rdb_protocol/ql2.proto
 python-driver: $(DRIVERS_DIR)/python/rethinkdb/ql2_pb2.py
 
 .PHONY: $(DRIVERS_DIR)/all
-$(DRIVERS_DIR)/all: drivers
+ifeq ($(BUILD_DRIVERS), 1)
+  $(DRIVERS_DIR)/all: drivers
+else
+  $(DRIVERS_DIR)/all:
+endif
