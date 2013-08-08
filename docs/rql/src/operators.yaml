@@ -72,7 +72,7 @@ commands:
       - - number
         - number
       - - time
-        - duration
+        - number
         - time
       - - time
         - time
