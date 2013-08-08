@@ -52,13 +52,14 @@ module RethinkDB
         (@run ? "" : "\n#{preview}") + ">"
     end
 
-    def initialize(results, msg, connection, token, more = true) # :nodoc:
+    def initialize(results, msg, connection, opts, token, more = true) # :nodoc:
       @more = more
       @results = results
       @msg = msg
       @run = false
       @conn_id = connection.conn_id
       @conn = connection
+      @opts = opts
       @token = token
     end
 
@@ -73,7 +74,7 @@ module RethinkDB
         q.type = Query::QueryType::CONTINUE
         q.token = @token
         res = @conn.run_internal q
-        @results = Shim.response_to_native(res, @msg)
+        @results = Shim.response_to_native(res, @msg, @opts)
         if res.type == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
         end
@@ -139,9 +140,11 @@ module RethinkDB
       res = run_internal(q, all_opts[:noreply])
       return res if !res
       if res.type == Response::ResponseType::SUCCESS_PARTIAL
-        Cursor.new(Shim.response_to_native(res, msg, opts), msg, self, q.token, true)
+        Cursor.new(Shim.response_to_native(res, msg, opts),
+                   msg, self, opts, q.token, true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
-        Cursor.new(Shim.response_to_native(res, msg, opts), msg, self, q.token, false)
+        Cursor.new(Shim.response_to_native(res, msg, opts),
+                   msg, self, opts, q.token, false)
       else
         Shim.response_to_native(res, msg, opts)
       end
