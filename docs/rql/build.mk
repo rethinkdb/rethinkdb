@@ -1,7 +1,8 @@
 
 RQL_DOCS_DIR := $(TOP)/docs/rql
 DOCS_YAML_DIR := $(RQL_DOCS_DIR)/src
-DOCS_JSON_OUT := $(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json
+DOCS_BUILD_DIR := $(BUILD_ROOT_DIR)/docs
+DOCS_JSON_OUT := $(DOCS_BUILD_DIR)/reql_docs.json
 
 DOCS_YAML_FILES := $(shell find $(DOCS_YAML_DIR) -name '*.yaml')
 
@@ -13,11 +14,9 @@ DOCS_HEADER := $(RQL_DOCS_DIR)/header.json
 .PHONY: docs
 docs: $(DOCS_JSON_OUT)
 
-ifneq (1,$(USE_PRECOMPILED_WEB_ASSETS))
-  $(DOCS_JSON_OUT): $(DOCS_JSON_CONVERT) $(DOCS_YAML_FILES) $(DOCS_HEADER) | $(WEB_ASSETS_BUILD_DIR)/js/.
+$(DOCS_JSON_OUT): $(DOCS_JSON_CONVERT) $(DOCS_YAML_FILES) $(DOCS_HEADER) | $(DOCS_BUILD_DIR)/.
 	$P JSON_CONVERT
 	python $(DOCS_JSON_CONVERT) $(DOCS_YAML_DIR) $@ $(DOCS_HEADER)
-endif
 
 .PHONY: docs-validate
 docs-validate: $(DOCS_YAML_FILES) | $(RQL_DOCS_DIR)/build/.
