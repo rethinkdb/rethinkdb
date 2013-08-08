@@ -15,9 +15,9 @@ commands:
       rb: +
 
     body:
-      py: "$PARENT + $PARENT"
-      rb: "$PARENT + $PARENT"
-      js: "$PARENT.add($PARENT)"
+      py: "$PARENT + $ARG"
+      rb: "$PARENT + $ARG"
+      js: "$PARENT.add($ARG)"
 
     io:
       - - number
@@ -26,6 +26,10 @@ commands:
         - string
       - - array
         - array
+      - - time 
+        - time
+        - number
+
 
     examples:
       - description: It's as easy as 2 + 2 = 4.
@@ -43,6 +47,12 @@ commands:
           js: r.expr(["foo", "bar"]).add(["buzz"]).run(conn, callback)
           py: (r.expr(["foo", "bar"]) + ["buzz"]).run(conn)
           rb: (r(["foo", "bar"]) + ["buzz"]).run(conn)
+      - description: Create a date one year from now.
+        code:
+          js: r.now().add(365*24*60*60)
+          py: r.now() + 365*24*60*60
+          rb: r.now() + 365*24*60*60
+
 
   - tag: sub
     section: operators
@@ -54,13 +64,20 @@ commands:
       rb: '-'
 
     body:
-      py: "$PARENT - $PARENT"
-      rb: "$PARENT - $PARENT"
-      js: "$PARENT.sub($PARENT)"
+      py: "$PARENT - $ARG"
+      rb: "$PARENT - $ARG"
+      js: "$PARENT.sub($ARG)"
 
     io:
       - - number
         - number
+      - - time
+        - number
+        - time
+      - - time
+        - time
+        - number
+
 
     examples:
       - description: It's as easy as 2 - 2 = 0.
@@ -68,6 +85,18 @@ commands:
           js: r.expr(2).sub(2).run(conn, callback)
           py: (r.expr(2) - 2).run(conn)
           rb: (r(2) - 2).run(conn)
+      - description: Create a date one year ago today.
+        code:
+          js: r.now().sub(365*24*60*60)
+          py: r.now() - 365*24*60*60
+          rb: r.now() - 365*24*60*60
+      - description: Retrieve how many seconds elapsed between today and date
+        code:
+          js: r.now().sub(date)
+          py: r.now() - date
+          rb: r.now() - date
+
+
 
   - tag: mul
     section: operators
@@ -111,9 +140,9 @@ commands:
       rb: '/'
 
     body:
-      py: "$PARENT / $PARENT"
-      rb: "$PARENT / $PARENT"
-      js: "$PARENT.div($PARENT)"
+      py: "$PARENT / $ARG"
+      rb: "$PARENT / $ARG"
+      js: "$PARENT.div($ARG)"
 
     io:
       - - number
@@ -136,9 +165,9 @@ commands:
       rb: '%'
 
     body:
-      py: "$PARENT % $PARENT"
-      rb: "$PARENT % $PARENT"
-      js: "$PARENT.mod($PARENT)"
+      py: "$PARENT % $ARG"
+      rb: "$PARENT % $ARG"
+      js: "$PARENT.mod($ARG)"
 
     io:
       - - number
@@ -161,9 +190,9 @@ commands:
       rb: '&'
 
     body:
-      py: "$PARENT & $PARENT"
-      rb: "$PARENT & $PARENT"
-      js: "$PARENT.and($PARENT)"
+      py: "$PARENT & $ARG"
+      rb: "$PARENT & $ARG"
+      js: "$PARENT.and($ARG)"
 
     io:
       - - bool
@@ -186,9 +215,9 @@ commands:
       rb: '|'
 
     body:
-      py: "$PARENT | $PARENT"
-      rb: "$PARENT | $PARENT"
-      js: "$PARENT.or($PARENT)"
+      py: "$PARENT | $ARG"
+      rb: "$PARENT | $ARG"
+      js: "$PARENT.or($ARG)"
 
     io:
       - - bool
@@ -211,9 +240,9 @@ commands:
       rb: eq
 
     body:
-      py: "$PARENT == $PARENT"
-      rb: "$PARENT.eq($PARENT)"
-      js: "$PARENT.eq($PARENT)"
+      py: "$PARENT == $ARG"
+      rb: "$PARENT.eq($ARG)"
+      js: "$PARENT.eq($ARG)"
 
     io:
       - - value 
@@ -236,9 +265,9 @@ commands:
       rb: ne
 
     body:
-      py: "$PARENT != $PARENT"
-      rb: "$PARENT.ne($PARENT)"
-      js: "$PARENT.ne($PARENT)"
+      py: "$PARENT != $ARG"
+      rb: "$PARENT.ne($ARG)"
+      js: "$PARENT.ne($ARG)"
 
     io:
       - - value 
@@ -261,9 +290,9 @@ commands:
       rb: '>'
 
     body:
-      py: "$PARENT > $PARENT"
-      rb: "$PARENT > $PARENT"
-      js: "$PARENT.gt($PARENT)"
+      py: "$PARENT > $ARG"
+      rb: "$PARENT > $ARG"
+      js: "$PARENT.gt($ARG)"
 
     io:
       - - value 
@@ -286,9 +315,9 @@ commands:
       rb: '>='
 
     body:
-      py: "$PARENT >= $PARENT"
-      rb: "$PARENT >= $PARENT"
-      js: "$PARENT.ge($PARENT)"
+      py: "$PARENT >= $ARG"
+      rb: "$PARENT >= $ARG"
+      js: "$PARENT.ge($ARG)"
 
     io:
       - - value 
@@ -311,9 +340,9 @@ commands:
       rb: '<'
 
     body:
-      py: "$PARENT < $PARENT"
-      rb: "$PARENT < $PARENT"
-      js: "$PARENT.lt($PARENT)"
+      py: "$PARENT < $ARG"
+      rb: "$PARENT < $ARG"
+      js: "$PARENT.lt($ARG)"
 
     io:
       - - value 
@@ -336,9 +365,9 @@ commands:
       rb: '<='
 
     body:
-      py: "$PARENT <= $PARENT"
-      rb: "$PARENT <= $PARENT"
-      js: "$PARENT.le($PARENT)"
+      py: "$PARENT <= $ARG"
+      rb: "$PARENT <= $ARG"
+      js: "$PARENT.le($ARG)"
 
     io:
       - - value 

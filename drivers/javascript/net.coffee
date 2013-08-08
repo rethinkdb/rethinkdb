@@ -24,11 +24,11 @@ deconstructDatum = (datum, opts) ->
        ,"R_STR": =>
             datum.r_str
        ,"R_ARRAY": =>
-            deconstructDatum dt for dt in datum.r_array
+            deconstructDatum(dt, opts) for dt in datum.r_array
        ,"R_OBJECT": =>
             obj = {}
             for pair in datum.r_object
-                obj[pair.key] = deconstructDatum(pair.val)
+                obj[pair.key] = deconstructDatum(pair.val, opts)
 
             # An R_OBJECT may be a regular object or a "psudo-type" so we need a
             # second layer of type switching here on the obfuscated field "$reql_type$"

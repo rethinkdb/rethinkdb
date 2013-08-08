@@ -42,7 +42,7 @@ tests:
 
   - def: bad_insert = [{'id':r.expr(t1).in_timezone("Z")}]
   - cd: tbl.insert(bad_insert)['first_error']
-    js: tbl.insert(bad_insert)('first_error')
+    js: tbl.insert(badInsert)('first__error')
     ot: ("Duplicate primary key.")
 
   - cd: tbl.between(ts, te).count()
@@ -125,9 +125,9 @@ tests:
     ot: 3
 
   - def:
-      rb: oldtime = Time.at(1375147296.60081)
-      py: oldtime = datetime.fromtimestamp(1375147296.60081, pytz.timezone('US/Pacific'))
-      js: oldtime = (new Date(1375147296.60081))
+      rb: oldtime = Time.at(1375147296.681)
+      py: oldtime = datetime.fromtimestamp(1375147296.681, pytz.timezone('US/Pacific'))
+      js: oldtime = (new Date(1375147296.681*1000))
   - def:
       rb: curtime = Time.now
       py: curtime = datetime.now()
@@ -140,7 +140,7 @@ tests:
   #   ot: 1
 
   - cd: tbl.get(oldtime)['id'].type_of()
-    js: tbl.get(oldtime)('id').typeOf()
+    js: tbl//.get(oldtime)('id').typeOf()
     ot: ("PSEUDOTYPE(TIME)")
 
   - cd: r.db('test').table_drop('times_api')

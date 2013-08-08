@@ -164,8 +164,8 @@ commands:
     description: Run a query on a connection.
 
     body:
-      js: "$PARENT.run(conn[, callback])"
-      py: "$PARENT.run(conn[, use_outdated=False])"
+      js: "$PARENT.run(conn/options[, callback])"
+      py: "$PARENT.run(conn[, use_outdated=False, time_format=<time_format>])"
       rb: "$PARENT.run(conn[, opts])"
 
     io:
@@ -227,6 +227,20 @@ commands:
             r.table('marvel')
              .insert({ :superhero => 'Iron Man', :superpower => 'Arc Reactor' })
              .run(conn, :noreply => true, :durability => 'soft')
+      - description: |
+          If you do not want a time object to be converted to a native date object,
+          you can pass a time_format flag to prevent it (valid flags are "raw" and "native").
+          This query returns an object with two fields (epoch_time and $reql_type$)
+          instead of a native date object.
+        validate: false
+        code:
+          js: |
+            r.now().run({connection:conn, timeFormat:"raw"},
+                function (err, result) { ... });
+          py: |
+            r.now().run(conn, time_format="raw")
+          rb: |
+            r.now().run(conn, :time_format=>"raw")
 
 
   - tag: next
