@@ -866,6 +866,8 @@ rethinkdb.exprJSON = ar (val) ->
         rethinkdb.json(JSON.stringify(val))
     else if (val instanceof TermBase)
         val
+    else if (val instanceof Date)
+        rethinkdb.expr(val)
     else
         if Array.isArray(val)
             wrapped = []
@@ -881,6 +883,8 @@ isJSON = (val) ->
     if (val instanceof TermBase)
         false
     else if (val instanceof Function)
+        false
+    else if (val instanceof Date)
         false
     else if (val instanceof Object)
         # Covers array case as well
