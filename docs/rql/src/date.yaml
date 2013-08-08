@@ -181,7 +181,7 @@ commands:
         - bool
 
     examples:
-      - description: Filter all the posts that were posted between December 1st, 2013 (inclusive) and December 10th, 2013 (exclusive).
+      - description: Retrieve all the posts that were posted between December 1st, 2013 (inclusive) and December 10th, 2013 (exclusive).
         code:
           rb: |
             r.table("posts").filter{ |post|
@@ -195,7 +195,7 @@ commands:
             r.table("posts").filter(
                 r.row('date').during(r.time(2013, 12, 1), r.time(2013, 12, 10))
             ).run(conn, callback)
-      - description: Filter all the posts that were posted between December 1st, 2013 (exclusive) and December 10th, 2013 (inclusive).
+      - description: Retrieve all the posts that were posted between December 1st, 2013 (exclusive) and December 10th, 2013 (inclusive).
         code:
           rb: |
             r.table("posts").filter{ |post|
@@ -214,7 +214,7 @@ commands:
   - tag: date 
     section: date 
     description: | 
-        Return a new time object only based on the day (ie. the same day at 00:00)
+        Return a new time object only based on the day, month and year (ie. the same day at 00:00).
 
     name: date
 
