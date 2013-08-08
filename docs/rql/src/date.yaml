@@ -8,12 +8,8 @@ commands:
   - tag: now
     section: date
     description: | 
-      Return a time object with the current date.
-      The time object has multiple methods to manipulate dates. On the server side, it
-      consists of 3 attributes: <code>$reql_type$</code>, <code>epoch_time</code> and
-      <code>timezone</code>. You can see such object if you set the "time format" flag
-      to "raw" in the run method.
-      By default, the drivers will convert the time objects to native time objects.
+      Return a time object with the current date. The command <code>now()</code> is computed
+      once per query, so <code>r.now()</code> will always return the same time inside a query.
     name: now
     body: "$PARENT.now()"
     io:
@@ -79,11 +75,11 @@ commands:
       - description: Update the birthdate of the user "John" to November 3rd, 1986. 
         code:
           rb: |
-            r.table("user").get("John").update(:birthdate => r.epoch_time(531360000)).run()
+            r.table("user").get("John").update(:birthdate => r.epoch_time(531360000)).run(conn)
           py: |
-            r.table("user").get("John").update({"birthdate": r.epoch_time(531360000)}).run()
+            r.table("user").get("John").update({"birthdate": r.epoch_time(531360000)}).run(conn)
           js: |
-            r.table("user").get("John").update({birthdate: r.epochTime(531360000)}).run()
+            r.table("user").get("John").update({birthdate: r.epochTime(531360000)}).run(conn, callback)
 
 
   - tag: iso8601
@@ -102,19 +98,19 @@ commands:
       - description: Update the birthdate of the user "John" to November 3rd, 1986. 
         code:
           rb: |
-            r.table("user").get("John").update(:birthdate => r.iso8601('1986-11-03')).run()
+            r.table("user").get("John").update(:birthdate => r.iso8601('1986-11-03')).run(conn)
           py: |
-            r.table("user").get("John").update({"birthdate": r.iso8601('1986-11-03')}).run()
+            r.table("user").get("John").update({"birthdate": r.iso8601('1986-11-03')}).run(conn)
           js: |
-            r.table("user").get("John").update({birthdate: r.iso8601('1986-11-03')}).run()
+            r.table("user").get("John").update({birthdate: r.iso8601('1986-11-03')}).run(conn, callback)
 
   - tag: in_timezone 
     section: date 
     description: | 
-      Return a new time object with a different timezone. While the time stay the same, 
+      Return a new time object with a different timezone. While the time stays the same, 
       the results returned by methods such as <code>hours()</code> will change since they take the
-      timezone into consideration.
-      The timezone argument has to be have the ISO 8601 format.
+      timezone into account.
+      The timezone argument has to be of the ISO 8601 format.
 
     name:
       js: inTimezone
@@ -173,7 +169,7 @@ commands:
   - tag: during
     section: date
     description: | 
-      Return if a time is during two other times (by default, inclusive for the start, exclusive for the end).
+      Return if a time is between two other times (by default, inclusive for the start, exclusive for the end).
 
     name: during 
     body:
