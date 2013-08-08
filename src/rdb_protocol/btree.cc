@@ -130,7 +130,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
 
-    //TODO unnecessary copies they must go away.
+    // TODO unnecessary copies they must go away.
     write_message_t wm;
     wm << data;
     vector_stream_t stream;
@@ -139,7 +139,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 
     blob_t blob(new_value->value_ref(), blob::btree_maxreflen);
 
-    //TODO more copies, good lord
+    // TODO more copies, good lord
     blob.append_region(txn, stream.vector().size());
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, txn, 0);
@@ -166,7 +166,7 @@ void rdb_replace_and_return_superblock(
     promise_t<superblock_t *> *superblock_promise_or_null,
     Datum *response_out,
     rdb_modification_info_t *mod_info) THROWS_NOTHING {
-    scoped_ptr_t<ql::datum_t> resp(new ql::datum_t(ql::datum_t::R_OBJECT));
+    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(
@@ -189,15 +189,15 @@ void rdb_replace_and_return_superblock(
         }
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
-            bool conflict = resp->add("old_val", old_val)
-                         || resp->add("new_val", old_val); // changed below
+            bool conflict = resp.add("old_val", old_val)
+                         || resp.add("new_val", old_val); // changed below
             guarantee(!conflict);
         }
 
         counted_t<const ql::datum_t> new_val
             = f->compile(ql_env)->call(old_val)->as_datum();
         if (return_vals == RETURN_VALS) {
-            bool conflict = resp->add("new_val", new_val, ql::CLOBBER);
+            bool conflict = resp.add("new_val", new_val, ql::CLOBBER);
             guarantee(conflict); // We set it to `old_val` previously.
         }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
@@ -220,8 +220,9 @@ void rdb_replace_and_return_superblock(
                              primary_key.c_str(),
                              old_val->print().c_str(), new_val->print().c_str())));
         } else {
-            rfail_typed_target(new_val, "Inserted value must be an OBJECT (got %s):\n%s",
-                               new_val->get_type_name(), new_val->print().c_str());
+            rfail_typed_target(
+                new_val, "Inserted value must be an OBJECT (got %s):\n%s",
+                new_val->get_type_name().c_str(), new_val->print().c_str());
         }
 
         // We use `conflict` below to store whether or not there was a key
@@ -233,9 +234,9 @@ void rdb_replace_and_return_superblock(
         // ended_empty, and the result of the function call) and then do it.
         if (started_empty) {
             if (ended_empty) {
-                conflict = resp->add("skipped", make_counted<ql::datum_t>(1.0));
+                conflict = resp.add("skipped", make_counted<ql::datum_t>(1.0));
             } else {
-                conflict = resp->add("inserted", make_counted<ql::datum_t>(1.0));
+                conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                 boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
@@ -244,16 +245,16 @@ void rdb_replace_and_return_superblock(
             }
         } else {
             if (ended_empty) {
-                conflict = resp->add("deleted", make_counted<ql::datum_t>(1.0));
+                conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
                 mod_info->deleted = old_val->as_json();
             } else {
                 r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
                 if (*old_val == *new_val) {
-                    conflict = resp->add("unchanged",
+                    conflict = resp.add("unchanged",
                                          make_counted<ql::datum_t>(1.0));
                 } else {
-                    conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
+                    conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                     boost::shared_ptr<scoped_cJSON_t> new_val_as_json
                         = new_val->as_json();
@@ -267,13 +268,13 @@ void rdb_replace_and_return_superblock(
         guarantee(!conflict); // message never added twice
     } catch (const ql::base_exc_t &e) {
         std::string msg = e.what();
-        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
-              || resp->add("first_error", make_counted<ql::datum_t>(msg));
+        bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
+              || resp.add("first_error", make_counted<ql::datum_t>(msg));
         guarantee(!b);
     } catch (const interrupted_exc_t &e) {
         std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
-        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
-              || resp->add("first_error", make_counted<ql::datum_t>(msg));
+        bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
+              || resp.add("first_error", make_counted<ql::datum_t>(msg));
         guarantee(!b);
         // We don't rethrow because we're in a coroutine.  Theoretically the
         // above message should never make it back to a user because the calling
@@ -494,7 +495,7 @@ void sindex_erase_range(const key_range_t &key_range,
         btree_erase_range_generic(sizer, sindex_access->btree, &tester,
                 &deleter, NULL, NULL, txn, sindex_access->super_block.get(), interruptor, release_superblock);
     } catch (const interrupted_exc_t &) {
-        //We were interrupted. That's fine nothing to be done about it.
+        // We were interrupted. That's fine nothing to be done about it.
     }
 }
 
@@ -573,7 +574,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         txn, superblock, interruptor);
 
-    //auto_drainer_t is destructed here so this waits for other coros to finish.
+    // auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
 // This is actually a kind of misleading name. This function estimates the size of a cJSON object
@@ -996,11 +997,11 @@ void rdb_update_single_sindex(
     int success = deserialize(&read_stream, &mapping);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-    //TODO we just use a NULL environment here. People should not be able
-    //to do anything that requires an environment like gets from other
-    //tables etc. but we don't have a nice way to disallow those things so
-    //for now we pass null and it will segfault if an illegal sindex
-    //mapping is passed.
+    // TODO we just use a NULL environment here. People should not be able
+    // to do anything that requires an environment like gets from other
+    // tables etc. but we don't have a nice way to disallow those things so
+    // for now we pass null and it will segfault if an illegal sindex
+    // mapping is passed.
     cond_t non_interruptor;
     ql::env_t env(&non_interruptor);
 
@@ -1032,7 +1033,7 @@ void rdb_update_single_sindex(
                     kv_location_delete(&kv_location, sindex_key,
                                        sindex->btree, repli_timestamp_t::distant_past, txn);
                 }
-                //The keyvalue location gets destroyed here.
+                // The keyvalue location gets destroyed here.
             }
             super_block = return_superblock_local.wait();
         } catch (const ql::base_exc_t &) {

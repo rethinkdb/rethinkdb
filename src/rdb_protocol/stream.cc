@@ -77,7 +77,7 @@ boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
         json_list_t accumulator;
         accumulator.push_back(input);
 
-        //Apply transforms to the data
+        // Apply transforms to the data
         typedef rdb_protocol_details::transform_t::iterator tit_t;
         for (tit_t it  = transform.begin();
                    it != transform.end();
@@ -469,4 +469,5 @@ bool batched_rget_stream_t::check_and_set_last_key(boost::shared_ptr<scoped_cJSO
     }
 }
 
-} //namespace query_language
+} // namespace query_language
+

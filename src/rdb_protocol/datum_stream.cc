@@ -109,11 +109,11 @@ counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
 }
 
 counted_t<const datum_t> eager_datum_stream_t::as_array() {
-    scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+    datum_ptr_t arr(datum_t::R_ARRAY);
     while (counted_t<const datum_t> d = next()) {
-        arr->add(d);
+        arr.add(d);
     }
-    return counted_t<const datum_t>(arr.release());
+    return arr.to_counted();
 }
 
 // LAZY_DATUM_STREAM_T
@@ -123,7 +123,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     : datum_stream_t(env, bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor,
-                      counted_t<datum_t>(), false, counted_t<datum_t>(), false,
+                      counted_t<datum_t>(), false, counted_t<const datum_t>(), false,
                       env->get_all_optargs(), use_outdated, sorting, this))
 { }
 
@@ -264,7 +264,7 @@ hinted_datum_t lazy_datum_stream_t::sorting_hint_next() {
 
 counted_t<const datum_t> lazy_datum_stream_t::next_impl() {
     boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
-    return json ? make_counted<datum_t>(json) : counted_t<datum_t>();
+    return json ? make_counted<const datum_t>(json) : counted_t<const datum_t>();
 }
 
 // ARRAY_DATUM_STREAM_T
@@ -476,11 +476,11 @@ counted_t<const datum_t> union_datum_stream_t::as_array() {
     if (!is_array()) {
         return counted_t<const datum_t>();
     }
-    scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+    datum_ptr_t arr(datum_t::R_ARRAY);
     while (counted_t<const datum_t> d = next()) {
-        arr->add(d);
+        arr.add(d);
     }
-    return counted_t<const datum_t>(arr.release());
+    return arr.to_counted();
 }
 
 counted_t<const datum_t> union_datum_stream_t::next_impl() {

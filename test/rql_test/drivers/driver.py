@@ -4,6 +4,8 @@ import pdb
 import collections
 import types
 import re
+from datetime import datetime
+import pytz
 path.insert(0, '.')
 from test_util import shard_table
 path.insert(0, "../../drivers/python")
@@ -292,3 +294,6 @@ def the_end():
     global failure_count
     if failure_count > 0:
         sys.exit("Failed %d tests" % failure_count)
+
+false = False
+true = True

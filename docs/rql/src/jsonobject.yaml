@@ -13,7 +13,7 @@ commands:
 
     io:
       - - r
-        - value 
+        - value
 
     examples:
       - description: Get all users whose age is greater than 5.
@@ -150,6 +150,42 @@ commands:
           js: |-
             r.table('marvel').get('IronMan').merge(
               r.table('loadouts').get('alienInvasionKit')).run(conn, callback)
+
+      - description: <code>Merge</code> can be used recursively to modify object within objects.
+        code:
+          py: |-
+            "r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+              {'weapons' : {'spectacular graviton beam' : {'dmg' : 10}}}).run(conn)"
+          rb: |-
+            "r({:weapons => {:spectacular_graviton_beam' => {:dmg => 10, :cooldown => 20}}}).merge(
+              {:weapons => {:spectacular_graviton_beam => {:dmg => 10}}}).run(conn)"
+          js: |-
+            "r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
+              {weapons : {spectacular_graviton_beam : {dmg : 10}}}).run(conn)"
+
+      - description: To replace a nested object with another object you can use the <code>literal</code> keyword.
+        code:
+          py: |-
+            "r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+              {'weapons' : r.literal({'repulsor rays' : {'dmg' : 3, 'cooldown' : 0}})}).run(conn)"
+          rb: |-
+            "r({:weapons => {:spectacular_graviton_beam' => {:dmg => 10, :cooldown => 20}}}).merge(
+              {:weapons => r.literal({:repulsor_rays => {:dmg => 3, :cooldown => 0}})}).run(conn)"
+          js: |-
+            "r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
+              {weapons : r.literal({repulsor_rays : {dmg : 3, :cooldown => 0}})}).run(conn)"
+
+      - description: <code>Literal</code> can be used to remove keys from an object as well.
+        code:
+          py: |-
+            "r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+              {'weapons' : {'spectacular graviton beam' : r.literal()}}).run(conn)"
+          rb: |-
+            "r({:weapons => {:spectacular_graviton_beam' => {:dmg => 10, :cooldown => 20}}}).merge(
+              {:weapons => {:spectacular_graviton_beam => r.literal()}}).run(conn)"
+          js: |-
+            "r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
+              {weapons : {spectacular_graviton_beam : r.literal()}}).run(conn)"
 
   - tag: append
     section: jsonobject
@@ -329,7 +365,7 @@ commands:
     io:
       - - sequence
         - sequence
-      - - singleSelection 
+      - - singleSelection
         - value
       - - object
         - value
@@ -490,7 +526,7 @@ commands:
           js: r.expr(["Iron Man", "Bruce", "Spider-Man"]).changeAt(1, "Hulk").run(conn, callback)
           py: r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
           rb: r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
-    
+
   - tag: keys
     section: jsonobject
     description: Return an array containing all of the object's keys.

@@ -90,6 +90,6 @@ counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
 bool contains(counted_t<const datum_t> datum,
         const pathspec_t &pathspec);
 
-} //namespace ql
+} // namespace ql
 
 #endif  // RDB_PROTOCOL_PATHSPEC_HPP_

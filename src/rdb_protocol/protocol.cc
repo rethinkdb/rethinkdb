@@ -654,8 +654,8 @@ private:
 
     void unshard_range_get(const rget_read_t &rg) {
         rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
-        //A vanilla range get
-        //First we need to determine the cutoff key:
+        // A vanilla range get
+        // First we need to determine the cutoff key:
         rg_response->last_considered_key = forward(rg.sorting) ? store_key_t::max() : store_key_t::min();
         for (size_t i = 0; i < count; ++i) {
             const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -1107,10 +1107,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
         ql_env.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
-        rget_read_response_t *res = boost::get<rget_read_response_t>(&response->response);
+        rget_read_response_t *res =
+            boost::get<rget_read_response_t>(&response->response);
 
         if (!rget.sindex) {
-            //Normal rget
+            // Normal rget
             rdb_rget_slice(btree, rget.region.inner, txn, superblock,
                     &ql_env, rget.transform, rget.terminal,
                     (forward(rget.sorting) ? FORWARD : BACKWARD), res);

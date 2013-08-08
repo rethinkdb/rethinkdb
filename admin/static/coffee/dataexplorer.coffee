@@ -251,7 +251,7 @@ module 'DataExplorerView', ->
         suggestions: {} # Suggestions[state] = function for this state
 
         types:
-            value: ['number', 'bool', 'string', 'array', 'object']
+            value: ['number', 'bool', 'string', 'array', 'object', 'time']
             any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error' ]
             sequence: ['table', 'selection', 'stream', 'array']
 
@@ -283,7 +283,7 @@ module 'DataExplorerView', ->
                 @descriptions[full_tag] =
                     name: tag
                     dont_need_parenthesis: command['langs']['js']['dont_need_parenthesis']
-                    args: /.*(\(.*\))$/.exec(command['langs']['js']['body'])?[1].replace('$PARENT', 'parentType')
+                    args: /.*(\(.*\))$/.exec(command['langs']['js']['body'])?[1].replace('$ARG', 'parentType')
                     description: @description_with_example_template
                         description: command['description']
                         examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
@@ -2353,7 +2353,8 @@ module 'DataExplorerView', ->
 
                     @id_execution++ # Update the id_execution and use it to tag the callbacks
                     rdb_global_callback = @generate_rdb_global_callback @id_execution
-                    rdb_query.private_run @driver_handler.connection, rdb_global_callback # @rdb_global_callback can be fire more than once
+                    # Date are displayed in their raw format for now.
+                    rdb_query.private_run {connection: @driver_handler.connection, timeFormat: "raw"}, rdb_global_callback # @rdb_global_callback can be fire more than once
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
                     # Nothing to do

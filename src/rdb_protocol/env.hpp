@@ -24,9 +24,13 @@ namespace ql {
 class datum_t;
 class term_t;
 
+
 class env_t : private home_thread_mixin_t {
 public:
-    const uuid_u uuid;
+    counted_t<func_t> get_or_compile_func(const wire_func_t *wf);
+    void precache_func(const wire_func_t *wf, counted_t<func_t> func);
+private:
+    std::map<uuid_u, counted_t<func_t> > cached_funcs;
 
 public:
     // returns whether or not there was a key conflict
@@ -73,7 +77,7 @@ public:
     // Dump the current scope.
     void dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out);
     // Swap in a previously-dumped scope.
-    void push_scope(std::map<int64_t, Datum> *in);
+    void push_scope(const std::map<int64_t, Datum> *in);
     // Discard a previously-pushed scope and restore original scope.
     void pop_scope();
 private:

@@ -5,11 +5,39 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import sys, os, datetime, time, copy, json, traceback, csv, cPickle, string
-import multiprocessing, multiprocessing.queues
+import multiprocessing, multiprocessing.queues, subprocess, re
 from optparse import OptionParser
 
 try:
     import rethinkdb as r
+
+    # Check that the version of the driver is up-to-date
+    version_ok = True
+    try:
+        output = subprocess.check_output(["pip", "show", "rethinkdb"])
+        version_found = False
+
+        for line in output.split("\n"):
+            match = re.match("^Version: ([0-9]+)\.([0-9]+)\.([0-9]+)", line)
+            if match is not None:
+                version_found = True
+                minimum_version = [1, 8, 0]
+                installed_version = [int(match.group(1)), int(match.group(2)), int(match.group(3))]
+
+                if installed_version < minimum_version:
+                    version_ok = False
+
+        if not version_found:
+            raise RuntimeError("Could not parse a version from pip output.")
+    except:
+        print "Could not determine rethinkdb python client version: `pip show rethinkdb` failed."
+        exit(1)
+
+    if not version_ok:
+        print "Incompatible version of rethinkdb python client installed."
+        print "Update it via `pip install --upgrade rethinkdb`"
+        exit(1)
+
 except ImportError:
     print "The RethinkDB python driver is required to use this command."
     print "Please install the driver via `pip install rethinkdb`."
