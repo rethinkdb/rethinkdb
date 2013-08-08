@@ -20,12 +20,13 @@ commands = []
 # Walk the src files to compile all sections and commands
 for root, dirs, file_names in os.walk(src_dir):
     for file_name in file_names:
-        docs = yaml.load(open(os.path.join(root, file_name)))
+        if file_name[0] != '.': # Ignore hidden files
+            docs = yaml.load(open(os.path.join(root, file_name)))
 
-        if 'sections' in docs:
-            sections.extend(docs['sections'])
-        if 'commands' in docs:
-            commands.extend(docs['commands'])
+            if 'sections' in docs:
+                sections.extend(docs['sections'])
+            if 'commands' in docs:
+                commands.extend(docs['commands'])
 
 ## Convert the input format to the output format
 # This involves several steps
