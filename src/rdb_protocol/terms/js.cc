@@ -11,11 +11,11 @@ namespace ql {
 
 class javascript_term_t : public op_term_t {
 public:
-    javascript_term_t(env_t *env, protob_t<const Term> term)
+    javascript_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({ "timeout" })) { }
 private:
 
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         // Optarg seems designed to take a default value as the second argument
         // but nowhere else is this actually used.
         uint64_t timeout_ms = 5000;
@@ -57,7 +57,7 @@ private:
     }
 };
 
-counted_t<term_t> make_javascript_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_javascript_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<javascript_term_t>(env, term);
 }
 

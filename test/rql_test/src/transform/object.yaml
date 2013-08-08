@@ -67,14 +67,43 @@ tests:
       ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
 
     ## Merge
+    #obj = r.expr({'a':1, 'b':2,'c':"str",'d':null,'e':{'f':'buzz'}})
 
-    # add property
+    # complete replacement
+    - cd: "obj.merge(1)"
+      ot: 1
+
+    # add attr
     - cd: "obj.merge({'e':-2})"
       ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':-2})
+
+    # delete attr
+    - cd: "obj.merge({'e':r.literal()})"
+      ot: ({'a':1, 'b':2, 'c':'str', 'd':null})
+
+    # recursive merge
+    - cd: "obj.merge({'e':{'f':'quux'}})"
+      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'quux'}})
+
+    - cd: "obj.merge({'e':{'g':'quux'}})"
+      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz', 'g':'quux'}})
+
+    - cd: "obj.merge({'e':r.literal({'g':'quux'})})"
+      ot: ({'a':1, 'b':2, 'c':'str', 'd':null, 'e':{'g':'quux'}})
 
     # overwrite
     - cd: "obj.merge({'a':-1})"
       ot: ({'a':-1, 'b':2, 'c':'str', 'd':null, 'e':{'f':'buzz'}})
+
+    # errors
+    - cd: "r.literal('foo')"
+      ot: err("RqlRuntimeError", "Stray literal keyword found, literal can only be present inside merge and cannot nest inside other literals.", [])
+
+    - cd: "obj.merge(r.literal('foo'))"
+      ot: err("RqlRuntimeError", "Stray literal keyword found, literal can only be present inside merge and cannot nest inside other literals.", [])
+
+    - cd: "obj.merge({'foo':r.literal(r.literal('foo'))})"
+      ot: err("RqlRuntimeError", "Stray literal keyword found, literal can only be present inside merge and cannot nest inside other literals.", [])
 
     ## keys
     - cd: obj.keys()

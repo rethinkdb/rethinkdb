@@ -64,5 +64,5 @@ void set(Term *out, Term_TermType type, std::vector<Term *> *args_out, int num_a
     for (int i = 0; i < num_args; ++i) args_out->push_back(out->add_args());
 }
 
-} //namespace pb
-} //namespace ql
+} // namespace pb
+} // namespace ql

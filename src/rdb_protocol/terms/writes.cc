@@ -17,14 +17,14 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+        datum_ptr_t arr(datum_t::R_ARRAY);
         for (size_t i = 0; i < l->size(); ++i) {
-            arr->add(l->get(i));
+            arr.add(l->get(i));
         }
         for (size_t i = 0; i < r->size(); ++i) {
-            arr->add(r->get(i));
+            arr.add(r->get(i));
         }
-        return counted_t<const datum_t>(arr.release());
+        return arr.to_counted();
     }
 
     // Merging a string is left-preferential, which is just a no-op.
@@ -32,8 +32,8 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
         caller, base_exc_t::GENERIC,
         l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
         strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
-                  l->trunc_print().c_str(), l->get_type_name(),
-                  r->trunc_print().c_str(), r->get_type_name()));
+                  l->trunc_print().c_str(), l->get_type_name().c_str(),
+                  r->trunc_print().c_str(), r->get_type_name().c_str()));
     return l;
 }
 
@@ -47,13 +47,13 @@ counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
 }
 
 counted_t<const datum_t> new_stats_object() {
-    scoped_ptr_t<datum_t> stats(new datum_t(datum_t::R_OBJECT));
+    datum_ptr_t stats(datum_t::R_OBJECT);
     const char *const keys[] =
         {"inserted", "deleted", "skipped", "replaced", "unchanged", "errors"};
     for (size_t i = 0; i < sizeof(keys)/sizeof(*keys); ++i) {
-        UNUSED bool b = stats->add(keys[i], make_counted<datum_t>(0.0));
+        UNUSED bool b = stats.add(keys[i], make_counted<datum_t>(0.0));
     }
-    return counted_t<datum_t>(stats.release());
+    return stats.to_counted();
 }
 
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
@@ -73,7 +73,7 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
 
 class insert_term_t : public op_term_t {
 public:
-    insert_term_t(env_t *env, protob_t<const Term> term)
+    insert_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"upsert", "durability", "return_vals"})) { }
 
@@ -84,15 +84,15 @@ private:
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
             counted_t<const datum_t> keyd(new datum_t(key));
-            scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
-            bool conflict = d->add(tbl->get_pkey(), keyd);
+            datum_ptr_t d(datum_t::R_OBJECT);
+            bool conflict = d.add(tbl->get_pkey(), keyd);
             r_sanity_check(!conflict);
-            *datum_out = (*datum_out)->merge(counted_t<const datum_t>(d.release()), pure_merge);
+            *datum_out = (*datum_out)->merge(d.to_counted(), pure_merge);
             generated_keys_out->push_back(key);
         }
     }
 
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> t = arg(0)->as_table();
         counted_t<val_t> upsert_val = optarg("upsert");
         bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
@@ -152,14 +152,13 @@ private:
         }
 
         if (generated_keys.size() > 0) {
-            scoped_ptr_t<datum_t> genkeys(new datum_t(datum_t::R_ARRAY));
+            datum_ptr_t genkeys(datum_t::R_ARRAY);
             for (size_t i = 0; i < generated_keys.size(); ++i) {
-                genkeys->add(make_counted<datum_t>(generated_keys[i]));
+                genkeys.add(make_counted<datum_t>(generated_keys[i]));
             }
-            scoped_ptr_t<datum_t> d(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = d->add("generated_keys",
-                                   counted_t<const datum_t>(genkeys.release()));
-            stats = stats->merge(counted_t<const datum_t>(d.release()), pure_merge);
+            datum_ptr_t d(datum_t::R_OBJECT);
+            UNUSED bool b = d.add("generated_keys", genkeys.to_counted());
+            stats = stats->merge(d.to_counted(), pure_merge);
         }
 
         return new_val(stats);
@@ -169,12 +168,12 @@ private:
 
 class replace_term_t : public op_term_t {
 public:
-    replace_term_t(env_t *env, protob_t<const Term> term)
+    replace_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"non_atomic", "durability", "return_vals"})) { }
 
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         bool nondet_ok = false;
         if (counted_t<val_t> v = optarg("non_atomic")) {
             nondet_ok = v->as_bool();
@@ -233,11 +232,11 @@ private:
 
 class foreach_term_t : public op_term_t {
 public:
-    foreach_term_t(env_t *env, protob_t<const Term> term)
+    foreach_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
@@ -265,13 +264,13 @@ private:
     virtual const char *name() const { return "foreach"; }
 };
 
-counted_t<term_t> make_insert_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_insert_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<insert_term_t>(env, term);
 }
-counted_t<term_t> make_replace_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_replace_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<replace_term_t>(env, term);
 }
-counted_t<term_t> make_foreach_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_foreach_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<foreach_term_t>(env, term);
 }
 

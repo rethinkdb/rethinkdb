@@ -15,11 +15,11 @@ namespace ql {
 // `op_term_t`.
 class sindex_create_term_t : private env_t::special_var_shadower_t, public op_term_t {
 public:
-    sindex_create_term_t(env_t *env, protob_t<const Term> term)
+    sindex_create_term_t(env_t *env, const protob_t<const Term> &term)
         : env_t::special_var_shadower_t(env, env_t::SINDEX_ERROR_VAR),
           op_term_t(env, term, argspec_t(2, 3)) { }
 
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
         counted_t<const datum_t> name_datum = arg(1)->as_datum();
         std::string name = name_datum->as_str();
@@ -45,9 +45,9 @@ public:
 
         bool success = table->sindex_create(name, index_func);
         if (success) {
-            scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = res->add("created", make_counted<datum_t>(1.0));
-            return new_val(counted_t<const datum_t>(res.release()));
+            datum_ptr_t res(datum_t::R_OBJECT);
+            UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));
+            return new_val(res.to_counted());
         } else {
             rfail(base_exc_t::GENERIC, "Index `%s` already exists.", name.c_str());
         }
@@ -58,17 +58,17 @@ public:
 
 class sindex_drop_term_t : public op_term_t {
 public:
-    sindex_drop_term_t(env_t *env, protob_t<const Term> term)
+    sindex_drop_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
         std::string name = arg(1)->as_datum()->as_str();
         bool success = table->sindex_drop(name);
         if (success) {
-            scoped_ptr_t<datum_t> res(new datum_t(datum_t::R_OBJECT));
-            UNUSED bool b = res->add("dropped", make_counted<datum_t>(1.0));
-            return new_val(counted_t<const datum_t>(res.release()));
+            datum_ptr_t res(datum_t::R_OBJECT);
+            UNUSED bool b = res.add("dropped", make_counted<datum_t>(1.0));
+            return new_val(res.to_counted());
         } else {
             rfail(base_exc_t::GENERIC, "Index `%s` does not exist.", name.c_str());
         }
@@ -79,10 +79,10 @@ public:
 
 class sindex_list_term_t : public op_term_t {
 public:
-    sindex_list_term_t(env_t *env, protob_t<const Term> term)
+    sindex_list_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    virtual counted_t<val_t> eval_impl() {
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
 
         return new_val(table->sindex_list());
@@ -91,13 +91,13 @@ public:
     virtual const char *name() const { return "sindex_list"; }
 };
 
-counted_t<term_t> make_sindex_create_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_sindex_create_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_create_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_drop_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_sindex_drop_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_drop_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_list_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_sindex_list_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_list_term_t>(env, term);
 }
 

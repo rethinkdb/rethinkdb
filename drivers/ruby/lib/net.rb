@@ -20,6 +20,12 @@ module RethinkDB
       c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
       opts = {} if opts.nil?
       opts = {opts => true} if opts.class != Hash
+      if (tf = opts[:time_format])
+        opts[:time_format] = (tf = tf.to_s)
+        if tf != 'raw' && tf != 'native'
+          raise ArgumentError, "`time_format` must be 'raw' or 'native' (got `#{tf}`)."
+        end
+      end
       if !c
         raise ArgumentError, "No connection specified!\n" \
         "Use `query.run(conn)` or `conn.repl(); query.run`."
@@ -46,13 +52,14 @@ module RethinkDB
         (@run ? "" : "\n#{preview}") + ">"
     end
 
-    def initialize(results, msg, connection, token, more = true) # :nodoc:
+    def initialize(results, msg, connection, opts, token, more = true) # :nodoc:
       @more = more
       @results = results
       @msg = msg
       @run = false
       @conn_id = connection.conn_id
       @conn = connection
+      @opts = opts
       @token = token
     end
 
@@ -67,7 +74,7 @@ module RethinkDB
         q.type = Query::QueryType::CONTINUE
         q.token = @token
         res = @conn.run_internal q
-        @results = Shim.response_to_native(res, @msg)
+        @results = Shim.response_to_native(res, @msg, @opts)
         if res.type == Response::ResponseType::SUCCESS_SEQUENCE
           @more = false
         end
@@ -133,11 +140,13 @@ module RethinkDB
       res = run_internal(q, all_opts[:noreply])
       return res if !res
       if res.type == Response::ResponseType::SUCCESS_PARTIAL
-        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, true)
+        Cursor.new(Shim.response_to_native(res, msg, opts),
+                   msg, self, opts, q.token, true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
-        Cursor.new(Shim.response_to_native(res, msg), msg, self, q.token, false)
+        Cursor.new(Shim.response_to_native(res, msg, opts),
+                   msg, self, opts, q.token, false)
       else
-        Shim.response_to_native(res, msg)
+        Shim.response_to_native(res, msg, opts)
       end
     end
 
@@ -259,11 +268,23 @@ module RethinkDB
           rescue
             raise RqlRuntimeError, "Bad Protobuf #{response}, server is buggy."
           end
-          @mutex.synchronize do
-            @data[protob.token] = protob
-            if (@waiters[protob.token])
-              cond = @waiters.delete protob.token
-              cond.signal
+          if protob.token == -1
+            @mutex.synchronize do
+              @waiters.keys.each {|k|
+                @data[k] = protob
+                if @waiters[k]
+                  cond = @waiters.delete k
+                  cond.signal
+                end
+              }
+            end
+          else
+            @mutex.synchronize do
+              @data[protob.token] = protob
+              if @waiters[protob.token]
+                cond = @waiters.delete protob.token
+                cond.signal
+              end
             end
           end
         end

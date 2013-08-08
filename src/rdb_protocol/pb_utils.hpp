@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/datum.hpp"
 
 namespace ql {
 namespace pb {

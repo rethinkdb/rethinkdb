@@ -24,6 +24,6 @@ private:
     cond_t on_destruct;
 };
 
-} //namespace rdb_protocol
+} // namespace rdb_protocol
 
 #endif /* RDB_PROTOCOL_PARSER_HPP_ */

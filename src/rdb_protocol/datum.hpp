@@ -25,6 +25,12 @@ class datum_stream_t;
 class env_t;
 class val_t;
 
+namespace pseudo {
+class datum_cmp_t;
+void time_to_str_key(const datum_t &d, std::string *str_out);
+void sanitize_time(datum_t *time);
+} // namespace pseudo
+
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `el` or
 // `add` below).
@@ -55,6 +61,7 @@ public:
     explicit datum_t(float) = delete;
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
+    datum_t(type_t _type, std::string _reql_type);
     explicit datum_t(double _num);
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
@@ -74,7 +81,10 @@ public:
     void write_to_protobuf(Datum *out) const;
 
     type_t get_type() const;
-    const char *get_type_name() const;
+    bool is_ptype() const;
+    bool is_ptype(const std::string &reql_type) const;
+    std::string get_reql_type() const;
+    std::string get_type_name() const;
     std::string print() const;
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
@@ -94,22 +104,12 @@ public:
 
     // Use of `size` and `el` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
-    void add(counted_t<const datum_t> val); // add to an array
-    void change(size_t index, counted_t<const datum_t> val); //change an element of an array
-    void insert(size_t index, counted_t<const datum_t> val); //insert into an array
-    void erase(size_t index); //erase from an array
-    void erase_range(size_t start, size_t end); //erase a range from an array
-    void splice(size_t index, counted_t<const datum_t> values);
     size_t size() const;
     // Access an element of an array.
     counted_t<const datum_t> get(size_t index, throw_bool_t throw_bool = THROW) const;
     // Use of `get` is preferred to `as_object` when possible.
     const std::map<std::string, counted_t<const datum_t> > &as_object() const;
-    // Returns true if `key` was already in object.
-    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
-                      clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
-    // Returns true if key was in object.
-    MUST_USE bool delete_key(const std::string &key);
+
     // Access an element of an object.
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
@@ -122,9 +122,8 @@ public:
 
     cJSON *as_raw_json() const;
     boost::shared_ptr<scoped_cJSON_t> as_json() const;
-    counted_t<datum_stream_t>
-    as_datum_stream(env_t *env,
-                    const protob_t<const Backtrace> &backtrace) const;
+    counted_t<datum_stream_t> as_datum_stream(
+        env_t *env, const protob_t<const Backtrace> &backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
@@ -156,8 +155,23 @@ public:
 
     void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
     archive_result_t rdb_deserialize(read_stream_t *s);
+    void rcheck_is_ptype(const std::string s = "") const;
 
 private:
+    friend class datum_ptr_t;
+    friend void pseudo::sanitize_time(datum_t *time);
+    void add(counted_t<const datum_t> val); // add to an array
+    // change an element of an array
+    void change(size_t index, counted_t<const datum_t> val);
+    void insert(size_t index, counted_t<const datum_t> val); // insert into an array
+    void erase(size_t index); // erase from an array
+    void erase_range(size_t start, size_t end); // erase a range from an array
+    void splice(size_t index, counted_t<const datum_t> values);
+    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
+                      clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
+    // Returns true if key was in object.
+    MUST_USE bool delete_field(const std::string &key);
+
     void init_empty();
     void init_str();
     void init_array();
@@ -166,10 +180,16 @@ private:
 
     void check_str_validity(const std::string &str);
 
+    friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
+    void pt_to_str_key(std::string *str_out) const;
     void num_to_str_key(std::string *str_out) const;
     void str_to_str_key(std::string *str_out) const;
     void bool_to_str_key(std::string *str_out) const;
     void array_to_str_key(std::string *str_out) const;
+
+    int pseudo_cmp(const datum_t &rhs) const;
+    static const std::set<std::string> _allowed_pts;
+    void maybe_sanitize_ptype(const std::set<std::string> &allowed_pts = _allowed_pts);
 
     type_t type;
     union {
@@ -181,7 +201,54 @@ private:
         std::map<std::string, counted_t<const datum_t> > *r_object;
     };
 
+public:
+    static const char* const reql_type_string;
+
+private:
     DISABLE_COPYING(datum_t);
+};
+
+// If you need to do mutable operations to a `datum_t`, use one of these (it's
+// basically a `scoped_ptr_t` that can access private methods on `datum_t` and
+// checks for pseudotype validity when you turn it into a `counted_t<const
+// datum_t>`).
+class datum_ptr_t {
+public:
+    template<class... Args>
+    datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
+    counted_t<const datum_t> to_counted(
+        const std::set<std::string> &allowed_ptypes = default_allowed_ptypes) {
+        ptr()->maybe_sanitize_ptype(allowed_ptypes);
+        return counted_t<const datum_t>(_p.release());
+    }
+    const datum_t *operator->() const { return const_ptr(); }
+    void add(counted_t<const datum_t> val) { ptr()->add(val); }
+    void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
+    void insert(size_t i, counted_t<const datum_t> val) { ptr()->insert(i, val); }
+    void erase(size_t i) { ptr()->erase(i); }
+    void erase_range(size_t start, size_t end) { ptr()->erase_range(start, end); }
+    void splice(size_t index, counted_t<const datum_t> values) {
+        ptr()->splice(index, values);
+    }
+    MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
+                      clobber_bool_t clobber_bool = NOCLOBBER) {
+        return ptr()->add(key, val, clobber_bool);
+    }
+    MUST_USE bool delete_field(const std::string &key) {
+        return ptr()->delete_field(key);
+    }
+private:
+    datum_t *ptr() {
+        r_sanity_check(_p.has());
+        return _p.get();
+    }
+    const datum_t *const_ptr() const {
+        r_sanity_check(_p.has());
+        return _p.get();
+    }
+    scoped_ptr_t<datum_t> _p;
+
+    static std::set<std::string> default_allowed_ptypes;
 };
 
 #ifndef NDEBUG
@@ -225,6 +292,14 @@ public:
 private:
     enum { SERIALIZABLE, COMPILED } state;
 };
+
+namespace pseudo {
+class datum_cmp_t {
+public:
+    virtual int operator()(const datum_t& x, const datum_t& y) const = 0;
+    virtual ~datum_cmp_t() { }
+};
+} // namespace pseudo
 
 } // namespace ql
 #endif // RDB_PROTOCOL_DATUM_HPP_

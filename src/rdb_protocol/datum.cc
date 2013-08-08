@@ -9,11 +9,26 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/proto_utils.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/pseudo_literal.hpp"
+#include "stl_utils.hpp"
 
 namespace ql {
 
+const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
+
+const char* const datum_t::reql_type_string = "$reql_type$";
+
+std::set<std::string> datum_ptr_t::default_allowed_ptypes = std::set<std::string>();
+
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
+}
+datum_t::datum_t(type_t _type, std::string _reql_type)
+    : type(_type), r_object(new std::map<std::string, counted_t<const datum_t> >) {
+    r_sanity_check(_type == R_OBJECT);
+    r_object->insert(std::make_pair(std::string(reql_type_string),
+                                    make_counted<const datum_t>(_reql_type)));
 }
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     // so we can use `isfinite` in a GCC 4.4.3-compatible way
@@ -31,7 +46,9 @@ datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
     : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(_array)) { }
 datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
     : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) { }
+      r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) {
+    maybe_sanitize_ptype();
+}
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
     switch (type) {
@@ -47,15 +64,15 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     case R_OBJECT: {
         r_object = new std::map<std::string, counted_t<const datum_t> >();
     } break;
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
 
 datum_t::~datum_t() {
     switch (type) {
-    case R_NULL: //fallthru
-    case R_BOOL: //fallthru
+    case R_NULL: // fallthru
+    case R_BOOL: // fallthru
     case R_NUM: break;
     case R_STR: {
         r_sanity_check(r_str != NULL);
@@ -128,6 +145,7 @@ void datum_t::init_json(cJSON *json) {
             rcheck(!conflict, base_exc_t::GENERIC,
                    strprintf("Duplicate key `%s` in JSON.", el->string));
         }
+        maybe_sanitize_ptype();
     } break;
     default: unreachable();
     }
@@ -151,7 +169,30 @@ datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
-const char *datum_type_name(datum_t::type_t type) {
+
+bool datum_t::is_ptype() const {
+    return type == R_OBJECT && std_contains(*r_object, reql_type_string);
+}
+
+bool datum_t::is_ptype(const std::string &reql_type) const {
+    return (reql_type == "") ? is_ptype() : is_ptype() && get_reql_type() == reql_type;
+}
+
+std::string datum_t::get_reql_type() const {
+    r_sanity_check(get_type() == R_OBJECT);
+    auto maybe_reql_type = r_object->find(reql_type_string);
+    r_sanity_check(maybe_reql_type != r_object->end());
+    rcheck(maybe_reql_type->second->get_type() == R_STR,
+           base_exc_t::GENERIC,
+           strprintf("Error: Field `%s` must be a string (got `%s` of type %s):\n%s",
+                     reql_type_string,
+                     maybe_reql_type->second->trunc_print().c_str(),
+                     maybe_reql_type->second->get_type_name().c_str(),
+                     trunc_print().c_str()));
+    return maybe_reql_type->second->as_str();
+}
+
+std::string raw_type_name(datum_t::type_t type) {
     switch (type) {
     case datum_t::R_NULL:   return "NULL";
     case datum_t::R_BOOL:   return "BOOL";
@@ -159,14 +200,17 @@ const char *datum_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
-    case datum_t::UNINITIALIZED: //fallthru
+    case datum_t::UNINITIALIZED: // fallthru
     default: unreachable();
     }
-    unreachable();
 }
 
-const char *datum_t::get_type_name() const {
-    return datum_type_name(get_type());
+std::string datum_t::get_type_name() const {
+    if (is_ptype()) {
+        return "PSEUDOTYPE(" + get_reql_type() + ")";
+    } else {
+        return raw_type_name(type);
+    }
 }
 
 std::string datum_t::print() const {
@@ -180,6 +224,17 @@ std::string datum_t::trunc_print() const {
         s += "...";
     }
     return s;
+}
+
+void datum_t::pt_to_str_key(std::string *str_out) const {
+    r_sanity_check(is_ptype());
+    if (get_reql_type() == pseudo::time_string) {
+        pseudo::time_to_str_key(*this, str_out);
+    } else {
+        rfail(base_exc_t::GENERIC,
+              "Cannot use psuedotype %s as a primary or secondary key value .",
+              get_type_name().c_str());
+    }
 }
 
 void datum_t::num_to_str_key(std::string *str_out) const {
@@ -237,38 +292,91 @@ void datum_t::array_to_str_key(std::string *str_out) const {
         counted_t<const datum_t> item = get(i, NOTHROW);
         r_sanity_check(item.has());
 
-        if (item->type == R_NUM) {
-            item->num_to_str_key(str_out);
-        } else if (item->type == R_STR) {
-            item->str_to_str_key(str_out);
-        } else if (item->type == R_BOOL) {
-            item->bool_to_str_key(str_out);
-        } else if (item->type == R_ARRAY) {
-            item->array_to_str_key(str_out);
-        } else {
+        switch (item->get_type()) {
+        case R_NUM: item->num_to_str_key(str_out); break;
+        case R_STR: item->str_to_str_key(str_out); break;
+        case R_BOOL: item->bool_to_str_key(str_out); break;
+        case R_ARRAY: item->array_to_str_key(str_out); break;
+        case R_OBJECT:
+            if (item->is_ptype()) {
+                item->pt_to_str_key(str_out);
+                break;
+            }
+            // fallthru
+        case R_NULL:
             item->type_error(
                 strprintf("Secondary keys must be a number, string, bool, or array "
                           "(got %s of type %s).", item->print().c_str(),
-                          datum_type_name(item->type)));
+                          item->get_type_name().c_str()));
+            break;
+        case UNINITIALIZED: // fallthru
+        default:
+            unreachable();
         }
-
         str_out->append(std::string(1, '\0'));
     }
 }
 
+int datum_t::pseudo_cmp(const datum_t &rhs) const {
+    r_sanity_check(is_ptype());
+    if (get_reql_type() == pseudo::time_string) {
+        return pseudo::time_cmp(*this, rhs);
+    }
+
+    rfail(base_exc_t::GENERIC, "Incomparable type %s.", get_type_name().c_str());
+}
+
+void datum_t::maybe_sanitize_ptype(const std::set<std::string> &allowed_pts) {
+    if (is_ptype()) {
+        if (get_reql_type() == pseudo::time_string) {
+            pseudo::sanitize_time(this);
+            return;
+        }
+        if (get_reql_type() == pseudo::literal_string) {
+            rcheck(std_contains(allowed_pts, pseudo::literal_string),
+                   base_exc_t::GENERIC,
+                   "Stray literal keyword found, literal can only be present inside "
+                   "merge and cannot nest inside other literals.");
+            pseudo::rcheck_literal_valid(this);
+            return;
+        }
+        rfail(base_exc_t::GENERIC, "Unknown $reql_type$ `%s`.", get_type_name().c_str());
+    }
+}
+
+void datum_t::rcheck_is_ptype(const std::string s) const {
+    rcheck(is_ptype(), base_exc_t::GENERIC,
+           (s == ""
+            ? strprintf("Not a pseudotype: `%s`.", trunc_print().c_str())
+            : strprintf("Not a %s pseudotype: `%s`.",
+                        s.c_str(),
+                        trunc_print().c_str())));
+}
+
 std::string datum_t::print_primary() const {
     std::string s;
-    if (type == R_NUM) {
-        num_to_str_key(&s);
-    } else if (type == R_STR) {
-        str_to_str_key(&s);
-    } else if (type == R_BOOL) {
-        bool_to_str_key(&s);
-    } else {
+    switch (get_type()) {
+    case R_NUM: num_to_str_key(&s); break;
+    case R_STR: str_to_str_key(&s); break;
+    case R_BOOL: bool_to_str_key(&s); break;
+    case R_ARRAY: array_to_str_key(&s); break;
+    case R_OBJECT:
+        if (is_ptype()) {
+            pt_to_str_key(&s);
+            break;
+        }
+        // fallthru
+    case R_NULL: // fallthru
         type_error(strprintf(
-            "Primary keys must be either a number, bool, or string (got %s of type %s).",
-            print().c_str(), datum_type_name(type)));
+            "Primary keys must be either a number, bool, pseudotype or string "
+            "(got type %s):\n%s",
+            get_type_name().c_str(), trunc_print().c_str()));
+        break;
+    case UNINITIALIZED: // fallthru
+    default:
+        unreachable();
     }
+
     if (s.size() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
         rfail(base_exc_t::GENERIC,
               "Primary key too long (max %zu characters): %s",
@@ -296,11 +404,13 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
         bool_to_str_key(&s);
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
+    } else if (type == R_OBJECT && is_ptype()) {
+        pt_to_str_key(&s);
     } else {
         type_error(strprintf(
-            "Secondary keys must be a number, string, bool, or array "
-            "(got %s of type %s).",
-            print().c_str(), datum_type_name(type)));
+            "Secondary keys must be a number, string, bool, pseudotype, or array "
+            "(got type %s):\n%s",
+            get_type_name().c_str(), trunc_print().c_str()));
     }
 
     s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - 1) +
@@ -337,11 +447,13 @@ store_key_t datum_t::truncated_secondary() const {
         bool_to_str_key(&s);
     } else if (type == R_ARRAY) {
         array_to_str_key(&s);
+    } else if (type == R_OBJECT && is_ptype()) {
+        pt_to_str_key(&s);
     } else {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, or array "
             "(got %s of type %s).",
-            print().c_str(), datum_type_name(type)));
+            print().c_str(), get_type_name().c_str()));
     }
 
     // If the key does not need truncation, add a null byte at the end to filter out more
@@ -361,7 +473,7 @@ void datum_t::check_type(type_t desired, const char *msg) const {
         (msg != NULL)
             ? std::string(msg)
             : strprintf("Expected type %s but found %s.",
-                        datum_type_name(desired), datum_type_name(get_type())));
+                        raw_type_name(desired).c_str(), get_type_name().c_str()));
 }
 void datum_t::type_error(const std::string &msg) const {
     rfail_typed_target(this, "%s", msg.c_str());
@@ -505,12 +617,12 @@ cJSON *datum_t::as_raw_json() const {
     case R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
         for (std::map<std::string, counted_t<const datum_t> >::const_iterator
-                 it = as_object().begin(); it != as_object().end(); ++it) {
+                 it = r_object->begin(); it != r_object->end(); ++it) {
             obj.AddItemToObject(it->first.c_str(), it->second->as_raw_json());
         }
         return obj.release();
     } break;
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -524,18 +636,18 @@ counted_t<datum_stream_t>
 datum_t::as_datum_stream(env_t *env,
                          const protob_t<const Backtrace> &backtrace) const {
     switch (get_type()) {
-    case R_NULL: //fallthru
-    case R_BOOL: //fallthru
-    case R_NUM:  //fallthru
-    case R_STR:  //fallthru
-    case R_OBJECT:
+    case R_NULL: // fallthru
+    case R_BOOL: // fallthru
+    case R_NUM:  // fallthru
+    case R_STR:  // fallthru
+    case R_OBJECT: // fallthru
         type_error(strprintf("Cannot convert %s to SEQUENCE",
-                             datum_type_name(get_type())));
+                             get_type_name().c_str()));
     case R_ARRAY:
         return make_counted<array_datum_stream_t>(env,
                                                   this->counted_from_this(),
                                                   backtrace);
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -557,34 +669,50 @@ MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
     return key_in_obj;
 }
 
-MUST_USE bool datum_t::delete_key(const std::string &key) {
+MUST_USE bool datum_t::delete_field(const std::string &key) {
     return r_object->erase(key);
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
-    scoped_ptr_t<datum_t> d(new datum_t(as_object()));
+    if (get_type() != R_OBJECT || rhs->get_type() != R_OBJECT) { return rhs; }
+
+    datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
-        UNUSED bool b = d->add(it->first, it->second, CLOBBER);
+        counted_t<const datum_t> sub_lhs = d->get(it->first, NOTHROW);
+        bool is_literal = it->second->is_ptype(pseudo::literal_string);
+
+        if (it->second->get_type() == R_OBJECT && sub_lhs && !is_literal) {
+            UNUSED bool b = d.add(it->first, sub_lhs->merge(it->second), CLOBBER);
+        } else {
+            if (is_literal) {
+                counted_t<const datum_t> value = it->second->get(pseudo::value_key, NOTHROW);
+                if (value) {
+                    UNUSED bool b = d.add(it->first, value, CLOBBER);
+                } else {
+                    UNUSED bool b = d.delete_field(it->first);
+                }
+            } else {
+                UNUSED bool b = d.add(it->first, it->second, CLOBBER);
+            }
+        }
     }
-    return counted_t<const datum_t>(d.release());
+    return d.to_counted();
 }
 
 counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs, merge_res_f f) const {
-    scoped_ptr_t<datum_t> d(new datum_t(as_object()));
+    datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            bool b = d->add(it->first,
-                            f(it->first, left, it->second, this),
-                            CLOBBER);
+            bool b = d.add(it->first, f(it->first, left, it->second, this), CLOBBER);
             r_sanity_check(b);
         } else {
-            bool b = d->add(it->first, it->second);
+            bool b = d.add(it->first, it->second);
             r_sanity_check(!b);
         }
     }
-    return counted_t<const datum_t>(d.release());
+    return d.to_counted();
 }
 
 template<class T>
@@ -594,6 +722,12 @@ int derived_cmp(T a, T b) {
 }
 
 int datum_t::cmp(const datum_t &rhs) const {
+    if (is_ptype() && !rhs.is_ptype()) {
+        return 1;
+    } else if (!is_ptype() && rhs.is_ptype()) {
+        return -1;
+    }
+
     if (get_type() != rhs.get_type()) {
         return derived_cmp(get_type(), rhs.get_type());
     }
@@ -616,28 +750,35 @@ int datum_t::cmp(const datum_t &rhs) const {
         return i == rhs.as_array().size() ? 0 : -1;
     } unreachable();
     case R_OBJECT: {
-        const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
-        const std::map<std::string, counted_t<const datum_t> > &rhs_obj
-            = rhs.as_object();
-        auto it = obj.begin();
-        auto it2 = rhs_obj.begin();
-        while (it != obj.end() && it2 != rhs_obj.end()) {
-            int key_cmpval = derived_cmp(it->first, it2->first);
-            if (key_cmpval) {
-                return key_cmpval;
+        if (is_ptype()) {
+            if (get_reql_type() != rhs.get_reql_type()) {
+                return derived_cmp(get_reql_type(), rhs.get_reql_type());
             }
-            int val_cmpval = it->second->cmp(*it2->second);
-            if (val_cmpval) {
-                return val_cmpval;
+            return pseudo_cmp(rhs);
+        } else {
+            const std::map<std::string, counted_t<const datum_t> > &obj = as_object();
+            const std::map<std::string, counted_t<const datum_t> > &rhs_obj
+                = rhs.as_object();
+            auto it = obj.begin();
+            auto it2 = rhs_obj.begin();
+            while (it != obj.end() && it2 != rhs_obj.end()) {
+                int key_cmpval = derived_cmp(it->first, it2->first);
+                if (key_cmpval) {
+                    return key_cmpval;
+                }
+                int val_cmpval = it->second->cmp(*it2->second);
+                if (val_cmpval) {
+                    return val_cmpval;
+                }
+                ++it;
+                ++it2;
             }
-            ++it;
-            ++it2;
+            if (it != obj.end()) return 1;
+            if (it2 != rhs_obj.end()) return -1;
+            return 0;
         }
-        if (it != obj.end()) return 1;
-        if (it2 != rhs_obj.end()) return -1;
-        return 0;
     } unreachable();
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -696,6 +837,8 @@ void datum_t::init_from_pb(const Datum *d) {
                    strprintf("Duplicate key %s in object.", key.c_str()));
             (*r_object)[key] = make_counted<datum_t>(&ap->val());
         }
+        std::set<std::string> allowed_ptypes = { pseudo::literal_string };
+        maybe_sanitize_ptype(allowed_ptypes);
     } break;
     default: unreachable();
     }
@@ -759,7 +902,7 @@ void datum_t::write_to_protobuf(Datum *d) const {
             it->second->write_to_protobuf(ap->mutable_val());
         }
     } break;
-    case UNINITIALIZED: //fallthru
+    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -803,15 +946,15 @@ void wire_datum_map_t::finalize() {
 
 counted_t<const datum_t> wire_datum_map_t::to_arr() const {
     r_sanity_check(state == COMPILED);
-    scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
+    datum_ptr_t arr(datum_t::R_ARRAY);
     for (auto it = map.begin(); it != map.end(); ++it) {
-        scoped_ptr_t<datum_t> obj(new datum_t(datum_t::R_OBJECT));
-        bool b1 = obj->add("group", it->first);
-        bool b2 = obj->add("reduction", it->second);
+        datum_ptr_t obj(datum_t::R_OBJECT);
+        bool b1 = obj.add("group", it->first);
+        bool b2 = obj.add("reduction", it->second);
         r_sanity_check(!b1 && !b2);
-        arr->add(counted_t<datum_t>(obj.release()));
+        arr.add(obj.to_counted());
     }
-    return counted_t<const datum_t>(arr.release());
+    return arr.to_counted();
 }
 
 void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
@@ -826,5 +969,4 @@ archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
     return ARCHIVE_SUCCESS;
 }
 
-
-} //namespace ql
+} // namespace ql
