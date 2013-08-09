@@ -222,7 +222,7 @@ class RqlQuery(object):
 
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
-        return Contains(self, *attr)
+        return Contains(self, *map(func_wrap, attr))
 
     def has_fields(self, *attr):
         return HasFields(self, *attr)
