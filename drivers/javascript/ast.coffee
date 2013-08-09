@@ -939,8 +939,8 @@ rethinkdb.count =              {'COUNT': true}
 rethinkdb.sum   = ar (attr) -> {'SUM': attr}
 rethinkdb.avg   = ar (attr) -> {'AVG': attr}
 
-rethinkdb.asc = (attr) -> new Asc {}, attr
-rethinkdb.desc = (attr) -> new Desc {}, attr
+rethinkdb.asc = (attr) -> new Asc {}, funcWrap(attr)
+rethinkdb.desc = (attr) -> new Desc {}, funcWrap(attr)
 
 rethinkdb.eq = varar 2, null, (args...) -> new Eq {}, args...
 rethinkdb.ne = varar 2, null, (args...) -> new Ne {}, args...
