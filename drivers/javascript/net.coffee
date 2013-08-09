@@ -13,7 +13,7 @@ ar = util.ar
 varar = util.varar
 aropt = util.aropt
 
-deconstructDatum = (datum) ->
+deconstructDatum = (datum, opts) ->
     pb.DatumTypeSwitch(datum, {
         "R_NULL": =>
             null
@@ -24,12 +24,37 @@ deconstructDatum = (datum) ->
        ,"R_STR": =>
             datum.r_str
        ,"R_ARRAY": =>
-            deconstructDatum dt for dt in datum.r_array
+            deconstructDatum(dt, opts) for dt in datum.r_array
        ,"R_OBJECT": =>
             obj = {}
             for pair in datum.r_object
-                obj[pair.key] = deconstructDatum(pair.val)
-            obj
+                obj[pair.key] = deconstructDatum(pair.val, opts)
+
+            # An R_OBJECT may be a regular object or a "psudo-type" so we need a
+            # second layer of type switching here on the obfuscated field "$reql_type$"
+            switch obj['$reql_type$']
+                when 'TIME'
+                    switch opts.timeFormat
+                        # Default is native
+                        when 'native', undefined
+                            if not obj['epoch_time']?
+                                throw new err.RqlDriverError "psudo-type TIME #{obj} object missing expected field 'epoch_time'."
+
+                            # We ignore the timezone field of the psudo-type TIME object. JS dates do not support timezones.
+                            # By converting to a native date object we are intentionally throwing out timezone information.
+
+                            # field "epoch_time" is in seconds but the Date constructor expects milliseconds
+                            (new Date(obj['epoch_time']*1000))
+                        when 'raw'
+                            # Just return the raw (`{'$reql_type$'...}`) object
+                            obj
+                        else
+                            throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
+                when undefined
+                    # Regular object
+                    obj
+                else
+                    throw new err.RqlDriverError "Unknown psudo-type #{obj['$reql_type$']}."
         },
             => throw new err.RqlDriverError "Unknown Datum type"
         )
@@ -91,9 +116,9 @@ class Connection extends events.EventEmitter
             # For some reason, Arraybuffer.slice is not in my version of node
             @buffer = @buffer.slice(4 + responseLength)
 
-    mkAtom = (response) -> deconstructDatum response.response[0]
+    mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
 
-    mkSeq = (response) -> (deconstructDatum res for res in response.response)
+    mkSeq = (response, opts) -> (deconstructDatum(res, opts) for res in response.response)
 
     mkErr = (ErrClass, response, root) ->
         msg = mkAtom response
@@ -114,13 +139,13 @@ class Connection extends events.EventEmitter
     _processResponse: (response) ->
         token = response.token
         if @outstandingCallbacks[token]?
-            {cb:cb, root:root, cursor: cursor} = @outstandingCallbacks[token]
+            {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
                 pb.ResponseTypeSwitch(response, {
                      "SUCCESS_PARTIAL": =>
-                        cursor._addData mkSeq response
+                        cursor._addData(mkSeq(response, opts))
                     ,"SUCCESS_SEQUENCE": =>
-                        cursor._endData mkSeq response
+                        cursor._endData(mkSeq(response, opts))
                         @_delQuery(token)
                 },
                     => cb new err.RqlDriverError "Unknown response type"
@@ -138,7 +163,7 @@ class Connection extends events.EventEmitter
                         cb mkErr(err.RqlRuntimeError, response, root)
                         @_delQuery(token)
                    ,"SUCCESS_ATOM": =>
-                        response = mkAtom response
+                        response = mkAtom response, opts
                         if Array.isArray response
                             response = cursors.makeIterable response
                         cb null, response
@@ -146,11 +171,11 @@ class Connection extends events.EventEmitter
                    ,"SUCCESS_PARTIAL": =>
                         cursor = new cursors.Cursor @, token
                         @outstandingCallbacks[token].cursor = cursor
-                        cb null, cursor._addData(mkSeq response)
+                        cb null, cursor._addData(mkSeq(response, opts))
                    ,"SUCCESS_SEQUENCE": =>
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
-                        cb null, cursor._endData(mkSeq response)
+                        cb null, cursor._endData(mkSeq(response, opts))
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )
@@ -168,7 +193,7 @@ class Connection extends events.EventEmitter
     use: ar (db) ->
         @db = db
 
-    _start: (term, cb, useOutdated, noreply) ->
+    _start: (term, cb, opts) ->
         unless @open then throw new err.RqlDriverError "Connection is closed."
 
         # Assign token
@@ -187,25 +212,25 @@ class Connection extends events.EventEmitter
                 val: r.db(@db).build()
             query.global_optargs.push(pair)
 
-        if useOutdated?
+        if opts.useOutdated?
             pair =
                 key: 'use_outdated'
-                val: r.expr(!!useOutdated).build()
+                val: r.expr(!!opts.useOutdated).build()
             query.global_optargs.push(pair)
 
-        if noreply?
+        if opts.noreply?
             pair =
                 key: 'noreply'
-                val: r.expr(!!noreply).build()
+                val: r.expr(!!opts.noreply).build()
             query.global_optargs.push(pair)
 
         # Save callback
-        if (not noreply?) or !noreply
-            @outstandingCallbacks[token] = {cb:cb, root:term}
+        if (not opts.noreply?) or !opts.noreply
+            @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}
 
         @_sendQuery(query)
 
-        if noreply? and noreply and typeof(cb) is 'function'
+        if opts.noreply? and opts.noreply and typeof(cb) is 'function'
             cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->

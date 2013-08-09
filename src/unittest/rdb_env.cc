@@ -120,7 +120,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
 
     counted_t<const ql::datum_t> num_records = make_counted<ql::datum_t>(1.0);
-    scoped_ptr_t<ql::datum_t> resp(new ql::datum_t(ql::datum_t::R_OBJECT));
+    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
 
     counted_t<const ql::datum_t> old_val;
     if (data->find(r.key) != data->end()) {
@@ -136,22 +136,23 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     if (new_val->get_type() == ql::datum_t::R_OBJECT) {
         data->insert(std::make_pair(r.key, new scoped_cJSON_t(new_val->as_json()->release())));
         if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp->add("inserted", num_records);
+            not_added = resp.add("inserted", num_records);
         } else {
             if (*old_val == *new_val) {
-                not_added = resp->add("unchanged", num_records);
+                not_added = resp.add("unchanged", num_records);
             } else {
-                not_added = resp->add("replaced", num_records);
+                not_added = resp.add("replaced", num_records);
             }
         }
     } else if (new_val->get_type() == ql::datum_t::R_NULL) {
         if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp->add("skipped", num_records);
+            not_added = resp.add("skipped", num_records);
         } else {
-            not_added = resp->add("deleted", num_records);
+            not_added = resp.add("deleted", num_records);
         }
     } else {
-        throw cannot_perform_query_exc_t("value being inserted is neither an object nor an empty value");
+        throw cannot_perform_query_exc_t(
+            "value being inserted is neither an object nor an empty value");
     }
 
     guarantee(!not_added);

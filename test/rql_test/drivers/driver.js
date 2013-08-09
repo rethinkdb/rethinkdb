@@ -113,7 +113,9 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     try {
                         var exp_val = testPair[1];
-                        var exp_fun = eval(exp_val);
+                        with (defines) {
+                            var exp_fun = eval(exp_val);
+                        }
                     } catch (err) {
                         // Oops, this shouldn't have happened
                         console.log(testName);

@@ -168,6 +168,6 @@ private:
     ql::rcheckable_t *parent;
 };
 
-} //namespace query_language
+} // namespace query_language
 
 #endif  // RDB_PROTOCOL_STREAM_HPP_

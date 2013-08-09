@@ -1,6 +1,9 @@
 import ql2_pb2 as p
 import types
 import sys
+import datetime
+import time
+import re
 import json as py_json
 from threading import Lock
 from errors import *
@@ -14,6 +17,8 @@ def expr(val):
     '''
     if isinstance(val, RqlQuery):
         return val
+    elif isinstance(val, datetime.datetime):
+        return ISO8601(val.isoformat())
     elif isinstance(val, list):
         return MakeArray(*val)
     elif isinstance(val, dict):
@@ -378,6 +383,53 @@ class RqlQuery(object):
     def sample(self, count):
         return Sample(self, count)
 
+    ## Time support
+
+    def to_iso8601(self):
+        return ToISO8601(self)
+
+    def to_epoch_time(self):
+        return ToEpochTime(self)
+
+    def during(self, t2, t3, left_bound=(), right_bound=()):
+        return During(self, t2, t3, left_bound=left_bound, right_bound=right_bound)
+
+    def date(self):
+        return Date(self)
+
+    def time_of_day(self):
+        return TimeOfDay(self)
+
+    def timezone(self):
+        return Timezone(self)
+
+    def year(self):
+        return Year(self)
+
+    def month(self):
+        return Month(self)
+
+    def day(self):
+        return Day(self)
+
+    def day_of_week(self):
+        return DayOfWeek(self)
+
+    def day_of_year(self):
+        return DayOfYear(self)
+
+    def hours(self):
+        return Hours(self)
+
+    def minutes(self):
+        return Minutes(self)
+
+    def seconds(self):
+        return Seconds(self)
+
+    def in_timezone(self, tzstr):
+        return InTimezone(self, tzstr)
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -405,6 +457,32 @@ class RqlMethodQuery(RqlQuery):
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
+
+class RqlTzinfo(datetime.tzinfo):
+
+    def __init__(self, offsetstr):
+        hours, minutes = map(int, offsetstr.split(':'))
+
+        self.offsetstr = offsetstr
+        self.delta = datetime.timedelta(hours=hours, minutes=minutes)
+
+    def utcoffset(self, dt):
+        return self.delta
+
+    def tzname(self, dt):
+        return offsetstr
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+def reql_type_time_to_datetime(obj):
+    if not obj.has_key('epoch_time'):
+        raise RqlDriverError('psudo-type TIME object %s does not have expected field "epoch_time".' % py_json.dumps(obj))
+
+    if obj.has_key('timezone'):
+        return datetime.datetime.fromtimestamp(obj['epoch_time'], RqlTzinfo(obj['timezone']))
+    else:
+        return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
 
 # This class handles the conversion of RQL terminal types in both directions
 # Going to the server though it does not support R_ARRAY or R_OBJECT as those
@@ -435,13 +513,13 @@ class Datum(RqlQuery):
             term.datum.type = p.Datum.R_STR
             term.datum.r_str = self.data
         else:
-            raise RuntimeError("Cannot build a query from a %s" % type(term).__name__, term)
+            raise RqlDriverError("Cannot build a query from a %s" % type(self.data).__name__)
 
     def compose(self, args, optargs):
         return repr(self.data)
 
     @staticmethod
-    def deconstruct(datum):
+    def deconstruct(datum, time_format='native'):
         if datum.type == p.Datum.R_NULL:
             return None
         elif datum.type == p.Datum.R_BOOL:
@@ -459,11 +537,29 @@ class Datum(RqlQuery):
         elif datum.type == p.Datum.R_STR:
             return datum.r_str
         elif datum.type == p.Datum.R_ARRAY:
-            return [Datum.deconstruct(e) for e in datum.r_array]
+            return [Datum.deconstruct(e, time_format) for e in datum.r_array]
         elif datum.type == p.Datum.R_OBJECT:
             obj = {}
             for pair in datum.r_object:
-                obj[pair.key] = Datum.deconstruct(pair.val)
+                obj[pair.key] = Datum.deconstruct(pair.val, time_format)
+
+            # Thanks to "psudo-types" we can't yet be quite sure if this object is meant to
+            # be an object or something else. We need a second layer of type switching, this
+            # time on an obfuscated field "$reql_type$" rather than the datum type field we
+            # already switched on.
+            if obj.has_key('$reql_type$'):
+                if obj['$reql_type$'] == 'TIME':
+                    if time_format == 'native':
+                        # Convert to native python datetime object
+                        return reql_type_time_to_datetime(obj)
+                    elif time_format == 'raw':
+                        # Just return the raw `{'$reql_type':...}` dict
+                        return obj
+                    else:
+                        raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
+                else:
+                    raise RqlDriverError("Unknown psudo-type %" % obj['$reql_type$'])
+
             return obj
         else:
             raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
@@ -913,6 +1009,82 @@ class Json(RqlTopLevelQuery):
     tt = p.Term.JSON
     st = 'json'
 
+class ToISO8601(RqlMethodQuery):
+    tt = p.Term.TO_ISO8601
+    st = 'to_iso8601'
+
+class During(RqlMethodQuery):
+    tt = p.Term.DURING
+    st = 'during'
+
+class Date(RqlMethodQuery):
+    tt = p.Term.DATE
+    st = 'date'
+
+class TimeOfDay(RqlMethodQuery):
+    tt = p.Term.TIME_OF_DAY
+    st = 'time_of_day'
+
+class Timezone(RqlMethodQuery):
+    tt = p.Term.TIMEZONE
+    st = 'timezone'
+
+class Year(RqlMethodQuery):
+    tt = p.Term.YEAR
+    st = 'year'
+
+class Month(RqlMethodQuery):
+    tt = p.Term.MONTH
+    st = 'month'
+
+class Day(RqlMethodQuery):
+    tt = p.Term.DAY
+    st = 'day'
+
+class DayOfWeek(RqlMethodQuery):
+    tt = p.Term.DAY_OF_WEEK
+    st = 'day_of_week'
+
+class DayOfYear(RqlMethodQuery):
+    tt = p.Term.DAY_OF_YEAR
+    st = 'day_of_year'
+
+class Hours(RqlMethodQuery):
+    tt = p.Term.HOURS
+    st = 'hours'
+
+class Minutes(RqlMethodQuery):
+    tt = p.Term.MINUTES
+    st = 'minutes'
+
+class Seconds(RqlMethodQuery):
+    tt = p.Term.SECONDS
+    st = 'seconds'
+
+class Time(RqlTopLevelQuery):
+    tt = p.Term.TIME
+    st = 'time'
+
+class ISO8601(RqlTopLevelQuery):
+    tt = p.Term.ISO8601
+    st = 'iso8601'
+
+class EpochTime(RqlTopLevelQuery):
+    tt = p.Term.EPOCH_TIME
+    st = 'epoch_time'
+
+class Now(RqlTopLevelQuery):
+    tt = p.Term.NOW
+    st = 'now'
+
+class InTimezone(RqlMethodQuery):
+    tt = p.Term.IN_TIMEZONE
+    st = 'in_timezone'
+
+class ToEpochTime(RqlMethodQuery):
+    tt = p.Term.TO_EPOCH_TIME
+    st = 'to_epoch_time'
+
 # Called on arguments that should be functions
 def func_wrap(val):
     val = expr(val)
@@ -964,3 +1136,7 @@ class Asc(RqlTopLevelQuery):
 class Desc(RqlTopLevelQuery):
     tt = p.Term.DESC
     st = 'desc'
+
+class Literal(RqlTopLevelQuery):
+    tt = p.Term.LITERAL
+    st = 'literal'

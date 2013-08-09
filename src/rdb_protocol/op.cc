@@ -82,10 +82,10 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
 op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
-counted_t<val_t> op_term_t::arg(size_t i) {
+counted_t<val_t> op_term_t::arg(size_t i, eval_flags_t flags) {
     rcheck(i < num_args(), base_exc_t::NON_EXISTENCE,
            strprintf("Index out of range: %zu", i));
-    return args[i]->eval();
+    return args[i]->eval(flags);
 }
 
 counted_t<val_t> op_term_t::optarg(const std::string &key) {
@@ -122,4 +122,4 @@ bool op_term_t::is_deterministic_impl() const {
     return true;
 }
 
-} //namespace ql
+} // namespace ql

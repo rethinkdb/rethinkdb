@@ -55,7 +55,7 @@ public:
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments
-    counted_t<val_t> arg(size_t i); // returns argument `i`
+    counted_t<val_t> arg(size_t i, eval_flags_t flags = NO_FLAGS); // returns argument `i`
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not
     // found.
     counted_t<val_t> optarg(const std::string &key);

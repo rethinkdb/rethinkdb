@@ -8,7 +8,11 @@ TEST_FILES=$(patsubst $(DRIVERS)/driver.%,build/test.%,$(DRIVER_FILES))
 BUILD_DIR='../../build/release'
 TEST_DEFAULT_PORT=0
 SHARD=0
-TEST=.*
+ifeq (1,$(SKIP_SLOW))
+  TEST=[^_].*
+else
+  TEST=.*
+endif
 
 SHELL=/bin/bash
 
@@ -24,8 +28,8 @@ JS_DRIVER := node_modules/rethinkdb/.
 .SILENT:
 
 $(JS_DRIVER): ../../build/packages/js/.
-	test -d node_modules || mkdir node_modules
-	npm install ../../build/packages/js
+	test -d node_modules/rethinkdb/ || mkdir -p node_modules
+	npm -d install ../../build/packages/js
 
 .PHONY: run
 run: $(TEST_FILES) cursor connect

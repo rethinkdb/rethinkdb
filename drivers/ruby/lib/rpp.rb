@@ -50,7 +50,7 @@ module RethinkDB
 
     def self.pp_int_datum(q, dat, pre_dot)
       q.text("r(") if pre_dot
-      q.text(Shim.datum_to_native(dat).inspect)
+      q.text(Shim.datum_to_native(dat, :time_format => 'raw').inspect)
       q.text(")") if pre_dot
     end
 
