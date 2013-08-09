@@ -97,7 +97,7 @@ tests:
 
 # Construction/Conversion
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").to_epoch_time()
-    ot: (1375140600.1)
+    ot: (1375165800.1)
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").timezone()
     ot: ("-07:00")
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1).to_epoch_time()
@@ -109,7 +109,7 @@ tests:
   - cd: r.time(2013, r.july, 29, 23).to_epoch_time()
     ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
   - cd: r.time(2013, r.july, 29, "-07:00").to_epoch_time()
-    ot: 1375056000
+    ot: 1375081200
   - cd: r.time(2013, r.july, 29, "-07:00").timezone()
     ot: ("-07:00")
   - cd: r.time(2013, r.july, 29).to_epoch_time()

@@ -301,7 +301,11 @@ bool tz_valid(const std::string &tz, std::string *tz_out = NULL) {
 // Sanitize the timezone we retrieve from a boost local time.  Boost local time
 // gives a slight superset of ISO 8601 even when only fed ISO 8601 timezones, so
 // we adjust for that here.
-std::string sanitize_boost_tz(const std::string &tz, const rcheckable_t *target) {
+std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
+    size_t colpos = tz.find(':');
+    if (colpos != std::string::npos && (colpos + 1) < tz.size() && tz[colpos+1] == '-') {
+        tz = tz.substr(0, colpos + 1) + tz.substr(colpos + 2, std::string::npos);
+    }
     if (tz == "UTC+00" || tz == "") {
         return "";
     } else if (tz == "Z+00") {
