@@ -568,7 +568,7 @@ counted_t<const datum_t> make_time(
         if (tz != "") {
             boost::local_time::time_zone_ptr zone(
                 new boost::local_time::posix_time_zone(tz));
-            return boost_to_time(time_t(ptime, zone), target);
+            return boost_to_time(time_t(ptime, zone) - zone->base_utc_offset(), target);
         } else {
             return boost_to_time(time_t(ptime, utc), target);
         }
