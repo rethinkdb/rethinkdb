@@ -2764,6 +2764,10 @@ module 'DataExplorerView', ->
                     sub_values[sub_values.length-1]['no_comma'] = true
                     return @template_json_tree.array
                         values: sub_values
+            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+                return @template_json_tree.span
+                    classname: 'jt_date'
+                    value: new Date(value.epoch_time*1000)
             else if value_type is 'object'
                 sub_keys = []
                 for key of value
@@ -2823,15 +2827,18 @@ module 'DataExplorerView', ->
             result = args.result
 
             if jQuery.isPlainObject(result)
-                for key, row of result
-                    if not keys_count['object']?
-                        keys_count['object'] = {} # That's define only if there are keys!
-                    if not keys_count['object'][key]?
-                        keys_count['object'][key] =
-                            primitive_value_count: 0
-                    @build_map_keys
-                        keys_count: keys_count['object'][key]
-                        result: row
+                if result.$reql_type$ is 'TIME' and result.epoch_time?
+                    keys_count.primitive_value_count++
+                else
+                    for key, row of result
+                        if not keys_count['object']?
+                            keys_count['object'] = {} # That's define only if there are keys!
+                        if not keys_count['object'][key]?
+                            keys_count['object'][key] =
+                                primitive_value_count: 0
+                        @build_map_keys
+                            keys_count: keys_count['object'][key]
+                            result: row
             else
                 keys_count.primitive_value_count++
 
@@ -2998,6 +3005,9 @@ module 'DataExplorerView', ->
                 else
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
+            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+                data['value'] = (new Date(value.epoch_time*1000)).toString()
+                data['classname'] = 'jta_date' 
             else if value_type is 'object'
                 data['value'] = '{ ... }'
                 data['is_object'] = true
