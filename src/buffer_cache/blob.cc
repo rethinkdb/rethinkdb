@@ -105,8 +105,12 @@ const char *leaf_node_data(const void *buf) {
 
 const size_t LEAF_NODE_DATA_OFFSET = sizeof(block_magic_t);
 
+int64_t internal_node_bytesize(block_size_t block_size) {
+    return block_size.value() - sizeof(block_magic_t);
+}
+
 int64_t internal_node_count(block_size_t block_size) {
-    return (block_size.value() - sizeof(block_magic_t)) / sizeof(block_id_t);
+    return internal_node_bytesize(block_size) / sizeof(block_id_t);
 }
 
 const block_id_t *internal_node_block_ids(const void *buf) {
@@ -239,9 +243,11 @@ void compute_acquisition_offsets(block_size_t block_size, int levels, int64_t of
 
 }  // namespace blob
 
-blob_t::blob_t(char *ref, int maxreflen)
+blob_t::blob_t(block_size_t block_size, char *ref, int maxreflen)
     : ref_(ref), maxreflen_(maxreflen) {
-    rassert(maxreflen >= blob::block_ids_offset(maxreflen) + static_cast<int>(sizeof(block_id_t)));
+    guarantee(maxreflen <= blob::leaf_size(block_size));
+    guarantee(maxreflen - blob::block_ids_offset(maxreflen) <= blob::internal_node_bytesize(block_size));
+    guarantee(maxreflen >= blob::block_ids_offset(maxreflen) + static_cast<int>(sizeof(block_id_t)));
 }
 
 

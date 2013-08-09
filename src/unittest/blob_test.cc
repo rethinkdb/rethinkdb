@@ -21,7 +21,8 @@ public:
     }
 
     explicit blob_tracker_t(size_t maxreflen)
-        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(buf_.data(), maxreflen) { }
+        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(block_size_t::unsafe_make(4096),
+                                                            buf_.data(), maxreflen) { }
 
     void check_region(transaction_t *txn, int64_t offset, int64_t size) {
         SCOPED_TRACE("check_region");

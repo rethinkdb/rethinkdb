@@ -19,7 +19,8 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
 
     // If the value's expired, delete it.
     if (expired) {
-        blob_t b(the_value->value_ref(), blob::btree_maxreflen);
+        blob_t b(txn->get_cache()->get_block_size(),
+                 the_value->value_ref(), blob::btree_maxreflen);
         b.clear(txn);
         the_value.reset();
     }

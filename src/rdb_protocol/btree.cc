@@ -84,7 +84,8 @@ block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_
 
 boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
                                            transaction_t *txn) {
-    blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
 
     boost::shared_ptr<scoped_cJSON_t> data;
 
@@ -116,7 +117,8 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
 void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
                         btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
     guarantee(kv_location->value.has());
-    blob_t blob(kv_location->value->value_ref(), blob::btree_maxreflen);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                kv_location->value->value_ref(), blob::btree_maxreflen);
     blob.clear(txn);
     kv_location->value.reset();
     null_key_modification_callback_t<rdb_value_t> null_cb;
@@ -137,7 +139,8 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     int res = send_write_message(&stream, &wm);
     guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
 
-    blob_t blob(new_value->value_ref(), blob::btree_maxreflen);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                new_value->value_ref(), blob::btree_maxreflen);
 
     //TODO more copies, good lord
     blob.append_region(txn, stream.vector().size());
@@ -457,8 +460,9 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 }
 
 void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
-        blob_t blob(static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
-        blob.clear(_txn);
+    blob_t blob(_txn->get_cache()->get_block_size(),
+                static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
+    blob.clear(_txn);
 }
 
 class sindex_key_range_tester_t : public key_tester_t {
