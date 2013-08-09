@@ -105,7 +105,7 @@ class RDBVal extends TermBase
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getField: ar (field) -> new GetField {}, @, field
-    contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
+    contains: varar(1, null, (fields...) -> new Contains {}, @, fields.map(funcWrap)...)
     insertAt: ar (index, value) -> new InsertAt {}, @, index, value
     spliceAt: ar (index, value) -> new SpliceAt {}, @, index, value
     deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
@@ -126,7 +126,7 @@ class RDBVal extends TermBase
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     distinct: ar () -> new Distinct {}, @
-    count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
+    count: varar(0, 1, (fun...) -> new Count {}, @, fun.map(funcWrap)...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
     match: ar (pattern) -> new Match {}, @, pattern
