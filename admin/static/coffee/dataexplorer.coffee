@@ -2805,7 +2805,7 @@ module 'DataExplorerView', ->
             else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
                 return @template_json_tree.span
                     classname: 'jt_date'
-                    value: new Date(value.epoch_time)
+                    value: new Date(value.epoch_time*1000)
             else if value_type is 'object'
                 sub_keys = []
                 for key of value
@@ -3044,7 +3044,7 @@ module 'DataExplorerView', ->
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
             else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
-                data['value'] = (new Date(value.epoch_time)).toString()
+                data['value'] = (new Date(value.epoch_time*1000)).toString()
                 data['classname'] = 'jta_date' 
             else if value_type is 'object'
                 data['value'] = '{ ... }'
