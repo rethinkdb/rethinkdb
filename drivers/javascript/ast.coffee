@@ -847,7 +847,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         throw new err.RqlDriverError "Cannot wrap undefined with r.expr()."
 
     if nestingDepth <= 0
-        throw new RqlDriverError "Nesting depth limit exceeded"
+        throw new err.RqlDriverError "Nesting depth limit exceeded"
 
     else if val instanceof TermBase
         val
@@ -862,7 +862,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
         obj = {}
         for own k,v of val
             if typeof v is 'undefined'
-                throw new RqlDriverError "Object field '#{k}' may not be undefined"
+                throw new err.RqlDriverError "Object field '#{k}' may not be undefined"
             obj[k] = rethinkdb.expr(v, nestingDepth - 1)
         new MakeObject obj
     else
@@ -872,7 +872,7 @@ rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
 # feasible to avoid doing too much protobuf serialization.
 rethinkdb.exprJSON = varar 1, 2, (val, nestingDepth=20) ->
     if nestingDepth <= 0
-        throw new RqlDriverError "Nesting depth limit exceeded"
+        throw new err.RqlDriverError "Nesting depth limit exceeded"
 
     if isJSON(val, nestingDepth - 1)
         rethinkdb.json(JSON.stringify(val))
