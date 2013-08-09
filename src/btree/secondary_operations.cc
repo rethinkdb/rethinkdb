@@ -54,11 +54,6 @@ void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) 
     data->magic = btree_sindex_block_t::expected_magic;
     memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
-    // RSI: This doesn't actually do anything, right?
-    blob_t sindex_blob(txn->get_cache()->get_block_size(),
-                       data->sindex_blob,
-                       btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-
     set_secondary_indexes_internal(txn, sindex_block, std::map<std::string, secondary_index_t>());
 }
 
