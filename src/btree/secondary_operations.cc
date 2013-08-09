@@ -51,6 +51,7 @@ void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block
 
 void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) {
     btree_sindex_block_t *data = static_cast<btree_sindex_block_t *>(sindex_block->get_data_write());
+    data->magic = btree_sindex_block_t::expected_magic;
     memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     // RSI: This doesn't actually do anything, right?

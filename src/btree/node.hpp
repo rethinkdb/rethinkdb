@@ -63,9 +63,12 @@ struct btree_statblock_t {
 };
 
 struct btree_sindex_block_t {
-    static const int SINDEX_BLOB_MAXREFLEN = 4080;
+    static const int SINDEX_BLOB_MAXREFLEN = 4076;
 
+    block_magic_t magic;
     char sindex_blob[SINDEX_BLOB_MAXREFLEN];
+
+    static const block_magic_t expected_magic;
 };
 
 //Note: This struct is stored directly on disk.  Changing it invalidates old data.
