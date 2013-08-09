@@ -2461,44 +2461,6 @@ module 'DataExplorerView', ->
                     @save_query
                         query: @raw_query
                         broken_query: false
-                else
-                    @execute_portion()
-
-        get_result_callback: (error, data) =>
-            if error?
-                @results_view.render_error(@query, error)
-                @save_query
-                    query: @raw_query
-                    broken_query: true
-                return false
-
-            if data isnt undefined
-                @current_results.push data
-                if @current_results.length < @limit and @cursor.hasNext() is true
-                    @cursor.next @get_result_callback
-                    return true
-
-            # if data is undefined or @current_results.length is @limit
-            @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
-            @saved_data.query = @query
-            @saved_data.results = @current_results
-            @saved_data.metadata =
-                limit_value: @current_results.length
-                skip_value: @skip_value
-                execution_time: new Date() - @start_time
-                query: @query
-                has_more_data: @cursor.hasNext()
-
-            @results_view.render_result
-                results: @current_results # The first parameter is null ( = query, so we don't display it)
-                metadata: @saved_data.metadata
-
-            # Successful query, let's save it in the history
-            @save_query
-                query: @raw_query
-                broken_query: false
-
-            return get_result_callback
 
         # Evaluate the query
         # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
