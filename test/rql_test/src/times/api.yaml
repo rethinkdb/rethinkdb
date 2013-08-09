@@ -117,6 +117,7 @@ tests:
   - cd: r.time(2013, r.july, 29).timezone()
     ot: (null)
   - cd: r.iso8601("2013-07-30T20:56:05-07:00").to_epoch_time()
+    js: r.ISO8601("2013-07-30T20:56:05-07:00").to_epoch_time()
     ot: 1375242965
   - cd: r.epoch_time(1375242965).in_timezone("-07:00").to_iso8601()
     js: r.epochTime(1375242965).inTimezone("-07:00").toISO8601()

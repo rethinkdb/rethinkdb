@@ -765,7 +765,7 @@ class Literal extends RDBOp
 
 class ISO8601 extends RDBOp
     tt: 'ISO8601'
-    st: 'iso8601'
+    st: 'ISO8601'
 
 class ToISO8601 extends RDBOp
     tt: 'TO_ISO8601'
@@ -964,7 +964,7 @@ rethinkdb.info = ar (val) -> new Info {}, val
 
 rethinkdb.literal = varar 0, 1, (args...) -> new Literal {}, args...
 
-rethinkdb.iso8601 = ar (str) -> new ISO8601 {}, str
+rethinkdb.ISO8601 = ar (str) -> new ISO8601 {}, str
 rethinkdb.epochTime = ar (num) -> new EpochTime {}, num
 rethinkdb.now = ar () -> new Now {}
 rethinkdb.time = varar 3, 7, (args...) -> new Time {}, args...
