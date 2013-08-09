@@ -662,6 +662,7 @@ counted_t<const datum_t> time_of_day(counted_t<const datum_t> time) {
         time_t boost_time = time_to_boost(time);
         double sec =
             (boost_time - boost_date(boost_time)).total_microseconds() / 1000000.0;
+        sec = round(sec * 1000) / 1000;
         return make_counted<const datum_t>(sec);
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
