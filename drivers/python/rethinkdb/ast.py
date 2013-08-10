@@ -335,6 +335,7 @@ class RqlQuery(object):
         return ConcatMap(self, func_wrap(func))
 
     def order_by(self, *obs, **kwargs):
+        obs = map(lambda ob: ob if isinstance(ob, Asc) or isinstance(ob, Desc) else func_wrap(ob), obs)
         return OrderBy(self, *obs, **kwargs)
 
     def between(self, left=None, right=None, left_bound=(), right_bound=(), index=()):
