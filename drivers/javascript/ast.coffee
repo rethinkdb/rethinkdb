@@ -172,6 +172,13 @@ class RDBVal extends TermBase
             opts = perhapsOptDict
             attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
 
+        attrs = (for attr in attrs
+            if attr instanceof Asc or attr instanceof Desc
+                attr
+            else
+                funcWrap(attr)
+        )
+
         new OrderBy opts, @, attrs...
 
     # Database operations
