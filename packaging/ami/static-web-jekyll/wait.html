@@ -6,7 +6,7 @@ permalink: wait/
     setTimeout(function(){
         document.getElementById('last-step').className = "complete";
         setTimeout(function() {
-            document.location.href = "/";
+            document.location = "https://" + document.location.hostname;
         }, 1000);
     }, 4000);
 </script>

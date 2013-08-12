@@ -1,5 +1,21 @@
 #### Web UI sources
 
+.PHONY: $(TOP)/admin/all
+$(TOP)/admin/all: web-assets
+
+.PRECIOUS: $(WEB_ASSETS_BUILD_DIR)/.
+
+ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
+
+$(WEB_ASSETS_BUILD_DIR): $(PRECOMPILED_DIR)/web | $(BUILD_DIR)/.
+	$P CP
+	cp -pRP $< $@
+
+.PHONY: web-assets
+web-assets: $(WEB_ASSETS_BUILD_DIR)
+
+else # Don't use precompiled assets
+
 WEB_SOURCE_DIR := $(TOP)/admin
 WEB_ASSETS_OBJ_DIR := $(BUILD_DIR)/webobj
 WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js js/reql_docs.json
@@ -35,27 +51,8 @@ FAVICON := $(WEB_SOURCE_DIR)/favicon.ico
 
 HANDLEBAR_HTML_FILES := $(shell find $(WEB_SOURCE_DIR)/static/handlebars -name \*.html)
 
-.PHONY: $(TOP)/admin/all
-$(TOP)/admin/all: web-assets
-
 .PHONY: web-assets
 web-assets: $(BUILD_WEB_ASSETS) | $(BUILD_DIR)/.
-
-.PRECIOUS: $(WEB_ASSETS_BUILD_DIR)/.
-
-ifeq (1,$(USE_PRECOMPILED_WEB_ASSETS))
-
-$(WEB_ASSETS_BUILD_DIR)/%: $(PRECOMPILED_DIR)/web/% | $(WEB_ASSETS_BUILD_DIR)/.
-	$P CP
-	mkdir -p $(dir $@)
-	cp -pRP $< $(dir $@)
-
-$(PRECOMPILED_DIR)/web/%:
-	test -e $@ || ( \
-	  echo 'Missing file $@. Run ./configure with --disable-precompiled-web to build normally.' ; \
-	  false )
-
-else # Don't use precompiled assets
 
 $(WEB_ASSETS_BUILD_DIR)/js/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P CP
@@ -99,5 +96,9 @@ $(WEB_ASSETS_BUILD_DIR)/images: | $(WEB_ASSETS_BUILD_DIR)/.
 $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
+
+$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(DOCS_JSON_OUT) | $(WEB_ASSETS_BUILD_DIR)/js/.
+	$P CP
+	cp $< $@
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1

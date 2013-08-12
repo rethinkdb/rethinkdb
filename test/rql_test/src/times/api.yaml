@@ -97,7 +97,7 @@ tests:
 
 # Construction/Conversion
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").to_epoch_time()
-    ot: (1375140600.1)
+    ot: (1375165800.1)
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").timezone()
     ot: ("-07:00")
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1).to_epoch_time()
@@ -109,7 +109,7 @@ tests:
   - cd: r.time(2013, r.july, 29, 23).to_epoch_time()
     ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
   - cd: r.time(2013, r.july, 29, "-07:00").to_epoch_time()
-    ot: 1375056000
+    ot: 1375081200
   - cd: r.time(2013, r.july, 29, "-07:00").timezone()
     ot: ("-07:00")
   - cd: r.time(2013, r.july, 29).to_epoch_time()
@@ -117,12 +117,13 @@ tests:
   - cd: r.time(2013, r.july, 29).timezone()
     ot: (null)
   - cd: r.iso8601("2013-07-30T20:56:05-07:00").to_epoch_time()
+    js: r.ISO8601("2013-07-30T20:56:05-07:00").to_epoch_time()
     ot: 1375242965
   - cd: r.epoch_time(1375242965).in_timezone("-07:00").to_iso8601()
     js: r.epochTime(1375242965).inTimezone("-07:00").toISO8601()
     ot: ("2013-07-30T20:56:05-07:00")
   - cd: r.now().type_of()
-    ot: ("PSEUDOTYPE(TIME)")
+    ot: ("PTYPE<TIME>")
   - cd: (r.now() - r.now())
     js: r.now().sub(r.now())
     ot: 0

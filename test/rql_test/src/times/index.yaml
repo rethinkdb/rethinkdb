@@ -140,7 +140,7 @@ tests:
   #   ot: 1
 
   - cd: tbl.get(oldtime)['id'].type_of()
-    js: tbl//.get(oldtime)('id').typeOf()
-    ot: ("PSEUDOTYPE(TIME)")
+    js: tbl.get(oldtime)('id').typeOf()
+    ot: ("PTYPE<TIME>")
 
   - cd: r.db('test').table_drop('times_api')
