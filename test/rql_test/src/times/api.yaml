@@ -122,7 +122,7 @@ tests:
     js: r.epochTime(1375242965).inTimezone("-07:00").toISO8601()
     ot: ("2013-07-30T20:56:05-07:00")
   - cd: r.now().type_of()
-    ot: ("PSEUDOTYPE(TIME)")
+    ot: ("PTYPE<TIME>")
   - cd: (r.now() - r.now())
     js: r.now().sub(r.now())
     ot: 0
