@@ -703,7 +703,6 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
-            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -727,12 +726,10 @@ module 'DataExplorerView', ->
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
                         continue
 
             return result
@@ -756,7 +753,6 @@ module 'DataExplorerView', ->
             is_parsing_string = false
             to_skip = 0
             result = 0
-            start = 0
 
             for char, i in query
                 if to_skip > 0 # Because we cannot mess with the iterator in coffee-script
@@ -780,12 +776,10 @@ module 'DataExplorerView', ->
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
                         continue
 
             return result
@@ -1266,7 +1260,7 @@ module 'DataExplorerView', ->
             semicolon: /^(\s)*;(\s)*/
             number: /^[0-9]+\.?[0-9]*/
             inline_comment: /^(\s)*\/\/.*\n/
-            multiple_line_comment: /^(\s)*\/\*[^]*\*\//
+            multiple_line_comment: /^(\s)*\/\*[^(\*\/)]*\*\//
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
         stop_char: # Just for performance (we look for a stop_char in constant time - which is better than having 3 and conditions) and cleaner code
@@ -1354,19 +1348,20 @@ module 'DataExplorerView', ->
                             element.type = 'string'
                             start = i
                         continue
-                    
-                    result_inline_comment = @regex.inline_comment.exec query.slice i
-                    if result_inline_comment?
-                        to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
-                        continue
-                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
-                    if result_multiple_line_comment?
-                        to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
-                        continue
+
 
                     if element.type is null
+                        result_inline_comment = @regex.inline_comment.exec query.slice i
+                        if result_inline_comment?
+                            to_skip = result_inline_comment[0].length-1
+                            start += result_inline_comment[0].length
+                            continue
+                        result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                        if result_multiple_line_comment?
+                            to_skip = result_multiple_line_comment[0].length-1
+                            start += result_multiple_line_comment[0].length
+                            continue
+
                         if start is i
                             result_white = @regex.white_start.exec query.slice i
                             if result_white?
@@ -2300,9 +2295,7 @@ module 'DataExplorerView', ->
 
             @raw_query = @codemirror.getValue()
 
-            @query = @raw_query.replace(/(\s)*\/\/.*\n/g, '\n')
-            @query = @query.replace(/(\s)*\/\*[^]*\*\//g, '')
-            @query = @replace_new_lines_in_query @query # Save it because we'll use it in @callback_multilples_queries
+            @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
             # Execute the query
             try
@@ -2461,44 +2454,6 @@ module 'DataExplorerView', ->
                     @save_query
                         query: @raw_query
                         broken_query: false
-                else
-                    @execute_portion()
-
-        get_result_callback: (error, data) =>
-            if error?
-                @results_view.render_error(@query, error)
-                @save_query
-                    query: @raw_query
-                    broken_query: true
-                return false
-
-            if data isnt undefined
-                @current_results.push data
-                if @current_results.length < @limit and @cursor.hasNext() is true
-                    @cursor.next @get_result_callback
-                    return true
-
-            # if data is undefined or @current_results.length is @limit
-            @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
-            @saved_data.query = @query
-            @saved_data.results = @current_results
-            @saved_data.metadata =
-                limit_value: @current_results.length
-                skip_value: @skip_value
-                execution_time: new Date() - @start_time
-                query: @query
-                has_more_data: @cursor.hasNext()
-
-            @results_view.render_result
-                results: @current_results # The first parameter is null ( = query, so we don't display it)
-                metadata: @saved_data.metadata
-
-            # Successful query, let's save it in the history
-            @save_query
-                query: @raw_query
-                broken_query: false
-
-            return get_result_callback
 
         # Evaluate the query
         # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
@@ -2512,7 +2467,8 @@ module 'DataExplorerView', ->
         #   world')
         # becomes
         #   r.expr('hello\nworld')
-        replace_new_lines_in_query: (query) ->
+        #  We also remove comments from the query
+        clean_query: (query) ->
             is_parsing_string = false
             start = 0
 
@@ -2538,11 +2494,17 @@ module 'DataExplorerView', ->
 
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
+                        result_query += query.slice(start, i).replace(/\n/g, '')
+                        start = i
                         to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
+                        result_query += query.slice(start, i).replace(/\n/g, '')
+                        start = i
                         to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
                         continue
             if is_parsing_string
                 result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
@@ -2802,6 +2764,10 @@ module 'DataExplorerView', ->
                     sub_values[sub_values.length-1]['no_comma'] = true
                     return @template_json_tree.array
                         values: sub_values
+            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+                return @template_json_tree.span
+                    classname: 'jt_date'
+                    value: new Date(value.epoch_time*1000)
             else if value_type is 'object'
                 sub_keys = []
                 for key of value
@@ -2861,15 +2827,18 @@ module 'DataExplorerView', ->
             result = args.result
 
             if jQuery.isPlainObject(result)
-                for key, row of result
-                    if not keys_count['object']?
-                        keys_count['object'] = {} # That's define only if there are keys!
-                    if not keys_count['object'][key]?
-                        keys_count['object'][key] =
-                            primitive_value_count: 0
-                    @build_map_keys
-                        keys_count: keys_count['object'][key]
-                        result: row
+                if result.$reql_type$ is 'TIME' and result.epoch_time?
+                    keys_count.primitive_value_count++
+                else
+                    for key, row of result
+                        if not keys_count['object']?
+                            keys_count['object'] = {} # That's define only if there are keys!
+                        if not keys_count['object'][key]?
+                            keys_count['object'][key] =
+                                primitive_value_count: 0
+                        @build_map_keys
+                            keys_count: keys_count['object'][key]
+                            result: row
             else
                 keys_count.primitive_value_count++
 
@@ -2915,7 +2884,7 @@ module 'DataExplorerView', ->
         json_to_table: (result) =>
             # While an Array type is never returned by the driver, we still build an Array in the data explorer
             # when a cursor is returned (since we just print @limit results)
-            if not result.constructor? or (result.constructor isnt ArrayResult and result.constructor isnt Array)
+            if not result.constructor? or result.constructor isnt Array
                 result = [result]
 
             keys_count =
@@ -3029,13 +2998,16 @@ module 'DataExplorerView', ->
             else if value is undefined
                 data['value'] = 'undefined'
                 data['classname'] = 'jta_undefined'
-            else if value.constructor? and (value.constructor is ArrayResult or value.constructor is Array)
+            else if value.constructor? and value.constructor is Array
                 if value.length is 0
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'
                 else
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
+            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+                data['value'] = (new Date(value.epoch_time*1000)).toString()
+                data['classname'] = 'jta_date' 
             else if value_type is 'object'
                 data['value'] = '{ ... }'
                 data['is_object'] = true

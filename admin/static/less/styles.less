@@ -772,16 +772,20 @@ TODO: retire this
 #dashboard_container {
     #cluster_status_container {
         padding: 0;
+        width: 940px;
         overflow: auto;
+        border-collapse: collapse;
+        td{
+            border: thin solid #dfdfdf;
+        }
         .panel {
             @bad: #e85250;
             @good: #3ba51a;
-            float: left;
-            border-left: thin solid #dfdfdf;
-            padding: 20px;
-            width: 193px;
+            width: 25%;
             vertical-align: top;
-
+            & > div:first-child{
+                margin: 20px;
+            }
             h3 {
                 margin-top: 0;
                 margin-bottom: 10px;

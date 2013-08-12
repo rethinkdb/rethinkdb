@@ -179,6 +179,9 @@ class Connection extends events.EventEmitter
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )
+        else
+            # Unexpected token
+            @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
     close: ar () ->
         @open = false
