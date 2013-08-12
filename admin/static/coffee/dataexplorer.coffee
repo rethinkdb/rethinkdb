@@ -3042,7 +3042,7 @@ module 'DataExplorerView', ->
                 # Add the user local timezone
                 timezone_int += (new Date()).getTimezoneOffset()*60
             else
-                timezone = '00:00'
+                timezone = '+00:00'
                 timezone_int = (new Date()).getTimezoneOffset()*60
 
             # Tweak epoch and create a date
