@@ -2767,7 +2767,7 @@ module 'DataExplorerView', ->
             else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
                 return @template_json_tree.span
                     classname: 'jt_date'
-                    value: new Date(value.epoch_time*1000)
+                    value: @date_to_string(value)
             else if value_type is 'object'
                 sub_keys = []
                 for key of value
@@ -3006,8 +3006,8 @@ module 'DataExplorerView', ->
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
             else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
-                data['value'] = (new Date(value.epoch_time*1000)).toString()
-                data['classname'] = 'jta_date' 
+                data['value'] = @date_to_string(value)
+                data['classname'] = 'jta_date'
             else if value_type is 'object'
                 data['value'] = '{ ... }'
                 data['is_object'] = true
@@ -3025,6 +3025,31 @@ module 'DataExplorerView', ->
                 data.value = if value is true then 'true' else 'false'
 
             return data
+
+        date_to_string: (date) =>
+            if date.timezone?
+                timezone = date.timezone
+                
+                # Extract data from the timezone
+                timezone_array = date.timezone.split(':')
+                sign = timezone_array[0][0] # Keep the sign
+                timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
+
+                # Save the timezone in minutes
+                timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
+                if sign is '-'
+                    timezone_int = -1*timezone_int
+                # Add the user local timezone
+                timezone_int += (new Date()).getTimezoneOffset()*60
+            else
+                timezone = '00:00'
+                timezone_int = (new Date()).getTimezoneOffset()*60
+
+            # Tweak epoch and create a date
+            raw_date_str = (new Date((date.epoch_time+timezone_int)*1000)).toString()
+
+            # Remove the timezone and replace it with the good one
+            return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
         # Expand a JSON object in a table. We just call the @json_to_tree
         expand_tree_in_table: (event) =>
