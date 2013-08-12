@@ -309,8 +309,8 @@ std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
         tz = tz.substr(0, colpos + 1) + tz.substr(colpos + 2, std::string::npos);
     }
     rcheck_target(target,  base_exc_t::GENERIC, tz != "UTC+00" && tz != "",
-                  strprintf("ISO 8601 string `%s` has no time zone, and no default time "
-                            "zone was provided.", tz.c_str()));
+                  "ISO 8601 string has no time zone, and no default time "
+                  "zone was provided.");
 
     std::string tz_out;
     if (tz == "Z+00") {
