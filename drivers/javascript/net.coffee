@@ -248,8 +248,12 @@ class Connection extends events.EventEmitter
             type: "STOP"
             token: token
 
+        # Overwrite the callback for this token
+        @outstandingCallbacks[token] = {cb: (() =>
+            @_delQuery(token)
+        ), root:null, opts:{}}
+
         @_sendQuery(query)
-        @_delQuery(token)
 
     _sendQuery: (query) ->
 
