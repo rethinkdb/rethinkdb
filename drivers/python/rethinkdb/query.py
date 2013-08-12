@@ -115,8 +115,8 @@ def info(val):
 def time(*args):
     return Time(*args)
 
-def iso8601(string):
-    return ISO8601(string)
+def iso8601(string, default_timezone=()):
+    return ISO8601(string, default_timezone=default_timezone)
 
 def epoch_time(number):
     return EpochTime(number)

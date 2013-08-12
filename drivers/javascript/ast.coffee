@@ -281,6 +281,7 @@ translateOptargs = (optargs) ->
             when 'cacheSize' then 'cache_size'
             when 'leftBound' then 'left_bound'
             when 'rightBound' then 'right_bound'
+            when 'defaultTimezone' then 'default_timezone'
             else key
 
         if key is undefined or val is undefined then continue
@@ -949,7 +950,7 @@ rethinkdb.info = ar (val) -> new Info {}, val
 
 rethinkdb.literal = varar 0, 1, (args...) -> new Literal {}, args...
 
-rethinkdb.iso8601 = ar (str) -> new ISO8601 {}, str
+rethinkdb.iso8601 = aropt (str, opts) -> new ISO8601 opts, str
 rethinkdb.epochTime = ar (num) -> new EpochTime {}, num
 rethinkdb.now = ar () -> new Now {}
 rethinkdb.time = varar 3, 7, (args...) -> new Time {}, args...
