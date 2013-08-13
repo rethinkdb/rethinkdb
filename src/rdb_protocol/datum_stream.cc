@@ -4,6 +4,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 

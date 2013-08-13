@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/transform_visitors.hpp"
 
+#include "rdb_protocol/func.hpp"
+
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 
 namespace ql {

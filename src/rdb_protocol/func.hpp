@@ -1,8 +1,6 @@
 #ifndef RDB_PROTOCOL_FUNC_HPP_
 #define RDB_PROTOCOL_FUNC_HPP_
 
-// RSI: Follow includers of func.hpp.
-
 #include <map>
 #include <string>
 #include <utility>
@@ -10,7 +8,6 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
-// RSI: get rid of this static_visitor inclusage.
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
@@ -111,7 +108,6 @@ private:
     counted_t<term_t> parent;
 };
 
-// RSI: Who uses this?  Can we move it to a .cc?
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:

@@ -5,7 +5,6 @@
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
 
 #include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
@@ -20,6 +19,7 @@
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
