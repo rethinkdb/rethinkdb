@@ -303,18 +303,20 @@ private:
         int new_row = env->gensym(false);
 
         Term *arg = out.get();
-        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
+        N2(REPLACE, *arg = in->args(0),
+           arg = pb::set_func(arg, old_row);
            N3(BRANCH,
               N2(EQ, NVAR(old_row), NDATUM(datum_t::R_NULL)),
               NDATUM(datum_t::R_NULL),
-              N2(FUNCALL, arg = pb::set_func(arg, new_row);
+              N2(FUNCALL,
+                 arg = pb::set_func(arg, new_row);
                  N3(BRANCH,
                     N2(EQ, NVAR(new_row), NDATUM(datum_t::R_NULL)),
                     NVAR(old_row),
                     N2(MERGE, NVAR(old_row), NVAR(new_row))),
                  N2(FUNCALL, *arg = in->args(1), NVAR(old_row));
                  OPT1(FUNCALL, "_EVAL_FLAGS_",
-                      NDATUM(static_cast<double>(LITERAL_OK))))
+                      NDATUM(static_cast<double>(LITERAL_OK))));
               OPT1(FUNCALL, "_EVAL_FLAGS_",
                 NDATUM(static_cast<double>(LITERAL_OK)))));
         return out;
