@@ -1112,14 +1112,26 @@ void rdb_update_single_sindex(
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
         transaction_t *txn) {
-    auto_drainer_t drainer;
+    {
+        auto_drainer_t drainer;
 
-    for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
-                                                it != sindexes.end();
-                                                ++it) {
-        coro_t::spawn_sometime(boost::bind(
-                    &rdb_update_single_sindex, &*it,
-                    modification, txn, auto_drainer_t::lock_t(&drainer)));
+        for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
+                                                    it != sindexes.end();
+                                                    ++it) {
+            coro_t::spawn_sometime(boost::bind(
+                        &rdb_update_single_sindex, &*it,
+                        modification, txn, auto_drainer_t::lock_t(&drainer)));
+        }
+    }
+
+    /* All of the sindex have been updated now it's time to actually clear the
+     * deleted blob if it exists. */
+    std::vector<char> ref_cpy(modification->info.deleted.second);
+    if (modification->info.deleted.first) {
+        guarantee(!modification->info.deleted.second.empty());
+
+        blob_t blob(txn->get_cache()->get_block_size(), ref_cpy.data(), blob::btree_maxreflen);
+        blob.clear(txn);
     }
 }
 
