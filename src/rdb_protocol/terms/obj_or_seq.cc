@@ -143,13 +143,16 @@ private:
 
 class literal_term_t : public op_term_t {
 public:
-    literal_term_t(env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0,1)) { }
-private:
-    virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
+    // RSI: Is this eval_flags_t parameter here stupid?
+    literal_term_t(env_t *env, const protob_t<const Term> &term, eval_flags_t flags)
+        : op_term_t(env, term, argspec_t(0,1)) {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found, literal can only be present inside merge "
                "and cannot nest inside other literals.");
+    }
+private:
+    // RSI: Remove flags argument.
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         datum_ptr_t res(datum_t::R_OBJECT);
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));
@@ -224,8 +227,9 @@ counted_t<term_t> make_pluck_term(env_t *env, const protob_t<const Term> &term) 
 counted_t<term_t> make_without_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<without_term_t>(env, term);
 }
-counted_t<term_t> make_literal_term(env_t *env, const protob_t<const Term> &term) {
-    return make_counted<literal_term_t>(env, term);
+// RSI: Remove flags param?
+counted_t<term_t> make_literal_term(env_t *env, const protob_t<const Term> &term, eval_flags_t flags) {
+    return make_counted<literal_term_t>(env, term, flags);
 }
 counted_t<term_t> make_merge_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<merge_term_t>(env, term);

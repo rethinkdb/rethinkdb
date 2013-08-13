@@ -60,7 +60,8 @@ private:
     protob_t<const Term> src;
 };
 
-counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t);
+// RSI: Who should pass flags?
+counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t, eval_flags_t flags = NO_FLAGS);
 
 } // namespace ql
 
