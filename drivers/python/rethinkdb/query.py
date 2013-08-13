@@ -124,27 +124,31 @@ def epoch_time(number):
 def now():
     return Now()
 
-# Time enum values
-monday      = type('', (RqlTopLevelQuery,), {'tt':p.Term.MONDAY})()
-tuesday     = type('', (RqlTopLevelQuery,), {'tt':p.Term.TUESDAY})()
-wednesday   = type('', (RqlTopLevelQuery,), {'tt':p.Term.WEDNESDAY})()
-thursday    = type('', (RqlTopLevelQuery,), {'tt':p.Term.THURSDAY})()
-friday      = type('', (RqlTopLevelQuery,), {'tt':p.Term.FRIDAY})()
-saturday    = type('', (RqlTopLevelQuery,), {'tt':p.Term.SATURDAY})()
-sunday      = type('', (RqlTopLevelQuery,), {'tt':p.Term.SUNDAY})()
+class RqlTimeName(RqlQuery):
+    def compose(self, args, optargs):
+        return 'r.'+self.st
 
-january     = type('', (RqlTopLevelQuery,), {'tt':p.Term.JANUARY})()
-february    = type('', (RqlTopLevelQuery,), {'tt':p.Term.FEBRUARY})()
-march       = type('', (RqlTopLevelQuery,), {'tt': p.Term.MARCH})()
-april       = type('', (RqlTopLevelQuery,), {'tt': p.Term.APRIL})()
-may         = type('', (RqlTopLevelQuery,), {'tt': p.Term.MAY})()
-june        = type('', (RqlTopLevelQuery,), {'tt': p.Term.JUNE})()
-july        = type('', (RqlTopLevelQuery,), {'tt': p.Term.JULY})()
-august      = type('', (RqlTopLevelQuery,), {'tt': p.Term.AUGUST})()
-september   = type('', (RqlTopLevelQuery,), {'tt': p.Term.SEPTEMBER})()
-october     = type('', (RqlTopLevelQuery,), {'tt': p.Term.OCTOBER})()
-november    = type('', (RqlTopLevelQuery,), {'tt': p.Term.NOVEMBER})()
-december    = type('', (RqlTopLevelQuery,), {'tt': p.Term.DECEMBER})()
+# Time enum values
+monday      = type('', (RqlTimeName,), {'tt':p.Term.MONDAY, 'st': 'monday'})()
+tuesday     = type('', (RqlTimeName,), {'tt':p.Term.TUESDAY, 'st': 'tuesday'})()
+wednesday   = type('', (RqlTimeName,), {'tt':p.Term.WEDNESDAY, 'st': 'wednesday'})()
+thursday    = type('', (RqlTimeName,), {'tt':p.Term.THURSDAY, 'st': 'thursday'})()
+friday      = type('', (RqlTimeName,), {'tt':p.Term.FRIDAY, 'st': 'friday'})()
+saturday    = type('', (RqlTimeName,), {'tt':p.Term.SATURDAY, 'st': 'saturday'})()
+sunday      = type('', (RqlTimeName,), {'tt':p.Term.SUNDAY, 'st': 'sunday'})()
+
+january     = type('', (RqlTimeName,), {'tt':p.Term.JANUARY, 'st': 'january'})()
+february    = type('', (RqlTimeName,), {'tt':p.Term.FEBRUARY, 'st': 'february'})()
+march       = type('', (RqlTimeName,), {'tt': p.Term.MARCH, 'st': 'march'})()
+april       = type('', (RqlTimeName,), {'tt': p.Term.APRIL, 'st': 'april'})()
+may         = type('', (RqlTimeName,), {'tt': p.Term.MAY, 'st': 'may'})()
+june        = type('', (RqlTimeName,), {'tt': p.Term.JUNE, 'st': 'june'})()
+july        = type('', (RqlTimeName,), {'tt': p.Term.JULY, 'st': 'july'})()
+august      = type('', (RqlTimeName,), {'tt': p.Term.AUGUST, 'st': 'august'})()
+september   = type('', (RqlTimeName,), {'tt': p.Term.SEPTEMBER, 'st': 'september'})()
+october     = type('', (RqlTimeName,), {'tt': p.Term.OCTOBER, 'st': 'october'})()
+november    = type('', (RqlTimeName,), {'tt': p.Term.NOVEMBER, 'st': 'november'})()
+december    = type('', (RqlTimeName,), {'tt': p.Term.DECEMBER, 'st': 'december'})()
 
 # Merge values
 def literal(val=()):
