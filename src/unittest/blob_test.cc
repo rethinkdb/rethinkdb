@@ -21,7 +21,8 @@ public:
     }
 
     explicit blob_tracker_t(size_t maxreflen)
-        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(buf_.data(), maxreflen) { }
+        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(block_size_t::unsafe_make(4096),
+                                                            buf_.data(), maxreflen) { }
 
     void check_region(transaction_t *txn, int64_t offset, int64_t size) {
         SCOPED_TRACE("check_region");
@@ -55,20 +56,21 @@ public:
     void check_normalization(transaction_t *txn) {
         size_t size = expected_.size();
         uint64_t rs = blob_.refsize(txn->get_cache()->get_block_size());
-        if (size < 251) {
-            ASSERT_EQ(1 + size, rs);
+        size_t sizesize = buf_.size() <= 255 ? 1 : 2;
+        if (size <= buf_.size() - sizesize) {
+            ASSERT_EQ(sizesize + size, rs);
         } else if (size <= static_cast<size_t>(size_after_magic)) {
-            ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), rs);
+            ASSERT_EQ(sizesize + 8 + 8 + sizeof(block_id_t), rs);
         } else if (size <= int64_t(size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-            if (rs != 1 + 8 + 8 + sizeof(block_id_t)) {
-                ASSERT_LE(1 + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic), rs);
-                ASSERT_GE(1 + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic)), rs);
+            if (rs != sizesize + 8 + 8 + sizeof(block_id_t)) {
+                ASSERT_LE(sizesize + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic), rs);
+                ASSERT_GE(sizesize + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic)), rs);
             } else {
                 ASSERT_GT(size, size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)) - size_after_magic + 1);
             }
         } else if (size <= int64_t(size_after_magic * (size_after_magic / sizeof(block_id_t)) * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-            ASSERT_LE(1 + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic * (size_after_magic / sizeof(block_id_t))), rs);
-            ASSERT_GE(1 + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic * (size_after_magic / sizeof(block_id_t)))), rs);
+            ASSERT_LE(sizesize + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic * (size_after_magic / sizeof(block_id_t))), rs);
+            ASSERT_GE(sizesize + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic * (size_after_magic / sizeof(block_id_t)))), rs);
         } else {
             ASSERT_GT(0u, size);
         }
@@ -148,6 +150,13 @@ public:
         blob_.unappend_region(txn, n);
         expected_.erase(expected_.size() - n);
 
+        check(txn);
+    }
+
+    void clear(transaction_t *txn) {
+        SCOPED_TRACE("clear");
+        blob_.clear(txn);
+        expected_.clear();
         check(txn);
     }
 

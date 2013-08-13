@@ -203,8 +203,7 @@ std::string format_time(struct timespec time);
 
 struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
 
-/* Printing binary data to stdout in a nice format */
-
+/* Printing binary data to stderr in a nice format */
 void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare

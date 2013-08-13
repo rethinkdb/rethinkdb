@@ -47,7 +47,7 @@ class TermBase
         if connOrOptions? and connOrOptions.constructor is Object
             for own key of connOrOptions
                 unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, time_format: <string>}."
+                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>}."
             conn = connOrOptions.connection
             opts = connOrOptions
         else
@@ -57,7 +57,7 @@ class TermBase
         # This only checks that the argument is of the right type, connection
         # closed errors will be handled elsewhere
         unless conn? and conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> time_format: <string>}."
+            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>}."
 
         # We only require a callback if noreply isn't set
         if not opts.noreply and typeof(cb) isnt 'function'
@@ -105,7 +105,7 @@ class RDBVal extends TermBase
     skip: ar (index) -> new Skip {}, @, index
     limit: ar (index) -> new Limit {}, @, index
     getField: ar (field) -> new GetField {}, @, field
-    contains: varar(1, null, (fields...) -> new Contains {}, @, fields...)
+    contains: varar(1, null, (fields...) -> new Contains {}, @, fields.map(funcWrap)...)
     insertAt: ar (index, value) -> new InsertAt {}, @, index, value
     spliceAt: ar (index, value) -> new SpliceAt {}, @, index, value
     deleteAt: varar(1, 2, (others...) -> new DeleteAt {}, @, others...)
@@ -126,7 +126,7 @@ class RDBVal extends TermBase
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
     distinct: ar () -> new Distinct {}, @
-    count: varar(0, 1, (fun...) -> new Count {}, @, fun...)
+    count: varar(0, 1, (fun...) -> new Count {}, @, fun.map(funcWrap)...)
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
     match: ar (pattern) -> new Match {}, @, pattern
@@ -171,6 +171,13 @@ class RDBVal extends TermBase
                 not (perhapsOptDict instanceof Function))
             opts = perhapsOptDict
             attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
+
+        attrs = (for attr in attrs
+            if attr instanceof Asc or attr instanceof Desc
+                attr
+            else
+                funcWrap(attr)
+        )
 
         new OrderBy opts, @, attrs...
 
@@ -766,7 +773,7 @@ class Literal extends RDBOp
 
 class ISO8601 extends RDBOp
     tt: 'ISO8601'
-    st: 'iso8601'
+    st: 'ISO8601'
 
 class ToISO8601 extends RDBOp
     tt: 'TO_ISO8601'
@@ -843,9 +850,12 @@ class Time extends RDBOp
 # All top level exported functions
 
 # Wrap a native JS value in an ReQL datum
-rethinkdb.expr = ar (val) ->
+rethinkdb.expr = varar 1, 2, (val, nestingDepth=20) ->
     if val is undefined
         throw new err.RqlDriverError "Cannot wrap undefined with r.expr()."
+
+    if nestingDepth <= 0
+        throw new err.RqlDriverError "Nesting depth limit exceeded"
 
     else if val instanceof TermBase
         val
@@ -854,16 +864,25 @@ rethinkdb.expr = ar (val) ->
     else if val instanceof Date
         new ISO8601 {}, val.toISOString()
     else if Array.isArray val
+        val = (rethinkdb.expr(v, nestingDepth - 1) for v in val)
         new MakeArray {}, val...
     else if val == Object(val)
-        new MakeObject val
+        obj = {}
+        for own k,v of val
+            if typeof v is 'undefined'
+                throw new err.RqlDriverError "Object field '#{k}' may not be undefined"
+            obj[k] = rethinkdb.expr(v, nestingDepth - 1)
+        new MakeObject obj
     else
         new DatumTerm val
 
 # Use r.json to serialize as much of the obect as JSON as is
 # feasible to avoid doing too much protobuf serialization.
-rethinkdb.exprJSON = ar (val) ->
-    if isJSON(val)
+rethinkdb.exprJSON = varar 1, 2, (val, nestingDepth=20) ->
+    if nestingDepth <= 0
+        throw new err.RqlDriverError "Nesting depth limit exceeded"
+
+    if isJSON(val, nestingDepth - 1)
         rethinkdb.json(JSON.stringify(val))
     else if (val instanceof TermBase)
         val
@@ -876,11 +895,14 @@ rethinkdb.exprJSON = ar (val) ->
             wrapped = {}
 
         for k,v of val
-            wrapped[k] = rethinkdb.exprJSON(v)
-        rethinkdb.expr(wrapped)
+            wrapped[k] = rethinkdb.exprJSON(v, nestingDepth - 1)
+        rethinkdb.expr(wrapped, nestingDepth - 1)
 
 # Is this JS value representable as JSON?
-isJSON = (val) ->
+isJSON = (val, nestingDepth=20) ->
+    if nestingDepth <= 0
+        throw new RqlDriverError "Nesting depth limit exceeded"
+
     if (val instanceof TermBase)
         false
     else if (val instanceof Function)
@@ -890,7 +912,7 @@ isJSON = (val) ->
     else if (val instanceof Object)
         # Covers array case as well
         for own k,v of val
-            if not isJSON(v) then return false
+            if not isJSON(v, nestingDepth - 1) then return false
         true
     else
         # Primitive types can always be represented as JSON
@@ -925,8 +947,8 @@ rethinkdb.count =              {'COUNT': true}
 rethinkdb.sum   = ar (attr) -> {'SUM': attr}
 rethinkdb.avg   = ar (attr) -> {'AVG': attr}
 
-rethinkdb.asc = (attr) -> new Asc {}, attr
-rethinkdb.desc = (attr) -> new Desc {}, attr
+rethinkdb.asc = (attr) -> new Asc {}, funcWrap(attr)
+rethinkdb.desc = (attr) -> new Desc {}, funcWrap(attr)
 
 rethinkdb.eq = varar 2, null, (args...) -> new Eq {}, args...
 rethinkdb.ne = varar 2, null, (args...) -> new Ne {}, args...
@@ -950,7 +972,7 @@ rethinkdb.info = ar (val) -> new Info {}, val
 
 rethinkdb.literal = varar 0, 1, (args...) -> new Literal {}, args...
 
-rethinkdb.iso8601 = aropt (str, opts) -> new ISO8601 opts, str
+rethinkdb.ISO8601 = aropt (str, opts) -> new ISO8601 opts, str
 rethinkdb.epochTime = ar (num) -> new EpochTime {}, num
 rethinkdb.now = ar () -> new Now {}
 rethinkdb.time = varar 3, 7, (args...) -> new Time {}, args...

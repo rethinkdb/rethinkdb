@@ -60,10 +60,10 @@ def avg(attr):
 # orderBy orders
 
 def asc(attr):
-    return Asc(attr)
+    return Asc(func_wrap(attr))
 
 def desc(attr):
-    return Desc(attr)
+    return Desc(func_wrap(attr))
 
 # math and logic
 

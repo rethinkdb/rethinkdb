@@ -55,7 +55,9 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
         // Whatever the case, shrink the old value.
         {
-            blob_t b((*value)->value_ref(), blob::btree_maxreflen);
+            blob_t b(txn->get_cache()->get_block_size(),
+                     (*value)->value_ref(),
+                     blob::btree_maxreflen);
             b.clear(txn);
         }
 
@@ -77,7 +79,8 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
             *value = std::move(tmp);
         }
 
-        blob_t b((*value)->value_ref(), blob::btree_maxreflen);
+        blob_t b(txn->get_cache()->get_block_size(),
+                 (*value)->value_ref(), blob::btree_maxreflen);
 
         b.append_region(txn, data->size());
         buffer_group_t bg;

@@ -11,20 +11,27 @@ import repl # For the repl connection
 
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types
-def expr(val):
+def expr(val, nesting_depth=20):
     '''
         Convert a Python primitive into a RQL primitive value
     '''
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
+
     if isinstance(val, RqlQuery):
         return val
     elif isinstance(val, datetime.datetime):
         return ISO8601(val.isoformat())
     elif isinstance(val, list):
+        val = [expr(v, nesting_depth - 1) for v in val]
         return MakeArray(*val)
     elif isinstance(val, dict):
         # MakeObj doesn't take the dict as a keyword args to avoid
         # conflicting with the `self` parameter.
-        return MakeObj(val)
+        obj = {}
+        for k in val.keys():
+            obj[k] = expr(val[k], nesting_depth - 1)
+        return MakeObj(obj)
     elif callable(val):
         return Func(val)
     else:
@@ -32,32 +39,38 @@ def expr(val):
 
 # Like expr but attempts to serialize as much of the value as JSON
 # as possible.
-def exprJSON(val):
+def exprJSON(val, nesting_depth=20):
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
+
     if isinstance(val, RqlQuery):
         return val
-    elif isJSON(val):
+    elif isJSON(val, nesting_depth):
         return Json(py_json.dumps(val))
     elif isinstance(val, dict):
         copy = val.copy()
         for k,v in copy.iteritems():
-            copy[k] = exprJSON(v)
+            copy[k] = exprJSON(v, nesting_depth)
         return MakeObj(copy)
     elif isinstance(val, list):
         copy = []
         for v in val:
-            copy.append(exprJSON(v))
+            copy.append(exprJSON(v, nesting_depth))
         return MakeArray(*copy)
     else:
         # Default to datum serialization
-        return expr(val)
+        return expr(val, nesting_depth - 1)
 
-def isJSON(val):
+def isJSON(val, nesting_depth=20):
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
+
     if isinstance(val, RqlQuery):
         return False
     elif isinstance(val, dict):
-        return all([isinstance(k, types.StringTypes) and isJSON(v) for k,v in val.iteritems()])
+        return all([isinstance(k, types.StringTypes) and isJSON(v, nesting_depth - 1) for k,v in val.iteritems()])
     elif isinstance(val, list):
-        return all([isJSON(v) for v in val])
+        return all([isJSON(v, nesting_depth - 1) for v in val])
     elif isinstance(val, (int, float, str, unicode, bool)):
         return True
     else:
@@ -209,7 +222,7 @@ class RqlQuery(object):
 
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
-        return Contains(self, *attr)
+        return Contains(self, *map(func_wrap, attr))
 
     def has_fields(self, *attr):
         return HasFields(self, *attr)
@@ -322,6 +335,7 @@ class RqlQuery(object):
         return ConcatMap(self, func_wrap(func))
 
     def order_by(self, *obs, **kwargs):
+        obs = map(lambda ob: ob if isinstance(ob, Asc) or isinstance(ob, Desc) else func_wrap(ob), obs)
         return OrderBy(self, *obs, **kwargs)
 
     def between(self, left=None, right=None, left_bound=(), right_bound=(), index=()):

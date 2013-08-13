@@ -117,6 +117,7 @@ tests:
   - cd: r.time(2013, r.july, 29).timezone()
     ot: err("RqlCompileError", "Expected between 4 and 7 arguments but found 3.", [])
   - cd: r.iso8601("2013-07-30T20:56:05-07:00").to_epoch_time()
+    js: r.ISO8601("2013-07-30T20:56:05-07:00").to_epoch_time()
     ot: 1375242965
   - cd: r.epoch_time(1375242965).in_timezone("-07:00").to_iso8601()
     js: r.epochTime(1375242965).inTimezone("-07:00").toISO8601()
@@ -129,11 +130,11 @@ tests:
 
 # Default Time Zones
   - cd: r.iso8601("2013-07-30T20:56:05").to_iso8601()
-    js: r.iso8601("2013-07-30T20:56:05").toISO8601()
-    ot: err("RqlRuntimeError", "ISO 8601 string `UTC+00` has no time zone, and no default time zone was provided.", [])
+    js: r.ISO8601("2013-07-30T20:56:05").toISO8601()
+    ot: err("RqlRuntimeError", "ISO 8601 string has no time zone, and no default time zone was provided.", [])
   - cd: r.iso8601("2013-07-30T20:56:05", :default_timezone => '-07').to_iso8601()
     py: r.iso8601("2013-07-30T20:56:05", default_timezone='-07').to_iso8601()
-    js: r.iso8601("2013-07-30T20:56:05", {"default_timezone":"-07"}).toISO8601()
+    js: r.ISO8601("2013-07-30T20:56:05", {"default_timezone":"-07"}).toISO8601()
     ot: ("2013-07-30T20:56:05-07:00")
 
   - cd: r.expr([r.monday, r.tuesday, r.wednesday, r.thursday, r.friday, r.saturday, r.sunday])

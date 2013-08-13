@@ -6,7 +6,7 @@ tests:
 
   - rb: r(Time.at(t)).to_iso8601
     py: r.expr(datetime.fromtimestamp(t, pytz.timezone('US/Pacific'))).to_iso8601()
-    js: r(new Date(t)).toISO8601()
+    js: r(new Date(t)).inTimezone("-07:00").toISO8601()
     ot: ("2013-07-29T18:21:36.680-07:00")
   - rb: r(Time.at(t).utc).to_iso8601
     py: r.expr(datetime.fromtimestamp(t, pytz.utc)).to_iso8601()

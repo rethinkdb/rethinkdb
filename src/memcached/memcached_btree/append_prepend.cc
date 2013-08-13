@@ -22,7 +22,8 @@ struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
             return false;
         }
 
-        blob_t b((*value)->value_ref(), blob::btree_maxreflen);
+        blob_t b(txn->get_cache()->get_block_size(),
+                 (*value)->value_ref(), blob::btree_maxreflen);
         buffer_group_t buffer_group;
         blob_acq_t acqs;
 

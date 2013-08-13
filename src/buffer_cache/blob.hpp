@@ -142,7 +142,7 @@ public:
     // for a large blob would be half the space (or less, thanks to
     // Benford's law), and the size for a small blob is 1 plus the
     // size of the blob, or maybe 2 plus the size of the blob.
-    blob_t(char *ref, int maxreflen);
+    blob_t(block_size_t block_size, char *ref, int maxreflen);
 
     // Returns ref_size(block_size, ref, maxreflen), the number of
     // bytes actually used in the blob ref.  A value in the internal
