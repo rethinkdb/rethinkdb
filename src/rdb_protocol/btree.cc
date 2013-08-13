@@ -119,10 +119,14 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const sto
                         rdb_modification_info_t *mod_info_out) {
     guarantee(kv_location->value.has());
 
+
     if (mod_info_out) {
         guarantee(mod_info_out->deleted.second.empty());
+
+        block_size_t block_size = txn->get_cache()->get_block_size();
         mod_info_out->deleted.second.assign(kv_location->value->value_ref(),
-            kv_location->value->value_ref() + kv_location->value->value_size());
+            kv_location->value->value_ref() + 
+                kv_location->value->inline_size(block_size));
     }
 
     kv_location->value.reset();
@@ -152,16 +156,17 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, txn, 0);
 
+    block_size_t block_size = txn->get_cache()->get_block_size();
     if (mod_info_out) {
         guarantee(mod_info_out->added.second.empty());
         mod_info_out->added.second.assign(new_value->value_ref(), 
-            new_value->value_ref() + new_value->value_size());
+            new_value->value_ref() + new_value->inline_size(block_size));
     }
 
     if (kv_location->value.has() && mod_info_out) {
         guarantee(mod_info_out->deleted.second.empty());
         mod_info_out->deleted.second.assign(kv_location->value->value_ref(),
-            kv_location->value->value_ref() + kv_location->value->value_size());
+            kv_location->value->value_ref() + kv_location->value->inline_size(block_size));
     }
 
     // Actually update the leaf, if needed.
@@ -506,6 +511,8 @@ void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
     blob.clear(_txn);
 }
 
+void rdb_value_non_deleter_t::delete_value(transaction_t *, void *) { }
+
 class sindex_key_range_tester_t : public key_tester_t {
 public:
     explicit sindex_key_range_tester_t(const key_range_t &key_range)
@@ -531,7 +538,7 @@ void sindex_erase_range(const key_range_t &key_range,
     value_sizer_t<rdb_value_t> rdb_sizer(sindex_access->btree->cache()->get_block_size());
     value_sizer_t<void> *sizer = &rdb_sizer;
 
-    rdb_value_deleter_t deleter;
+    rdb_value_non_deleter_t deleter;
 
     sindex_key_range_tester_t tester(key_range);
 
@@ -1234,9 +1241,10 @@ public:
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
+            block_size_t block_size = txn->get_cache()->get_block_size();
             mod_report.info.added = std::make_pair(get_data(rdb_value, txn),
                     std::vector<char>(rdb_value->value_ref(),
-                        rdb_value->value_ref() + rdb_value->value_size()));
+                        rdb_value->value_ref() + rdb_value->inline_size(block_size)));
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
         }
