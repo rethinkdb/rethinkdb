@@ -160,7 +160,7 @@ private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         scoped_ptr_t<datum_stream_t> s(
-            new sort_datum_stream_t<bool (*)(
+            new sort_datum_stream_t< bool (*)(
                 counted_t<const datum_t>,
                 counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), backtrace()));
         datum_ptr_t arr(datum_t::R_ARRAY);

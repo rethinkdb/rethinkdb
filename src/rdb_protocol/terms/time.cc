@@ -1,3 +1,4 @@
+// RSI: Fucking fuck.
 #include <iostream>
 
 #include "errors.hpp"

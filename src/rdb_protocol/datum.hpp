@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_DATUM_HPP_
 
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -214,8 +215,9 @@ private:
 // datum_t>`).
 class datum_ptr_t {
 public:
+    // RSI: What the fuck is with this underscore prefix variable name?
     template<class... Args>
-    datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
+    explicit datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
     counted_t<const datum_t> to_counted(
         const std::set<std::string> &allowed_ptypes = default_allowed_ptypes) {
         ptr()->maybe_sanitize_ptype(allowed_ptypes);

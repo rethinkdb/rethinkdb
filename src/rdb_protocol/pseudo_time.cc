@@ -109,7 +109,7 @@ enum date_format_t { UNSET, MONTH_DAY, WEEKCOUNT, DAYCOUNT };
 
 // This is where we do our sanitization.
 namespace sanitize {
-using namespace std;
+using namespace std;  // RSI: Holy mother of fuck.
 
 // Copy n digits from `s` to the end of `*p_out`, starting at `*p_at`.
 // Increment `*p_at` by the number of digits copied.  Throw on any error.

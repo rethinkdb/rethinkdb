@@ -816,7 +816,7 @@ void run_canonical_address_test() {
             c2_port = it->port().value();
         }
     }
-    ASSERT_TRUE(c2_port != 0);
+    ASSERT_NE(0, c2_port);
 
     int c3_port = 0;
     peer_address_t c3_self_address = c3.get_peer_address(c3.get_me());
@@ -828,7 +828,7 @@ void run_canonical_address_test() {
             c3_port = it->port().value();
         }
     }
-    ASSERT_TRUE(c3_port != 0);
+    ASSERT_NE(0, c3_port);
 
     // Convert the addresses to what we expect
     c2_addresses = convert_from_any_port(c2_addresses, port_t(c2_port));
