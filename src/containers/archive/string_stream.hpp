@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_STRING_STREAM_HPP_
 #define CONTAINERS_ARCHIVE_STRING_STREAM_HPP_
 
@@ -28,7 +28,7 @@ public:
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
 
-    void swap(std::string *other_source, int64_t *other_offset);
+    void swap(std::string *other_source, int64_t *other_offset);  // NOLINT(build/include_what_you_use)
 
 private:
     std::string source;

@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "errors.hpp"
 #include <boost/date_time.hpp>
 

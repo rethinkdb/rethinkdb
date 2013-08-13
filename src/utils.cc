@@ -26,10 +26,10 @@
 #include <valgrind/memcheck.h>
 #endif
 
+#include <google/protobuf/stubs/common.h>
+
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
-
-#include <google/protobuf/stubs/common.h>
 
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"

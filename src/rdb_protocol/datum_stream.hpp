@@ -2,7 +2,9 @@
 #define RDB_PROTOCOL_DATUM_STREAM_HPP_
 
 #include <algorithm>
+#include <deque>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "rdb_protocol/stream.hpp"
@@ -136,10 +138,8 @@ protected:
 
 class map_datum_stream_t : public eager_datum_stream_t {
 public:
-    map_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
-        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
-        guarantee(f.has() && source.has());
-    }
+    map_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source);
+
 private:
     counted_t<const datum_t> next_impl();
 
@@ -149,10 +149,7 @@ private:
 
 class indexes_of_datum_stream_t : public eager_datum_stream_t {
 public:
-    indexes_of_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
-        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source), index(0) {
-        guarantee(f.has() && source.has());
-    }
+    indexes_of_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 private:
     counted_t<const datum_t> next_impl();
 
@@ -164,11 +161,7 @@ private:
 
 class filter_datum_stream_t : public eager_datum_stream_t {
 public:
-    filter_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
-        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
-        guarantee(f.has() && source.has());
-    }
-
+    filter_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 private:
     counted_t<const datum_t> next_impl();
 
@@ -178,11 +171,7 @@ private:
 
 class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
-    concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source)
-        : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
-        guarantee(f.has() && source.has());
-    }
-
+    concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 private:
     counted_t<const datum_t> next_impl();
 
