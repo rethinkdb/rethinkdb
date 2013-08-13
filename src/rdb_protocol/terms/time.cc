@@ -13,11 +13,15 @@ namespace ql {
 class iso8601_term_t : public op_term_t {
 public:
     iso8601_term_t(env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) { }
+        : op_term_t(env, term, argspec_t(1), optargspec_t({"default_timezone"})) { }
 private:
     counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
-        return new_val(pseudo::iso8601_to_time(v->as_str(), v.get()));
+        std::string tz = "";
+        if (counted_t<val_t> vtz = optarg("default_timezone")) {
+            tz = vtz->as_str();
+        }
+        return new_val(pseudo::iso8601_to_time(v->as_str(), tz, v.get()));
     }
     virtual const char *name() const { return "iso8601"; }
 };
@@ -42,7 +46,7 @@ public:
 private:
     counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(0);
-        return new_val(pseudo::make_time(v->as_num()));
+        return new_val(pseudo::make_time(v->as_num(), "+00:00"));
     }
     virtual const char *name() const { return "epoch_time"; }
 };
@@ -166,13 +170,11 @@ private:
 class time_term_t : public op_term_t {
 public:
     time_term_t(env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(3, 7)) { }
+        : op_term_t(env, term, argspec_t(4, 7)) { }
 private:
     counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        if (num_args() != 3 && num_args() != 4 && num_args() != 6 && num_args() != 7) {
-            rfail(base_exc_t::GENERIC,
-                  "Got %zu arguments to TIME (expected 3, 4, 6 or 7).", num_args());
-        }
+        rcheck(num_args() == 4 || num_args() == 7, base_exc_t::GENERIC,
+               strprintf("Got %zu arguments to TIME (expected 4 or 7).", num_args()));
         int year = arg(0)->as_int<int>();
         int month = arg(1)->as_int<int>();
         int day = arg(2)->as_int<int>();
@@ -182,24 +184,20 @@ private:
         std::string tz = "";
         if (num_args() == 4) {
             tz = parse_tz(arg(3));
-        } else if (num_args() >= 6) {
+        } else if (num_args() == 7) {
             hours = arg(3)->as_int<int>();
             minutes = arg(4)->as_int<int>();
             seconds = arg(5)->as_num();
-            if (num_args() == 7) {
-                tz = parse_tz(arg(6));
-            }
+            tz = parse_tz(arg(6));
+        } else {
+            r_sanity_check(false);
         }
         return new_val(
             pseudo::make_time(year, month, day, hours, minutes, seconds, tz, this));
     }
     std::string parse_tz(counted_t<val_t> v) {
         counted_t<const datum_t> d = v->as_datum();
-        if (d->get_type() == datum_t::R_NULL) {
-            return "";
-        } else {
-            return d->as_str();
-        }
+        return d->as_str();
     }
     virtual const char *name() const { return "time"; }
 };
