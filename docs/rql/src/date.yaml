@@ -1,6 +1,6 @@
 sections:
   - tag: date
-    name: Date
+    name: Dates and times
     description: Date and time operations.
     order: 11
 
