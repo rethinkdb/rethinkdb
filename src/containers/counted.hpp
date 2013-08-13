@@ -5,13 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <utility>
-
-#include "errors.hpp"
-#include <boost/type_traits/remove_const.hpp>
-
-#include "containers/archive/archive.hpp"
-#include "containers/scoped.hpp"
+#include "utils.hpp"
 
 // Yes, this is a clone of boost::intrusive_ptr.  This will probably
 // not be the case in the future.
@@ -117,26 +111,6 @@ public:
         return p_ != NULL ? &counted_t<T>::dummy_method : NULL;
     }
 
-    void rdb_serialize(write_message_t &msg /*NOLINT*/) const {
-        msg << has();
-        if (has()) {
-            msg << *get();
-        }
-    }
-    archive_result_t rdb_deserialize(read_stream_t *s) {
-        bool wire_has;
-        archive_result_t res = deserialize(s, &wire_has);
-        if (res) return res;
-        if (wire_has) {
-            typedef typename boost::remove_const<T>::type unconst_T;
-            scoped_ptr_t<unconst_T> t(new unconst_T());
-            res = deserialize(s, t.get());
-            if (res) return res;
-            reset(const_cast<T *>(t.release()));
-        }
-        return ARCHIVE_SUCCESS;
-    }
-
 private:
     static void dummy_method(hidden_t) { }
 
@@ -144,7 +118,7 @@ private:
 };
 
 template <class T, class... Args>
-counted_t<T> make_counted(Args&&... args) {
+counted_t<T> make_counted(Args &&... args) {
     return counted_t<T>(new T(std::forward<Args>(args)...));
 }
 
