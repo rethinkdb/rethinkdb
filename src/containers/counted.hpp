@@ -117,10 +117,6 @@ public:
         return p_ != NULL ? &counted_t<T>::dummy_method : NULL;
     }
 
-    bool operator <(const counted_t<T> &other) const {
-        return *p_ < *other.p_;
-    }
-
     void rdb_serialize(write_message_t &msg /*NOLINT*/) const {
         msg << has();
         if (has()) {
