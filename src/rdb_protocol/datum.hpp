@@ -215,13 +215,12 @@ private:
 // datum_t>`).
 class datum_ptr_t {
 public:
-    // RSI: What the fuck is with this underscore prefix variable name?
     template<class... Args>
-    explicit datum_ptr_t(Args... args) : _p(make_scoped<datum_t>(args...)) { }
+    explicit datum_ptr_t(Args... args) : ptr_(make_scoped<datum_t>(args...)) { }
     counted_t<const datum_t> to_counted(
-        const std::set<std::string> &allowed_ptypes = default_allowed_ptypes) {
+            const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
         ptr()->maybe_sanitize_ptype(allowed_ptypes);
-        return counted_t<const datum_t>(_p.release());
+        return counted_t<const datum_t>(ptr_.release());
     }
     const datum_t *operator->() const { return const_ptr(); }
     void add(counted_t<const datum_t> val) { ptr()->add(val); }
@@ -239,25 +238,24 @@ public:
     MUST_USE bool delete_field(const std::string &key) {
         return ptr()->delete_field(key);
     }
+
 private:
     datum_t *ptr() {
-        r_sanity_check(_p.has());
-        return _p.get();
+        r_sanity_check(ptr_.has());
+        return ptr_.get();
     }
     const datum_t *const_ptr() const {
-        r_sanity_check(_p.has());
-        return _p.get();
+        r_sanity_check(ptr_.has());
+        return ptr_.get();
     }
-    scoped_ptr_t<datum_t> _p;
 
-    static std::set<std::string> default_allowed_ptypes;
+    scoped_ptr_t<datum_t> ptr_;
+    DISABLE_COPYING(datum_ptr_t);
 };
 
-#ifndef NDEBUG
-static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 2;
-#else
-static const int64_t WIRE_DATUM_MAP_GC_ROUNDS = 1000;
-#endif // NDEBUG
+
+
+
 
 // This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
 // non-strings as keys, while the data model we pinched from JSON doesn't.  See
