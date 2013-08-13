@@ -180,8 +180,10 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 /* Secondary Indexes */
 
 struct rdb_modification_info_t {
-    boost::shared_ptr<scoped_cJSON_t> deleted;
-    boost::shared_ptr<scoped_cJSON_t> added;
+    typedef std::pair<boost::shared_ptr<scoped_cJSON_t>,
+            std::vector<char>  > data_pair_t;
+    data_pair_t deleted;
+    data_pair_t added;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -218,11 +220,15 @@ public:
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
             transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
-    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added);
-    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted);
+    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added,
+            const std::vector<char> &value_ref);
+    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted,
+            const std::vector<char> &value_ref);
     void replace_row(const store_key_t &primary_key,
             boost::shared_ptr<scoped_cJSON_t> added,
-            boost::shared_ptr<scoped_cJSON_t> removed);
+            const std::vector<char> &added_value_ref,
+            boost::shared_ptr<scoped_cJSON_t> deleted,
+            const std::vector<char> &deleted_value_ref);
 
     void on_mod_report(const rdb_modification_report_t &mod_report);
 

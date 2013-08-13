@@ -115,11 +115,16 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
 }
 
 void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
-                        btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
+                        btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn,
+                        rdb_modification_info_t *mod_info_out) {
     guarantee(kv_location->value.has());
-    blob_t blob(txn->get_cache()->get_block_size(),
-                kv_location->value->value_ref(), blob::btree_maxreflen);
-    blob.clear(txn);
+
+    if (mod_info_out) {
+        guarantee(mod_info_out->deleted.second.empty());
+        mod_info_out->deleted.second.assign(kv_location->value->value_ref(),
+            kv_location->value->value_ref() + kv_location->value->value_size());
+    }
+
     kv_location->value.reset();
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
@@ -127,8 +132,8 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const sto
 
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
                      boost::shared_ptr<scoped_cJSON_t> data,
-                     btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
-
+                     btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn,
+                     rdb_modification_info_t *mod_info_out) {
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
 
@@ -146,6 +151,18 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     blob.append_region(txn, stream.vector().size());
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, txn, 0);
+
+    if (mod_info_out) {
+        guarantee(mod_info_out->added.second.empty());
+        mod_info_out->added.second.assign(new_value->value_ref(), 
+            new_value->value_ref() + new_value->value_size());
+    }
+
+    if (kv_location->value.has() && mod_info_out) {
+        guarantee(mod_info_out->deleted.second.empty());
+        mod_info_out->deleted.second.assign(kv_location->value->value_ref(),
+            kv_location->value->value_ref() + kv_location->value->value_size());
+    }
 
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
@@ -243,14 +260,19 @@ void rdb_replace_and_return_superblock(
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                 boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
-                                slice, timestamp, txn);
-                mod_info->added = new_val_as_json;
+                                slice, timestamp, txn,
+                                mod_info);
+                guarantee(mod_info->deleted.second.empty());
+                guarantee(!mod_info->added.second.empty());
+                mod_info->added.first = new_val_as_json;
             }
         } else {
             if (ended_empty) {
                 conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
-                kv_location_delete(&kv_location, key, slice, timestamp, txn);
-                mod_info->deleted = old_val->as_json();
+                kv_location_delete(&kv_location, key, slice, timestamp, txn, mod_info);
+                guarantee(!mod_info->deleted.second.empty());
+                guarantee(mod_info->added.second.empty());
+                mod_info->deleted.first = old_val->as_json();
             } else {
                 r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
                 if (*old_val == *new_val) {
@@ -262,9 +284,11 @@ void rdb_replace_and_return_superblock(
                     boost::shared_ptr<scoped_cJSON_t> new_val_as_json
                         = new_val->as_json();
                     kv_location_set(&kv_location, key, new_val_as_json,
-                                    slice, timestamp, txn);
-                    mod_info->added = new_val_as_json;
-                    mod_info->deleted = old_val->as_json();
+                                    slice, timestamp, txn, mod_info);
+                    guarantee(!mod_info->deleted.second.empty());
+                    guarantee(!mod_info->added.second.empty());
+                    mod_info->added.first = new_val_as_json;
+                    mod_info->deleted.first = old_val->as_json();
                 }
             }
         }
@@ -388,13 +412,15 @@ void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, boo
 
     /* update the modification report */
     if (kv_location.value.has()) {
-        mod_info->deleted = get_data(kv_location.value.get(), txn);
+        mod_info->deleted.first = get_data(kv_location.value.get(), txn);
     }
 
-    mod_info->added = data;
+    mod_info->added.first = data;
 
     if (overwrite || !had_value) {
-        kv_location_set(&kv_location, key, data, slice, timestamp, txn);
+        kv_location_set(&kv_location, key, data, slice, timestamp, txn, mod_info);
+        guarantee(!mod_info->deleted.second.empty() &&
+                  !mod_info->added.second.empty());
     }
     response_out->result = (had_value ? DUPLICATE : STORED);
 }
@@ -453,10 +479,11 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 
     /* Update the modification report. */
     if (exists) {
-        mod_info->deleted = get_data(kv_location.value.get(), txn);
+        mod_info->deleted.first = get_data(kv_location.value.get(), txn);
     }
 
-    if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn);
+    if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn, mod_info);
+    guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
     response->result = (exists ? DELETED : MISSING);
 }
 
@@ -879,14 +906,16 @@ static const int8_t HAS_VALUE = 0;
 static const int8_t HAS_NO_VALUE = 1;
 
 void rdb_modification_info_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
-    if (!deleted.get()) {
+    if (!deleted.first.get()) {
+        guarantee(deleted.second.empty());
         msg << HAS_NO_VALUE;
     } else {
         msg << HAS_VALUE;
         msg << deleted;
     }
 
-    if (!added.get()) {
+    if (!added.first.get()) {
+        guarantee(added.second.empty());
         msg << HAS_NO_VALUE;
     } else {
         msg << HAS_VALUE;
@@ -931,25 +960,29 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 { }
 
 void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key,
-        boost::shared_ptr<scoped_cJSON_t> added) {
+        boost::shared_ptr<scoped_cJSON_t> added,
+        const std::vector<char> &value_ref) {
     rdb_modification_report_t report(primary_key);
-    report.info.added = added;
+    report.info.added = std::make_pair(added, value_ref);
     on_mod_report(report);
 }
 
 void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key,
-        boost::shared_ptr<scoped_cJSON_t> deleted) {
+        boost::shared_ptr<scoped_cJSON_t> deleted,
+        const std::vector<char> &value_ref) {
     rdb_modification_report_t report(primary_key);
-    report.info.deleted = deleted;
+    report.info.deleted = std::make_pair(deleted, value_ref);
     on_mod_report(report);
 }
 
 void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
         boost::shared_ptr<scoped_cJSON_t> added,
-        boost::shared_ptr<scoped_cJSON_t> deleted) {
+        const std::vector<char> &added_value_ref,
+        boost::shared_ptr<scoped_cJSON_t> deleted,
+        const std::vector<char> &deleted_value_ref) {
     rdb_modification_report_t report(primary_key);
-    report.info.added = added;
-    report.info.deleted = deleted;
+    report.info.added = std::make_pair(added, added_value_ref);
+    report.info.deleted = std::make_pair(deleted, deleted_value_ref);
     on_mod_report(report);
 }
 
@@ -1011,12 +1044,13 @@ void rdb_update_single_sindex(
 
     superblock_t *super_block = sindex->super_block.get();
 
-    if (modification->info.deleted) {
+    if (modification->info.deleted.first) {
+        guarantee(!modification->info.deleted.second.empty());
         try {
             promise_t<superblock_t *> return_superblock_local;
             {
                 counted_t<const ql::datum_t> deleted =
-                    make_counted<ql::datum_t>(modification->info.deleted);
+                    make_counted<ql::datum_t>(modification->info.deleted.first);
 
                 counted_t<const ql::datum_t> index =
                     mapping.compile(&env)->call(deleted)->as_datum();
@@ -1035,7 +1069,7 @@ void rdb_update_single_sindex(
 
                 if (kv_location.value.has()) {
                     kv_location_delete(&kv_location, sindex_key,
-                                       sindex->btree, repli_timestamp_t::distant_past, txn);
+                                       sindex->btree, repli_timestamp_t::distant_past, txn, NULL);
                 }
                 // The keyvalue location gets destroyed here.
             }
@@ -1045,10 +1079,10 @@ void rdb_update_single_sindex(
         }
     }
 
-    if (modification->info.added) {
+    if (modification->info.added.first) {
         try {
             counted_t<const ql::datum_t> added =
-                make_counted<ql::datum_t>(modification->info.added);
+                make_counted<ql::datum_t>(modification->info.added.first);
 
             counted_t<const ql::datum_t> index
                 = mapping.compile(&env)->call(added)->as_datum();
@@ -1067,8 +1101,8 @@ void rdb_update_single_sindex(
                                              &dummy);
 
             kv_location_set(&kv_location, sindex_key,
-                            modification->info.added, sindex->btree,
-                            repli_timestamp_t::distant_past, txn);
+                            modification->info.added.first, sindex->btree,
+                            repli_timestamp_t::distant_past, txn, NULL);
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
         }
@@ -1175,7 +1209,9 @@ public:
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
-            mod_report.info.added = get_data(rdb_value, txn);
+            mod_report.info.added = std::make_pair(get_data(rdb_value, txn),
+                    std::vector<char>(rdb_value->value_ref(),
+                        rdb_value->value_ref() + rdb_value->value_size()));
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
         }
