@@ -188,45 +188,6 @@ protob_t<const Term> func_t::get_source() {
     return source;
 }
 
-wire_func_t::wire_func_t() : source(make_counted_term()) { }
-wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
-    : source(make_counted_term_copy(*func->source)), uuid(generate_uuid()) {
-    if (func->default_filter_val.has()) {
-        default_filter_val = *func->default_filter_val->source.get();
-    }
-    if (env) {
-        env->precache_func(this, func);
-    }
-    func->dump_scope(&scope);
-}
-wire_func_t::wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope)
-    : source(make_counted_term_copy(_source)), scope(_scope), uuid(generate_uuid()) { }
-
-counted_t<func_t> wire_func_t::compile(env_t *env) {
-    r_sanity_check(!uuid.is_unset() && !uuid.is_nil());
-    return env->get_or_compile_func(this);
-}
-
-void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
-    guarantee(source.has());
-    msg << *source;
-    msg << default_filter_val;
-    msg << scope;
-    msg << uuid;
-}
-
-archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
-    guarantee(source.has());
-    source = make_counted_term();
-    archive_result_t res = deserialize(stream, source.get());
-    if (res != ARCHIVE_SUCCESS) { return res; }
-    res = deserialize(stream, &default_filter_val);
-    if (res != ARCHIVE_SUCCESS) { return res; }
-    res = deserialize(stream, &scope);
-    if (res != ARCHIVE_SUCCESS) { return res; }
-    return deserialize(stream, &uuid);
-}
-
 func_term_t::func_term_t(env_t *env, const protob_t<const Term> &term)
     : term_t(env, term), func(make_counted<func_t>(env, term)) { }
 

@@ -283,6 +283,12 @@ counted_t<const datum_t> array_datum_stream_t::next_impl() {
 }
 
 // MAP_DATUM_STREAM_T
+map_datum_stream_t::map_datum_stream_t(env_t *env, counted_t<func_t> _f,
+                                       counted_t<datum_stream_t> _source)
+    : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
+    guarantee(f.has() && source.has());
+}
+
 counted_t<const datum_t> map_datum_stream_t::next_impl() {
     counted_t<const datum_t> arg = source->next();
     if (!arg.has()) {
@@ -293,6 +299,12 @@ counted_t<const datum_t> map_datum_stream_t::next_impl() {
 }
 
 // INDEXES_OF_DATUM_STREAM_T
+indexes_of_datum_stream_t::indexes_of_datum_stream_t(env_t *env, counted_t<func_t> _f,
+                                                     counted_t<datum_stream_t> _source)
+    : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source), index(0) {
+    guarantee(f.has() && source.has());
+}
+
 counted_t<const datum_t> indexes_of_datum_stream_t::next_impl() {
     for (;;) {
         counted_t<const datum_t> arg = source->next();
@@ -307,6 +319,12 @@ counted_t<const datum_t> indexes_of_datum_stream_t::next_impl() {
 }
 
 // FILTER_DATUM_STREAM_T
+filter_datum_stream_t::filter_datum_stream_t(env_t *env, counted_t<func_t> _f,
+                                             counted_t<datum_stream_t> _source)
+    : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
+    guarantee(f.has() && source.has());
+}
+
 counted_t<const datum_t> filter_datum_stream_t::next_impl() {
     for (;;) {
         counted_t<const datum_t> arg = source->next();
@@ -322,6 +340,12 @@ counted_t<const datum_t> filter_datum_stream_t::next_impl() {
 }
 
 // CONCATMAP_DATUM_STREAM_T
+concatmap_datum_stream_t::concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f,
+                                                   counted_t<datum_stream_t> _source)
+    : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
+    guarantee(f.has() && source.has());
+}
+
 counted_t<const datum_t> concatmap_datum_stream_t::next_impl() {
     for (;;) {
         if (!subsource.has()) {

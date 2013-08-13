@@ -4,10 +4,10 @@
 #include "containers/counted.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
-#include "rdb_protocol/term.hpp"
 
 namespace ql {
 class env_t;
+class term_t;
 
 // arith.cc
 counted_t<term_t> make_arith_term(env_t *env, const protob_t<const Term> &term);
