@@ -4,6 +4,7 @@
 #include "containers/counted.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/term.hpp"
 
 namespace ql {
 class env_t;
