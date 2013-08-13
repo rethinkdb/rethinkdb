@@ -171,6 +171,19 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     //                                                                  ^^^^^ That means the key isn't expired.
 }
 
+void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
+                     const std::vector<char> &value_ref,
+                     btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
+    scoped_malloc_t<rdb_value_t> new_value(
+            value_ref.data(), value_ref.data() + value_ref.size());
+
+    // Actually update the leaf, if needed.
+    kv_location->value = std::move(new_value);
+    null_key_modification_callback_t<rdb_value_t> null_cb;
+    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
+    //                                                                  ^^^^^ That means the key isn't expired.
+}
+
 // QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
 // just a different function passed to this function).
 void rdb_replace_and_return_superblock(
@@ -419,7 +432,7 @@ void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, boo
 
     if (overwrite || !had_value) {
         kv_location_set(&kv_location, key, data, slice, timestamp, txn, mod_info);
-        guarantee(!mod_info->deleted.second.empty() &&
+        guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
     }
     response_out->result = (had_value ? DUPLICATE : STORED);
@@ -1101,8 +1114,8 @@ void rdb_update_single_sindex(
                                              &dummy);
 
             kv_location_set(&kv_location, sindex_key,
-                            modification->info.added.first, sindex->btree,
-                            repli_timestamp_t::distant_past, txn, NULL);
+                            modification->info.added.second, sindex->btree,
+                            repli_timestamp_t::distant_past, txn);
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
         }
