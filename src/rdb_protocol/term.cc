@@ -20,7 +20,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t, eval_flags_t 
     switch (t->type()) {
     case Term::DATUM:              return make_datum_term(env, t);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
-    case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
+    case Term::MAKE_OBJ:           return make_make_obj_term(env, t, flags);
     case Term::VAR:                return make_var_term(env, t);
     case Term::JAVASCRIPT:         return make_javascript_term(env, t);
     case Term::ERROR:              return make_error_term(env, t);

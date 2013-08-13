@@ -54,10 +54,11 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
 }
 
 op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
-                     argspec_t argspec, optargspec_t optargspec)
+                     argspec_t argspec, optargspec_t optargspec,
+                     eval_flags_t flags)
     : term_t(env, term) {
     for (int i = 0; i < term->args_size(); ++i) {
-        counted_t<term_t> t = compile_term(env, term.make_child(&term->args(i)));
+        counted_t<term_t> t = compile_term(env, term.make_child(&term->args(i)), flags);
         args.push_back(t);
     }
     rcheck(argspec.contains(args.size()),
@@ -78,7 +79,7 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
                          (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),
                          ap->key().c_str()));
-        counted_t<term_t> t = compile_term(env, term.make_child(&ap->val()));
+        counted_t<term_t> t = compile_term(env, term.make_child(&ap->val()), flags);
         optargs.insert(std::make_pair(ap->key(), t));
     }
 }

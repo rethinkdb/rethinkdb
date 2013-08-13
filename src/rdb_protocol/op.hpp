@@ -50,8 +50,10 @@ private:
 // access their arguments.
 class op_term_t : public term_t {
 public:
+    // RSI: Have default eval_flags_t param value?
     op_term_t(env_t *env, protob_t<const Term> term,
-              argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
+              argspec_t argspec, optargspec_t optargspec = optargspec_t({}),
+              eval_flags_t flags = NO_FLAGS);
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments

@@ -51,8 +51,8 @@ private:
 
 class make_obj_term_t : public op_term_t {
 public:
-    make_obj_term_t(env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
+    make_obj_term_t(env_t *env, const protob_t<const Term> &term, eval_flags_t flags)
+        : op_term_t(env, term, argspec_t(0), optargspec_t::make_object(), flags) { }
 private:
     virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
         bool literal_ok = flags & LITERAL_OK;
@@ -78,8 +78,9 @@ counted_t<term_t> make_constant_term(env_t *env, const protob_t<const Term> &ter
 counted_t<term_t> make_make_array_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_array_term_t>(env, term);
 }
-counted_t<term_t> make_make_obj_term(env_t *env, const protob_t<const Term> &term) {
-    return make_counted<make_obj_term_t>(env, term);
+counted_t<term_t> make_make_obj_term(env_t *env, const protob_t<const Term> &term,
+                                     eval_flags_t flags) {
+    return make_counted<make_obj_term_t>(env, term, flags);
 }
 
 } // namespace ql
