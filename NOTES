@@ -2,19 +2,20 @@
 
 Released on 2013-08-14
 
-This release introduces ...
+This release introduces date and time support, a new syntax for
+quetying nested objects and 8x improvement in disk usage.
 
 ## New Features ##
 
 * ReQL
-  * `r.order_by` now accepts a function as an argument and can efficiently sort by index (#159, #1120, #1258)
-  * `r.slice` and `r.between` are now half-open by default (#869)
+  * `order_by` now accepts a function as an argument and can efficiently sort by index (#159, #1120, #1258)
+  * `slice` and `between` are now half-open by default (#869)
     * The behaviour can be changed by setting the new optional `right_bound` argument to `closed`
       or by setting `left_bound` to `open`
-  * ... `r.some`, `r.any`, `r.contains` (#870)
+  * `contains` can now be passed a predicate (#870)
   * `merge` is now deep by default (#872)
-    * Introduced `r.literal` to merge flat values
-  * `r.coerce_to` can now convert strings to numbers (#877)
+    * Introduced `literal` to merge flat values
+  * `coerce_to` can now convert strings to numbers (#877)
   * Added support for times (#977)
     * `+`, `-`, `<`, `<=`, `>`, `>=`, `==` and `!=`: arithmetic and comparison
     * `during`: match a time with an interval
@@ -44,14 +45,14 @@ This release introduces ...
 ## Fixed Bugs ##
 
 * ReQL
-  * Check the type of the callback passed to `next` and `each` in the JavaScritp driver (#656)
+  * Check the type of the callback passed to `next` and `each` in the JavaScript driver (#656)
   * Fixed how some backtraces are printed in the JavaScript driver (#973)
   * Coerce the port argument to a number in the Python driver (#1017)
   * Functions that are polymorphic on objects and sequences now only recurse one level deep (#1045)
     * Affects `pluck`, `has_fields`, `with_fields`, etc
   * In the JavaSCript driver, no loger fail when requiring the module twice (#1047)
-  * `r.union` now returns a stream when given two streams (#1081)
-  * ... `r.do` and `r.db` in the JavaSCript driver (#1082)
+  * `union` now returns a stream when given two streams (#1081)
+  * `r.db` can now be chained with `do` in the JavaScript driver (#1082)
   * Improve the error message when combining `for_each` and `return_vals` (#1104)
   * Fixed  abug causing the JavaScript driver to overflow the stack when given an object with circular references (#1133)
   * Don't leak internal functions in the JavaScript driver (#1164)
