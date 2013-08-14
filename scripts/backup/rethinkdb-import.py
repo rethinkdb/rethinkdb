@@ -324,7 +324,7 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
         del buffer_sizes[0:len(buffer_sizes)]
     return obj
 
-json_read_chunk_size = 1 * 1024 * 1024
+json_read_chunk_size = 32 * 1024
 
 def read_json_single_object(json_data, file_in, callback):
     decoder = json.JSONDecoder()
@@ -343,31 +343,37 @@ def read_json_single_object(json_data, file_in, callback):
 
 def read_json_array(json_data, file_in, callback):
     decoder = json.JSONDecoder()
-    offset = json.decoder.WHITESPACE.match(json_data, 0).end()
-
-    if json_data[offset] == "]": # Empty file
-        return json_data[offset + 1:]
-
+    offset = 0
     while True:
         try:
+            offset = json.decoder.WHITESPACE.match(json_data, offset).end()
+
+            if json_data[offset] == "]": # End of JSON
+                break
+
             (obj, offset) = decoder.raw_decode(json_data, offset)
-            json_data = json_data[offset:]
             callback(obj)
 
-            # Read to the next record - "]" indicates the end of the objects
+            # Read past whitespace to the next record
+            json_data = json_data[offset:]
             offset = json.decoder.WHITESPACE.match(json_data, 0).end()
-            if json_data[offset] == "]":
-                break
-            elif json_data[offset] != ",":
+
+            if json_data[offset] == ",":
+                # Read past the comma
+                offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+            elif json_data[offset] != "]":
                 raise ValueError("JSON format not recognized - expected ',' or ']' after object")
 
-            # Read past the comma
-            offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
-        except ValueError:
+        except (ValueError, IndexError):
             before_len = len(json_data)
             json_data += file_in.read(json_read_chunk_size)
-            if before_len == len(json_data):
+            if json_data[offset] == ",":
+                offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+            elif before_len == len(json_data):
                 raise
+
+    # Read the rest of the file and return it so it can be checked for unexpected data
+    json_data += file_in.read()
     return json_data[offset + 1:]
 
 def json_reader(task_queue, filename, db, table, primary_key, fields, exit_event):
