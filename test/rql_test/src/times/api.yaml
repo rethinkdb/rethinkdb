@@ -101,11 +101,11 @@ tests:
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1, "-07:00").timezone()
     ot: ("-07:00")
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1).to_epoch_time()
-    ot: (1375140600.1)
+    ot: err("RqlRuntimeError", "Got 6 arguments to TIME (expected 4 or 7).", [])
   - cd: r.time(2013, r.july, 29, 23, 30, 0.1).timezone()
-    ot: (null)
+    ot: err("RqlRuntimeError", "Got 6 arguments to TIME (expected 4 or 7).", [])
   - cd: r.time(2013, r.july, 29, 23, 30).to_epoch_time()
-    ot: err("RqlRuntimeError", "Got 5 arguments to TIME (expected 3, 4, 6 or 7).", [])
+    ot: err("RqlRuntimeError", "Got 5 arguments to TIME (expected 4 or 7).", [])
   - cd: r.time(2013, r.july, 29, 23).to_epoch_time()
     ot: err("RqlRuntimeError", "Expected type STRING but found NUMBER.", [])
   - cd: r.time(2013, r.july, 29, "-07:00").to_epoch_time()
@@ -113,9 +113,9 @@ tests:
   - cd: r.time(2013, r.july, 29, "-07:00").timezone()
     ot: ("-07:00")
   - cd: r.time(2013, r.july, 29).to_epoch_time()
-    ot: 1375056000
+    ot: err("RqlCompileError", "Expected between 4 and 7 arguments but found 3.", [])
   - cd: r.time(2013, r.july, 29).timezone()
-    ot: (null)
+    ot: err("RqlCompileError", "Expected between 4 and 7 arguments but found 3.", [])
   - cd: r.iso8601("2013-07-30T20:56:05-07:00").to_epoch_time()
     js: r.ISO8601("2013-07-30T20:56:05-07:00").to_epoch_time()
     ot: 1375242965
@@ -127,6 +127,15 @@ tests:
   - cd: (r.now() - r.now())
     js: r.now().sub(r.now())
     ot: 0
+
+# Default Time Zones
+  - cd: r.iso8601("2013-07-30T20:56:05").to_iso8601()
+    js: r.ISO8601("2013-07-30T20:56:05").toISO8601()
+    ot: err("RqlRuntimeError", "ISO 8601 string has no time zone, and no default time zone was provided.", [])
+  - cd: r.iso8601("2013-07-30T20:56:05", :default_timezone => '-07').to_iso8601()
+    py: r.iso8601("2013-07-30T20:56:05", default_timezone='-07').to_iso8601()
+    js: r.ISO8601("2013-07-30T20:56:05", {"default_timezone":"-07"}).toISO8601()
+    ot: ("2013-07-30T20:56:05-07:00")
 
   - cd: r.expr([r.monday, r.tuesday, r.wednesday, r.thursday, r.friday, r.saturday, r.sunday])
     ot: ([1, 2, 3, 4, 5, 6, 7])
