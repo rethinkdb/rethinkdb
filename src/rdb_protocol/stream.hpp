@@ -3,10 +3,12 @@
 #define RDB_PROTOCOL_STREAM_HPP_
 
 #include <algorithm>
+#include <deque>
 #include <list>
 #include <map>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "errors.hpp"

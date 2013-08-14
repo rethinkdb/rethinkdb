@@ -3,6 +3,7 @@
 #include <string>
 
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pathspec.hpp"
 #include "rdb_protocol/pb_utils.hpp"
@@ -48,11 +49,13 @@ public:
         } break;
         case SKIP_MAP: {
             N2(DEFAULT,
-               N1(MAKE_ARRAY, body = arg; *arg = *term;
-               Term_AssocPair *ap = arg->add_optargs();
-               ap->set_key("_NO_RECURSE_");
-               arg = ap->mutable_val();
-               NDATUM_BOOL(true)),
+               N1(MAKE_ARRAY,
+                  body = arg;
+                  *arg = *term;
+                  Term_AssocPair *ap = arg->add_optargs();
+                  ap->set_key("_NO_RECURSE_");
+                  arg = ap->mutable_val();
+                  NDATUM_BOOL(true)),
                N0(MAKE_ARRAY));
         } break;
         default: unreachable();
@@ -144,7 +147,7 @@ private:
 class literal_term_t : public op_term_t {
 public:
     literal_term_t(env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(0,1)) { }
+        : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,

@@ -12,13 +12,13 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
+#include "extproc/js_runner.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/val.hpp"
 
 class extproc_pool_t;
-class js_runner_t;
 
 namespace ql {
 class datum_t;

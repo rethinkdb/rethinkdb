@@ -29,7 +29,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/exceptions.hpp"
-#include "rdb_protocol/func.hpp"
+#include "rdb_protocol/wire_func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 

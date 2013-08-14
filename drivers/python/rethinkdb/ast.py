@@ -21,7 +21,11 @@ def expr(val, nesting_depth=20):
     if isinstance(val, RqlQuery):
         return val
     elif isinstance(val, datetime.datetime):
-        return ISO8601(val.isoformat())
+        time = val.isoformat()
+        if not val.tzinfo:
+            # dirty, but effective
+            time += "+00:00"
+        return ISO8601(time)
     elif isinstance(val, list):
         val = [expr(v, nesting_depth - 1) for v in val]
         return MakeArray(*val)

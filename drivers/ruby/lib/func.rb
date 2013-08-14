@@ -26,7 +26,8 @@ module RethinkDB
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
       :javascript => -1, :filter => {:with_block => 0, :without => 1},
-      :slice => -1, :during => -1, :orderby => -1
+      :slice => -1, :during => -1, :orderby => -1,
+      :iso8601 => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,

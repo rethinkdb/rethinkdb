@@ -2,15 +2,19 @@
 #ifndef RDB_PROTOCOL_PSEUDO_TIME_HPP_
 #define RDB_PROTOCOL_PSEUDO_TIME_HPP_
 
-#include <boost/date_time.hpp>
+#include <string>
 
-#include "rdb_protocol/env.hpp"
+template <class> class counted_t;
 
 namespace ql {
+class rcheckable_t;
+class datum_t;
+
 namespace pseudo {
 extern const char *const time_string;
 
-counted_t<const datum_t> iso8601_to_time(const std::string &s, const rcheckable_t *t);
+counted_t<const datum_t> iso8601_to_time(
+    const std::string &s, const std::string &default_tz, const rcheckable_t *t);
 std::string time_to_iso8601(counted_t<const datum_t> d);
 double time_to_epoch_time(counted_t<const datum_t> d);
 
@@ -21,7 +25,7 @@ counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
 
 int time_cmp(const datum_t& x, const datum_t& y);
 void sanitize_time(datum_t *time);
-counted_t<const datum_t> make_time(double epoch_time, std::string tz="");
+counted_t<const datum_t> make_time(double epoch_time, std::string);
 counted_t<const datum_t> make_time(
     int year, int month, int day, int hours, int minutes, double seconds,
     std::string tz, const rcheckable_t *target);

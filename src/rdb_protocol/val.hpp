@@ -7,7 +7,6 @@
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_stream.hpp"
-#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/stream.hpp"
 

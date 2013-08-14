@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 
+#include <vector>
+
 #include "errors.hpp"
 
 template <class element_t>

@@ -194,7 +194,7 @@ commands:
 
     io:
       - - sequence
-        - stream 
+        - stream
       - - array
         - array
 
@@ -221,7 +221,7 @@ commands:
 
     io:
       - - sequence
-        - stream 
+        - stream
       - - array
         - array
 

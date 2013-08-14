@@ -1,10 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
 #include "errors.hpp"
-
 #include <boost/bind.hpp>
 
 #include "arch/io/disk.hpp"
+#include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "containers/archive/boost_types.hpp"
