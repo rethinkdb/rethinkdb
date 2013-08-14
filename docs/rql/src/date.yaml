@@ -102,7 +102,7 @@ commands:
     body:
       py: "$PARENT.iso8601(iso8601Date[, default_timezone=''])"
       rb: "$PARENT.iso8601(iso8601Date[, :default_timezone => ''])"
-      js: "$PARENT.iso8601(iso8601Date[, {default_timezone:''}])"
+      js: "$PARENT.ISO8601(iso8601Date[, {default_timezone:''}])"
     io:
       - - r
         - time
@@ -115,7 +115,7 @@ commands:
           py: |
             r.table("user").get("John").update({"birth": r.iso8601('1986-11-03T08:30:00-07:00')}).run(conn)
           js: |
-            r.table("user").get("John").update({birth: r.iso8601('1986-11-03T08:30:00-07:00')}).run(conn, callback)
+            r.table("user").get("John").update({birth: r.ISO8601('1986-11-03T08:30:00-07:00')}).run(conn, callback)
 
   - tag: in_timezone
     section: date
@@ -426,7 +426,7 @@ commands:
           py: |
             r.now().day_of_week().run(conn)
           js: |
-            r.now().dayOfweek().run(conn, callback)
+            r.now().dayOfWeek().run(conn, callback)
       - description: Retrieve all the users who were born on a Tuesday.
         code:
           rb: |

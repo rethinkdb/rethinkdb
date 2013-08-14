@@ -91,6 +91,7 @@ commands:
           py: r.now() - 365*24*60*60
           rb: r.now() - 365*24*60*60
       - description: Retrieve how many seconds elapsed between today and date
+        validate: false
         code:
           js: r.now().sub(date)
           py: r.now() - date
