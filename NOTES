@@ -2,7 +2,7 @@
 
 Released on 2013-08-14
 
-Thie release introduces ...
+This release introduces ...
 
 ## New Features ##
 
@@ -35,6 +35,7 @@ Thie release introduces ...
   * Added a `--no-direct-io` startup flag that turns off direct IO (#1051)
   * Rewrote the `extproc` code, making `r.js` interuptible and fixing many crashes (#1097, #1106)
   * Added support for V8 >= 3.19 (#1195)
+  * Clear blobs when they are unused (#1286)
 * Web UI
   * Use relative paths (#1053)
 * Build
@@ -72,6 +73,7 @@ Thie release introduces ...
   * Fixed a bug causing too many file descriptors to be open (#1225)
   * Fixed memory leaks reported by valgrind (#1233)
   * Fixed a crash triggered by the BTreeSindex test (#1237)
+  * RethinkDB proxy no longer crashes when interacting with the Web UI (#1276)
 * Tests
   * Fixed the connectivity tests for OS X (#613)
   * Fix the python connection tests (#1110)
