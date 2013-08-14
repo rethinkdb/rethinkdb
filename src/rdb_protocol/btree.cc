@@ -661,18 +661,17 @@ public:
                 response->last_considered_key = store_key;
             }
 
-            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
-            boost::shared_ptr<scoped_cJSON_t> first_value = get_data(rdb_value, transaction);
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(value));
 
-            std::list<boost::shared_ptr<scoped_cJSON_t> > data;
+            std::list<lazy_json_t> data;
             data.push_back(first_value);
 
             counted_t<const ql::datum_t> sindex_value;
 
             if (sindex_function &&
                 ql::datum_t::key_is_truncated(store_key)) {
-                counted_t<const ql::datum_t> datum_value = 
-                    make_counted<const ql::datum_t>(first_value);
+                counted_t<const ql::datum_t> datum_value =
+                    make_counted<const ql::datum_t>(first_value.get(transaction));
                 sindex_value = sindex_function->call(datum_value)->as_datum();
             }
 
@@ -685,11 +684,13 @@ public:
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
-                                            *jt, &it->variant,
+                                            jt->get(transaction), &it->variant,
                                             &tmp);
                         }
                         data.clear();
-                        data.splice(data.begin(), tmp);
+                        for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
+                            data.push_back(lazy_json_t(*jt));
+                        }
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
                            more requests. */
@@ -704,14 +705,17 @@ public:
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
+                    boost::shared_ptr<scoped_cJSON_t> cjson = it->get(transaction);
                     if (sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                    sindex_value->as_json(), *it));
+                                                                            sindex_value->as_json(),
+                                                                            cjson));
                     } else {
-                        stream->push_back(rdb_protocol_details::rget_item_t(store_key, *it));
+                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
+                                                                            cjson));
                     }
 
-                    cumulative_size += estimate_rget_response_size(*it);
+                    cumulative_size += estimate_rget_response_size(cjson);
                 }
 
                 return cumulative_size < rget_max_chunk_size;
@@ -719,7 +723,8 @@ public:
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
                         terminal_apply(ql_env, terminal->backtrace,
-                                       *jt, &terminal->variant, &response->result);
+                                       lazy_json_with_txn_t(*jt, transaction),
+                                       &terminal->variant, &response->result);
                     }
                     return true;
                 } catch (const ql::datum_exc_t &e2) {

@@ -58,12 +58,36 @@ public:
     explicit lazy_json_t(const rdb_value_t *rdb_value)
         : pointee(new lazy_json_pointee_t(rdb_value)) { }
 
-    const boost::shared_ptr<scoped_cJSON_t> &get(transaction_t *txn);
+    const boost::shared_ptr<scoped_cJSON_t> &get(transaction_t *txn) const;
 
 private:
     counted_t<lazy_json_pointee_t> pointee;
 };
 
+// Contains a lazy json along with the transaction_t needed to load the cJSON value.
+// Might also just contain a plain cJSON value.  Passing one of these instead of a
+// separate lazy_json_t and transaction_t is good because:
+//
+// - You know the transaction_t isn't used for anything besides loading the json value.
+//
+// - You don't have to pass a NULL transaction_t when you've already got a cJSON value
+//   and no transaction.
+class lazy_json_with_txn_t {
+public:
+    explicit lazy_json_with_txn_t(const boost::shared_ptr<scoped_cJSON_t> &ptr)
+        : json(ptr), txn(NULL) { }
+
+    explicit lazy_json_with_txn_t(lazy_json_t _json, transaction_t *_txn)
+        : json(_json), txn(_txn) { }
+
+    const boost::shared_ptr<scoped_cJSON_t> &get() const {
+        return json.get(txn);
+    }
+
+private:
+    lazy_json_t json;
+    transaction_t *txn;
+};
 
 
 

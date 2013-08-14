@@ -32,7 +32,7 @@ result_t json_stream_t::apply_terminal(
 
     boost::shared_ptr<scoped_cJSON_t> json;
     while ((json = next())) {
-        terminal_apply(ql_env, backtrace, json, &t, &res);
+        terminal_apply(ql_env, backtrace, lazy_json_with_txn_t(json), &t, &res);
     }
     return res;
 }
