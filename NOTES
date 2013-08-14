@@ -30,7 +30,7 @@ This release introduces ...
     * It now depends on the `protobufjs` and `node-protobuf` libraries
 * Server
   * Added a `--canonical-address HOST[:PORT]` command line option (#486)
-    * Two instances behind firewalls can now be configured to connect to each other
+    * Two instances behind proxies can now be configured to connect to each other
   * Optimize space efficiency by allowing smaller block sizes (#939)
   * Added a `--no-direct-io` startup flag that turns off direct IO (#1051)
   * Rewrote the `extproc` code, making `r.js` interuptible and fixing many crashes (#1097, #1106)
@@ -44,27 +44,27 @@ This release introduces ...
 ## Fixed Bugs ##
 
 * ReQL
-  * Check the type of the callback passed to `next` and `each` in the JavaScritp driver (#656)
+  * Check the type of the callback passed to `next` and `each` in the JavaScript driver (#656)
   * Fixed how some backtraces are printed in the JavaScript driver (#973)
   * Coerce the port argument to a number in the Python driver (#1017)
   * Functions that are polymorphic on objects and sequences now only recurse one level deep (#1045)
     * Affects `pluck`, `has_fields`, `with_fields`, etc
-  * In the JavaSCript driver, no loger fail when requiring the module twice (#1047)
+  * In the JavaScript driver, no longer fail when requiring the module twice (#1047)
   * `r.union` now returns a stream when given two streams (#1081)
-  * ... `r.do` and `r.db` in the JavaSCript driver (#1082)
+  * ... `r.do` and `r.db` in the JavaScript driver (#1082)
   * Improve the error message when combining `for_each` and `return_vals` (#1104)
-  * Fixed  abug causing the JavaScript driver to overflow the stack when given an object with circular references (#1133)
+  * Fixed a bug causing the JavaScript driver to overflow the stack when given an object with circular references (#1133)
   * Don't leak internal functions in the JavaScript driver (#1164)
   * Fix the qurey printing in the Python driver (#1178)
   * Correctly depend on node >= 0.10 in the JavaScript driver (#1197)
 * Server
   * Improved the error message when there is a version mismatch in data files (#521)
-  * The `--no-http-admin` now disables the check for the web assets folder (#1092)
-  * No longer compile javascript expressions once per row (#1105)
+  * The `--no-http-admin` option now disables the check for the web assets folder (#1092)
+  * No longer compile JavaScript expressions once per row (#1105)
   * Fixed a crash in the 32 bit version caused by not using 64 bit file offsets (#1129)
   * Fixed a crash caused by malformed json documents (#1132)
   * Fixed a crash caused by moving `func_t` betweek threads (#1157)
-  * Improved the scheduling the coroutines that sometimes caused resharding to hang (#1169)
+  * Improved the scheduling the coroutines that sometimes caused heartbeat timeouts (#1169)
   * Fixed `conflict_resolving_diskmgr_t` to suport files over 1TB (#1170)
   * Fixed a crash caused by disconnecting too fast (#1182)
   * Fixed the error message when `js_runner_t::call` times out (#1218)
