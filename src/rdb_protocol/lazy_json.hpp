@@ -35,19 +35,28 @@ boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
                                            transaction_t *txn);
 
 class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee_t> {
-    explicit lazy_json_pointee_t(const rdb_value_t *_rdb_value)
-        : rdb_value(_rdb_value) { }
+    lazy_json_pointee_t(const rdb_value_t *_rdb_value, transaction_t *_txn)
+        : rdb_value(_rdb_value), txn(_txn) {
+        guarantee(rdb_value != NULL);
+        guarantee(txn != NULL);
+    }
 
     explicit lazy_json_pointee_t(const boost::shared_ptr<scoped_cJSON_t> &_ptr)
-        : ptr(_ptr), rdb_value(NULL) { }
+        : ptr(_ptr), rdb_value(NULL), txn(NULL) {
+        guarantee(ptr);
+    }
 
     friend class lazy_json_t;
 
     // If empty, we haven't loaded the value yet.
     boost::shared_ptr<scoped_cJSON_t> ptr;
 
-    // A pointer to the rdb value buffer in the leaf node (or perhaps a copy).
+    // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and the
+    // transaction with which to load it.
     const rdb_value_t *rdb_value;
+    transaction_t *txn;
+
+    DISABLE_COPYING(lazy_json_pointee_t);
 };
 
 class lazy_json_t {
@@ -55,38 +64,13 @@ public:
     explicit lazy_json_t(const boost::shared_ptr<scoped_cJSON_t> &ptr)
         : pointee(new lazy_json_pointee_t(ptr)) { }
 
-    explicit lazy_json_t(const rdb_value_t *rdb_value)
-        : pointee(new lazy_json_pointee_t(rdb_value)) { }
+    lazy_json_t(const rdb_value_t *rdb_value, transaction_t *txn)
+        : pointee(new lazy_json_pointee_t(rdb_value, txn)) { }
 
-    const boost::shared_ptr<scoped_cJSON_t> &get(transaction_t *txn) const;
+    const boost::shared_ptr<scoped_cJSON_t> &get() const;
 
 private:
     counted_t<lazy_json_pointee_t> pointee;
-};
-
-// Contains a lazy json along with the transaction_t needed to load the cJSON value.
-// Might also just contain a plain cJSON value.  Passing one of these instead of a
-// separate lazy_json_t and transaction_t is good because:
-//
-// - You know the transaction_t isn't used for anything besides loading the json value.
-//
-// - You don't have to pass a NULL transaction_t when you've already got a cJSON value
-//   and no transaction.
-class lazy_json_with_txn_t {
-public:
-    explicit lazy_json_with_txn_t(const boost::shared_ptr<scoped_cJSON_t> &ptr)
-        : json(ptr), txn(NULL) { }
-
-    explicit lazy_json_with_txn_t(lazy_json_t _json, transaction_t *_txn)
-        : json(_json), txn(_txn) { }
-
-    const boost::shared_ptr<scoped_cJSON_t> &get() const {
-        return json.get(txn);
-    }
-
-private:
-    lazy_json_t json;
-    transaction_t *txn;
 };
 
 

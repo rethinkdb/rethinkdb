@@ -144,7 +144,7 @@ void transform_apply(ql::env_t *ql_env,
 /* A visitor for applying a terminal to a bit of json. */
 class terminal_visitor_t : public boost::static_visitor<void> {
 public:
-    terminal_visitor_t(lazy_json_with_txn_t _json,
+    terminal_visitor_t(lazy_json_t _json,
                        ql::env_t *_ql_env,
                        const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
@@ -154,13 +154,13 @@ public:
     void operator()(ql::gmr_wire_func_t &) const;
     void operator()(ql::reduce_wire_func_t &) const;
 private:
-    lazy_json_with_txn_t json;
+    lazy_json_t json;
     ql::env_t *ql_env;
     backtrace_t backtrace;
     rget_read_response_t::result_t *out;
 };
 
-terminal_visitor_t::terminal_visitor_t(lazy_json_with_txn_t _json,
+terminal_visitor_t::terminal_visitor_t(lazy_json_t _json,
                                        ql::env_t *_ql_env,
                                        const backtrace_t &_backtrace,
                                        rget_read_response_t::result_t *_out)
@@ -210,7 +210,7 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NO
 
 void terminal_apply(ql::env_t *ql_env,
                     const backtrace_t &backtrace,
-                    lazy_json_with_txn_t json,
+                    lazy_json_t json,
                     rdb_protocol_details::terminal_variant_t *t,
                     rget_read_response_t::result_t *out) {
     boost::apply_visitor(terminal_visitor_t(json, ql_env, backtrace, out),

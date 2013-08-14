@@ -661,7 +661,7 @@ public:
                 response->last_considered_key = store_key;
             }
 
-            lazy_json_t first_value(static_cast<const rdb_value_t *>(value));
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(value), transaction);
 
             std::list<lazy_json_t> data;
             data.push_back(first_value);
@@ -671,7 +671,7 @@ public:
             if (sindex_function &&
                 ql::datum_t::key_is_truncated(store_key)) {
                 counted_t<const ql::datum_t> datum_value =
-                    make_counted<const ql::datum_t>(first_value.get(transaction));
+                    make_counted<const ql::datum_t>(first_value.get());
                 sindex_value = sindex_function->call(datum_value)->as_datum();
             }
 
@@ -684,7 +684,7 @@ public:
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
-                                            jt->get(transaction), &it->variant,
+                                            jt->get(), &it->variant,
                                             &tmp);
                         }
                         data.clear();
@@ -705,7 +705,7 @@ public:
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
-                    boost::shared_ptr<scoped_cJSON_t> cjson = it->get(transaction);
+                    boost::shared_ptr<scoped_cJSON_t> cjson = it->get();
                     if (sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
                                                                             sindex_value->as_json(),
@@ -723,7 +723,7 @@ public:
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
                         terminal_apply(ql_env, terminal->backtrace,
-                                       lazy_json_with_txn_t(*jt, transaction),
+                                       *jt,
                                        &terminal->variant, &response->result);
                     }
                     return true;

@@ -20,9 +20,9 @@ boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
     return data;
 }
 
-const boost::shared_ptr<scoped_cJSON_t> &lazy_json_t::get(transaction_t *txn) const {
+const boost::shared_ptr<scoped_cJSON_t> &lazy_json_t::get() const {
     if (!pointee->ptr) {
-        pointee->ptr = get_data(pointee->rdb_value, txn);
+        pointee->ptr = get_data(pointee->rdb_value, pointee->txn);
     }
     return pointee->ptr;
 }
