@@ -109,11 +109,10 @@ enum date_format_t { UNSET, MONTH_DAY, WEEKCOUNT, DAYCOUNT };
 
 // This is where we do our sanitization.
 namespace sanitize {
-using namespace std;
 
 // Copy n digits from `s` to the end of `*p_out`, starting at `*p_at`.
 // Increment `*p_at` by the number of digits copied.  Throw on any error.
-void mandatory_digits(const string &s, size_t n, size_t *p_at, string *p_out) {
+void mandatory_digits(const std::string &s, size_t n, size_t *p_at, std::string *p_out) {
     for (size_t i = 0; i < n; ++i) {
         size_t at = (*p_at)++;
         rcheck_datum(at < s.size(), base_exc_t::GENERIC,
@@ -133,7 +132,7 @@ enum optional_char_default_behavior_t { INCLUDE, EXCLUDE };
 // If `s[*p_at]` is `c`, increment `*p_at` and add `c` to the end of `*p_out`.
 // Otherwise, if `default_behavior` is `INCLUDE`, add `c` to the end of `*p_out`
 // anyway.  Return whether or not `*p_at` was incremented.
-bool optional_char(const string &s, char c, size_t *p_at, string *p_out,
+bool optional_char(const std::string &s, char c, size_t *p_at, std::string *p_out,
                    optional_char_default_behavior_t default_behavior = INCLUDE) {
     bool consumed = false;
     size_t at = *p_at;
@@ -150,8 +149,8 @@ bool optional_char(const string &s, char c, size_t *p_at, string *p_out,
 }
 
 // Sanitize a date, and return which format it's in.
-string date(const string &s, date_format_t *df_out) {
-    string out;
+std::string date(const std::string &s, date_format_t *df_out) {
+    std::string out;
     size_t at = 0;
     // Add Year
     mandatory_digits(s, 4, &at, &out);
@@ -191,8 +190,8 @@ string date(const string &s, date_format_t *df_out) {
 }
 
 // Sanitize a time.
-string time(const string &s) {
-    string out;
+std::string time(const std::string &s) {
+    std::string out;
     size_t at = 0;
     mandatory_digits(s, 2, &at, &out);
     if (at == s.size()) {
@@ -237,13 +236,13 @@ bool minutes_valid(char l, char r) {
 }
 
 // Sanitize a timezone.
-string tz(const string &s) {
+std::string tz(const std::string &s) {
     rcheck_datum(s != "-00" && s != "-00:00", base_exc_t::GENERIC,
                  strprintf("`%s` is not a valid time offset.", s.c_str()));
     if (s == "Z") {
         return "+00:00";
     }
-    string out;
+    std::string out;
     size_t at = 0;
     bool sign_prefix = optional_char(s, '-', &at, &out, EXCLUDE)
         || optional_char(s, '+', &at, &out, EXCLUDE);
@@ -268,21 +267,21 @@ string tz(const string &s) {
 }
 
 // Sanitize an ISO 8601 string.
-string iso8601(const string &s, const std::string &default_tz, date_format_t *df_out) {
-    string date_s, time_s, tz_s;
+std::string iso8601(const std::string &s, const std::string &default_tz, date_format_t *df_out) {
+    std::string date_s, time_s, tz_s;
     size_t tloc, start, sign_loc;
     tloc = s.find('T');
     date_s = date(s.substr(0, tloc), df_out);
-    if (tloc == string::npos) {
+    if (tloc == std::string::npos) {
         time_s = "00:00:00.000";
         tz_s = default_tz;
     } else {
         start = tloc + 1;
         sign_loc = s.find('-', start);
-        sign_loc = (sign_loc == string::npos) ? s.find('+', start) : sign_loc;
-        sign_loc = (sign_loc == string::npos) ? s.find('Z', start) : sign_loc;
+        sign_loc = (sign_loc == std::string::npos) ? s.find('+', start) : sign_loc;
+        sign_loc = (sign_loc == std::string::npos) ? s.find('Z', start) : sign_loc;
         time_s = time(s.substr(start, sign_loc - start));
-        if (sign_loc == string::npos) {
+        if (sign_loc == std::string::npos) {
             tz_s = default_tz;
         } else {
             tz_s = tz(s.substr(sign_loc));

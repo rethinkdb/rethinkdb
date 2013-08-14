@@ -4,6 +4,7 @@
 
 #include <float.h>
 #include <math.h>
+
 #include <algorithm>
 
 #include "rdb_protocol/env.hpp"
@@ -18,8 +19,6 @@ namespace ql {
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
 const char* const datum_t::reql_type_string = "$reql_type$";
-
-std::set<std::string> datum_ptr_t::default_allowed_ptypes = std::set<std::string>();
 
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);

@@ -2,6 +2,7 @@
 #define RDB_PROTOCOL_WIRE_FUNC_HPP_
 
 #include <map>
+#include <string>
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
