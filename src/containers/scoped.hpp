@@ -221,10 +221,6 @@ public:
         ptr_ = static_cast<T *>(malloc(n));
         memcpy(ptr_, beg, n);
     }
-    scoped_malloc_t(const char *beg, size_t n) {
-        ptr_ = static_cast<T *>(malloc(n));
-        memcpy(ptr_, beg, n);
-    }
     scoped_malloc_t(scoped_malloc_t &&movee)
         : ptr_(movee.ptr_) {
         movee.ptr_ = NULL;
