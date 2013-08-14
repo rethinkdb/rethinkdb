@@ -12,10 +12,10 @@
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
-#include "buffer_cache/blob.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
+#include "rdb_protocol/blob_wrapper.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
@@ -84,7 +84,7 @@ block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_
 
 boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
                                            transaction_t *txn) {
-    blob_t blob(txn->get_cache()->get_block_size(),
+    rdb_blob_wrapper_t blob(txn->get_cache()->get_block_size(),
                 const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
 
     boost::shared_ptr<scoped_cJSON_t> data;
@@ -148,13 +148,12 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     int res = send_write_message(&stream, &wm);
     guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
 
-    blob_t blob(txn->get_cache()->get_block_size(),
-                new_value->value_ref(), blob::btree_maxreflen);
-
     // TODO more copies, good lord
-    blob.append_region(txn, stream.vector().size());
     std::string sered_data(stream.vector().begin(), stream.vector().end());
-    blob.write_from_string(sered_data, txn, 0);
+
+    rdb_blob_wrapper_t blob(txn->get_cache()->get_block_size(),
+                new_value->value_ref(), blob::btree_maxreflen,
+                txn, sered_data);
 
     block_size_t block_size = txn->get_cache()->get_block_size();
     if (mod_info_out) {
@@ -506,7 +505,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 }
 
 void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
-    blob_t blob(_txn->get_cache()->get_block_size(),
+    rdb_blob_wrapper_t blob(_txn->get_cache()->get_block_size(),
                 static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
     blob.clear(_txn);
 }
@@ -1167,8 +1166,8 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     if (modification->info.deleted.first) {
         guarantee(!modification->info.deleted.second.empty());
 
-        blob_t blob(txn->get_cache()->get_block_size(), ref_cpy.data(), blob::btree_maxreflen);
-        blob.clear(txn);
+        rdb_value_deleter_t deleter;
+        deleter.delete_value(txn, ref_cpy.data());
     }
 }
 

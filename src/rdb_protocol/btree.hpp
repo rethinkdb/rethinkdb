@@ -138,6 +138,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
         rdb_modification_info_t *mod_info);
 
 class rdb_value_deleter_t : public value_deleter_t {
+public:
     void delete_value(transaction_t *_txn, void *_value);
 };
 
