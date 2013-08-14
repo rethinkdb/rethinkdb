@@ -15,6 +15,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/counted_type.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
@@ -1694,7 +1695,7 @@ void rdb_protocol_t::sindex_range_t::write_filter_func(
        N2(FUNCALL, *arg = sindex_mapping, NVAR(arg1)));
 }
 
-region_t rdb_protocol_t::sindex_range_t ::to_region() const {
+region_t rdb_protocol_t::sindex_range_t::to_region() const {
     return region_t(rdb_protocol_t::sindex_key_range(
         start != NULL ? start->truncated_secondary() : store_key_t::min(),
         end != NULL ? end->truncated_secondary() : store_key_t::max()));

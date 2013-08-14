@@ -253,10 +253,6 @@ private:
     DISABLE_COPYING(datum_ptr_t);
 };
 
-
-
-
-
 // This is like a `wire_datum_t` but for gmr.  We need it because gmr allows
 // non-strings as keys, while the data model we pinched from JSON doesn't.  See
 // README.md for more info.
