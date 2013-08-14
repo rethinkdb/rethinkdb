@@ -4,8 +4,9 @@
 #include <utility>
 #include <vector>
 
-#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/func.hpp"
+#include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
 namespace ql {

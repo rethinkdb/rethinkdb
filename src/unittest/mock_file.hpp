@@ -51,7 +51,8 @@ private:
 
 class mock_semantic_checking_file_t : public semantic_checking_file_t {
 public:
-    mock_semantic_checking_file_t(std::vector<char> *data) : pos_(0), data_(data) { }
+    explicit mock_semantic_checking_file_t(std::vector<char> *data)
+        : pos_(0), data_(data) { }
 
     size_t semantic_blocking_read(void *buf, size_t length);
 

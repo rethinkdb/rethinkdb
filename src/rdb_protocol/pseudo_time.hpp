@@ -2,11 +2,14 @@
 #ifndef RDB_PROTOCOL_PSEUDO_TIME_HPP_
 #define RDB_PROTOCOL_PSEUDO_TIME_HPP_
 
-#include <boost/date_time.hpp>
+#include <string>
 
-#include "rdb_protocol/env.hpp"
+template <class> class counted_t;
 
 namespace ql {
+class rcheckable_t;
+class datum_t;
+
 namespace pseudo {
 extern const char *const time_string;
 
