@@ -7,9 +7,9 @@
 #include <vector>
 
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/term.hpp"
 
 namespace ql {
+class term_t;
 
 class pathspec_t {
 public:

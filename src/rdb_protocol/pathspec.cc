@@ -1,5 +1,7 @@
 #include "rdb_protocol/pathspec.hpp"
 
+#include "rdb_protocol/term.hpp"
+
 namespace ql {
 
 pathspec_t::pathspec_t(const pathspec_t &other) {
