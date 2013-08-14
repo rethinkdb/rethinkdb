@@ -137,11 +137,6 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
         point_delete_response_t *response,
         rdb_modification_info_t *mod_info);
 
-class rdb_value_deleter_t : public value_deleter_t {
-public:
-    void delete_value(transaction_t *_txn, void *_value);
-};
-
 /* A deleter that doesn't actually delete the values. Needed for secondary
  * indexes which only have references. */
 class rdb_value_non_deleter_t : public value_deleter_t {
@@ -270,5 +265,14 @@ void post_construct_secondary_indexes(
         const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
+
+class rdb_value_deleter_t : public value_deleter_t {
+friend void rdb_update_sindexes(
+        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const rdb_modification_report_t *modification, transaction_t *txn);
+
+    void delete_value(transaction_t *_txn, void *_value);
+};
+
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */
