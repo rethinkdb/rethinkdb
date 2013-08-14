@@ -150,6 +150,9 @@ october     = type('', (RqlTimeName,), {'tt': p.Term.OCTOBER, 'st': 'october'})(
 november    = type('', (RqlTimeName,), {'tt': p.Term.NOVEMBER, 'st': 'november'})()
 december    = type('', (RqlTimeName,), {'tt': p.Term.DECEMBER, 'st': 'december'})()
 
+def make_timezone(tzstring):
+    return RqlTzinfo(tzstring)
+
 # Merge values
 def literal(val=()):
     if val:

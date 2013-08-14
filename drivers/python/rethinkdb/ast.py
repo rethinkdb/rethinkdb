@@ -21,11 +21,14 @@ def expr(val, nesting_depth=20):
     if isinstance(val, RqlQuery):
         return val
     elif isinstance(val, datetime.datetime):
-        time = val.isoformat()
         if not val.tzinfo:
-            # dirty, but effective
-            time += "+00:00"
-        return ISO8601(time)
+            raise RqlDriverError("""Cannot convert datetime to ReQL time object
+            without timezone information. You can add timezone information with
+            the third party module \"pytz\" or by constructing ReQL compatible
+            timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
+            use one of ReQL's bultin time constructors, r.now, r.time, or r.iso8601.
+            """)
+        return ISO8601(val.isoformat())
     elif isinstance(val, list):
         val = [expr(v, nesting_depth - 1) for v in val]
         return MakeArray(*val)
