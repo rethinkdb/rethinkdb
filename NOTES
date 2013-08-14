@@ -73,6 +73,7 @@ This release introduces ...
   * Fixed a bug causing too many file descriptors to be open (#1225)
   * Fixed memory leaks reported by valgrind (#1233)
   * Fixed a crash triggered by the BTreeSindex test (#1237)
+  * Fixed some problems with import performance, interruption, parsing, and error reporting (#1252)
   * RethinkDB proxy no longer crashes when interacting with the Web UI (#1276)
 * Tests
   * Fixed the connectivity tests for OS X (#613)
