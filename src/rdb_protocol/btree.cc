@@ -573,10 +573,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      btree_store_t<rdb_protocol_t> *store,
                      write_token_pair_t *token_pair,
                      signal_t *interruptor) {
-    value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
-    value_sizer_t<void> *sizer = &rdb_sizer;
-
-    rdb_value_deleter_t deleter;
+    /* This is guaranteed because the way the keys are calculated below would
+     * lead to a single key being deleted even if the range was empty. */
+    guarantee(!key_range.is_empty());
 
     /* Dispatch the erase range to the sindexes. */
     sindex_access_vector_t sindex_superblocks;
@@ -597,14 +596,26 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         store->sindex_queue_push(wm, &acq);
     }
 
-    auto_drainer_t drainer;
-    spawn_sindex_erase_ranges(&sindex_superblocks, key_range, txn,
-            &drainer, auto_drainer_t::lock_t(&drainer),
-            true, /* release the superblock */ interruptor);
+    {
+        auto_drainer_t sindex_erase_drainer;
+        spawn_sindex_erase_ranges(&sindex_superblocks, key_range, txn,
+                &sindex_erase_drainer, auto_drainer_t::lock_t(&sindex_erase_drainer),
+                true, /* release the superblock */ interruptor);
 
-    /* This is guaranteed because the way the keys are calculated below would
-     * lead to a single key being deleted even if the range was empty. */
-    guarantee(!key_range.is_empty());
+        /* Notice, when we exit this block we destruct the sindex_erase_drainer
+         * which means we'll wait until all of the sindex_erase_ranges finish
+         * executing. This is an important detail because the sindexes only
+         * store references to their data. They don't actually store a full
+         * copy of the data themselves. The call to btree_erase_range_generic
+         * is the one that will actually erase the data and if we were to make
+         * that call before the indexes were finished erasing we would have
+         * reference to data which didn't actually exist and another process
+         * could read that data. */
+        /* TL;DR it's very important that we make sure all of the coros spawned
+         * by spawn_sindex_erase_ranges complete before we proceed past this
+         * point. */
+    }
+
     /* Twiddle some keys to get the in the form we want. Notice these are keys
      * which will be made  exclusive and inclusive as their names suggest
      * below. At the point of construction they aren't. */
@@ -619,6 +630,12 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 
     /* Now left_key_exclusive and right_key_inclusive accurately reflect their
      * names. */
+
+    /* We need these structures to perform the erase range. */
+    value_sizer_t<rdb_value_t> rdb_sizer(slice->cache()->get_block_size());
+    value_sizer_t<void> *sizer = &rdb_sizer;
+
+    rdb_value_deleter_t deleter;
 
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
