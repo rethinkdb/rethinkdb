@@ -21,8 +21,6 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
-typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
-
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
 const rdb_value_t *value_sizer_t<rdb_value_t>::as_rdb(const void *p) {
@@ -666,7 +664,7 @@ public:
             const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
             boost::shared_ptr<scoped_cJSON_t> first_value = get_data(rdb_value, transaction);
 
-            json_list_t data;
+            std::list<boost::shared_ptr<scoped_cJSON_t> > data;
             data.push_back(first_value);
 
             counted_t<const ql::datum_t> sindex_value;
@@ -683,11 +681,9 @@ public:
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        json_list_t tmp;
+                        std::list<boost::shared_ptr<scoped_cJSON_t> > tmp;
 
-                        for (json_list_t::iterator jt  = data.begin();
-                             jt != data.end();
-                             ++jt) {
+                        for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
                                             *jt, &it->variant,
                                             &tmp);
@@ -707,9 +703,7 @@ public:
                 typedef rget_read_response_t::stream_t stream_t;
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
-                for (json_list_t::iterator it =  data.begin();
-                                           it != data.end();
-                                           ++it) {
+                for (auto it = data.begin(); it != data.end(); ++it) {
                     if (sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
                                     sindex_value->as_json(), *it));
