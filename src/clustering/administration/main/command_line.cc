@@ -1663,7 +1663,10 @@ void help_rethinkdb_porcelain() {
     help.pagef("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
     help.pagef("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
     help.pagef("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
-    help.pagef("    'rethinkdb import': import data from from a file into an existing cluster\n");
+    help.pagef("    'rethinkdb export': export data from an existing cluster into a file or directory\n");
+    help.pagef("    'rethinkdb import': import data from from a file or directory into an existing cluster\n");
+    help.pagef("    'rethinkdb dump': export and compress data from an existing cluster\n");
+    help.pagef("    'rethinkdb restore': import compressed data into an existing cluster\n");
     help.pagef("\n");
     help.pagef("For more information, run 'rethinkdb help [subcommand]'.\n");
 }
