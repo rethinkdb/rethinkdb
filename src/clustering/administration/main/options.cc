@@ -180,7 +180,8 @@ std::map<std::string, values_t> do_parse_command_line(
             const char *const option_parameter = argv[i];
             ++i;
 
-            if (looks_like_option_name(option_parameter)) {
+            if (looks_like_option_name(option_parameter) ||
+                strlen(option_parameter) == 0) {
                 throw missing_parameter_error_t(source, option_name);
             }
 
@@ -300,21 +301,8 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
                                                it - lines.begin()));
         }
 
-        auto const expected_equal_sign = std::find_if(config_name_end, stripped_line.end(), is_not_space);
-        if (expected_equal_sign == stripped_line.end() || *expected_equal_sign != '=') {
-            throw file_parse_error_t(source,
-                                     strprintf("Config file %s: parse error at line %zu",
-                                               filepath.c_str(),
-                                               it - lines.begin()));
-        }
-
-        auto const beginning_of_value = std::find_if(expected_equal_sign + 1, stripped_line.end(), is_not_space);
-
         const std::string name(config_name_beg, config_name_end);
-        const std::string value(beginning_of_value, stripped_line.end());
-
         const std::string option_name = "--" + name;
-
         const option_t *option = find_option(option_name.c_str(), options);
 
         if (option == NULL) {
@@ -326,7 +314,39 @@ std::map<std::string, values_t> parse_config_file(const std::string &file_conten
             } else {
                 ignored_options.insert(name);
             }
+        } else if (option->no_parameter) {
+            // Parameterless option, make sure we only have the option itself, and add it
+            if (stripped_line != name) {
+                throw file_parse_error_t(source,
+                                         strprintf("Config file %s: parse error at line %zu: unexpected data after no-parameter option '%s'",
+                                                   filepath.c_str(),
+                                                   it - lines.begin(),
+                                                   name.c_str()));
+            }
+            auto res = ret.insert(std::make_pair(option_name, values_t(source, std::vector<std::string>())));
+            res.first->second.values.push_back("");
         } else {
+            // Option requires a parameter, parse it out
+            auto const expected_equal_sign = std::find_if(config_name_end, stripped_line.end(), is_not_space);
+            if (expected_equal_sign == stripped_line.end() || *expected_equal_sign != '=') {
+                throw file_parse_error_t(source,
+                                         strprintf("Config file %s: parse error at line %zu",
+                                                   filepath.c_str(),
+                                                   it - lines.begin()));
+            }
+
+            auto const beginning_of_value = std::find_if(expected_equal_sign + 1, stripped_line.end(), is_not_space);
+
+            const std::string value(beginning_of_value, stripped_line.end());
+
+            if (value.empty()) {
+                throw file_parse_error_t(source,
+                                         strprintf("Config file %s: parse error at line %zu: no parameter for option '%s'",
+                                                   filepath.c_str(),
+                                                   it - lines.begin(),
+                                                   name.c_str()));
+            }
+
             auto res = ret.insert(std::make_pair(option_name, values_t(source, std::vector<std::string>())));
             res.first->second.values.push_back(value);
         }

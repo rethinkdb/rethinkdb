@@ -227,10 +227,20 @@ std::string time(const std::string &s) {
     return out;
 }
 
+bool hours_valid(char l, char r) {
+    return ((l == '0' || l == '1') && ('0' <= r && r <= '9'))
+        || ((l == '2') && ('0' <= r && r <= '4'));
+}
+bool minutes_valid(char l, char r) {
+    return ('0' <= l && l <= '5') && ('0' <= r && r <= '9');
+}
+
 // Sanitize a timezone.
 std::string tz(const std::string &s) {
+    rcheck_datum(s != "-00" && s != "-00:00", base_exc_t::GENERIC,
+                 strprintf("`%s` is not a valid time offset.", s.c_str()));
     if (s == "Z") {
-        return s;
+        return "+00:00";
     }
     std::string out;
     size_t at = 0;
@@ -247,18 +257,24 @@ std::string tz(const std::string &s) {
     rcheck_datum(at == s.size(), base_exc_t::GENERIC,
                  strprintf("Garbage characters `%s` at end of timezone string `%s`.",
                            s.substr(at).c_str(), s.c_str()));
+
+    r_sanity_check(out.size() == 6);
+    rcheck_datum(hours_valid(out[1], out[2]), base_exc_t::GENERIC,
+                 strprintf("Hours out of range in `%s`.", s.c_str()));
+    rcheck_datum(minutes_valid(out[4], out[5]), base_exc_t::GENERIC,
+                 strprintf("Minutes out of range in `%s`.", s.c_str()));
     return out;
 }
 
 // Sanitize an ISO 8601 string.
-std::string iso8601(const std::string &s, date_format_t *df_out) {
+std::string iso8601(const std::string &s, const std::string &default_tz, date_format_t *df_out) {
     std::string date_s, time_s, tz_s;
     size_t tloc, start, sign_loc;
     tloc = s.find('T');
     date_s = date(s.substr(0, tloc), df_out);
     if (tloc == std::string::npos) {
         time_s = "00:00:00.000";
-        tz_s = "";
+        tz_s = default_tz;
     } else {
         start = tloc + 1;
         sign_loc = s.find('-', start);
@@ -266,7 +282,7 @@ std::string iso8601(const std::string &s, date_format_t *df_out) {
         sign_loc = (sign_loc == std::string::npos) ? s.find('Z', start) : sign_loc;
         time_s = time(s.substr(start, sign_loc - start));
         if (sign_loc == std::string::npos) {
-            tz_s = "";
+            tz_s = default_tz;
         } else {
             tz_s = tz(s.substr(sign_loc));
         }
@@ -276,30 +292,16 @@ std::string iso8601(const std::string &s, date_format_t *df_out) {
 
 } // namespace sanitize
 
-bool hours_valid(char l, char r) {
-    return ((l == '0' || l == '1') && ('0' <= r && r <= '9'))
-        || ((l == '2') && ('0' <= r && r <= '4'));
-}
-bool minutes_valid(char l, char r) {
-    return ('0' <= l && l <= '5') && ('0' <= r && r <= '9');
-}
-// This does more than sanitization; it checks that the numbers are within
-// bounds.
 bool tz_valid(const std::string &tz, std::string *tz_out = NULL) {
     try {
         std::string s = sanitize::tz(tz);
         if (tz_out) {
             *tz_out = s;
         }
-        if (tz == "Z") {
-            return true;
-        }
-        r_sanity_check(s.size() == 6);
-        return hours_valid(s[1], s[2]) && minutes_valid(s[4], s[5]);
     } catch (const datum_exc_t &e) {
         return false;
     }
-    return false;
+    return true;
 }
 
 // Sanitize the timezone we retrieve from a boost local time.  Boost local time
@@ -310,14 +312,16 @@ std::string sanitize_boost_tz(std::string tz, const rcheckable_t *target) {
     if (colpos != std::string::npos && (colpos + 1) < tz.size() && tz[colpos+1] == '-') {
         tz = tz.substr(0, colpos + 1) + tz.substr(colpos + 2, std::string::npos);
     }
-    if (tz == "UTC+00" || tz == "") {
-        return "";
-    } else if (tz == "Z+00") {
-        return "Z";
-    } else if (tz_valid(tz)) {
-        return sanitize::tz(tz);
+    rcheck_target(target,  base_exc_t::GENERIC, tz != "UTC+00" && tz != "",
+                  "ISO 8601 string has no time zone, and no default time "
+                  "zone was provided.");
+
+    std::string tz_out;
+    if (tz == "Z+00") {
+        return "+00:00";
+    } else if (tz_valid(tz, &tz_out)) {
+        return tz_out;
     }
-    // TODO: FIX
     rfail_target(target, base_exc_t::GENERIC,
                  "Invalid ISO 8601 timezone: `%s`.", tz.c_str());
 }
@@ -327,17 +331,17 @@ counted_t<const datum_t> boost_to_time(time_t t, const rcheckable_t *target) {
     double seconds = dur.total_microseconds() / 1000000.0;
     std::string tz = t.zone_as_posix_string();
     tz = sanitize_boost_tz(tz, target);
-    r_sanity_check(tz == "" || tz_valid(tz));
+    r_sanity_check(tz_valid(tz));
     return make_time(seconds, tz);
 }
 
 counted_t<const datum_t> iso8601_to_time(
-    const std::string &s, const rcheckable_t *target) {
+    const std::string &s, const std::string &default_tz, const rcheckable_t *target) {
     try {
         date_format_t df = UNSET;
         std::string sanitized;
         try {
-             sanitized = sanitize::iso8601(s, &df);
+            sanitized = sanitize::iso8601(s, default_tz, &df);
         } catch (const datum_exc_t &e) {
             rfail_target(target, base_exc_t::GENERIC, "%s", e.what());
         }
@@ -436,7 +440,7 @@ double time_to_epoch_time(counted_t<const datum_t> d) {
 counted_t<const datum_t> time_now() {
     try {
         ptime_t t = boost::posix_time::microsec_clock::universal_time();
-        return make_time((t - raw_epoch).total_microseconds() / 1000000.0);
+        return make_time((t - raw_epoch).total_microseconds() / 1000000.0, "+00:00");
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
@@ -454,7 +458,7 @@ void sanitize_time(datum_t *time) {
     r_sanity_check(time != NULL);
     r_sanity_check(time->is_ptype(time_string));
     std::string msg;
-    bool has_epoch_time = false, del_tz_at_end = false;
+    bool has_epoch_time = false, has_timezone = false;;
     for (auto it = time->as_object().begin(); it != time->as_object().end(); ++it) {
         if (it->first == epoch_time_key) {
             if (it->second->get_type() == datum_t::R_NUM) {
@@ -477,10 +481,9 @@ void sanitize_time(datum_t *time) {
             if (it->second->get_type() == datum_t::R_STR) {
                 std::string tz, raw_tz = it->second->as_str();
                 if (tz_valid(raw_tz, &tz)) {
+                    has_timezone = true;
                     tz = (tz == "Z") ? "+00:00" : tz;
-                    if (tz == "") {
-                        del_tz_at_end = true;
-                    } else if (tz != raw_tz) {
+                    if (tz != raw_tz) {
                         bool b = time->add(timezone_key,
                                            make_counted<const datum_t>(tz),
                                            CLOBBER);
@@ -506,13 +509,10 @@ void sanitize_time(datum_t *time) {
         }
     }
 
-    if (del_tz_at_end) {
-        bool b = time->delete_field(timezone_key);
-        r_sanity_check(b);
-    }
-
     if (msg == "" && !has_epoch_time) {
         msg = strprintf("no field `%s`", epoch_time_key);
+    } else if (msg == "" && !has_timezone) {
+        msg = strprintf("no field `%s`", timezone_key);
     }
 
     if (msg != "") {
@@ -535,17 +535,13 @@ counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
                                     counted_t<const datum_t> tz) {
     r_sanity_check(t->is_ptype(time_string));
     datum_ptr_t t2(t->as_object());
-    if (tz->get_type() == datum_t::R_NULL) {
-        UNUSED bool b = t2.delete_field(timezone_key);
+    std::string raw_new_tzs = tz->as_str();
+    std::string new_tzs = sanitize::tz(raw_new_tzs);
+    if (raw_new_tzs == new_tzs) {
+        UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);
     } else {
-        std::string raw_new_tzs = tz->as_str();
-        std::string new_tzs = sanitize::tz(raw_new_tzs);
-        if (raw_new_tzs == new_tzs) {
-            UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);
-        } else {
-            UNUSED bool b =
-                t2.add(timezone_key, make_counted<const datum_t>(new_tzs), CLOBBER);
-        }
+        UNUSED bool b =
+            t2.add(timezone_key, make_counted<const datum_t>(new_tzs), CLOBBER);
     }
     return t2.to_counted();
 }
@@ -555,9 +551,7 @@ counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
     bool clobber = res.add(datum_t::reql_type_string,
                            make_counted<const datum_t>(time_string));
     clobber |= res.add(epoch_time_key, make_counted<const datum_t>(epoch_time));
-    if (tz != "") {
-        clobber |= res.add(timezone_key, make_counted<const datum_t>(tz));
-    }
+    clobber |= res.add(timezone_key, make_counted<const datum_t>(tz));
     r_sanity_check(!clobber);
     return res.to_counted();
 }
@@ -569,17 +563,13 @@ counted_t<const datum_t> make_time(
         ptime_t ptime(date_t(year, month, day), dur_t(hours, minutes, 0));
         add_seconds_to_ptime(&ptime, seconds);
         try {
-            tz = tz == "" ? tz : sanitize::tz(tz);
+            tz = sanitize::tz(tz);
         } catch (const datum_exc_t &e) {
             rfail_target(target, base_exc_t::GENERIC, "%s", e.what());
         }
-        if (tz != "") {
-            boost::local_time::time_zone_ptr zone(
-                new boost::local_time::posix_time_zone(tz));
-            return boost_to_time(time_t(ptime, zone) - zone->base_utc_offset(), target);
-        } else {
-            return boost_to_time(time_t(ptime, utc), target);
-        }
+        boost::local_time::time_zone_ptr zone(
+            new boost::local_time::posix_time_zone(tz));
+        return boost_to_time(time_t(ptime, zone) - zone->base_utc_offset(), target);
     } HANDLE_BOOST_ERRORS(target);
 }
 
