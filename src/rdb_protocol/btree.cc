@@ -148,6 +148,13 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, txn, 0);
 
+    // Clear the blob in the leaf if it existed
+    if (kv_location->value.has()) {
+        blob_t old_blob(txn->get_cache()->get_block_size(),
+                    kv_location->value->value_ref(), blob::btree_maxreflen);
+        old_blob.clear(txn);
+    }
+
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
