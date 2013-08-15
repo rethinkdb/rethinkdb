@@ -18,32 +18,8 @@
 #include "containers/scoped.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
-
-typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
-
-#define MAX_RDB_VALUE_SIZE MAX_IN_NODE_VALUE_SIZE
-
-struct rdb_value_t {
-    char contents[];
-
-public:
-    int inline_size(block_size_t bs) const {
-        return blob::ref_size(bs, contents, blob::btree_maxreflen);
-    }
-
-    int64_t value_size() const {
-        return blob::value_size(contents, blob::btree_maxreflen);
-    }
-
-    const char *value_ref() const {
-        return contents;
-    }
-
-    char *value_ref() {
-        return contents;
-    }
-};
 
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
@@ -82,23 +58,6 @@ block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
 }
 
 block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
-
-boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
-                                           transaction_t *txn) {
-    blob_t blob(txn->get_cache()->get_block_size(),
-                const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
-
-    boost::shared_ptr<scoped_cJSON_t> data;
-
-    blob_acq_t acq_group;
-    buffer_group_t buffer_group;
-    blob.expose_all(txn, rwi_read, &buffer_group, &acq_group);
-    buffer_group_read_stream_t read_stream(const_view(&buffer_group));
-    int res = deserialize(&read_stream, &data);
-    guarantee_err(res == 0, "corruption detected... this should probably be an exception\n");
-
-    return data;
-}
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value) {
     return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
@@ -702,18 +661,17 @@ public:
                 response->last_considered_key = store_key;
             }
 
-            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
-            boost::shared_ptr<scoped_cJSON_t> first_value = get_data(rdb_value, transaction);
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(value), transaction);
 
-            json_list_t data;
+            std::list<lazy_json_t> data;
             data.push_back(first_value);
 
             counted_t<const ql::datum_t> sindex_value;
 
             if (sindex_function &&
                 ql::datum_t::key_is_truncated(store_key)) {
-                counted_t<const ql::datum_t> datum_value = 
-                    make_counted<const ql::datum_t>(first_value);
+                counted_t<const ql::datum_t> datum_value =
+                    make_counted<const ql::datum_t>(first_value.get());
                 sindex_value = sindex_function->call(datum_value)->as_datum();
             }
 
@@ -722,17 +680,17 @@ public:
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        json_list_t tmp;
+                        std::list<boost::shared_ptr<scoped_cJSON_t> > tmp;
 
-                        for (json_list_t::iterator jt  = data.begin();
-                             jt != data.end();
-                             ++jt) {
+                        for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
-                                            *jt, &it->variant,
+                                            jt->get(), &it->variant,
                                             &tmp);
                         }
                         data.clear();
-                        data.splice(data.begin(), tmp);
+                        for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
+                            data.push_back(lazy_json_t(*jt));
+                        }
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
                            more requests. */
@@ -746,17 +704,18 @@ public:
                 typedef rget_read_response_t::stream_t stream_t;
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
-                for (json_list_t::iterator it =  data.begin();
-                                           it != data.end();
-                                           ++it) {
+                for (auto it = data.begin(); it != data.end(); ++it) {
+                    boost::shared_ptr<scoped_cJSON_t> cjson = it->get();
                     if (sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                    sindex_value->as_json(), *it));
+                                                                            sindex_value->as_json(),
+                                                                            cjson));
                     } else {
-                        stream->push_back(rdb_protocol_details::rget_item_t(store_key, *it));
+                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
+                                                                            cjson));
                     }
 
-                    cumulative_size += estimate_rget_response_size(*it);
+                    cumulative_size += estimate_rget_response_size(cjson);
                 }
 
                 return cumulative_size < rget_max_chunk_size;
@@ -764,7 +723,8 @@ public:
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
                         terminal_apply(ql_env, terminal->backtrace,
-                                       *jt, &terminal->variant, &response->result);
+                                       *jt,
+                                       &terminal->variant, &response->result);
                     }
                     return true;
                 } catch (const ql::datum_exc_t &e2) {
