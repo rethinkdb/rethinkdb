@@ -85,7 +85,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const sto
 }
 
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
-                     std::shared_ptr<const scoped_cJSON_t> data,
+                     counted_t<const ql::datum_t> data,
                      btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
 
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
@@ -93,7 +93,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 
     // TODO unnecessary copies they must go away.
     write_message_t wm;
-    wm << data;
+    wm << data->as_json();
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
     guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
@@ -207,10 +207,9 @@ void rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                std::shared_ptr<const scoped_cJSON_t> new_val_as_json = new_val->as_json();
-                kv_location_set(&kv_location, key, new_val_as_json,
+                kv_location_set(&kv_location, key, new_val,
                                 slice, timestamp, txn);
-                mod_info->added = new_val_as_json;
+                mod_info->added = new_val->as_json();
             }
         } else {
             if (ended_empty) {
@@ -225,11 +224,9 @@ void rdb_replace_and_return_superblock(
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    std::shared_ptr<const scoped_cJSON_t> new_val_as_json
-                        = new_val->as_json();
-                    kv_location_set(&kv_location, key, new_val_as_json,
+                    kv_location_set(&kv_location, key, new_val,
                                     slice, timestamp, txn);
-                    mod_info->added = new_val_as_json;
+                    mod_info->added = new_val->as_json();
                     mod_info->deleted = old_val->as_json();
                 }
             }
@@ -360,7 +357,7 @@ void rdb_set(const store_key_t &key, std::shared_ptr<const scoped_cJSON_t> data,
     mod_info->added = data;
 
     if (overwrite || !had_value) {
-        kv_location_set(&kv_location, key, data, slice, timestamp, txn);
+        kv_location_set(&kv_location, key, make_counted<ql::datum_t>(data), slice, timestamp, txn);
     }
     response_out->result = (had_value ? DUPLICATE : STORED);
 }
@@ -1034,7 +1031,7 @@ void rdb_update_single_sindex(
                                              &dummy);
 
             kv_location_set(&kv_location, sindex_key,
-                            modification->info.added, sindex->btree,
+                            make_counted<ql::datum_t>(modification->info.added), sindex->btree,
                             repli_timestamp_t::distant_past, txn);
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
