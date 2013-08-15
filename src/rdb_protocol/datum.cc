@@ -911,6 +911,108 @@ void datum_t::write_to_protobuf(Datum *d) const {
     }
 }
 
+write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {
+    guarantee(datum.has());
+    int8_t type = datum->get_type();
+    switch (type) {
+    case datum_t::R_ARRAY: {
+        wm << type;
+        const std::vector<counted_t<const datum_t> > &value = datum->as_array();
+        wm << value;
+    } break;
+    case datum_t::R_BOOL: {
+        wm << type;
+        bool value = datum->as_bool();
+        wm << value;
+    } break;
+    case datum_t::R_NULL: {
+        wm << type;
+    } break;
+    case datum_t::R_NUM: {
+        wm << type;
+        double value = datum->as_num();
+        wm << value;
+    } break;
+    case datum_t::R_OBJECT: {
+        wm << type;
+        const std::map<std::string, counted_t<const datum_t> > &value = datum->as_object();
+        wm << value;
+    } break;
+    case datum_t::R_STR: {
+        wm << type;
+        const std::string &value = datum->as_str();
+        wm << value;
+    } break;
+    case datum_t::UNINITIALIZED:  // fall through
+    default:
+        unreachable();
+    }
+    return wm;
+}
+
+archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
+    int8_t type;
+    archive_result_t res = deserialize(s, &type);
+    if (res) {
+        return res;
+    }
+
+    switch (type) {
+    case datum_t::R_ARRAY: {
+        std::vector<counted_t<const datum_t> > value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        // RSI: Use std::move.
+        datum->reset(new datum_t(value));
+    } break;
+    case datum_t::R_BOOL: {
+        bool value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        datum->reset(new datum_t(datum_t::R_BOOL, value));
+    } break;
+    case datum_t::R_NULL: {
+        datum->reset(new datum_t(datum_t::R_NULL));
+    } break;
+    case datum_t::R_NUM: {
+        double value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        datum->reset(new datum_t(value));
+    } break;
+    case datum_t::R_OBJECT: {
+        std::map<std::string, counted_t<const datum_t> > value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        // RSI: Use std::move.
+        datum->reset(new datum_t(value));
+    } break;
+    case datum_t::R_STR: {
+        std::string value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        // RSI: Use std::move.
+        datum->reset(new datum_t(value));
+    } break;
+    case datum_t::UNINITIALIZED:  // fall through
+    default:
+        return ARCHIVE_RANGE_ERROR;
+    }
+
+    return ARCHIVE_SUCCESS;
+}
+
+
 bool wire_datum_map_t::has(counted_t<const datum_t> key) {
     r_sanity_check(state == COMPILED);
     return map.count(key) > 0;

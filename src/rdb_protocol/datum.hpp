@@ -64,7 +64,9 @@ public:
     explicit datum_t(double _num);
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
+    // RSI: Add move constructor of std::vector
     explicit datum_t(const std::vector<counted_t<const datum_t> > &_array);
+    // RSI: Add move constructor of std::map
     explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
     datum_t(const std::map<std::string, counted_t<const datum_t> > &_object, std::string reql_type);
 
@@ -208,6 +210,9 @@ public:
 private:
     DISABLE_COPYING(datum_t);
 };
+
+write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum);
+archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
 // basically a `scoped_ptr_t` that can access private methods on `datum_t` and
