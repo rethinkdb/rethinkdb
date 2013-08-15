@@ -2,8 +2,7 @@
 
 Released on 2013-08-14
 
-This release introduces date and time support, a new syntax for
-quetying nested objects and 8x improvement in disk usage.
+This release introduces date and time support, a new syntax for querying nested objects and 8x improvement in disk usage.
 
 ## New Features ##
 
@@ -30,7 +29,7 @@ quetying nested objects and 8x improvement in disk usage.
   * Remove Google Closure from the JavaScript driver (#1194)
     * It now depends on the `protobufjs` and `node-protobuf` libraries
 * Server
-  * Added a `--canonical-address HOST[:PORT]` command line option (#486)
+  * Added a `--canonical-address HOST[:PORT]` command line option for connecting RethinkDB nodes across different networks (#486)
     * Two instances behind proxies can now be configured to connect to each other
   * Optimize space efficiency by allowing smaller block sizes (#939)
   * Added a `--no-direct-io` startup flag that turns off direct IO (#1051)
@@ -62,7 +61,7 @@ quetying nested objects and 8x improvement in disk usage.
   * Improved the error message when there is a version mismatch in data files (#521)
   * The `--no-http-admin` option now disables the check for the web assets folder (#1092)
   * No longer compile JavaScript expressions once per row (#1105)
-  * Fixed a crash in the 32 bit version caused by not using 64 bit file offsets (#1129)
+  * Fixed a crash in the 32-bit version caused by not using 64-bit file offsets (#1129)
   * Fixed a crash caused by malformed json documents (#1132)
   * Fixed a crash caused by moving `func_t` betweek threads (#1157)
   * Improved the scheduling the coroutines that sometimes caused heartbeat timeouts (#1169)
