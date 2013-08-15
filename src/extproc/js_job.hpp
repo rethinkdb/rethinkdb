@@ -24,6 +24,9 @@ public:
     void release(js_id_t id);
     void exit();
 
+    // Marks the extproc worker as errored to simplify cleanup later
+    void worker_error();
+
 private:
     static bool worker_fn(read_stream_t *stream_in, write_stream_t *stream_out);
 
