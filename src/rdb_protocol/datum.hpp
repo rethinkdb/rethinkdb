@@ -2,13 +2,11 @@
 #define RDB_PROTOCOL_DATUM_HPP_
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "utils.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
@@ -75,7 +73,7 @@ public:
     explicit datum_t(const Datum *d);
     void init_from_pb(const Datum *d);
     explicit datum_t(cJSON *json);
-    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
+    explicit datum_t(const std::shared_ptr<scoped_cJSON_t> &json);
 
     ~datum_t();
 
@@ -122,7 +120,7 @@ public:
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs, merge_res_f f) const;
 
     cJSON *as_raw_json() const;
-    boost::shared_ptr<scoped_cJSON_t> as_json() const;
+    std::shared_ptr<scoped_cJSON_t> as_json() const;
     counted_t<datum_stream_t> as_datum_stream(
         env_t *env, const protob_t<const Backtrace> &backtrace) const;
 

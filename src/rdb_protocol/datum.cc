@@ -163,7 +163,7 @@ void datum_t::check_str_validity(const std::string &str) {
 datum_t::datum_t(cJSON *json) {
     init_json(json);
 }
-datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
+datum_t::datum_t(const std::shared_ptr<scoped_cJSON_t> &json) {
     init_json(json->get());
 }
 
@@ -626,8 +626,8 @@ cJSON *datum_t::as_raw_json() const {
     }
     unreachable();
 }
-boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
-    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(as_raw_json()));
+std::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
+    return std::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(as_raw_json()));
 }
 
 // TODO: make STR and OBJECT convertible to sequence?

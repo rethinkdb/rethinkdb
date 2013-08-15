@@ -102,7 +102,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 store_key_t key(*it);
 
-                boost::shared_ptr<scoped_cJSON_t> doc(new scoped_cJSON_t(cJSON_Parse(req.body.c_str())));
+                std::shared_ptr<scoped_cJSON_t> doc(new scoped_cJSON_t(cJSON_Parse(req.body.c_str())));
 
                 if (!doc->get()) {
                     return http_res_t(HTTP_BAD_REQUEST, "text/plain", "Json failed to parse");

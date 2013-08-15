@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_STREAM_CACHE_HPP_
 #define RDB_PROTOCOL_STREAM_CACHE_HPP_
 
@@ -6,8 +6,8 @@
 
 #include <map>
 
-#include "utils.hpp"
-#include <boost/shared_ptr.hpp>
+#include "errors.hpp"
+#include <boost/ptr_container/ptr_map.hpp>
 
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"

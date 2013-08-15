@@ -258,13 +258,13 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
 
 hinted_datum_t lazy_datum_stream_t::sorting_hint_next() {
     query_language::hinted_json_t hinted_json = json_stream->sorting_hint_next();
-    boost::shared_ptr<scoped_cJSON_t> json = hinted_json.second;
+    std::shared_ptr<scoped_cJSON_t> json = hinted_json.second;
     return std::make_pair(hinted_json.first, 
             json ? make_counted<datum_t>(json) : counted_t<datum_t>());
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::next_impl() {
-    boost::shared_ptr<scoped_cJSON_t> json = json_stream->next();
+    std::shared_ptr<scoped_cJSON_t> json = json_stream->next();
     return json ? make_counted<const datum_t>(json) : counted_t<const datum_t>();
 }
 

@@ -181,7 +181,7 @@ void run_sindex_btree_store_api_test() {
                     &sindex_super_block, &dummy_interuptor);
             ASSERT_TRUE(sindex_exists);
 
-            boost::shared_ptr<scoped_cJSON_t> data(new
+            std::shared_ptr<scoped_cJSON_t> data(new
                     scoped_cJSON_t(cJSON_CreateNumber(1)));
 
             rdb_protocol_t::point_write_response_t response;
@@ -220,7 +220,7 @@ void run_sindex_btree_store_api_test() {
             rdb_get(key, store.get_sindex_slice(id), txn.get(),
                     sindex_super_block.get(), &response);
 
-            boost::shared_ptr<scoped_cJSON_t> data(new
+            std::shared_ptr<scoped_cJSON_t> data(new
                     scoped_cJSON_t(cJSON_CreateNumber(1)));
 
             ASSERT_EQ(query_language::json_cmp(response.data->get(),

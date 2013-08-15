@@ -82,8 +82,8 @@ namespace query_language {
 /* A visitor for applying a transformation to a bit of json. */
 class transform_visitor_t : public boost::static_visitor<void> {
 public:
-    transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
-                        std::list<boost::shared_ptr<scoped_cJSON_t> > *_out,
+    transform_visitor_t(std::shared_ptr<scoped_cJSON_t> _json,
+                        std::list<std::shared_ptr<scoped_cJSON_t> > *_out,
                         ql::env_t *_ql_env,
                         const backtrace_t &_backtrace);
 
@@ -93,13 +93,13 @@ public:
     void operator()(ql::concatmap_wire_func_t &func) const;  // NOLINT(runtime/references)
 
 private:
-    boost::shared_ptr<scoped_cJSON_t> json;
-    std::list<boost::shared_ptr<scoped_cJSON_t> > *out;
+    std::shared_ptr<scoped_cJSON_t> json;
+    std::list<std::shared_ptr<scoped_cJSON_t> > *out;
     ql::env_t *ql_env;
     backtrace_t backtrace;
 };
 
-transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
+transform_visitor_t::transform_visitor_t(std::shared_ptr<scoped_cJSON_t> _json,
                                          json_list_t *_out,
                                          ql::env_t *_ql_env,
                                          const backtrace_t &_backtrace)
@@ -134,9 +134,9 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {  // N
 
 void transform_apply(ql::env_t *ql_env,
                      const backtrace_t &backtrace,
-                     boost::shared_ptr<scoped_cJSON_t> json,
+                     std::shared_ptr<scoped_cJSON_t> json,
                      rdb_protocol_details::transform_variant_t *t,
-                     std::list<boost::shared_ptr<scoped_cJSON_t> > *out) {
+                     std::list<std::shared_ptr<scoped_cJSON_t> > *out) {
     boost::apply_visitor(transform_visitor_t(json, out, ql_env, backtrace),
                          *t);
 }
@@ -174,7 +174,7 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLIN
     ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
     guarantee(obj);
 
-    boost::shared_ptr<scoped_cJSON_t> cjson = json.get();
+    std::shared_ptr<scoped_cJSON_t> cjson = json.get();
 
     counted_t<const ql::datum_t> el(new ql::datum_t(cjson));
     counted_t<const ql::datum_t> el_group

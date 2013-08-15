@@ -125,7 +125,7 @@ TEST(RDBProtocol, OvershardedSetupTeardown) {
 
 /* `GetSet` tests basic get and set operations */
 void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
+    std::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
     {
         rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"), data),
                                       DURABILITY_REQUIREMENT_DEFAULT);
@@ -213,7 +213,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
 
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
+    std::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
     counted_t<const ql::datum_t> sindex_key_literal = make_counted<ql::datum_t>(1.0);
 
@@ -360,7 +360,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
             std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10, static_cast<char>(j));
             std::string sid(j, 'a');
             auto sindex_key_literal = make_counted<const ql::datum_t>(sid);
-            boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateObject()));
+            std::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateObject()));
             cJSON_AddItemToObject(data->get(), "id", cJSON_CreateString(id.c_str()));
             cJSON_AddItemToObject(data->get(), "sid", cJSON_CreateString(sid.c_str()));
             store_key_t pk;
@@ -428,7 +428,7 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
     query_language::backtrace_t b;
     create_sindex(nsi, osource);
 
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
+    std::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
     store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
     ASSERT_TRUE(data->get());
     {
