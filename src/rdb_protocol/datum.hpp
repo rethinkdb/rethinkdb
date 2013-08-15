@@ -64,11 +64,12 @@ public:
     explicit datum_t(double _num);
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
-    // RSI: Add move constructor of std::vector
+    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
+    // RSI: Remove non-move constructor?
     explicit datum_t(const std::vector<counted_t<const datum_t> > &_array);
-    // RSI: Add move constructor of std::map
+    explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
+    // RSI: Remove non-move constructor?
     explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
-    datum_t(const std::map<std::string, counted_t<const datum_t> > &_object, std::string reql_type);
 
     // These construct a datum from an equivalent representation.
     datum_t();

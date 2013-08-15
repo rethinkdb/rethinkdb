@@ -23,31 +23,47 @@ const char* const datum_t::reql_type_string = "$reql_type$";
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
+
 datum_t::datum_t(type_t _type, std::string _reql_type)
     : type(_type), r_object(new std::map<std::string, counted_t<const datum_t> >) {
     r_sanity_check(_type == R_OBJECT);
     r_object->insert(std::make_pair(std::string(reql_type_string),
                                     make_counted<const datum_t>(_reql_type)));
 }
+
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     // so we can use `isfinite` in a GCC 4.4.3-compatible way
     using namespace std;  // NOLINT(build/namespaces)
     rcheck(isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: " DBLPRI, r_num));
 }
+
 datum_t::datum_t(const std::string &_str)
     : type(R_STR), r_str(new std::string(_str)) {
     check_str_validity(_str);
 }
+
 datum_t::datum_t(const char *cstr)
     : type(R_STR), r_str(new std::string(cstr)) { }
+
+datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
+    : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) { }
+
 datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
     : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(_array)) { }
+
+datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
+    : type(R_OBJECT),
+      r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(_object))) {
+    maybe_sanitize_ptype();
+}
+
 datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
     : type(R_OBJECT),
       r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) {
     maybe_sanitize_ptype();
 }
+
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
     switch (type) {
@@ -964,8 +980,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         if (res) {
             return res;
         }
-        // RSI: Use std::move.
-        datum->reset(new datum_t(value));
+        datum->reset(new datum_t(std::move(value)));
     } break;
     case datum_t::R_BOOL: {
         bool value;
@@ -992,8 +1007,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         if (res) {
             return res;
         }
-        // RSI: Use std::move.
-        datum->reset(new datum_t(value));
+        datum->reset(new datum_t(std::move(value)));
     } break;
     case datum_t::R_STR: {
         std::string value;
@@ -1001,8 +1015,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         if (res) {
             return res;
         }
-        // RSI: Use std::move.
-        datum->reset(new datum_t(value));
+        datum->reset(new datum_t(std::move(value)));
     } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
