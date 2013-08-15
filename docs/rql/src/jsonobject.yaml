@@ -154,38 +154,38 @@ commands:
       - description: <code>Merge</code> can be used recursively to modify object within objects.
         code:
           py: |-
-            "r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
-              {'weapons' : {'spectacular graviton beam' : {'dmg' : 10}}}).run(conn)"
+            r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+              {'weapons' : {'spectacular graviton beam' : {'dmg' : 10}}}).run(conn)
           rb: |-
-            "r({:weapons => {:spectacular_graviton_beam' => {:dmg => 10, :cooldown => 20}}}).merge(
-              {:weapons => {:spectacular_graviton_beam => {:dmg => 10}}}).run(conn)"
+            r({:weapons => {:spectacular_graviton_beam => {:dmg => 10, :cooldown => 20}}}).merge(
+              {:weapons => {:spectacular_graviton_beam => {:dmg => 10}}}).run(conn)
           js: |-
-            "r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
-              {weapons : {spectacular_graviton_beam : {dmg : 10}}}).run(conn)"
+            r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
+              {weapons : {spectacular_graviton_beam : {dmg : 10}}}).run(conn, callback)
 
       - description: To replace a nested object with another object you can use the <code>literal</code> keyword.
         code:
           py: |-
-            "r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
-              {'weapons' : r.literal({'repulsor rays' : {'dmg' : 3, 'cooldown' : 0}})}).run(conn)"
+            r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+              {'weapons' : r.literal({'repulsor rays' : {'dmg' : 3, 'cooldown' : 0}})}).run(conn)
           rb: |-
-            "r({:weapons => {:spectacular_graviton_beam' => {:dmg => 10, :cooldown => 20}}}).merge(
-              {:weapons => r.literal({:repulsor_rays => {:dmg => 3, :cooldown => 0}})}).run(conn)"
+            r({:weapons => {:spectacular_graviton_beam => {:dmg => 10, :cooldown => 20}}}).merge(
+              {:weapons => r.literal({:repulsor_rays => {:dmg => 3, :cooldown => 0}})}).run(conn)
           js: |-
-            "r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
-              {weapons : r.literal({repulsor_rays : {dmg : 3, :cooldown => 0}})}).run(conn)"
+            r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
+              {weapons : r.literal({repulsor_rays : {dmg : 3, cooldown : 0}})}).run(conn, callback)
 
       - description: <code>Literal</code> can be used to remove keys from an object as well.
         code:
           py: |-
-            "r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
-              {'weapons' : {'spectacular graviton beam' : r.literal()}}).run(conn)"
+            r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+              {'weapons' : {'spectacular graviton beam' : r.literal()}}).run(conn)
           rb: |-
-            "r({:weapons => {:spectacular_graviton_beam' => {:dmg => 10, :cooldown => 20}}}).merge(
-              {:weapons => {:spectacular_graviton_beam => r.literal()}}).run(conn)"
+            r({:weapons => {:spectacular_graviton_beam => {:dmg => 10, :cooldown => 20}}}).merge(
+              {:weapons => {:spectacular_graviton_beam => r.literal()}}).run(conn)
           js: |-
-            "r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
-              {weapons : {spectacular_graviton_beam : r.literal()}}).run(conn)"
+            r.expr({weapons : {spectacular_graviton_beam : {dmg : 10, cooldown : 20}}}).merge(
+              {weapons : {spectacular_graviton_beam : r.literal()}}).run(conn, callback)
 
   - tag: append
     section: jsonobject
