@@ -3,6 +3,7 @@
 # application. We should refactor this at some point, but I'm leaving
 # it as is for now.
 
+
 modal_registry = []
 clear_modals = ->
     modal.hide_modal() for modal in modal_registry
@@ -15,7 +16,7 @@ progress_interval_default_value = 5000
 progress_interval_value = 5000
 progress_short_interval = 1000
 
-#TODO Duplicate this function, and remove element not found in case of a call to /ajax
+#TODO Duplicate this function, and remove element not found in case of a call to ajax/
 apply_to_collection = (collection, collection_data) ->
     for id, data of collection_data
         if data isnt null
@@ -149,7 +150,7 @@ collections_ready = ->
 
 collect_reql_doc = ->
     $.ajax
-        url: '/js/reql_docs.json'
+        url: 'js/reql_docs.json?v='+window.VERSION
         dataType: 'json'
         contentType: 'application/json'
         success: set_reql_docs
@@ -158,12 +159,12 @@ collect_reql_doc = ->
 # A helper function to collect data from all of our shitty
 # routes. TODO: somebody fix this in the server for heaven's
 # sakes!!!
-#   - an optional callback can be provided. Currently this callback will only be called after the /ajax route (metadata) is collected
+#   - an optional callback can be provided. Currently this callback will only be called after the ajax/ route (metadata) is collected
 # To avoid memory leak, we use function declaration (so with pure javascript since coffeescript can't do it)
 # Using setInterval seems to be safe, TODO
 collect_server_data_once = (async, optional_callback) ->
     $.ajax
-        url: '/ajax'
+        url: 'ajax'
         dataType: 'json'
         contentType: 'application/json'
         async: async
@@ -189,7 +190,7 @@ collect_server_data_once = (async, optional_callback) ->
 collect_progress = ->
     $.ajax
         contentType: 'application/json',
-        url: '/ajax/progress',
+        url: 'ajax/progress',
         dataType: 'json',
         success: set_progress
 
@@ -198,7 +199,7 @@ collect_server_data_async = ->
 
 
 stats_param =
-    url: '/ajax/stat'
+    url: 'ajax/stat'
     fail: false
 collect_stat_data = ->
     $.ajax
@@ -216,6 +217,8 @@ collect_stat_data = ->
 # Define the server to which the javascript is going to connect to
 # Tweaking the value of server.host or server.port can trigger errors for testing
 $ ->
+    window.r = require('rethinkdb')
+
     render_loading()
     bind_dev_tools()
 

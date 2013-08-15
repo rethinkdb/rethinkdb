@@ -49,8 +49,8 @@ tests:
 
     # Replace selection of table
 
-    - py: tbl.between(10, 20).replace(lambda row:{'a':1})
-      js: tbl.between(10, 20).replace(function(row) { return {'a':1}; })
+    - py: tbl.between(10, 20, right_bound='closed').replace(lambda row:{'a':1})
+      js: tbl.between(10, 20, {'right_bound':'closed'}).replace(function(row) { return {'a':1}; })
       ot: ({'first_error':'Inserted object must have primary key `id`:\n{\n\t\"a\":\t1\n}','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':10,'skipped':0.0,'inserted':0.0})
 
 
@@ -67,44 +67,44 @@ tests:
       ot:
         cd: ({'first_error':'Primary key `id` cannot be changed ({\n\t"id":\t1\n} -> {\n\t"a":\t1,\n\t"id":\t2\n})','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
 
-      
+
     # not passing a pkey in the first place
     - cd: tbl.get(1).replace({'a':1})
       rb: [] # the ruby test driver cannot parse the expected error message
       ot: ({'first_error':'Inserted object must have primary key `id`:\n{\n\t"a":\t1\n}','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':1,'skipped':0.0,'inserted':0.0})
-    
+
     # check r.row, static value and otherwise
     - py: tbl.get(1).replace({'id':r.row['id'],'a':'b'})
       js: tbl.get(1).replace({'id':r.row('id'),'a':'b'})
       rb: tbl.get(1).replace{ |row| { :id => row[:id], :a => 'b' } }
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
-      
+
     - cd: tbl.get(1).replace(r.row.merge({'a':'b'}))
       rb: tbl.get(1).replace{ |row| row.merge({'a':'b'}) }
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':1,'errors':0.0,'skipped':0.0,'inserted':0.0})
-      
+
     # test atomicity constraints
     - cd: tbl.get(1).replace(r.row.merge({'c':r.js('5')}))
       rb: tbl.get(1).replace{ |row| row.merge({'c':r.js('5')}) }
       ot: err('RqlRuntimeError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
-      
+
     - cd: tbl.get(1).replace(r.row.merge({'c':tbl.nth(0)}))
       rb: tbl.get(1).replace{ |row| row.merge({'c':tbl.nth(0)}) }
       ot: err('RqlRuntimeError', 'Could not prove function deterministic.  Maybe you want to use the non_atomic flag?', [0])
-      
+
     - py: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), non_atomic=True)
       js: tbl.get(1).replace(r.row.merge({'c':r.js('5')}), {'nonAtomic':true})
       rb: tbl.get(1).replace({ :non_atomic => true }){ |row| row.merge({ :c => r.js('5') })}
       ot: ({'deleted':0.0,'replaced':1,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
-      
+
     - js: tbl.get(1).replace({}, 'foo')
       cd: []
       ot: err('RqlDriverError', 'Expected 1 argument(s) but found 2.')
-      
+
     - js: tbl.get(1).replace({}, {'foo':'bar'})
       cd: []
       ot: err('RqlCompileError', 'Unrecognized optional argument `foo`.')
-      
+
     # Replace whole table
 
     - py: tbl.replace(lambda row:None)
@@ -117,6 +117,3 @@ tests:
       ot: "({'dropped':1})"
     - cd: r.db('test').table_drop('test2')
       ot: "({'dropped':1})"
-
-
-

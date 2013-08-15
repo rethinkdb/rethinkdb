@@ -186,7 +186,7 @@ http_server_t::http_server_t(const std::set<ip_address_t> &local_addresses,
     try {
         tcp_listener.init(new tcp_listener_t(local_addresses, port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
-        nice_crash("%s. Could not bind to http port. Exiting.\n", ex.what());
+        throw address_in_use_exc_t(strprintf("Could not bind to http port: %s", ex.what()));
     }
 }
 
@@ -314,11 +314,11 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
             write_http_msg(conn.get(), res, keepalive.get_drain_signal());
         }
     } catch (const tcp_conn_read_closed_exc_t &) {
-        //Someone disconnected before sending us all the information we
-        //needed... oh well.
+        // Someone disconnected before sending us all the information we
+        // needed... oh well.
     } catch (const tcp_conn_write_closed_exc_t &) {
-        //We were trying to write to someone and they didn't stick around long
-        //enough to write it.
+        // We were trying to write to someone and they didn't stick around long
+        // enough to write it.
     }
 }
 
@@ -544,7 +544,7 @@ std::string http_format_date(const time_t date) {
     struct tm t;
     struct tm *res1 = gmtime_r(&date, &t);
     guarantee_err(res1 == &t, "gmtime_r() failed.");
-    
+
     static const char *weekday[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
     static const char *month[] =  { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };

@@ -14,13 +14,22 @@ commands:
       py: +
       rb: +
 
-    is_operator:  true
-    js:
-      is_operator: false
+    body:
+      py: "$PARENT + $ARG"
+      rb: "$PARENT + $ARG"
+      js: "$PARENT.add($ARG)"
 
-    body: number | string | array
-    parent: number | string | array
-    returns: number | string | array
+    io:
+      - - number
+        - number
+      - - string
+        - string
+      - - array
+        - array
+      - - time 
+        - time
+        - number
+
 
     examples:
       - description: It's as easy as 2 + 2 = 4.
@@ -38,6 +47,12 @@ commands:
           js: r.expr(["foo", "bar"]).add(["buzz"]).run(conn, callback)
           py: (r.expr(["foo", "bar"]) + ["buzz"]).run(conn)
           rb: (r(["foo", "bar"]) + ["buzz"]).run(conn)
+      - description: Create a date one year from now.
+        code:
+          js: r.now().add(365*24*60*60)
+          py: r.now() + 365*24*60*60
+          rb: r.now() + 365*24*60*60
+
 
   - tag: sub
     section: operators
@@ -47,13 +62,22 @@ commands:
       js: sub
       py: '-'
       rb: '-'
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: number
-    parent: number
-    returns: number
+    body:
+      py: "$PARENT - $ARG"
+      rb: "$PARENT - $ARG"
+      js: "$PARENT.sub($ARG)"
+
+    io:
+      - - number
+        - number
+      - - time
+        - number
+        - time
+      - - time
+        - time
+        - number
+
 
     examples:
       - description: It's as easy as 2 - 2 = 0.
@@ -61,6 +85,19 @@ commands:
           js: r.expr(2).sub(2).run(conn, callback)
           py: (r.expr(2) - 2).run(conn)
           rb: (r(2) - 2).run(conn)
+      - description: Create a date one year ago today.
+        code:
+          js: r.now().sub(365*24*60*60)
+          py: r.now() - 365*24*60*60
+          rb: r.now() - 365*24*60*60
+      - description: Retrieve how many seconds elapsed between today and date
+        validate: false
+        code:
+          js: r.now().sub(date)
+          py: r.now() - date
+          rb: r.now() - date
+
+
 
   - tag: mul
     section: operators
@@ -70,15 +107,17 @@ commands:
       js: mul
       py: '*'
       rb: '*'
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT * number"
+      rb: "$PARENT * number"
+      js: "$PARENT.mul(number)"
 
-
-    body: number | array
-    parent: number | array
-    returns: number | array
+    io:
+      - - number
+        - number
+      - - array
+        - array
 
     examples:
       - description: It's as easy as 2 * 2 = 4.
@@ -100,15 +139,15 @@ commands:
       js: div
       py: '/'
       rb: '/'
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT / $ARG"
+      rb: "$PARENT / $ARG"
+      js: "$PARENT.div($ARG)"
 
-
-    body: number
-    parent: number
-    returns: number
+    io:
+      - - number
+        - number
 
     examples:
       - description: It's as easy as 2 / 2 = 1.
@@ -125,13 +164,15 @@ commands:
       js: mod
       py: '%'
       rb: '%'
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: number
-    parent: number
-    returns: number
+    body:
+      py: "$PARENT % $ARG"
+      rb: "$PARENT % $ARG"
+      js: "$PARENT.mod($ARG)"
+
+    io:
+      - - number
+        - number
 
     examples:
       - description: It's as easy as 2 % 2 = 0.
@@ -148,14 +189,15 @@ commands:
       js: and
       py: '&'
       rb: '&'
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT & $ARG"
+      rb: "$PARENT & $ARG"
+      js: "$PARENT.and($ARG)"
 
-    body: bool
-    parent: bool
-    returns: bool
+    io:
+      - - bool
+        - bool
 
     examples:
       - description: True and false anded is false?
@@ -172,14 +214,15 @@ commands:
       js: or
       py: '|'
       rb: '|'
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT | $ARG"
+      rb: "$PARENT | $ARG"
+      js: "$PARENT.or($ARG)"
 
-    body: bool
-    parent: bool
-    returns: bool
+    io:
+      - - bool
+        - bool
 
     examples:
       - description: True or false ored is true?
@@ -196,13 +239,15 @@ commands:
       js: eq
       py: '=='
       rb: eq
-    is_operator:  true
-    js:
-      is_operator: false
 
-    body: other
-    parent: json
-    returns: bool
+    body:
+      py: "$PARENT == $ARG"
+      rb: "$PARENT.eq($ARG)"
+      js: "$PARENT.eq($ARG)"
+
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Does 2 equal 2?
@@ -219,15 +264,15 @@ commands:
       js: ne
       py: '!='
       rb: ne
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT != $ARG"
+      rb: "$PARENT.ne($ARG)"
+      js: "$PARENT.ne($ARG)"
 
-
-    body: other
-    parent: json
-    returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Does 2 not equal 2?
@@ -244,14 +289,15 @@ commands:
       js: gt
       py: '>'
       rb: '>'
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT > $ARG"
+      rb: "$PARENT > $ARG"
+      js: "$PARENT.gt($ARG)"
 
-    body: other
-    parent: json
-    returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Is 2 greater than 2?
@@ -268,14 +314,15 @@ commands:
       js: ge
       py: '>='
       rb: '>='
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT >= $ARG"
+      rb: "$PARENT >= $ARG"
+      js: "$PARENT.ge($ARG)"
 
-    body: other
-    parent: json
-    returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Is 2 greater than or equal to 2?
@@ -292,15 +339,15 @@ commands:
       js: lt
       py: '<'
       rb: '<'
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT < $ARG"
+      rb: "$PARENT < $ARG"
+      js: "$PARENT.lt($ARG)"
 
-
-    body: other
-    parent: json
-    returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Is 2 less than 2?
@@ -317,14 +364,15 @@ commands:
       js: le
       py: '<='
       rb: '<='
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "$PARENT <= $ARG"
+      rb: "$PARENT <= $ARG"
+      js: "$PARENT.le($ARG)"
 
-    body: other
-    parent: json
-    returns: bool
+    io:
+      - - value 
+        - bool
 
     examples:
       - description: Is 2 less than or equal to 2?
@@ -341,13 +389,15 @@ commands:
       js: not
       py: '~'
       rb: not
-    is_operator:  true
-    js:
-      is_operator: false
 
+    body:
+      py: "~$PARENT"
+      rb: "$PARENT.not()"
+      js: "$PARENT.not()"
 
-    parent: bool
-    returns: bool
+    io:
+      - - bool
+        - bool
 
     examples:
       - description: Not true is false.
@@ -355,10 +405,4 @@ commands:
           js: r.expr(true).not().run(conn, callback)
           py: (~r.expr(True)).run(conn)
           rb: r(true).not.run(conn)
-
-    rb:
-      dont_need_parenthesis: true
-
-    py:
-      operator_first: true
 

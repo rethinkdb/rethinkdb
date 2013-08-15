@@ -12,20 +12,25 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
-#include "extproc/pool.hpp"
+#include "extproc/js_runner.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/js.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"
 #include "rdb_protocol/val.hpp"
+
+class extproc_pool_t;
 
 namespace ql {
 class datum_t;
 class term_t;
 
+
 class env_t : private home_thread_mixin_t {
 public:
-    const uuid_u uuid;
+    counted_t<func_t> get_or_compile_func(const wire_func_t *wf);
+    void precache_func(const wire_func_t *wf, counted_t<func_t> func);
+private:
+    std::map<uuid_u, counted_t<func_t> > cached_funcs;
 
 public:
     // returns whether or not there was a key conflict
@@ -72,7 +77,7 @@ public:
     // Dump the current scope.
     void dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out);
     // Swap in a previously-dumped scope.
-    void push_scope(std::map<int64_t, Datum> *in);
+    void push_scope(const std::map<int64_t, Datum> *in);
     // Discard a previously-pushed scope and restore original scope.
     void pop_scope();
 private:
@@ -94,7 +99,7 @@ public:
     // This is copied basically verbatim from old code.
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
     env_t(
-        extproc::pool_group_t *_pool_group,
+        extproc_pool_t *_extproc_pool,
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -105,7 +110,6 @@ public:
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-        boost::shared_ptr<js::runner_t> _js_runner,
         signal_t *_interruptor,
         uuid_u _this_machine,
         const std::map<std::string, wire_func_t> &_optargs);
@@ -114,7 +118,7 @@ public:
 
     ~env_t();
 
-    extproc::pool_t *pool;      // for running external JS jobs
+    extproc_pool_t *extproc_pool;      // for running external JS jobs
     base_namespace_repo_t<rdb_protocol_t> *ns_repo;
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t > > >
@@ -136,25 +140,12 @@ public:
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
     }
 private:
-    // Ideally this would be a scoped_ptr_t<js::runner_t>. We used to copy
-    // `runtime_environment_t` to capture scope, which is why this is a
-    // `boost::shared_ptr`. But now we pass scope around separately, so this
-    // could be changed.
-    //
-    // Note that js_runner is "lazily initialized": we only call
-    // js_runner->begin() once we know we need to evaluate javascript. This
-    // means we only allocate a worker process to queries that actually need
-    // javascript execution.
-    //
-    // In the future we might want to be even finer-grained than this, and
-    // release worker jobs once we know we no longer need JS execution, or
-    // multiplex queries onto worker processes.
-    boost::shared_ptr<js::runner_t> js_runner;
+    js_runner_t js_runner;
 
 public:
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
-    boost::shared_ptr<js::runner_t> get_js_runner();
+    js_runner_t *get_js_runner();
 
     // This is a callback used in unittests to control things during a query
     class eval_callback_t {

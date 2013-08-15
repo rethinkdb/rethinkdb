@@ -1,0 +1,66 @@
+desc: Tests replacement of selections
+tests:
+
+    # Set up some data
+    - cd: r.table_create('asg')
+      ot: ({'created':1})
+
+    - cd: r.table('asg').insert({'id':0}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      py: r.table('asg').insert({'id':0}, return_vals=True).pluck('old_val', 'new_val', 'first_error')
+      js: r.table('asg').insert({'id':0}, {'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'old_val':null,'new_val':{'id':0}})
+    - cd: r.table('asg').insert({'id':0}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      py: r.table('asg').insert({'id':0}, return_vals=True).pluck('old_val', 'new_val', 'first_error')
+      js: r.table('asg').insert({'id':0}, {'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
+      # We still return the old value if there's an error.
+      ot: ({'first_error':'Duplicate primary key.','old_val':{'id':0},'new_val':{'id':0}})
+    - cd: r.table('asg').insert([{'id':0}], :return_vals => true)
+      py: r.table('asg').insert([{'id':0}], return_vals=True)
+      js: r.table('asg').insert([{'id':0}], {'return_vals':true})
+      ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row inserts.", [])
+
+    - cd: r.table('asg').get(0).update({'x':1}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      py: r.table('asg').get(0).update({'x':1}, return_vals=True).pluck('old_val', 'new_val', 'first_error')
+      js: r.table('asg').get(0).update({'x':1}, {'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'old_val':{'id':0},'new_val':{'id':0,'x':1}})
+      # We still return the old value if there's an error.
+    - cd: r.table('asg').get(0).update({'x':r.error("a")}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      py: r.table('asg').get(0).update({'x':r.error("a")}, return_vals=True).pluck('old_val', 'new_val', 'first_error')
+      js: r.table('asg').get(0).update({'x':r.error("a")}, {'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'first_error':'a','old_val':{'id':0,'x':1},'new_val':{'id':0,'x':1}})
+    - cd: r.table('asg').update({'x':1}, :return_vals => true)
+      py: r.table('asg').update({'x':1}, return_vals=True)
+      js: r.table('asg').update({'x':1}, {'return_vals':true})
+      ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row modifications.", [])
+
+    - cd: r.table('asg').get(0).replace({'id':0,'x':2}, :return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      py: r.table('asg').get(0).replace({'id':0,'x':2}, return_vals=True).pluck('old_val', 'new_val', 'first_error')
+      js: r.table('asg').get(0).replace({'id':0,'x':2}, {'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'old_val':{'id':0,'x':1},'new_val':{'id':0,'x':2}})
+      # We still return the old value if there's an error.
+    - cd: r.table('asg').get(0).replace(:return_vals => true){{'x':r.error('a')}}.pluck('old_val', 'new_val', 'first_error')
+      py: r.table('asg').get(0).replace(lambda y:{'x':r.error('a')}, return_vals=True).pluck('old_val', 'new_val', 'first_error')
+      js: r.table('asg').get(0).replace(function(y){return {'x':r.error('a')}}, {'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'first_error':'a','old_val':{'id':0,'x':2},'new_val':{'id':0,'x':2}})
+    - cd: r.table('asg').replace({'x':1}, :return_vals => true)
+      py: r.table('asg').replace({'x':1}, return_vals=True)
+      js: r.table('asg').replace({'x':1}, {'return_vals':true})
+      ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row modifications.", [])
+
+    - rb: r.table('asg').foreach{|row| [r.table('asg').get(0).update(nil, :return_vals => true), r.table('asg').get(0).update(nil, :return_vals => true)]}
+      # The testing framework seems to want to truncate the error
+      # message after the newline, but this at least shows that it's
+      # printing an object for the merge conflict.
+      ot: err("RqlRuntimeError", "FOREACH expects one or more basic write queries.  Cannot merge statistics `{", [])
+
+    - cd: r.table('asg').get(0).delete(:return_vals => true).pluck('old_val', 'new_val', 'first_error')
+      py: r.table('asg').get(0).delete(return_vals=True).pluck('old_val', 'new_val', 'first_error')
+      js: r.table('asg').get(0).delete({'return_vals':true}).pluck('old_val', 'new_val', 'first_error')
+      ot: ({'old_val':{'id':0,'x':2},'new_val':null})
+    - cd: r.table('asg').delete(:return_vals => true)
+      py: r.table('asg').delete(return_vals=True)
+      js: r.table('asg').delete({'return_vals':true})
+      ot: err("RqlRuntimeError", "Optarg RETURN_VALS is invalid for multi-row modifications.", [])
+
+    - cd: r.table_drop('asg')
+      ot: ({'dropped':1})

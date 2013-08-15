@@ -1,8 +1,10 @@
 #include "rdb_protocol/env.hpp"
 
 #include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
+#include "extproc/js_runner.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -17,6 +19,39 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
+counted_t<func_t> env_t::get_or_compile_func(const wire_func_t *wf) {
+    assert_thread();
+    auto it = cached_funcs.find(wf->uuid);
+    if (it == cached_funcs.end()) {
+        push_scope(&wf->scope);
+        try {
+            it = cached_funcs.insert(
+                std::make_pair(
+                    wf->uuid, compile_term(this, wf->source)->eval()->as_func())).first;
+            if (wf->default_filter_val) {
+                it->second->set_default_filter_val(
+                    make_counted<func_t>(
+                        this, make_counted_term_copy(*wf->default_filter_val)));
+            }
+        } catch (const base_exc_t &e) {
+            // If we have a non-`base_exc_t` exception, we don't want to pop the
+            // scope because we might have corruption, and we might fail a check
+            // and try to throw again while this exception is on the stack.  (We
+            // only need to pop the scope for a `base_exc_t` exception because
+            // that's the only kind of exception that we might recover from in
+            // the ReQL layer, which is the only case where the un-popped scope
+            // might matter.)
+            pop_scope();
+            throw;
+        }
+        pop_scope();
+    }
+    return it->second;
+}
+
+void env_t::precache_func(const wire_func_t *wf, counted_t<func_t> func) {
+    cached_funcs[wf->uuid] = func;
+}
 
 bool env_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) return true;
@@ -28,6 +63,7 @@ bool env_t::add_optarg(const std::string &key, const Term &val) {
     r_sanity_check(force_compilation != NULL);
     return false;
 }
+
 void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
@@ -125,18 +161,15 @@ void env_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
         (*out)[it->first] = it->second.top();
     }
 }
-void env_t::push_scope(std::map<int64_t, Datum> *in) {
+void env_t::push_scope(const std::map<int64_t, Datum> *in) {
     scope_stack.push(std::vector<std::pair<int, counted_t<const datum_t> > >());
 
-    for (std::map<int64_t, Datum>::iterator it = in->begin(); it != in->end(); ++it) {
-        scope_stack.top().push_back(std::make_pair(it->first,
-                                                   make_counted<datum_t>(&it->second,
-                                                                         this)));
+    for (auto it = in->begin(); it != in->end(); ++it) {
+        scope_stack.top().push_back(
+            std::make_pair(it->first, make_counted<datum_t>(&it->second)));
     }
 
     for (size_t i = 0; i < scope_stack.top().size(); ++i) {
-        //        &scope_stack.top()[i].second,
-        //        scope_stack.top()[i].second);
         push_var(scope_stack.top()[i].first, &scope_stack.top()[i].second);
     }
 }
@@ -187,16 +220,17 @@ void env_t::join_and_wait_to_propagate(
     }
 }
 
-boost::shared_ptr<js::runner_t> env_t::get_js_runner() {
-    r_sanity_check(pool != NULL && get_thread_id() == pool->home_thread());
-    if (!js_runner->connected()) {
-        js_runner->begin(pool);
+js_runner_t *env_t::get_js_runner() {
+    assert_thread();
+    r_sanity_check(extproc_pool != NULL);
+    if (!js_runner.connected()) {
+        js_runner.begin(extproc_pool, interruptor);
     }
-    return js_runner;
+    return &js_runner;
 }
 
 env_t::env_t(
-    extproc::pool_group_t *_pool_group,
+    extproc_pool_t *_extproc_pool,
     base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
     clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -207,33 +241,26 @@ env_t::env_t(
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
     _semilattice_metadata,
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
-    boost::shared_ptr<js::runner_t> _js_runner,
     signal_t *_interruptor,
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
-  : uuid(generate_uuid()),
-    optargs(_optargs),
+  : optargs(_optargs),
     next_gensym_val(-2),
     implicit_depth(0),
-    pool(_pool_group->get()),
+    extproc_pool(_extproc_pool),
     ns_repo(_ns_repo),
     namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
     databases_semilattice_metadata(_databases_semilattice_metadata),
     semilattice_metadata(_semilattice_metadata),
     directory_read_manager(_directory_read_manager),
-    js_runner(_js_runner),
     DEBUG_ONLY(eval_callback(NULL), )
     interruptor(_interruptor),
-    this_machine(_this_machine) {
-
-    guarantee(js_runner);
-}
+    this_machine(_this_machine) { }
 
 env_t::env_t(signal_t *_interruptor)
-  : uuid(generate_uuid()),
-    next_gensym_val(-2),
+  : next_gensym_val(-2),
     implicit_depth(0),
-    pool(NULL),
+    extproc_pool(NULL),
     ns_repo(NULL),
     directory_read_manager(NULL),
     DEBUG_ONLY(eval_callback(NULL), )

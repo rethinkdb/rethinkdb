@@ -30,6 +30,10 @@ struct btree_key_t {
     }
 };
 
+inline int btree_key_cmp(const btree_key_t *left, const btree_key_t *right) {
+    return sized_strcmp(left->contents, left->size, right->contents, right->size);
+}
+
 struct store_key_t {
 public:
     store_key_t() {
@@ -177,6 +181,8 @@ bool unescaped_str_to_key(const char *str, int len, store_key_t *buf);
 std::string key_to_unescaped_str(const store_key_t &key);
 
 std::string key_to_debug_str(const store_key_t &key);
+
+std::string key_to_debug_str(const btree_key_t *key);
 
 /* `key_range_t` represents a contiguous set of keys. */
 struct key_range_t {

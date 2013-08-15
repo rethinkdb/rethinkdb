@@ -53,7 +53,7 @@ static void write_blob(transaction_t *txn, char *ref, int maxreflen, const T &va
         str.append(p->data, p->size);
     }
     guarantee(str.size() == slen);
-    blob_t blob(ref, maxreflen);
+    blob_t blob(txn->get_cache()->get_block_size(), ref, maxreflen);
     blob.clear(txn);
     blob.append_region(txn, str.size());
     blob.write_from_string(str, txn, 0);
@@ -62,7 +62,8 @@ static void write_blob(transaction_t *txn, char *ref, int maxreflen, const T &va
 
 template<class T>
 static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *value_out) {
-    blob_t blob(const_cast<char *>(ref), maxreflen);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                const_cast<char *>(ref), maxreflen);
     blob_acq_t acq_group;
     buffer_group_t group;
     blob.expose_all(txn, rwi_read, &group, &acq_group);

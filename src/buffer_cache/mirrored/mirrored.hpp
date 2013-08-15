@@ -16,7 +16,6 @@
 #include "concurrency/cond_var.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/intrusive_list.hpp"
-#include "containers/two_level_array.hpp"
 #include "containers/scoped.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
@@ -65,12 +64,15 @@ class mc_inner_buf_t : public evictable_t,
     mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, file_account_t *io_account);
 
     // Load an existing buf but use the provided data buffer (for read ahead)
-    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id,
+                   scoped_malloc_t<ser_buffer_t> &&buf,
+                   const counted_t<standard_block_token_t>& token,
+                   repli_timestamp_t recency_timestamp);
 
     // Create an entirely new buf
     static mc_inner_buf_t *allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
     mc_inner_buf_t(mc_cache_t *cache, block_id_t block_id, version_id_t snapshot_version, repli_timestamp_t recency_timestamp);
-    
+
     ~mc_inner_buf_t();
 
     // Loads data from the serializer.
@@ -86,7 +88,8 @@ class mc_inner_buf_t : public evictable_t,
     void release_snapshot(buf_snapshot_t *snapshot);
     // acquires the snapshot data buffer, loading from disk if necessary; must be matched by a call
     // to release_snapshot_data to keep track of when data buffer is in use
-    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *recency_out);
+    void *acquire_snapshot_data(version_id_t version_to_access, file_account_t *io_account, repli_timestamp_t *recency_out,
+                                block_size_t *block_size_out);
     void release_snapshot_data(void *data);
 
 private:
@@ -101,6 +104,7 @@ private:
     repli_timestamp_t subtree_recency;
 
     // The data for the block.
+    block_size_t block_size;
     serializer_data_ptr_t data;
     // The snapshot version id of the block.
     version_id_t version_id;
@@ -159,8 +163,18 @@ public:
 
     // Get the data buffer for reading
     const void *get_data_read() const;
-    // Gets data for writing, also means the block will have to be flushed.
+
+    // Gets data for writing, also means the block will have to be flushed.  Sets the
+    // block size to the full maximum block size for the serializer.
     void *get_data_write();
+
+    // Gets data for writing, also means the block will have to be flushed.  Sets the
+    // block size to the specified cache_block_size THIS TIME ONLY!  If you call
+    // get_data_write() with no argument later, it'll get reset back to the full block
+    // size.
+    void *get_data_write(uint32_t cache_block_size);
+
+    uint32_t cache_block_size() const { return block_size.value(); }
 
     block_id_t get_block_id() const;
 
@@ -201,6 +215,7 @@ private:
     // Usually the same as inner_buf->data. If a COW happens or this
     // mc_buf_lock_t is part of a snapshotted transaction, it reference a
     // different buffer however.
+    block_size_t block_size;
     void *data;
 
     // Similarly, usually the same as inner_buf->subtree_recency.  If
@@ -349,10 +364,18 @@ private:
     void on_transaction_commit(mc_transaction_t *txn);
 
 public:
-    bool offer_read_ahead_buf(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    void offer_read_ahead_buf(block_id_t block_id,
+                              scoped_malloc_t<ser_buffer_t> *buf,
+                              const counted_t<standard_block_token_t>& token,
+                              repli_timestamp_t recency_timestamp);
 
 private:
-    void offer_read_ahead_buf_home_thread(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    // Takes ownership of buf.
+    void offer_read_ahead_buf_home_thread(
+            block_id_t block_id,
+            ser_buffer_t *buf,
+            const counted_t<standard_block_token_t> &token,
+            repli_timestamp_t recency_timestamp);
     bool can_read_ahead_block_be_accepted(block_id_t block_id);
     void maybe_unregister_read_ahead_callback();
 

@@ -1,0 +1,624 @@
+sections:
+  - tag: date
+    name: Dates and times
+    description: Date and time operations.
+    order: 11
+
+commands:
+  - tag: now
+    section: date
+    description: |
+
+      Return a time object representing the current time in UTC. The
+      command <code>now()</code> is computed once when the server
+      receives the query, so multiple instances of
+      <code>r.now()</code> will always return the same time inside a
+      query.
+
+    name: now
+    body: "$PARENT.now()"
+    io:
+      - - r
+        - time
+
+    examples:
+      - description: Add a new user with the time at which he subscribed.
+        code:
+          rb: |
+            r.table("users").insert({
+              :name => "John",
+              :subscription_date => r.now()
+            }).run(conn)
+          py: |
+            r.table("users").insert({
+              "name": "John",
+              "subscription_date": r.now()
+            }).run(conn)
+          js: |
+            r.table("users").insert({
+              name: "John",
+              subscription_date: r.now()
+            }).run(conn, callback)
+
+  - tag: time
+    section: date
+    description: |
+      Create a time object for a specific time.
+    name: time
+    body: "$PARENT.time(year, month, day[, hour, minute, second], timezone)"
+    io:
+      - - r
+        - time
+
+    examples:
+      - description: Update the birthdate of the user "John" to November 3rd, 1986 UTC.
+        code:
+          rb: |
+            r.table("user").get("John").update(:birthdate => r.time(1986, 11, 3, 'Z')).run(conn)
+          py: |
+            r.table("user").get("John").update({"birthdate": r.time(1986, 11, 3, 'Z')}).run(conn)
+          js: |
+            r.table("user").get("John").update({birthdate: r.time(1986, 11, 3, 'Z')}).run(conn, callback)
+
+  - tag: epoch_time
+    section: date
+    description: |
+        Create a time object based on seconds since epoch.
+    name:
+      js: epochTime
+      py: epoch_time
+      rb: epoch_time
+    body:
+      js: "$PARENT.epochTime(epochTime)"
+      py: "$PARENT.epoch_time(epoch_time)"
+      rb: "$PARENT.epoch_time(epoch_time)"
+    io:
+      - - r
+        - time
+
+    examples:
+      - description: Update the birthdate of the user "John" to November 3rd, 1986.
+        code:
+          rb: |
+            r.table("user").get("John").update(:birthdate => r.epoch_time(531360000)).run(conn)
+          py: |
+            r.table("user").get("John").update({"birthdate": r.epoch_time(531360000)}).run(conn)
+          js: |
+            r.table("user").get("John").update({birthdate: r.epochTime(531360000)}).run(conn, callback)
+
+
+  - tag: iso8601
+    section: date
+    description: |
+
+        Create a time object based on an iso8601 date-time string
+        (e.g. '2013-01-01T01:01:01+00:00'). We support all valid ISO
+        8601 formats except for week dates.  If you pass an ISO 8601
+        date-time without a time zone, you must specify the time zone
+        with the optarg `default_timezone`.  Read
+        more about the ISO 8601 format on the <a href="http://en.wikipedia.org/wiki/ISO_8601">Wikipedia page</a>.
+
+    name: iso8601
+    body:
+      py: "$PARENT.iso8601(iso8601Date[, default_timezone=''])"
+      rb: "$PARENT.iso8601(iso8601Date[, :default_timezone => ''])"
+      js: "$PARENT.ISO8601(iso8601Date[, {default_timezone:''}])"
+    io:
+      - - r
+        - time
+
+    examples:
+      - description: Update the time of John's birth.
+        code:
+          rb: |
+            r.table("user").get("John").update(:birth => r.iso8601('1986-11-03T08:30:00-07:00')).run(conn)
+          py: |
+            r.table("user").get("John").update({"birth": r.iso8601('1986-11-03T08:30:00-07:00')}).run(conn)
+          js: |
+            r.table("user").get("John").update({birth: r.ISO8601('1986-11-03T08:30:00-07:00')}).run(conn, callback)
+
+  - tag: in_timezone
+    section: date
+    description: |
+      Return a new time object with a different timezone. While the time stays the same,
+      the results returned by methods such as <code>hours()</code> will change since they take the
+      timezone into account.
+      The timezone argument has to be of the ISO 8601 format.
+
+    name:
+      js: inTimezone
+      rb: in_timezone
+      py: in_timezone
+
+    body:
+      js:  "$PARENT.inTimezone(timezone)"
+      py:  "$PARENT.in_timezone(timezone)"
+      rb:  "$PARENT.in_timezone(timezone)"
+    io:
+      - - time
+        - time
+
+    examples:
+      - description: Hour of the day in San Francisco (UTC/GMT -8, without daylight saving time).
+        code:
+          rb: |
+            r.now().in_timezone('-08:00').hours().run(conn)
+          py: |
+            r.now().in_timezone('-08:00').hours().run(conn)
+          js: |
+            r.now().inTimezone('-08:00').hours().run(conn, callback)
+
+  - tag: timezone
+    section: date
+    description: |
+      Return the timezone of the time object.
+
+    name: timezone
+
+    body: "$PARENT.timezone()"
+    io:
+      - - time
+        - string
+
+    examples:
+      - description: Return all the users in the "-07:00" timezone.
+        code:
+          rb: |
+            r.table("users").filter{ |user|
+              user["subscriptionDate"].timezone().eq("07:00")
+            }
+          py: |
+            r.table("users").filter( lambda user:
+              user["subscriptionDate"].timezone() == "-07:00"
+            )
+
+          js: |
+            r.table("users").filter( function(user) {
+              return user("subscriptionDate").timezone().eq("-07:00")
+            })
+
+
+
+  - tag: during
+    section: date
+    description: |
+      Return if a time is between two other times (by default, inclusive for the start, exclusive for the end).
+
+    name: during
+    body:
+      js:  "$PARENT.during(startTime, endTime[, options])"
+      py:  "$PARENT.during(start_time, end_time[, left_bound=\"open/closed\", right_bound=\"open/closed\"])"
+      rb:  "$PARENT.during(start_time, end_time[, options])"
+    io:
+      - - time
+        - bool
+
+    examples:
+      - description: Retrieve all the posts that were posted between December 1st, 2013 (inclusive) and December 10th, 2013 (exclusive).
+        code:
+          rb: |
+            r.table("posts").filter{ |post|
+              post['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10))
+            }.run(conn)
+          py: |
+            r.table("posts").filter(
+                r.row['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10))
+            ).run(conn)
+          js: |
+            r.table("posts").filter(
+                r.row('date').during(r.time(2013, 12, 1), r.time(2013, 12, 10))
+            ).run(conn, callback)
+      - description: Retrieve all the posts that were posted between December 1st, 2013 (exclusive) and December 10th, 2013 (inclusive).
+        code:
+          rb: |
+            r.table("posts").filter{ |post|
+              post['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10), :left_bound => "open", :right_bound => "closed")
+            }.run(conn)
+          py: |
+            r.table("posts").filter(
+              r.row['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10), left_bound="open", right_bound="closed")
+            ).run(conn)
+          js: |
+            r.table("posts").filter(
+              r.row('date').during(r.time(2013, 12, 1), r.time(2013, 12, 10), {leftBound: "open", rightBound: "closed"})
+            ).run(conn, callback)
+
+
+  - tag: date
+    section: date
+    description: |
+        Return a new time object only based on the day, month and year (ie. the same day at 00:00).
+
+    name: date
+
+    body: "$PARENT.date()"
+    io:
+      - - time
+        - time
+
+    examples:
+      - description: Retrieve all the users whose birthday is today
+        code:
+          rb: |
+            r.table("users").filter{ |user|
+              user["birthdate"].date().eq(r.now().date())
+            }.run(conn)
+          py: |
+            r.table("users").filter(lambda user:
+              user["birthdate"].date() == r.now().date()
+            ).run(conn)
+
+          js: |
+            r.table("users").filter(function(user) {
+              return user("birthdate").date().eq(r.now().date())
+            }).run(conn, callback)
+
+  - tag: time_of_day
+    section: date
+    description: |
+      Return the number of seconds elapsed since the beginning of the day stored in the time object.
+
+    name:
+      js: timeOfDay
+      py: time_of_day
+      rb: time_of_day
+
+    body:
+      js: "$PARENT.timeOfDay()"
+      py: "$PARENT.time_of_day()"
+      rb: "$PARENT.time_of_day()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Retrieve posts that were submitted before noon.
+        code:
+          rb: |
+            r.table("posts").filter{ |post|
+                post["date"].time_of_day() <= 12*60*60
+            }.run(conn)
+
+          py: |
+            r.table("posts").filter(
+                r.row["date"].time_of_day() <= 12*60*60
+            ).run(conn)
+
+          js: |
+            r.table("posts").filter(
+                r.row("date").timeOfDay().le(12*60*60)
+            ).run(conn, callback)
+
+  - tag: year
+    section: date
+    description: |
+      Return the year of a time object.
+
+    name: year
+
+    body: "$PARENT.year()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Retrieve all the users born in 1986.
+        code:
+          rb: |
+            r.table("users").filter{ |user|
+              user["birthdate"].year().eq(1986)
+            }.run(conn)
+          py: |
+            r.table("users").filter(lambda user:
+              user["birthdate"].year() == 1986
+            ).run(conn)
+
+          js: |
+            r.table("users").filter(function(user) {
+              return user("birthdate").year().eq(1986)
+            }).run(conn, callback)
+
+
+
+  - tag: month
+    section: date
+    description: |
+      Return the month of a time object as a number between 1 and 12.
+      For your convenience, the terms <code>r.january</code>, <code>r.february</code> etc. are defined and map
+      to the appropriate integer.
+
+
+    name: month
+
+    body: "$PARENT.month()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Retrieve all the users who were born in November.
+        code:
+          rb: |
+            r.table("users").filter{ |user|
+              user["birthdate"].month().eq(11)
+            }
+
+          py: |
+            r.table("users").filter(
+              r.row["birthdate"].month() == 11
+            )
+          js: |
+            r.table("users").filter(
+              r.row("birthdate").month().eq(11)
+            )
+      - description: Retrieve all the users who were born in November.
+        code:
+          rb: |
+            r.table("users").filter{ |user|
+              user["birthdate"].month().eq(r.november)
+            }
+
+          py: |
+            r.table("users").filter(
+              r.row["birthdate"].month() == r.november
+            )
+          js: |
+            r.table("users").filter(
+              r.row("birthdate").month().eq(r.november)
+            )
+
+
+  - tag: day
+    section: date
+    description: |
+      Return the day of a time object as a number between 1 and 31.
+
+    name: day
+
+    body: "$PARENT.day()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Return the users born on the 24th of any month.
+        code:
+          rb: |
+            r.table("users").filter{ |user|
+              user["birthdate"].day().eq(24)
+            }
+
+          py: |
+            r.table("users").filter(
+              r.row["birthdate"].day() == 24
+            )
+          js: |
+            r.table("users").filter(
+              r.row("birthdate").day().eq(24)
+            )
+
+
+  - tag: day_of_week
+    section: date
+    description: |
+      Return the day of week of a time object as a number between 1 and 7 (following ISO 8601 standard).
+      For your convenience, the terms <code>r.monday</code>, <code>r.tuesday</code> etc. are defined and map
+      to the appropriate integer.
+
+    name:
+      js: dayOfWeek
+      py: day_of_week
+      rb: day_of_week
+
+    body:
+      js: "$PARENT.dayOfWeek()"
+      rb: "$PARENT.day_of_week()"
+      py: "$PARENT.day_of_week()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Return today's day of week.
+        code:
+          rb: |
+            r.now().day_of_week().run(conn)
+          py: |
+            r.now().day_of_week().run(conn)
+          js: |
+            r.now().dayOfWeek().run(conn, callback)
+      - description: Retrieve all the users who were born on a Tuesday.
+        code:
+          rb: |
+            r.table("users").filter{ |user|
+              user["birthdate"].day_of_week().eq(r.tuesday)
+            }
+
+          py: |
+            r.table("users").filter(
+              r.row["birthdate"].day_of_week() == r.tuesday
+            )
+          js: |
+            r.table("users").filter(
+              r.row("birthdate").dayOfWeek().eq(r.tuesday)
+            )
+
+  - tag: day_of_year
+    section: date
+    description: |
+      Return the day of the year of a time object as a number between 1 and 366 (following ISO 8601 standard).
+
+    name:
+      js: dayOfYear
+      py: day_of_year
+      rb: day_of_year
+
+    body:
+      js: "$PARENT.dayOfYear()"
+      rb: "$PARENT.day_of_year()"
+      py: "$PARENT.day_of_year()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Retrieve all the users who were born the first day of a year.
+        code:
+          rb: |
+            r.table("users").filter{ |user|
+              user["birthdate"].day_of_year().eq(1)
+            }
+
+          py: |
+            r.table("users").filter(
+              r.row["birthdate"].day_of_year() == 1
+            )
+          js: |
+            r.table("users").filter(
+              r.row("birthdate").dayOfYear().eq(1)
+            )
+
+
+
+  - tag: hours
+    section: date
+    description: |
+      Return the hour in a time object as a number between 0 and 23.
+
+    name: hours
+
+    body: "$PARENT.hours()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Return all the posts submitted after midnight and before 4am.
+        code:
+          rb: |
+            r.table("posts").filter{ |post|
+                post["date"].hours() < 4
+            }
+          py: |
+            r.table("posts").filter(lambda post:
+                post["date"].hours() < 4
+            )
+          js: |
+            r.table("posts").filter(function(post) {
+                return post("date").hours().lt(4)
+            })
+
+  - tag: minutes
+    section: date
+    description: |
+      Return the minute in a time object as a number between 0 and 59.
+
+    name: minutes
+
+    body: "$PARENT.minutes()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Return all the posts submitted during the first 10 minutes of every hour.
+        code:
+          rb: |
+            r.table("posts").filter{ |post|
+                post["date"].minutes() < 10
+            }
+          py: |
+            r.table("posts").filter(lambda post:
+                post["date"].minutes() < 10
+            )
+          js: |
+            r.table("posts").filter(function(post) {
+                return post("date").minutes().lt(10)
+            })
+
+
+  - tag: seconds
+    section: date
+    description: |
+      Return the seconds in a time object as a number between 0 and 59.999 (double precision).
+
+    name: seconds
+
+    body: "$PARENT.seconds()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Return the post submitted during the first 30 seconds of every minute.
+        code:
+          rb: |
+            r.table("posts").filter{ |post|
+                post["date"].seconds() < 30
+            }
+          py: |
+            r.table("posts").filter(lambda post:
+                post["date"].seconds() < 30
+            )
+          js: |
+            r.table("posts").filter(function(post) {
+                return post("date").seconds().lt(30)
+            })
+
+
+  - tag: to_iso8601
+    section: date
+    description: |
+      Convert a time object to its iso 8601 format.
+
+    name:
+      js: toISO8601
+      py: to_iso8601
+      rb: to_iso8601
+
+    body: "$PARENT.seconds()"
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Return the current time in an ISO8601 format.
+        code:
+          rb: |
+            r.now().to_iso8601()
+          py: |
+            r.now().to_iso8601()
+          js: |
+            r.now().toISO8601()
+
+
+  - tag: to_epoch_time
+    section: date
+    description: |
+      Convert a time object to its epoch time.
+
+    name:
+      js: toEpochTime
+      py: to_epoch_time
+      rb: to_epoch_time
+
+    body:
+      js: "$PARENT.toEpochTime()"
+      py: "$PARENT.to_epoch_time()"
+      rb: "$PARENT.to_epoch_time()"
+
+    io:
+      - - time
+        - number
+
+    examples:
+      - description: Return the current time in an ISO8601 format.
+        code:
+          rb: |
+            r.now().to_epoch_time()
+          py: |
+            r.now().to_epoch_time()
+          js: |
+            r.now().toEpochTime()
+
+

@@ -339,7 +339,7 @@ button.btn {
 */
 #sticky-wrap {
     min-width: 940px;
-    background: url('/images/body_bg_tile.png'); // background.png
+    background: url('images/body_bg_tile.png'); // background.png
 }
 #main-container {
     padding-top: 30px;
@@ -550,7 +550,7 @@ TODO: retire this
                 .border-radius(14px); // border radius
                 .box-shadow(~"0 1px 0 rgba(255,255,255,.07), inset 0 1px 0 rgba(0,0,0,.15)"); // drop shadow and inner shadow
                 .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
-                background: url('/images/icon-magnifying_glass.png') no-repeat 12px #232323;
+                background: url('images/icon-magnifying_glass.png') no-repeat 12px #232323;
             }
         }
     }
@@ -563,7 +563,7 @@ TODO: retire this
 */
 #sidebar {
     // texture, so we need a background image
-    background: url('/images/status-panel_bg_tile.png');
+    background: url('images/status-panel_bg_tile.png');
     // csshat
     .box-shadow(~"0 1px 0 rgba(255,255,255,.4), inset 0 -1px 1px #c3c3c3"); // drop shadow and inner shadow
     border-bottom: thin solid #d0d0d0;
@@ -595,20 +595,20 @@ TODO: retire this
     }
 
     .client-connection-status .panel {
-        background: url('/images/status_panel-icon_1.png') no-repeat left center;
-        &.error { background: url('/images/status_panel-icon_1-error.png') no-repeat left center; }
+        background: url('images/status_panel-icon_1.png') no-repeat left center;
+        &.error { background: url('images/status_panel-icon_1-error.png') no-repeat left center; }
     }
     .issues .panel {
-        background: url('/images/status_panel-icon_2.png') no-repeat left center;
-        &.error { background: url('/images/status_panel-icon_2-error.png') no-repeat left center; }
+        background: url('images/status_panel-icon_2.png') no-repeat left center;
+        &.error { background: url('images/status_panel-icon_2-error.png') no-repeat left center; }
     }
     .servers-connected .panel {
-        background: url('/images/status_panel-icon_3.png') no-repeat left center;
-        &.error { background: url('/images/status_panel-icon_3-error.png') no-repeat left center; }
+        background: url('images/status_panel-icon_3.png') no-repeat left center;
+        &.error { background: url('images/status_panel-icon_3-error.png') no-repeat left center; }
     }
     .datacenters-connected .panel {
-        background: url('/images/status_panel-icon_4.png') no-repeat left center;
-        &.error { background: url('/images/status_panel-icon_4-error.png') no-repeat left center; }
+        background: url('images/status_panel-icon_4.png') no-repeat left center;
+        &.error { background: url('images/status_panel-icon_4-error.png') no-repeat left center; }
     }
 
     .issues-banner {
@@ -684,7 +684,7 @@ TODO: retire this
         #issue-alerts .alert {
             display: block; 
 
-            background: 15px center no-repeat url('/images/resolve_issue-resolved_icon.png');
+            background: 15px center no-repeat url('images/resolve_issue-resolved_icon.png');
             padding-left: 40px;
             color: #628857; // text color
             border: 1px solid #cae8c3; // stroke
@@ -772,16 +772,20 @@ TODO: retire this
 #dashboard_container {
     #cluster_status_container {
         padding: 0;
+        width: 940px;
         overflow: auto;
+        border-collapse: collapse;
+        td{
+            border: thin solid #dfdfdf;
+        }
         .panel {
             @bad: #e85250;
             @good: #3ba51a;
-            float: left;
-            border-left: thin solid #dfdfdf;
-            padding: 20px;
-            width: 193px;
+            width: 25%;
             vertical-align: top;
-
+            & > div:first-child{
+                margin: 20px;
+            }
             h3 {
                 margin-top: 0;
                 margin-bottom: 10px;
@@ -791,8 +795,8 @@ TODO: retire this
                 padding-left: 21px;
             }
             
-            .no-problems-detected h3 { background: 0 3px no-repeat url('/images/green-light.png'); }
-            .problems-detected h3 { background: 0 3px no-repeat url('/images/red-light.png'); }
+            .no-problems-detected h3 { background: 0 3px no-repeat url('images/green-light.png'); }
+            .problems-detected h3 { background: 0 3px no-repeat url('images/red-light.png'); }
 
             p {
                 font-family: @sans;
@@ -1035,7 +1039,7 @@ TODO: retire this
                     border-left: thin solid #e4e4e4;
                 }
                 .name {
-                    background: @border_padding center no-repeat url('/images/server-icon.png');
+                    background: @border_padding center no-repeat url('images/server-icon.png');
                     padding-left: 38px + @border_padding;
                     a { color: #0597d8; }
                     font-size: 16px;
@@ -1046,7 +1050,7 @@ TODO: retire this
                     text-overflow: ellipsis;
                 }
                 .quick_info {
-                    background: @border_padding center no-repeat url('/images/graph-icon.png');
+                    background: @border_padding center no-repeat url('images/graph-icon.png');
                     color: #626264;
                     padding-left: 30px + @border_padding;
                 }
@@ -1054,11 +1058,11 @@ TODO: retire this
                     padding-right: 20px;
                     color: #818181;
                     .label-success {
-                        background: @border_padding center no-repeat url('/images/green-light_glow.png');
+                        background: @border_padding center no-repeat url('images/green-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
                     .label-failure {
-                        background: @border_padding center no-repeat url('/images/red-light_glow.png');
+                        background: @border_padding center no-repeat url('images/red-light_glow.png');
                         padding-left: 23px + @border_padding;
                     }
                 }
@@ -1114,7 +1118,7 @@ TODO: retire this
             font-size: 14px;
             color: #4d535c;
             border-top: thin solid #f0f0f0;
-            background: left 22px no-repeat url('/images/pencil-icon_big.png');
+            background: left 22px no-repeat url('images/pencil-icon_big.png');
             padding: 20px 0 20px 55px;
             word-wrap: break-word;
             &:first-child {
@@ -1132,7 +1136,7 @@ TODO: retire this
                 font-size: 13px;
             }
             .datetime {
-                background: left center no-repeat url('/images/clock-icon.png');
+                background: left center no-repeat url('images/clock-icon.png');
                 text-align: right;
                 color: #c4c4c4;
             }
@@ -1165,23 +1169,23 @@ TODO: retire this
         }
         /* Selected icons from http://somerandomdude.com/work/iconic/ */
         .fullscreen{
-            background: url(/images/fullscreen_16x16.png) center no-repeat;
+            background: url('images/fullscreen_16x16.png') center no-repeat;
         }
         .fullscreen_exit{
-            background: url(/images/fullscreen_exit_16x16.png) center no-repeat;
+            background: url('images/fullscreen_exit_16x16.png') center no-repeat;
         }
         .show_options{
-            background: url(/images/cog_16x16.png) center no-repeat;
+            background: url('images/cog_16x16.png') center no-repeat;
         }
         .show_history{
-            background: url(/images/book_alt_16x16.png) center no-repeat;
+            background: url('images/book_alt_16x16.png') center no-repeat;
             float: left;
             margin: 0px 8px 0px -1px;
         }
         .clear_queries_link{
             display: none;
             .clear_history{
-                background: url(/images/trash_stroke_16x16.png) center no-repeat;
+                background: url('images/trash_stroke_16x16.png') center no-repeat;
                 float: left;
                 margin: 0px 8px 0px -1px;
             }
@@ -1280,8 +1284,9 @@ TODO: retire this
                     margin: 3px auto;
                     width: 300px;
                 }
-                p{
+                p, code{
                     font-family: @monospace;
+                    font-size: 13px;
                     margin: 3px 0px;
                     .description_name{
                         color: #000;
@@ -1644,9 +1649,9 @@ TODO: retire this
                 margin: 3px 2px 0px -15px;
                 float: left;
                 display: block;
-                background: url('/images/arrow_down.png') no-repeat;
+                background: url('images/arrow_down.png') no-repeat;
             }
-            .jt_arrow_hidden{ background: url('/images/arrow_right.png') no-repeat; }
+            .jt_arrow_hidden{ background: url('images/arrow_right.png') no-repeat; }
             .jt_points{ display: none; }
             .jt_points_collapsed{ display: inline; }
             .jt_collapsed{ display: none; }
@@ -1693,6 +1698,9 @@ TODO: retire this
                 .jta_object{
                     vertical-align: top;
                     display: inline-block;
+                    .json_tree{
+                        padding: 0px 17px;
+                    }
                 }
                 td{
                     max-width: 310px;
@@ -1731,17 +1739,17 @@ TODO: retire this
                     display: block;
                 }
                 .jta_arrow_v{
-                    background: url('/images/arrow_down.png') no-repeat;
+                    background: url('images/arrow_down.png') no-repeat;
                     float: left;
                 }
                 .jta_arrow_h{
-                    background: url('/images/arrow_right.png') no-repeat;
+                    background: url('images/arrow_right.png') no-repeat;
                     float: left;
                 }
                 .jta_arrow_hh{
                     width: 20px;
                     height: 10px;
-                    background: url('/images/arrow_right.png') repeat-x;
+                    background: url('images/arrow_right.png') repeat-x;
                     float: right;
                 }
                 .col-record-attr{
@@ -1844,7 +1852,7 @@ TODO: retire this
                 height: @header_height;
 
                 &.issue-type {
-                    background: 7px center no-repeat url('/images/resolve_issue-danger_icon.png');
+                    background: 7px center no-repeat url('images/resolve_issue-danger_icon.png');
                     padding-left: 35px;
                     color: #e65b54; // text color + color overlay
                     font-weight: bold;
@@ -1856,7 +1864,7 @@ TODO: retire this
                     width: 310px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('/images/resolve_issue-message_icon.png');
+                    background: @icon_padding center no-repeat url('images/resolve_issue-message_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
@@ -1866,7 +1874,7 @@ TODO: retire this
                     width: 175px;
                     @icon_width: 30px;
                     @icon_padding: 20px;
-                    background: @icon_padding center no-repeat url('/images/resolve_issue-clock_icon.png');
+                    background: @icon_padding center no-repeat url('images/resolve_issue-clock_icon.png');
                     padding-left: @icon_width + @icon_padding;
                     &:before { .divider(-(@icon_width + @icon_padding)); }
                 }
@@ -1874,7 +1882,7 @@ TODO: retire this
         }
         .issue-details {
             margin-top: 10px;
-            background: 7px 3px no-repeat url('/images/resolve_issue-details_icon.png');
+            background: 7px 3px no-repeat url('images/resolve_issue-details_icon.png');
             padding-left: 35px;
             p, li {
                 color: #838383;
@@ -1937,16 +1945,16 @@ TODO: retire this
                     line-height: 24px;
                     color: #5c6169;
                 }
-                &.availability { background: left center no-repeat url('/images/live-icon.png'); }
-                &.masters { background: left center no-repeat url('/images/layers-icon.png'); }
-                &.replicas { background: left center no-repeat url('/images/grid-icon.png'); }
-                &.documents { background: left center no-repeat url('/images/document-icon.png'); }
-                &.datacenter { background: left center no-repeat url('/images/layers-icon.png'); }
-                &.uptime { background: left center no-repeat url('/images/grid-icon.png'); }
-                &.ips { background: left center no-repeat url('/images/document-icon.png'); }
-                &.tables { background: left center no-repeat url('/images/document-icon.png'); }
-                &.datacenters { background: left center no-repeat url('/images/layers-icon.png'); }
-                &.servers { background: left center no-repeat url('/images/document-icon.png'); }
+                &.availability { background: left center no-repeat url('images/live-icon.png'); }
+                &.masters { background: left center no-repeat url('images/layers-icon.png'); }
+                &.replicas { background: left center no-repeat url('images/grid-icon.png'); }
+                &.documents { background: left center no-repeat url('images/document-icon.png'); }
+                &.datacenter { background: left center no-repeat url('images/layers-icon.png'); }
+                &.uptime { background: left center no-repeat url('images/grid-icon.png'); }
+                &.ips { background: left center no-repeat url('images/document-icon.png'); }
+                &.tables { background: left center no-repeat url('images/document-icon.png'); }
+                &.datacenters { background: left center no-repeat url('images/layers-icon.png'); }
+                &.servers { background: left center no-repeat url('images/document-icon.png'); }
             }
             &.first { border-top: none; }
         }
@@ -2006,7 +2014,7 @@ TODO: retire this
                 top: (@element_height / 2) - (@square_bullet_width / 2) + 1;
                 bottom: (@element_height / 2) - 1;
                 width: @square_bullet_width;
-                background-image: url('/images/list-square-bullet.png'), url('/images/list-vert-dash.png'); 
+                background-image: url('images/list-square-bullet.png'), url('images/list-vert-dash.png'); 
                 background-position: left top, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-y;  
             }
@@ -2037,7 +2045,7 @@ TODO: retire this
                 top: 0;
                 bottom: 0;
 
-                background-image: url('/images/list-square-bullet.png'), url('/images/list-horiz-dash.png');  
+                background-image: url('images/list-square-bullet.png'), url('images/list-horiz-dash.png');  
                 background-position: right center, ((@square_bullet_width / 2) - 1) center;
                 background-repeat: no-repeat, repeat-x;
             }
@@ -2071,7 +2079,7 @@ TODO: retire this
     .section.list-view.table-list {
         @element_height: 40px;
         li.table {
-            background: left center no-repeat url('/images/server-icon.png');
+            background: left center no-repeat url('images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 375px;
@@ -2081,16 +2089,16 @@ TODO: retire this
                 right: 200px;
                 width: 200px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/graph-icon.png');
+                background: left center no-repeat url('images/graph-icon.png');
             }
             .status {
                 right: 0;
                 .label { padding-left: 23px; }
                 .label-success {
-                    background: left center no-repeat url('/images/green-light_glow_small.png');
+                    background: left center no-repeat url('images/green-light_glow_small.png');
                 }
                 .label-failure {
-                    background: left center no-repeat url('/images/red-light_glow_small.png');
+                    background: left center no-repeat url('images/red-light_glow_small.png');
                 }
             }
         }
@@ -2101,7 +2109,7 @@ TODO: retire this
     .section.tree-view.server-assignments {
         @element_height: 40px;
         li.server .server-info {
-            background: left center no-repeat url('/images/server-icon.png');
+            background: left center no-repeat url('images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 300px;
@@ -2111,18 +2119,18 @@ TODO: retire this
                 right: 350px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/layers-icon.png');
+                background: left center no-repeat url('images/layers-icon.png');
             }
             .num-secondaries {
                 right: 175px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/grid-icon.png');
+                background: left center no-repeat url('images/grid-icon.png');
             }
             .num-keys {
                 right: 0;
                 padding-left: 35px;
-                background: left center no-repeat url('/images/bars-icon_server-assignments.png');
+                background: left center no-repeat url('images/bars-icon_server-assignments.png');
             }
         }
         .popup_container{
@@ -2355,7 +2363,7 @@ TODO: retire this
                     
 
                     &.universe {
-                        background: @universe url('/images/globe-icon_white.png') 8px center no-repeat;
+                        background: @universe url('images/globe-icon_white.png') 8px center no-repeat;
                         border-color: @universe;
                         color: #fcfcfc;
                         a {
@@ -2482,7 +2490,7 @@ TODO: retire this
                     display: inline-block;
                     padding-top: 10px;
                 }
-                background: left 9px no-repeat url('/images/bars-icon.png');
+                background: left 9px no-repeat url('images/bars-icon.png');
             }
             input.num-shards { 
                 margin: -5px 6px 3px 0px;
@@ -2516,7 +2524,7 @@ TODO: retire this
             margin: 10px 0px 0px 0px;
             padding: 0px;
             .square_li{
-                background-image: url('/images/list-square-bullet.png'); 
+                background-image: url('images/list-square-bullet.png'); 
                 background-position: left center;
                 background-repeat: no-repeat;
                 padding: 5px 0px 5px 20px;
@@ -2561,7 +2569,7 @@ TODO: retire this
     .section.list-view.server-list {
         @element_height: 40px;
         li.server {
-            background: left center no-repeat url('/images/server-icon.png');
+            background: left center no-repeat url('images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 375px;
@@ -2571,16 +2579,16 @@ TODO: retire this
                 right: 200px;
                 width: 200px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/graph-icon.png');
+                background: left center no-repeat url('images/graph-icon.png');
             }
             .status {
                 right: 0;
                 .label { padding-left: 23px; }
                 .label-success {
-                    background: left center no-repeat url('/images/green-light_glow_small.png');
+                    background: left center no-repeat url('images/green-light_glow_small.png');
                 }
                 .label-failure {
-                    background: left center no-repeat url('/images/red-light_glow_small.png');
+                    background: left center no-repeat url('images/red-light_glow_small.png');
                 }
             }
         }
@@ -2591,7 +2599,7 @@ TODO: retire this
     .section.tree-view.server-data {
         @element_height: 40px;
         li.shard .shard-info {
-            background: left center no-repeat url('/images/server-icon.png');
+            background: left center no-repeat url('images/server-icon.png');
             padding-left: 30px;
             .name {
                 width: 455px;
@@ -2601,12 +2609,12 @@ TODO: retire this
                 right: 175px;
                 width: 145px;
                 padding-left: 30px;
-                background: left center no-repeat url('/images/grid-icon.png');
+                background: left center no-repeat url('images/grid-icon.png');
             }
             .num-keys {
                 right: 0;
                 padding-left: 35px;
-                background: left center no-repeat url('/images/bars-icon_server-assignments.png');
+                background: left center no-repeat url('images/bars-icon_server-assignments.png');
             }
         }
     }

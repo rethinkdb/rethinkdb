@@ -12,7 +12,7 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/semaphore.hpp"
 #include "arch/io/disk.hpp"
-#include "arch/io/disk/stats.hpp"
+#include "arch/io/disk/stats_2.hpp"
 
 /* `casting_passive_producer_t` is useful when you have a
 `passive_producer_t<X>` but you need a `passive_producer_t<Y>`, where `X` can

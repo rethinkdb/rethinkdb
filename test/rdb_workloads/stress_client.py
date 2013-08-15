@@ -17,6 +17,7 @@ parser.add_option("--sindex-reads", dest="sindex_reads", metavar="SINDEX_READS",
 parser.add_option("--updates", dest="updates", metavar="UPDATES", default=1, type="int")
 parser.add_option("--non-atomic-updates", dest="non_atomic_updates", metavar="NON_ATOMIC_UPDATES", default=1, type="int")
 parser.add_option("--batch-size", dest="batch_size", metavar="BATCH_SIZE", default=100, type="int")
+parser.add_option("--value-size", dest="value_size", metavar="VALUE_SIZE", default=4, type="int")
 parser.add_option("--output", dest="output_file", metavar="FILE", default="", type="string")
 parser.add_option("--sindex", dest="sindexes", metavar="COUNT", default=[], type="string", action="append")
 # TODO: add options --min-key, --max-key, and --client-id, which will allow an existing database of continguous keys to have their 'ownership' distributed to a set of stress clients
@@ -47,7 +48,7 @@ connection = r.connect(host, port, db)
 if db not in r.db_list().run(connection):
     raise RuntimeError("Database does not exist: " + db)
 
-if table not in r.db("test").table_list().run(connection):
+if table not in r.db(db).table_list().run(connection):
     raise RuntimeError("Table does not exist: " + table)
 
 extant_keys = set()
@@ -81,10 +82,14 @@ def write_error(error):
 
 # TODO: verify results of all operations
 
-def generate_row(default=None):
-    if default is None:
-        default = random.randint(0, 10000)
-    return {"value": default}
+def generate_row():
+    value = ""
+    for i in xrange(options.value_size / 8):
+        value += "%08d" % random.randint(0, 99999999)
+    for i in range(options.value_size % 8):
+        value += str(random.randint(0,9))
+
+    return {"value": value}
 
 def do_write():
     global operation_stats

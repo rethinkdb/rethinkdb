@@ -29,7 +29,11 @@
 class Term;
 void pb_print(Term *t);
 
-void run_generic_global_startup_behavior();
+class startup_shutdown_t {
+public:
+    startup_shutdown_t();
+    ~startup_shutdown_t();
+};
 
 struct const_charslice {
     const char *beg, *end;
@@ -61,7 +65,7 @@ struct cache_line_padded_t {
     char padding[CACHE_LINE_SIZE - sizeof(value_t)];
 };
 
-void *malloc_aligned(size_t size, size_t alignment = 64);
+void *malloc_aligned(size_t size, size_t alignment);
 
 template <class T1, class T2>
 T1 ceil_aligned(T1 value, T2 alignment) {
@@ -128,7 +132,7 @@ void debug_print(printf_buffer_t *buf, const std::string& s);
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 template <class T>
-void debugf_print(const char *msg, const T& obj) {
+void debugf_print(const char *msg, const T &obj) {
     printf_buffer_t buf;
     debugf_prefix_buf(&buf);
     buf.appendf("%s: ", msg);
@@ -140,6 +144,13 @@ void debugf_print(const char *msg, const T& obj) {
 #define debugf(...) ((void)0)
 #define debugf_print(...) ((void)0)
 #endif  // NDEBUG
+
+template <class T>
+std::string debug_strprint(const T &obj) {
+    printf_buffer_t buf;
+    debug_print(&buf, obj);
+    return std::string(buf.data(), buf.size());
+}
 
 class debugf_in_dtor_t {
 public:
@@ -193,8 +204,7 @@ std::string format_time(struct timespec time);
 
 struct timespec parse_time(const std::string &str) THROWS_ONLY(std::runtime_error);
 
-/* Printing binary data to stdout in a nice format */
-
+/* Printing binary data to stderr in a nice format */
 void print_hd(const void *buf, size_t offset, size_t length);
 
 // Fast string compare
@@ -220,10 +230,7 @@ public:
 protected:
     explicit home_thread_mixin_debug_only_t(int specified_home_thread);
     home_thread_mixin_debug_only_t();
-    virtual ~home_thread_mixin_debug_only_t() { }
-
-private:
-    DISABLE_COPYING(home_thread_mixin_debug_only_t);
+    ~home_thread_mixin_debug_only_t() { }
 
 #ifndef NDEBUG
     int real_home_thread;
@@ -388,6 +395,23 @@ private:
 };
 
 void recreate_temporary_directory(const base_path_t& base_path);
+
+// This will be thrown by remove_directory_recursive if a file cannot be removed
+class remove_directory_exc_t : public std::exception {
+public:
+    remove_directory_exc_t(const std::string &path, int err) :
+        info(strprintf("Fatal error: failed to delete file '%s': %s.",
+                       path.c_str(), strerror(err)))
+    { }
+    ~remove_directory_exc_t() throw () { }
+    const char *what() const throw () {
+        return info.c_str();
+    }
+private:
+    const std::string info;
+};
+
+void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t);
 
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);

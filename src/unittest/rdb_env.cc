@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-
 #include "unittest/rdb_env.hpp"
+
+#include "rdb_protocol/func.hpp"
 
 namespace unittest {
 
@@ -53,28 +54,28 @@ mock_namespace_interface_t::~mock_namespace_interface_t() {
     }
 }
 
-void mock_namespace_interface_t::read(const typename rdb_protocol_t::read_t &query,
-                                      typename rdb_protocol_t::read_response_t *response,
+void mock_namespace_interface_t::read(const rdb_protocol_t::read_t &query,
+                                      rdb_protocol_t::read_response_t *response,
                                       UNUSED order_token_t tok,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
     read_outdated(query, response, interruptor);
 }
 
-void mock_namespace_interface_t::read_outdated(const typename rdb_protocol_t::read_t &query,
-                                               typename rdb_protocol_t::read_response_t *response,
+void mock_namespace_interface_t::read_outdated(const rdb_protocol_t::read_t &query,
+                                               rdb_protocol_t::read_response_t *response,
                                                signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    if (interruptor->is_pulsed()) { 
+    if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
     read_visitor_t v(&data, response);
     boost::apply_visitor(v, query.read);
 }
 
-void mock_namespace_interface_t::write(const typename rdb_protocol_t::write_t &query,
-                                       typename rdb_protocol_t::write_response_t *response,
+void mock_namespace_interface_t::write(const rdb_protocol_t::write_t &query,
+                                       rdb_protocol_t::write_response_t *response,
                                        UNUSED order_token_t tok,
                                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    if (interruptor->is_pulsed()) { 
+    if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
     write_visitor_t v(&data, parent->get_env(), response);
@@ -120,11 +121,11 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
 
     counted_t<const ql::datum_t> num_records = make_counted<ql::datum_t>(1.0);
-    scoped_ptr_t<ql::datum_t> resp(new ql::datum_t(ql::datum_t::R_OBJECT));
+    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
 
     counted_t<const ql::datum_t> old_val;
     if (data->find(r.key) != data->end()) {
-        old_val = make_counted<ql::datum_t>(data->at(r.key)->get(), env);
+        old_val = make_counted<ql::datum_t>(data->at(r.key)->get());
     } else {
         old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
     }
@@ -136,22 +137,23 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     if (new_val->get_type() == ql::datum_t::R_OBJECT) {
         data->insert(std::make_pair(r.key, new scoped_cJSON_t(new_val->as_json()->release())));
         if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp->add("inserted", num_records);
+            not_added = resp.add("inserted", num_records);
         } else {
             if (*old_val == *new_val) {
-                not_added = resp->add("unchanged", num_records);
+                not_added = resp.add("unchanged", num_records);
             } else {
-                not_added = resp->add("replaced", num_records);
+                not_added = resp.add("replaced", num_records);
             }
         }
     } else if (new_val->get_type() == ql::datum_t::R_NULL) {
         if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp->add("skipped", num_records);
+            not_added = resp.add("skipped", num_records);
         } else {
-            not_added = resp->add("deleted", num_records);
+            not_added = resp.add("deleted", num_records);
         }
     } else {
-        throw cannot_perform_query_exc_t("value being inserted is neither an object nor an empty value");
+        throw cannot_perform_query_exc_t(
+            "value being inserted is neither an object nor an empty value");
     }
 
     guarantee(!not_added);
@@ -186,11 +188,8 @@ mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_
 }
 
 test_rdb_env_t::test_rdb_env_t() :
-    machine_id(generate_uuid()), // Not like we actually care
-    js_runner(new js::runner_t())
+    machine_id(generate_uuid()) // Not like we actually care
 {
-    extproc::spawner_t::create(&spawner_info);
-
     machine_semilattice_metadata_t machine;
     name_string_t machine_name;
     if (!machine_name.assign_value("test_machine")) throw invalid_name_exc_t("test_machine");
@@ -201,7 +200,7 @@ test_rdb_env_t::test_rdb_env_t() :
 
 test_rdb_env_t::~test_rdb_env_t() {
     // Clean up initial datas (if there was no instance constructed, this may happen
-    for (auto it = initial_datas.begin(); it != initial_datas.end(); ++it) {       
+    for (auto it = initial_datas.begin(); it != initial_datas.end(); ++it) {
         delete it->second;
     }
 }
@@ -262,17 +261,16 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     dummy_semilattice_controller(test_env->metadata),
     namespaces_metadata(new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, dummy_semilattice_controller.get_view()))),
     databases_metadata(new semilattice_watchable_t<databases_semilattice_metadata_t>(metadata_field(&cluster_semilattice_metadata_t::databases, dummy_semilattice_controller.get_view()))),
-    pool_group(create_pool_group(test_env)),
+    extproc_pool(2),
     test_cluster(0),
     rdb_ns_repo()
 {
-    env.init(new ql::env_t(pool_group.get(),
+    env.init(new ql::env_t(&extproc_pool,
                            &rdb_ns_repo,
                            namespaces_metadata,
                            databases_metadata,
                            dummy_semilattice_controller.get_view(),
                            NULL,
-                           test_env->js_runner,
                            &interruptor,
                            test_env->machine_id,
                            std::map<std::string, ql::wire_func_t>()));
@@ -285,13 +283,6 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
         delete it->second;
     }
     test_env->initial_datas.clear();
-}
-
-extproc::pool_group_t *test_rdb_env_t::instance_t::create_pool_group(test_rdb_env_t *test_env) {
-    extproc::pool_group_t::config_t config;
-    config.min_workers = 1;
-    config.max_workers = 1;
-    return new extproc::pool_group_t(&test_env->spawner_info, config);
 }
 
 ql::env_t *test_rdb_env_t::instance_t::get() {

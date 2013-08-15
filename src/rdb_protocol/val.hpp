@@ -7,7 +7,6 @@
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_stream.hpp"
-#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/stream.hpp"
 
@@ -19,7 +18,7 @@ class term_t;
 class stream_cache2_t;
 template <class> class protob_t;
 
-class db_t : public slow_atomic_countable_t<db_t> {
+class db_t : public single_threaded_countable_t<db_t> {
 public:
     db_t(uuid_u _id, const std::string &_name) : id(_id), name(_name) { }
     const uuid_u id;
@@ -33,12 +32,18 @@ public:
     counted_t<datum_stream_t> as_datum_stream();
     const std::string &get_pkey();
     counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
-    counted_t<datum_stream_t> get_rows(counted_t<const datum_t> left_bound,
-                                       counted_t<const datum_t> right_bound,
-                                       const protob_t<const Backtrace> &bt);
+    counted_t<datum_stream_t> get_rows(
+        counted_t<const datum_t> left_bound, bool left_bound_open,
+        counted_t<const datum_t> right_bound, bool right_bound_open,
+        const protob_t<const Backtrace> &bt);
     counted_t<datum_stream_t> get_sindex_rows(
-        counted_t<const datum_t> left_bound, counted_t<const datum_t> right_bound,
+        counted_t<const datum_t> left_bound, bool left_bound_open,
+        counted_t<const datum_t> right_bound, bool right_bound_open,
         const std::string &sindex_id, const protob_t<const Backtrace> &bt);
+
+    counted_t<datum_stream_t> get_sorted(
+        const std::string &sindex_id, sorting_t sorting,
+        const protob_t<const Backtrace> &bt);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
@@ -46,11 +51,13 @@ public:
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<func_t> f,
                                      bool nondet_ok,
-                                     durability_requirement_t durability_requirement);
+                                     durability_requirement_t durability_requirement,
+                                     bool return_vals);
     counted_t<const datum_t> replace(counted_t<const datum_t> orig,
                                      counted_t<const datum_t> d,
                                      bool upsert,
-                                     durability_requirement_t durability_requirement);
+                                     durability_requirement_t durability_requirement,
+                                     bool return_vals);
 
     std::vector<counted_t<const datum_t> > batch_replace(
         const std::vector<counted_t<const datum_t> > &original_values,
@@ -92,15 +99,18 @@ private:
 
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         const map_wire_func_t &mwf,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<func_t> f,
                                         bool nondet_ok,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
     counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
                                         counted_t<const datum_t> d,
                                         bool upsert,
-                                        durability_requirement_t durability_requirement);
+                                        durability_requirement_t durability_requirement,
+                                        bool return_vals);
 
     env_t *env;
     bool use_outdated;
@@ -111,12 +121,14 @@ private:
 
 enum function_shortcut_t {
     NO_SHORTCUT = 0,
-    IDENTITY_SHORTCUT = 1,
+    CONSTANT_SHORTCUT = 1,
+    GET_FIELD_SHORTCUT = 2,
+    PLUCK_SHORTCUT = 3
 };
 
 // A value is anything RQL can pass around -- a datum, a sequence, a function, a
 // selection, whatever.
-class val_t : public slow_atomic_countable_t<val_t>, public pb_rcheckable_t {
+class val_t : public single_threaded_countable_t<val_t>, public pb_rcheckable_t {
 public:
     // This type is intentionally opaque.  It is almost always an error to
     // compare two `val_t` types rather than testing whether one is convertible
@@ -169,6 +181,7 @@ public:
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
     counted_t<const datum_t> as_datum(); // prefer the 4 below
+    counted_t<const datum_t> as_ptype(const std::string s = "");
     bool as_bool();
     double as_num();
     template<class T>
@@ -186,9 +199,29 @@ public:
     std::string print() {
         if (get_type().is_convertible(type_t::DATUM)) {
             return as_datum()->print();
+        } else if (get_type().is_convertible(type_t::DB)) {
+            return strprintf("db(\"%s\")", as_db()->name.c_str());
+        } else if (get_type().is_convertible(type_t::TABLE)) {
+            return strprintf("table(\"%s\")", as_table()->name.c_str());
+        } else if (get_type().is_convertible(type_t::SELECTION)) {
+            return strprintf("OPAQUE SELECTION ON table(%s)",
+                             as_selection().first->name.c_str());
         } else {
             // TODO: Do something smarter here?
             return strprintf("OPAQUE VALUE %s", get_type().name());
+        }
+    }
+
+    std::string trunc_print() {
+        if (get_type().is_convertible(type_t::DATUM)) {
+            return as_datum()->trunc_print();
+        } else {
+            std::string s = print();
+            if (s.size() > datum_t::trunc_len) {
+                s.erase(s.begin() + (datum_t::trunc_len - 3), s.end());
+                s += "...";
+            }
+            return s;
         }
     }
 
@@ -223,6 +256,6 @@ private:
 };
 
 
-}  //namespace ql
+}  // namespace ql
 
 #endif // RDB_PROTOCOL_VAL_HPP_

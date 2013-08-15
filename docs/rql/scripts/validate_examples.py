@@ -39,7 +39,7 @@ print 'Running python validation.'
 """ % port)
         elif lang == 'js':
             out.write("""
-var r = require("../../../drivers/javascript/build/rethinkdb");
+var r = require("../../../build/packages/js/rethinkdb");
 var callback = (function() { });
 var cur = {next:(function(){}), hasNext:(function(){}), each:(function(){}), toArray:(function(){})};
 r.connect({port:%d}, function(err, conn) {
@@ -50,7 +50,7 @@ console.log("Running Javascript validation.");
 $LOAD_PATH.unshift('../../drivers/ruby/lib')
 require 'rethinkdb.rb'
 include RethinkDB::Shortcuts
-conn = r.connect('localhost', %d)
+conn = r.connect('host' => :localhost, :port => %d)
 puts 'Running Ruby validation.'
 """ % port)
 
@@ -125,6 +125,10 @@ puts 'Running Ruby validation.'
 class BlackHoleRDBHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         magic = self.request.recv(4)
+        (length,) = struct.unpack("<L",self.request.recv(4))
+        if length != 0:
+            self.request.recv(length)
+        self.request.sendall("SUCCESS\0")
 
         while (True):
             header = self.request.recv(4)

@@ -15,15 +15,19 @@ module RethinkDB
     # only be removed from the argument list and treated as an optarg
     # if it's a Hash.  A positive value is necessary for functions
     # that can take a hash for the last non-optarg argument.
+    # NOTE: we search for the optarg after we apply the rewrite rules below.
+    # For example we need to use orderby not order_by
     @@optarg_offsets = {
       :replace => {:with_block => 0, :without => 1},
       :update => {:with_block => 0, :without => 1},
       :insert => 1,
       :delete => -1,
-      :reduce => -1, :between => -1, :grouped_map_reduce => -1,
+      :reduce => -1, :between => 2, :grouped_map_reduce => -1,
       :table => -1, :table_create => -1,
       :get_all => -1, :eq_join => -1,
-      :javascript => -1, :filter => {:with_block => 0, :without => 1}
+      :javascript => -1, :filter => {:with_block => 0, :without => 1},
+      :slice => -1, :during => -1, :orderby => -1,
+      :iso8601 => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -37,6 +41,7 @@ module RethinkDB
       :js => :javascript,
       :type_of => :typeof
     }
+    @@allow_json = {:insert => true}
     def method_missing(m, *a, &b)
       unbound_if(m.to_s.downcase != m.to_s, m)
       bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
@@ -54,7 +59,7 @@ module RethinkDB
       end
 
       m = @@rewrites[m] || m
-      termtype = Term::TermType.values[m.to_s.upcase.to_sym]
+      termtype = Term::TermType.const_get(m.to_s.upcase)
       unbound_if(!termtype, m)
 
       if (opt_offset = @@optarg_offsets[m])
@@ -73,11 +78,11 @@ module RethinkDB
 
       t = Term.new
       t.type = termtype
-      t.args = args.map{|x| RQL.new.expr(x).to_pb}
+      t.args = args.map{|x| RQL.new.expr(x, :allow_json => @@allow_json[m]).to_pb}
       t.optargs = (optargs || {}).map {|k,v|
         ap = Term::AssocPair.new
         ap.key = k.to_s
-        ap.val = RQL.new.expr(v).to_pb
+        ap.val = RQL.new.expr(v, :allow_json => @@allow_json[m]).to_pb
         ap
       }
       return RQL.new(t, bitop)
@@ -127,12 +132,10 @@ module RethinkDB
       if ind.class == Fixnum
         return nth(ind)
       elsif ind.class == Symbol || ind.class == String
-        return getattr(ind)
+        return get_field(ind)
       elsif ind.class == Range
-        if ind.end == 0 && ind.exclude_end?
-          raise ArgumentError, "Cannot slice to an excluded end of 0."
-        end
-        return slice(ind.begin, ind.end - (ind.exclude_end? ? 1 : 0))
+        return slice(ind.begin, ind.end, :right_bound =>
+                     (ind.exclude_end? ? 'open' : 'closed'))
       end
       raise ArgumentError, "[] cannot handle #{ind.inspect} of type #{ind.class}."
     end

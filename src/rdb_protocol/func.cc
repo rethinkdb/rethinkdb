@@ -10,15 +10,22 @@
 
 namespace ql {
 
-func_t::func_t(env_t *env, js::id_t id, counted_t<term_t> parent)
-    : pb_rcheckable_t(parent->backtrace()), source(parent->get_src()),
-      js_parent(parent), js_env(env), js_id(id) {
+func_t::func_t(env_t *env,
+               const std::string &_js_source,
+               uint64_t timeout_ms,
+               counted_t<term_t> parent)
+    : pb_rcheckable_t(parent->backtrace()),
+      source(parent->get_src()),
+      js_parent(parent),
+      js_env(env),
+      js_source(_js_source),
+      js_timeout_ms(timeout_ms) {
     env->dump_scope(&scope);
 }
 
 func_t::func_t(env_t *env, protob_t<const Term> _source)
     : pb_rcheckable_t(_source), source(_source),
-      js_env(NULL), js_id(js::INVALID_ID) {
+      js_env(NULL), js_timeout_ms(0) {
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
@@ -93,10 +100,27 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
                 json_args.push_back((*arg_iter)->as_json());
             }
 
-            boost::shared_ptr<js::runner_t> js = js_env->get_js_runner();
-            js::js_result_t result = js->call(js_id, json_args);
+            js_runner_t::req_config_t config;
+            config.timeout_ms = js_timeout_ms;
 
-            return boost::apply_visitor(js_result_visitor_t(js_env, js_parent), result);
+            r_sanity_check(!js_source.empty());
+            js_result_t result;
+
+            try {
+                result = js_env->get_js_runner()->call(js_source, json_args, config);
+            } catch (const js_worker_exc_t &e) {
+                rfail(base_exc_t::GENERIC,
+                      "Javascript query `%s` caused a crash in a worker process.",
+                      js_source.c_str());
+            } catch (const interrupted_exc_t &e) {
+                rfail(base_exc_t::GENERIC,
+                      "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
+                      js_source.c_str(), js_timeout_ms / 1000, js_timeout_ms % 1000);
+            }
+
+            return boost::apply_visitor(
+                js_result_visitor_t(js_env, js_source, js_timeout_ms, js_parent),
+                result);
         } else {
             r_sanity_check(body.has() && source.has() && js_env == NULL);
             rcheck(args.size() == static_cast<size_t>(argptrs.size())
@@ -104,7 +128,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
                    base_exc_t::GENERIC,
                    strprintf("Expected %zd argument(s) but found %zu.",
                              argptrs.size(), args.size()));
-            for (ssize_t i = 0; i < argptrs.size(); ++i) {
+            for (size_t i = 0; i < argptrs.size(); ++i) {
                 r_sanity_check(args[i].has());
                 argptrs[i] = args[i];
             }
@@ -160,70 +184,14 @@ void func_t::set_default_filter_val(counted_t<func_t> func) {
     default_filter_val = func;
 }
 
-// This JS evaluation resulted in an error
-counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
-    rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
-    unreachable();
+protob_t<const Term> func_t::get_source() {
+    return source;
 }
 
-counted_t<val_t>
-js_result_visitor_t::operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const {
-    return parent->new_val(make_counted<const datum_t>(json_val, env));
-}
-
-// This JS evaluation resulted in an id for a js function
-counted_t<val_t> js_result_visitor_t::operator()(const id_t id_val) const {
-    return parent->new_val(make_counted<func_t>(env, id_val, parent));
-}
-
-wire_func_t::wire_func_t() : source(make_counted_term()) { }
-wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
-    : source(make_counted_term_copy(*func->source)) {
-    if (func->default_filter_val.has()) {
-        default_filter_val = *func->default_filter_val->source.get();
-    }
-    if (env) {
-        cached_funcs[env->uuid] = func;
-    }
-
-    func->dump_scope(&scope);
-}
-wire_func_t::wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope)
-    : source(make_counted_term_copy(_source)), scope(_scope) { }
-
-counted_t<func_t> wire_func_t::compile(env_t *env) {
-    if (cached_funcs.count(env->uuid) == 0) {
-        env->push_scope(&scope);
-        cached_funcs[env->uuid] = compile_term(env, source)->eval()->as_func();
-        if (default_filter_val) {
-            cached_funcs[env->uuid]->set_default_filter_val(
-                make_counted<func_t>(env, make_counted_term_copy(*default_filter_val)));
-        }
-        env->pop_scope();
-    }
-    return cached_funcs[env->uuid];
-}
-
-void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
-    guarantee(source.has());
-    msg << *source;
-    msg << default_filter_val;
-    msg << scope;
-}
-
-archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
-    guarantee(source.has());
-    archive_result_t res = deserialize(stream, source.get());
-    if (res != ARCHIVE_SUCCESS) { return res; }
-    res = deserialize(stream, &default_filter_val);
-    if (res != ARCHIVE_SUCCESS) { return res; }
-    return deserialize(stream, &scope);
-}
-
-func_term_t::func_term_t(env_t *env, protob_t<const Term> term)
+func_term_t::func_term_t(env_t *env, const protob_t<const Term> &term)
     : term_t(env, term), func(make_counted<func_t>(env, term)) { }
 
-counted_t<val_t> func_term_t::eval_impl() {
+counted_t<val_t> func_term_t::eval_impl(UNUSED eval_flags_t flags) {
     return new_val(func);
 }
 
@@ -280,11 +248,33 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
     }
 }
 
-counted_t<func_t> func_t::new_identity_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> func_t::new_constant_func(env_t *env, counted_t<const datum_t> obj,
                                             const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
+    propagate_backtrace(twrap.get(), bt_src.get());
+    return make_counted<func_t>(env, twrap);
+}
+
+counted_t<func_t> func_t::new_get_field_func(env_t *env, counted_t<const datum_t> key,
+                                            const protob_t<const Backtrace> &bt_src) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *arg = twrap.get();
+    int obj = env->gensym();
+    arg = pb::set_func(arg, obj);
+    N2(GET_FIELD, NVAR(obj), NDATUM(key));
+    propagate_backtrace(twrap.get(), bt_src.get());
+    return make_counted<func_t>(env, twrap);
+}
+
+counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+                                 const protob_t<const Backtrace> &bt_src) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    int var = env->gensym();
+    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var))), 
+       N2(PLUCK, NVAR(var), NDATUM(obj)));
     propagate_backtrace(twrap.get(), bt_src.get());
     return make_counted<func_t>(env, twrap);
 }
@@ -302,6 +292,19 @@ counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const dat
 
 void debug_print(printf_buffer_t *buf, const wire_func_t &func) {
     debug_print(buf, func.debug_str());
+}
+
+counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
+    rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
+    unreachable();
+}
+counted_t<val_t> js_result_visitor_t::operator()(
+    const boost::shared_ptr<scoped_cJSON_t> json_val) const {
+    return parent->new_val(make_counted<const datum_t>(json_val));
+}
+// This JS evaluation resulted in an id for a js function
+counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
+    return parent->new_val(make_counted<func_t>(env, code, timeout_ms, parent));
 }
 
 } // namespace ql

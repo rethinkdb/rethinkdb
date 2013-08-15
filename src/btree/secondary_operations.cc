@@ -8,7 +8,9 @@
 void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, std::map<std::string, secondary_index_t> *sindexes_out) {
     const btree_sindex_block_t *data = static_cast<const btree_sindex_block_t *>(sindex_block->get_data_read());
 
-    blob_t sindex_blob(const_cast<char *>(data->sindex_blob), btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
+    blob_t sindex_blob(txn->get_cache()->get_block_size(),
+                       const_cast<char *>(data->sindex_blob),
+                       btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     buffer_group_t group;
     blob_acq_t acq;
@@ -30,7 +32,9 @@ void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block
 void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, const std::map<std::string, secondary_index_t> &sindexes) {
     btree_sindex_block_t *data = static_cast<btree_sindex_block_t *>(sindex_block->get_data_write());
 
-    blob_t sindex_blob(data->sindex_blob, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
+    blob_t sindex_blob(txn->get_cache()->get_block_size(),
+                       data->sindex_blob,
+                       btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
     sindex_blob.clear(txn);
 
     write_message_t wm;
@@ -47,9 +51,8 @@ void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block
 
 void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) {
     btree_sindex_block_t *data = static_cast<btree_sindex_block_t *>(sindex_block->get_data_write());
+    data->magic = btree_sindex_block_t::expected_magic;
     memset(data->sindex_blob, 0, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-
-    blob_t sindex_blob(data->sindex_blob, btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
     set_secondary_indexes_internal(txn, sindex_block, std::map<std::string, secondary_index_t>());
 }

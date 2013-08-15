@@ -1,6 +1,8 @@
 #include "rdb_protocol/term_walker.hpp"
 
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
 
@@ -11,7 +13,8 @@ class term_walker_t {
 public:
     // This constructor fills in the backtraces of a term (`walk`) and checks
     // that it's well-formed with regard to write placement.
-    explicit term_walker_t(Term *root) : depth(0), writes_legal(true), bt(0) {
+    explicit term_walker_t(Term *root)
+        : depth(0), writes_legal(true), bt(0), curtime(pseudo::time_now()) {
         walk(root, 0, head_frame);
     }
 
@@ -32,6 +35,11 @@ public:
 
         val_pusher_t<int> depth_pusher(&depth, depth+1);
         add_bt(t, parent, frame);
+
+        if (t->type() == Term::NOW && t->args_size() == 0) {
+            Term *arg = t;
+            NDATUM(curtime);
+        }
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
             rcheck_src(&t->GetExtension(ql2::extension::backtrace),
@@ -135,11 +143,12 @@ private:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
         case Term::INDEXES_OF:
-        case Term::GETATTR:
+        case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
+        case Term::LITERAL:
         case Term::BETWEEN:
         case Term::REDUCE:
         case Term::MAP:
@@ -180,6 +189,45 @@ private:
         case Term::CONTAINS:
         case Term::KEYS:
         case Term::WITH_FIELDS:
+        case Term::JSON:
+        case Term::ISO8601:
+        case Term::TO_ISO8601:
+        case Term::EPOCH_TIME:
+        case Term::TO_EPOCH_TIME:
+        case Term::NOW:
+        case Term::IN_TIMEZONE:
+        case Term::DURING:
+        case Term::DATE:
+        case Term::TIME_OF_DAY:
+        case Term::TIMEZONE:
+        case Term::TIME:
+        case Term::YEAR:
+        case Term::MONTH:
+        case Term::DAY:
+        case Term::DAY_OF_WEEK:
+        case Term::DAY_OF_YEAR:
+        case Term::HOURS:
+        case Term::MINUTES:
+        case Term::SECONDS:
+        case Term::MONDAY:
+        case Term::TUESDAY:
+        case Term::WEDNESDAY:
+        case Term::THURSDAY:
+        case Term::FRIDAY:
+        case Term::SATURDAY:
+        case Term::SUNDAY:
+        case Term::JANUARY:
+        case Term::FEBRUARY:
+        case Term::MARCH:
+        case Term::APRIL:
+        case Term::MAY:
+        case Term::JUNE:
+        case Term::JULY:
+        case Term::AUGUST:
+        case Term::SEPTEMBER:
+        case Term::OCTOBER:
+        case Term::NOVEMBER:
+        case Term::DECEMBER:
             return false;
         default: unreachable();
         }
@@ -249,11 +297,12 @@ private:
         case Term::SET_DIFFERENCE:
         case Term::SLICE:
         case Term::INDEXES_OF:
-        case Term::GETATTR:
+        case Term::GET_FIELD:
         case Term::HAS_FIELDS:
         case Term::PLUCK:
         case Term::WITHOUT:
         case Term::MERGE:
+        case Term::LITERAL:
         case Term::BETWEEN:
         case Term::ORDERBY:
         case Term::DISTINCT:
@@ -293,6 +342,45 @@ private:
         case Term::CONTAINS:
         case Term::KEYS:
         case Term::WITH_FIELDS:
+        case Term::JSON:
+        case Term::ISO8601:
+        case Term::TO_ISO8601:
+        case Term::EPOCH_TIME:
+        case Term::TO_EPOCH_TIME:
+        case Term::NOW:
+        case Term::IN_TIMEZONE:
+        case Term::DURING:
+        case Term::DATE:
+        case Term::TIME_OF_DAY:
+        case Term::TIMEZONE:
+        case Term::TIME:
+        case Term::YEAR:
+        case Term::MONTH:
+        case Term::DAY:
+        case Term::DAY_OF_WEEK:
+        case Term::DAY_OF_YEAR:
+        case Term::HOURS:
+        case Term::MINUTES:
+        case Term::SECONDS:
+        case Term::MONDAY:
+        case Term::TUESDAY:
+        case Term::WEDNESDAY:
+        case Term::THURSDAY:
+        case Term::FRIDAY:
+        case Term::SATURDAY:
+        case Term::SUNDAY:
+        case Term::JANUARY:
+        case Term::FEBRUARY:
+        case Term::MARCH:
+        case Term::APRIL:
+        case Term::MAY:
+        case Term::JUNE:
+        case Term::JULY:
+        case Term::AUGUST:
+        case Term::SEPTEMBER:
+        case Term::OCTOBER:
+        case Term::NOVEMBER:
+        case Term::DECEMBER:
             return false;
         default: unreachable();
         }
@@ -318,6 +406,7 @@ private:
     int depth;
     bool writes_legal;
     const Backtrace *const bt;
+    counted_t<const datum_t> curtime;
 };
 
 void preprocess_term(Term *root) {

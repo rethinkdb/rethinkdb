@@ -5,6 +5,9 @@ import sys
 from time import sleep
 from subprocess import call, Popen, PIPE
 
+# Connection to /dev/null to redirect unwanted subprocess output to
+null = open('/dev/null', 'w')
+
 # Manages a cluster of RethinkDB servers
 class RethinkDBTestServers(object):
     def __init__(self, num_servers=4, server_build_dir=None, use_default_port=False):
@@ -151,18 +154,18 @@ class RethinkDBTestServer(object):
 def shard_table(port, build, table_name):
     rtn_sum = 0
     rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc040800000000000\2333'], stdout=PIPE, stderr=PIPE)
+					'Nc040800000000000\2333'], stdout=null, stderr=null)
     rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc048800000000000\2349'], stdout=PIPE, stderr=PIPE)
+					'Nc048800000000000\2349'], stdout=null, stderr=null)
     rtn_sum += call([build, 'admin', '--join', 'localhost:%d' % port, 'split', 'shard', table_name,
-					'Nc04f000000000000\2362'], stdout=PIPE, stderr=PIPE)
+					'Nc04f000000000000\2362'], stdout=null, stderr=null)
     sleep(3.0)
     return rtn_sum
 
 def set_auth(port, build, auth_key):
     if len(auth_key) != 0:
-        rtn_value = call([build, 'admin', '--join', 'localhost:%d' % port, 'set', 'auth', str(auth_key)], stdout=PIPE, stderr=PIPE)
+        rtn_value = call([build, 'admin', '--join', 'localhost:%d' % port, 'set', 'auth', str(auth_key)], stdout=null, stderr=null)
     else:
-        rtn_value = call([build, 'admin', '--join', 'localhost:%d' % port, 'unset', 'auth'], stdout=PIPE, stderr=PIPE)
+        rtn_value = call([build, 'admin', '--join', 'localhost:%d' % port, 'unset', 'auth'], stdout=null, stderr=null)
     sleep(1.0)
     return rtn_value

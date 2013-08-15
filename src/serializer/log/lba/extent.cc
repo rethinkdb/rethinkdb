@@ -35,7 +35,8 @@ struct extent_block_t :
         parent->last_block = this;
         is_last_block = true;
 
-        parent->file->write_async(parent->extent_ref.offset() + offset, DEVICE_BLOCK_SIZE, data, io_account, this);
+        parent->file->write_async(parent->extent_ref.offset() + offset, DEVICE_BLOCK_SIZE,
+                                  data, io_account, this, file_t::NO_DATASYNCS);
     }
 
     void on_extent_sync() {

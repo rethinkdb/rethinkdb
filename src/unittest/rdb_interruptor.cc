@@ -5,6 +5,7 @@
 #include <boost/bind.hpp>
 
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/rdb_env.hpp"

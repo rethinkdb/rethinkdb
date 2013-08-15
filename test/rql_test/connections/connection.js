@@ -7,7 +7,7 @@ var spawn = require('child_process').spawn
 
 var assert = require('assert');
 
-var r = require('../../../drivers/javascript/build/rethinkdb');
+var r = require('../../../build/packages/js/rethinkdb');
 var build_dir = process.env.BUILD_DIR || '../../../build/debug'
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 
@@ -78,6 +78,17 @@ var ifTestDefault = function(f, c){
 }
 
 describe('Javascript connection API', function(){
+    it("times out with a server that doesn't do the handshake correctly", function(done){
+        var port = 8990;
+
+        // Setup dummy sever
+        require('net').createServer(function(c) {
+            // Do nothing
+        }).listen(port);
+
+        r.connect({port:port, timeout:1}, givesError("RqlDriverError", "Handshake timedout", done));
+    });
+
     describe('With no server', function(){
         it("fails when trying to connect", function(done){
             ifTestDefault(
@@ -93,7 +104,7 @@ describe('Javascript connection API', function(){
         it("empty run", function(done) {
           assert.throws(function(){ r.expr(1).run(); },
                         checkError("RqlDriverError",
-                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool> }."));
+                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>}."));
           done();
         });
     });

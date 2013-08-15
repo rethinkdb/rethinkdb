@@ -5,8 +5,8 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/iterators.hpp"
-#include "extproc/pool.hpp"
-#include "extproc/spawner.hpp"
+#include "extproc/extproc_pool.hpp"
+#include "extproc/extproc_spawner.hpp"
 #include "memcached/protocol.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/proto_utils.hpp"
@@ -49,7 +49,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
         temp_files.push_back(new temp_file_t);
     }
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
@@ -66,20 +66,18 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     /* Create some structures for the rdb_protocol_t::context_t, warning some
      * boilerplate is about to follow, avert your eyes if you have a weak
      * stomach for such things. */
-    extproc::spawner_info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-    extproc::pool_group_t pool_group(&spawner_info, extproc::pool_group_t::DEFAULTS);
+    extproc_pool_t extproc_pool(2);
 
     connectivity_cluster_t c;
     semilattice_manager_t<cluster_semilattice_metadata_t> slm(&c, cluster_semilattice_metadata_t());
-    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), ANY_PORT, &slm, 0, NULL);
+    connectivity_cluster_t::run_t cr(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &slm, 0, NULL);
 
     connectivity_cluster_t c2;
     directory_read_manager_t<cluster_directory_metadata_t> read_manager(&c2);
-    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), ANY_PORT, &read_manager, 0, NULL);
+    connectivity_cluster_t::run_t cr2(&c2, get_unittest_addresses(), peer_address_t(), ANY_PORT, &read_manager, 0, NULL);
 
     boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > dummy_auth;
-    rdb_protocol_t::context_t ctx(&pool_group, NULL, slm.get_root_view(),
+    rdb_protocol_t::context_t ctx(&extproc_pool, NULL, slm.get_root_view(),
                                   dummy_auth, &read_manager, generate_uuid());
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
@@ -106,6 +104,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun, bool oversharded) {
+    extproc_spawner_t extproc_spawner;
     unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun, oversharded));
 }
 
@@ -171,7 +170,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
     std::string id = uuid_to_str(generate_uuid());
     Term mapping;
     Term *arg = ql::pb::set_func(&mapping, 1);
-    N2(GETATTR, NVAR(1), NDATUM("sid"));
+    N2(GET_FIELD, NVAR(1), NDATUM("sid"));
 
     ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 
@@ -238,9 +237,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(id,
-                                                                sindex_key_literal,
-                                                                sindex_key_literal));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
+            id, rdb_protocol_t::sindex_range_t(
+                sindex_key_literal, false, sindex_key_literal, false)));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -250,7 +249,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
             rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(0, query_language::json_cmp(stream->at(0).second->get(), data->get()));
+            ASSERT_EQ(0, query_language::json_cmp(stream->at(0).data->get(), data->get()));
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -274,9 +273,10 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(id,
-                                                                sindex_key_literal,
-                                                                sindex_key_literal));
+        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
+            id, rdb_protocol_t::sindex_range_t(
+                sindex_key_literal, false, sindex_key_literal, false)));
+
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -393,9 +393,9 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
             {
                 /* Access the data using the secondary index. */
-                rdb_protocol_t::rget_read_t rget(sindex_id,
-                                                 sindex_key_literal,
-                                                 sindex_key_literal);
+                rdb_protocol_t::rget_read_t rget(
+                    sindex_id, rdb_protocol_t::sindex_range_t(
+                        sindex_key_literal, false, sindex_key_literal, false));
                 rdb_protocol_t::read_t read(rget);
                 rdb_protocol_t::read_response_t response;
 

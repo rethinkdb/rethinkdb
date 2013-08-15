@@ -135,7 +135,9 @@ bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
 
     // The const cast is okay because we access the data with rwi_read
     // and don't write to the blob.
-    blob_t blob(const_cast<char *>(data->metainfo_blob), btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                const_cast<char *>(data->metainfo_blob),
+                btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     blob_acq_t acq;
     buffer_group_t group;
@@ -164,7 +166,9 @@ void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::ve
 
     // The const cast is okay because we access the data with rwi_read
     // and don't write to the blob.
-    blob_t blob(const_cast<char *>(data->metainfo_blob), btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                const_cast<char *>(data->metainfo_blob),
+                btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob_acq_t acq;
     buffer_group_t group;
     blob.expose_all(txn, rwi_read, &group, &acq);
@@ -187,7 +191,8 @@ void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::ve
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value) {
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
 
-    blob_t blob(data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
 
@@ -253,7 +258,8 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key) {
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
 
-    blob_t blob(data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
 
@@ -302,7 +308,8 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
 
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
-    blob_t blob(data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob.clear(txn);
 }
 

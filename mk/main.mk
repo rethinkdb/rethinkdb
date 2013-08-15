@@ -11,7 +11,7 @@ default-goal: real-default-goal
 
 # Build the webui, drivers and executable
 .PHONY: all
-all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
+all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all backup-scripts
 
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
@@ -46,9 +46,6 @@ include $(TOP)/mk/install.mk
 # External dependencies
 include $(TOP)/external/build.mk
 
-# Javascript protobuf compiler
-include $(TOP)/external/protobuf-plugin-closure/build.mk
-
 # Clients drivers
 include $(TOP)/drivers/build.mk
 
@@ -57,6 +54,9 @@ include $(TOP)/docs/rql/build.mk
 
 # Build the web assets
 include $(TOP)/mk/webui.mk
+
+# Copying the backup scripts
+include $(TOP)/mk/backup-scripts.mk
 
 # Building the rethinkdb executable
 include $(TOP)/src/build.mk
@@ -74,6 +74,6 @@ include $(TOP)/test/build.mk
 include $(TOP)/mk/local.mk
 
 .PHONY: clean
-clean: build-clean js-clean
+clean: build-clean
 
 endif # CONFIGURE_STATUS = success

@@ -7,11 +7,11 @@ process.on('uncaughtException', function(err) {
     console.log(err.toString() + err.stack.toString());
 });
 
-var r = require('../../../drivers/javascript/build/rethinkdb');
+var r = require('../../../build/packages/js/rethinkdb');
 
 var assertNoError = function(err) {
     if (err) {
-        throw "Error "+err+" not expected"
+        throw new Error("Error "+err+" not expected")
     }
 };
 
@@ -50,11 +50,9 @@ r.connect({port:port}, function(err, c) {
     tbl.run(c, function(err, cur) {
         assertNoError(err);
 
-        // Test that closing the cursor cleans
-        // up the state associated with it
-        assert(Object.keys(c.outstandingCallbacks).length === 1);
+        // Closing the cursor won't immediately clean up the callback state since
+        // we need to leave a callback behind to deal with the STOP response.
         cur.close();
-        assert(Object.keys(c.outstandingCallbacks).length === 0);
 
         tbl.run(c, function(err, cur) {
             assertNoError(err);

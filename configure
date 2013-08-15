@@ -16,10 +16,10 @@ init () {
     min_gcc_version=$(read_version 4.4.3)
     min_clang_version=0
     min_icc_version=0
-    invalid_coffee_versions="1.5.0 1.6 1.6.1"
-    max_lessc_version="1.3.3"
+    min_lessc_version="1.3.1"
+    min_coffee_version="1.6.2"
 
-    please_fetch_list=handlebars
+    please_fetch_list='handlebars coffee lessc browserify proto2js'
 
     required_libs="protobuf v8"
     other_libs="unwind tcmalloc_minimal"
@@ -27,7 +27,7 @@ init () {
     support_libs="unwind tcmalloc_minimal v8 protobuf"
     default_static="tcmalloc_minimal"
 
-    web_assets_deps="lessc coffee handlebars"
+    web_assets_deps="lessc coffee handlebars browserify proto2js"
     npm_deps="$web_assets_deps"
     required_bin_deps="protoc"
     support_bin_deps="$required_bin_deps $web_assets_deps npm"
@@ -124,6 +124,7 @@ configure () {
     for lib in $required_libs; do
         check_lib $lib
     done
+    check_v8_pre_3_19
     if [[ $NO_TCMALLOC = 0 ]] ; then
         check_lib tcmalloc_minimal
         if contains "$fetch_list" tcmalloc_minimal; then
@@ -197,7 +198,7 @@ read_args () {
     arg_sysconfdir=
     arg_localstatedir=
     with_tcmalloc=true
-    enable_drivers=true
+    enable_drivers=false
     enable_precompiled_web=
     use_ccache=false
 
@@ -272,7 +273,7 @@ cxx:C++ Compiler
 protoc:Protobuf compiler
 npm:Node.js package manager
 lessc:LESS css
-coffee:CoffeScript
+coffee:CoffeeScript
 handlebars:Handlebars
 unwind:libunwind
 tcmalloc_minimal:Google Perf Tools library
@@ -296,10 +297,10 @@ Usage: $0 [arguments]
                             CXXFLAGS  C++ compiler arguments
                             LDFLAGS   C++ linker arguments
   --fetch <dep>           Force fetching <dep>.
-  <DEP>=<path>            Library or executable path. <dep> can be
+  <dep>=<path>            Library or executable path. <dep> can be
 EOF
     for dep in $all_deps; do
-        local padded="$(uc $dep)                        "
+        local padded="$dep                        "
         local descr
         lookup "$dep_descrs" $dep descr || descr=
         echo "                            ${padded:0:24} $descr"
@@ -314,8 +315,8 @@ EOF
                             tcmalloc     Build with tcmalloc. (Default: enabled)
   --enable-<option>
   --disable-<option>      Enable or disable a build option
-                            drivers          Build the client drivers (default: true)
-                            precompiled-web  Use precompiled web assets located in precompiled/web (default: false)
+                            drivers          Build the client drivers (default: false)
+                            precompiled-web  Use precompiled web assets located in precompiled/web (default: autodetect)
   --ccache                Speed up the build using ccache
 EOF
 }
@@ -851,6 +852,32 @@ test_protobuf () {
 fetch_allowed () {
      (contains "$npm_deps" $1 ||
          (contains "$support_deps" $1 && $allow_fetch)) || return 1
+}
+
+check_v8_pre_3_19 () {
+    if contains "$fetch_list" v8; then
+        boolvar V8_PRE_3_19 false
+        return
+    fi
+    require "Use pre-3.19 v8 API"
+    local tmpfile=`dirname $0`/mk/gen/check_v8_pre_3_19
+    cat > "$tmpfile.cc" <<EOF
+#include <v8.h>
+int main() {
+    v8::Local<v8::Context> lc = v8::Context::New(v8::Isolate::GetCurrent());
+    v8::Persistent<v8::Context> ps;
+    ps.Reset(v8::Isolate::GetCurrent(), lc);
+    v8::Local<v8::Context> lh = v8::Local<v8::Context>::New(v8::Isolate::GetCurrent(), ps);
+}
+EOF
+    if
+        "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
+            $V8_LIBS $PTHREAD_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
+    then
+        boolvar V8_PRE_3_19 false
+    else
+        boolvar V8_PRE_3_19 true
+    fi
 }
 
 # Call the main command with the command line arguments

@@ -15,6 +15,7 @@
 ### END INIT INFO
 
 set -e -u
+umask 022
 
 itask="${1:-}"
 
@@ -126,6 +127,8 @@ do
     # If no pid file is specified, assign one and make sure the parent folder has the correct permissions
     if ! get "$conf" pid-file rtdbpidfile; then
         rtdbpidfile="/var/run/rethinkdb/$instance_name/pid_file"
+    fi
+    if [ -d /var/run -a "${rtdbpidfile#/var/run/}" != "$rtdbpidfile" ]; then
         parent_directory="`dirname "$rtdbpidfile"`"
         if [ ! -e "$parent_directory" ]; then
             if mkdir -p "$parent_directory"; then
@@ -155,10 +158,10 @@ do
     get "$conf" cluster-port cluster_port || :
     get "$conf" http-port http_port || :
     get "$conf" port-offset port_offset || :
-    if [ "${driver_port:-$default_driver_port}" = "$default_driver_port" -o \
-         "${cluster_port:-$default_cluster_port}" = "$default_cluster_port" -o \
-         "${http-port:-$default_http_port}" = "$default_http_port" -o \
-         "${port_offset:-$default_port_offset}" = "$default_port_offset" ]; then
+    port_offset=${port_offset:-0}
+    if [ "${driver_port:-$((default_driver_port+port_offset))}" = "$default_driver_port" -o \
+         "${cluster_port:-$((default_cluster_port+port_offset))}" = "$default_cluster_port" -o \
+         "${http-port:-$((default_http_port+port_offset))}" = "$default_http_port" ]; then
         if $default_ports_available; then
             default_ports_available=false
         else
@@ -174,8 +177,14 @@ do
         if [ ! -e "$rtdbpidfile" ] ; then
             echo "rethinkdb: $instance_name: The instance is not running (there is no pid file)"
         elif is_running "`cat "$rtdbpidfile"`" ; then
-            echo "rethinkdb: $instance_name: Stopping instance (pid `cat "$rtdbpidfile"`)"
-            kill -INT "`cat "$rtdbpidfile"`"
+            echo -n "rethinkdb: $instance_name: Waiting for instance to stop (pid `cat "$rtdbpidfile"`) ..."
+            instance_pid=`cat "$rtdbpidfile"`
+            kill -INT "$instance_pid"
+            while is_running "$instance_pid"; do
+                echo -n "."
+                sleep 1
+            done
+            echo " Stopped."
         else
             rm -f "$rtdbpidfile"
         fi
@@ -187,10 +196,6 @@ do
         if ! get "$conf" bind x; then
             echo "rethinkdb: $instance_name: will only listen on local network interfaces."
             echo "rethinkdb: $instance_name: To expose rethinkdb on the network, add the 'bind=all' option to $rtdbconffile"
-        fi
-
-        if [ -e /var/run -a "${rtdbpidfile#/var/run}" != "$rtdbpidfile" ] ; then
-            mkdir -p "`dirname "$rtdbpidfile"`"
         fi
 
         if [ -e "$rtdbpidfile" ] && is_running "$(cat "$rtdbpidfile")"; then

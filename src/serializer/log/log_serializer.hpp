@@ -15,14 +15,25 @@
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
-#include "serializer/log/data_block_manager.hpp"
-
 #include "serializer/log/stats.hpp"
 
 class cond_t;
+class data_block_manager_t;
 struct block_magic_t;
 class io_backender_t;
 class log_serializer_t;
+
+namespace data_block_manager {
+struct shutdown_callback_t {
+    virtual void on_datablock_manager_shutdown() = 0;
+    virtual ~shutdown_callback_t() {}
+};
+
+struct metablock_mixin_t {
+    int64_t active_extent;
+} __attribute__((__packed__));
+
+}  // namespace data_block_manager
 
 /**
  * This is the log-structured serializer, the holiest of holies of
@@ -33,9 +44,9 @@ class log_serializer_t;
 struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_list_t::metablock_mixin_t lba_index_part;
-    data_block_manager_t::metablock_mixin_t data_block_manager_part;
+    data_block_manager::metablock_mixin_t data_block_manager_part;
     block_sequence_id_t block_sequence_id;
-};
+} __attribute__((__packed__));
 
 //  Data to be serialized to disk with each block.  Changing this changes the disk format!
 // TODO: This header data should maybe go to the cache
@@ -44,7 +55,8 @@ typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 // Used to open a file (with the given filepath) for the log serializer.
 class filepath_file_opener_t : public serializer_file_opener_t {
 public:
-    filepath_file_opener_t(const serializer_filepath_t &filepath, io_backender_t *backender);
+    filepath_file_opener_t(const serializer_filepath_t &filepath,
+                           io_backender_t *backender);
     ~filepath_file_opener_t();
 
     // The path of the final position of the file.
@@ -55,7 +67,7 @@ public:
     void open_serializer_file_existing(scoped_ptr_t<file_t> *file_out);
     void unlink_serializer_file();
 #ifdef SEMANTIC_SERIALIZER_CHECK
-    void open_semantic_checking_file(int *fd_out);
+    void open_semantic_checking_file(scoped_ptr_t<semantic_checking_file_t> *file_out);
 #endif
 
 private:
@@ -68,7 +80,8 @@ private:
     std::string current_file_name() const;
 
     // The filepath of the final position of the file.
-    serializer_filepath_t filepath_;
+    const serializer_filepath_t filepath_;
+
     io_backender_t *const backender_;
 
     // Makes sure that only one member function gets called at a time.  Some of them are blocking,
@@ -94,12 +107,12 @@ class log_serializer_t :
 #else
     public home_thread_mixin_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
-    private data_block_manager_t::shutdown_callback_t,
+    private data_block_manager::shutdown_callback_t,
     private lba_list_t::shutdown_callback_t
 {
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
-    friend class dbm_read_ahead_fsm_t;
+    friend class dbm_read_ahead_t;
     friend class ls_block_token_pointee_t;
 
 public:
@@ -122,9 +135,8 @@ public:
 
 public:
     /* Implementation of the serializer_t API */
-    void *malloc();
-    void *clone(void*); // clones a buf
-    void free(void*);
+    scoped_malloc_t<ser_buffer_t> malloc();
+    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
@@ -136,14 +148,12 @@ public:
     bool get_delete_bit(block_id_t id);
     counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
 
-    void block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb);
-
-    void block_read(const counted_t<ls_block_token_pointee_t>& token, void *buf, file_account_t *io_account);
+    void block_read(const counted_t<ls_block_token_pointee_t>& token, ser_buffer_t *buf, file_account_t *io_account);
 
     void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
 
-    counted_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb);
-    counted_t<ls_block_token_pointee_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
+                                                                   file_account_t *io_account, iocallback_t *cb);
 
     block_size_t get_block_size() const;
 
@@ -154,9 +164,14 @@ private:
     bool tokens_exist_for_offset(int64_t off);
     void unregister_block_token(ls_block_token_pointee_t *token);
     void remap_block_to_new_offset(int64_t current_offset, int64_t new_offset);
-    counted_t<ls_block_token_pointee_t> generate_block_token(int64_t offset);
+    counted_t<ls_block_token_pointee_t> generate_block_token(int64_t offset,
+                                                             block_size_t block_size);
 
-    bool offer_buf_to_read_ahead_callbacks(block_id_t block_id, void *buf, const counted_t<standard_block_token_t>& token, repli_timestamp_t recency_timestamp);
+    void offer_buf_to_read_ahead_callbacks(
+            block_id_t block_id,
+            scoped_malloc_t<ser_buffer_t> &&buf,
+            const counted_t<standard_block_token_t>& token,
+            repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
     struct index_write_context_t {
@@ -179,29 +194,11 @@ private:
     virtual void on_datablock_manager_shutdown();
     virtual void on_lba_shutdown();
 
-public:
-    // disable_gc should be called when you want to turn off the gc
-    // temporarily.
-    //
-    // disable_gc will ALWAYS eventually call the callback.  It will
-    // return 'true' (and will have already called the callback) if gc
-    // is stopped immediately.
-    typedef data_block_manager_t::gc_disable_callback_t gc_disable_callback_t;
-
-    bool disable_gc(gc_disable_callback_t *cb);
-
-    // enable_gc() should be called when you want to turn on the gc.
-    // gc will be enabled immediately.  Always returns 'true' for
-    // do_on_thread.  TODO: who uses this return value?
-    void enable_gc();
-
-private:
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
 
     void consider_start_gc();
 
-    std::map<ls_block_token_pointee_t *, int64_t> token_offsets;
     std::multimap<int64_t, ls_block_token_pointee_t *> offset_tokens;
     scoped_ptr_t<log_serializer_stats_t> stats;
     perfmon_collection_t disk_stats_collection;

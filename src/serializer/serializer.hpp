@@ -42,9 +42,8 @@ public:
     /* The buffers that are used with do_read() and do_write() must be allocated using
     these functions. They can be safely called from any thread. */
 
-    virtual void *malloc() = 0;
-    virtual void *clone(void*) = 0; // clones a buf
-    virtual void free(void*) = 0;
+    virtual scoped_malloc_t<ser_buffer_t> malloc() = 0;
+    virtual scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *) = 0;
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
@@ -58,12 +57,9 @@ public:
     virtual void register_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
 
-    /* Reading a block from the serializer */
-    // Non-blocking variant
-    virtual void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account, iocallback_t *cb) = 0;
-
-    // Blocking variant (requires coroutine context). Has default implementation.
-    virtual void block_read(const counted_t<standard_block_token_t>& token, void *buf, file_account_t *io_account) = 0;
+    // Reading a block from the serializer.  Reads a block, blocks the coroutine.
+    virtual void block_read(const counted_t<standard_block_token_t> &token,
+                            ser_buffer_t *buf, file_account_t *io_account) = 0;
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)
@@ -91,9 +87,11 @@ public:
     /* index_write() applies all given index operations in an atomic way */
     virtual void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) = 0;
 
-    /* Non-blocking variants */
-    virtual counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account, iocallback_t *cb) = 0;
-    virtual counted_t<standard_block_token_t> block_write(const void *buf, block_id_t block_id, file_account_t *io_account);
+    // Returns block tokens in the same order as write_infos.
+    virtual std::vector<counted_t<standard_block_token_t> >
+    block_writes(const std::vector<buf_write_info_t> &write_infos,
+                 file_account_t *io_account,
+                 iocallback_t *cb) = 0;
 
     /* The size, in bytes, of each serializer block */
     virtual block_size_t get_block_size() const = 0;
@@ -119,6 +117,7 @@ struct serializer_write_t {
     union {
         struct {
             const void *buf;
+            uint32_t ser_block_size;
             repli_timestamp_t recency;
             iocallback_t *io_callback;
             serializer_write_launched_callback_t *launch_callback;
@@ -129,9 +128,10 @@ struct serializer_write_t {
     } action;
 
     static serializer_write_t make_touch(block_id_t block_id, repli_timestamp_t recency);
-    static serializer_write_t make_update(block_id_t block_id, repli_timestamp_t recency, const void *buf,
-                                          iocallback_t *io_callback = NULL,
-                                          serializer_write_launched_callback_t *launch_callback = NULL);
+    static serializer_write_t make_update(block_id_t block_id, block_size_t block_size,
+                                          repli_timestamp_t recency, const void *buf,
+                                          iocallback_t *io_callback,
+                                          serializer_write_launched_callback_t *launch_callback);
     static serializer_write_t make_delete(block_id_t block_id);
 };
 
@@ -149,16 +149,8 @@ void serializer_index_write(serializer_type *ser, const index_write_op_t& op, fi
     return ser->index_write(ops, io_account);
 }
 
-template <class serializer_type>
-counted_t<typename serializer_traits_t<serializer_type>::block_token_type> serializer_block_write(serializer_type *ser, const void *buf, block_id_t block_id, file_account_t *io_account) {
-    struct : public cond_t, public iocallback_t {
-        void on_io_complete() { pulse(); }
-    } cb;
-    counted_t<typename serializer_traits_t<serializer_type>::block_token_type> result
-        = ser->block_write(buf, block_id, io_account, &cb);
-    cb.wait();
-    return result;
-
-}
+counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_buffer_t *buf,
+                                                         block_size_t block_size,
+                                                         block_id_t block_id, file_account_t *io_account);
 
 #endif /* SERIALIZER_SERIALIZER_HPP_ */

@@ -3,6 +3,10 @@ require 'prettyprint'
 
 module RethinkDB
   module RPP
+    @@termtype_to_str = Hash[
+      Term::TermType.constants.map{|x| [Term::TermType.const_get(x), x.to_s]}
+    ]
+
     def self.sanitize_context context
       if __FILE__ =~ /^(.*\/)[^\/]+.rb$/
         prefix = $1;
@@ -46,7 +50,7 @@ module RethinkDB
 
     def self.pp_int_datum(q, dat, pre_dot)
       q.text("r(") if pre_dot
-      q.text(Shim.datum_to_native(dat).inspect)
+      q.text(Shim.datum_to_native(dat, :time_format => 'raw').inspect)
       q.text(")") if pre_dot
     end
 
@@ -103,7 +107,7 @@ module RethinkDB
         return res
       end
 
-      name = term.type.to_s.downcase
+      name = @@termtype_to_str[term.type].downcase
       args = term.args.dup
       optargs = term.optargs.dup
 

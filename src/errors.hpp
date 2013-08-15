@@ -98,11 +98,6 @@
         abort();                                                    \
     } while (0)
 
-#define nice_crash(...) do {          \
-        fprintf(stderr, __VA_ARGS__); \
-        exit(EXIT_FAILURE);           \
-    } while (0)
-
 #define crash_or_trap(msg, ...) do {                                \
         report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
         BREAKPOINT;                                                 \
@@ -123,12 +118,6 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
         if (!(cond)) {                  \
             crash_or_trap(format_assert_message("Guarantee", cond) msg); \
         }                               \
-    } while (0)
-
-#define nice_guarantee(cond, msg, ...) do { \
-        if (!(cond)) {                      \
-            nice_crash(msg, ##__VA_ARGS__); \
-        }                                   \
     } while (0)
 
 #define guarantee_xerr(cond, err, msg, args...) do {                            \

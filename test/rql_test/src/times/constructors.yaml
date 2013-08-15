@@ -1,0 +1,78 @@
+desc: Test basic time arithmetic
+tests:
+  - cd: r.epoch_time(1).to_epoch_time()
+    ot: 1
+  - cd: r.epoch_time(-1).to_epoch_time()
+    ot: -1
+  - cd: r.epoch_time(1.4444445).to_epoch_time()
+    ot: (1.444)
+# Any manipulation truncates to 6 digits
+  - cd: r.epoch_time(1.4444445).to_iso8601()
+    js: r.epochTime(1.4444445).toISO8601()
+    ot: ("1970-01-01T00:00:01.444+00:00")
+  - cd: r.epoch_time(1.4444445).seconds()
+    ot: (1.444          )
+
+  - cd: r.epoch_time(253430000000).year()
+    ot: (10000)
+  - cd: r.epoch_time(253430000000).to_iso8601()
+    js: r.epochTime(253430000000).toISO8601()
+    ot: err("RqlRuntimeError", "Year `10000` out of valid ISO 8601 range [0, 9999].", [])
+  - cd: r.epoch_time(253440000000).year()
+    ot: "err(\"RqlRuntimeError\", \"Error in time logic: Year is out of valid range: 1400..10000.\", [])"
+  - cd: r.epoch_time(253440000000).to_epoch_time()
+    ot: (253440000000)
+  - cd: r.epoch_time(-17980000000).year()
+    ot: (1400)
+  - cd: r.epoch_time(-17990000000).year()
+    ot: "err(\"RqlRuntimeError\", \"Error in time logic: Year is out of valid range: 1400..10000.\", [])"
+  - cd: r.epoch_time(-17990000000).to_epoch_time()
+    ot: (-17990000000)
+
+# Check that we parse valid dates (couldn't hurt to add more here).
+  - def: cdate = "2013-01-01"
+  - def: dates = ["2013", "2013-01", "2013-01-01", "20130101", "2013-001", "2013001"]
+  - def: ctime = "13:00:00"
+  - def: times = ["13", "13:00", "1300", "13:00:00", "13:00:00.000000", "130000.000000"]
+  - def: ctz = "+00:00"
+  - def: tzs = ["Z", "+00", "+0000", "+00:00"]
+  - def: cdt = [cdate+"T"+ctime+ctz]
+  - def:
+      rb: dts = dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - rb: r(dts).map{|x| r.iso8601(x).to_iso8601}.distinct
+    ot: (cdt)
+
+# Check that we can put a valid date into any valid timezone.
+  - rb: r(dts).concat_map{|x| tzs.map{|tz| r.epoch_time(r.iso8601(x).to_epoch_time).in_timezone(tz).to_iso8601}}.distinct
+    ot: (cdt)
+
+# Check that we don't parse invalid dates (couldn't hurt to add more here).
+  - def: bad_dates = ["201301", "2013-0101", "2a13", "2013+01", "2013-01-01.1"]
+  - def: bad_times = ["a3", "13:0000", "13:000", "13:00.00", "130000.00000000a"]
+  - def: bad_tzs = ["X", "-7", "-07:-1", "+07+01", "PST", "UTC", "Z+00"]
+  - def:
+      rb:  bad_dts1 = bad_dates.map{|d| times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - def:
+      rb:  bad_dts2 = dates.map{|d| bad_times.map{|t| tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - def:
+      rb:  bad_dts3 = dates.map{|d| times.map{|t| bad_tzs.map{|tz| d+"T"+t+tz}}}.flatten
+  - def:
+      rb:  bad_dts = bad_dts1 + bad_dts2 + bad_dts3
+# We have to hack this because we have no way to handle exceptions
+# inside of ReQL, and the easiest way to access the connection object
+# is by stealing the arguments the test framework provides to `run`.
+  - def:
+      rb:  subrunner = class << bad_dts; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:s => x, :d => RethinkDB::RQL.new.iso8601(x)}).run(*args); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
+  - rb: bad_dts
+    ot: ([])
+
+# Check that we can't put a valid date into any invalid timezone.
+  - def:
+      rb:  bad_dts_in_tz = dts.map{|dt| bad_tzs.map{|tz| {:dt => dt, :tz => tz}}}.flatten
+# We have to hack this because we have no way to handle exceptions
+# inside of ReQL, and the easiest way to access the connection object
+# is by stealing the arguments the test framework provides to `run`.
+  - def:
+      rb:  subrunner = class << bad_dts_in_tz; def run(*args); self.map{|x| begin; RethinkDB::RQL.new.expr({:dt => x[:dt], :tz => x[:tz], :s => RethinkDB::RQL.new.iso8601(x[:dt]).to_epoch_time.epoch_time.in_timezone(x[:tz]).to_iso8601.run(*args)}); rescue RethinkDB::RqlRuntimeError => e; nil; end}.select{|x| x != nil}; end; end
+  - rb: bad_dts_in_tz
+    ot: ([])

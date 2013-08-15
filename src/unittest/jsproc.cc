@@ -5,50 +5,248 @@
 #include "unittest/unittest_utils.hpp"
 
 #include "containers/archive/archive.hpp"
-#include "extproc/job.hpp"
-#include "extproc/pool.hpp"
-#include "rdb_protocol/js.hpp"
+#include "extproc/extproc_pool.hpp"
+#include "extproc/extproc_spawner.hpp"
+#include "extproc/js_runner.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "unittest/gtest.hpp"
 
-typedef void (*test_t)(js::runner_t *runner);
+void run_eval_timeout_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
 
-static void run_jsproc_test(extproc::spawner_info_t *spawner_info, test_t func) {
-    extproc::pool_group_t pool_group(spawner_info, extproc::pool_group_t::DEFAULTS);
-    js::runner_t runner;
-    runner.begin(pool_group.get());
-    func(&runner);
-    if (runner.connected()) {
-        runner.finish();
-    }
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string loop_source = "for (var x = 0; x < 4e10; x++) {}";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 10;
+
+    ASSERT_THROW(js_runner.eval(loop_source, config), interrupted_exc_t);
+    ASSERT_FALSE(js_runner.connected());
 }
 
-static void main_jsproc_test(test_t func) {
-    extproc::spawner_info_t spawner_info;
-    extproc::spawner_t::create(&spawner_info);
-    unittest::run_in_thread_pool(boost::bind(run_jsproc_test, &spawner_info, func));
+TEST(JSProc, EvalTimeout) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_eval_timeout_test));
 }
 
-// TODO: should have some way to make sure that we finish a test within a given
-// time-out, to avoid infinite loops on bugs.
+void run_call_timeout_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
 
-// ----- Tests
-void run_timeout_test(js::runner_t *runner) {
-    // TODO(rntz): there must be a better way to do this.
-    const std::string longloop = "for (var x = 0; x < 4e8; x++) {}";
+    js_runner.begin(&extproc_pool, NULL);
 
+    const std::string loop_source = "(function () { for (var x = 0; x < 4e10; x++) {} })";
 
-    // Now, the timeout test.
-    js::runner_t::req_config_t config;
-    config.timeout_ms = 20;
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 10000;
 
-    try {
-        runner->eval(longloop, &config);
-        FAIL() << "didn't time out";
-    } catch (const interrupted_exc_t &) {}
+    js_result_t result = js_runner.eval(loop_source, config);
 
-    // Interruption should have quit the job.
-    ASSERT_FALSE(runner->connected());
+    js_id_t *any_id = boost::get<js_id_t>(&result);
+    ASSERT_TRUE(any_id != NULL);
+
+    config.timeout_ms = 10;
+
+    ASSERT_THROW(js_runner.call(loop_source,
+                                std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
+                                config), interrupted_exc_t);
+    ASSERT_FALSE(js_runner.connected());
 }
 
-TEST(JSProc, Timeout) { main_jsproc_test(run_timeout_test); }
+TEST(JSProc, CallTimeout) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_call_timeout_test));
+}
+
+void run_literal_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
+
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string source_code = "9467923";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 10000;
+    js_result_t result = js_runner.eval(source_code, config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Check results
+    boost::shared_ptr<scoped_cJSON_t> *res_data =
+        boost::get<boost::shared_ptr<scoped_cJSON_t> >(&result);
+    ASSERT_TRUE(res_data != NULL);
+    ASSERT_TRUE(res_data->get() != NULL);
+    ASSERT_TRUE(res_data->get()->get() != NULL);
+    ASSERT_TRUE(res_data->get()->get()->type == cJSON_Number);
+    ASSERT_EQ(res_data->get()->get()->valueint, 9467923);
+}
+
+TEST(JSProc, Literal) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_literal_test));
+}
+
+void run_eval_and_call_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
+
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string source_code = "(function () { return 10337; })";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 10000;
+    js_result_t result = js_runner.eval(source_code, config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Get the id of the function out
+    js_id_t *js_id = boost::get<js_id_t>(&result);
+    ASSERT_TRUE(js_id != NULL);
+
+    // Call the function
+    result = js_runner.call(source_code,
+                            std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
+                            config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Check results
+    boost::shared_ptr<scoped_cJSON_t> *res_data =
+        boost::get<boost::shared_ptr<scoped_cJSON_t> >(&result);
+    ASSERT_TRUE(res_data != NULL);
+    ASSERT_TRUE(res_data->get() != NULL);
+    ASSERT_TRUE(res_data->get()->get() != NULL);
+    ASSERT_TRUE(res_data->get()->get()->type == cJSON_Number);
+    ASSERT_EQ(res_data->get()->get()->valueint, 10337);
+}
+
+TEST(JSProc, EvalAndCall) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_eval_and_call_test));
+}
+
+void run_broken_function_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
+
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string source_code = "(function () { return 4 / 0; })";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 10000;
+    js_result_t result = js_runner.eval(source_code, config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Get the id of the function out
+    js_id_t *js_id = boost::get<js_id_t>(&result);
+    ASSERT_TRUE(js_id != NULL);
+
+    // Call the function
+    result = js_runner.call(source_code,
+                            std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
+                            config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Get the error message
+    std::string *error = boost::get<std::string>(&result);
+    ASSERT_TRUE(error != NULL);
+}
+
+TEST(JSProc, BrokenFunction) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_broken_function_test));
+}
+
+void run_invalid_function_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
+
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string source_code = "(function() {)";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 10000;
+    js_result_t result = js_runner.eval(source_code, config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Get the error message
+    std::string *error = boost::get<std::string>(&result);
+    ASSERT_TRUE(error != NULL);
+}
+
+TEST(JSProc, InvalidFunction) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_invalid_function_test));
+}
+
+void run_infinite_recursion_function_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
+
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string source_code = "(function f(x) { x = x + f(x); return x; })";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 60000;
+    js_result_t result = js_runner.eval(source_code, config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Get the id of the function out
+    js_id_t *js_id = boost::get<js_id_t>(&result);
+    ASSERT_TRUE(js_id != NULL);
+
+    // Call the function
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > args;
+    args.push_back(boost::make_shared<scoped_cJSON_t>(cJSON_CreateNumber(1.0)));
+    result = js_runner.call(source_code, args, config);
+
+    std::string *err_msg = boost::get<std::string>(&result);
+
+    ASSERT_EQ(*err_msg, std::string("RangeError: Maximum call stack size exceeded"));
+}
+
+TEST(JSProc, InfiniteRecursionFunction) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_infinite_recursion_function_test));
+}
+
+void run_overalloc_function_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
+
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string source_code = "(function f() {"
+                                     "  var res = \"\";"
+                                     "  while (true) {"
+                                     "    res = res + \"blah\";"
+                                     "  }"
+                                     "  return res;"
+                                     "})";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 60000;
+    js_result_t result = js_runner.eval(source_code, config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Get the id of the function out
+    js_id_t *js_id = boost::get<js_id_t>(&result);
+    ASSERT_TRUE(js_id != NULL);
+
+    // Call the function
+    ASSERT_THROW(js_runner.call(source_code,
+                                std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
+                                config), js_worker_exc_t);
+}
+
+// Disabling this test because it may cause complications depending on the user's system
+/*
+TEST(JSProc, OverallocFunction) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_overalloc_function_test));
+}
+*/

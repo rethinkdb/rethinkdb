@@ -99,7 +99,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     // TODO: We should use N slices on M serializers, not N slices
     // on N serializers.
 
-    const int num_stores = CLUSTER_CPU_SHARDING_FACTOR;
+    const int num_stores = CPU_SHARDING_FACTOR;
 
     const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
 

@@ -8,7 +8,11 @@ TEST_FILES=$(patsubst $(DRIVERS)/driver.%,build/test.%,$(DRIVER_FILES))
 BUILD_DIR='../../build/release'
 TEST_DEFAULT_PORT=0
 SHARD=0
-TEST=.*
+ifeq (1,$(SKIP_SLOW))
+  TEST=[^_].*
+else
+  TEST=.*
+endif
 
 SHELL=/bin/bash
 

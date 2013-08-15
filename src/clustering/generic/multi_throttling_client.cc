@@ -40,16 +40,13 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_
     mailbox_manager(mm),
     free_tickets(0),
     give_tickets_mailbox(mailbox_manager,
-        boost::bind(&multi_throttling_client_t::on_give_tickets, this, _1),
-        mailbox_callback_mode_inline),
+        boost::bind(&multi_throttling_client_t::on_give_tickets, this, _1)),
     reclaim_tickets_mailbox(mailbox_manager,
-        boost::bind(&multi_throttling_client_t::on_reclaim_tickets, this, _1),
-        mailbox_callback_mode_inline)
+        boost::bind(&multi_throttling_client_t::on_reclaim_tickets, this, _1))
 {
     mailbox_t<void(server_business_card_t)> intro_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, _1),
-        mailbox_callback_mode_inline);
+        boost::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, _1));
 
     {
         const client_business_card_t client_business_card(inner_client_business_card,

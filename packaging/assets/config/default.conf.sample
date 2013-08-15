@@ -1,34 +1,33 @@
 #
 # RethinkDB instance configuration sample
 #
+# - Give this file the extension .conf and put it in /etc/rethinkdb/instances.d in order to enable it.
+# - See http://www.rethinkdb.com/docs/guides/startup/ for the complete documentation
+# - Uncomment an option to change its value.
 #
-# Give this file the extension .conf and put it in /etc/rethinkdb/instances.d in order to enable it.
-#
-# See http://www.rethinkdb.com/docs/guides/startup/ for the complete documentation
-#
-# Uncomment an option to change its value.
-
-###############################
-## Init script configuration
-###############################
-
-## User and group used to run rethinkdb
-## Default: rethinkdb user and group
-# runuser=rethinkdb
-# rungroup=rethinkdb
-
-## Stash the pid in this file when the process is running
-## Default: /var/run/rethinkdb/<name>/pid_file (where <name> is the name of this config file without the extension)
-# pid-file=/var/run/rethinkdb/rethinkdb.pid
 
 ###############################
 ## RethinkDB configuration
 ###############################
 
+### Process options
+
+## User and group used to run rethinkdb
+## Command line default: do not change user or group
+## Init script default: rethinkdb user and group
+# runuser=rethinkdb
+# rungroup=rethinkdb
+
+## Stash the pid in this file when the process is running
+## Command line default: none
+## Init script default: /var/run/rethinkdb/<name>/pid_file (where <name> is the name of this config file without the extension)
+# pid-file=/var/run/rethinkdb/rethinkdb.pid
+
 ### File path options
 
 ## Directory to store data and metadata
-## Default: /var/lib/rethinkdb/<name>/ (where <name> is the name of this file without the extension)
+## Command line default: ./rethinkdb_data
+## Init script default: /var/lib/rethinkdb/<name>/ (where <name> is the name of this file without the extension)
 # directory=/var/lib/rethinkdb/default
 
 ### Network options
@@ -52,9 +51,7 @@
 # join=example.com:29015
 
 ## All ports used locally will have this value added
-## By default, if no ports are specified, the port-offset will be automatically
-## allocated, starting from 0. The first instance will listen on the ports 28015,
-## 29015 and 8080. The second instance will listen on the ports 28016, 29016 and 8081.
+## Default: 0
 # port-offset=0
 
 ### Web options

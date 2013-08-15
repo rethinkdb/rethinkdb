@@ -7,6 +7,7 @@
 
 const block_magic_t btree_superblock_t::expected_magic = { { 's', 'u', 'p', 'e' } };
 const block_magic_t internal_node_t::expected_magic = { { 'i', 'n', 't', 'e' } };
+const block_magic_t btree_sindex_block_t::expected_magic = { { 's', 'i', 'n', 'd' } };
 
 namespace node {
 

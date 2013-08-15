@@ -16,11 +16,12 @@ commands:
       the same with the one returned from reduce.
 
     body:
-      js: "reductionFunction[, base]"
-      py: "reduction_function[, base]"
-      rb: "[base,] reduction_function"
-    parent: sequence
-    returns: json
+      js: "$PARENT.reduce(reductionFunction[, base])"
+      py: "$PARENT.reduce(reduction_function[, base])"
+      rb: "$PARENT.reduce [(base)] { reduction_function }"
+    io:
+      - - sequence
+        - value
 
     examples:
       - description: How many enemies have our heroes defeated?
@@ -42,9 +43,14 @@ commands:
       count the number of elements equal to it. If the argument is a function, it is
       equivalent to calling filter before count.
 
-    parent: sequence
-    body: [filter]
-    returns: number
+    body:
+      js: "$PARENT.count([filter])"
+      py: "$PARENT.count([filter])"
+      rb: "$PARENT.count {filter}"
+
+    io:
+      - - sequence
+        - number
 
     examples:
       - description: Just how many super heroes are there?
@@ -67,8 +73,14 @@ commands:
     section: aggregation
     description: Remove duplicate elements from the sequence.
 
-    parent: sequence
-    returns: sequence
+    body:
+      js: "$PARENT.distinct()"
+      py: "$PARENT.distinct()"
+      rb: "$PARENT.distinct"
+
+    io:
+      - - sequence
+        - array
 
     examples:
       - description: Which unique villains have been vanquished by marvel heroes?
@@ -78,9 +90,6 @@ commands:
              .run(conn, callback)
           py: 'r.table(''marvel'').concat_map(lambda hero: hero[''villainList'']).distinct().run(conn)'
           rb: r.table('marvel').concat_map{|hero| hero[:villain_list]}.distinct.run(conn)
-
-    rb:
-      dont_need_parenthesis: true
 
   - tag: groupedmapreduce
     section: aggregation
@@ -94,9 +103,15 @@ commands:
       py: grouped_map_reduce
       rb: grouped_map_reduce
       js: groupedMapReduce
-    body: grouping, mapping, reduction[, base]
-    parent: sequence
-    returns: json
+
+    body:
+      js: "$PARENT.groupedMapReduce(grouping, mapping, reduction, base)"
+      py: "$PARENT.grouped_map_reduce(grouping, mapping, reduction, base)"
+      rb: "$PARENT.grouped_map_reduce(grouping, mapping, base, reduction)"
+
+    io:
+      - - sequence
+        - value
 
     examples:
       - description: It's only fair that heroes be compared against their weight class.
@@ -138,13 +153,15 @@ commands:
       py: group_by
       rb: group_by
       js: groupBy
-    body:
-      py: attr1[, attr2...], reduction_object
-      rb: attr1[, attr2...], reduction_object
-      js: attr1[, attr2...], reductionObject
 
-    parent: sequence
-    returns: json
+    body:
+      py: "$PARENT.group_by(selector1[, selector2...], reduction_object)"
+      rb: "$PARENT.group_by(selector1[, selector2...], reduction_object)"
+      js: "$PARENT.groupBy(selector1[, selector2...], reductionObject)"
+
+    io:
+      - - sequence
+        - array
 
     examples:
       - description: Using a predefined reduction we can easily find the average
@@ -153,18 +170,37 @@ commands:
           js: r.table('marvel').groupBy('weightClass', r.avg('strength')).run(conn, callback)
           py: r.table('marvel').group_by('weightClass', r.avg('strength')).run(conn)
           rb: r.table('marvel').group_by(:weight_class, r.avg(:strength)).run(conn)
+      - description: Groupings can also be specified on nested attributes.
+        code:
+          js: "r.table('marvel').groupBy({'abilities' : {'primary' : true}}, r.avg('strength')).run(conn, callback)"
+          py: "r.table('marvel').group_by({'abilities' : {'primary' : True}}, r.avg('strength')).run(conn)"
+          rb: "r.table('marvel').group_by({:abilities => {:primary => true}}, r.avg(:strength)).run(conn)"
+      - description: The nested syntax can quickly become verbose so there's a shortcut.
+        code:
+          js: "r.table('marvel').groupBy({'abilities' : 'primary'}, r.avg('strength')).run(conn, callback)"
+          py: "r.table('marvel').group_by({'abilities' : 'primary'}, r.avg('strength')).run(conn)"
+          rb: "r.table('marvel').group_by({:abilities => :primary}, r.avg(:strength)).run(conn)"
 
   - tag: contains
     section: aggregation
-    description: Returns whether or not a sequence contains all the specified values.
+    description: Returns whether or not a sequence contains all the specified values, or if functions are provided instead, returns whether or not a sequence contains values matching all the specified functions.
 
-    body: value1[, value2...]
-    parent: sequence
-    returns: bool
+    body: "$PARENT.contains(value1[, value2...])"
+
+    io:
+      - - sequence
+        - bool
 
     examples:
-      - description: Iron Man ever fought Superman?
+      - description: Has Iron Man ever fought Superman?
         code:
           rb: r.table('marvel').get('ironman')[:opponents].contains('superman').run(conn)
           py: r.table('marvel').get('ironman')['opponents'].contains('superman').run(conn)
           js: r.table('marvel').get('ironman')('opponents').contains('superman').run(conn, callback)
+
+      - description: Has Iron Man ever defeated Superman in battle?
+        code:
+          rb: r.table('marvel').get('ironman')[:battles].contains{|battle| battle[:winner].eq('ironman') & battle[:loser].eq('superman')}
+          py: |
+            r.table('marvel').get('ironman')['battles'].contains(lambda battle: (battle['winner'] == 'ironman') & (battle['loser'] == 'superman'))
+          js: r.table('marvel').get('ironman')('battles').contains(function (battle) {return battle('winner').eq('ironman').and(battle('loser').eq('superman'));})

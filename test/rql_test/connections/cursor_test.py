@@ -14,6 +14,8 @@ if len(argv) >= 3:
 else:
     lang = None
 
+res = 0
+
 with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
     port = servers.driver_port()
     c = r.connect(port=port)
@@ -32,7 +34,6 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
         stdout.flush()
     print "Done\n"
 
-    res = 0
     if not lang or lang == 'py':
         print "Running Python"
         res = res | call(["python", "connections/cursor.py", str(port), str(num_rows)])
@@ -42,5 +43,5 @@ with RethinkDBTestServers(4, server_build_dir=server_build_dir) as servers:
         res = res | call(["node", "connections/cursor.js", str(port), str(num_rows)])
         print ''
 
-    if res is not 0:
-        exit(1)
+if res is not 0:
+    exit(1)

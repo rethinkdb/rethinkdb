@@ -44,8 +44,8 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
             port,
             boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn,
                         this, _1, auto_drainer_t::lock_t(&auto_drainer))));
-    } catch (const address_in_use_exc_t &e) {
-        nice_crash("%s. Cannot bind to RDB protocol port. Exiting.\n", e.what());
+    } catch (const address_in_use_exc_t &ex) {
+        throw address_in_use_exc_t(strprintf("Could not bind to RDB protocol port: %s", ex.what()));
     }
 }
 template <class request_t, class response_t, class context_t>
@@ -98,9 +98,20 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
     int chosen_thread = (next_thread++) % get_num_db_threads();
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
-    context_t ctx;
+
     scoped_ptr_t<tcp_conn_t> conn;
     nconn->make_overcomplicated(&conn);
+
+#ifdef __linux
+    linux_event_watcher_t *ew = conn->get_event_watcher();
+    linux_event_watcher_t::watch_t conn_interrupted(ew, poll_event_rdhup);
+    wait_any_t interruptor(&conn_interrupted, shutdown_signal());
+    context_t ctx;
+    ctx.interruptor = &interruptor;
+#else
+    context_t ctx;
+    ctx.interruptor = shutdown_signal();
+#endif  // __linux
 
     std::string init_error;
 
@@ -136,9 +147,13 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
         return;
     }
 
-    if (!init_error.empty()) {
-        conn->write(init_error.c_str(), init_error.length() + 1, &ct_keepalive);
-        conn->shutdown_write();
+    try {
+        if (!init_error.empty()) {
+            conn->write(init_error.c_str(), init_error.length() + 1, &ct_keepalive);
+            conn->shutdown_write();
+            return;
+        }
+    } catch (const tcp_conn_write_closed_exc_t &) {
         return;
     }
 
@@ -180,15 +195,6 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
                 if (force_response) {
                     send(forced_response, conn.get(), &ct_keepalive);
                 } else {
-#ifdef __linux
-                    linux_event_watcher_t *ew = conn->get_event_watcher();
-                    linux_event_watcher_t::watch_t conn_interrupted(
-                        ew, poll_event_rdhup);
-                    wait_any_t interruptor(&conn_interrupted, shutdown_signal());
-                    ctx.interruptor = &interruptor;
-#else
-                    ctx.interruptor = shutdown_signal();
-#endif  // __linux
                     response_t response;
                     bool response_needed = f(request, &response, &ctx);
                     if (response_needed) {

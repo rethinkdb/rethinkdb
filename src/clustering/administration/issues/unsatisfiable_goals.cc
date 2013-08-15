@@ -85,7 +85,7 @@ static void make_issues(const cow_ptr_t<namespaces_semilattice_metadata_t<protoc
         if (it->second.is_deleted()) {
             continue;
         }
-        namespace_semilattice_metadata_t<protocol_t> ns = it->second.get();
+        namespace_semilattice_metadata_t<protocol_t> ns = it->second.get_ref();
         if (ns.primary_datacenter.in_conflict() || ns.replica_affinities.in_conflict()) {
             continue;
         }
@@ -106,8 +106,8 @@ std::list<clone_ptr_t<global_issue_t> > unsatisfiable_goals_issue_tracker_t::get
     std::map<datacenter_id_t, int> actual_machines_in_datacenters;
     for (machines_semilattice_metadata_t::machine_map_t::iterator it = metadata.machines.machines.begin();
             it != metadata.machines.machines.end(); it++) {
-        if (!it->second.is_deleted() && !it->second.get().datacenter.in_conflict()) {
-            ++actual_machines_in_datacenters[it->second.get().datacenter.get()];
+        if (!it->second.is_deleted() && !it->second.get_ref().datacenter.in_conflict()) {
+            ++actual_machines_in_datacenters[it->second.get_ref().datacenter.get()];
         }
     }
 

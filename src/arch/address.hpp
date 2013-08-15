@@ -17,6 +17,8 @@
 #include "utils.hpp"
 #include "rpc/serialize_macros.hpp"
 
+#define MAX_PORT 65535
+
 class printf_buffer_t;
 
 class host_lookup_exc_t : public std::exception {
@@ -79,6 +81,76 @@ private:
     RDB_MAKE_ME_SERIALIZABLE_1(s_addr);
 };
 
+class port_t {
+public:
+    explicit port_t(int _port);
+    int value() const;
+private:
+    int value_;
+    RDB_MAKE_ME_SERIALIZABLE_1(value_);
+};
+
+class ip_and_port_t {
+public:
+    ip_and_port_t();
+    ip_and_port_t(const ip_address_t &_ip, port_t _port);
+
+    bool operator < (const ip_and_port_t &other) const;
+    bool operator == (const ip_and_port_t &other) const;
+
+    const ip_address_t &ip() const;
+    port_t port() const;
+
+private:
+    ip_address_t ip_;
+    port_t port_;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(ip_, port_);
+};
+
+class host_and_port_t {
+public:
+    host_and_port_t();
+    host_and_port_t(const std::string& _host, port_t _port);
+
+    bool operator < (const host_and_port_t &other) const;
+    bool operator == (const host_and_port_t &other) const;
+
+    std::set<ip_and_port_t> resolve() const;
+
+    const std::string &host() const;
+    port_t port() const;
+
+private:
+    std::string host_;
+    port_t port_;
+
+    RDB_MAKE_ME_SERIALIZABLE_2(host_, port_);
+};
+
+class peer_address_t {
+public:
+    // Constructor will look up all the hosts and convert them to ip addresses
+    explicit peer_address_t(const std::set<host_and_port_t> &_hosts);
+    peer_address_t();
+
+    const std::set<host_and_port_t> &hosts() const;
+    const std::set<ip_and_port_t> &ips() const;
+
+    host_and_port_t primary_host() const;
+
+    // Two addresses are considered equal if all of their hosts match
+    bool operator == (const peer_address_t &a) const;
+    bool operator != (const peer_address_t &a) const;
+
+private:
+    std::set<host_and_port_t> hosts_;
+    std::set<ip_and_port_t> resolved_ips;
+};
+
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr);
+void debug_print(printf_buffer_t *buf, const ip_and_port_t &addr);
+void debug_print(printf_buffer_t *buf, const host_and_port_t &addr);
+void debug_print(printf_buffer_t *buf, const peer_address_t &address);
 
 #endif /* ARCH_ADDRESS_HPP_ */

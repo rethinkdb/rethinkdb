@@ -184,7 +184,7 @@ bool semilattice_http_app_t<metadata_t>::verify_content_type(const http_req_t &r
         logINF("Bad request, Content-Type should be %s, but is %s.", expected_content_type.c_str(), actual_content_type.c_str());
         return false;
     }
-    
+
     return true;
 }
 

@@ -7,7 +7,7 @@
 #include "serializer/config.hpp"
 
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
-                                                           const serializer_filepath_t& filename,
+                                                           const serializer_filepath_t &filename,
                                                            perfmon_collection_t *stats_parent)
     : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID),
       perfmon_membership(stats_parent, &perfmon_collection, filename.permanent_path().c_str())
@@ -52,7 +52,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     }
 
     scoped_ptr_t<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
-    queue_block_t* head = reinterpret_cast<queue_block_t *>(_head->get_data_write());
+    queue_block_t *head = reinterpret_cast<queue_block_t *>(_head->get_data_write());
 
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
@@ -61,7 +61,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     char buffer[MAX_REF_SIZE];
     bzero(buffer, MAX_REF_SIZE);
 
-    blob_t blob(buffer, MAX_REF_SIZE);
+    blob_t blob(txn.get_cache()->get_block_size(), buffer, MAX_REF_SIZE);
     blob.append_region(&txn, stream.vector().size());
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, &txn, 0);
@@ -102,7 +102,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
     memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->get_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
     std::vector<char> data_vec;
 
-    blob_t blob(buffer, MAX_REF_SIZE);
+    blob_t blob(txn.get_cache()->get_block_size(), buffer, MAX_REF_SIZE);
     {
         blob_acq_t acq_group;
         buffer_group_t blob_group;

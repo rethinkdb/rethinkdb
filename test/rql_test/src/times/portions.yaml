@@ -1,0 +1,45 @@
+desc: accessing portions
+tests:
+  - def: rt1 = 1375147296.681
+  - def: rt2 = 1375147296.682
+  - def: rt3 = 1375147297.681
+  - def: rt4 = 2375147296.681
+  - def: rts = [rt1, rt2, rt3, rt4]
+
+  - def: t1 = r.epoch_time(rt1)
+  - def: t2 = r.epoch_time(rt2)
+  - def: t3 = r.epoch_time(rt3)
+  - def: t4 = r.epoch_time(rt4)
+  - def: ts = r.expr([t1, t2, t3, t4])
+
+  - rb: ts.map{|x| x.date}.map{|x| x.to_epoch_time}
+    py: ts.map(lambda x:x.date()).map(lambda x:x.to_epoch_time())
+    js: ts.map(r.row.date()).map(r.row.toEpochTime())
+    ot: ([1375142400, 1375142400, 1375142400, 2375136000])
+  - rb: ts.map{|x| x.date().time_of_day()}
+    py: ts.map(lambda x:x.date().time_of_day())
+    js: ts.map(r.row.date().timeOfDay())
+    ot: ([0, 0, 0, 0])
+  - rb: ts.map{|x| x.time_of_day}
+    py: ts.map(lambda x:x.time_of_day())
+    js: ts.map(r.row.timeOfDay())
+    ot: ([4896.681, 4896.682, 4897.681, 11296.681])
+
+  - rb: ts.map{|x| [x.year, x.month, x.day, x.hours, x.minutes, x.seconds]}
+    py: ts.map(lambda x:[x.year(), x.month(), x.day(), x.hours(), x.minutes(), x.seconds()])
+    js: ts.map([r.row.year(), r.row.month(), r.row.day(), r.row.hours(), r.row.minutes(), r.row.seconds()])
+    ot: ([[2013, 7, 30, 1, 21, 36.681],
+          [2013, 7, 30, 1, 21, 36.682],
+          [2013, 7, 30, 1, 21, 37.681],
+          [2045, 4, 7, 3, 8, 16.681]])
+  - rb: ts.map{|x| r.time(x.year, x.month, x.day, x.hours, x.minutes, x.seconds, x.timezone)}.map{|x| x.to_epoch_time}
+    py: ts.map(lambda x:r.time(x.year(), x.month(), x.day(), x.hours(), x.minutes(), x.seconds(), x.timezone())).map(lambda x:x.to_epoch_time())
+    js: ts.map(r.time(r.row.year(), r.row.month(), r.row.day(), r.row.hours(), r.row.minutes(), r.row.seconds(), r.row.timezone())).map(r.row.toEpochTime())
+    ot: rts
+  - rb: ts.map{|x| r.time(x.year, x.month, x.day, x.hours, x.minutes, x.seconds, x.timezone)}.union(ts).map{|x| x.to_iso8601}.distinct.count.sub(ts.count)
+    py: ts.map(lambda x:r.time(x.year(), x.month(), x.day(), x.hours(), x.minutes(), x.seconds(), x.timezone())).union(ts).map(lambda x:x.to_iso8601()).distinct().count().sub(ts.count())
+    js: ts.map(r.time(r.row.year(), r.row.month(), r.row.day(), r.row.hours(), r.row.minutes(), r.row.seconds(), r.row.timezone())).union(ts).map(r.row.toISO8601()).distinct().count().sub(ts.count())
+    ot: 0
+  - rb: ts.map{|x| [x.day_of_week, x.day_of_year]}
+    cd: ts.map([r.row.day_of_week(), r.row.day_of_year()])
+    ot: [[2, 211], [2, 211], [2, 211], [5, 97]]

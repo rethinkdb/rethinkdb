@@ -2,6 +2,10 @@
 # Tests the driver API for making connections and excercizes the networking code
 ###
 
+import random
+import socket
+import threading
+import SocketServer
 from sys import argv
 from subprocess import Popen
 from time import sleep
@@ -91,6 +95,28 @@ class TestConnectionDefaultPort(unittest.TestCase):
             RqlDriverError, "Server dropped connection with message: \"ERROR: incorrect authorization key\"",
             r.connect, auth_key="hunter2")
 
+class BlackHoleRequestHandler(SocketServer.BaseRequestHandler):
+    def handle(self):
+        sleep(1)
+
+class ThreadedBlackHoleServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    pass
+
+class TestTimeout(unittest.TestCase):
+    def setUp(self):
+        self.timeout = 0.5
+        self.port = random.randint(1025, 65535)
+
+        self.server = ThreadedBlackHoleServer(('localhost', self.port), BlackHoleRequestHandler)
+        self.server_thread = threading.Thread(target=self.server.serve_forever)
+        self.server_thread.start()
+
+    def tearDown(self):
+        self.server.shutdown()
+
+    def test_timeout(self):
+        self.assertRaises(socket.timeout, r.connect, port=self.port, timeout=self.timeout)
+
 class TestAuthConnection(unittest.TestCase):
 
     def setUp(self):
@@ -103,6 +129,9 @@ class TestAuthConnection(unittest.TestCase):
 
         if test_util.set_auth(cluster_port, exe, "hunter2") != 0:
             raise RuntimeError("Could not set up authorization key")
+
+    def tearDown(self):
+        self.servers.__exit__()
 
     def test_connect_no_auth(self):
         self.assertRaisesRegexp(
@@ -234,6 +263,16 @@ class TestConnection(TestWithConnection):
             r.RqlDriverError, "Connection is closed",
             r.expr(1).run)
 
+    def test_port_conversion(self):
+        c = r.connect(port=str(self.port))
+        r.expr(1).run(c)
+
+        c.close()
+        self.assertRaisesRegexp(
+            r.RqlDriverError,
+            "Could not convert port abc to an integer.",
+            lambda: r.connect(port='abc'))
+
 class TestShutdown(TestWithConnection):
     def test_shutdown(self):
         c = r.connect(port=self.port)
@@ -302,6 +341,7 @@ if __name__ == '__main__':
     suite.addTest(loader.loadTestsFromTestCase(TestNoConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnectionDefaultPort))
     suite.addTest(loader.loadTestsFromTestCase(TestWithConnection))
+    suite.addTest(loader.loadTestsFromTestCase(TestTimeout))
     suite.addTest(loader.loadTestsFromTestCase(TestAuthConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestConnection))
     suite.addTest(loader.loadTestsFromTestCase(TestShutdown))

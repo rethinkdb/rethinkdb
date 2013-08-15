@@ -4,6 +4,8 @@ import pdb
 import collections
 import types
 import re
+from datetime import datetime
+import pytz
 path.insert(0, '.')
 from test_util import shard_table
 path.insert(0, "../../drivers/python")
@@ -199,7 +201,8 @@ class PyTestDriver:
         print 'Connecting to CPP server on port ' + str(CPPPORT)
         print ''
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
-        r.db_create('test').run(self.cpp_conn)
+        if 'test' not in r.db_list().run(self.cpp_conn):
+            r.db_create('test').run(self.cpp_conn)
         self.scope = {}
 
     def define(self, expr):
@@ -291,3 +294,6 @@ def the_end():
     global failure_count
     if failure_count > 0:
         sys.exit("Failed %d tests" % failure_count)
+
+false = False
+true = True

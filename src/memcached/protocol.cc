@@ -412,11 +412,11 @@ store_t::store_t(serializer_t *serializer,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *ctx,
                  io_backender_t *io,
-                 const base_path_t &base_path) 
+                 const base_path_t &base_path)
     : btree_store_t<memcached_protocol_t>(
-            serializer, perfmon_name, cache_size, 
+            serializer, perfmon_name, cache_size,
             create, parent_perfmon_collection, ctx, io,
-            base_path) 
+            base_path)
 { }
 
 store_t::~store_t() {

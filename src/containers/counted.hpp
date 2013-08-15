@@ -5,9 +5,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <utility>
-
-#include "errors.hpp"
 #include "utils.hpp"
 
 // Yes, this is a clone of boost::intrusive_ptr.  This will probably
@@ -125,7 +122,7 @@ private:
 };
 
 template <class T, class... Args>
-counted_t<T> make_counted(Args&&... args) {
+counted_t<T> make_counted(Args &&... args) {
     return counted_t<T>(new T(std::forward<Args>(args)...));
 }
 

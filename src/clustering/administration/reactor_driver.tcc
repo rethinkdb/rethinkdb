@@ -85,7 +85,7 @@ public:
           machines_view_(machines_view),
           namespaces_view_(namespaces_view),
           per_thread_info_(get_num_db_threads()) {
-        for (ssize_t i = 0; i < per_thread_info_.size(); ++i) {
+        for (size_t i = 0; i < per_thread_info_.size(); ++i) {
             per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, i));
         }
     }
@@ -180,16 +180,16 @@ public:
             machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(tt_it->second);
             if (jt == mmd.machines.end()) continue;
             if (jt->second.is_deleted()) continue;
-            if (jt->second.get().datacenter.in_conflict()) continue;
-            datacenter_id_t dc = jt->second.get().datacenter.get();
+            if (jt->second.get_ref().datacenter.in_conflict()) continue;
+            datacenter_id_t dc = jt->second.get_ref().datacenter.get();
             acks_by_dc.insert(dc);
         }
         typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
             nmd->namespaces.find(namespace_id);
         if (it == nmd->namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
-        if (it->second.get().ack_expectations.in_conflict()) return false;
-        std::map<datacenter_id_t, ack_expectation_t> expected_acks = it->second.get().ack_expectations.get();
+        if (it->second.get_ref().ack_expectations.in_conflict()) return false;
+        std::map<datacenter_id_t, ack_expectation_t> expected_acks = it->second.get_ref().ack_expectations.get();
 
         /* The nil uuid represents acks from anywhere. */
         uint32_t extra_acks = 0;
@@ -245,26 +245,26 @@ public:
         std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::const_iterator machine_map_it
             = mmd.machines.find(machine_id);
         if (machine_map_it == mmd.machines.end() || machine_map_it->second.is_deleted()
-            || machine_map_it->second.get().datacenter.in_conflict()) {
+            || machine_map_it->second.get_ref().datacenter.in_conflict()) {
             // Is there something smart to do?  Besides deleting this whole class and
             // refactoring clustering not to do O(n^2) work per request?  Default to HARD, let
             // somebody else handle the machine not existing.
             return WRITE_DURABILITY_HARD;
         }
 
-        const datacenter_id_t dc = machine_map_it->second.get().datacenter.get();
+        const datacenter_id_t dc = machine_map_it->second.get_ref().datacenter.get();
 
         cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > nmd = ack_info->get_namespaces_view();
 
         typename std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<protocol_t> > >::const_iterator ns_it
             = nmd->namespaces.find(namespace_id);
 
-        if (ns_it == nmd->namespaces.end() || ns_it->second.is_deleted() || ns_it->second.get().ack_expectations.in_conflict()) {
+        if (ns_it == nmd->namespaces.end() || ns_it->second.is_deleted() || ns_it->second.get_ref().ack_expectations.in_conflict()) {
             // Again, FML, we default to HARD.
             return WRITE_DURABILITY_HARD;
         }
 
-        std::map<datacenter_id_t, ack_expectation_t> ack_expectations = ns_it->second.get().ack_expectations.get();
+        std::map<datacenter_id_t, ack_expectation_t> ack_expectations = ns_it->second.get_ref().ack_expectations.get();
         auto ack_it = ack_expectations.find(dc);
         if (ack_it == ack_expectations.end()) {
             // Yet again, FML, we default to HARD.
@@ -401,7 +401,7 @@ reactor_driver_t<protocol_t>::~reactor_driver_t() {
 
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::delete_reactor_data(
-        auto_drainer_t::lock_t lock, 
+        auto_drainer_t::lock_t lock,
         typename reactor_map_t::auto_type *thing_to_delete,
         namespace_id_t namespace_id)
 {
@@ -436,7 +436,7 @@ void reactor_driver_t<protocol_t>::on_change() {
             persistable_blueprint_t<protocol_t> pbp;
 
             try {
-                pbp = it->second.get().blueprint.get();
+                pbp = it->second.get_ref().blueprint.get();
             } catch (const in_conflict_exc_t &) {
                 //Nothing to do for this namespaces, its blueprint is in
                 //conflict.
@@ -451,24 +451,24 @@ void reactor_driver_t<protocol_t>::on_change() {
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
                     int64_t cache_size;
-                    if (it->second.get().cache_size.in_conflict()) {
+                    if (it->second.get_ref().cache_size.in_conflict()) {
                         cache_size = GIGABYTE;
                     } else {
-                        cache_size = it->second.get().cache_size.get();
+                        cache_size = it->second.get_ref().cache_size.get();
                     }
 
                     if (cache_size < 16 * MEGABYTE) {
                         cache_size = 16 * MEGABYTE;
                         logINF("Namespace %s(%s) has too small of a cache size. Increasing it to 16 megabytes.\n",
                                 uuid_to_str(it->first).c_str(),
-                                it->second.get().name.in_conflict() ? "Name in conflict" : it->second.get().name.get().c_str());
+                                it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
                     }
 
                     if (cache_size > 64 * GIGABYTE) {
                         cache_size = 16 * GIGABYTE;
                         logINF("Namespace %s(%s) has too large of a cache size. Decreasing it to 64 gigabyes.\n",
                                 uuid_to_str(it->first).c_str(),
-                                it->second.get().name.in_conflict() ? "Name in conflict" : it->second.get().name.get().c_str());
+                                it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
                     }
 
                     namespace_id_t tmp = it->first;

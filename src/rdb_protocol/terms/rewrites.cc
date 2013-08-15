@@ -36,7 +36,7 @@ public:
 
 private:
     virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
-    virtual counted_t<val_t> eval_impl() { return real->eval(); }
+    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) { return real->eval(); }
     protob_t<const Term> in;
     protob_t<Term> out;
 
@@ -45,7 +45,7 @@ private:
 
 class groupby_term_t : public rewrite_term_t {
 public:
-    groupby_term_t(env_t *env, protob_t<const Term> term)
+    groupby_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -58,7 +58,7 @@ public:
         arg = final_wrap(env, arg, dc, &dc_arg);
         N4(GROUPED_MAP_REDUCE,
            *arg = in->args(0),
-           group_fn(env, arg, &in->args(1)),
+           *arg = in->args(1),
            map_fn(env, arg, dc, &dc_arg),
            reduce_fn(env, arg, dc, &dc_arg));
         return out;
@@ -104,16 +104,6 @@ private:
         }
     }
 
-    static void group_fn(env_t *env, Term *arg, const Term *group_attrs) {
-        int obj = env->gensym();
-        int attr = env->gensym();
-        arg = pb::set_func(arg, obj);
-        N2(MAP, *arg = *group_attrs, arg = pb::set_func(arg, attr);
-           N3(BRANCH,
-              N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-              N2(GETATTR, NVAR(obj), NVAR(attr)),
-              NDATUM(datum_t::R_NULL)));
-    }
     static void map_fn(env_t *env, Term *arg,
                        const std::string &dc, const Term *dc_arg) {
         int obj = env->gensym(), attr = env->gensym();
@@ -124,14 +114,14 @@ private:
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-                  N2(GETATTR, NVAR(obj), NVAR(attr)),
+                  N2(GET_FIELD, NVAR(obj), NVAR(attr)),
                   NDATUM(0.0)),
                *arg = *dc_arg);
         } else if (dc == "AVG") {
             N2(FUNCALL, arg = pb::set_func(arg, attr);
                N3(BRANCH,
                   N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-                  N2(MAKE_ARRAY, N2(GETATTR, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
+                  N2(MAKE_ARRAY, N2(GET_FIELD, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
                   N2(MAKE_ARRAY, NDATUM(0.0), NDATUM(0.0))),
                *arg = *dc_arg);
         } else if (dc == "AVG") {
@@ -160,12 +150,12 @@ private:
         if (dc == "AVG") {
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
                OPT2(MAKE_OBJ,
-                    "group", N2(GETATTR, NVAR(obj), NDATUM("group")),
+                    "group", N2(GET_FIELD, NVAR(obj), NDATUM("group")),
                     "reduction",
                     N2(FUNCALL, arg = pb::set_func(arg, val);
                        N2(DIV, N2(NTH, NVAR(val), NDATUM(0.0)),
                                N2(NTH, NVAR(val), NDATUM(1.0))),
-                       N2(GETATTR, NVAR(obj), NDATUM("reduction")))));
+                       N2(GET_FIELD, NVAR(obj), NDATUM("reduction")))));
         }
         return argout;
     }
@@ -174,7 +164,7 @@ private:
 
 class inner_join_term_t : public rewrite_term_t {
 public:
-    inner_join_term_t(env_t *env, protob_t<const Term> term)
+    inner_join_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -207,7 +197,7 @@ public:
 
 class outer_join_term_t : public rewrite_term_t {
 public:
-    outer_join_term_t(env_t *env, protob_t<const Term> term) :
+    outer_join_term_t(env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -254,7 +244,7 @@ public:
 
 class eq_join_term_t : public rewrite_term_t {
 public:
-    eq_join_term_t(env_t *env, protob_t<const Term> term) :
+    eq_join_term_t(env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
 
@@ -271,7 +261,8 @@ private:
         N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
            N2(MAP,
               optarg_inheritor = arg;
-              N2(GET_ALL, *arg = *right, N2(GETATTR, NVAR(row), *arg = *left_attr)),
+              N2(GET_ALL, *arg = *right, N2(FUNCALL, *arg = *left_attr, NVAR(row));
+                  OPT1(FUNCALL, "_SHORTCUT_", NDATUM(static_cast<double>(GET_FIELD_SHORTCUT)))),
 
               arg = pb::set_func(arg, v);
               OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));
@@ -283,7 +274,7 @@ private:
 
 class delete_term_t : public rewrite_term_t {
 public:
-    delete_term_t(env_t *env, protob_t<const Term> term)
+    delete_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
 
@@ -301,7 +292,7 @@ private:
 
 class update_term_t : public rewrite_term_t {
 public:
-    update_term_t(env_t *env, protob_t<const Term> term)
+    update_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -321,7 +312,11 @@ private:
                     N2(EQ, NVAR(new_row), NDATUM(datum_t::R_NULL)),
                     NVAR(old_row),
                     N2(MERGE, NVAR(old_row), NVAR(new_row))),
-                 N2(FUNCALL, *arg = in->args(1), NVAR(old_row)))));
+                 N2(FUNCALL, *arg = in->args(1), NVAR(old_row));
+                 OPT1(FUNCALL, "_EVAL_FLAGS_",
+                      NDATUM(static_cast<double>(LITERAL_OK))))
+              OPT1(FUNCALL, "_EVAL_FLAGS_",
+                NDATUM(static_cast<double>(LITERAL_OK)))));
         return out;
     }
     virtual const char *name() const { return "update"; }
@@ -329,7 +324,7 @@ private:
 
 class skip_term_t : public rewrite_term_t {
 public:
-    skip_term_t(env_t *env, protob_t<const Term> term)
+    skip_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static protob_t<Term> rewrite(UNUSED env_t *env, protob_t<const Term> in,
@@ -337,6 +332,7 @@ private:
                                   UNUSED const pb_rcheckable_t *bt_src) {
         Term *arg = out.get();
         N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1.0));
+        OPT1(SLICE, "right_bound", NDATUM("closed"));
         return out;
      }
      virtual const char *name() const { return "skip"; }
@@ -344,7 +340,7 @@ private:
 
 class difference_term_t : public rewrite_term_t {
 public:
-    difference_term_t(env_t *env, protob_t<const Term> term)
+    difference_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
@@ -364,7 +360,7 @@ private:
 
 class with_fields_term_t : public rewrite_term_t {
 public:
-    with_fields_term_t(env_t *env, protob_t<const Term> term)
+    with_fields_term_t(env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
 private:
     static protob_t<Term> rewrite(UNUSED env_t *env, protob_t<const Term> in,
@@ -387,31 +383,31 @@ private:
      virtual const char *name() const { return "with_fields"; }
 };
 
-counted_t<term_t> make_skip_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_skip_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<skip_term_t>(env, term);
 }
-counted_t<term_t> make_groupby_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_groupby_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<groupby_term_t>(env, term);
 }
-counted_t<term_t> make_inner_join_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_inner_join_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<inner_join_term_t>(env, term);
 }
-counted_t<term_t> make_outer_join_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_outer_join_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<outer_join_term_t>(env, term);
 }
-counted_t<term_t> make_eq_join_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_eq_join_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<eq_join_term_t>(env, term);
 }
-counted_t<term_t> make_update_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_update_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<update_term_t>(env, term);
 }
-counted_t<term_t> make_delete_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_delete_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<delete_term_t>(env, term);
 }
-counted_t<term_t> make_difference_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_difference_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<difference_term_t>(env, term);
 }
-counted_t<term_t> make_with_fields_term(env_t *env, protob_t<const Term> term) {
+counted_t<term_t> make_with_fields_term(env_t *env, const protob_t<const Term> &term) {
     return make_counted<with_fields_term_t>(env, term);
 }
 

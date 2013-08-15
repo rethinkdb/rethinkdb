@@ -397,7 +397,7 @@ module 'ServerView', ->
             if no_error is true
                 $.ajax
                     processData: false
-                    url: '/ajax/semilattice/datacenters/new'
+                    url: 'ajax/semilattice/datacenters/new'
                     type: 'POST'
                     contentType: 'application/json'
                     data: JSON.stringify({"name" : @formdata.name})
@@ -460,7 +460,7 @@ module 'ServerView', ->
 
         unassign_machines_in_datacenter: =>
             $.ajax
-                url: "/ajax/semilattice/machines"
+                url: "ajax/semilattice/machines"
                 type: 'POST'
                 data: JSON.stringify(@machines_to_delete)
                 contentType: 'application/json'
@@ -500,7 +500,7 @@ module 'ServerView', ->
                 namespaces_to_update[namespace.get('id')]['ack_expectations'] = new_ack_expectations
 
             $.ajax
-                url: "/ajax/semilattice/rdb_namespaces"
+                url: "ajax/semilattice/rdb_namespaces"
                 type: 'POST'
                 data: JSON.stringify(namespaces_to_update)
                 contentType: 'application/json'
@@ -514,7 +514,7 @@ module 'ServerView', ->
                 machines.get(machine_id).set 'datacenter_uuid', universe_datacenter.get('id')
 
             $.ajax
-                url: "/ajax/semilattice/datacenters/#{@datacenter.id}"
+                url: "ajax/semilattice/datacenters/#{@datacenter.id}"
                 type: 'DELETE'
                 contentType: 'application/json'
                 success: @on_success
@@ -589,7 +589,7 @@ module 'ServerView', ->
             # Set the datacenters!
             $.ajax
                 processData: false
-                url: "/ajax/semilattice/machines"
+                url: "ajax/semilattice/machines"
                 type: 'POST'
                 contentType: 'application/json'
                 data: JSON.stringify(json)

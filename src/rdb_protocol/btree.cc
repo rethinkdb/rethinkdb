@@ -17,33 +17,9 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/func.hpp"
+#include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
-
-typedef std::list<boost::shared_ptr<scoped_cJSON_t> > json_list_t;
-typedef std::list<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > keyed_json_list_t;
-
-#define MAX_RDB_VALUE_SIZE MAX_IN_NODE_VALUE_SIZE
-
-struct rdb_value_t {
-    char contents[];
-
-public:
-    int inline_size(block_size_t bs) const {
-        return blob::ref_size(bs, contents, blob::btree_maxreflen);
-    }
-
-    int64_t value_size() const {
-        return blob::value_size(contents, blob::btree_maxreflen);
-    }
-
-    const char *value_ref() const {
-        return contents;
-    }
-
-    char *value_ref() {
-        return contents;
-    }
-};
 
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
@@ -83,22 +59,6 @@ block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
 
 block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
 
-boost::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
-                                           transaction_t *txn) {
-    blob_t blob(const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
-
-    boost::shared_ptr<scoped_cJSON_t> data;
-
-    blob_acq_t acq_group;
-    buffer_group_t buffer_group;
-    blob.expose_all(txn, rwi_read, &buffer_group, &acq_group);
-    buffer_group_read_stream_t read_stream(const_view(&buffer_group));
-    int res = deserialize(&read_stream, &data);
-    guarantee_err(res == 0, "corruption detected... this should probably be an exception\n");
-
-    return data;
-}
-
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value) {
     return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
 }
@@ -117,7 +77,8 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
 void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
                         btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
     guarantee(kv_location->value.has());
-    blob_t blob(kv_location->value->value_ref(), blob::btree_maxreflen);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                kv_location->value->value_ref(), blob::btree_maxreflen);
     blob.clear(txn);
     kv_location->value.reset();
     null_key_modification_callback_t<rdb_value_t> null_cb;
@@ -131,22 +92,30 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
     bzero(new_value.get(), MAX_RDB_VALUE_SIZE);
 
-    //TODO unnecessary copies they must go away.
+    // TODO unnecessary copies they must go away.
     write_message_t wm;
     wm << data;
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
     guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
 
-    blob_t blob(new_value->value_ref(), blob::btree_maxreflen);
+    blob_t blob(txn->get_cache()->get_block_size(),
+                new_value->value_ref(), blob::btree_maxreflen);
 
-    //TODO more copies, good lord
+    // TODO more copies, good lord
     blob.append_region(txn, stream.vector().size());
     std::string sered_data(stream.vector().begin(), stream.vector().end());
     blob.write_from_string(sered_data, txn, 0);
 
+    // Clear the blob in the leaf if it existed
+    if (kv_location->value.has()) {
+        blob_t old_blob(txn->get_cache()->get_block_size(),
+                    kv_location->value->value_ref(), blob::btree_maxreflen);
+        old_blob.clear(txn);
+    }
+
     // Actually update the leaf, if needed.
-    kv_location->value.reinterpret_swap(new_value);
+    kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
     //                                                                  ^^^^^ That means the key isn't expired.
@@ -162,11 +131,12 @@ void rdb_replace_and_return_superblock(
     const std::string &primary_key,
     const store_key_t &key,
     ql::map_wire_func_t *f,
+    return_vals_t return_vals,
     ql::env_t *ql_env,
     promise_t<superblock_t *> *superblock_promise_or_null,
     Datum *response_out,
     rdb_modification_info_t *mod_info) THROWS_NOTHING {
-    scoped_ptr_t<ql::datum_t> resp(new ql::datum_t(ql::datum_t::R_OBJECT));
+    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(
@@ -185,37 +155,58 @@ void rdb_replace_and_return_superblock(
             boost::shared_ptr<scoped_cJSON_t> old_val_json =
                 get_data(kv_location.value.get(), txn);
             guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
-            old_val = make_counted<ql::datum_t>(old_val_json, ql_env);
+            old_val = make_counted<ql::datum_t>(old_val_json);
         }
         guarantee(old_val.has());
+        if (return_vals == RETURN_VALS) {
+            bool conflict = resp.add("old_val", old_val)
+                         || resp.add("new_val", old_val); // changed below
+            guarantee(!conflict);
+        }
 
         counted_t<const ql::datum_t> new_val
             = f->compile(ql_env)->call(old_val)->as_datum();
+        if (return_vals == RETURN_VALS) {
+            bool conflict = resp.add("new_val", new_val, ql::CLOBBER);
+            guarantee(conflict); // We set it to `old_val` previously.
+        }
         if (new_val->get_type() == ql::datum_t::R_NULL) {
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
+            counted_t<const ql::datum_t> pk = new_val->get(primary_key, ql::NOTHROW);
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,
-                new_val->get(primary_key, ql::NOTHROW).has(),
+                pk.has(),
                 strprintf("Inserted object must have primary key `%s`:\n%s",
                           primary_key.c_str(), new_val->print().c_str()));
+            rcheck_target(
+                new_val, ql::base_exc_t::GENERIC,
+                key.compare(store_key_t(pk->print_primary())) == 0,
+                (started_empty
+                 ? strprintf("Primary key `%s` cannot be changed (null -> %s)",
+                             primary_key.c_str(), new_val->print().c_str())
+                 : strprintf("Primary key `%s` cannot be changed (%s -> %s)",
+                             primary_key.c_str(),
+                             old_val->print().c_str(), new_val->print().c_str())));
         } else {
-            rfail_typed_target(new_val, "Inserted value must be an OBJECT (got %s):\n%s",
-                               new_val->get_type_name(), new_val->print().c_str());
+            rfail_typed_target(
+                new_val, "Inserted value must be an OBJECT (got %s):\n%s",
+                new_val->get_type_name().c_str(), new_val->print().c_str());
         }
 
         // We use `conflict` below to store whether or not there was a key
         // conflict when constructing the stats object.  It defaults to `true`
         // so that we fail an assertion if we never update the stats object.
         bool conflict = true;
+
         // Figure out what operation we're doing (based on started_empty,
         // ended_empty, and the result of the function call) and then do it.
         if (started_empty) {
             if (ended_empty) {
-                conflict = resp->add("skipped", make_counted<ql::datum_t>(1.0));
+                conflict = resp.add("skipped", make_counted<ql::datum_t>(1.0));
             } else {
-                conflict = resp->add("inserted", make_counted<ql::datum_t>(1.0));
+                conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                 boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
@@ -224,44 +215,36 @@ void rdb_replace_and_return_superblock(
             }
         } else {
             if (ended_empty) {
-                conflict = resp->add("deleted", make_counted<ql::datum_t>(1.0));
+                conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
                 mod_info->deleted = old_val->as_json();
             } else {
-                if (*old_val->get(primary_key) == *new_val->get(primary_key)) {
-                    if (*old_val == *new_val) {
-                        conflict = resp->add("unchanged",
-                                             make_counted<ql::datum_t>(1.0));
-                    } else {
-                        conflict = resp->add("replaced", make_counted<ql::datum_t>(1.0));
-                        r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                        boost::shared_ptr<scoped_cJSON_t> new_val_as_json
-                            = new_val->as_json();
-                        kv_location_set(&kv_location, key, new_val_as_json,
-                                        slice, timestamp, txn);
-                        mod_info->added = new_val_as_json;
-                        mod_info->deleted = old_val->as_json();
-                    }
+                r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
+                if (*old_val == *new_val) {
+                    conflict = resp.add("unchanged",
+                                         make_counted<ql::datum_t>(1.0));
                 } else {
-                    rfail_target(
-                        new_val,
-                        ql::base_exc_t::GENERIC,
-                        "Primary key `%s` cannot be changed (%s -> %s)",
-                        primary_key.c_str(),
-                        old_val->print().c_str(), new_val->print().c_str());
+                    conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
+                    r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
+                    boost::shared_ptr<scoped_cJSON_t> new_val_as_json
+                        = new_val->as_json();
+                    kv_location_set(&kv_location, key, new_val_as_json,
+                                    slice, timestamp, txn);
+                    mod_info->added = new_val_as_json;
+                    mod_info->deleted = old_val->as_json();
                 }
             }
         }
         guarantee(!conflict); // message never added twice
     } catch (const ql::base_exc_t &e) {
         std::string msg = e.what();
-        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
-              || resp->add("first_error", make_counted<ql::datum_t>(msg));
+        bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
+              || resp.add("first_error", make_counted<ql::datum_t>(msg));
         guarantee(!b);
     } catch (const interrupted_exc_t &e) {
         std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
-        bool b = resp->add("errors", make_counted<ql::datum_t>(1.0))
-              || resp->add("first_error", make_counted<ql::datum_t>(msg));
+        bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
+              || resp.add("first_error", make_counted<ql::datum_t>(msg));
         guarantee(!b);
         // We don't rethrow because we're in a coroutine.  Theoretically the
         // above message should never make it back to a user because the calling
@@ -278,11 +261,13 @@ void rdb_replace(btree_slice_t *slice,
                  const std::string &primary_key,
                  const store_key_t &key,
                  ql::map_wire_func_t *f,
+                 return_vals_t return_vals,
                  ql::env_t *ql_env,
                  Datum *response_out,
                  rdb_modification_info_t *mod_info) {
-    rdb_replace_and_return_superblock(slice, timestamp, txn, superblock, primary_key,
-                                      key, f, ql_env, NULL, response_out, mod_info);
+    rdb_replace_and_return_superblock(
+        slice, timestamp, txn, superblock, primary_key,
+        key, f, return_vals, ql_env, NULL, response_out, mod_info);
 }
 
 struct slice_timestamp_txn_replace_t {
@@ -310,8 +295,9 @@ void do_a_replace_from_batched_replace(auto_drainer_t::lock_t,
     ql::map_wire_func_t f = sttr.replace->f;
     rdb_modification_report_t mod_report(sttr.replace->key);
     rdb_replace_and_return_superblock(sttr.slice, sttr.timestamp, sttr.txn, superblock,
-                                      sttr.replace->primary_key, sttr.replace->key, &f, ql_env,
-                                      superblock_promise_or_null, response_out, &mod_report.info);
+                                      sttr.replace->primary_key, sttr.replace->key, &f,
+                                      NO_RETURN_VALS, ql_env, superblock_promise_or_null,
+                                      response_out, &mod_report.info);
 
     exiter.wait();
     sindex_cb->on_mod_report(mod_report);
@@ -442,8 +428,9 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 }
 
 void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
-        blob_t blob(static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
-        blob.clear(_txn);
+    blob_t blob(_txn->get_cache()->get_block_size(),
+                static_cast<rdb_value_t *>(_value)->value_ref(), blob::btree_maxreflen);
+    blob.clear(_txn);
 }
 
 class sindex_key_range_tester_t : public key_tester_t {
@@ -479,7 +466,7 @@ void sindex_erase_range(const key_range_t &key_range,
         btree_erase_range_generic(sizer, sindex_access->btree, &tester,
                 &deleter, NULL, NULL, txn, sindex_access->super_block.get(), interruptor, release_superblock);
     } catch (const interrupted_exc_t &) {
-        //We were interrupted. That's fine nothing to be done about it.
+        // We were interrupted. That's fine nothing to be done about it.
     }
 }
 
@@ -558,7 +545,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         txn, superblock, interruptor);
 
-    //auto_drainer_t is destructed here so this waits for other coros to finish.
+    // auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
 // This is actually a kind of misleading name. This function estimates the size of a cJSON object
@@ -576,6 +563,7 @@ public:
                                               const rdb_protocol_details::transform_t &_transform,
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range,
+                                              direction_t _direction,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -583,7 +571,8 @@ public:
         cumulative_size(0),
         ql_env(_ql_env),
         transform(_transform),
-        terminal(_terminal)
+        terminal(_terminal),
+        direction(_direction)
     {
         init(range);
     }
@@ -602,6 +591,8 @@ public:
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range,
                                               const key_range_t &_primary_key_range,
+                                              direction_t _direction,
+                                              boost::optional<ql::map_wire_func_t> _sindex_function,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -610,13 +601,27 @@ public:
         ql_env(_ql_env),
         transform(_transform),
         terminal(_terminal),
-        primary_key_range(_primary_key_range)
+        primary_key_range(_primary_key_range),
+        direction(_direction)
     {
+        if (_sindex_function) {
+            sindex_function = _sindex_function->compile(_ql_env);
+        }
         init(range);
     }
+
     void init(const key_range_t &range) {
         try {
-            response->last_considered_key = range.left;
+            if (direction == FORWARD) {
+                response->last_considered_key = range.left;
+            } else {
+                guarantee(direction == BACKWARD);
+                if (!range.right.unbounded) {
+                    response->last_considered_key = range.right.key;
+                } else {
+                    response->last_considered_key = store_key_t::max();
+                }
+            }
 
             if (terminal) {
                 terminal_initialize(ql_env, terminal->backtrace,
@@ -639,43 +644,53 @@ public:
     }
 
     bool handle_pair(const btree_key_t* key, const void *value) {
+        store_key_t store_key(key);
         if (bad_init) {
             return false;
         }
         if (primary_key_range) {
             std::string pk = ql::datum_t::unprint_secondary(
-                    key_to_unescaped_str(store_key_t(key)));
+                    key_to_unescaped_str(store_key));
             if (!primary_key_range->contains_key(store_key_t(pk))) {
                 return true;
             }
         }
         try {
-            store_key_t store_key(key);
-            if (response->last_considered_key < store_key) {
+            if ((response->last_considered_key < store_key && direction == FORWARD) ||
+                (response->last_considered_key > store_key && direction == BACKWARD)) {
                 response->last_considered_key = store_key;
             }
 
-            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(value), transaction);
 
-            json_list_t data;
-            data.push_back(get_data(rdb_value, transaction));
+            std::list<lazy_json_t> data;
+            data.push_back(first_value);
+
+            counted_t<const ql::datum_t> sindex_value;
+
+            if (sindex_function &&
+                ql::datum_t::key_is_truncated(store_key)) {
+                counted_t<const ql::datum_t> datum_value =
+                    make_counted<const ql::datum_t>(first_value.get());
+                sindex_value = sindex_function->call(datum_value)->as_datum();
+            }
 
             // Apply transforms to the data
             {
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        json_list_t tmp;
+                        std::list<boost::shared_ptr<scoped_cJSON_t> > tmp;
 
-                        for (json_list_t::iterator jt  = data.begin();
-                             jt != data.end();
-                             ++jt) {
+                        for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
-                                            *jt, &it->variant,
+                                            jt->get(), &it->variant,
                                             &tmp);
                         }
                         data.clear();
-                        data.splice(data.begin(), tmp);
+                        for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
+                            data.push_back(lazy_json_t(*jt));
+                        }
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
                            more requests. */
@@ -689,11 +704,18 @@ public:
                 typedef rget_read_response_t::stream_t stream_t;
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
-                for (json_list_t::iterator it =  data.begin();
-                                           it != data.end();
-                                           ++it) {
-                    stream->push_back(std::make_pair(store_key_t(key), *it));
-                    cumulative_size += estimate_rget_response_size(*it);
+                for (auto it = data.begin(); it != data.end(); ++it) {
+                    boost::shared_ptr<scoped_cJSON_t> cjson = it->get();
+                    if (sindex_value) {
+                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
+                                                                            sindex_value->as_json(),
+                                                                            cjson));
+                    } else {
+                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
+                                                                            cjson));
+                    }
+
+                    cumulative_size += estimate_rget_response_size(cjson);
                 }
 
                 return cumulative_size < rget_max_chunk_size;
@@ -701,7 +723,8 @@ public:
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
                         terminal_apply(ql_env, terminal->backtrace,
-                                       *jt, &terminal->variant, &response->result);
+                                       *jt,
+                                       &terminal->variant, &response->result);
                     }
                     return true;
                 } catch (const ql::datum_exc_t &e2) {
@@ -732,6 +755,9 @@ public:
 
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
+    direction_t direction;
+
+    counted_t<ql::func_t> sindex_function;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -744,14 +770,12 @@ public:
     void operator()(const query_language::runtime_exc_t &) const { }
     void operator()(const ql::exc_t &) const { }
     void operator()(const ql::datum_exc_t &) const { }
-    void operator()(const std::vector<ql::wire_datum_t> &) const { }
+    //    void operator()(const std::vector<ql::wire_datum_t> &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
     void operator()(const rget_read_response_t::vec_t &) const { }
+    void operator()(const counted_t<const ql::datum_t> &) const { }
 
-    void operator()(ql::wire_datum_t &d) const {  // NOLINT(runtime/references)
-        d.finalize();
-    }
     void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
         dm.finalize();
     }
@@ -762,9 +786,10 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+                    direction_t direction,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -781,9 +806,12 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
+                    direction_t direction,
+                    const boost::optional<ql::map_wire_func_t> &map_wire_func,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, pk_range, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
+            range, pk_range, direction, map_wire_func, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -941,11 +969,11 @@ void rdb_update_single_sindex(
     int success = deserialize(&read_stream, &mapping);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-    //TODO we just use a NULL environment here. People should not be able
-    //to do anything that requires an environment like gets from other
-    //tables etc. but we don't have a nice way to disallow those things so
-    //for now we pass null and it will segfault if an illegal sindex
-    //mapping is passed.
+    // TODO we just use a NULL environment here. People should not be able
+    // to do anything that requires an environment like gets from other
+    // tables etc. but we don't have a nice way to disallow those things so
+    // for now we pass null and it will segfault if an illegal sindex
+    // mapping is passed.
     cond_t non_interruptor;
     ql::env_t env(&non_interruptor);
 
@@ -956,7 +984,7 @@ void rdb_update_single_sindex(
             promise_t<superblock_t *> return_superblock_local;
             {
                 counted_t<const ql::datum_t> deleted =
-                    make_counted<ql::datum_t>(modification->info.deleted, &env);
+                    make_counted<ql::datum_t>(modification->info.deleted);
 
                 counted_t<const ql::datum_t> index =
                     mapping.compile(&env)->call(deleted)->as_datum();
@@ -977,7 +1005,7 @@ void rdb_update_single_sindex(
                     kv_location_delete(&kv_location, sindex_key,
                                        sindex->btree, repli_timestamp_t::distant_past, txn);
                 }
-                //The keyvalue location gets destroyed here.
+                // The keyvalue location gets destroyed here.
             }
             super_block = return_superblock_local.wait();
         } catch (const ql::base_exc_t &) {
@@ -988,7 +1016,7 @@ void rdb_update_single_sindex(
     if (modification->info.added) {
         try {
             counted_t<const ql::datum_t> added =
-                make_counted<ql::datum_t>(modification->info.added, &env);
+                make_counted<ql::datum_t>(modification->info.added);
 
             counted_t<const ql::datum_t> index
                 = mapping.compile(&env)->call(added)->as_datum();
@@ -1060,6 +1088,12 @@ public:
 
         scoped_ptr_t<transaction_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
+
+        // If we get interrupted, post-construction will happen later, no need to
+        //  guarantee that we touch the sindex tree now
+        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+            destroyer(&token_pair.sindex_write_token);
+
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
@@ -1099,14 +1133,12 @@ public:
         }
 
         const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
-        leaf::live_iter_t node_iter = leaf::iter_for_whole_leaf(leaf_node);
 
-        const btree_key_t *key;
-        while ((key = node_iter.get_key(leaf_node))) {
+        for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
             /* Grab relevant values from the leaf node. */
-            const void *value = node_iter.get_value(leaf_node);
+            const btree_key_t *key = (*it).first;
+            const void *value = (*it).second;
             guarantee(key);
-            node_iter.step(leaf_node);
 
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);

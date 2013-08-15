@@ -30,6 +30,8 @@
 #include <valgrind/memcheck.h>
 #endif
 
+#include <google/protobuf/stubs/common.h>
+
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
 
@@ -73,6 +75,15 @@ void run_generic_global_startup_behavior() {
     }
 
 }
+
+startup_shutdown_t::startup_shutdown_t() {
+    run_generic_global_startup_behavior();
+}
+
+startup_shutdown_t::~startup_shutdown_t() {
+    google::protobuf::ShutdownProtobufLibrary();
+}
+
 
 // fast-ish non-null terminated string comparison
 int sized_strcmp(const uint8_t *str1, int len1, const uint8_t *str2, int len2) {
@@ -321,7 +332,7 @@ void debugf(const char *msg, ...) {
     debugf_dump_buf(&buf);
 }
 
-#endif
+#endif  // NDEBUG
 
 void debug_print(printf_buffer_t *buf, uint64_t x) {
     buf->appendf("%" PRIu64, x);
@@ -712,7 +723,6 @@ std::string errno_string(int errsv) {
     return std::string(errstr);
 }
 
-
 // The last thread is a service thread that runs an connection acceptor, a log writer, and possibly
 // similar services, and does not run any db code (caches, serializers, etc). The reasoning is that
 // when the acceptor (and possibly other utils) get placed on an event queue with the db code, the
@@ -722,13 +732,15 @@ int get_num_db_threads() {
     return get_num_threads() - 1;
 }
 
-int delete_all_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED struct FTW *ftw) {
+int remove_directory_helper(const char *path, UNUSED const struct stat *ptr, UNUSED const int flag, UNUSED FTW *ftw) {
     int res = ::remove(path);
-    nice_guarantee(res == 0, "Fatal error: failed to delete file '%s': %s\n", path, strerror(errno));
+    if (res != 0) {
+        throw remove_directory_exc_t(path, errno);
+    }
     return 0;
 }
 
-void delete_all(const char *path) {
+void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_exc_t) {
     // max_openfd is ignored on OS X (which claims the parameter specifies the maximum traversal
     // depth) and used by Linux to limit the number of file descriptors that are open (by opening
     // and closing directories extra times if it needs to go deeper than that).
@@ -741,7 +753,7 @@ void delete_all(const char *path) {
 #else
     const int max_openfd = 128;
 #endif
-    int res = nftw(path, delete_all_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
+    int res = nftw(path, remove_directory_helper, max_openfd, FTW_PHYS | FTW_MOUNT | FTW_DEPTH);
     guarantee_err(res == 0 || errno == ENOENT, "Trouble while traversing and destroying temporary directory %s.", path);
 }
 
@@ -766,7 +778,7 @@ std::string temporary_directory_path(const base_path_t& base_path) {
 void recreate_temporary_directory(const base_path_t& base_path) {
     const std::string path = temporary_directory_path(base_path);
 
-    delete_all(path.c_str());
+    remove_directory_recursive(path.c_str());
 
     int res;
     do {

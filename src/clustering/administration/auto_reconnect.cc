@@ -31,10 +31,9 @@ void auto_reconnector_t::on_connect_or_disconnect() {
                     connectivity_cluster->get_peer_address(it->first))));
         }
     }
-    for (std::map<peer_id_t, std::pair<machine_id_t, peer_address_t> >::iterator it = connected_peers.begin();
-            it != connected_peers.end();) {
+    for (auto it = connected_peers.begin(); it != connected_peers.end();) {
         if (map.find(it->first) == map.end()) {
-            std::map<peer_id_t, std::pair<machine_id_t, peer_address_t> >::iterator jt = it;
+            auto jt = it;
             ++jt;
             coro_t::spawn_sometime(boost::bind(
                 &auto_reconnector_t::try_reconnect, this,
@@ -51,7 +50,9 @@ static const int initial_backoff_ms = 50;
 static const int max_backoff_ms = 1000 * 15;
 static const double backoff_growth_rate = 1.5;
 
-void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last_known_address, auto_drainer_t::lock_t keepalive) {
+void auto_reconnector_t::try_reconnect(machine_id_t machine,
+                                       peer_address_t last_known_address,
+                                       auto_drainer_t::lock_t keepalive) {
 
     cond_t cond;
     semilattice_read_view_t<machines_semilattice_metadata_t>::subscription_t subs(
@@ -72,7 +73,8 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine, peer_address_t last
     try {
         while (true) {
             connectivity_cluster_run->join(last_known_address);
-            signal_timer_t timer(backoff_ms);
+            signal_timer_t timer;
+            timer.start(backoff_ms);
             wait_interruptible(&timer, &interruptor);
             guarantee(backoff_ms * backoff_growth_rate > backoff_ms, "rounding screwed it up");
             backoff_ms = std::min(static_cast<int>(backoff_ms * backoff_growth_rate), max_backoff_ms);

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef DO_ON_THREAD_HPP_
 #define DO_ON_THREAD_HPP_
 
@@ -8,7 +8,7 @@
 /* Functions to do something on another core in a way that is more convenient than
 continue_on_thread() is. */
 
-template<class callable_t>
+template <class callable_t>
 struct thread_doer_t : public thread_message_t, public home_thread_mixin_t {
     const callable_t callable;
     int thread;
@@ -17,8 +17,10 @@ struct thread_doer_t : public thread_message_t, public home_thread_mixin_t {
         state_go_home
     } state;
 
-    thread_doer_t(const callable_t& _callable, int _thread)
-        : callable(_callable), thread(_thread), state(state_go_to_core) {
+    thread_doer_t(callable_t &&_callable, int _thread)
+        : callable(std::forward<callable_t>(_callable)),
+          thread(_thread),
+          state(state_go_to_core) {
         assert_good_thread_id(thread);
     }
 
@@ -63,16 +65,18 @@ struct thread_doer_t : public thread_message_t, public home_thread_mixin_t {
 from thread_message_t. Call do_on_thread() with an object and a method for that object.
 The method will be called on the other thread. */
 
-template<class callable_t>
-void do_on_thread(int thread, const callable_t &callable) {
+template <class callable_t>
+void do_on_thread(int thread, callable_t &&callable) {
     assert_good_thread_id(thread);
 
     if (thread == get_thread_id()) {
-      // Run the function directly since we are already in the requested thread
-      callable();
+        // Run the function directly since we are already in the requested thread
+        callable();
     } else {
-      thread_doer_t<callable_t> *fsm = new thread_doer_t<callable_t>(callable, thread);
-      fsm->run();
+        thread_doer_t<callable_t> *fsm
+            = new thread_doer_t<callable_t>(std::forward<callable_t>(callable),
+                                            thread);
+        fsm->run();
     }
 }
 

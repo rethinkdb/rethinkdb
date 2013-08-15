@@ -197,6 +197,7 @@ message Datum {
 //     Database
 //     Function
 //     Ordering - used only by ORDER_BY
+//     Pathspec -- an object, string, or array that specifies a path
 //   Error
 message Term {
     enum TermType {
@@ -235,7 +236,7 @@ message Term {
         // Gets a single element from a table by its primary or a secondary key.
         GET   = 16; // Table, STRING -> SingleSelection | Table, NUMBER -> SingleSelection |
                     // Table, STRING -> NULL            | Table, NUMBER -> NULL |
-        GET_ALL = 78; // Table, JSON {index:!STRING} => ARRAY
+        GET_ALL = 78; // Table, DATUM..., {index:!STRING} => ARRAY
 
         // Simple DATUM Ops
         EQ  = 17; // DATUM... -> BOOL
@@ -274,26 +275,27 @@ message Term {
         SKIP  = 70; // Sequence, NUMBER -> Sequence
         LIMIT = 71; // Sequence, NUMBER -> Sequence
         INDEXES_OF = 87; // Sequence, DATUM -> Sequence | Sequence, Function(1) -> Sequence
-        CONTAINS = 93; // Sequence, DATUM -> BOOL
+        CONTAINS = 93; // Sequence, DATUM -> BOOL | Sequence, Function(1) -> BOOL
 
         // Stream/Object Ops
-        // Get a particular attribute out of an object, or map that over a
+        // Get a particular field from an object, or map that over a
         // sequence.
-        GETATTR  = 31; // OBJECT, STRING -> DATUM
+        GET_FIELD  = 31; // OBJECT, STRING -> DATUM
+                         // | Sequence, STRING -> Sequence
         // Return an array containing the keys of the object.
         KEYS = 94; // OBJECT -> ARRAY
         // Check whether an object contains all the specified fields,
         // or filters a sequence so that all objects inside of it
         // contain all the specified fields.
-        HAS_FIELDS = 32; // OBJECT, STRING... -> BOOL
+        HAS_FIELDS = 32; // OBJECT, Pathspec... -> BOOL
         // x.with_fields(...) <=> x.has_fields(...).pluck(...)
-        WITH_FIELDS = 96; // Sequence, STRING... -> Sequence
+        WITH_FIELDS = 96; // Sequence, Pathspec... -> Sequence
         // Get a subset of an object by selecting some attributes to preserve,
         // or map that over a sequence.  (Both pick and pluck, polymorphic.)
-        PLUCK    = 33; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
+        PLUCK    = 33; // Sequence, Pathspec... -> Sequence | OBJECT, Pathspec... -> OBJECT
         // Get a subset of an object by selecting some attributes to discard, or
         // map that over a sequence.  (Both unpick and without, polymorphic.)
-        WITHOUT  = 34; // Sequence, STRING... -> Sequence | OBJECT, STRING... -> OBJECT
+        WITHOUT  = 34; // Sequence, Pathspec... -> Sequence | OBJECT, Pathspec... -> OBJECT
         // Merge objects (right-preferential)
         MERGE    = 35; // OBJECT... -> OBJECT | Sequence -> Sequence
 
@@ -367,19 +369,19 @@ message Term {
         // * Write Ops (the OBJECTs contain data about number of errors etc.)
         // Updates all the rows in a selection.  Calls its Function with the row
         // to be updated, and then merges the result of that call.
-        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
-                       // SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT |
-                       // StreamSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT |
-                       // SingleSelection, OBJECT,      {non_atomic:BOOL} -> OBJECT
+        UPDATE   = 53; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
+                       // SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
+                       // StreamSelection, OBJECT,      {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT |
+                       // SingleSelection, OBJECT,      {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
         // Deletes all the rows in a selection.
-        DELETE   = 54; // StreamSelection -> OBJECT | SingleSelection -> OBJECT
+        DELETE   = 54; // StreamSelection, {durability:STRING, return_vals:BOOL} -> OBJECT | SingleSelection -> OBJECT
         // Replaces all the rows in a selection.  Calls its Function with the row
         // to be replaced, and then discards it and stores the result of that
         // call.
-        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL} -> OBJECT
+        REPLACE  = 55; // StreamSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT | SingleSelection, Function(1), {non_atomic:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
         // Inserts into a table.  If `upsert` is true, overwrites entries with
         // the same primary key (otherwise errors).
-        INSERT   = 56; // Table, OBJECT, {upsert:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL} -> OBJECT
+        INSERT   = 56; // Table, OBJECT, {upsert:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT | Table, Sequence, {upsert:BOOL, durability:STRING, return_vals:BOOL} -> OBJECT
 
         // * Administrative OPs
         // Creates a database with a particular name.
@@ -391,8 +393,8 @@ message Term {
         // Creates a table with a particular name in a particular
         // database.  (You may omit the first argument to use the
         // default database.)
-        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
-                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, hard_durability:BOOL} -> OBJECT
+        TABLE_CREATE = 60; // Database, STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
+                           // STRING, {datacenter:STRING, primary_key:STRING, cache_size:NUMBER, durability:STRING} -> OBJECT
         // Drops a table with a particular name from a particular
         // database.  (You may omit the first argument to use the
         // default database.)
@@ -494,6 +496,77 @@ message Term {
         // passed either the text of the error or NULL as its
         // argument.
         DEFAULT = 92; // Top, Top -> Top
+
+        // Parses its first argument as a json string and returns it as a
+        // datum.
+        JSON = 98; // STRING -> DATUM
+
+        // Parses its first arguments as an ISO 8601 time and returns it as a
+        // datum.
+        ISO8601 = 99; // STRING -> PSEUDOTYPE(TIME)
+        // Prints a time as an ISO 8601 time.
+        TO_ISO8601 = 100; // PSEUDOTYPE(TIME) -> STRING
+
+        // Returns a time given seconds since epoch in UTC.
+        EPOCH_TIME = 101; // NUMBER -> PSEUDOTYPE(TIME)
+        // Returns seconds since epoch in UTC given a time.
+        TO_EPOCH_TIME = 102; // PSEUDOTYPE(TIME) -> NUMBER
+
+        // The time the query was received by the server.
+        NOW = 103; // -> PSEUDOTYPE(TIME)
+        // Puts a time into an ISO 8601 timezone.
+        IN_TIMEZONE = 104; // PSEUDOTYPE(TIME), STRING -> PSEUDOTYPE(TIME)
+        // a.during(b, c) returns whether a is in the range [b, c)
+        DURING = 105; // PSEUDOTYPE(TIME), PSEUDOTYPE(TIME), PSEUDOTYPE(TIME) -> BOOL
+        // Retrieves the date portion of a time.
+        DATE = 106; // PSEUDOTYPE(TIME) -> PSEUDOTYPE(TIME)
+        // x.time_of_day == x.date - x
+        TIME_OF_DAY = 126; // PSEUDOTYPE(TIME) -> NUMBER
+        // Returns the timezone of a time.
+        TIMEZONE = 127; // PSEUDOTYPE(TIME) -> STRING
+
+        // These access the various components of a time.
+        YEAR = 128; // PSEUDOTYPE(TIME) -> NUMBER
+        MONTH = 129; // PSEUDOTYPE(TIME) -> NUMBER
+        DAY = 130; // PSEUDOTYPE(TIME) -> NUMBER
+        DAY_OF_WEEK = 131; // PSEUDOTYPE(TIME) -> NUMBER
+        DAY_OF_YEAR = 132; // PSEUDOTYPE(TIME) -> NUMBER
+        HOURS = 133; // PSEUDOTYPE(TIME) -> NUMBER
+        MINUTES = 134; // PSEUDOTYPE(TIME) -> NUMBER
+        SECONDS = 135; // PSEUDOTYPE(TIME) -> NUMBER
+
+        // Construct a time from a date and optional timezone or a
+        // date+time and optional timezone.
+        TIME = 136; // NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
+                    // NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
+                    // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER -> PSEUDOTYPE(TIME) |
+                    // NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, NUMBER, STRING -> PSEUDOTYPE(TIME) |
+
+        // Constants for ISO 8601 days of the week.
+        MONDAY = 107;    // -> 1
+        TUESDAY = 108;   // -> 2
+        WEDNESDAY = 109; // -> 3
+        THURSDAY = 110;  // -> 4
+        FRIDAY = 111;    // -> 5
+        SATURDAY = 112;  // -> 6
+        SUNDAY = 113;    // -> 7
+
+        // Constants for ISO 8601 months.
+        JANUARY = 114;   // -> 1
+        FEBRUARY = 115;  // -> 2
+        MARCH = 116;     // -> 3
+        APRIL = 117;     // -> 4
+        MAY = 118;       // -> 5
+        JUNE = 119;      // -> 6
+        JULY = 120;      // -> 7
+        AUGUST = 121;    // -> 8
+        SEPTEMBER = 122; // -> 9
+        OCTOBER = 123;   // -> 10
+        NOVEMBER = 124;  // -> 11
+        DECEMBER = 125;  // -> 12
+
+        // Indicates to MERGE to replace the other object rather than merge it.
+        LITERAL = 137; // JSON -> Merging
     }
     optional TermType type = 1;
 

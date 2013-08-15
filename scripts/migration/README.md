@@ -1,5 +1,16 @@
-### 
-### Migrating data from previous versions
+ 
+## Migrating data from RethinkDB 1.7 and above
+
+RethinkDB 1.7+ ships with `rethinkdb dump` and `rethinkdb restore`,
+which provide a smoother migration experience: see the 
+[complete guide on rethinkdb.com](http://rethinkdb.com/docs/migration)
+for information on how to use these commands.
+
+
+---
+
+## Migrating data from RethinkDB 1.6.x and earlier (deprecated)
+
 Due to improvements in the data format, you will need to migrate your existing
 data files before upgrading to new versions of RethinkDB.
 
@@ -10,10 +21,12 @@ to a new version.
 
 1. Run `import_export.rb --export --host HOST --port PORT`, where HOST:PORT
 connects to a machine in your cluster.  This will write everything in your
-cluster to disk, so make sure you have enough space.
+cluster to disk, so make sure you have enough space.  
+_Note_: The port is the port for clients (by default 28015).
 
 2. Upgrade RethinkDB on all your servers, then move or delete all your
-`rethinkdb_data` directories (they are incompatible with the new version).
+`rethinkdb_data` and `data` directories (they are incompatible with the new 
+version).
 
 3. Run `import_export.rb --import --host HOST --port PORT`.  This will re-import
 all the data on disk into your cluster.  You must run this in the same directory
@@ -76,7 +89,7 @@ Usage: import_export.rb [options]
 2013-03-14T20:49:59-07:00 Exporting table test2.abc...
 2013-03-14T20:49:59-07:00 Done!
 ~/rethinkdb_migration $ <SHUT DOWN RETHINKDB>
-~/rethinkdb_migration $ <MOVE/DELETE RETHINKDB_DATA DIRECTORY>
+~/rethinkdb_migration $ <MOVE/DELETE RETHINKDB_DATA AND DATA DIRECTORY IN INSTANCE DIRECTORY>
 ~/rethinkdb_migration $ <UPGRADE RETHINKDB>
 ~/rethinkdb_migration $ <RESTART RETHINKDB>
 ~/rethinkdb_migration $ ruby import_export.rb --import
@@ -148,7 +161,7 @@ import_export.rb
 rethinkdb_export_2013-03-14T21:22:01-07:00_5048
 rethinkdb_export_2013-03-14T21:22:47-07:00_5052
 ~/rethinkdb_migration $ <SHUTDOWN BOTH CLUSTERS>
-~/rethinkdb_migration $ <REMOVE ALL RETHINKDB_DATA DIRECTORIES>
+~/rethinkdb_migration $ <MOVE/DELETE ALL RETHINKDB_DATA AND DATA DIRECTORY IN INSTANCE DIRECTORIES>
 ~/rethinkdb_migration $ <UPGRADE BOTH CLUSTERS>
 ~/rethinkdb_migration $ <RESTART BOTH CLUSTERS>
 ~/rethinkdb_migration $ ruby import_export.rb -h newton -p 60715 --import rethinkdb_export_2013-03-14T21:22:01-07:00_5048 \

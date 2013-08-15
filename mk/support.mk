@@ -3,6 +3,8 @@
 # The rules in this file can download, build and setup some of the rethinkdb dependencies.
 # It is used for portable builds on platforms where these dependencies are not available or are too old.
 
+NODE_INT_VERSION := 0.10.15
+
 V8_DEP :=
 PROTOBUF_DEP :=
 NPM_DEP :=
@@ -30,8 +32,8 @@ TC_BUILD_DIR := $(SUPPORT_DIR)/build
 TC_SRC_DIR := $(SUPPORT_DIR)/src
 TOOLCHAIN_DIR := $(SUPPORT_DIR)/toolchain
 NODE_MODULES_DIR := $(TOOLCHAIN_DIR)/node_modules
-NODE_DIR := $(TC_BUILD_DIR)/node
-NODE_SRC_DIR := $(TC_SRC_DIR)/node
+NODE_DIR := $(TC_BUILD_DIR)/node-v$(NODE_INT_VERSION)
+NODE_SRC_DIR := $(TC_SRC_DIR)/node-v$(NODE_INT_VERSION)
 PROTOC_DIR := $(TC_BUILD_DIR)/protobuf
 PROTOC_SRC_DIR := $(TC_SRC_DIR)/protobuf
 GPERFTOOLS_DIR := $(TC_BUILD_DIR)/gperftools
@@ -45,11 +47,12 @@ TC_PROTOC_INT_BIN_DIR := $(SUPPORT_INST_DIR)/bin
 TC_PROTOC_INT_LIB_DIR := $(SUPPORT_INST_DIR)/lib
 TC_PROTOC_INT_INC_DIR := $(SUPPORT_INST_DIR)/include
 PROTOBUF_INT_LIB := $(TC_PROTOC_INT_LIB_DIR)/libprotobuf.a
-TC_NODE_INT_EXE := $(SUPPORT_DIR)/usr/bin/node
-TC_NPM_INT_EXE := $(SUPPORT_DIR)/usr/bin/npm
+TC_NPM_INT_EXE := $(SUPPORT_DIR)/usr/bin/npm-$(NODE_INT_VERSION)
 TC_LESSC_INT_EXE := $(SUPPORT_DIR)/usr/bin/lessc
 TC_COFFEE_INT_EXE := $(SUPPORT_DIR)/usr/bin/coffee
 TC_HANDLEBARS_INT_EXE := $(SUPPORT_DIR)/usr/bin/handlebars
+TC_BROWSERIFY_INT_EXE := $(SUPPORT_DIR)/usr/bin/browserify
+TC_PROTO2JS_INT_EXE := $(SUPPORT_DIR)/usr/bin/proto2js
 V8_SRC_DIR := $(TC_SRC_DIR)/v8
 V8_INT_DIR := $(TC_BUILD_DIR)/v8
 V8_INT_LIB := $(V8_INT_DIR)/libv8.a
@@ -68,7 +71,6 @@ ifeq ($(PROTOC),$(TC_PROTOC_INT_EXE))
   LD_LIBRARY_PATH ?=
   PROTOC_DEP := $(TC_PROTOC_INT_EXE)
   PROTOC_RUN := env LD_LIBRARY_PATH=$(TC_PROTOC_INT_LIB_DIR):$(LD_LIBRARY_PATH) PATH=$(TC_PROTOC_INT_BIN_DIR):$(PATH) $(PROTOC)
-  CXXFLAGS += -isystem $(TC_PROTOC_INT_INC_DIR)
 else
   PROTOC_RUN := $(PROTOC)
 endif
@@ -82,6 +84,7 @@ endif
 
 ifeq ($(PROTOBUF_INT_LIB),$(PROTOBUF_LIBS))
   PROTOBUF_DEP := $(PROTOBUF_INT_LIB)
+  CXXFLAGS += -isystem $(TC_PROTOC_INT_INC_DIR)
 endif
 
 NPM ?= NO_NPM
@@ -100,7 +103,22 @@ endif
 
 .PHONY: support
 support: $(COFFEE_DEP) $(V8_DEP) $(PROTOBUF_DEP) $(NPM_DEP) $(TCMALLOC_DEP) $(PROTOC_DEP)
-support: $(LESSC) $(HANDLEBARS)
+
+ifdef LESSC
+  support: $(LESSC)
+endif
+
+ifdef HANDLEBARS
+  support: $(HANDLEBARS)
+endif
+
+ifdef BROWSERIFY
+  support: $(BROWSERIFY)
+endif
+
+ifdef PROTO2JS
+  support: $(PROTO2JS)
+endif
 
 $(TC_BUILD_DIR)/%: $(TC_SRC_DIR)/%
 	$P CP
@@ -113,9 +131,29 @@ $(TC_LESSC_INT_EXE): $(NODE_MODULES_DIR)/less | $(dir $(TC_LESSC_INT_EXE)).
 	ln -s $(abspath $</bin/lessc) $@
 	touch $@
 
+$(TC_BROWSERIFY_INT_EXE): $(NODE_MODULES_DIR)/browserify | $(dir $(TC_BROWSERIFY_INT_EXE)).
+	$P LN
+	rm -f $@
+	ln -s $(abspath $</bin/cmd.js) $@
+	touch $@
+
+$(TC_PROTO2JS_INT_EXE): $(NODE_MODULES_DIR)/protobufjs | $(dir $(TC_PROTO2JS_INT_EXE)).
+	$P LN
+	rm -f $@
+	ln -s $(abspath $</bin/proto2js) $@
+	touch $@
+
 $(NODE_MODULES_DIR)/less: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 	$P NPM-I less
-	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install less@1.3.3 $(SUPPORT_LOG_REDIRECT)
+	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install less@1.4.0 $(SUPPORT_LOG_REDIRECT)
+
+$(NODE_MODULES_DIR)/browserify: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
+	$P NPM-I browserify
+	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install browserify@2.18.1 $(SUPPORT_LOG_REDIRECT)
+
+$(NODE_MODULES_DIR)/protobufjs: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
+	$P NPM-I protobufjs
+	cd $(TOOLCHAIN_DIR) && $(abspath $(NPM)) install protobufjs@1.1.4 $(SUPPORT_LOG_REDIRECT)
 
 $(TC_COFFEE_INT_EXE): $(NODE_MODULES_DIR)/coffee-script | $(dir $(TC_COFFEE_INT_EXE)).
 	$P LN
@@ -137,37 +175,37 @@ $(TC_HANDLEBARS_INT_EXE): $(NODE_MODULES_DIR)/handlebars | $(dir $(TC_HANDLEBARS
 $(NODE_MODULES_DIR)/handlebars: $(NPM_DEP) | $(NODE_MODULES_DIR)/.
 	$P NPM-I handlebars
 	cd $(TOOLCHAIN_DIR) && \
-	  $(abspath $(NPM)) install handlebars@1.0.7 $(SUPPORT_LOG_REDIRECT)
+	  $(abspath $(NPM)) install handlebars@1.0.12 $(SUPPORT_LOG_REDIRECT)
 
 $(V8_SRC_DIR):
 	$P SVN-CO v8
 	( cd $(TC_SRC_DIR) && \
-	  svn checkout http://v8.googlecode.com/svn/tags/3.17.4.1 v8 ) $(SUPPORT_LOG_REDIRECT)
+	  svn checkout http://v8.googlecode.com/svn/tags/3.19.18.4 v8 ) $(SUPPORT_LOG_REDIRECT)
 
 	$P MAKE v8 dependencies
 	$(EXTERN_MAKE) -C $(V8_SRC_DIR) dependencies $(SUPPORT_LOG_REDIRECT)
 
 $(V8_INT_LIB): $(V8_INT_DIR)
 	$P MAKE v8
-	$(EXTERN_MAKE) -C $(V8_INT_DIR) native $(SUPPORT_LOG_REDIRECT)
+	$(EXTERN_MAKE) -C $(V8_INT_DIR) native CXXFLAGS=-Wno-array-bounds $(SUPPORT_LOG_REDIRECT)
 	$P AR $@
 	find $(V8_INT_DIR) -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ar cqs $(V8_INT_LIB);
 
 $(NODE_SRC_DIR):
 	$P DOWNLOAD node
-	$(GETURL) http://nodejs.org/dist/v0.8.11/node-v0.8.11.tar.gz | ( \
-	  cd $(TC_SRC_DIR) && tar -xzf - && rm -rf node && mv node-v0.8.11 node )
+	rm -rf $@
+	$(GETURL) http://nodejs.org/dist/v$(NODE_INT_VERSION)/node-v$(NODE_INT_VERSION).tar.gz | ( \
+	  cd $(TC_SRC_DIR) && tar -xzf - )
 
-$(TC_NPM_INT_EXE): $(TC_NODE_INT_EXE)
-
-$(TC_NODE_INT_EXE): $(NODE_DIR)
-	$P MAKE node
+$(TC_NPM_INT_EXE): $(NODE_DIR) | $(SUPPORT_DIR)/usr/bin/.
+	$P MAKE npm
+	rm -f $(SUPPORT_DIR_ABS)/usr/bin/npm
 	( unset prefix PREFIX DESTDIR MAKEFLAGS MFLAGS && \
 	  cd $(NODE_DIR) && \
 	  ./configure --prefix=$(SUPPORT_DIR_ABS)/usr && \
 	  $(EXTERN_MAKE) prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ && \
 	  $(EXTERN_MAKE) install prefix=$(SUPPORT_DIR_ABS)/usr DESTDIR=/ ) $(SUPPORT_LOG_REDIRECT)
-	touch $@
+	mv $(SUPPORT_DIR_ABS)/usr/bin/npm $@ && touch $@
 
 $(PROTOC_SRC_DIR):
 	$P DOWNLOAD protoc
@@ -203,7 +241,7 @@ $(GPERFTOOLS_SRC_DIR):
 
 $(LIBUNWIND_SRC_DIR):
 	$P DOWNLOAD libunwind
-	$(GETURL) http://download.savannah.gnu.org/releases/libunwind/libunwind-1.1.tar.gz | ( \
+	$(GETURL) http://gnu.mirrors.pair.com/savannah/savannah//libunwind/libunwind-1.1.tar.gz | ( \
 	  cd $(TC_SRC_DIR) && \
 	  tar -xzf - && \
 	  rm -rf libunwind && \

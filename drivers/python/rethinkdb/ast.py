@@ -1,28 +1,87 @@
 import ql2_pb2 as p
 import types
 import sys
+import datetime
+import time
+import re
+import json as py_json
 from threading import Lock
 from errors import *
 import repl # For the repl connection
 
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types
-def expr(val):
+def expr(val, nesting_depth=20):
     '''
         Convert a Python primitive into a RQL primitive value
     '''
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
+
     if isinstance(val, RqlQuery):
         return val
+    elif isinstance(val, datetime.datetime):
+        if not val.tzinfo:
+            raise RqlDriverError("""Cannot convert datetime to ReQL time object
+            without timezone information. You can add timezone information with
+            the third party module \"pytz\" or by constructing ReQL compatible
+            timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
+            use one of ReQL's bultin time constructors, r.now, r.time, or r.iso8601.
+            """)
+        return ISO8601(val.isoformat())
     elif isinstance(val, list):
+        val = [expr(v, nesting_depth - 1) for v in val]
         return MakeArray(*val)
     elif isinstance(val, dict):
         # MakeObj doesn't take the dict as a keyword args to avoid
         # conflicting with the `self` parameter.
-        return MakeObj(val)
+        obj = {}
+        for k in val.keys():
+            obj[k] = expr(val[k], nesting_depth - 1)
+        return MakeObj(obj)
     elif callable(val):
         return Func(val)
     else:
         return Datum(val)
+
+# Like expr but attempts to serialize as much of the value as JSON
+# as possible.
+def exprJSON(val, nesting_depth=20):
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
+
+    if isinstance(val, RqlQuery):
+        return val
+    elif isJSON(val, nesting_depth):
+        return Json(py_json.dumps(val))
+    elif isinstance(val, dict):
+        copy = val.copy()
+        for k,v in copy.iteritems():
+            copy[k] = exprJSON(v, nesting_depth)
+        return MakeObj(copy)
+    elif isinstance(val, list):
+        copy = []
+        for v in val:
+            copy.append(exprJSON(v, nesting_depth))
+        return MakeArray(*copy)
+    else:
+        # Default to datum serialization
+        return expr(val, nesting_depth - 1)
+
+def isJSON(val, nesting_depth=20):
+    if nesting_depth <= 0:
+        raise RqlDriverError("Nesting depth limit exceeded")
+
+    if isinstance(val, RqlQuery):
+        return False
+    elif isinstance(val, dict):
+        return all([isinstance(k, types.StringTypes) and isJSON(v, nesting_depth - 1) for k,v in val.iteritems()])
+    elif isinstance(val, list):
+        return all([isJSON(v, nesting_depth - 1) for v in val])
+    elif isinstance(val, (int, float, str, unicode, bool)):
+        return True
+    else:
+        return False
 
 class RqlQuery(object):
 
@@ -170,7 +229,7 @@ class RqlQuery(object):
 
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
-        return Contains(self, *attr)
+        return Contains(self, *map(func_wrap, attr))
 
     def has_fields(self, *attr):
         return HasFields(self, *attr)
@@ -194,14 +253,16 @@ class RqlQuery(object):
     def default(self, handler):
         return Default(self, handler)
 
-    def update(self, func, non_atomic=(), durability=()):
-        return Update(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
+    def update(self, func, non_atomic=(), durability=(), return_vals=()):
+        return Update(self, func_wrap(func), non_atomic=non_atomic,
+                      durability=durability, return_vals=return_vals)
 
-    def replace(self, func, non_atomic=(), durability=()):
-        return Replace(self, func_wrap(func), non_atomic=non_atomic, durability=durability)
+    def replace(self, func, non_atomic=(), durability=(), return_vals=()):
+        return Replace(self, func_wrap(func), non_atomic=non_atomic,
+                       durability=durability, return_vals=return_vals)
 
-    def delete(self, durability=()):
-        return Delete(self, durability=durability)
+    def delete(self, durability=(), return_vals=()):
+        return Delete(self, durability=durability, return_vals=return_vals)
 
     # Rql type inspection
     def coerce_to(self, other_type):
@@ -238,11 +299,14 @@ class RqlQuery(object):
     # in cases of ambiguity
     def __getitem__(self, index):
         if isinstance(index, slice):
-            return Slice(self, index.start or 0, index.stop or -1)
+            if index.stop:
+                return Slice(self, index.start or 0, index.stop)
+            else:
+                return Slice(self, index.start or 0, -1, right_bound='closed')
         elif isinstance(index, int):
             return Nth(self, index)
         elif isinstance(index, types.StringTypes):
-            return GetAttr(self, index)
+            return GetField(self, index)
 
     def nth(self, index):
         return Nth(self, index)
@@ -256,8 +320,8 @@ class RqlQuery(object):
     def indexes_of(self, val):
         return IndexesOf(self,func_wrap(val))
 
-    def slice(self, left=None, right=None):
-        return Slice(self, left, right)
+    def slice(self, left, right, left_bound=(), right_bound=()):
+        return Slice(self, left, right, left_bound=left_bound, right_bound=right_bound)
 
     def skip(self, index):
         return Skip(self, index)
@@ -277,11 +341,12 @@ class RqlQuery(object):
     def concat_map(self, func):
         return ConcatMap(self, func_wrap(func))
 
-    def order_by(self, *obs):
-        return OrderBy(self, *obs)
+    def order_by(self, *obs, **kwargs):
+        obs = map(lambda ob: ob if isinstance(ob, Asc) or isinstance(ob, Desc) else func_wrap(ob), obs)
+        return OrderBy(self, *obs, **kwargs)
 
-    def between(self, left_bound=None, right_bound=None, index=()):
-        return Between(self, left_bound, right_bound, index=index)
+    def between(self, left=None, right=None, left_bound=(), right_bound=(), index=()):
+        return Between(self, left, right, left_bound=left_bound, right_bound=right_bound, index=index)
 
     def distinct(self):
         return Distinct(self)
@@ -339,6 +404,53 @@ class RqlQuery(object):
     def sample(self, count):
         return Sample(self, count)
 
+    ## Time support
+
+    def to_iso8601(self):
+        return ToISO8601(self)
+
+    def to_epoch_time(self):
+        return ToEpochTime(self)
+
+    def during(self, t2, t3, left_bound=(), right_bound=()):
+        return During(self, t2, t3, left_bound=left_bound, right_bound=right_bound)
+
+    def date(self):
+        return Date(self)
+
+    def time_of_day(self):
+        return TimeOfDay(self)
+
+    def timezone(self):
+        return Timezone(self)
+
+    def year(self):
+        return Year(self)
+
+    def month(self):
+        return Month(self)
+
+    def day(self):
+        return Day(self)
+
+    def day_of_week(self):
+        return DayOfWeek(self)
+
+    def day_of_year(self):
+        return DayOfYear(self)
+
+    def hours(self):
+        return Hours(self)
+
+    def minutes(self):
+        return Minutes(self)
+
+    def seconds(self):
+        return Seconds(self)
+
+    def in_timezone(self, tzstr):
+        return InTimezone(self, tzstr)
+
 # These classes define how nodes are printed by overloading `compose`
 
 def needs_wrap(arg):
@@ -353,7 +465,7 @@ class RqlBiOperQuery(RqlQuery):
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([name+'='+optargs[name] for name in optargs.keys()])
+        args.extend([T(k, '=', v) for k,v in optargs.items()])
         return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
 
 class RqlMethodQuery(RqlQuery):
@@ -362,10 +474,36 @@ class RqlMethodQuery(RqlQuery):
             args[0] = T('r.expr(', args[0], ')')
 
         restargs = args[1:]
-        restargs.extend([k+'='+v for k,v in optargs.items()])
+        restargs.extend([T(k, '=', v) for k,v in optargs.items()])
         restargs = T(*restargs, intsp=', ')
 
         return T(args[0], '.', self.st, '(', restargs, ')')
+
+class RqlTzinfo(datetime.tzinfo):
+
+    def __init__(self, offsetstr):
+        hours, minutes = map(int, offsetstr.split(':'))
+
+        self.offsetstr = offsetstr
+        self.delta = datetime.timedelta(hours=hours, minutes=minutes)
+
+    def utcoffset(self, dt):
+        return self.delta
+
+    def tzname(self, dt):
+        return offsetstr
+
+    def dst(self, dt):
+        return datetime.timedelta(0)
+
+def reql_type_time_to_datetime(obj):
+    if not obj.has_key('epoch_time'):
+        raise RqlDriverError('psudo-type TIME object %s does not have expected field "epoch_time".' % py_json.dumps(obj))
+
+    if obj.has_key('timezone'):
+        return datetime.datetime.fromtimestamp(obj['epoch_time'], RqlTzinfo(obj['timezone']))
+    else:
+        return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
 
 # This class handles the conversion of RQL terminal types in both directions
 # Going to the server though it does not support R_ARRAY or R_OBJECT as those
@@ -396,13 +534,13 @@ class Datum(RqlQuery):
             term.datum.type = p.Datum.R_STR
             term.datum.r_str = self.data
         else:
-            raise RuntimeError("Cannot build a query from a %s" % type(term).__name__, term)
+            raise RqlDriverError("Cannot build a query from a %s" % type(self.data).__name__)
 
     def compose(self, args, optargs):
         return repr(self.data)
 
     @staticmethod
-    def deconstruct(datum):
+    def deconstruct(datum, time_format='native'):
         if datum.type == p.Datum.R_NULL:
             return None
         elif datum.type == p.Datum.R_BOOL:
@@ -420,11 +558,29 @@ class Datum(RqlQuery):
         elif datum.type == p.Datum.R_STR:
             return datum.r_str
         elif datum.type == p.Datum.R_ARRAY:
-            return [Datum.deconstruct(e) for e in datum.r_array]
+            return [Datum.deconstruct(e, time_format) for e in datum.r_array]
         elif datum.type == p.Datum.R_OBJECT:
             obj = {}
             for pair in datum.r_object:
-                obj[pair.key] = Datum.deconstruct(pair.val)
+                obj[pair.key] = Datum.deconstruct(pair.val, time_format)
+
+            # Thanks to "psudo-types" we can't yet be quite sure if this object is meant to
+            # be an object or something else. We need a second layer of type switching, this
+            # time on an obfuscated field "$reql_type$" rather than the datum type field we
+            # already switched on.
+            if obj.has_key('$reql_type$'):
+                if obj['$reql_type$'] == 'TIME':
+                    if time_format == 'native':
+                        # Convert to native python datetime object
+                        return reql_type_time_to_datetime(obj)
+                    elif time_format == 'raw':
+                        # Just return the raw `{'$reql_type':...}` dict
+                        return obj
+                    else:
+                        raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
+                else:
+                    raise RqlDriverError("Unknown psudo-type %" % obj['$reql_type$'])
+
             return obj
         else:
             raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
@@ -574,8 +730,8 @@ class Limit(RqlMethodQuery):
     tt = p.Term.LIMIT
     st = 'limit'
 
-class GetAttr(RqlQuery):
-    tt = p.Term.GETATTR
+class GetField(RqlQuery):
+    tt = p.Term.GET_FIELD
 
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
@@ -644,14 +800,15 @@ class Table(RqlQuery):
     tt = p.Term.TABLE
     st = 'table'
 
-    def insert(self, records, upsert=(), durability=()):
-        return Insert(self, records, upsert=upsert, durability=durability)
+    def insert(self, records, upsert=(), durability=(), return_vals=()):
+        return Insert(self, exprJSON(records), upsert=upsert,
+                      durability=durability, return_vals=return_vals)
 
     def get(self, key):
         return Get(self, key)
 
-    def get_all(self, key, index=()):
-        return GetAll(self, key, index=index)
+    def get_all(self, *keys, **kwargs):
+        return GetAll(self, *keys, **kwargs)
 
     def index_create(self, name, fundef=None):
         if fundef:
@@ -797,11 +954,23 @@ class TableCreate(RqlMethodQuery):
     tt = p.Term.TABLE_CREATE
     st = "table_create"
 
+class TableCreateTL(RqlTopLevelQuery):
+    tt = p.Term.TABLE_CREATE
+    st = "table_create"
+
 class TableDrop(RqlMethodQuery):
     tt = p.Term.TABLE_DROP
     st = "table_drop"
 
+class TableDropTL(RqlTopLevelQuery):
+    tt = p.Term.TABLE_DROP
+    st = "table_drop"
+
 class TableList(RqlMethodQuery):
+    tt = p.Term.TABLE_LIST
+    st = "table_list"
+
+class TableListTL(RqlTopLevelQuery):
     tt = p.Term.TABLE_LIST
     st = "table_list"
 
@@ -857,6 +1026,86 @@ class Sample(RqlMethodQuery):
     tt = p.Term.SAMPLE
     st = 'sample'
 
+class Json(RqlTopLevelQuery):
+    tt = p.Term.JSON
+    st = 'json'
+
+class ToISO8601(RqlMethodQuery):
+    tt = p.Term.TO_ISO8601
+    st = 'to_iso8601'
+
+class During(RqlMethodQuery):
+    tt = p.Term.DURING
+    st = 'during'
+
+class Date(RqlMethodQuery):
+    tt = p.Term.DATE
+    st = 'date'
+
+class TimeOfDay(RqlMethodQuery):
+    tt = p.Term.TIME_OF_DAY
+    st = 'time_of_day'
+
+class Timezone(RqlMethodQuery):
+    tt = p.Term.TIMEZONE
+    st = 'timezone'
+
+class Year(RqlMethodQuery):
+    tt = p.Term.YEAR
+    st = 'year'
+
+class Month(RqlMethodQuery):
+    tt = p.Term.MONTH
+    st = 'month'
+
+class Day(RqlMethodQuery):
+    tt = p.Term.DAY
+    st = 'day'
+
+class DayOfWeek(RqlMethodQuery):
+    tt = p.Term.DAY_OF_WEEK
+    st = 'day_of_week'
+
+class DayOfYear(RqlMethodQuery):
+    tt = p.Term.DAY_OF_YEAR
+    st = 'day_of_year'
+
+class Hours(RqlMethodQuery):
+    tt = p.Term.HOURS
+    st = 'hours'
+
+class Minutes(RqlMethodQuery):
+    tt = p.Term.MINUTES
+    st = 'minutes'
+
+class Seconds(RqlMethodQuery):
+    tt = p.Term.SECONDS
+    st = 'seconds'
+
+class Time(RqlTopLevelQuery):
+    tt = p.Term.TIME
+    st = 'time'
+
+class ISO8601(RqlTopLevelQuery):
+    tt = p.Term.ISO8601
+    st = 'iso8601'
+
+class EpochTime(RqlTopLevelQuery):
+    tt = p.Term.EPOCH_TIME
+    st = 'epoch_time'
+
+class Now(RqlTopLevelQuery):
+    tt = p.Term.NOW
+    st = 'now'
+
+class InTimezone(RqlMethodQuery):
+    tt = p.Term.IN_TIMEZONE
+    st = 'in_timezone'
+
+class ToEpochTime(RqlMethodQuery):
+    tt = p.Term.TO_EPOCH_TIME
+    st = 'to_epoch_time'
+
 # Called on arguments that should be functions
 def func_wrap(val):
     val = expr(val)
@@ -908,3 +1157,7 @@ class Asc(RqlTopLevelQuery):
 class Desc(RqlTopLevelQuery):
     tt = p.Term.DESC
     st = 'desc'
+
+class Literal(RqlTopLevelQuery):
+    tt = p.Term.LITERAL
+    st = 'literal'

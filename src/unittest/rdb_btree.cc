@@ -1,10 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
 #include "errors.hpp"
-
 #include <boost/bind.hpp>
 
 #include "arch/io/disk.hpp"
+#include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -12,7 +12,7 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "serializer/log/log_serializer.hpp"
+#include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
 
@@ -87,7 +87,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
 
     Term mapping;
     Term *arg = ql::pb::set_func(&mapping, 1);
-    N2(GETATTR, NVAR(1), NDATUM("sid"));
+    N2(GET_FIELD, NVAR(1), NDATUM("sid"));
 
     ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 
@@ -216,7 +216,7 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
                rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
                                                 store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
                txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-               boost::optional<rdb_protocol_details::terminal_t>(), &res);
+               boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
@@ -225,7 +225,7 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
 
-        ASSERT_EQ(0, query_language::json_cmp(expected_value.get(), stream->front().second->get()));
+        ASSERT_EQ(0, query_language::json_cmp(expected_value.get(), stream->front().data->get()));
     }
 }
 
@@ -257,7 +257,7 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
                rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
                                                 store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
                txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-               boost::optional<rdb_protocol_details::terminal_t>(), &res);
+               boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
@@ -269,7 +269,7 @@ void run_sindex_post_construction() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -313,7 +313,7 @@ void run_erase_range_test() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -383,7 +383,7 @@ void run_sindex_interruption_via_drop_test() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -427,7 +427,7 @@ void run_sindex_interruption_via_store_delete() {
     recreate_temporary_directory(base_path_t("."));
     temp_file_t temp_file;
 
-    io_backender_t io_backender;
+    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(

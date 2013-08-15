@@ -26,38 +26,6 @@ template <class> class scoped_ptr;
 template <class> class function;
 }
 
-class peer_address_t {
-public:
-    peer_address_t(const std::set<ip_address_t> &_ips, int p) : port(p), ips(_ips) { }
-    peer_address_t() : port(ANY_PORT) { } // For deserialization
-    ip_address_t primary_ip() const {
-        guarantee(ips.begin() != ips.end());
-        return *ips.begin();
-    }
-    const std::set<ip_address_t> *all_ips() const { return &ips; }
-    int port;
-
-    // Two addresses are considered equal if all of their IPs match
-    bool operator==(const peer_address_t &a) const {
-        if (port != a.port) return false;
-        std::set<ip_address_t>::const_iterator it, ita;
-        for (it = ips.begin(); it != ips.end(); ++it) {
-            for (ita = a.all_ips()->begin(); ita != a.all_ips()->end(); ++ita) {
-                if (*it != *ita) return false;
-            }
-        }
-        return true;
-    }
-
-    bool operator!=(const peer_address_t &a) const {
-        return !(*this == a);
-    }
-
-private:
-    std::set<ip_address_t> ips;
-    RDB_MAKE_ME_SERIALIZABLE_2(ips, port);
-};
-
 class peer_address_set_t {
 public:
     size_t erase(const peer_address_t &addr) {
@@ -87,8 +55,6 @@ private:
     std::vector<peer_address_t> vec;
 };
 
-void debug_print(printf_buffer_t *buf, const peer_address_t &address);
-
 class connectivity_cluster_t :
     public connectivity_service_t,
     public message_service_t,
@@ -104,6 +70,7 @@ public:
     public:
         run_t(connectivity_cluster_t *parent,
               const std::set<ip_address_t> &local_addresses,
+              const peer_address_t &canonical_addresses,
               int port,
               message_handler_t *message_handler,
               int client_port,
@@ -114,7 +81,7 @@ public:
         /* Attaches the cluster this node is part of to another existing
         cluster. May only be called on home thread. Returns immediately (it does
         its work in the background). */
-        void join(peer_address_t) THROWS_NOTHING;
+        void join(const peer_address_t &address) THROWS_NOTHING;
         int get_port();
 
     private:
@@ -124,13 +91,14 @@ public:
         public:
             /* The constructor registers us in every thread's `connection_map`;
             the destructor deregisters us. Both also notify all subscribers. */
-            connection_entry_t(run_t *, peer_id_t, tcp_conn_stream_t *, peer_address_t) THROWS_NOTHING;
+            connection_entry_t(run_t *, peer_id_t, tcp_conn_stream_t *,
+                               const peer_address_t &peer) THROWS_NOTHING;
             ~connection_entry_t() THROWS_NOTHING;
 
             /* NULL for our "connection" to ourself */
             tcp_conn_stream_t *conn;
 
-            /* `connection_t` contains a `peer_address_t` so that we can call
+            /* `connection_t` contains the addresses so that we can call
             `get_peers_list()` on any thread. Otherwise, we would have to go
             cross-thread to access the routing table. */
             peer_address_t address;
@@ -201,7 +169,15 @@ public:
         coroutine by `connectivity_cluster_t::join()`. It's also run by
         `connectivity_cluster_t::handle()` when we hear about a new peer from a
         peer we are connected to. */
-        void join_blocking(peer_address_t address, boost::optional<peer_id_t>, auto_drainer_t::lock_t) THROWS_NOTHING;
+        void join_blocking(const peer_address_t hosts,
+                           boost::optional<peer_id_t>,
+                           auto_drainer_t::lock_t) THROWS_NOTHING;
+
+        // Normal routing table isn't serializable, so we send just the hosts/ports
+        bool get_routing_table_to_send_and_add_peer(const peer_id_t &other_peer_id,
+                                                    const peer_address_t &other_peer_addr,
+                                                    object_buffer_t<map_insertion_sentry_t<peer_id_t, peer_address_t> > *routing_table_entry_sentry,
+                                                    std::map<peer_id_t, std::set<host_and_port_t> > *result);
 
         /* `handle()` takes an `auto_drainer_t::lock_t` so that we never shut
         down while there are still running instances of `handle()`. It's
@@ -277,7 +253,8 @@ public:
     /* Other public methods: */
 
     /* Returns the address of the given peer. Fatal error if we are not
-    connected to the peer. */
+    connected to the peer. This function will result in the lookup of the
+    peer's hostnames (if any) */
     peer_address_t get_peer_address(peer_id_t) THROWS_NOTHING;
 
 private:

@@ -24,7 +24,7 @@ public:
         EMPTY_USER, // An error caused by `r.error` with no arguments.
         NON_EXISTENCE // An error related to the absence of an expected value.
     };
-    base_exc_t(type_t type) : type_(type) { }
+    explicit base_exc_t(type_t type) : type_(type) { }
     virtual ~base_exc_t() throw () { }
     type_t get_type() const { return type_; }
 protected:
@@ -101,6 +101,12 @@ private:
         : ql::runtime_check(type, stringify(pred),                    \
                             __FILE__, __LINE__, false, (msg), (src)); \
     } while (0)
+#define rcheck_datum(pred, type, msg) do {                            \
+        (pred)                                                        \
+        ? (void)0                                                     \
+        : ql::runtime_check(type, stringify(pred),                    \
+                            __FILE__, __LINE__, false, (msg)); \
+    } while (0)
 
 #define rcheck(pred, type, msg) rcheck_target(this, type, pred, msg)
 #define rcheck_typed(pred, typed_arg, msg) \
@@ -108,6 +114,10 @@ private:
 #define rcheck_toplevel(pred, type, msg) \
     rcheck_src(NULL, type, pred, msg)
 
+#define rfail_datum(type, args...) do {                          \
+        rcheck_datum(false, type, strprintf(args));              \
+        unreachable();                                           \
+    } while (0)                                                  
 #define rfail_target(target, type, args...) do {                 \
         rcheck_target(target, type, false, strprintf(args));     \
         unreachable();                                           \

@@ -1,4 +1,4 @@
-var r = require('./../../../drivers/javascript/build/rethinkdb.js');
+var r = require('../../../build/packages/js/rethinkdb');
 
 var JSPORT = process.argv[2]
 var CPPPORT = process.argv[3]
@@ -20,9 +20,9 @@ function eq_test(one, two) {
         return one(two);
     } else if (two instanceof Function) {
         return two(one);
-    } else if (goog.isArray(one)) {
+    } else if (Array.isArray(one)) {
 
-        if (!goog.isArray(two)) return false;
+        if (!Array.isArray(two)) return false;
 
         if (one.length != two.length) return false;
 
@@ -113,7 +113,9 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     try {
                         var exp_val = testPair[1];
-                        var exp_fun = eval(exp_val);
+                        with (defines) {
+                            var exp_fun = eval(exp_val);
+                        }
                     } catch (err) {
                         // Oops, this shouldn't have happened
                         console.log(testName);
@@ -197,7 +199,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                                 } else {
                                     printTestFailure(testName, src,
                                                      ["Error running test on CPP server:",
-                                                      "\n\tERROR: ",cpp_err]);
+                                                      "\n\tERROR: ",cpp_err.stack]);
                                 }
                             } else if (!exp_fun(cpp_res)) {
                                 printTestFailure(testName, src,

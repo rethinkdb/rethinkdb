@@ -1,3 +1,216 @@
+# Release 1.8.0 (High Noon)
+
+Released on 2013-08-14
+
+This release introduces date and time support, a new syntax for querying nested objects and 8x improvement in disk usage.
+
+## New Features ##
+
+* ReQL
+  * `order_by` now accepts a function as an argument and can efficiently sort by index (#159, #1120, #1258)
+  * `slice` and `between` are now half-open by default (#869)
+    * The behaviour can be changed by setting the new optional `right_bound` argument to `closed`
+      or by setting `left_bound` to `open`
+  * `contains` can now be passed a predicate (#870)
+  * `merge` is now deep by default (#872)
+    * Introduced `literal` to merge flat values
+  * `coerce_to` can now convert strings to numbers (#877)
+  * Added support for times (#977)
+    * `+`, `-`, `<`, `<=`, `>`, `>=`, `==` and `!=`: arithmetic and comparison
+    * `during`: match a time with an interval
+    * `in_timezone`: change the timezone offset
+    * `date`, `time_of_day`, `timezone`, `year`, `month`, `day`, `weekday`, `hour`, `minute` and `second`: accessors
+    * `time`, `epoch_time` and `iso8601`: constructors
+    * `monday` to `sunday` and `january` to `december`: constants
+    * `now`: current time
+    * `to_iso8601`, `to_epoch_time`: conversion
+  * Add the nested document syntax to functions other than `pluck` (#1094)
+    * `without`, `group_by`, `with_fields` and `has_fields`
+  * Remove Google Closure from the JavaScript driver (#1194)
+    * It now depends on the `protobufjs` and `node-protobuf` libraries
+* Server
+  * Added a `--canonical-address HOST[:PORT]` command line option for connecting RethinkDB nodes across different networks (#486)
+    * Two instances behind proxies can now be configured to connect to each other
+  * Optimize space efficiency by allowing smaller block sizes (#939)
+  * Added a `--no-direct-io` startup flag that turns off direct IO (#1051)
+  * Rewrote the `extproc` code, making `r.js` interuptible and fixing many crashes (#1097, #1106)
+  * Added support for V8 >= 3.19 (#1195)
+  * Clear blobs when they are unused (#1286)
+* Web UI
+  * Use relative paths (#1053)
+* Build
+  * Add support for Emacs' `flymake-mode` (#1161)
+
+## Fixed Bugs ##
+
+* ReQL
+  * Check the type of the callback passed to `next` and `each` in the JavaScript driver (#656)
+  * Fixed how some backtraces are printed in the JavaScript driver (#973)
+  * Coerce the port argument to a number in the Python driver (#1017)
+  * Functions that are polymorphic on objects and sequences now only recurse one level deep (#1045)
+    * Affects `pluck`, `has_fields`, `with_fields`, etc
+  * In the JavaScript driver, no longer fail when requiring the module twice (#1047)
+  * `r.union` now returns a stream when given two streams (#1081)
+  * `r.db` can now be chained with `do` in the JavaScript driver (#1082)
+  * Improve the error message when combining `for_each` and `return_vals` (#1104)
+  * Fixed a bug causing the JavaScript driver to overflow the stack when given an object with circular references (#1133)
+  * Don't leak internal functions in the JavaScript driver (#1164)
+  * Fix the qurey printing in the Python driver (#1178)
+  * Correctly depend on node >= 0.10 in the JavaScript driver (#1197)
+* Server
+  * Improved the error message when there is a version mismatch in data files (#521)
+  * The `--no-http-admin` option now disables the check for the web assets folder (#1092)
+  * No longer compile JavaScript expressions once per row (#1105)
+  * Fixed a crash in the 32-bit version caused by not using 64-bit file offsets (#1129)
+  * Fixed a crash caused by malformed json documents (#1132)
+  * Fixed a crash caused by moving `func_t` betweek threads (#1157)
+  * Improved the scheduling the coroutines that sometimes caused heartbeat timeouts (#1169)
+  * Fixed `conflict_resolving_diskmgr_t` to suport files over 1TB (#1170)
+  * Fixed a crash caused by disconnecting too fast (#1182)
+  * Fixed the error message when `js_runner_t::call` times out (#1218)
+  * Fixed a crash caused by serializing unintitialised values (#1219)
+  * Fixed a bug that caused an assertion failure in `protob_server_t` (#1220)
+  * Fixed a bug causing too many file descriptors to be open (#1225)
+  * Fixed memory leaks reported by valgrind (#1233)
+  * Fixed a crash triggered by the BTreeSindex test (#1237)
+  * Fixed some problems with import performance, interruption, parsing, and error reporting (#1252)
+  * RethinkDB proxy no longer crashes when interacting with the Web UI (#1276)
+* Tests
+  * Fixed the connectivity tests for OS X (#613)
+  * Fix the python connection tests (#1110)
+* Web UI
+  * Provide a less scary error message when a request times out (#1074)
+  * Provide proper suggestions in the presence of comments in the Data Explorer (#1214)
+  * The `More data` link in the data explorer now works consistently (#1222)
+* Documentation
+  * Improved the documentaiton for `update` and `pluck` (#1141)
+* Build
+  * Fixed bugs that caused make to not rebuild certain files or build files it should not (#1162, #1215, #1216, #1229, #1230, #1272)
+
+--
+
+# Release 1.7.3 (Nights of Cabiria)
+
+Released on 2013-07-19
+
+Bug fix update.
+
+* RethinkDB no longer fails to create the data directory when using `--daemon` (#1191)
+
+--
+
+# Release 1.7.2 (Nights of Cabiria)
+
+Released on 2013-07-18
+
+Bug fix update.
+
+* Fixed `wire_func_t` serialization that caused inserts to fail (#1155)
+* Fixed a bug in the JavaScript driver that caused asynchronous connections to fail (#1150)
+* Removed `nice_crash` and `nice_guarantee` to improve error messages and logging (#1144)
+* `rethinkdb import` now warns when unexpected files are found (#1143)
+* `rethinkdb import` now correctly imports nested objects (#1142)
+* Fixed the connection timeout in the JavaScript driver (#1140)
+* Fixed `r.without` (#1139)
+* Add a warning to `rethinkdb dump` about indexes and cluster config (#1137)
+* Fixed the `debian/rules` makefile to properly build the rethinkdb-dbg package (#1130)
+* Allow multiple instances with different port offsets in the init script (#1126)
+* Fixed `make install` to not use `/dev/stdin` (#1125)
+* Added missing files to the OS X uninstall script (#1123)
+* Fixed the documentation for insert with the returnVals flag in JavaScript (#1122)
+* No longer cache `index.html` in the web UI (#1117)
+* The init script now waits for rethinkdb to stop before restarting (#1115)
+* `rethinkdb` porcelain now removes the new directory if it fails (#1070)
+* Added cooperative locking to the rethinkdb data directory to detect conflicts earlier (#1109)
+* Improved the comments in the sample configuration file (#1078)
+* Config file parsing now allows options that apply to other modes of rethinkdb (#1077)
+* The init script now creates folders with the correct permissions (#1069)
+* Client drivers now time out if the connection handshake takes too long (#1033)
+
+--
+
+# Release 1.7.1 (Nights of Cabiria)
+
+Released on 2013-07-04
+
+Bug fix update.
+
+* Fixed a bug causing `rethinkdb import` to crash on single files
+* Added options to `rethinkdb import` for custom CSV separators and no headers (#1112)
+
+--
+
+# Release 1.7.0 (Nights of Cabiria)
+
+Released on 2013-07-03
+
+This release introduces hot backup, atomic set and get operations, significant insert performance improvements, nested document syntax, and native binaries for CentOS / RHEL.
+
+## New Features ##
+
+* ReQL
+  * Added `r.json` for parsing JSON strings server-side (#887)
+  * Added syntax to `pluck` to access nested documents (#889)
+  * `get_all` now takes a variable number of arguments (#915)
+  * Added atomic set and get operations (#976)
+    * `update`, `insert`, `delete` and `replace` now take an optional `return_vals` argument that returns the values that have been atomically modified
+  * Renamed `getattr` to `get_field` and make it polymorphic on arrays (#993)
+  * Drivers now use faster protobuf libraries when possible (#1027, #1026, #1025)
+  * Drivers now use `r.json` to improve the performance of inserts (#1085)
+  * Improved the behaviour of `pluck` (#1095)
+    * A field with a non-pluckable value is considered absent
+* Web UI
+  * It is now possible to resolve `auth_key` conflicts via the web UI (#1028)
+  * The web UI now uses relative paths (#1053)
+* Server
+  * Flushes to disk less often to improve performance without affecting durability (#520)
+* CLI
+  * Import and export JSON and CSV files (#193)
+    * Four new subcommands: `rethinkdb import`, `rethinkdb export`, `rethinkdb dump` and `rethinkdb restore`
+  * `rethinkdb admin` no longer requires the `--join` option (#1052)
+    * It now connects to localhost:29015 by default
+* Documentation
+  * Documented durability settings correctly (#1008)
+  * Improved instructions for migration (#1013)
+  * Documented the allowed character names for tables (#1039)
+* Packaging
+  * RPMs for CentOS (#268)
+
+## Fixed Bugs ##
+
+* ReQL
+  * Fixed the behaviour of `between` with `null` and secondary indexes (#1001)
+* Web UI
+  * Moved to using a patched Bootstrap, Handlebars.js 1.0.0 and LESS 1.4.0 (#954)
+  * Fixed bug causing nested arrays to be shown as `{...}` in the Data Explorer (#1038)
+  * Inline comments are now parsed correctly in the Data Explorer (#1060)
+  * Properly remove event listeners from the dashboard view (#1044)
+* Server
+  * Fixed a crash caused by shutting down the server during secondary index creation (#1056)
+  * Fixed a potential btree corruption bug (#986)
+* Tests
+  * ReQL tests no longer leave zombie processes (#1055)
+
+--
+
+# Release 1.6.1 (Fargo)
+
+Released on 2013-06-19
+
+## Critical Security Fixes ##
+
+* Fixed a buffer overflow in the networking code
+* Fixed a possible timing attack on the API key
+
+## Other Changes ##
+
+* In python, `r.table_list()` no longer throws an error (#1005)
+* Fixed compilation failures with clang 3.2 (#1006)
+* Fixed compilation failures with gcc 4.4 (#1011)
+* Fixed problems with resolving a conflicted auth_key (#1024)
+
+--
+
 # Release 1.6.0 (Fargo)
 
 Released on 2013-06-13
@@ -33,7 +246,7 @@ This release introduces basic access control, regular expression matching, new a
       * `count`: returns the number of elements in an array
       * `indexes_of`: returns positions of elements that match the specified value in an array
       * `is_empty`: check if an array or table is empty
-      * `set_insert`: adds an element to a set    
+      * `set_insert`: adds an element to a set
       * `set_intersection`: finds the intersection of two sets
       * `set_union`: returns the union of two sets
       * `set_difference`: returns the difference of two sets
@@ -78,6 +291,8 @@ This release introduces basic access control, regular expression matching, new a
   * Always fetch and use the same version of Handlebars.js (#821, #819, #958)
   * Check for versions of LESS that are known to work (#956)
   * Removed bitrotted MOCK_CACHE_CHECK option (#804)
+
+--
 
 # Release 1.5.2 (Le Gras de Ouate)
 

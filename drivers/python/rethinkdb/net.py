@@ -1,9 +1,31 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-__all__ = ['connect', 'Connection', 'Cursor']
+__all__ = ['connect', 'Connection', 'Cursor','protobuf_implementation']
 
 import socket
 import struct
+from os import environ
+
+if environ.has_key('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'):
+    protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
+    if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
+        import rethinkdb_pbcpp
+else:
+    try:
+        # Set an environment variable telling the protobuf library
+        # to use the fast C++ based serializer implementation
+        # over the pure python one if it is available.
+        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
+
+        # The cpp_message module could change between versions of the
+        # protobuf module
+        from google.protobuf.internal import cpp_message
+        import rethinkdb_pbcpp
+        protobuf_implementation = 'cpp'
+    except ImportError, e:
+        # Default to using the python implementation of protobuf
+        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
+        protobuf_implementation = 'python'
 
 import ql2_pb2 as p
 
@@ -12,17 +34,18 @@ from errors import *
 from ast import Datum, DB, expr
 
 class Cursor(object):
-    def __init__(self, conn, query, term, chunk, complete):
-        self.chunks = [chunk]
+    def __init__(self, conn, opts, query, term, chunk, complete):
         self.conn = conn
+        self.opts = opts
         self.query = query
         self.term = term
+        self.chunks = [chunk]
         self.end_flag = complete
 
     def _read_more(self):
         if self.end_flag:
             return False
-        other = self.conn._continue(self.query, self.term)
+        other = self.conn._continue(self.query, self.term, self.opts)
         self.chunks.extend(other.chunks)
         self.end_flag = other.end_flag
         return True
@@ -41,13 +64,20 @@ class Cursor(object):
         self.conn._end(self.query, self.term)
 
 class Connection(object):
-    def __init__(self, host, port, db=None, auth_key=""):
+    def __init__(self, host, port, db, auth_key, timeout):
         self.socket = None
         self.host = host
-        self.port = port
         self.next_token = 1
         self.db = db
         self.auth_key = auth_key
+        self.timeout = timeout
+
+        # Try to convert the port to an integer
+        try:
+          self.port = int(port)
+        except ValueError as err:
+          raise RqlDriverError("Could not convert port %s to an integer." % port)
+
         self.reconnect()
 
     def __enter__(self):
@@ -61,8 +91,9 @@ class Connection(object):
 
     def reconnect(self):
         self.close()
+
         try:
-            self.socket = socket.create_connection((self.host, self.port))
+            self.socket = socket.create_connection((self.host, self.port), self.timeout)
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
@@ -78,7 +109,13 @@ class Connection(object):
             response += char
 
         if response != "SUCCESS":
+            self.socket.close()
             raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
+
+        # Connection is now initialized
+
+        # Clear timeout so we don't timeout on long running queries
+        self.socket.settimeout(None)
 
     def close(self):
         if self.socket:
@@ -117,19 +154,15 @@ class Connection(object):
             pair.key = k
             expr(v).build(pair.val)
 
-        noreply = False
-        if 'noreply' in global_opt_args:
-            noreply = global_opt_args['noreply']
-
         # Compile query to protobuf
         term.build(query.query)
-        return self._send_query(query, term, noreply)
+        return self._send_query(query, term, global_opt_args)
 
-    def _continue(self, orig_query, orig_term):
+    def _continue(self, orig_query, orig_term, opts):
         query = p.Query()
         query.type = p.Query.CONTINUE
         query.token = orig_query.token
-        return self._send_query(query, orig_term)
+        return self._send_query(query, orig_term, opts)
 
     def _end(self, orig_query, orig_term):
         query = p.Query()
@@ -137,7 +170,7 @@ class Connection(object):
         query.token = orig_query.token
         return self._send_query(query, orig_term)
 
-    def _send_query(self, query, term, noreply=False):
+    def _send_query(self, query, term, opts={}):
 
         # Error if this connection has closed
         if not self.socket:
@@ -148,7 +181,7 @@ class Connection(object):
         query_header = struct.pack("<L", len(query_protobuf))
         self.socket.sendall(query_header + query_protobuf)
 
-        if noreply:
+        if opts.has_key('noreply') and opts['noreply']:
             return None
 
         # Get response
@@ -184,6 +217,10 @@ class Connection(object):
             # This response is corrupted or not intended for us.
             raise RqlDriverError("Unexpected response received.")
 
+        time_format = 'native'
+        if opts.has_key('time_format'):
+            time_format = opts['time_format']
+
         # Error responses
         if response.type == p.Response.RUNTIME_ERROR:
             message = Datum.deconstruct(response.response[0])
@@ -203,18 +240,18 @@ class Connection(object):
 
         # Sequence responses
         elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
-            chunk = [Datum.deconstruct(datum) for datum in response.response]
-            return Cursor(self, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
+            chunk = [Datum.deconstruct(datum, time_format) for datum in response.response]
+            return Cursor(self, opts, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
 
         # Atom response
         elif response.type == p.Response.SUCCESS_ATOM:
             if len(response.response) < 1:
                 return None
-            return Datum.deconstruct(response.response[0])
+            return Datum.deconstruct(response.response[0], time_format)
 
         # Default for unknown response types
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
 
-def connect(host='localhost', port=28015, db=None, auth_key=""):
-    return Connection(host, port, db, auth_key)
+def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20):
+    return Connection(host, port, db, auth_key, timeout)

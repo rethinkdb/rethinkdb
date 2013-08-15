@@ -15,7 +15,8 @@ struct memcached_delete_oper_t : public memcached_modify_oper_t {
         if (value->has()) {
             result = dr_deleted;
             {
-                blob_t b((*value)->value_ref(), blob::btree_maxreflen);
+                blob_t b(txn->get_cache()->get_block_size(),
+                         (*value)->value_ref(), blob::btree_maxreflen);
                 b.clear(txn);
             }
             value->reset();

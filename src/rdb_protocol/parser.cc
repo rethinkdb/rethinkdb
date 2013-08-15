@@ -141,4 +141,4 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
     }
 }
 
-} //namespace mock
+} // namespace rdb_protocol

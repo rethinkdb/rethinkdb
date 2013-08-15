@@ -16,9 +16,11 @@
 #include <boost/optional.hpp>
 
 #include "btree/btree_store.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
@@ -27,10 +29,11 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/exceptions.hpp"
-#include "rdb_protocol/func.hpp"
+#include "rdb_protocol/wire_func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
 
+class extproc_pool_t;
 class cluster_directory_metadata_t;
 template <class> class cow_ptr_t;
 template <class> class cross_thread_watchable_variable_t;
@@ -41,8 +44,6 @@ template <class> class namespace_repo_t;
 template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
-
-namespace extproc { class pool_group_t; }
 
 using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
@@ -62,6 +63,23 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MI
 
 RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
+
+enum sorting_t {
+    UNORDERED,
+    ASCENDING,
+    DESCENDING
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
+
+inline bool forward(sorting_t sorting) {
+    return sorting == ASCENDING || sorting == UNORDERED;
+}
+
+inline bool backward(sorting_t sorting) {
+    return !forward(sorting);
+}
+
 
 namespace rdb_protocol_details {
 
@@ -120,6 +138,21 @@ void bring_sindexes_up_to_date(
         transaction_t *txn)
     THROWS_NOTHING;
 
+struct rget_item_t {
+    rget_item_t() { }
+    rget_item_t(const store_key_t &_key, boost::shared_ptr<scoped_cJSON_t> _data)
+        : key(_key), data(_data) { }
+
+    rget_item_t(const store_key_t &_key, boost::shared_ptr<scoped_cJSON_t> _sindex_key,
+                boost::shared_ptr<scoped_cJSON_t> _data)
+        : key(_key), sindex_key(_sindex_key), data(_data) { }
+
+    store_key_t key;
+    boost::optional<boost::shared_ptr<scoped_cJSON_t> > sindex_key;
+    boost::shared_ptr<scoped_cJSON_t> data;
+    RDB_MAKE_ME_SERIALIZABLE_3(key, sindex_key, data);
+};
+
 } // namespace rdb_protocol_details
 
 
@@ -142,7 +175,7 @@ struct rdb_protocol_t {
 
     struct context_t {
         context_t();
-        context_t(extproc::pool_group_t *_pool_group,
+        context_t(extproc_pool_t *_extproc_pool,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
                   boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
@@ -150,7 +183,7 @@ struct rdb_protocol_t {
                   uuid_u _machine_id);
         ~context_t();
 
-        extproc::pool_group_t *pool_group;
+        extproc_pool_t *extproc_pool;
         namespace_repo_t<rdb_protocol_t> *ns_repo;
 
         /* These arrays contain a watchable for each thread.
@@ -160,7 +193,7 @@ struct rdb_protocol_t {
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata;
         boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
-        cond_t interruptor; //TODO figure out where we're going to want to interrupt this from and put this there instead
+        cond_t interruptor; // TODO figure out where we're going to want to interrupt this from and put this there instead
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         uuid_u machine_id;
     };
@@ -176,9 +209,9 @@ struct rdb_protocol_t {
     };
 
     struct rget_read_response_t {
-        typedef std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > stream_t; //Present if there was no terminal
-        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; //Present if the terminal was a groupedmapreduce
-        typedef boost::shared_ptr<scoped_cJSON_t> atom_t; //Present if the terminal was a reduction
+        typedef std::vector<rdb_protocol_details::rget_item_t> stream_t; // Present if there was no terminal
+        typedef std::map<boost::shared_ptr<scoped_cJSON_t>, boost::shared_ptr<scoped_cJSON_t>, shared_scoped_less_t> groups_t; // Present if the terminal was a groupedmapreduce
+        typedef boost::shared_ptr<scoped_cJSON_t> atom_t; // Present if the terminal was a reduction
 
         struct length_t {
             int length;
@@ -203,8 +236,8 @@ struct rdb_protocol_t {
             runtime_exc_t,
             ql::exc_t,
             ql::datum_exc_t,
-            ql::wire_datum_t,
-            std::vector<ql::wire_datum_t>,
+            counted_t<const ql::datum_t>,
+            //            std::vector<ql::wire_datum_t>,
             ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
             std::vector<ql::wire_datum_map_t>,
             empty_t,
@@ -218,7 +251,7 @@ struct rdb_protocol_t {
         bool truncated;
         store_key_t last_considered_key;
 
-        rget_read_response_t() { }
+        rget_read_response_t() : truncated(false) { }
         rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated, const store_key_t &_last_considered_key)
             : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated),
               last_considered_key(_last_considered_key)
@@ -228,12 +261,12 @@ struct rdb_protocol_t {
     };
 
     struct distribution_read_response_t {
-        //Supposing the map has keys:
-        //k1, k2 ... kn
-        //with k1 < k2 < .. < kn
-        //Then k1 == left_key
-        //and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
-        //key_counts[kn] = the number of keys in [kn, right_key)
+        // Supposing the map has keys:
+        // k1, k2 ... kn
+        // with k1 < k2 < .. < kn
+        // Then k1 == left_key
+        // and key_counts[ki] = the number of keys in [ki, ki+1) if i < n
+        // key_counts[kn] = the number of keys in [kn, right_key)
         region_t region;
         std::map<store_key_t, int64_t> key_counts;
 
@@ -269,66 +302,66 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+
+    class sindex_range_t {
+    public:
+        sindex_range_t() { }
+        sindex_range_t(counted_t<const ql::datum_t> _start, bool _start_open,
+                       counted_t<const ql::datum_t> _end, bool _end_open)
+            : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
+        void write_filter_func(ql::env_t *env, Term *filter,
+                               const Term &sindex_mapping) const;
+        region_t to_region() const;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    private:
+        counted_t<const ql::datum_t> start, end;
+        bool start_open, end_open;
+      };
+
     class rget_read_t {
     public:
         rget_read_t() { }
 
         explicit rget_read_t(const region_t &_region,
-                             const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), optargs(_optargs) {
+                             sorting_t _sorting = UNORDERED)
+            : region(_region), sorting(_sorting) {
         }
 
-        void init_sindexes(counted_t<const ql::datum_t> start,
-                           counted_t<const ql::datum_t> end) {
-            if (start) {
-                sindex_start_value = ql::wire_datum_t(start);
-                sindex_start_value->finalize();
-            }
-            if (end) {
-                sindex_end_value = ql::wire_datum_t(end);
-                sindex_end_value->finalize();
-            }
-        }
 
         rget_read_t(const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value)
+                    sindex_range_t _sindex_range,
+                    sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(rdb_protocol_t::sindex_key_range(
-                                _sindex_start_value != NULL
-                                  ? _sindex_start_value->truncated_secondary()
-                                  : store_key_t::min(),
-                                _sindex_end_value != NULL
-                                  ? _sindex_end_value->truncated_secondary()
-                                  : store_key_t::max())) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              sindex_range(_sindex_range),
+              sindex_region(sindex_range->to_region()),
+              sorting(_sorting) { }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value)
+                    sindex_range_t _sindex_range,
+                    sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
-              sindex_region(_sindex_region) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              sindex_range(_sindex_range),
+              sindex_region(_sindex_region), sorting(_sorting) { }
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    counted_t<const ql::datum_t> _sindex_start_value,
-                    counted_t<const ql::datum_t> _sindex_end_value,
+                    sindex_range_t _sindex_range,
                     const rdb_protocol_details::transform_t &_transform,
-                    const std::map<std::string, ql::wire_func_t> &_optargs)
+                    const std::map<std::string, ql::wire_func_t> &_optargs,
+                    sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
+              sindex_range(_sindex_range),
               sindex_region(_sindex_region),
-              transform(_transform), optargs(_optargs) {
-            init_sindexes(_sindex_start_value, _sindex_end_value);
-        }
+              transform(_transform), optargs(_optargs),
+              sorting(_sorting) { }
 
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
-                    const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), transform(_transform), optargs(_optargs) {
+                    const std::map<std::string, ql::wire_func_t> &_optargs,
+                    sorting_t _sorting = UNORDERED)
+            : region(_region), transform(_transform),
+              optargs(_optargs), sorting(_sorting) {
             rassert(optargs.size() != 0);
         }
 
@@ -348,7 +381,7 @@ struct rdb_protocol_t {
             rassert(optargs.size() != 0);
         }
 
-        /* This region is in the primary indexe's keyspace. */
+        /* This region is in the primary index's keyspace. */
         region_t region;
 
         /* `sindex` and `sindex_region` are both non null if the instance
@@ -360,10 +393,9 @@ struct rdb_protocol_t {
         /* The sindex from which we're reading. */
         boost::optional<std::string> sindex;
 
-        /* The actual sindex values to use for bounds, since the sindex key may
+        /* The actual sindex range to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        boost::optional<ql::wire_datum_t> sindex_start_value;
-        boost::optional<ql::wire_datum_t> sindex_end_value;
+        boost::optional<sindex_range_t> sindex_range;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */
@@ -372,6 +404,9 @@ struct rdb_protocol_t {
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
         std::map<std::string, ql::wire_func_t> optargs;
+
+        /* How to sort the data. */
+        sorting_t sorting;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -457,9 +492,9 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    //TODO we're reusing the enums from row writes and reads to avoid name
-    //shadowing. Nothing really wrong with this but maybe they could have a
-    //more generic name.
+    // TODO we're reusing the enums from row writes and reads to avoid name
+    // shadowing. Nothing really wrong with this but maybe they could have a
+    // more generic name.
     struct sindex_create_response_t {
         bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -492,13 +527,16 @@ struct rdb_protocol_t {
         point_replace_t() { }
         point_replace_t(const std::string &_primary_key, const store_key_t &_key,
                         const ql::map_wire_func_t &_f,
-                        const std::map<std::string, ql::wire_func_t> &_optargs)
-            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs) { }
+                        const std::map<std::string, ql::wire_func_t> &_optargs,
+                        bool _return_vals)
+            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs),
+              return_vals(_return_vals) { }
 
         std::string primary_key;
         store_key_t key;
         ql::map_wire_func_t f;
         std::map<std::string, ql::wire_func_t> optargs;
+        bool return_vals;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -742,6 +780,6 @@ struct range_key_tester_t : public key_tester_t {
 
     const rdb_protocol_t::region_t *delete_range;
 };
-} //namespace rdb_protocol_details 
+} // namespace rdb_protocol_details
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_

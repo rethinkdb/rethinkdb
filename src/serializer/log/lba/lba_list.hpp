@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef SERIALIZER_LOG_LBA_LBA_LIST_HPP_
 #define SERIALIZER_LOG_LBA_LBA_LIST_HPP_
 
@@ -21,11 +21,9 @@ class lba_list_t
 public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
 
-public:
     explicit lba_list_t(extent_manager_t *em);
     ~lba_list_t();
 
-public:
     static void prepare_initial_metablock(metablock_mixin_t *mb);
 
     struct ready_callback_t {
@@ -34,8 +32,12 @@ public:
     };
     bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
 
-public:
+    index_block_info_t get_block_info(block_id_t block);
+
+    // These return individual fields of get_block_info.
     flagged_off64_t get_block_offset(block_id_t block);
+    uint32_t get_ser_block_size(block_id_t block);
+    block_size_t get_block_size(block_id_t block);
     repli_timestamp_t get_block_recency(block_id_t block);
 
     /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
@@ -48,9 +50,9 @@ public:
     int extent_refcount(int64_t offset);
 #endif
 
-public:
     void set_block_info(block_id_t block, repli_timestamp_t recency,
-                        flagged_off64_t offset, file_account_t *io_account,
+                        flagged_off64_t offset, uint32_t ser_block_size,
+                        file_account_t *io_account,
                         extent_transaction_t *txn);
 
     struct sync_callback_t {
@@ -63,7 +65,6 @@ public:
 
     void consider_gc(file_account_t *io_account, extent_transaction_t *txn);
 
-public:
     struct shutdown_callback_t {
         virtual void on_lba_shutdown() = 0;
         virtual ~shutdown_callback_t() {}
@@ -75,7 +76,6 @@ private:
     int gc_count;   // Number of active GC fsms
     bool shutdown_now();
 
-private:
     extent_manager_t *const extent_manager;
 
     enum state_t {

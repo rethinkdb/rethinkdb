@@ -9,6 +9,9 @@
 
 namespace unittest {
 
+static const int expected_cache_block_size = 4080;
+static const int size_after_magic = expected_cache_block_size - sizeof(block_magic_t);
+
 class blob_tracker_t {
 public:
     static char *alloc_emptybuf(size_t n) {
@@ -18,7 +21,8 @@ public:
     }
 
     explicit blob_tracker_t(size_t maxreflen)
-        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(buf_.data(), maxreflen) { }
+        : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(block_size_t::unsafe_make(4096),
+                                                            buf_.data(), maxreflen) { }
 
     void check_region(transaction_t *txn, int64_t offset, int64_t size) {
         SCOPED_TRACE("check_region");
@@ -50,24 +54,25 @@ public:
     }
 
     void check_normalization(transaction_t *txn) {
-        int64_t size = expected_.size();
-        int64_t rs = blob_.refsize(txn->get_cache()->get_block_size());
-        if (size < 251) {
-            ASSERT_EQ(1 + size, rs);
-        } else if (size <= 4080) {
-            ASSERT_EQ(1 + 8 + 8 + 4, rs);
-        } else if (size <= int64_t(4080 * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-            if (rs != 1 + 8 + 8 + 4) {
-                ASSERT_LE(1 + 8 + 8 + 4 * ceil_divide(size, 4080), rs);
-                ASSERT_GE(1 + 8 + 8 + 4 * (1 + ceil_divide(size - 1, 4080)), rs);
+        size_t size = expected_.size();
+        uint64_t rs = blob_.refsize(txn->get_cache()->get_block_size());
+        size_t sizesize = buf_.size() <= 255 ? 1 : 2;
+        if (size <= buf_.size() - sizesize) {
+            ASSERT_EQ(sizesize + size, rs);
+        } else if (size <= static_cast<size_t>(size_after_magic)) {
+            ASSERT_EQ(sizesize + 8 + 8 + sizeof(block_id_t), rs);
+        } else if (size <= int64_t(size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)))) {
+            if (rs != sizesize + 8 + 8 + sizeof(block_id_t)) {
+                ASSERT_LE(sizesize + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic), rs);
+                ASSERT_GE(sizesize + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic)), rs);
             } else {
-                ASSERT_GT(size, 4080 * ((250 - 8 - 8) / static_cast<int>(sizeof(block_id_t))) - 4080 + 1);
+                ASSERT_GT(size, size_after_magic * ((250 - 8 - 8) / sizeof(block_id_t)) - size_after_magic + 1);
             }
-        } else if (size <= int64_t(4080 * (4080 / 4) * ((250 - 8 - 8) / sizeof(block_id_t)))) {
-            ASSERT_LE(1 + 8 + 8 + 4 * ceil_divide(size, 4080 * (4080 / 4)), rs);
-            ASSERT_GE(1 + 8 + 8 + 4 * (1 + ceil_divide(size - 1, 4080 * (4080 / 4))), rs);
+        } else if (size <= int64_t(size_after_magic * (size_after_magic / sizeof(block_id_t)) * ((250 - 8 - 8) / sizeof(block_id_t)))) {
+            ASSERT_LE(sizesize + 8 + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic * (size_after_magic / sizeof(block_id_t))), rs);
+            ASSERT_GE(sizesize + 8 + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic * (size_after_magic / sizeof(block_id_t)))), rs);
         } else {
-            ASSERT_GT(0, size);
+            ASSERT_GT(0u, size);
         }
     }
 
@@ -148,6 +153,13 @@ public:
         check(txn);
     }
 
+    void clear(transaction_t *txn) {
+        SCOPED_TRACE("clear");
+        blob_.clear(txn);
+        expected_.clear();
+        check(txn);
+    }
+
     size_t refsize(block_size_t block_size) const {
         return blob_.refsize(block_size);
     }
@@ -165,8 +177,11 @@ private:
     void run_tests(cache_t *cache) {
         // The tests below hard-code constants related to these numbers.
         EXPECT_EQ(251, blob::btree_maxreflen);
-        EXPECT_EQ(4080, blob::stepsize(cache->get_block_size(), 1));
-        EXPECT_EQ(4080 * (4080 / static_cast<int>(sizeof(block_id_t))), blob::stepsize(cache->get_block_size(), 2));
+        EXPECT_EQ(4u, sizeof(block_magic_t));
+        const int size_sans_magic = expected_cache_block_size - sizeof(block_magic_t);
+        EXPECT_EQ(size_sans_magic, blob::stepsize(cache->get_block_size(), 1));
+        EXPECT_EQ(size_sans_magic * (size_sans_magic / static_cast<int>(sizeof(block_id_t))),
+                  blob::stepsize(cache->get_block_size(), 2));
 
         small_value_test(cache);
         small_value_boundary_test(cache);
@@ -222,42 +237,42 @@ private:
 
         tk.append(&txn, std::string(250, 'a'));
         tk.append(&txn, "b");
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
         tk.unappend(&txn, 1);
         ASSERT_EQ(251u, tk.refsize(block_size));
 
         tk.prepend(&txn, "c");
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
         tk.unappend(&txn, 1);
         ASSERT_EQ(251u, tk.refsize(block_size));
         tk.append(&txn, "d");
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
         tk.unprepend(&txn, 1);
         ASSERT_EQ(251u, tk.refsize(block_size));
         tk.append(&txn, "e");
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
         tk.unprepend(&txn, 2);
         ASSERT_EQ(250u, tk.refsize(block_size));
         tk.prepend(&txn, "fffff");
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
         tk.unprepend(&txn, 254);
         ASSERT_EQ(1u, tk.refsize(block_size));
 
         tk.append(&txn, std::string(251, 'g'));
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
 
         tk.unappend(&txn, 251);
         ASSERT_EQ(1u, tk.refsize(block_size));
         tk.prepend(&txn, std::string(251, 'h'));
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
         tk.unappend(&txn, 250);
         ASSERT_EQ(2u, tk.refsize(block_size));
         tk.prepend(&txn, std::string(250, 'i'));
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
         tk.unprepend(&txn, 250);
         ASSERT_EQ(2u, tk.refsize(block_size));
         tk.append(&txn, std::string(250, 'j'));
-        ASSERT_EQ(1 + 8 + 8 + 4u, tk.refsize(block_size));
+        ASSERT_EQ(1 + 8 + 8 + sizeof(block_id_t), tk.refsize(block_size));
         tk.unappend(&txn, 250);
         ASSERT_EQ(2u, tk.refsize(block_size));
         tk.unappend(&txn, 1);
@@ -268,7 +283,7 @@ private:
         SCOPED_TRACE("special_4080_prepend_4081_test");
         block_size_t block_size = cache->get_block_size();
 
-        ASSERT_EQ(4080u, block_size.value() - sizeof(block_magic_t));
+        ASSERT_EQ(static_cast<size_t>(size_after_magic), block_size.value() - sizeof(block_magic_t));
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
@@ -276,26 +291,22 @@ private:
 
         blob_tracker_t tk(251);
 
-        tk.append(&txn, std::string(4080, 'a'));
+        tk.append(&txn, std::string(size_after_magic, 'a'));
         tk.prepend(&txn, "b");
-        tk.unappend(&txn, 4081);
+        tk.unappend(&txn, size_after_magic + 1);
     }
 
     // Regression test - these magic numbers caused failures previously.
     void special_4161600_prepend_12484801_test(cache_t *cache) {
         SCOPED_TRACE("special_4080_prepend_4081_test");
-        block_size_t block_size = cache->get_block_size();
-
-        ASSERT_EQ(4080u, block_size.value() - sizeof(block_magic_t));
-
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                           order_source.check_in("special_4161600_prepend_12484801_test"), WRITE_DURABILITY_SOFT);
 
         blob_tracker_t tk(251);
 
-        int64_t lo_size = 4161600;
-        int64_t hi_size = 12484801;
+        int64_t lo_size = size_after_magic * (size_after_magic / sizeof(block_id_t));
+        int64_t hi_size = 3 * lo_size + 1;
         tk.append(&txn, std::string(lo_size, 'a'));
         tk.prepend(&txn, std::string(hi_size - lo_size, 'b'));
         tk.unappend(&txn, hi_size);
@@ -345,9 +356,10 @@ private:
 
     void combinations_test(cache_t *cache) {
         SCOPED_TRACE("combinations_test");
-        int64_t inline_sz = 4080 * ((250 - 1 - 8 - 8) / 4);
-        //        int64_t l2_sz = 4080 * (4080 / 4);
-        int64_t szs[] = { 0, 251, 4080, 4081, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
+
+        int64_t inline_sz = size_after_magic * ((250 - 1 - 8 - 8) / sizeof(block_id_t));
+        //        int64_t l2_sz = size_after_magic * (size_after_magic / sizeof(block_id_t));
+        int64_t szs[] = { 0, 251, size_after_magic, size_after_magic, inline_sz - 300, inline_sz, inline_sz + 1 };  // for now, until we can make this test faster.  // , l2_sz, l2_sz + 1, l2_sz * 3 + 1 };
 
         int n = sizeof(szs) / sizeof(szs[0]);
 

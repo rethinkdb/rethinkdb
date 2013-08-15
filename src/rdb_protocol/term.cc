@@ -3,6 +3,7 @@
 
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/term_walker.hpp"
@@ -48,7 +49,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::SET_UNION:          return make_set_union_term(env, t);
     case Term::SET_DIFFERENCE:     return make_set_difference_term(env, t);
     case Term::SLICE:              return make_slice_term(env, t);
-    case Term::GETATTR:            return make_getattr_term(env, t);
+    case Term::GET_FIELD:          return make_get_field_term(env, t);
     case Term::INDEXES_OF:         return make_indexes_of_term(env, t);
     case Term::KEYS:               return make_keys_term(env, t);
     case Term::HAS_FIELDS:         return make_has_fields_term(env, t);
@@ -56,6 +57,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::PLUCK:              return make_pluck_term(env, t);
     case Term::WITHOUT:            return make_without_term(env, t);
     case Term::MERGE:              return make_merge_term(env, t);
+    case Term::LITERAL:            return make_literal_term(env, t);
     case Term::BETWEEN:            return make_between_term(env, t);
     case Term::REDUCE:             return make_reduce_term(env, t);
     case Term::MAP:                return make_map_term(env, t);
@@ -106,6 +108,47 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     case Term::SAMPLE:             return make_sample_term(env, t);
     case Term::IS_EMPTY:           return make_is_empty_term(env, t);
     case Term::DEFAULT:            return make_default_term(env, t);
+    case Term::JSON:               return make_json_term(env, t);
+    case Term::ISO8601:            return make_iso8601_term(env, t);
+    case Term::TO_ISO8601:         return make_to_iso8601_term(env, t);
+    case Term::EPOCH_TIME:         return make_epoch_time_term(env, t);
+    case Term::TO_EPOCH_TIME:      return make_to_epoch_time_term(env, t);
+    case Term::NOW:                return make_now_term(env, t);
+    case Term::IN_TIMEZONE:        return make_in_timezone_term(env, t);
+    case Term::DURING:             return make_during_term(env, t);
+    case Term::DATE:               return make_date_term(env, t);
+    case Term::TIME_OF_DAY:        return make_time_of_day_term(env, t);
+    case Term::TIMEZONE:           return make_timezone_term(env, t);
+    case Term::TIME:               return make_time_term(env, t);
+
+    case Term::YEAR:               return make_portion_term(env, t, pseudo::YEAR);
+    case Term::MONTH:              return make_portion_term(env, t, pseudo::MONTH);
+    case Term::DAY:                return make_portion_term(env, t, pseudo::DAY);
+    case Term::DAY_OF_WEEK:        return make_portion_term(env, t, pseudo::DAY_OF_WEEK);
+    case Term::DAY_OF_YEAR:        return make_portion_term(env, t, pseudo::DAY_OF_YEAR);
+    case Term::HOURS:              return make_portion_term(env, t, pseudo::HOURS);
+    case Term::MINUTES:            return make_portion_term(env, t, pseudo::MINUTES);
+    case Term::SECONDS:            return make_portion_term(env, t, pseudo::SECONDS);
+
+    case Term::MONDAY:             return make_constant_term(env, t, 1, "monday");
+    case Term::TUESDAY:            return make_constant_term(env, t, 2, "tuesday");
+    case Term::WEDNESDAY:          return make_constant_term(env, t, 3, "wednesday");
+    case Term::THURSDAY:           return make_constant_term(env, t, 4, "thursday");
+    case Term::FRIDAY:             return make_constant_term(env, t, 5, "friday");
+    case Term::SATURDAY:           return make_constant_term(env, t, 6, "saturday");
+    case Term::SUNDAY:             return make_constant_term(env, t, 7, "sunday");
+    case Term::JANUARY:            return make_constant_term(env, t, 1, "january");
+    case Term::FEBRUARY:           return make_constant_term(env, t, 2, "february");
+    case Term::MARCH:              return make_constant_term(env, t, 3, "march");
+    case Term::APRIL:              return make_constant_term(env, t, 4, "april");
+    case Term::MAY:                return make_constant_term(env, t, 5, "may");
+    case Term::JUNE:               return make_constant_term(env, t, 6, "june");
+    case Term::JULY:               return make_constant_term(env, t, 7, "july");
+    case Term::AUGUST:             return make_constant_term(env, t, 8, "august");
+    case Term::SEPTEMBER:          return make_constant_term(env, t, 9, "september");
+    case Term::OCTOBER:            return make_constant_term(env, t, 10, "october");
+    case Term::NOVEMBER:           return make_constant_term(env, t, 11, "november");
+    case Term::DECEMBER:           return make_constant_term(env, t, 12, "december");
     default: unreachable();
     }
     unreachable();
@@ -289,7 +332,7 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-counted_t<val_t> term_t::eval() {
+counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
     DEBUG_ONLY_CODE(env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
@@ -298,7 +341,7 @@ counted_t<val_t> term_t::eval() {
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl();
+            counted_t<val_t> ret = eval_impl(eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;
@@ -340,4 +383,4 @@ counted_t<val_t> term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
 }
 
-} //namespace ql
+} // namespace ql

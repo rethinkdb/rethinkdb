@@ -250,45 +250,63 @@ module 'DataExplorerView', ->
         descriptions: {}
         suggestions: {} # Suggestions[state] = function for this state
 
+        types:
+            value: ['number', 'bool', 'string', 'array', 'object', 'time']
+            any: ['number', 'bool', 'string', 'array', 'object', 'stream', 'selection', 'table', 'db', 'r', 'error' ]
+            sequence: ['table', 'selection', 'stream', 'array']
+
+        # Convert meta types (value, any or sequence) to an array of types or return an array composed of just the type
+        convert_type: (type) =>
+            if @types[type]?
+                return @types[type]
+            else
+                return [type]
+
+        # Flatten an array
+        expand_types: (ar) =>
+            result = []
+            if _.isArray(ar)
+                for element in ar
+                    result.concat @convert_type element
+            else
+                result.concat @convert_type element
+            return result
+
         # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
         set_doc_description: (command, tag, suggestions) =>
-            if tag is 'run' # run is a special case, we don't want use to pass a callback, so we change a little the body
-                full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                @descriptions[full_tag] =
-                    name: tag
-                    args: '( )'
-                    description: @description_with_example_template
-                        description: command['description']
-                        examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
-            else
-                if command['langs']['js']['dont_need_parenthesis'] is true
-                    full_tag = tag # Here full_tag is just the name of the tag
-                else
+            if command['langs']['js']['body']?
+                if command['langs']['js']['body'].match(/(\)(\s)*)$/)
                     full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
+                else
+                    full_tag = tag # Here full_tag is just the name of the tag
 
                 @descriptions[full_tag] =
                     name: tag
                     dont_need_parenthesis: command['langs']['js']['dont_need_parenthesis']
-                    args: ('( '+command['langs']['js']['body']+' )' if command['langs']['js']['dont_need_parenthesis'] isnt true)
+                    args: /.*(\(.*\))$/.exec(command['langs']['js']['body'])?[1].replace('$ARG', 'parentType')
                     description: @description_with_example_template
                         description: command['description']
                         examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
 
-            if command['parent']?
-                parents = command['parent']?.split(' | ')
-            else
-                parents = [null]
+            parents = {}
+            returns = []
+            for pair in command.io
+                parent_values = if (pair[0] == null) then '' else pair[0]
+                return_values = pair[1]
 
-            if parents?
-                for parent in parents
-                    if parent is null
-                        parent = ''
-                    if not suggestions[parent]?
-                        suggestions[parent] = []
-                    if tag isnt '' # We don't want to save ()
-                        suggestions[parent].push full_tag
+                parent_values = @convert_type parent_values
+                return_values = @convert_type return_values
+                returns = returns.concat return_values
+                for parent_value in parent_values
+                    parents[parent_value] = true
+                
+            if full_tag isnt '('
+                for parent_value of parents
+                    if not suggestions[parent_value]?
+                        suggestions[parent_value] = []
+                    suggestions[parent_value].push full_tag
 
-            @map_state[full_tag] = command['returns']?.split(' | ') # We use full_tag because we need to differentiate between r. and r(
+            @map_state[full_tag] = returns # We use full_tag because we need to differentiate between r. and r(
 
         # All the commands we are going to ignore
         # TODO update the set of ignored commands for 1.4
@@ -310,41 +328,11 @@ module 'DataExplorerView', ->
                     tag = command['langs']['js']['name']
                     if tag of @ignored_commands
                         continue
-                    if tag is 'row' # In case we have row(, we give a better description than just (
-                        new_command = DataUtils.deep_copy command
-                        new_command['langs']['js']['dont_need_parenthesis'] = false
-                        new_command['langs']['js']['body'] = 'attr'
-                        new_command['description'] = 'Return the attribute of the currently visited document'
-                        @set_doc_description new_command, tag, @suggestions
-                    if tag is '()'
+                    if tag is '()' # The parentheses will be added later
                         tag = ''
                     @set_doc_description command, tag, @suggestions
 
             relations = data['types']
-
-            # For each element, we add its parent's functions to it suggestions
-            # We require the hierarchy to be a DAG else it's going to loop for ever
-            done = false
-            while done is false
-                done = true
-                for element of relations
-                    if not @suggestions[element]?
-                        @suggestions[element] = []
-                    if relations[element]['parents']?
-                        done = false
-
-                        index = 0
-                        while index < relations[element]['parents'].length
-                            parent = relations[element]['parents'][index]
-                            if not relations[parent]['parents']? # parent has all its method available
-                                if @suggestions[parent]?
-                                    for suggestion in @suggestions[parent]
-                                        @suggestions[element].push suggestion
-                                relations[element]['parents'].splice(index, 1)
-                            else # The suggestions for `parent` are not ready yet
-                                index++
-                        if relations[element]['parents'].length is 0
-                            relations[element]['parents'] = null
 
             for state of @suggestions
                 @suggestions[state].sort()
@@ -380,6 +368,8 @@ module 'DataExplorerView', ->
             window.localStorage.rethinkdb_history = JSON.stringify @history
 
         initialize: (args) =>
+            @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
+
             # Load options from local storage
             if window.localStorage?.options?
                 @options = JSON.parse window.localStorage.options
@@ -736,12 +726,10 @@ module 'DataExplorerView', ->
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
                         continue
 
             return result
@@ -788,12 +776,10 @@ module 'DataExplorerView', ->
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
                         to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
                         to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
                         continue
 
             return result
@@ -866,9 +852,11 @@ module 'DataExplorerView', ->
                         stack: stack
                         query: query_before_cursor
                         result: result
+                    result.suggestions = @uniq result.suggestions
 
                     if result.suggestions?.length > 0
                         for suggestion, i in result.suggestions
+                            result.suggestions.sort() # We could eventually sort things earlier with a merge sort but for now that should be enough
                             @current_suggestions.push suggestion
                             @.$('.suggestion_name_list').append @template_suggestion_name
                                 id: i
@@ -1193,10 +1181,10 @@ module 'DataExplorerView', ->
                 #to_complete: undefined
                 #to_describe: undefined
                 
-            # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers), we just show a description, not a suggestion
+            # If we are in the middle of a function (text after the cursor - that is not an element in @char_breakers or a comment), we just show a description, not a suggestion
             result_non_white_char_after_cursor = @regex.get_first_non_white_char.exec(query_after_cursor)
 
-            if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers)
+            if result_non_white_char_after_cursor isnt null and not(result_non_white_char_after_cursor[1]?[0] of @char_breakers or result_non_white_char_after_cursor[1]?.match(/^((\/\/)|(\/\*))/) isnt null)
                 result.status = 'break_and_look_for_description'
                 @hide_suggestion()
             else
@@ -1210,6 +1198,7 @@ module 'DataExplorerView', ->
                 stack: stack
                 query: query_before_cursor
                 result: result
+            result.suggestions = @uniq result.suggestions
 
             if result.suggestions?.length > 0
                 for suggestion, i in result.suggestions
@@ -1239,13 +1228,27 @@ module 'DataExplorerView', ->
                     return false
             return true
 
+        # Similar to underscore's uniq but faster with a hashmap
+        uniq: (ar) ->
+            if not ar? or ar.length is 0
+                return ar
+            result = []
+            hash = {}
+            for element in ar
+                hash[element] = true
+            for key of hash
+                result.push key
+            result.sort()
+            return result
+
         # Extract information from the current query
         # Regex used
         regex:
             anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
             loop:/^(\s)*(for|while)(\s)*\(([^\)]*)\)(\s)*{/
             method: /^(\s)*([a-zA-Z]*)\(/ # forEach( merge( filter(
-            method_var: /^(\s)*([a-zA-Z]+)\./ # r. r.row. (r.count will be caught later)
+            row: /^(\s)*row\(/
+            method_var: /^(\s)*(\d*[a-zA-Z][a-zA-Z0-9]*)\./ # r. r.row. (r.count will be caught later)
             return : /^(\s)*return(\s)*/
             object: /^(\s)*{(\s)*/
             array: /^(\s)*\[(\s)*/
@@ -1257,7 +1260,7 @@ module 'DataExplorerView', ->
             semicolon: /^(\s)*;(\s)*/
             number: /^[0-9]+\.?[0-9]*/
             inline_comment: /^(\s)*\/\/.*\n/
-            multiple_line_comment: /^(\s)*\/\*[^]*\*\//
+            multiple_line_comment: /^(\s)*\/\*[^(\*\/)]*\*\//
             get_first_non_white_char: /\s*(\S+)/
             last_char_is_white: /.*(\s+)$/
         stop_char: # Just for performance (we look for a stop_char in constant time - which is better than having 3 and conditions) and cleaner code
@@ -1345,19 +1348,20 @@ module 'DataExplorerView', ->
                             element.type = 'string'
                             start = i
                         continue
-                    
-                    result_inline_comment = @regex.inline_comment.exec query.slice i
-                    if result_inline_comment?
-                        to_skip = result_inline_comment[0].length-1
-                        start += result_inline_comment[0].length
-                        continue
-                    result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
-                    if result_multiple_line_comment?
-                        to_skip = result_multiple_line_comment[0].length-1
-                        start += result_multiple_line_comment[0].length
-                        continue
+
 
                     if element.type is null
+                        result_inline_comment = @regex.inline_comment.exec query.slice i
+                        if result_inline_comment?
+                            to_skip = result_inline_comment[0].length-1
+                            start += result_inline_comment[0].length
+                            continue
+                        result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
+                        if result_multiple_line_comment?
+                            to_skip = result_multiple_line_comment[0].length-1
+                            start += result_multiple_line_comment[0].length
+                            continue
+
                         if start is i
                             result_white = @regex.white_start.exec query.slice i
                             if result_white?
@@ -1370,11 +1374,12 @@ module 'DataExplorerView', ->
                             if result_regex isnt null
                                 element.type = 'anonymous_function'
                                 list_args = result_regex[2]?.split(',')
-                                element.args = list_args
+                                element.args = []
                                 new_context = DataUtils.deep_copy context
                                 for arg in list_args
                                     arg = arg.replace(/(^\s*)|(\s*$)/gi,"") # Removing leading/trailing spaces
                                     new_context[arg] = true
+                                    element.args.push arg
                                 element.context = new_context
                                 to_skip = result_regex[0].length
                                 body_start = i+result_regex[0].length
@@ -1440,47 +1445,80 @@ module 'DataExplorerView', ->
                             # Check for a standard method
                             result_regex = @regex.method.exec query.slice new_start
                             if result_regex isnt null
-                                if stack[stack.length-1]?.type is 'function' or stack[stack.length-1]?.type is 'var' # We want the query to start with r. or arg.
-                                    element.type = 'function'
-                                    element.name = result_regex[0]
-                                    element.position = position+new_start
-                                    start += new_start-i
-                                    to_skip = result_regex[0].length-1+new_start-i
+                                result_regex_row = @regex.row.exec query.slice new_start
+                                if result_regex_row isnt null
+                                    position_opening_parenthesis = result_regex_row[0].indexOf('(')
+                                    element.type = 'function' # TODO replace with function
+                                    element.name = 'row'
+                                    stack.push element
+                                    size_stack++
+                                    if size_stack > @max_size_stack
+                                        return null
+                                    element =
+                                        type: 'function'
+                                        name: '('
+                                        position: position+3+1
+                                        context: context
+                                        complete: 'false'
                                     stack_stop_char = ['(']
+                                    start += position_opening_parenthesis
+                                    to_skip = result_regex[0].length-1+new_start-i
                                     continue
+
                                 else
-                                    position_opening_parenthesis = result_regex[0].indexOf('(')
-                                    if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) of context
-                                        # Save the var
-                                        element.real_type = 'json'
-                                        element.type = 'var'
-                                        element.name = result_regex[0].slice(0, position_opening_parenthesis)
-                                        stack.push element
-                                        size_stack++
-                                        if size_stack > @max_size_stack
-                                            return null
-                                        element =
-                                            type: 'function'
-                                            name: '('
-                                            position: position+position_opening_parenthesis+1
-                                            context: context
-                                            complete: 'false'
+                                    if stack[stack.length-1]?.type is 'function' or stack[stack.length-1]?.type is 'var' # We want the query to start with r. or arg.
+                                        element.type = 'function'
+                                        element.name = result_regex[0]
+                                        element.position = position+new_start
+                                        start += new_start-i
+                                        to_skip = result_regex[0].length-1+new_start-i
                                         stack_stop_char = ['(']
-                                        start = position_opening_parenthesis
-                                        to_skip = result_regex[0].length-1
                                         continue
+                                    else
+                                        position_opening_parenthesis = result_regex[0].indexOf('(')
+                                        if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) of context
+                                            # Save the var
+                                            element.real_type = @types.value
+                                            element.type = 'var'
+                                            element.name = result_regex[0].slice(0, position_opening_parenthesis)
+                                            stack.push element
+                                            size_stack++
+                                            if size_stack > @max_size_stack
+                                                return null
+                                            element =
+                                                type: 'function'
+                                                name: '('
+                                                position: position+position_opening_parenthesis+1
+                                                context: context
+                                                complete: 'false'
+                                            stack_stop_char = ['(']
+                                            start = position_opening_parenthesis
+                                            to_skip = result_regex[0].length-1
+                                            continue
+                                        ###
+                                        # This last condition is a special case for r(expr)
+                                        else if position_opening_parenthesis isnt -1 and result_regex[0].slice(0, position_opening_parenthesis) is 'r'
+                                            element.type = 'var'
+                                            element.name = 'r'
+                                            element.real_type = @types.value
+                                            element.position = position+new_start
+                                            start += new_start-i
+                                            to_skip = result_regex[0].length-1+new_start-i
+                                            stack_stop_char = ['(']
+                                            continue
+                                        ###
+
 
                             # Check for method without parenthesis r., r.row., doc.
                             result_regex = @regex.method_var.exec query.slice new_start
                             if result_regex isnt null
                                 if result_regex[0].slice(0, result_regex[0].length-1) of context
                                     element.type = 'var'
-                                    element.real_type = 'json'
+                                    element.real_type = @types.value
                                 else
                                     element.type = 'function'
                                 element.position = position+new_start
                                 element.name = result_regex[0].slice(0, result_regex[0].length-1).replace(/\s/, '')
-                                start += new_start-i
                                 element.complete = true
                                 to_skip = element.name.length-1+new_start-i
                                 stack.push element
@@ -1492,6 +1530,7 @@ module 'DataExplorerView', ->
                                     context: context
                                     complete: false
                                 start = new_start+to_skip+1
+                                start -= new_start-i
                                 continue
 
                             # Look for a comma
@@ -1840,7 +1879,7 @@ module 'DataExplorerView', ->
                 if query.slice(start) of element.context
                     element.name = query.slice start
                     element.type = 'var'
-                    element.real_type = 'json'
+                    element.real_type = @types.value
                     element.complete = true
                 else if @regex.number.test(query.slice(start)) is true
                     element.type = 'number'
@@ -1984,24 +2023,22 @@ module 'DataExplorerView', ->
                 else if result.status is 'look_for_state'
                     if element.type is 'function' and element.complete is true
                         result.state = element.name
-                        if @map_state[element.name]
-                            hash_suggestions = {} # To avoid redundancy. add() can returns string OR number, and add() works on both
+                        if @map_state[element.name]?
                             for state in @map_state[element.name]
                                 if @suggestions[state]?
                                     for suggestion in @suggestions[state]
                                         if result.suggestions_regex.test(suggestion) is true
-                                            hash_suggestions[suggestion] = true
-                            for suggestion of hash_suggestions
-                                result.suggestions.push suggestion
+                                            result.suggestions.push suggestion
                         #else # This is a non valid ReQL function.
                         # It may be a personalized function defined in the data explorer...
                         result.status = 'done'
                     else if element.type is 'var' and element.complete is true
                         result.state = element.real_type
-                        if @suggestions[result.state]?
-                            for suggestion in @suggestions[result.state]
-                                if result.suggestions_regex.test(suggestion) is true
-                                    result.suggestions.push suggestion
+                        for type in result.state
+                            if @suggestions[type]?
+                                for suggestion in @suggestions[type]
+                                    if result.suggestions_regex.test(suggestion) is true
+                                        result.suggestions.push suggestion
                         result.status = 'done'
                     #else # Is that possible? A function can only be preceded by a function (except for r)
 
@@ -2257,7 +2294,8 @@ module 'DataExplorerView', ->
             @driver_handler.postpone_reconnection()
 
             @raw_query = @codemirror.getValue()
-            @query = @replace_new_lines_in_query @raw_query # Save it because we'll use it in @callback_multilples_queries
+
+            @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
             
             # Execute the query
             try
@@ -2301,15 +2339,15 @@ module 'DataExplorerView', ->
                     return false
 
                 @index++
-
-                if rdb_query instanceof TermBase
+                if rdb_query instanceof @TermBaseConstructor
                     @skip_value = 0
                     @start_time = new Date()
                     @current_results = []
 
                     @id_execution++ # Update the id_execution and use it to tag the callbacks
                     rdb_global_callback = @generate_rdb_global_callback @id_execution
-                    rdb_query.private_run @driver_handler.connection, rdb_global_callback # @rdb_global_callback can be fire more than once
+                    # Date are displayed in their raw format for now.
+                    rdb_query.private_run {connection: @driver_handler.connection, timeFormat: "raw"}, rdb_global_callback # @rdb_global_callback can be fire more than once
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
                     # Nothing to do
@@ -2416,44 +2454,6 @@ module 'DataExplorerView', ->
                     @save_query
                         query: @raw_query
                         broken_query: false
-                else
-                    @execute_portion()
-
-        get_result_callback: (error, data) =>
-            if error?
-                @results_view.render_error(@query, error)
-                @save_query
-                    query: @raw_query
-                    broken_query: true
-                return false
-
-            if data isnt undefined
-                @current_results.push data
-                if @current_results.length < @limit and @cursor.hasNext() is true
-                    @cursor.next @get_result_callback
-                    return true
-
-            # if data is undefined or @current_results.length is @limit
-            @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
-            @saved_data.query = @query
-            @saved_data.results = @current_results
-            @saved_data.metadata =
-                limit_value: @current_results.length
-                skip_value: @skip_value
-                execution_time: new Date() - @start_time
-                query: @query
-                has_more_data: @cursor.hasNext()
-
-            @results_view.render_result
-                results: @current_results # The first parameter is null ( = query, so we don't display it)
-                metadata: @saved_data.metadata
-
-            # Successful query, let's save it in the history
-            @save_query
-                query: @raw_query
-                broken_query: false
-
-            return get_result_callback
 
         # Evaluate the query
         # We cannot force eval to a local scope, but "use strict" will declare variables in the scope at least
@@ -2467,7 +2467,8 @@ module 'DataExplorerView', ->
         #   world')
         # becomes
         #   r.expr('hello\nworld')
-        replace_new_lines_in_query: (query) ->
+        #  We also remove comments from the query
+        clean_query: (query) ->
             is_parsing_string = false
             start = 0
 
@@ -2493,11 +2494,17 @@ module 'DataExplorerView', ->
 
                     result_inline_comment = @regex.inline_comment.exec query.slice i
                     if result_inline_comment?
+                        result_query += query.slice(start, i).replace(/\n/g, '')
+                        start = i
                         to_skip = result_inline_comment[0].length-1
+                        start += result_inline_comment[0].length
                         continue
                     result_multiple_line_comment = @regex.multiple_line_comment.exec query.slice i
                     if result_multiple_line_comment?
+                        result_query += query.slice(start, i).replace(/\n/g, '')
+                        start = i
                         to_skip = result_multiple_line_comment[0].length-1
+                        start += result_multiple_line_comment[0].length
                         continue
             if is_parsing_string
                 result_query += query.slice(start, i).replace(/\n/g, '\\\\n')
@@ -2702,6 +2709,7 @@ module 'DataExplorerView', ->
             @last_keys = @container.saved_data.last_keys # Arrays of the last keys displayed
             @last_columns_size = @container.saved_data.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
 
+
         set_limit: (limit) =>
             @limit = limit
         set_skip: (skip) =>
@@ -2756,6 +2764,10 @@ module 'DataExplorerView', ->
                     sub_values[sub_values.length-1]['no_comma'] = true
                     return @template_json_tree.array
                         values: sub_values
+            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+                return @template_json_tree.span
+                    classname: 'jt_date'
+                    value: @date_to_string(value)
             else if value_type is 'object'
                 sub_keys = []
                 for key of value
@@ -2815,15 +2827,18 @@ module 'DataExplorerView', ->
             result = args.result
 
             if jQuery.isPlainObject(result)
-                for key, row of result
-                    if not keys_count['object']?
-                        keys_count['object'] = {} # That's define only if there are keys!
-                    if not keys_count['object'][key]?
-                        keys_count['object'][key] =
-                            primitive_value_count: 0
-                    @build_map_keys
-                        keys_count: keys_count['object'][key]
-                        result: row
+                if result.$reql_type$ is 'TIME' and result.epoch_time?
+                    keys_count.primitive_value_count++
+                else
+                    for key, row of result
+                        if not keys_count['object']?
+                            keys_count['object'] = {} # That's define only if there are keys!
+                        if not keys_count['object'][key]?
+                            keys_count['object'][key] =
+                                primitive_value_count: 0
+                        @build_map_keys
+                            keys_count: keys_count['object'][key]
+                            result: row
             else
                 keys_count.primitive_value_count++
 
@@ -2869,7 +2884,7 @@ module 'DataExplorerView', ->
         json_to_table: (result) =>
             # While an Array type is never returned by the driver, we still build an Array in the data explorer
             # when a cursor is returned (since we just print @limit results)
-            if not result.constructor? or (result.constructor isnt ArrayResult and result.constructor isnt Array)
+            if not result.constructor? or result.constructor isnt Array
                 result = [result]
 
             keys_count =
@@ -2983,13 +2998,16 @@ module 'DataExplorerView', ->
             else if value is undefined
                 data['value'] = 'undefined'
                 data['classname'] = 'jta_undefined'
-            else if value.constructor? and value.constructor is ArrayResult
+            else if value.constructor? and value.constructor is Array
                 if value.length is 0
                     data['value'] = '[ ]'
                     data['classname'] = 'empty array'
                 else
                     data['value'] = '[ ... ]'
                     data['data_to_expand'] = JSON.stringify(value)
+            else if value_type is 'object' and value.$reql_type$ is 'TIME' and value.epoch_time?
+                data['value'] = @date_to_string(value)
+                data['classname'] = 'jta_date'
             else if value_type is 'object'
                 data['value'] = '{ ... }'
                 data['is_object'] = true
@@ -3007,6 +3025,31 @@ module 'DataExplorerView', ->
                 data.value = if value is true then 'true' else 'false'
 
             return data
+
+        date_to_string: (date) =>
+            if date.timezone?
+                timezone = date.timezone
+                
+                # Extract data from the timezone
+                timezone_array = date.timezone.split(':')
+                sign = timezone_array[0][0] # Keep the sign
+                timezone_array[0] = timezone_array[0].slice(1) # Remove the sign
+
+                # Save the timezone in minutes
+                timezone_int = (parseInt(timezone_array[0])*60+parseInt(timezone_array[1]))*60
+                if sign is '-'
+                    timezone_int = -1*timezone_int
+                # Add the user local timezone
+                timezone_int += (new Date()).getTimezoneOffset()*60
+            else
+                timezone = '+00:00'
+                timezone_int = (new Date()).getTimezoneOffset()*60
+
+            # Tweak epoch and create a date
+            raw_date_str = (new Date((date.epoch_time+timezone_int)*1000)).toString()
+
+            # Remove the timezone and replace it with the good one
+            return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
         # Expand a JSON object in a table. We just call the @json_to_tree
         expand_tree_in_table: (event) =>
@@ -3434,16 +3477,18 @@ module 'DataExplorerView', ->
                 host: window.location.hostname
                 port: port
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
+                pathname: window.location.pathname
 
             @hack_driver()
             @connect()
         
         # Hack the driver, remove .run() and private_run()
         hack_driver: =>
-            if not TermBase.prototype.private_run?
+            TermBase = r.expr(1).constructor.__super__.constructor.__super__
+            if not TermBase.private_run?
                 that = @
-                TermBase.prototype.private_run = TermBase.prototype.run
-                TermBase.prototype.run = ->
+                TermBase.private_run = TermBase.run
+                TermBase.run = ->
                     throw that.query_error_template
                         found_run: true
 

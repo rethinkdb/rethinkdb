@@ -120,17 +120,17 @@ int json_cmp(cJSON *l, cJSON *r) {
                 json_iterator_t l_json_it(l);
 
                 while (cJSON *cur = l_json_it.next()) {
-                    //If this guarantee trips we would have segfaulted on insertion
+                    // If this guarantee trips we would have segfaulted on insertion
                     guarantee(cur->string != NULL, "cJSON object is in a map but has no key set... something has gone wrong with cJSON.");
-                    //guarantee makes sure there are no duplicates
+                    // guarantee makes sure there are no duplicates
                     guarantee(lvalues.insert(std::make_pair(cur->string, cur)).second);
                 }
 
                 json_iterator_t r_json_it(r);
                 while (cJSON *cur = r_json_it.next()) {
-                    //If this guarantee trips we would have segfaulted on insertion
+                    // If this guarantee trips we would have segfaulted on insertion
                     guarantee(cur->string != NULL, "cJSON object is in a map but has no key set... something has gone wrong with cJSON.");
-                    //guarantee makes sure there are no duplicates
+                    // guarantee makes sure there are no duplicates
                     guarantee(rvalues.insert(std::make_pair(cur->string, cur)).second);
                 }
 

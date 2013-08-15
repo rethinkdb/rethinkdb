@@ -7,7 +7,7 @@ commands:
       document or an array of documents.  You may also pass the
       optional argument <code>durability</code> with value
       <code>'hard'</code> or <code>'soft'</code>, to override the
-      table or query's default durability setting.<br/><br/>
+      table or query's default durability setting, or the optional argument <code>return_vals</code>, which will return the value of the row you're inserting (and the old value if you use <code>upsert</code>) when set to true.<br/><br/>
       Insert returns an object that contains the following attributes:
       <ul>
       <li><code>inserted</code> - the number of documents that were succesfully inserted;</li>
@@ -22,11 +22,13 @@ commands:
       </ul>
 
     body:
-      js: json | [json][, {upsert:true}]
-      py: json | [json][, upsert=False]
-      rb: json | [json][, { :upsert => false }]
-    parent: table
-    returns: object
+      js: "$PARENT.insert(json | [json][, {durability: 'soft', returnVals: true, upsert:true}])"
+      py: "$PARENT.insert(json | [json][, durability='soft', return_vals=True, upsert=True])"
+      rb: "$PARENT.insert(json | [json][, { :durability => 'soft', :return_vals => true :upsert => true}])"
+
+    io:
+      - - table
+        - object
 
     examples:
       - description: Insert a row into a table named 'marvel'.
@@ -74,4 +76,22 @@ commands:
               {:superhero => 'Iron Man', :superpower => 'Arc Reactor' },
               {:upsert => true }
             ).run(conn)
+      - description: Get back a copy of the new row, this is useful if you've done an upsert or generated an ID.
+        code:
+          js: |
+            r.table('marvel').insert(
+              { superhero: 'Iron Man', superpower: 'Arc Reactor' },
+              {upsert: true, return_vals: true}
+            ).run(conn, callback)
+          py: |
+            r.table('marvel').insert(
+              { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },
+              upsert=True, return_vals=True
+            ).run(conn)
+          rb: |
+            r.table('marvel').insert(
+              {:superhero => 'Iron Man', :superpower => 'Arc Reactor' },
+              {:upsert => true , :return_vals => true}
+            ).run(conn)
+
 

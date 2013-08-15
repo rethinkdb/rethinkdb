@@ -133,6 +133,7 @@ reactor_test_cluster_t<protocol_t>::reactor_test_cluster_t(int port) :
     message_multiplexer_run(&message_multiplexer),
     connectivity_cluster_run(&connectivity_cluster,
                              get_unittest_addresses(),
+                             peer_address_t(),
                              port,
                              &message_multiplexer_run,
                              0,
@@ -181,7 +182,7 @@ std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_b
 
 template <class protocol_t>
 test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines)
-    : base_path("/tmp"), io_backender(new io_backender_t) {
+    : base_path("/tmp"), io_backender(new io_backender_t(file_direct_io_mode_t::buffered_desired)) {
     for (int i = 0; i < n_machines; i++) {
         files.push_back(new temp_file_t);
         filepath_file_opener_t file_opener(files[i].name(), io_backender.get());
@@ -326,7 +327,8 @@ template <class protocol_t>
 void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
     try {
         const int timeout_ms = 60000;
-        signal_timer_t timer(timeout_ms);
+        signal_timer_t timer;
+        timer.start(timeout_ms);
         test_clusters[0].directory_read_manager.get_root_view()
             ->subview(&test_cluster_group_t<protocol_t>::extract_reactor_business_cards)
             ->run_until_satisfied(boost::bind(&is_blueprint_satisfied<protocol_t>, bp, _1), &timer);

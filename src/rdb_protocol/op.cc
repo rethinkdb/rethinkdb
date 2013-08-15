@@ -1,5 +1,8 @@
 #include "rdb_protocol/op.hpp"
+
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+
 #pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
@@ -44,6 +47,11 @@ bool optargspec_t::contains(const std::string &key) const {
     return legal_args.count(key) != 0;
 }
 
+optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const {
+    optargspec_t ret(args);
+    ret.legal_args.insert(legal_args.begin(), legal_args.end());
+    return ret;
+}
 
 op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)
@@ -77,10 +85,10 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
 op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
-counted_t<val_t> op_term_t::arg(size_t i) {
+counted_t<val_t> op_term_t::arg(size_t i, eval_flags_t flags) {
     rcheck(i < num_args(), base_exc_t::NON_EXISTENCE,
            strprintf("Index out of range: %zu", i));
-    return args[i]->eval();
+    return args[i]->eval(flags);
 }
 
 counted_t<val_t> op_term_t::optarg(const std::string &key) {
@@ -88,8 +96,8 @@ counted_t<val_t> op_term_t::optarg(const std::string &key) {
     if (it != optargs.end()) {
         return it->second->eval();
     }
-    counted_t<val_t> ret = env->get_optarg(key);
-    return ret;
+    // returns counted_t<val_t>() if the key isn't found
+    return env->get_optarg(key);
 }
 
 counted_t<func_t> op_term_t::lazy_literal_optarg(const std::string &key) {
@@ -117,4 +125,4 @@ bool op_term_t::is_deterministic_impl() const {
     return true;
 }
 
-} //namespace ql
+} // namespace ql

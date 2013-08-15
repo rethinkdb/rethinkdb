@@ -58,11 +58,9 @@ private:
             drainer(new auto_drainer_t),
 
             request_mailbox(new mailbox_t<void(request_type)>(parent->mailbox_manager,
-                boost::bind(&client_t::on_request, this, _1),
-                mailbox_callback_mode_inline)),
+                boost::bind(&client_t::on_request, this, _1))),
             relinquish_tickets_mailbox(new mailbox_t<void(int)>(parent->mailbox_manager,
-                boost::bind(&client_t::on_relinquish_tickets, this, _1),
-                mailbox_callback_mode_inline))
+                boost::bind(&client_t::on_relinquish_tickets, this, _1)))
         {
             send(parent->mailbox_manager, client_bc.intro_addr,
                  server_business_card_t(request_mailbox->get_address(),
@@ -243,7 +241,7 @@ private:
         }
 
         /* Next, look for clients with a large difference between their target
-           number of tickets and their current number of tickets. But if the 
+           number of tickets and their current number of tickets. But if the
            difference is less than `chunk_size`, don't send any tickets at all
            to avoid flooding the network with many small ticket updates. */
         while (free_tickets > chunk_size) {
