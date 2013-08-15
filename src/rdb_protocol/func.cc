@@ -200,6 +200,11 @@ bool func_term_t::is_deterministic_impl() const {
 }
 
 bool func_t::filter_call(counted_t<const datum_t> arg) {
+    // We have to catch every exception type and save it so we can rethrow it later
+    // So we don't trigger a coroutine wait in a catch statement
+    std::exception_ptr saved_exception;
+    base_exc_t::type_t exception_type;
+
     try {
         counted_t<const datum_t> d = call(arg)->as_datum();
         if (d->get_type() == datum_t::R_OBJECT &&
@@ -221,31 +226,39 @@ bool func_t::filter_call(counted_t<const datum_t> arg) {
             return d->as_bool();
         }
     } catch (const base_exc_t &e) {
-        if (e.get_type() == base_exc_t::NON_EXISTENCE) {
-            // If a non-existence error is thrown inside a `filter`, we return
-            // the default value.  Note that we will enter this branch if the
-            // function passed to `filter` returns NULL, since the type error
-            // above will produce a non-existence error in the case where `d` is
-            // NULL.
-            try {
-                if (default_filter_val) {
-                    return default_filter_val->call()->as_bool();
-                } else {
-                    return false;
-                }
-            } catch (const base_exc_t &e2) {
-                if (e2.get_type() != base_exc_t::EMPTY_USER) {
-                    // If the default value throws a non-EMPTY_USER exception,
-                    // we re-throw that exception.
-                    throw;
-                }
+        saved_exception = std::current_exception();
+        exception_type = e.get_type();
+    }
+
+    // We can't call the default_filter_val earlier because it could block,
+    //  which would crash since we were in an exception handler
+    guarantee(saved_exception != std::exception_ptr());
+
+    if (exception_type == base_exc_t::NON_EXISTENCE) {
+        // If a non-existence error is thrown inside a `filter`, we return
+        // the default value.  Note that we will enter this code if the
+        // function passed to `filter` returns NULL, since the type error
+        // above will produce a non-existence error in the case where `d` is
+        // NULL.
+        try {
+            if (default_filter_val) {
+                return default_filter_val->call()->as_bool();
+            } else {
+                return false;
+            }
+        } catch (const base_exc_t &e) {
+            if (e.get_type() != base_exc_t::EMPTY_USER) {
+                // If the default value throws a non-EMPTY_USER exception,
+                // we re-throw that exception.
+                throw;
             }
         }
-        // If we caught a non-NON_EXISTENCE exception or we caught a
-        // NON_EXISTENCE exception and the default value threw an EMPTY_USER
-        // exception, we re-throw the original exception.
-        throw;
     }
+
+    // If we caught a non-NON_EXISTENCE exception or we caught a
+    // NON_EXISTENCE exception and the default value threw an EMPTY_USER
+    // exception, we re-throw the original exception.
+    std::rethrow_exception(saved_exception);
 }
 
 counted_t<func_t> func_t::new_constant_func(env_t *env, counted_t<const datum_t> obj,
@@ -273,7 +286,7 @@ counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> ob
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     int var = env->gensym();
-    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var))), 
+    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var))),
        N2(PLUCK, NVAR(var), NDATUM(obj)));
     propagate_backtrace(twrap.get(), bt_src.get());
     return make_counted<func_t>(env, twrap);
