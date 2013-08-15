@@ -21,7 +21,7 @@ const js_id_t INVALID_ID = 0;
 
 // JS calls result either in a DATUM return value, a function id (which we can
 // use to call the function later), or an error string
-typedef boost::variant<std::shared_ptr<scoped_cJSON_t>, js_id_t, std::string> js_result_t;
+typedef boost::variant<std::shared_ptr<const scoped_cJSON_t>, js_id_t, std::string> js_result_t;
 
 class extproc_pool_t;
 class js_runner_t;
@@ -59,7 +59,7 @@ public:
 
     // Calls a previously compiled function.
     js_result_t call(const std::string &source,
-                     const std::vector<std::shared_ptr<scoped_cJSON_t> > &args,
+                     const std::vector<std::shared_ptr<const scoped_cJSON_t> > &args,
                      const req_config_t &config);
 
 private:

@@ -31,9 +31,26 @@ private:
 
     DISABLE_COPYING(scoped_cJSON_t);
 
+    void swap(scoped_cJSON_t &other) {
+        cJSON *tmp = val;
+        val = other.val;
+        other.val = tmp;
+    }
+
 public:
     scoped_cJSON_t() : val(NULL) { }
     explicit scoped_cJSON_t(cJSON *v);
+
+    scoped_cJSON_t(scoped_cJSON_t &&movee) : val(movee.val) {
+        movee.val = NULL;
+    }
+
+    scoped_cJSON_t &operator=(scoped_cJSON_t &&movee) {
+        scoped_cJSON_t tmp(std::move(movee));
+        swap(tmp);
+        return *this;
+    }
+
     ~scoped_cJSON_t();
     cJSON *get() const;
     cJSON *release();

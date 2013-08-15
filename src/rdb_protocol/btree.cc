@@ -85,7 +85,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const sto
 }
 
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
-                     std::shared_ptr<scoped_cJSON_t> data,
+                     std::shared_ptr<const scoped_cJSON_t> data,
                      btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
 
     scoped_malloc_t<rdb_value_t> new_value(MAX_RDB_VALUE_SIZE);
@@ -151,7 +151,7 @@ void rdb_replace_and_return_superblock(
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
-            std::shared_ptr<scoped_cJSON_t> old_val_json =
+            std::shared_ptr<const scoped_cJSON_t> old_val_json =
                 get_data(kv_location.value.get(), txn);
             guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
             old_val = make_counted<ql::datum_t>(old_val_json);
@@ -207,7 +207,7 @@ void rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                std::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
+                std::shared_ptr<const scoped_cJSON_t> new_val_as_json = new_val->as_json();
                 kv_location_set(&kv_location, key, new_val_as_json,
                                 slice, timestamp, txn);
                 mod_info->added = new_val_as_json;
@@ -225,7 +225,7 @@ void rdb_replace_and_return_superblock(
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    std::shared_ptr<scoped_cJSON_t> new_val_as_json
+                    std::shared_ptr<const scoped_cJSON_t> new_val_as_json
                         = new_val->as_json();
                     kv_location_set(&kv_location, key, new_val_as_json,
                                     slice, timestamp, txn);
@@ -343,7 +343,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
     }
 }
 
-void rdb_set(const store_key_t &key, std::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+void rdb_set(const store_key_t &key, std::shared_ptr<const scoped_cJSON_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response_out,
              rdb_modification_info_t *mod_info) {
@@ -549,7 +549,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 
 // This is actually a kind of misleading name. This function estimates the size of a cJSON object
 // not a whole rget though it is used for that purpose (by summing up these responses).
-size_t estimate_rget_response_size(const std::shared_ptr<scoped_cJSON_t> &json) {
+size_t estimate_rget_response_size(const std::shared_ptr<const scoped_cJSON_t> &json) {
     return cJSON_estimate_size(json->get());
 }
 
@@ -679,7 +679,7 @@ public:
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        std::list<std::shared_ptr<scoped_cJSON_t> > tmp;
+                        std::list<std::shared_ptr<const scoped_cJSON_t> > tmp;
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
@@ -704,7 +704,7 @@ public:
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
-                    std::shared_ptr<scoped_cJSON_t> cjson = it->get();
+                    std::shared_ptr<const scoped_cJSON_t> cjson = it->get();
                     if (sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
                                                                             sindex_value->as_json(),
@@ -898,22 +898,22 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 { }
 
 void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key,
-        std::shared_ptr<scoped_cJSON_t> added) {
+        std::shared_ptr<const scoped_cJSON_t> added) {
     rdb_modification_report_t report(primary_key);
     report.info.added = added;
     on_mod_report(report);
 }
 
 void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key,
-        std::shared_ptr<scoped_cJSON_t> deleted) {
+        std::shared_ptr<const scoped_cJSON_t> deleted) {
     rdb_modification_report_t report(primary_key);
     report.info.deleted = deleted;
     on_mod_report(report);
 }
 
 void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
-        std::shared_ptr<scoped_cJSON_t> added,
-        std::shared_ptr<scoped_cJSON_t> deleted) {
+        std::shared_ptr<const scoped_cJSON_t> added,
+        std::shared_ptr<const scoped_cJSON_t> deleted) {
     rdb_modification_report_t report(primary_key);
     report.info.added = added;
     report.info.deleted = deleted;

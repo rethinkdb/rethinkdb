@@ -135,7 +135,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
 
     bool not_added;
     if (new_val->get_type() == ql::datum_t::R_OBJECT) {
-        data->insert(std::make_pair(r.key, new scoped_cJSON_t(new_val->as_json()->release())));
+        data->insert(std::make_pair(r.key, new scoped_cJSON_t(new_val->as_json_scoped().release())));
         if (old_val->get_type() == ql::datum_t::R_NULL) {
             not_added = resp.add("inserted", num_records);
         } else {

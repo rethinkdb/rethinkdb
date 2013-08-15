@@ -26,7 +26,7 @@ const js_id_t MAX_ID = UINT64_MAX;
 #define TO_JSON_RECURSION_LIMIT  500
 
 // Returns an empty pointer on error.
-std::shared_ptr<scoped_cJSON_t> js_to_json(const v8::Handle<v8::Value> &value,
+std::shared_ptr<const scoped_cJSON_t> js_to_json(const v8::Handle<v8::Value> &value,
                                          std::string *errmsg);
 
 // Should never error.
@@ -39,7 +39,7 @@ public:
     ~js_env_t();
 
     js_result_t eval(const std::string &source);
-    js_result_t call(js_id_t id, const std::vector<std::shared_ptr<scoped_cJSON_t> > &args);
+    js_result_t call(js_id_t id, const std::vector<std::shared_ptr<const scoped_cJSON_t> > &args);
     void release(js_id_t id);
 
 private:
@@ -99,7 +99,7 @@ js_result_t js_job_t::eval(const std::string &source) {
     return result;
 }
 
-js_result_t js_job_t::call(js_id_t id, std::vector<std::shared_ptr<scoped_cJSON_t> > args) {
+js_result_t js_job_t::call(js_id_t id, std::vector<std::shared_ptr<const scoped_cJSON_t> > args) {
     js_task_t task = js_task_t::TASK_CALL;
     write_message_t msg;
     msg.append(&task, sizeof(task));
@@ -158,7 +158,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
         case TASK_CALL:
             {
                 js_id_t id;
-                std::vector<std::shared_ptr<scoped_cJSON_t> > args;
+                std::vector<std::shared_ptr<const scoped_cJSON_t> > args;
                 res = deserialize(stream_in, &id);
                 if (res != ARCHIVE_SUCCESS) { return false; }
                 res = deserialize(stream_in, &args);
@@ -246,7 +246,7 @@ js_result_t js_env_t::eval(const std::string &source) {
                 guarantee(!result_val.IsEmpty());
 
                 // JSONify result.
-                std::shared_ptr<scoped_cJSON_t> json = js_to_json(result_val, errmsg);
+                std::shared_ptr<const scoped_cJSON_t> json = js_to_json(result_val, errmsg);
                 if (json) {
                     result = json;
                 }
@@ -282,7 +282,7 @@ const boost::shared_ptr<v8::Persistent<v8::Value> > js_env_t::find_value(js_id_t
 }
 
 v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
-                                  const std::vector<std::shared_ptr<scoped_cJSON_t> > &args,
+                                  const std::vector<std::shared_ptr<const scoped_cJSON_t> > &args,
                                   std::string *errmsg) {
     v8::TryCatch try_catch;
     v8::HandleScope scope;
@@ -307,7 +307,7 @@ v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
 }
 
 js_result_t js_env_t::call(js_id_t id,
-                           const std::vector<std::shared_ptr<scoped_cJSON_t> > &args) {
+                           const std::vector<std::shared_ptr<const scoped_cJSON_t> > &args) {
     js_context_t clean_context;
     js_result_t result("");
     std::string *errmsg = boost::get<std::string>(&result);
@@ -334,7 +334,7 @@ js_result_t js_env_t::call(js_id_t id,
             result = remember_value(sub_func);
         } else {
             // JSONify result.
-            std::shared_ptr<scoped_cJSON_t> json = js_to_json(value, errmsg);
+            std::shared_ptr<const scoped_cJSON_t> json = js_to_json(value, errmsg);
             if (json) {
                 result = json;
             }
@@ -497,7 +497,7 @@ static cJSON *js_make_json(const v8::Handle<v8::Value> &value, int recursion_lim
     }
 }
 
-std::shared_ptr<scoped_cJSON_t> js_to_json(const v8::Handle<v8::Value> &value, std::string *errmsg) {
+std::shared_ptr<const scoped_cJSON_t> js_to_json(const v8::Handle<v8::Value> &value, std::string *errmsg) {
     guarantee(!value.IsEmpty());
     guarantee(errmsg);
 
@@ -507,9 +507,9 @@ std::shared_ptr<scoped_cJSON_t> js_to_json(const v8::Handle<v8::Value> &value, s
 
     cJSON *json = js_make_json(value, TO_JSON_RECURSION_LIMIT, errmsg);
     if (json) {
-        return std::make_shared<scoped_cJSON_t>(json);
+        return std::make_shared<const scoped_cJSON_t>(json);
     } else {
-        return std::shared_ptr<scoped_cJSON_t>();
+        return std::shared_ptr<const scoped_cJSON_t>();
     }
 }
 

@@ -112,10 +112,10 @@ void run_in_thread_pool_with_broadcaster(
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-std::shared_ptr<scoped_cJSON_t> generate_document(size_t value_padding_length, const std::string &value) {
+std::shared_ptr<const scoped_cJSON_t> generate_document(size_t value_padding_length, const std::string &value) {
     // This is a kind of hacky way to add an object to a map but I'm not sure
     // anyone really cares.
-    return std::make_shared<scoped_cJSON_t>(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
+    return std::make_shared<const scoped_cJSON_t>(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
                                                                   value.c_str(),
                                                                   std::string(value_padding_length, 'a').c_str()).c_str()));
 }
@@ -322,7 +322,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        auto sindex_key_json = std::make_shared<scoped_cJSON_t>(cJSON_Parse(it->second.c_str()));
+        auto sindex_key_json = std::make_shared<const scoped_cJSON_t>(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
             sindex_id, rdb_protocol_t::sindex_range_t(

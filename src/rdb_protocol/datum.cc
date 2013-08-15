@@ -163,7 +163,7 @@ void datum_t::check_str_validity(const std::string &str) {
 datum_t::datum_t(cJSON *json) {
     init_json(json);
 }
-datum_t::datum_t(const std::shared_ptr<scoped_cJSON_t> &json) {
+datum_t::datum_t(const std::shared_ptr<const scoped_cJSON_t> &json) {
     init_json(json->get());
 }
 
@@ -600,7 +600,7 @@ const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() con
     return *r_object;
 }
 
-cJSON *datum_t::as_raw_json() const {
+cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
     case R_NULL: return cJSON_CreateNull();
     case R_BOOL: return cJSON_CreateBool(as_bool());
@@ -609,7 +609,7 @@ cJSON *datum_t::as_raw_json() const {
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (size_t i = 0; i < as_array().size(); ++i) {
-            arr.AddItemToArray(as_array()[i]->as_raw_json());
+            arr.AddItemToArray(as_array()[i]->as_json_raw());
         }
         return arr.release();
     } break;
@@ -617,7 +617,7 @@ cJSON *datum_t::as_raw_json() const {
         scoped_cJSON_t obj(cJSON_CreateObject());
         for (std::map<std::string, counted_t<const datum_t> >::const_iterator
                  it = r_object->begin(); it != r_object->end(); ++it) {
-            obj.AddItemToObject(it->first.c_str(), it->second->as_raw_json());
+            obj.AddItemToObject(it->first.c_str(), it->second->as_json_raw());
         }
         return obj.release();
     } break;
@@ -626,8 +626,13 @@ cJSON *datum_t::as_raw_json() const {
     }
     unreachable();
 }
-std::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
-    return std::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(as_raw_json()));
+
+scoped_cJSON_t datum_t::as_json_scoped() const {
+    return scoped_cJSON_t(as_json_raw());
+}
+
+std::shared_ptr<const scoped_cJSON_t> datum_t::as_json() const {
+    return std::shared_ptr<const scoped_cJSON_t>(new scoped_cJSON_t(as_json_raw()));
 }
 
 // TODO: make STR and OBJECT convertible to sequence?

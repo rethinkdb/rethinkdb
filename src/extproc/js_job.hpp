@@ -20,7 +20,7 @@ public:
     js_job_t(extproc_pool_t *pool, signal_t *interruptor);
 
     js_result_t eval(const std::string &source);
-    js_result_t call(js_id_t id, std::vector<std::shared_ptr<scoped_cJSON_t> > args);
+    js_result_t call(js_id_t id, std::vector<std::shared_ptr<const scoped_cJSON_t> > args);
     void release(js_id_t id);
     void exit();
 

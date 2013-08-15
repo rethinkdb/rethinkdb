@@ -28,7 +28,7 @@ public:
     }
 };
 
-std::shared_ptr<scoped_cJSON_t> get_data(const rdb_value_t *value,
+std::shared_ptr<const scoped_cJSON_t> get_data(const rdb_value_t *value,
                                            transaction_t *txn);
 
 class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee_t> {
@@ -38,7 +38,7 @@ class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee
         guarantee(txn != NULL);
     }
 
-    explicit lazy_json_pointee_t(const std::shared_ptr<scoped_cJSON_t> &_ptr)
+    explicit lazy_json_pointee_t(const std::shared_ptr<const scoped_cJSON_t> &_ptr)
         : ptr(_ptr), rdb_value(NULL), txn(NULL) {
         guarantee(ptr);
     }
@@ -46,7 +46,7 @@ class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee
     friend class lazy_json_t;
 
     // If empty, we haven't loaded the value yet.
-    std::shared_ptr<scoped_cJSON_t> ptr;
+    std::shared_ptr<const scoped_cJSON_t> ptr;
 
     // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and the
     // transaction with which to load it.
@@ -58,13 +58,13 @@ class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee
 
 class lazy_json_t {
 public:
-    explicit lazy_json_t(const std::shared_ptr<scoped_cJSON_t> &ptr)
+    explicit lazy_json_t(const std::shared_ptr<const scoped_cJSON_t> &ptr)
         : pointee(new lazy_json_pointee_t(ptr)) { }
 
     lazy_json_t(const rdb_value_t *rdb_value, transaction_t *txn)
         : pointee(new lazy_json_pointee_t(rdb_value, txn)) { }
 
-    const std::shared_ptr<scoped_cJSON_t> &get() const;
+    const std::shared_ptr<const scoped_cJSON_t> &get() const;
 
 private:
     counted_t<lazy_json_pointee_t> pointee;

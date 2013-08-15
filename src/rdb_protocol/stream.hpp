@@ -30,19 +30,19 @@ namespace query_language {
 
 typedef rdb_protocol_details::rget_item_t rget_item_t;
 
-typedef std::list<std::shared_ptr<scoped_cJSON_t> > json_list_t;
+typedef std::list<std::shared_ptr<const scoped_cJSON_t> > json_list_t;
 typedef std::deque<rget_item_t> extended_json_deque_t;
 typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
 
 enum sorting_hint_t {START, CONTINUE};
 
-typedef std::pair<sorting_hint_t, std::shared_ptr<scoped_cJSON_t> > hinted_json_t;
+typedef std::pair<sorting_hint_t, std::shared_ptr<const scoped_cJSON_t> > hinted_json_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
     json_stream_t() { }
     // Returns a null value when end of stream is reached.
-    virtual std::shared_ptr<scoped_cJSON_t> next() = 0;  // MAY THROW
+    virtual std::shared_ptr<const scoped_cJSON_t> next() = 0;  // MAY THROW
 
     virtual hinted_json_t sorting_hint_next();
 
@@ -74,7 +74,7 @@ public:
         }
     }
 
-    std::shared_ptr<scoped_cJSON_t> next();
+    std::shared_ptr<const scoped_cJSON_t> next();
 
     /* Use default implementation of `add_transformation()` and `apply_terminal()` */
 
@@ -86,7 +86,7 @@ class transform_stream_t : public json_stream_t {
 public:
     transform_stream_t(boost::shared_ptr<json_stream_t> stream, ql::env_t *_ql_env, const rdb_protocol_details::transform_t &tr);
 
-    std::shared_ptr<scoped_cJSON_t> next();
+    std::shared_ptr<const scoped_cJSON_t> next();
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace);
 
 private:
@@ -115,7 +115,7 @@ public:
         const std::map<std::string, ql::wire_func_t> &_optargs, bool _use_outdated,
         sorting_t sorting, ql::rcheckable_t *_parent);
 
-    std::shared_ptr<scoped_cJSON_t> next();
+    std::shared_ptr<const scoped_cJSON_t> next();
 
     hinted_json_t sorting_hint_next();
 
@@ -137,7 +137,7 @@ private:
 
     /* Returns true if the passed value is new. */
     bool check_and_set_last_key(const std::string &key);
-    bool check_and_set_last_key(std::shared_ptr<scoped_cJSON_t>);
+    bool check_and_set_last_key(std::shared_ptr<const scoped_cJSON_t>);
 
     rdb_protocol_details::transform_t transform;
     namespace_repo_t<rdb_protocol_t>::access_t ns_access;
@@ -154,7 +154,7 @@ private:
 
     std::string key_in_sorting_buffer;
 
-    boost::variant<std::shared_ptr<scoped_cJSON_t>, std::string> last_key;
+    boost::variant<std::shared_ptr<const scoped_cJSON_t>, std::string> last_key;
 
     bool finished, started;
     const std::map<std::string, ql::wire_func_t> optargs;

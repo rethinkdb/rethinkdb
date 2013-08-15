@@ -25,9 +25,9 @@ namespace query_language {
 
 void transform_apply(ql::env_t *ql_env,
                      const backtrace_t &backtrace,
-                     std::shared_ptr<scoped_cJSON_t> json,
+                     std::shared_ptr<const scoped_cJSON_t> json,
                      rdb_protocol_details::transform_variant_t *t,
-                     std::list<std::shared_ptr<scoped_cJSON_t> > *out);
+                     std::list<std::shared_ptr<const scoped_cJSON_t> > *out);
 
 // Sets the result type based on a terminal.
 void terminal_initialize(ql::env_t *ql_env,
