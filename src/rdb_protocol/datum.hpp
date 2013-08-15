@@ -68,8 +68,6 @@ public:
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
-    // RSI: Remove non-move constructor?
-    explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
 
     // These construct a datum from an equivalent representation.
     datum_t();

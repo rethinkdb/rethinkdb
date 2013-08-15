@@ -60,12 +60,6 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
     maybe_sanitize_ptype();
 }
 
-datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
-    : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) {
-    maybe_sanitize_ptype();
-}
-
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
     switch (type) {
