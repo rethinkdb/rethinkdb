@@ -63,11 +63,10 @@ public:
     datum_t(type_t _type, std::string _reql_type);
     explicit datum_t(double _num);
     explicit datum_t(std::string &&str);
+    // RSI: Remove non-move constructor?
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
-    // RSI: Remove non-move constructor?
-    explicit datum_t(const std::vector<counted_t<const datum_t> > &_array);
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
     // RSI: Remove non-move constructor?
     explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
@@ -223,7 +222,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 class datum_ptr_t {
 public:
     template<class... Args>
-    explicit datum_ptr_t(Args... args) : ptr_(make_scoped<datum_t>(args...)) { }
+    explicit datum_ptr_t(Args... args) : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
     counted_t<const datum_t> to_counted(
             const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
         ptr()->maybe_sanitize_ptype(allowed_ptypes);
