@@ -62,6 +62,7 @@ public:
     datum_t(type_t _type, bool _bool);
     datum_t(type_t _type, std::string _reql_type);
     explicit datum_t(double _num);
+    explicit datum_t(std::string &&str);
     explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
@@ -157,8 +158,8 @@ public:
      * thus truncated. */
     static bool key_is_truncated(const store_key_t &key);
 
-    void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
-    archive_result_t rdb_deserialize(read_stream_t *s);
+    // void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
+    // archive_result_t rdb_deserialize(read_stream_t *s);
     void rcheck_is_ptype(const std::string s = "") const;
 
 private:

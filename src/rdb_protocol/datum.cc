@@ -38,9 +38,14 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
            strprintf("Non-finite number: " DBLPRI, r_num));
 }
 
+datum_t::datum_t(std::string &&_str)
+    : type(R_STR), r_str(new std::string(std::move(_str))) {
+    check_str_validity(*r_str);
+}
+
 datum_t::datum_t(const std::string &_str)
     : type(R_STR), r_str(new std::string(_str)) {
-    check_str_validity(_str);
+    check_str_validity(*r_str);
 }
 
 datum_t::datum_t(const char *cstr)
@@ -871,20 +876,6 @@ size_t datum_t::max_trunc_size() {
 bool datum_t::key_is_truncated(const store_key_t &key) {
     return key.size() == MAX_KEY_SIZE;
 }
-
-void datum_t::rdb_serialize(write_message_t &msg /*NOLINT*/) const {
-    Datum d;
-    write_to_protobuf(&d);
-    msg << d;
-}
-archive_result_t datum_t::rdb_deserialize(read_stream_t *s) {
-    Datum d;
-    archive_result_t res = deserialize(s, &d);
-    if (res) return res;
-    init_from_pb(&d);
-    return ARCHIVE_SUCCESS;
-}
-
 
 void datum_t::write_to_protobuf(Datum *d) const {
     switch (get_type()) {
