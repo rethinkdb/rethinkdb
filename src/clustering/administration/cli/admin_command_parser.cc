@@ -1058,8 +1058,6 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
             exception_str += "\nusage: " + usage_str.substr(0, usage_str.size() - 1);
         }
         throw admin_parse_exc_t(exception_str);
-    } catch (const std::exception& ex) {
-        throw;
     }
 }
 
