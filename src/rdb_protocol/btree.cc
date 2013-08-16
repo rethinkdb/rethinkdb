@@ -70,7 +70,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
     if (!kv_location.value.has()) {
         response->data.reset(new scoped_cJSON_t(cJSON_CreateNull()));
     } else {
-        response->data = get_data(kv_location.value.get(), txn);
+        response->data = get_data(kv_location.value.get(), txn)->as_json();
     }
 }
 
@@ -94,7 +94,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 
     // TODO unnecessary copies they must go away.
     write_message_t wm;
-    wm << data->as_json();
+    wm << data;
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
     guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
@@ -152,10 +152,8 @@ void rdb_replace_and_return_superblock(
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
-            std::shared_ptr<const scoped_cJSON_t> old_val_json =
-                get_data(kv_location.value.get(), txn);
-            guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
-            old_val = make_counted<ql::datum_t>(old_val_json);
+            old_val = get_data(kv_location.value.get(), txn);
+            guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
@@ -352,7 +350,7 @@ void rdb_set(const store_key_t &key, std::shared_ptr<const scoped_cJSON_t> data,
 
     /* update the modification report */
     if (kv_location.value.has()) {
-        mod_info->deleted = get_data(kv_location.value.get(), txn);
+        mod_info->deleted = get_data(kv_location.value.get(), txn)->as_json();
     }
 
     mod_info->added = data;
@@ -383,7 +381,7 @@ public:
 
         rdb_protocol_details::backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
-        atom.value = get_data(value, txn);
+        atom.value = get_data(value, txn)->as_json();
         atom.recency = recency;
         cb_->on_keyvalue(atom, interruptor);
     }
@@ -417,7 +415,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 
     /* Update the modification report. */
     if (exists) {
-        mod_info->deleted = get_data(kv_location.value.get(), txn);
+        mod_info->deleted = get_data(kv_location.value.get(), txn)->as_json();
     }
 
     if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn);
@@ -667,8 +665,7 @@ public:
 
             if (sindex_function &&
                 ql::datum_t::key_is_truncated(store_key)) {
-                counted_t<const ql::datum_t> datum_value =
-                    make_counted<const ql::datum_t>(first_value.get());
+                counted_t<const ql::datum_t> datum_value = first_value.get();
                 sindex_value = sindex_function->call(datum_value)->as_datum();
             }
 
@@ -681,12 +678,12 @@ public:
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
-                                            jt->get(), &it->variant,
+                                            jt->get()->as_json(), &it->variant,
                                             &tmp);
                         }
                         data.clear();
                         for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
-                            data.push_back(lazy_json_t(*jt));
+                            data.push_back(lazy_json_t(make_counted<ql::datum_t>(*jt)));
                         }
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
@@ -702,7 +699,7 @@ public:
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
-                    std::shared_ptr<const scoped_cJSON_t> cjson = it->get();
+                    std::shared_ptr<const scoped_cJSON_t> cjson = it->get()->as_json();
                     if (sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
                                                                             sindex_value->as_json(),
@@ -1140,7 +1137,7 @@ public:
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
-            mod_report.info.added = get_data(rdb_value, txn);
+            mod_report.info.added = get_data(rdb_value, txn)->as_json();
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
         }

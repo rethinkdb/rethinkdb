@@ -32,7 +32,7 @@ result_t json_stream_t::apply_terminal(
 
     std::shared_ptr<const scoped_cJSON_t> json;
     while ((json = next())) {
-        terminal_apply(ql_env, backtrace, lazy_json_t(json), &t, &res);
+        terminal_apply(ql_env, backtrace, lazy_json_t(make_counted<ql::datum_t>(json)), &t, &res);
     }
     return res;
 }

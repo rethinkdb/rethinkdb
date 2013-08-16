@@ -174,12 +174,10 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLIN
     ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
     guarantee(obj);
 
-    std::shared_ptr<const scoped_cJSON_t> cjson = json.get();
-
-    counted_t<const ql::datum_t> el(new ql::datum_t(cjson));
+    counted_t<const ql::datum_t> el = json.get();
     counted_t<const ql::datum_t> el_group
         = func.compile_group(ql_env)->call(el)->as_datum();
-    counted_t<const ql::datum_t> elm(new ql::datum_t(cjson));
+    counted_t<const ql::datum_t> elm = json.get();
     counted_t<const ql::datum_t> el_map
         = func.compile_map(ql_env)->call(elm)->as_datum();
 
@@ -199,7 +197,7 @@ void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) co
 
 void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NOLINT(runtime/references)
     counted_t<const ql::datum_t> *d = boost::get<counted_t<const ql::datum_t> >(out);
-    counted_t<const ql::datum_t> rhs(new ql::datum_t(json.get()));
+    counted_t<const ql::datum_t> rhs = json.get();
     if (d != NULL) {
         *out = func.compile(ql_env)->call(*d, rhs)->as_datum();
     } else {
