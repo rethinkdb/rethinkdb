@@ -15,6 +15,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
+#include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
@@ -1714,7 +1715,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_range_t,
-                           start, end, start_open, end_open);
+                           empty_ok(start), empty_ok(end), start_open, end_open);
 RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_range,
                            transform, terminal, optargs, sorting);

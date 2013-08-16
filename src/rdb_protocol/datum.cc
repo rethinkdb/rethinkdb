@@ -1002,6 +1002,33 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     return ARCHIVE_SUCCESS;
 }
 
+write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum) {
+    const counted_t<const datum_t> *pointer = datum.get();
+    const bool has = pointer->has();
+    wm << has;
+    if (has) {
+        wm << *pointer;
+    }
+    return wm;
+}
+
+archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum) {
+    bool has;
+    archive_result_t res = deserialize(s, &has);
+    if (res) {
+        return res;
+    }
+
+    counted_t<const datum_t> *pointer = datum.get();
+
+    if (!has) {
+        pointer->reset();
+        return ARCHIVE_SUCCESS;
+    } else {
+        return deserialize(s, pointer);
+    }
+}
+
 
 bool wire_datum_map_t::has(counted_t<const datum_t> key) {
     r_sanity_check(state == COMPILED);

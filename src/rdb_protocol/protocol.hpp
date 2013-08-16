@@ -226,6 +226,8 @@ struct rdb_protocol_t {
 
         typedef std::vector<std::shared_ptr<const scoped_cJSON_t> > vec_t;
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
+
+        // RSI: Make sure that the counted_t<const ql::datum_t> cannot be empty when serialized.
         typedef boost::variant<
 
             stream_t,
@@ -306,6 +308,7 @@ struct rdb_protocol_t {
     class sindex_range_t {
     public:
         sindex_range_t() { }
+        // These counted_t<const ql::datum_t>'s may be empty, indicating +/- infinity.
         sindex_range_t(counted_t<const ql::datum_t> _start, bool _start_open,
                        counted_t<const ql::datum_t> _end, bool _end_open)
             : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
