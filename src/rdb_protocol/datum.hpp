@@ -118,9 +118,7 @@ public:
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs, merge_res_f f) const;
 
     cJSON *as_json_raw() const;
-    scoped_cJSON_t as_json_scoped() const;
-    // RSI: Examine which uses of as_json() should be as_json_scoped... if it matters.
-    std::shared_ptr<const scoped_cJSON_t> as_json() const;
+    scoped_cJSON_t as_json() const;
     counted_t<datum_stream_t> as_datum_stream(
         env_t *env, const protob_t<const Backtrace> &backtrace) const;
 

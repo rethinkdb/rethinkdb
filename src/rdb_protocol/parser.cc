@@ -65,7 +65,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 rdb_protocol_t::point_read_response_t response = boost::get<rdb_protocol_t::point_read_response_t>(read_res.response);
                 if (response.data) {
                     res.code = HTTP_OK;
-                    res.set_body("application/json", response.data->as_json_scoped().Print());
+                    res.set_body("application/json", response.data->as_json().Print());
                 } else {
                     res.code = HTTP_NOT_FOUND;
                 }

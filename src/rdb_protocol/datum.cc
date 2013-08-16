@@ -213,7 +213,7 @@ std::string datum_t::get_type_name() const {
 }
 
 std::string datum_t::print() const {
-    return as_json_scoped().Print();
+    return as_json().Print();
 }
 
 std::string datum_t::trunc_print() const {
@@ -627,12 +627,8 @@ cJSON *datum_t::as_json_raw() const {
     unreachable();
 }
 
-scoped_cJSON_t datum_t::as_json_scoped() const {
+scoped_cJSON_t datum_t::as_json() const {
     return scoped_cJSON_t(as_json_raw());
-}
-
-std::shared_ptr<const scoped_cJSON_t> datum_t::as_json() const {
-    return std::shared_ptr<const scoped_cJSON_t>(new scoped_cJSON_t(as_json_raw()));
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
