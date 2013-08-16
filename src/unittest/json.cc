@@ -224,4 +224,4 @@ namespace unittest {
         }
     }
 
-} //namespace unittest
+}  // namespace unittest
