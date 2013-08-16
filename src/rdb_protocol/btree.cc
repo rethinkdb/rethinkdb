@@ -339,7 +339,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
     }
 }
 
-void rdb_set(const store_key_t &key, std::shared_ptr<const scoped_cJSON_t> data, bool overwrite,
+void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response_out,
              rdb_modification_info_t *mod_info) {
@@ -353,10 +353,10 @@ void rdb_set(const store_key_t &key, std::shared_ptr<const scoped_cJSON_t> data,
         mod_info->deleted = get_data(kv_location.value.get(), txn);
     }
 
-    mod_info->added = make_counted<ql::datum_t>(data);
+    mod_info->added = data;
 
     if (overwrite || !had_value) {
-        kv_location_set(&kv_location, key, make_counted<ql::datum_t>(data), slice, timestamp, txn);
+        kv_location_set(&kv_location, key, data, slice, timestamp, txn);
     }
     response_out->result = (had_value ? DUPLICATE : STORED);
 }
@@ -381,7 +381,7 @@ public:
 
         rdb_protocol_details::backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
-        atom.value = get_data(value, txn)->as_json();
+        atom.value = get_data(value, txn);
         atom.recency = recency;
         cb_->on_keyvalue(atom, interruptor);
     }
@@ -699,17 +699,17 @@ public:
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
-                    std::shared_ptr<const scoped_cJSON_t> cjson = it->get()->as_json();
+                    counted_t<const ql::datum_t> datum = it->get();
                     if (sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                                                            sindex_value->as_json(),
-                                                                            cjson));
+                                                                            sindex_value,
+                                                                            datum));
                     } else {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                                                            cjson));
+                                                                            datum));
                     }
 
-                    cumulative_size += estimate_rget_response_size(cjson);
+                    cumulative_size += estimate_rget_response_size(datum->as_json());
                 }
 
                 return cumulative_size < rget_max_chunk_size;
@@ -758,7 +758,6 @@ class result_finalizer_visitor_t : public boost::static_visitor<void> {
 public:
     void operator()(const rget_read_response_t::stream_t &) const { }
     void operator()(const rget_read_response_t::groups_t &) const { }
-    void operator()(const rget_read_response_t::atom_t &) const { }
     void operator()(const rget_read_response_t::length_t &) const { }
     void operator()(const rget_read_response_t::inserted_t &) const { }
     void operator()(const query_language::runtime_exc_t &) const { }

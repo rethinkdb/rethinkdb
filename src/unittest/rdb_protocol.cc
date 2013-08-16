@@ -127,7 +127,8 @@ TEST(RDBProtocol, OvershardedSetupTeardown) {
 void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     std::shared_ptr<const scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
     {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"), data),
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"),
+                                                                    make_counted<ql::datum_t>(ql::datum_t::R_NULL)),
                                       DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 
@@ -221,7 +222,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(data)),
                                       DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 
@@ -249,7 +250,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
             rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(0, query_language::json_cmp(stream->at(0).data->get(), data->get()));
+            ASSERT_EQ(ql::datum_t(data), *stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -376,7 +377,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
             {
                 /* Insert a piece of data (it will be indexed using the secondary
                  * index). */
-                rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+                rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(data)),
                                               DURABILITY_REQUIREMENT_DEFAULT);
                 rdb_protocol_t::write_response_t response;
 
@@ -434,7 +435,7 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(data)),
                                       DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 

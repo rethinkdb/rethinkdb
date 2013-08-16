@@ -4,8 +4,8 @@
 
 #include <memory>
 
-#include "rdb_protocol/bt.hpp"
 #include "http/json.hpp"
+#include "rdb_protocol/datum.hpp"
 
 /* This file is for storing a few extensions to json that are useful for
  * implementing the rdb_protocol. */
@@ -20,16 +20,11 @@ int json_cmp(cJSON *l, cJSON *r);
 class shared_scoped_less_t {
 public:
     shared_scoped_less_t() { }
-    explicit shared_scoped_less_t(const backtrace_t &bt) : backtrace(bt) { }
-    bool operator()(const std::shared_ptr<const scoped_cJSON_t> &a,
-                    const std::shared_ptr<const scoped_cJSON_t> &b) const {
-        return json_cmp(a->get(), b->get()) < 0;
+    bool operator()(const counted_t<const ql::datum_t> &a,
+                    const counted_t<const ql::datum_t> &b) const {
+        return *a < *b;
     }
-private:
-    backtrace_t backtrace;
 };
-
-void require_type(const cJSON *, int type, const backtrace_t &);
 
 } // namespace query_language
 

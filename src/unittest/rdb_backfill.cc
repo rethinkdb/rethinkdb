@@ -122,12 +122,12 @@ std::shared_ptr<const scoped_cJSON_t> generate_document(size_t value_padding_len
 
 void write_to_broadcaster(size_t value_padding_length,
                           broadcaster_t<rdb_protocol_t> *broadcaster,
-                          const std::string& key,
-                          const std::string& value,
+                          const std::string &key,
+                          const std::string &value,
                           order_token_t otok,
                           signal_t *) {
     rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key),
-                                                                generate_document(value_padding_length, value),
+                                                                make_counted<ql::datum_t>(generate_document(value_padding_length, value)),
                                                                 true),
                                   DURABILITY_REQUIREMENT_DEFAULT);
 
@@ -335,7 +335,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         auto result_stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&get_result.result);
         guarantee(result_stream);
         ASSERT_EQ(1u, result_stream->size());
-        EXPECT_EQ(0, query_language::json_cmp(generate_document(0, it->second)->get(), result_stream->at(0).data->get()));
+        EXPECT_EQ(ql::datum_t(generate_document(0, it->second)), *result_stream->at(0).data);
     }
 }
 

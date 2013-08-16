@@ -109,7 +109,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          batched_replaces_response_t *response_out,
                          rdb_modification_report_cb_t *sindex_cb);
 
-void rdb_set(const store_key_t &key, std::shared_ptr<const scoped_cJSON_t> data, bool overwrite,
+void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
              rdb_modification_info_t *mod_info);

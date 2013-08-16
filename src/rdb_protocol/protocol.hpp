@@ -85,13 +85,13 @@ namespace rdb_protocol_details {
 
 struct backfill_atom_t {
     store_key_t key;
-    std::shared_ptr<const scoped_cJSON_t> value;
+    counted_t<const ql::datum_t> value;
     repli_timestamp_t recency;
 
     backfill_atom_t() { }
-    backfill_atom_t(const store_key_t& _key,
-                    const std::shared_ptr<const scoped_cJSON_t>& _value,
-                    const repli_timestamp_t& _recency) :
+    backfill_atom_t(const store_key_t &_key,
+                    const counted_t<const ql::datum_t> &_value,
+                    const repli_timestamp_t &_recency) :
         key(_key),
         value(_value),
         recency(_recency)
@@ -140,16 +140,16 @@ void bring_sindexes_up_to_date(
 
 struct rget_item_t {
     rget_item_t() { }
-    rget_item_t(const store_key_t &_key, std::shared_ptr<const scoped_cJSON_t> _data)
+    rget_item_t(const store_key_t &_key, counted_t<const ql::datum_t> _data)
         : key(_key), data(_data) { }
 
-    rget_item_t(const store_key_t &_key, std::shared_ptr<const scoped_cJSON_t> _sindex_key,
-                std::shared_ptr<const scoped_cJSON_t> _data)
+    rget_item_t(const store_key_t &_key, counted_t<const ql::datum_t> _sindex_key,
+                counted_t<const ql::datum_t> _data)
         : key(_key), sindex_key(_sindex_key), data(_data) { }
 
     store_key_t key;
-    boost::optional<std::shared_ptr<const scoped_cJSON_t> > sindex_key;
-    std::shared_ptr<const scoped_cJSON_t> data;
+    boost::optional<counted_t<const ql::datum_t> > sindex_key;
+    counted_t<const ql::datum_t> data;
     RDB_MAKE_ME_SERIALIZABLE_3(key, sindex_key, data);
 };
 
@@ -210,8 +210,8 @@ struct rdb_protocol_t {
 
     struct rget_read_response_t {
         typedef std::vector<rdb_protocol_details::rget_item_t> stream_t; // Present if there was no terminal
-        typedef std::map<std::shared_ptr<const scoped_cJSON_t>, std::shared_ptr<const scoped_cJSON_t>, shared_scoped_less_t> groups_t; // Present if the terminal was a groupedmapreduce
-        typedef std::shared_ptr<const scoped_cJSON_t> atom_t; // Present if the terminal was a reduction
+        typedef std::map<counted_t<const ql::datum_t>, counted_t<const ql::datum_t>, shared_scoped_less_t> groups_t; // Present if the terminal was a groupedmapreduce
+        typedef counted_t<const ql::datum_t> atom_t; // Present if the terminal was a reduction
 
         struct length_t {
             int length;
@@ -224,7 +224,7 @@ struct rdb_protocol_t {
         };
 
 
-        typedef std::vector<std::shared_ptr<const scoped_cJSON_t> > vec_t;
+        typedef std::vector<counted_t<const ql::datum_t> > vec_t;
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
         // RSI: Make sure that the counted_t<const ql::datum_t> cannot be empty when serialized.
@@ -561,11 +561,11 @@ struct rdb_protocol_t {
     class point_write_t {
     public:
         point_write_t() { }
-        point_write_t(const store_key_t& _key, std::shared_ptr<const scoped_cJSON_t> _data, bool _overwrite = true)
+        point_write_t(const store_key_t& _key, counted_t<const ql::datum_t> _data, bool _overwrite = true)
             : key(_key), data(_data), overwrite(_overwrite) { }
 
         store_key_t key;
-        std::shared_ptr<const scoped_cJSON_t> data;
+        counted_t<const ql::datum_t> data;
         bool overwrite;
 
         RDB_DECLARE_ME_SERIALIZABLE;

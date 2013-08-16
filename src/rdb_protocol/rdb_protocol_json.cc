@@ -151,13 +151,4 @@ int json_cmp(cJSON *l, cJSON *r) {
     unreachable();
 }
 
-void require_type(const cJSON *json, int type, const backtrace_t &b) {
-    if (json->type != type) {
-        throw runtime_exc_t(strprintf("Required type: %s but found %s.",
-                                      cJSON_type_to_string(type).c_str(),
-                                      cJSON_type_to_string(json->type).c_str()),
-                            b);
-    }
-}
-
 } // namespace query_language

@@ -179,11 +179,17 @@ void batched_rget_stream_t::pop() {
 }
 
 bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right) {
-    return json_cmp((*left.sindex_key)->get(), (*right.sindex_key)->get()) < 0;
+    // RSI: do we really need these sanity checks?
+    r_sanity_check(left.sindex_key);
+    r_sanity_check(right.sindex_key);
+    return **left.sindex_key < **right.sindex_key;
 }
 
 bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &right) {
-    return json_cmp((*left.sindex_key)->get(), (*right.sindex_key)->get()) > 0;
+    // RSI: do we really need these sanity checks?
+    r_sanity_check(left.sindex_key);
+    r_sanity_check(right.sindex_key);
+    return **right.sindex_key < **left.sindex_key;
 }
 
 /* This function is a big monolithic mess right now. This is because a lot of
@@ -209,7 +215,7 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
         boost::optional<rget_item_t> item = head();
         if (item) {
             pop();
-            return std::make_pair(CONTINUE, item->data);
+            return std::make_pair(CONTINUE, item->data->as_json());
         } else {
             return std::make_pair(CONTINUE, std::shared_ptr<const scoped_cJSON_t>());
         }
@@ -219,11 +225,11 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
         /* A non empty sorting buffer means we already got a batch of
          * ambigiously sorted values and sorted them. So now we can just pop
          * one off the front and return it. */
-        std::shared_ptr<const scoped_cJSON_t> datum = sorting_buffer.front().data;
+        counted_t<const ql::datum_t> datum = sorting_buffer.front().data;
         r_sanity_check(sorting_buffer.front().sindex_key);
-        bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
+        bool is_new_key = check_and_set_last_key((*sorting_buffer.front().sindex_key)->as_json());
         sorting_buffer.pop_front();
-        return std::make_pair((is_new_key ? START : CONTINUE), datum);
+        return std::make_pair((is_new_key ? START : CONTINUE), datum->as_json());
     } else {
         for (;;) {
             /* In this loop we load data in to the sorting buffer until we can
@@ -243,7 +249,7 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
                      * empty. This means we have the next value. */
                     pop();
                     bool is_new_key = check_and_set_last_key(skey);
-                    return std::make_pair((is_new_key ? START : CONTINUE), item->data);
+                    return std::make_pair((is_new_key ? START : CONTINUE), item->data->as_json());
                 } else {
                     /* We have an untruncated key but there's data in the
                      * sorting buffer. That means this value definitely isn't
@@ -290,10 +296,10 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
         }
 
         /* Now we can finally return a value from the sorting buffer. */
-        std::shared_ptr<const scoped_cJSON_t> datum = sorting_buffer.front().data;
-        bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
+        counted_t<const ql::datum_t> datum = sorting_buffer.front().data;
+        bool is_new_key = check_and_set_last_key((*sorting_buffer.front().sindex_key)->as_json());
         sorting_buffer.pop_front();
-        return std::make_pair((is_new_key ? START : CONTINUE), datum);
+        return std::make_pair((is_new_key ? START : CONTINUE), datum->as_json());
     }
 }
 

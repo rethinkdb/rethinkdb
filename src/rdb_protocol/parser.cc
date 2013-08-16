@@ -113,7 +113,7 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
                 try {
                     namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_uuid, &on_destruct);
 
-                    write.write = rdb_protocol_t::point_write_t(key, doc);
+                    write.write = rdb_protocol_t::point_write_t(key, make_counted<ql::datum_t>(doc));
 
                     ns_access.get_namespace_if()->write(write, &write_res, order_source.check_in("rdb parser"), &on_destruct);
                 } catch (const interrupted_exc_t &) {
