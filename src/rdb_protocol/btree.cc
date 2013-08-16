@@ -892,29 +892,6 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
       lock_(lock)
 { }
 
-void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key,
-        std::shared_ptr<const scoped_cJSON_t> added) {
-    rdb_modification_report_t report(primary_key);
-    report.info.added = make_counted<ql::datum_t>(added);
-    on_mod_report(report);
-}
-
-void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key,
-        std::shared_ptr<const scoped_cJSON_t> deleted) {
-    rdb_modification_report_t report(primary_key);
-    report.info.deleted = make_counted<ql::datum_t>(deleted);
-    on_mod_report(report);
-}
-
-void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
-        std::shared_ptr<const scoped_cJSON_t> added,
-        std::shared_ptr<const scoped_cJSON_t> deleted) {
-    rdb_modification_report_t report(primary_key);
-    report.info.added = make_counted<ql::datum_t>(added);
-    report.info.deleted = make_counted<ql::datum_t>(deleted);
-    on_mod_report(report);
-}
-
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
     if (token_pair_->sindex_write_token.has()) {
         token_pair_->sindex_write_token.reset();

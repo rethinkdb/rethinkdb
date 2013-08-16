@@ -219,11 +219,6 @@ public:
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
             transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
-    void add_row(const store_key_t &primary_key, std::shared_ptr<const scoped_cJSON_t> added);
-    void delete_row(const store_key_t &primary_key, std::shared_ptr<const scoped_cJSON_t> deleted);
-    void replace_row(const store_key_t &primary_key,
-            std::shared_ptr<const scoped_cJSON_t> added,
-            std::shared_ptr<const scoped_cJSON_t> removed);
 
     void on_mod_report(const rdb_modification_report_t &mod_report);
 
