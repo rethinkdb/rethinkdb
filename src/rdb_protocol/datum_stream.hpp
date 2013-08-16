@@ -15,7 +15,7 @@ class json_stream_t;
 
 namespace ql {
 typedef query_language::sorting_hint_t sorting_hint_t;
-typedef std::pair<sorting_hint_t, counted_t<const datum_t> > hinted_datum_t;
+typedef query_language::hinted_datum_t hinted_datum_t;
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {

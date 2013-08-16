@@ -34,7 +34,7 @@ typedef rdb_protocol_details::rget_item_t rget_item_t;
 enum sorting_hint_t { START, CONTINUE };
 
 // RSI: Make this not be a typedef, make it a struct, FFS.
-typedef std::pair<sorting_hint_t, counted_t<const ql::datum_t> > hinted_json_t;
+typedef std::pair<sorting_hint_t, counted_t<const ql::datum_t> > hinted_datum_t;
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
@@ -42,7 +42,7 @@ public:
     // Returns a null value when end of stream is reached.
     virtual counted_t<const ql::datum_t> next() = 0;  // MAY THROW
 
-    virtual hinted_json_t sorting_hint_next();
+    virtual hinted_datum_t sorting_hint_next();
 
     virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace);
     virtual rdb_protocol_t::rget_read_response_t::result_t
@@ -115,7 +115,7 @@ public:
 
     counted_t<const ql::datum_t> next();
 
-    hinted_json_t sorting_hint_next();
+    hinted_datum_t sorting_hint_next();
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace);
     rdb_protocol_t::rget_read_response_t::result_t

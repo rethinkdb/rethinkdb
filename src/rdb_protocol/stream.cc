@@ -17,7 +17,7 @@ boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_pro
     return boost::make_shared<transform_stream_t>(shared_from_this(), ql_env, transform);
 }
 
-hinted_json_t json_stream_t::sorting_hint_next() {
+hinted_datum_t json_stream_t::sorting_hint_next() {
     return std::make_pair(CONTINUE, next());
 }
 
@@ -200,7 +200,7 @@ bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &ri
  * The sorting by the other field is done above but it needs to know which
  * elements had the same index value so it knows what to apply the sorting too.
  * */
-hinted_json_t batched_rget_stream_t::sorting_hint_next() {
+hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
     /* The simple case. No sorting is happening. */
     if (sorting == UNORDERED) {
         boost::optional<rget_item_t> item = head();
