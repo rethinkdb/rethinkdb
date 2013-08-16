@@ -824,11 +824,6 @@ void read_t::unshard(read_response_t *responses, size_t count, read_response_t
     boost::apply_visitor(v, read);
 }
 
-bool rget_data_cmp(const std::pair<store_key_t, std::shared_ptr<const scoped_cJSON_t> >& a,
-                   const std::pair<store_key_t, std::shared_ptr<const scoped_cJSON_t> >& b) {
-    return a.first < b.first;
-}
-
 /* write_t::get_region() implementation */
 
 // TODO: This entire type is suspect, given the performance for batched_replaces_t.  Is it used in
