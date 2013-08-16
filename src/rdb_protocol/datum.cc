@@ -170,9 +170,6 @@ void datum_t::check_str_validity(const std::string &str) {
 datum_t::datum_t(cJSON *json) {
     init_json(json);
 }
-datum_t::datum_t(const std::shared_ptr<const scoped_cJSON_t> &json) {
-    init_json(json->get());
-}
 datum_t::datum_t(const scoped_cJSON_t &json) {
     init_json(json.get());
 }

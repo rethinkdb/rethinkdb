@@ -300,7 +300,7 @@ counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) cons
 }
 counted_t<val_t> js_result_visitor_t::operator()(
     const std::shared_ptr<const scoped_cJSON_t> json_val) const {
-    return parent->new_val(make_counted<const datum_t>(json_val));
+    return parent->new_val(make_counted<const datum_t>(*json_val));
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
