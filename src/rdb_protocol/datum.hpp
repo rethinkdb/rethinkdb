@@ -60,11 +60,10 @@ public:
     explicit datum_t(float) = delete;
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
+    // RSI: Make reql_type an rvalue reference?
     datum_t(type_t _type, std::string _reql_type);
     explicit datum_t(double _num);
     explicit datum_t(std::string &&str);
-    // RSI: Remove non-move constructor?
-    explicit datum_t(const std::string &_str);
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);

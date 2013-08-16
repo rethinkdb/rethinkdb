@@ -236,12 +236,12 @@ void rdb_replace_and_return_superblock(
     } catch (const ql::base_exc_t &e) {
         std::string msg = e.what();
         bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
-              || resp.add("first_error", make_counted<ql::datum_t>(msg));
+            || resp.add("first_error", make_counted<ql::datum_t>(std::move(msg)));
         guarantee(!b);
     } catch (const interrupted_exc_t &e) {
         std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
         bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
-              || resp.add("first_error", make_counted<ql::datum_t>(msg));
+            || resp.add("first_error", make_counted<ql::datum_t>(std::move(msg)));
         guarantee(!b);
         // We don't rethrow because we're in a coroutine.  Theoretically the
         // above message should never make it back to a user because the calling

@@ -28,7 +28,7 @@ datum_t::datum_t(type_t _type, std::string _reql_type)
     : type(_type), r_object(new std::map<std::string, counted_t<const datum_t> >) {
     r_sanity_check(_type == R_OBJECT);
     r_object->insert(std::make_pair(std::string(reql_type_string),
-                                    make_counted<const datum_t>(_reql_type)));
+                                    make_counted<const datum_t>(std::move(_reql_type))));
 }
 
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
@@ -40,11 +40,6 @@ datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
 
 datum_t::datum_t(std::string &&_str)
     : type(R_STR), r_str(new std::string(std::move(_str))) {
-    check_str_validity(*r_str);
-}
-
-datum_t::datum_t(const std::string &_str)
-    : type(R_STR), r_str(new std::string(_str)) {
     check_str_validity(*r_str);
 }
 
