@@ -25,8 +25,14 @@ public:
     read_stream_t *read_stream();
     write_stream_t *write_stream();
 
+    // Called by a user when an error occurs, and they want to mark the worker as 'dirty'
+    //  so that it will be killed later.  This will skip the step where the main process
+    //  attempts to resynchronize with the worker.
+    void worker_error();
+
 private:
     extproc_pool_t *pool;
+    bool user_error;
     signal_t *user_interruptor;
     wait_any_t combined_interruptor;
     object_buffer_t<cross_thread_semaphore_t<extproc_worker_t>::lock_t> worker_lock;

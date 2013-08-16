@@ -16,7 +16,7 @@ def print_restore_help():
     print "  -i [ --import ] (DB | DB.TABLE)  limit restore to the given database or table (may"
     print "                                   be specified multiple times)"
     print "  --clients NUM_CLIENTS            the number of client connections to use (defaults"
-    print "                                   to 64)"
+    print "                                   to 8)"
     print "  --force                          import data even if a table already exists"
     print ""
     print "EXAMPLES:"
@@ -41,7 +41,7 @@ def parse_options():
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="KEY", default="", type="string")
     parser.add_option("-i", "--import", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
-    parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=64, type="int")
+    parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--force", dest="force", action="store_true", default=False)
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()

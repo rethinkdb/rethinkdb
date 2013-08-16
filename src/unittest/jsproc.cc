@@ -181,3 +181,72 @@ TEST(JSProc, InvalidFunction) {
     extproc_spawner_t extproc_spawner;
     unittest::run_in_thread_pool(boost::bind(&run_invalid_function_test));
 }
+
+void run_infinite_recursion_function_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
+
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string source_code = "(function f(x) { x = x + f(x); return x; })";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 60000;
+    js_result_t result = js_runner.eval(source_code, config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Get the id of the function out
+    js_id_t *js_id = boost::get<js_id_t>(&result);
+    ASSERT_TRUE(js_id != NULL);
+
+    // Call the function
+    std::vector<boost::shared_ptr<scoped_cJSON_t> > args;
+    args.push_back(boost::make_shared<scoped_cJSON_t>(cJSON_CreateNumber(1.0)));
+    result = js_runner.call(source_code, args, config);
+
+    std::string *err_msg = boost::get<std::string>(&result);
+
+    ASSERT_EQ(*err_msg, std::string("RangeError: Maximum call stack size exceeded"));
+}
+
+TEST(JSProc, InfiniteRecursionFunction) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_infinite_recursion_function_test));
+}
+
+void run_overalloc_function_test() {
+    extproc_pool_t extproc_pool(1);
+    js_runner_t js_runner;
+
+    js_runner.begin(&extproc_pool, NULL);
+
+    const std::string source_code = "(function f() {"
+                                     "  var res = \"\";"
+                                     "  while (true) {"
+                                     "    res = res + \"blah\";"
+                                     "  }"
+                                     "  return res;"
+                                     "})";
+
+    js_runner_t::req_config_t config;
+    config.timeout_ms = 60000;
+    js_result_t result = js_runner.eval(source_code, config);
+    ASSERT_TRUE(js_runner.connected());
+
+    // Get the id of the function out
+    js_id_t *js_id = boost::get<js_id_t>(&result);
+    ASSERT_TRUE(js_id != NULL);
+
+    // Call the function
+    ASSERT_THROW(js_runner.call(source_code,
+                                std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
+                                config), js_worker_exc_t);
+}
+
+// Disabling this test because it may cause complications depending on the user's system
+/*
+TEST(JSProc, OverallocFunction) {
+    extproc_spawner_t extproc_spawner;
+    unittest::run_in_thread_pool(boost::bind(&run_overalloc_function_test));
+}
+*/

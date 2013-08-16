@@ -131,6 +131,10 @@ void js_job_t::exit() {
     if (res != 0) { throw js_worker_exc_t("failed to send data to the worker"); }
 }
 
+void js_job_t::worker_error() {
+    extproc_job.worker_error();
+}
+
 bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
     bool running = true;
     js_env_t js_env;

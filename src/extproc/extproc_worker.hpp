@@ -19,7 +19,7 @@ public:
 
     // Called whenever the worker changes hands (system -> user -> system)
     void acquired(signal_t *_interruptor);
-    void released(signal_t *user_interruptor); // Returns true if the worker process has failed
+    void released(bool user_error, signal_t *user_interruptor);
 
     // We accept jobs as functions that take a read stream and write stream
     //  so that they can communicate back to the job in the main process

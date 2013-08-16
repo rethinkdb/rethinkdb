@@ -55,7 +55,7 @@ def print_import_help():
     print "                                   to (defaults to localhost:28015)"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  --clients NUM_CLIENTS            the number of client connections to use (defaults"
-    print "                                   to 64)"
+    print "                                   to 8)"
     print "  --force                          import data even if a table already exists, and"
     print "                                   overwrite duplicate primary keys"
     print "  --fields                         limit which fields to use when importing one table"
@@ -105,7 +105,7 @@ def parse_options():
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="FIELD,FIELD...", default=None, type="string")
-    parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=64, type="int")
+    parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--force", dest="force", action="store_true", default=False)
 
     # Directory import options
