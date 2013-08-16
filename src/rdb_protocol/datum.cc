@@ -173,6 +173,9 @@ datum_t::datum_t(cJSON *json) {
 datum_t::datum_t(const std::shared_ptr<const scoped_cJSON_t> &json) {
     init_json(json->get());
 }
+datum_t::datum_t(const scoped_cJSON_t &json) {
+    init_json(json.get());
+}
 
 datum_t::type_t datum_t::get_type() const { return type; }
 

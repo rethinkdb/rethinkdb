@@ -199,9 +199,9 @@ struct rdb_protocol_t {
     };
 
     struct point_read_response_t {
-        std::shared_ptr<const scoped_cJSON_t> data;
+        counted_t<const ql::datum_t> data;
         point_read_response_t() { }
-        explicit point_read_response_t(std::shared_ptr<const scoped_cJSON_t> _data)
+        explicit point_read_response_t(counted_t<const ql::datum_t> _data)
             : data(_data)
         { }
 

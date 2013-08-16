@@ -68,9 +68,9 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
     if (!kv_location.value.has()) {
-        response->data.reset(new scoped_cJSON_t(cJSON_CreateNull()));
+        response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
     } else {
-        response->data = get_data(kv_location.value.get(), txn)->as_json();
+        response->data = get_data(kv_location.value.get(), txn);
     }
 }
 

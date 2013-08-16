@@ -91,9 +91,9 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const rdb_protocol_t
     rdb_protocol_t::point_read_response_t &res = boost::get<rdb_protocol_t::point_read_response_t>(response->response);
 
     if (data->find(get.key) != data->end()) {
-        res.data.reset(new scoped_cJSON_t(data->at(get.key)->DeepCopy()));
+        res.data = make_counted<ql::datum_t>(scoped_cJSON_t(data->at(get.key)->DeepCopy()));
     } else {
-        res.data.reset(new scoped_cJSON_t(cJSON_CreateNull()));
+        res.data = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
     }
 }
 

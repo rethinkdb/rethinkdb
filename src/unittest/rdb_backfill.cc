@@ -216,10 +216,9 @@ void run_backfill_test(size_t value_padding_length,
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         rdb_protocol_t::point_read_response_t get_result = boost::get<rdb_protocol_t::point_read_response_t>(response.response);
         EXPECT_TRUE(get_result.data.get() != NULL);
-        EXPECT_EQ(0, query_language::json_cmp(generate_document(value_padding_length,
-                                                                it->second)->get(),
-                                              get_result.data->get()))
-            << generate_document(value_padding_length, it->second)->Print() << " vs " << get_result.data->Print();
+        EXPECT_EQ(ql::datum_t(generate_document(value_padding_length,
+                                                it->second)),
+                  *get_result.data);
     }
 }
 

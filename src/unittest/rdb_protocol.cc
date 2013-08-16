@@ -149,8 +149,8 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
         nsi->read(read, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"), &interruptor);
 
         if (rdb_protocol_t::point_read_response_t *maybe_point_read_response = boost::get<rdb_protocol_t::point_read_response_t>(&response.response)) {
-            ASSERT_TRUE(maybe_point_read_response->data->get() != NULL);
-            ASSERT_TRUE(cJSON_Equal(data->get(), maybe_point_read_response->data->get()));
+            ASSERT_TRUE(maybe_point_read_response->data.has());
+            ASSERT_EQ(ql::datum_t(data), *maybe_point_read_response->data);
         } else {
             ADD_FAILURE() << "got wrong result back";
         }

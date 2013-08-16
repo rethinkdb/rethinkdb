@@ -400,7 +400,7 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
     rdb_protocol_t::point_read_response_t *p_res =
         boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
     r_sanity_check(p_res);
-    return make_counted<datum_t>(p_res->data);
+    return p_res->data;
 }
 
 counted_t<datum_stream_t> table_t::get_rows(

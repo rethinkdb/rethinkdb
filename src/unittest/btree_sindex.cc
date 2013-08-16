@@ -220,11 +220,7 @@ void run_sindex_btree_store_api_test() {
             rdb_get(key, store.get_sindex_slice(id), txn.get(),
                     sindex_super_block.get(), &response);
 
-            std::shared_ptr<const scoped_cJSON_t> data(new
-                    scoped_cJSON_t(cJSON_CreateNumber(1)));
-
-            ASSERT_EQ(query_language::json_cmp(response.data->get(),
-                        data->get()), 0);
+            ASSERT_EQ(ql::datum_t(1.0), *response.data);
         }
     }
 
