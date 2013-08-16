@@ -674,16 +674,16 @@ public:
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        std::list<std::shared_ptr<const scoped_cJSON_t> > tmp;
+                        std::list<counted_t<const ql::datum_t> > tmp;
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
-                                            jt->get()->as_json(), &it->variant,
+                                            jt->get(), &it->variant,
                                             &tmp);
                         }
                         data.clear();
                         for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
-                            data.push_back(lazy_json_t(make_counted<ql::datum_t>(*jt)));
+                            data.push_back(lazy_json_t(*jt));
                         }
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any

@@ -74,7 +74,7 @@ std::shared_ptr<const scoped_cJSON_t> transform_stream_t::next() {
             return std::shared_ptr<const scoped_cJSON_t>();
         }
 
-        json_list_t accumulator;
+        std::list<std::shared_ptr<const scoped_cJSON_t> > accumulator;
         accumulator.push_back(input);
 
         // Apply transforms to the data
@@ -82,14 +82,15 @@ std::shared_ptr<const scoped_cJSON_t> transform_stream_t::next() {
         for (tit_t it  = transform.begin();
                    it != transform.end();
                    ++it) {
-            json_list_t tmp;
-            for (json_list_t::iterator jt  = accumulator.begin();
-                                       jt != accumulator.end();
-                                       ++jt) {
-                transform_apply(ql_env, it->backtrace, *jt, &it->variant, &tmp);
+            std::list<counted_t<const ql::datum_t> > tmp;
+            for (auto jt = accumulator.begin(); jt != accumulator.end(); ++jt) {
+                transform_apply(ql_env, it->backtrace, make_counted<ql::datum_t>(*jt), &it->variant, &tmp);
             }
 
-            accumulator.swap(tmp);
+            accumulator.clear();
+            for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
+                accumulator.push_back((*jt)->as_json());
+            }
         }
 
         data.swap(accumulator);
