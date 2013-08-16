@@ -170,14 +170,12 @@ void batched_rget_stream_t::pop() {
 }
 
 bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right) {
-    // RSI: do we really need these sanity checks?
     r_sanity_check(left.sindex_key);
     r_sanity_check(right.sindex_key);
     return **left.sindex_key < **right.sindex_key;
 }
 
 bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &right) {
-    // RSI: do we really need these sanity checks?
     r_sanity_check(left.sindex_key);
     r_sanity_check(right.sindex_key);
     return **right.sindex_key < **left.sindex_key;

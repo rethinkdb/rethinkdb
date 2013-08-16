@@ -227,7 +227,6 @@ struct rdb_protocol_t {
         typedef std::vector<counted_t<const ql::datum_t> > vec_t;
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
-        // RSI: Make sure that the counted_t<const ql::datum_t> cannot be empty when serialized.
         typedef boost::variant<
 
             stream_t,
