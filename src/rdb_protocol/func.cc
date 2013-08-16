@@ -97,7 +97,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             // Convert datum args to cJSON args for the JS runner
             std::vector<std::shared_ptr<const scoped_cJSON_t> > json_args;
             for (auto arg_iter = args.begin(); arg_iter != args.end(); ++arg_iter) {
-                json_args.push_back((*arg_iter)->as_json());
+                json_args.push_back(std::make_shared<scoped_cJSON_t>((*arg_iter)->as_json_scoped()));
             }
 
             js_runner_t::req_config_t config;

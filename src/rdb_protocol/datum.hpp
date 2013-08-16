@@ -70,7 +70,6 @@ public:
     datum_t();
     explicit datum_t(const Datum *d);
     void init_from_pb(const Datum *d);
-    // RSI: Remove naked cJSON constructor.
     explicit datum_t(cJSON *json);
     explicit datum_t(const scoped_cJSON_t &json);
 
