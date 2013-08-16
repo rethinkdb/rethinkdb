@@ -1,14 +1,7 @@
 #ifndef RDB_PROTOCOL_TERM_HPP_
 #define RDB_PROTOCOL_TERM_HPP_
 
-#include <string>
-
-#include "errors.hpp"
-#include <boost/ptr_container/ptr_vector.hpp>
-#include <boost/ptr_container/ptr_map.hpp>
-
 #include "containers/counted.hpp"
-#include "containers/uuid.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/ql2.pb.h"
 

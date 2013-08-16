@@ -178,7 +178,7 @@ private:
         // The tests below hard-code constants related to these numbers.
         EXPECT_EQ(251, blob::btree_maxreflen);
         EXPECT_EQ(4u, sizeof(block_magic_t));
-        const int size_sans_magic = expected_cache_block_size - sizeof(block_magic_t);;
+        const int size_sans_magic = expected_cache_block_size - sizeof(block_magic_t);
         EXPECT_EQ(size_sans_magic, blob::stepsize(cache->get_block_size(), 1));
         EXPECT_EQ(size_sans_magic * (size_sans_magic / static_cast<int>(sizeof(block_id_t))),
                   blob::stepsize(cache->get_block_size(), 2));

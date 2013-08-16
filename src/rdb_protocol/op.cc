@@ -1,5 +1,8 @@
 #include "rdb_protocol/op.hpp"
+
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+
 #pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {

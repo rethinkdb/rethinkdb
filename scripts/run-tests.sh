@@ -16,6 +16,7 @@ repeats=1
 run_dir=
 run_elsewhere=false
 report_out=
+report_html_out=
 build_dir=
 dashboard_url=
 colorful=true
@@ -34,6 +35,7 @@ usage () {
     echo "   -r <repeats>    Repeat each test"
     echo "   -d <run_dir>    Run the tests in a different folder (eg: /dev/shm)"
     echo "   -w <file>       Write report to file (- for stdout)"
+    echo "   -W <file>       Write html report to file (- for stdout)"
     echo "   -b <build>      RethinkDB build directory (default: build/debug)"
     echo "   -u <url>        Post the test results to the url"
     echo "   -c              Disable color"
@@ -57,7 +59,7 @@ usage () {
 }
 
 # Parse the command line options
-while getopts ":lo:hvs:j:r:d:w:b:u:ct:" opt; do
+while getopts ":lo:hvs:j:r:d:w:W:b:u:ct:" opt; do
     case $opt in
         l) list_only=true ;;
         o) dir=$OPTARG ;;
@@ -68,6 +70,7 @@ while getopts ":lo:hvs:j:r:d:w:b:u:ct:" opt; do
         r) repeats=$OPTARG ;;
         d) run_dir=$OPTARG ; run_elsewhere=true ;;
         w) report_out=$OPTARG ;;
+        W) report_html_out=$OPTARG ;;
         b) build_dir=$OPTARG ;;
         u) dashboard_url=$OPTARG ;;
         c) colorful=false ;;
@@ -106,6 +109,7 @@ else
 fi
 
 if [[ -z "$OUTPUT_WIDTH" ]]; then
+    export TERM=${TERM:-dumb}
     export OUTPUT_WIDTH=`tput cols`
 fi
 
@@ -330,7 +334,10 @@ for i in `seq $repeats`; do
     for item in "${list[@]}"; do
         echo -n "$timeout_cmd --kill-after 10s $timeout "
         echo -n "$0 $args -o $(printf %q "$dir") -r $i -b $build_dir -s $(printf %q "${item%%^*}") -- $(printf %q "${item#*^}")"
-        echo -n "; code=\$? ; if [ \$code = 124 ]; then echo '${red}Time ${item%%^*} ($i)${plain}'; fi; exit \$code"
+        echo -n "; code=\$? ; if [ \$code = 124 ]; then echo '${red}Time ${item%%^*} ($i)${plain}';"
+        echo -n "echo 124 > '$dir/${item%%^*}/return-code-$i';"
+        echo -n "echo 'Exceeded timeout of $timeout' > '$dir/${item%%^*}/timeout-$i';"
+        echo -n "fi; exit \$code"
         printf '\0'
     done
 done | xargs -0 -n 1 -P $parallel_tasks bash -c
@@ -363,6 +370,53 @@ gen_report () {
     fi
 }
 
+gen_html_report () {
+    directory=$1
+    out=$2
+    echo "Writing HTML report to '$out'"
+    ( echo '<html><head><title>Test Report</title>'
+      echo '<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>'
+      echo '<style>td {border:1px solid grey}</style>'
+      echo '</head><body>'
+      echo "<h1>Rethinkdb `./scripts/gen-version.sh`</h1>"
+      echo "<p>Passed $passed of $total tests (filter: $(eval echo $test_filter))</p>"
+      echo "<table style='width:100%'>"
+      cd "$directory"
+      for test in *; do
+          for retcof in "$test"/return-code-*; do
+              rep=${retcof##*-}
+              echo "<tr><td>$test</td><td>$rep</td>"
+              retco=$(cat "$retcof")
+              if [[ "$retco" = 0 ]]; then
+                  color=green
+                  word=PASS
+              else
+                  color=red
+                  word=FAILED
+              fi
+              trid=$test-$rep
+              echo "<td style='background:$color'><a href='#$trid' onclick='\$(\"#$trid\").toggle()'>$word</a></td>"
+              echo "<td width='100%'></td></tr>"
+              echo "<tr id='$trid' style='display:none'><td colspan='4'>"
+              for file in `find "$test"/*-$rep -type f`; do
+                  echo "<ul><li>$file</ul>"
+                  if file -i "$file" | grep -q text/; then
+                      echo "<div style='border: 1px solid black'><pre>"
+                      perl -pe 's/&/&amp;/g;s/</&lt;/g' "$file"
+                      echo "</pre></div>"
+                  fi
+              done
+              echo "</td></tr>"
+          done
+      done
+      echo "</table></body></html>"
+    ) | if [[ "$out" = - ]]; then
+        cat
+    else
+        cat > "$out"
+    fi
+}
+
 # Collect the results
 passed=0
 for test_dir in "$dir/"*/; do
@@ -377,6 +431,7 @@ duration=$((end_time - start_time))
 duration_str=$((duration/60))'m'$((duration%60))'s'
 
 test -n "$report_out" && gen_report "$dir" "$report_out"
+test -n "$report_html_out" && gen_html_report "$dir" "$report_html_out"
 
 if [[ $passed = $total ]]; then
     echo "${green}Passed all $total tests in $duration_str.${plain}"

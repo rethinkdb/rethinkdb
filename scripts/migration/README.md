@@ -1,5 +1,16 @@
-### 
-### Migrating data from previous versions
+ 
+## Migrating data from RethinkDB 1.7 and above
+
+RethinkDB 1.7+ ships with `rethinkdb dump` and `rethinkdb restore`,
+which provide a smoother migration experience: see the 
+[complete guide on rethinkdb.com](http://rethinkdb.com/docs/migration)
+for information on how to use these commands.
+
+
+---
+
+## Migrating data from RethinkDB 1.6.x and earlier (deprecated)
+
 Due to improvements in the data format, you will need to migrate your existing
 data files before upgrading to new versions of RethinkDB.
 

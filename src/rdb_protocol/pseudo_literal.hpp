@@ -14,4 +14,4 @@ void rcheck_literal_valid(const datum_t *lit);
 } // namespace pseudo
 } // namespace ql
 
-#endif
+#endif  // RDB_PROTOCOL_PSEUDO_LITERAL_HPP_

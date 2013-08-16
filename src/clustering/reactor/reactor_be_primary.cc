@@ -264,22 +264,21 @@ void do_backfill(
         promise_t<bool> *success,
         signal_t *interruptor) THROWS_NOTHING {
 
+    bool result = false;
+
     try {
-        {
-            cross_thread_watchable_variable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > ct_backfiller_metadata(backfiller_metadata, svs->home_thread());
-            cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
-            on_thread_t th(svs->home_thread());
+        cross_thread_watchable_variable_t<boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > > ct_backfiller_metadata(backfiller_metadata, svs->home_thread());
+        cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
+        on_thread_t th(svs->home_thread());
 
-            backfillee<protocol_t>(mailbox_manager, branch_history_manager, svs, region, ct_backfiller_metadata.get_watchable(), backfill_session_id, &ct_interruptor);
+        backfillee<protocol_t>(mailbox_manager, branch_history_manager, svs, region, ct_backfiller_metadata.get_watchable(), backfill_session_id, &ct_interruptor);
 
-        }
-        success->pulse(true);
+        result = true;
     } catch (const interrupted_exc_t &) {
-        success->pulse(false);
     } catch (const resource_lost_exc_t &) {
-        success->pulse(false);
     }
 
+    success->pulse(result);
 }
 
 template <class protocol_t>

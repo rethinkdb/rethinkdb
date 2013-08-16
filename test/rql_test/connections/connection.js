@@ -7,7 +7,7 @@ var spawn = require('child_process').spawn
 
 var assert = require('assert');
 
-var r = require('rethinkdb');
+var r = require('../../../build/packages/js/rethinkdb');
 var build_dir = process.env.BUILD_DIR || '../../../build/debug'
 var testDefault = process.env.TEST_DEFAULT_PORT == "1"
 

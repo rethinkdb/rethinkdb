@@ -314,11 +314,11 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
             write_http_msg(conn.get(), res, keepalive.get_drain_signal());
         }
     } catch (const tcp_conn_read_closed_exc_t &) {
-        //Someone disconnected before sending us all the information we
-        //needed... oh well.
+        // Someone disconnected before sending us all the information we
+        // needed... oh well.
     } catch (const tcp_conn_write_closed_exc_t &) {
-        //We were trying to write to someone and they didn't stick around long
-        //enough to write it.
+        // We were trying to write to someone and they didn't stick around long
+        // enough to write it.
     }
 }
 

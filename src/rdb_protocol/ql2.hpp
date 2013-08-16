@@ -1,16 +1,15 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_QL2_HPP_
 #define RDB_PROTOCOL_QL2_HPP_
 
-#include "utils.hpp"
-
-#include "rdb_protocol/counted_term.hpp"
-#include "rdb_protocol/env.hpp"
-#include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/stream_cache.hpp"
-#include "rdb_protocol/term.hpp"
+class Query;
+class Response;
+template <class> class scoped_ptr_t;
 
 namespace ql {
+class stream_cache2_t;
+class env_t;
+
 // Runs a query!  This is all outside code should ever need to call.  See
 // term.cc for definition.
 void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,

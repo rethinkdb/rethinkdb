@@ -66,14 +66,14 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     socket_stream.get()->set_interruptor(interruptor);
 }
 
-void extproc_worker_t::released(signal_t *user_interruptor) {
+void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
     guarantee(interruptor != NULL);
-    bool errored = false;
+    bool errored = user_error;
 
     // If we were interrupted by the user, we can't count on the worker being valid
     if (user_interruptor != NULL && user_interruptor->is_pulsed()) {
         errored = true;
-    } else {
+    } else if (!errored) {
         // Set up a timeout interruptor for the final write/read
         signal_timer_t timeout;
         wait_any_t final_interruptor(&timeout, interruptor);

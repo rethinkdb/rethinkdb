@@ -1,20 +1,25 @@
 sections:
   - tag: date
-    name: Date
+    name: Dates and times
     description: Date and time operations.
     order: 11
 
 commands:
   - tag: now
     section: date
-    description: | 
-      Return a time object with the current date. The command <code>now()</code> is computed
-      once per query, so <code>r.now()</code> will always return the same time inside a query.
+    description: |
+
+      Return a time object representing the current time in UTC. The
+      command <code>now()</code> is computed once when the server
+      receives the query, so multiple instances of
+      <code>r.now()</code> will always return the same time inside a
+      query.
+
     name: now
     body: "$PARENT.now()"
     io:
       - - r
-        - time 
+        - time
 
     examples:
       - description: Add a new user with the time at which he subscribed.
@@ -35,34 +40,34 @@ commands:
               subscription_date: r.now()
             }).run(conn, callback)
 
-  - tag: time 
+  - tag: time
     section: date
-    description: | 
+    description: |
       Create a time object for a specific time.
     name: time
-    body: "$PARENT.time(year, month, day[, hour, minute, second] [, timezone])"
+    body: "$PARENT.time(year, month, day[, hour, minute, second], timezone)"
     io:
       - - r
         - time
 
     examples:
-      - description: Update the birthdate of the user "John" to November 3rd, 1986. 
+      - description: Update the birthdate of the user "John" to November 3rd, 1986 UTC.
         code:
           rb: |
-            r.table("user").get("John").update(:birthdate => r.time(1986, 11, 3)).run(conn)
+            r.table("user").get("John").update(:birthdate => r.time(1986, 11, 3, 'Z')).run(conn)
           py: |
-            r.table("user").get("John").update({"birthdate": r.time(1986, 11, 3)}).run(conn)
+            r.table("user").get("John").update({"birthdate": r.time(1986, 11, 3, 'Z')}).run(conn)
           js: |
-            r.table("user").get("John").update({birthdate: r.time(1986, 11, 3)}).run(conn, callback)
+            r.table("user").get("John").update({birthdate: r.time(1986, 11, 3, 'Z')}).run(conn, callback)
 
-  - tag: epoch_time 
+  - tag: epoch_time
     section: date
-    description: | 
+    description: |
         Create a time object based on seconds since epoch.
     name:
-      js: epochTime 
-      py: epoch_time 
-      rb: epoch_time 
+      js: epochTime
+      py: epoch_time
+      rb: epoch_time
     body:
       js: "$PARENT.epochTime(epochTime)"
       py: "$PARENT.epoch_time(epoch_time)"
@@ -72,7 +77,7 @@ commands:
         - time
 
     examples:
-      - description: Update the birthdate of the user "John" to November 3rd, 1986. 
+      - description: Update the birthdate of the user "John" to November 3rd, 1986.
         code:
           rb: |
             r.table("user").get("John").update(:birthdate => r.epoch_time(531360000)).run(conn)
@@ -84,30 +89,38 @@ commands:
 
   - tag: iso8601
     section: date
-    description: | 
-        Create a time object based on an iso8601 date string. Valid strings are for example
-        "2013-08-06", "2013-08-06T07:35Z" or "2013-218". Strings with week currently cannot be used.
-        Read more about the ISO 8601 format on the <a href="http://en.wikipedia.org/wiki/ISO_8601">Wikipedia page</a>
-    name: iso0601
-    body: "$PARENT.iso8601(iso8601Date)"
+    description: |
+
+        Create a time object based on an iso8601 date-time string
+        (e.g. '2013-01-01T01:01:01+00:00'). We support all valid ISO
+        8601 formats except for week dates.  If you pass an ISO 8601
+        date-time without a time zone, you must specify the time zone
+        with the optarg `default_timezone`.  Read
+        more about the ISO 8601 format on the <a href="http://en.wikipedia.org/wiki/ISO_8601">Wikipedia page</a>.
+
+    name: iso8601
+    body:
+      py: "$PARENT.iso8601(iso8601Date[, default_timezone=''])"
+      rb: "$PARENT.iso8601(iso8601Date[, :default_timezone => ''])"
+      js: "$PARENT.ISO8601(iso8601Date[, {default_timezone:''}])"
     io:
       - - r
         - time
 
     examples:
-      - description: Update the birthdate of the user "John" to November 3rd, 1986. 
+      - description: Update the time of John's birth.
         code:
           rb: |
-            r.table("user").get("John").update(:birthdate => r.iso8601('1986-11-03')).run(conn)
+            r.table("user").get("John").update(:birth => r.iso8601('1986-11-03T08:30:00-07:00')).run(conn)
           py: |
-            r.table("user").get("John").update({"birthdate": r.iso8601('1986-11-03')}).run(conn)
+            r.table("user").get("John").update({"birth": r.iso8601('1986-11-03T08:30:00-07:00')}).run(conn)
           js: |
-            r.table("user").get("John").update({birthdate: r.iso8601('1986-11-03')}).run(conn, callback)
+            r.table("user").get("John").update({birth: r.ISO8601('1986-11-03T08:30:00-07:00')}).run(conn, callback)
 
-  - tag: in_timezone 
-    section: date 
-    description: | 
-      Return a new time object with a different timezone. While the time stays the same, 
+  - tag: in_timezone
+    section: date
+    description: |
+      Return a new time object with a different timezone. While the time stays the same,
       the results returned by methods such as <code>hours()</code> will change since they take the
       timezone into account.
       The timezone argument has to be of the ISO 8601 format.
@@ -136,8 +149,8 @@ commands:
             r.now().inTimezone('-08:00').hours().run(conn, callback)
 
   - tag: timezone
-    section: date 
-    description: | 
+    section: date
+    description: |
       Return the timezone of the time object.
 
     name: timezone
@@ -168,10 +181,10 @@ commands:
 
   - tag: during
     section: date
-    description: | 
+    description: |
       Return if a time is between two other times (by default, inclusive for the start, exclusive for the end).
 
-    name: during 
+    name: during
     body:
       js:  "$PARENT.during(startTime, endTime[, options])"
       py:  "$PARENT.during(start_time, end_time[, left_bound=\"open/closed\", right_bound=\"open/closed\"])"
@@ -211,9 +224,9 @@ commands:
             ).run(conn, callback)
 
 
-  - tag: date 
-    section: date 
-    description: | 
+  - tag: date
+    section: date
+    description: |
         Return a new time object only based on the day, month and year (ie. the same day at 00:00).
 
     name: date
@@ -241,8 +254,8 @@ commands:
             }).run(conn, callback)
 
   - tag: time_of_day
-    section: date 
-    description: | 
+    section: date
+    description: |
       Return the number of seconds elapsed since the beginning of the day stored in the time object.
 
     name:
@@ -256,7 +269,7 @@ commands:
       rb: "$PARENT.time_of_day()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Retrieve posts that were submitted before noon.
@@ -277,16 +290,16 @@ commands:
             ).run(conn, callback)
 
   - tag: year
-    section: date 
-    description: | 
+    section: date
+    description: |
       Return the year of a time object.
 
-    name: year 
+    name: year
 
     body: "$PARENT.year()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Retrieve all the users born in 1986.
@@ -307,20 +320,20 @@ commands:
 
 
 
-  - tag: month 
-    section: date 
-    description: | 
+  - tag: month
+    section: date
+    description: |
       Return the month of a time object as a number between 1 and 12.
       For your convenience, the terms <code>r.january</code>, <code>r.february</code> etc. are defined and map
       to the appropriate integer.
 
 
-    name: month 
+    name: month
 
     body: "$PARENT.month()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Retrieve all the users who were born in November.
@@ -332,7 +345,7 @@ commands:
 
           py: |
             r.table("users").filter(
-              r.row["birthdate"].month() == 11 
+              r.row["birthdate"].month() == 11
             )
           js: |
             r.table("users").filter(
@@ -355,17 +368,17 @@ commands:
             )
 
 
-  - tag: day 
-    section: date 
-    description: | 
+  - tag: day
+    section: date
+    description: |
       Return the day of a time object as a number between 1 and 31.
 
-    name: day 
+    name: day
 
     body: "$PARENT.day()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Return the users born on the 24th of any month.
@@ -386,8 +399,8 @@ commands:
 
 
   - tag: day_of_week
-    section: date 
-    description: | 
+    section: date
+    description: |
       Return the day of week of a time object as a number between 1 and 7 (following ISO 8601 standard).
       For your convenience, the terms <code>r.monday</code>, <code>r.tuesday</code> etc. are defined and map
       to the appropriate integer.
@@ -403,7 +416,7 @@ commands:
       py: "$PARENT.day_of_week()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Return today's day of week.
@@ -413,7 +426,7 @@ commands:
           py: |
             r.now().day_of_week().run(conn)
           js: |
-            r.now().dayOfweek().run(conn, callback)
+            r.now().dayOfWeek().run(conn, callback)
       - description: Retrieve all the users who were born on a Tuesday.
         code:
           rb: |
@@ -431,8 +444,8 @@ commands:
             )
 
   - tag: day_of_year
-    section: date 
-    description: | 
+    section: date
+    description: |
       Return the day of the year of a time object as a number between 1 and 366 (following ISO 8601 standard).
 
     name:
@@ -446,7 +459,7 @@ commands:
       py: "$PARENT.day_of_year()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Retrieve all the users who were born the first day of a year.
@@ -467,17 +480,17 @@ commands:
 
 
 
-  - tag: hours 
-    section: date 
-    description: | 
+  - tag: hours
+    section: date
+    description: |
       Return the hour in a time object as a number between 0 and 23.
 
-    name: hours 
+    name: hours
 
     body: "$PARENT.hours()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Return all the posts submitted after midnight and before 4am.
@@ -496,8 +509,8 @@ commands:
             })
 
   - tag: minutes
-    section: date 
-    description: | 
+    section: date
+    description: |
       Return the minute in a time object as a number between 0 and 59.
 
     name: minutes
@@ -505,7 +518,7 @@ commands:
     body: "$PARENT.minutes()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Return all the posts submitted during the first 10 minutes of every hour.
@@ -525,8 +538,8 @@ commands:
 
 
   - tag: seconds
-    section: date 
-    description: | 
+    section: date
+    description: |
       Return the seconds in a time object as a number between 0 and 59.999 (double precision).
 
     name: seconds
@@ -534,7 +547,7 @@ commands:
     body: "$PARENT.seconds()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Return the post submitted during the first 30 seconds of every minute.
@@ -553,9 +566,9 @@ commands:
             })
 
 
-  - tag: to_iso8601 
-    section: date 
-    description: | 
+  - tag: to_iso8601
+    section: date
+    description: |
       Convert a time object to its iso 8601 format.
 
     name:
@@ -566,7 +579,7 @@ commands:
     body: "$PARENT.seconds()"
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Return the current time in an ISO8601 format.
@@ -579,9 +592,9 @@ commands:
             r.now().toISO8601()
 
 
-  - tag: to_epoch_time 
-    section: date 
-    description: | 
+  - tag: to_epoch_time
+    section: date
+    description: |
       Convert a time object to its epoch time.
 
     name:
@@ -596,7 +609,7 @@ commands:
 
     io:
       - - time
-        - number 
+        - number
 
     examples:
       - description: Return the current time in an ISO8601 format.
