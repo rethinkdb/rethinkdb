@@ -27,7 +27,7 @@ const js_id_t MAX_ID = UINT64_MAX;
 
 // Returns an empty pointer on error.
 std::shared_ptr<const scoped_cJSON_t> js_to_json(const v8::Handle<v8::Value> &value,
-                                         std::string *errmsg);
+                                                 std::string *errmsg);
 
 // Should never error.
 v8::Handle<v8::Value> js_from_json(const cJSON &json);

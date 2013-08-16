@@ -13,7 +13,6 @@
 #include "containers/scoped.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/rdb_protocol_json.hpp"
 
 namespace ql {
 class env_t;

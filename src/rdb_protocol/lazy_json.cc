@@ -1,10 +1,9 @@
 #include "rdb_protocol/lazy_json.hpp"
 
 #include "containers/archive/buffer_group_stream.hpp"
-#include "rdb_protocol/rdb_protocol_json.hpp"
 
 counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
-                                           transaction_t *txn) {
+                                      transaction_t *txn) {
     blob_t blob(txn->get_cache()->get_block_size(),
                 const_cast<rdb_value_t *>(value)->value_ref(), blob::btree_maxreflen);
 
