@@ -33,8 +33,14 @@ typedef rdb_protocol_details::rget_item_t rget_item_t;
 
 enum sorting_hint_t { START, CONTINUE };
 
-// RSI: Make this not be a typedef, make it a struct, FFS.
-typedef std::pair<sorting_hint_t, counted_t<const ql::datum_t> > hinted_datum_t;
+struct hinted_datum_t {
+    hinted_datum_t() { }
+    hinted_datum_t(sorting_hint_t _first, counted_t<const ql::datum_t> _second)
+        : first(_first), second(_second) { }
+
+    sorting_hint_t first;
+    counted_t<const ql::datum_t> second;
+};
 
 class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:

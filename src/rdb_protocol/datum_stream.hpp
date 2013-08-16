@@ -313,9 +313,8 @@ private:
                 next_element = counted_t<const datum_t>();
             }
 
-            hinted_datum_t d;
             for (;;) {
-                d = src->sorting_hint_next();
+                const hinted_datum_t d = src->sorting_hint_next();
                 if (!d.second) {
                     break;
                 }
@@ -333,9 +332,7 @@ private:
                 }
             }
         }
-        //for (auto it = data.begin(); it != data.end(); ++it) {
-        //    debugf("Datum:\n%s\n", (*it)->print().c_str());
-        //}
+
         std::sort(data.begin(), data.end(), lt_cmp);
     }
     T lt_cmp;

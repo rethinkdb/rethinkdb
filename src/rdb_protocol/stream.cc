@@ -18,7 +18,7 @@ boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_pro
 }
 
 hinted_datum_t json_stream_t::sorting_hint_next() {
-    return std::make_pair(CONTINUE, next());
+    return hinted_datum_t(CONTINUE, next());
 }
 
 rdb_protocol_t::rget_read_response_t::result_t json_stream_t::apply_terminal(
@@ -206,9 +206,9 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
         boost::optional<rget_item_t> item = head();
         if (item) {
             pop();
-            return std::make_pair(CONTINUE, item->data);
+            return hinted_datum_t(CONTINUE, item->data);
         } else {
-            return std::make_pair(CONTINUE, counted_t<const ql::datum_t>());
+            return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
         }
     }
 
@@ -220,7 +220,7 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
         r_sanity_check(sorting_buffer.front().sindex_key);
         bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
-        return std::make_pair((is_new_key ? START : CONTINUE), datum);
+        return hinted_datum_t((is_new_key ? START : CONTINUE), datum);
     } else {
         for (;;) {
             /* In this loop we load data in to the sorting buffer until we can
@@ -240,7 +240,7 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
                      * empty. This means we have the next value. */
                     pop();
                     bool is_new_key = check_and_set_last_key(skey);
-                    return std::make_pair((is_new_key ? START : CONTINUE), item->data);
+                    return hinted_datum_t((is_new_key ? START : CONTINUE), item->data);
                 } else {
                     /* We have an untruncated key but there's data in the
                      * sorting buffer. That means this value definitely isn't
@@ -272,7 +272,7 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
     if (sorting_buffer.empty()) {
         /* Nothing in the sorting buffer, this means we don't have any data to
          * return so we return nothing. */
-        return std::make_pair(CONTINUE, counted_t<const ql::datum_t>());
+        return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
     } else {
         debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
@@ -290,7 +290,7 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
         counted_t<const ql::datum_t> datum = sorting_buffer.front().data;
         bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
-        return std::make_pair((is_new_key ? START : CONTINUE), datum);
+        return hinted_datum_t((is_new_key ? START : CONTINUE), datum);
     }
 }
 
