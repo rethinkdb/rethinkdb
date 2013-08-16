@@ -150,8 +150,6 @@ public:
      * thus truncated. */
     static bool key_is_truncated(const store_key_t &key);
 
-    // void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
-    // archive_result_t rdb_deserialize(read_stream_t *s);
     void rcheck_is_ptype(const std::string s = "") const;
 
 private:
