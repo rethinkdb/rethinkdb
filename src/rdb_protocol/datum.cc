@@ -223,7 +223,7 @@ std::string datum_t::get_type_name() const {
 }
 
 std::string datum_t::print() const {
-    return as_json()->Print();
+    return as_json_scoped().Print();
 }
 
 std::string datum_t::trunc_print() const {
