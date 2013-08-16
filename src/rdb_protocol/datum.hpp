@@ -60,8 +60,6 @@ public:
     explicit datum_t(float) = delete;
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
-    // RSI: Make reql_type an rvalue reference?
-    datum_t(type_t _type, std::string _reql_type);
     explicit datum_t(double _num);
     explicit datum_t(std::string &&str);
     explicit datum_t(const char *cstr);

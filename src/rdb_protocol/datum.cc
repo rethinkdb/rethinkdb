@@ -24,13 +24,6 @@ datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
 
-datum_t::datum_t(type_t _type, std::string _reql_type)
-    : type(_type), r_object(new std::map<std::string, counted_t<const datum_t> >) {
-    r_sanity_check(_type == R_OBJECT);
-    r_object->insert(std::make_pair(std::string(reql_type_string),
-                                    make_counted<const datum_t>(std::move(_reql_type))));
-}
-
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     // so we can use `isfinite` in a GCC 4.4.3-compatible way
     using namespace std;  // NOLINT(build/namespaces)
