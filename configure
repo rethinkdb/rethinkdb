@@ -67,6 +67,8 @@ configure () {
         FreeBSD)
             [[ -z "$lib_paths" ]] && lib_paths="/usr/local/lib"
             var_append CXXFLAGS -I/usr/local/include
+	    var_append CXXFLAGS -std=c++11
+	    var_append LDFLAGS -lstdc++
             var PTHREAD_LIBS -pthread ;;
         Linux)
             var PTHREAD_LIBS -pthread ;;

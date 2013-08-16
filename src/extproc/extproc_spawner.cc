@@ -214,7 +214,7 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
     res = send_fds(spawner_socket.get(), 1, &fds[1]);
     guarantee_err(res == 0, "could not send socket file descriptor to worker process");
 
-    stream_out->create(fds[0], reinterpret_cast<fd_watcher_t*>(NULL));
+    stream_out->create(fds[0], reinterpret_cast<fd_watcher_t*>(0));
 
     // Get the pid of the new worker process
     res = deserialize(stream_out->get(), pid_out);

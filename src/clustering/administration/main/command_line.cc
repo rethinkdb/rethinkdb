@@ -14,7 +14,8 @@
 // Needed for determining rethinkdb binary path below
 #if defined(__MACH__)
 #include <mach-o/dyld.h>
-#elif defined(__FreeBSD_version)
+#endif
+#if defined(__FreeBSD__)
 #include <sys/sysctl.h>
 #endif
 
@@ -1469,7 +1470,7 @@ bool get_rethinkdb_exe_directory(std::string *result) {
     result->assign(dir);
     return true;
 }
-#elif defined(__FreeBSD_version)
+#elif defined(__FreeBSD__)
 bool get_rethinkdb_exe_directory(std::string *result) {
     // Taken from http://stackoverflow.com/questions/799679, completely untested
     int mib[4];
@@ -1487,7 +1488,7 @@ bool get_rethinkdb_exe_directory(std::string *result) {
         return false;
     }
 
-    char *dir = dirname(buffer);
+    char *dir = dirname(buf);
     if (dir == NULL) {
         fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
                 errno_string(errno).c_str());

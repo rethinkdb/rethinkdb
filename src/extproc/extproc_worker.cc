@@ -27,7 +27,7 @@ extproc_worker_t::extproc_worker_t(extproc_spawner_t *_spawner) :
 
 extproc_worker_t::~extproc_worker_t() {
     if (worker_pid != -1) {
-        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
+        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(0));
 
         // TODO: check that worker is extant and/or catch exceptions
         run_job(&worker_exit_fn);
@@ -56,7 +56,7 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     if (worker_pid == -1) {
         socket.reset(spawner->spawn(&socket_stream, &worker_pid));
     } else {
-        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
+        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(0));
     }
 
     // Apply the user interruptor to our stream along with the extproc pool's interruptor

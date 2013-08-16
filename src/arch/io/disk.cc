@@ -518,11 +518,18 @@ int perform_datasync(fd_t fd) {
 
     return fcntl_res == -1 ? errno : 0;
 
-#else  // __MACH__
+#elif defined(__FreeBSD__)
+
+    int res = fsync(fd);
+    return res == -1 ? errno : 0;
+
+#elif defined(__linux__)
 
     int res = fdatasync(fd);
     return res == -1 ? errno : 0;
 
+#else
+#error "Unknown operating system: don't know how to fdatasync()"
 #endif  // __MACH__
 }
 
