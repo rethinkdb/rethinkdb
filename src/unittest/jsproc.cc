@@ -200,8 +200,8 @@ void run_infinite_recursion_function_test() {
     ASSERT_TRUE(js_id != NULL);
 
     // Call the function
-    std::vector<boost::shared_ptr<scoped_cJSON_t> > args;
-    args.push_back(boost::make_shared<scoped_cJSON_t>(cJSON_CreateNumber(1.0)));
+    std::vector<std::shared_ptr<const scoped_cJSON_t> > args;
+    args.push_back(std::make_shared<scoped_cJSON_t>(cJSON_CreateNumber(1.0)));
     result = js_runner.call(source_code, args, config);
 
     std::string *err_msg = boost::get<std::string>(&result);
@@ -239,11 +239,12 @@ void run_overalloc_function_test() {
 
     // Call the function
     ASSERT_THROW(js_runner.call(source_code,
-                                std::vector<boost::shared_ptr<scoped_cJSON_t> >(),
+                                std::vector<std::shared_ptr<const scoped_cJSON_t> >(),
                                 config), js_worker_exc_t);
 }
 
 // Disabling this test because it may cause complications depending on the user's system
+// ^^^ WHAT COMPLICATIONS???
 /*
 TEST(JSProc, OverallocFunction) {
     extproc_spawner_t extproc_spawner;
