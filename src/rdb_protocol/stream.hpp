@@ -26,15 +26,12 @@
 enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
 
 namespace ql { class env_t; }
+
 namespace query_language {
 
 typedef rdb_protocol_details::rget_item_t rget_item_t;
 
-typedef std::list<std::shared_ptr<const scoped_cJSON_t> > json_list_t;
-typedef std::deque<rget_item_t> extended_json_deque_t;
-typedef rdb_protocol_t::rget_read_response_t::result_t result_t;
-
-enum sorting_hint_t {START, CONTINUE};
+enum sorting_hint_t { START, CONTINUE };
 
 typedef std::pair<sorting_hint_t, std::shared_ptr<const scoped_cJSON_t> > hinted_json_t;
 
@@ -47,9 +44,10 @@ public:
     virtual hinted_json_t sorting_hint_next();
 
     virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace);
-    virtual result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &,
-                                    ql::env_t *ql_env,
-                                    const backtrace_t &backtrace);
+    virtual rdb_protocol_t::rget_read_response_t::result_t
+    apply_terminal(const rdb_protocol_details::terminal_variant_t &,
+                   ql::env_t *ql_env,
+                   const backtrace_t &backtrace);
 
     virtual ~json_stream_t() { }
 
@@ -79,7 +77,7 @@ public:
     /* Use default implementation of `add_transformation()` and `apply_terminal()` */
 
 private:
-    json_list_t data;
+    std::list<std::shared_ptr<const scoped_cJSON_t> > data;
 };
 
 class transform_stream_t : public json_stream_t {
@@ -93,7 +91,7 @@ private:
     boost::shared_ptr<json_stream_t> stream;
     ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
-    json_list_t data;
+    std::list<std::shared_ptr<const scoped_cJSON_t> > data;
 };
 
 class batched_rget_stream_t : public json_stream_t {
@@ -120,9 +118,10 @@ public:
     hinted_json_t sorting_hint_next();
 
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace);
-    result_t apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
-                            ql::env_t *ql_env,
-                            const backtrace_t &backtrace);
+    rdb_protocol_t::rget_read_response_t::result_t
+    apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
+                   ql::env_t *ql_env,
+                   const backtrace_t &backtrace);
 
     virtual void reset_interruptor(signal_t *new_interruptor) {
         interruptor = new_interruptor;
@@ -144,13 +143,12 @@ private:
     signal_t *interruptor;
     boost::optional<std::string> sindex_id;
 
-    /* This needs to use an extended_json_list_t because that includes
-     * information about the secondary index key of the object which is needed
-     * for sorting. */
-    /* TODO We could potentially put a json_list_t in here in cases when we're not
-     * sorting to save some space. */
-    extended_json_deque_t data;
-    extended_json_deque_t sorting_buffer;
+    /* This needs to include information about the secondary index key of the object
+     * which is needed for sorting. */
+    // ^^^ hopefully this comment still makes as much sense, it didn't make any sense
+    // before...
+    std::deque<rget_item_t> data;
+    std::deque<rget_item_t> sorting_buffer;
 
     std::string key_in_sorting_buffer;
 
