@@ -150,12 +150,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      signal_t *interruptor);
 
 /* RGETS */
-size_t estimate_rget_response_size(const std::shared_ptr<const scoped_cJSON_t> &json);
-
-struct rget_response_t {
-    std::vector<std::pair<store_key_t, std::shared_ptr<const scoped_cJSON_t> > > pairs;
-    bool truncated;
-};
+size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,

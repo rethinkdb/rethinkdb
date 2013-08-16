@@ -545,8 +545,8 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 
 // This is actually a kind of misleading name. This function estimates the size of a cJSON object
 // not a whole rget though it is used for that purpose (by summing up these responses).
-size_t estimate_rget_response_size(const std::shared_ptr<const scoped_cJSON_t> &json) {
-    return cJSON_estimate_size(json->get());
+size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
+    return serialized_size(datum);
 }
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
@@ -709,7 +709,7 @@ public:
                                                                             datum));
                     }
 
-                    cumulative_size += estimate_rget_response_size(datum->as_json());
+                    cumulative_size += estimate_rget_response_size(datum);
                 }
 
                 return cumulative_size < rget_max_chunk_size;

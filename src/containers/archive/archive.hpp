@@ -172,8 +172,12 @@ empty_ok_t<T> empty_ok(T &field) {
     return empty_ok_t<T>(&field);
 }
 
+template <class T>
+struct serialized_size_t;
 
 
+
+// Keep in sync with serialized_size_t defined below.
 #define ARCHIVE_PRIM_MAKE_WRITE_SERIALIZABLE(typ1, typ2)                \
     inline write_message_t &operator<<(write_message_t &msg, typ1 x) {  \
         union {                                                         \
@@ -184,6 +188,7 @@ empty_ok_t<T> empty_ok(T &field) {
         msg.append(u.buf, sizeof(typ2));                                \
         return msg;                                                     \
     }
+
 
 // Makes typ1 serializable, sending a typ2 over the wire.  Has range
 // checking on the closed interval [lo, hi] when deserializing.
@@ -230,7 +235,12 @@ empty_ok_t<T> empty_ok(T &field) {
         }                                                               \
         *x = u.v;                                                       \
         return ARCHIVE_SUCCESS;                                         \
-    }
+    }                                                                   \
+                                                                        \
+    template <>                                                         \
+    struct serialized_size_t<typ>                                       \
+        : public std::integral_constant<size_t, sizeof(typ)> { }
+
 
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(unsigned char);  // NOLINT(runtime/int)
 ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(char);          // NOLINT(runtime/int)
@@ -249,6 +259,8 @@ ARCHIVE_PRIM_MAKE_RAW_SERIALIZABLE(double);
 // change your code to use doubles.
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(bool, int8_t, 0, 1);
+template <>
+struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
 
 write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid);
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid);

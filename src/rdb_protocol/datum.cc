@@ -907,6 +907,32 @@ void datum_t::write_to_protobuf(Datum *d) const {
     }
 }
 
+
+
+// This must be kept in sync with operator<<(write_message_t &, const counted_t<const
+// datum_T> &).
+size_t serialized_size(const counted_t<const datum_t> &datum) {
+    guarantee(datum.has());
+    const size_t typesize = 1;  // 1 byte for the type.
+    switch (datum->get_type()) {
+    case datum_t::R_ARRAY:
+        return typesize + serialized_size(datum->as_array());
+    case datum_t::R_BOOL:
+        return typesize + serialized_size_t<bool>::value;
+    case datum_t::R_NULL:
+        return typesize;
+    case datum_t::R_NUM:
+        return typesize + serialized_size_t<double>::value;
+    case datum_t::R_OBJECT:
+        return typesize + serialized_size(datum->as_object());
+    case datum_t::R_STR:
+        return typesize + serialized_size(datum->as_str());
+    case datum_t::UNINITIALIZED:  // fall through
+    default:
+        unreachable();
+    }
+}
+
 write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {
     guarantee(datum.has());
     int8_t type = datum->get_type();

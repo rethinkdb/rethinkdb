@@ -211,6 +211,8 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
+size_t serialized_size(const counted_t<const datum_t> &datum);
+
 write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum);
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 
