@@ -30,30 +30,24 @@ rdb_protocol_t::rget_read_response_t::result_t json_stream_t::apply_terminal(
 
     terminal_initialize(ql_env, backtrace, &t, &res);
 
-    std::shared_ptr<const scoped_cJSON_t> json;
+    counted_t<const ql::datum_t> json;
     while ((json = next())) {
-        terminal_apply(ql_env, backtrace, lazy_json_t(make_counted<ql::datum_t>(json)), &t, &res);
+        terminal_apply(ql_env, backtrace, lazy_json_t(json), &t, &res);
     }
     return res;
 }
 
-in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it) {
-    while (cJSON *json = it.next()) {
-        data.push_back(std::shared_ptr<const scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
-    }
-}
-
 in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
-    while (std::shared_ptr<const scoped_cJSON_t> json = stream->next()) {
+    while (counted_t<const ql::datum_t> json = stream->next()) {
         data.push_back(json);
     }
 }
 
-std::shared_ptr<const scoped_cJSON_t> in_memory_stream_t::next() {
+counted_t<const ql::datum_t> in_memory_stream_t::next() {
     if (data.empty()) {
-        return std::shared_ptr<const scoped_cJSON_t>();
+        return counted_t<const ql::datum_t>();
     } else {
-        std::shared_ptr<const scoped_cJSON_t> ret = data.front();
+        counted_t<const ql::datum_t> ret = data.front();
         data.pop_front();
         return ret;
     }
@@ -66,15 +60,15 @@ transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
     ql_env(_ql_env),
     transform(tr) { }
 
-std::shared_ptr<const scoped_cJSON_t> transform_stream_t::next() {
+counted_t<const ql::datum_t> transform_stream_t::next() {
     while (data.empty()) {
-        std::shared_ptr<const scoped_cJSON_t> input = stream->next();
+        counted_t<const ql::datum_t> input = stream->next();
         if (!input) {
             // End of stream reached.
-            return std::shared_ptr<const scoped_cJSON_t>();
+            return counted_t<const ql::datum_t>();
         }
 
-        std::list<std::shared_ptr<const scoped_cJSON_t> > accumulator;
+        std::list<counted_t<const ql::datum_t> > accumulator;
         accumulator.push_back(input);
 
         // Apply transforms to the data
@@ -84,19 +78,16 @@ std::shared_ptr<const scoped_cJSON_t> transform_stream_t::next() {
                    ++it) {
             std::list<counted_t<const ql::datum_t> > tmp;
             for (auto jt = accumulator.begin(); jt != accumulator.end(); ++jt) {
-                transform_apply(ql_env, it->backtrace, make_counted<ql::datum_t>(*jt), &it->variant, &tmp);
+                transform_apply(ql_env, it->backtrace, *jt, &it->variant, &tmp);
             }
 
-            accumulator.clear();
-            for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
-                accumulator.push_back((*jt)->as_json());
-            }
+            accumulator = std::move(tmp);
         }
 
-        data.swap(accumulator);
+        data = std::move(accumulator);
     }
 
-    std::shared_ptr<const scoped_cJSON_t> datum = data.front();
+    counted_t<const ql::datum_t> datum = data.front();
     data.pop_front();
     return datum;
 }
@@ -215,9 +206,9 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
         boost::optional<rget_item_t> item = head();
         if (item) {
             pop();
-            return std::make_pair(CONTINUE, item->data->as_json());
+            return std::make_pair(CONTINUE, item->data);
         } else {
-            return std::make_pair(CONTINUE, std::shared_ptr<const scoped_cJSON_t>());
+            return std::make_pair(CONTINUE, counted_t<const ql::datum_t>());
         }
     }
 
@@ -227,9 +218,9 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
          * one off the front and return it. */
         counted_t<const ql::datum_t> datum = sorting_buffer.front().data;
         r_sanity_check(sorting_buffer.front().sindex_key);
-        bool is_new_key = check_and_set_last_key((*sorting_buffer.front().sindex_key)->as_json());
+        bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
-        return std::make_pair((is_new_key ? START : CONTINUE), datum->as_json());
+        return std::make_pair((is_new_key ? START : CONTINUE), datum);
     } else {
         for (;;) {
             /* In this loop we load data in to the sorting buffer until we can
@@ -249,7 +240,7 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
                      * empty. This means we have the next value. */
                     pop();
                     bool is_new_key = check_and_set_last_key(skey);
-                    return std::make_pair((is_new_key ? START : CONTINUE), item->data->as_json());
+                    return std::make_pair((is_new_key ? START : CONTINUE), item->data);
                 } else {
                     /* We have an untruncated key but there's data in the
                      * sorting buffer. That means this value definitely isn't
@@ -281,7 +272,7 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
     if (sorting_buffer.empty()) {
         /* Nothing in the sorting buffer, this means we don't have any data to
          * return so we return nothing. */
-        return std::make_pair(CONTINUE, std::shared_ptr<const scoped_cJSON_t>());
+        return std::make_pair(CONTINUE, counted_t<const ql::datum_t>());
     } else {
         debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
@@ -297,13 +288,13 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
 
         /* Now we can finally return a value from the sorting buffer. */
         counted_t<const ql::datum_t> datum = sorting_buffer.front().data;
-        bool is_new_key = check_and_set_last_key((*sorting_buffer.front().sindex_key)->as_json());
+        bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
-        return std::make_pair((is_new_key ? START : CONTINUE), datum->as_json());
+        return std::make_pair((is_new_key ? START : CONTINUE), datum);
     }
 }
 
-std::shared_ptr<const scoped_cJSON_t> batched_rget_stream_t::next() {
+counted_t<const ql::datum_t> batched_rget_stream_t::next() {
     return sorting_hint_next().second;
 }
 
@@ -457,17 +448,17 @@ bool batched_rget_stream_t::check_and_set_last_key(const std::string &key) {
         }
     }
 }
-bool batched_rget_stream_t::check_and_set_last_key(std::shared_ptr<const scoped_cJSON_t> key) {
-    std::shared_ptr<const scoped_cJSON_t> *last_key_json;
+bool batched_rget_stream_t::check_and_set_last_key(counted_t<const ql::datum_t> key) {
+    counted_t<const ql::datum_t> *last_key_json;
     /* Notice we check both for a last_key value which is a std::string and a
      * last_key value which is an empty shared_ptr the latter is only present
      * immediately after construction. */
-    if (!(last_key_json = boost::get<std::shared_ptr<const scoped_cJSON_t> >(&last_key)) ||
+    if (!(last_key_json = boost::get<counted_t<const ql::datum_t> >(&last_key)) ||
         !(*last_key_json)) {
         last_key = key;
         return true;
     } else {
-        if (json_cmp(key->get(), (*last_key_json)->get()) == 0) {
+        if (*key == **last_key_json) {
             return false;
         } else {
             last_key = key;
