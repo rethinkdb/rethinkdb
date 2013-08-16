@@ -208,13 +208,13 @@ void rdb_replace_and_return_superblock(
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                 kv_location_set(&kv_location, key, new_val,
                                 slice, timestamp, txn);
-                mod_info->added = new_val->as_json();
+                mod_info->added = new_val;
             }
         } else {
             if (ended_empty) {
                 conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
                 kv_location_delete(&kv_location, key, slice, timestamp, txn);
-                mod_info->deleted = old_val->as_json();
+                mod_info->deleted = old_val;
             } else {
                 r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
                 if (*old_val == *new_val) {
@@ -225,8 +225,8 @@ void rdb_replace_and_return_superblock(
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                     kv_location_set(&kv_location, key, new_val,
                                     slice, timestamp, txn);
-                    mod_info->added = new_val->as_json();
-                    mod_info->deleted = old_val->as_json();
+                    mod_info->added = new_val;
+                    mod_info->deleted = old_val;
                 }
             }
         }
@@ -350,10 +350,10 @@ void rdb_set(const store_key_t &key, std::shared_ptr<const scoped_cJSON_t> data,
 
     /* update the modification report */
     if (kv_location.value.has()) {
-        mod_info->deleted = get_data(kv_location.value.get(), txn)->as_json();
+        mod_info->deleted = get_data(kv_location.value.get(), txn);
     }
 
-    mod_info->added = data;
+    mod_info->added = make_counted<ql::datum_t>(data);
 
     if (overwrite || !had_value) {
         kv_location_set(&kv_location, key, make_counted<ql::datum_t>(data), slice, timestamp, txn);
@@ -415,7 +415,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 
     /* Update the modification report. */
     if (exists) {
-        mod_info->deleted = get_data(kv_location.value.get(), txn)->as_json();
+        mod_info->deleted = get_data(kv_location.value.get(), txn);
     }
 
     if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn);
@@ -895,14 +895,14 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key,
         std::shared_ptr<const scoped_cJSON_t> added) {
     rdb_modification_report_t report(primary_key);
-    report.info.added = added;
+    report.info.added = make_counted<ql::datum_t>(added);
     on_mod_report(report);
 }
 
 void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key,
         std::shared_ptr<const scoped_cJSON_t> deleted) {
     rdb_modification_report_t report(primary_key);
-    report.info.deleted = deleted;
+    report.info.deleted = make_counted<ql::datum_t>(deleted);
     on_mod_report(report);
 }
 
@@ -910,8 +910,8 @@ void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
         std::shared_ptr<const scoped_cJSON_t> added,
         std::shared_ptr<const scoped_cJSON_t> deleted) {
     rdb_modification_report_t report(primary_key);
-    report.info.added = added;
-    report.info.deleted = deleted;
+    report.info.added = make_counted<ql::datum_t>(added);
+    report.info.deleted = make_counted<ql::datum_t>(deleted);
     on_mod_report(report);
 }
 
@@ -977,8 +977,7 @@ void rdb_update_single_sindex(
         try {
             promise_t<superblock_t *> return_superblock_local;
             {
-                counted_t<const ql::datum_t> deleted =
-                    make_counted<ql::datum_t>(modification->info.deleted);
+                counted_t<const ql::datum_t> deleted = modification->info.deleted;
 
                 counted_t<const ql::datum_t> index =
                     mapping.compile(&env)->call(deleted)->as_datum();
@@ -1009,8 +1008,7 @@ void rdb_update_single_sindex(
 
     if (modification->info.added) {
         try {
-            counted_t<const ql::datum_t> added =
-                make_counted<ql::datum_t>(modification->info.added);
+            counted_t<const ql::datum_t> added = modification->info.added;
 
             counted_t<const ql::datum_t> index
                 = mapping.compile(&env)->call(added)->as_datum();
@@ -1029,7 +1027,7 @@ void rdb_update_single_sindex(
                                              &dummy);
 
             kv_location_set(&kv_location, sindex_key,
-                            make_counted<ql::datum_t>(modification->info.added), sindex->btree,
+                            modification->info.added, sindex->btree,
                             repli_timestamp_t::distant_past, txn);
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
@@ -1137,7 +1135,7 @@ public:
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
-            mod_report.info.added = get_data(rdb_value, txn)->as_json();
+            mod_report.info.added = get_data(rdb_value, txn);
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
         }

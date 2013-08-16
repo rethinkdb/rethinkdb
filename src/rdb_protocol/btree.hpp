@@ -11,6 +11,7 @@
 #include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/depth_first_traversal.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 class key_tester_t;
@@ -180,8 +181,8 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 /* Secondary Indexes */
 
 struct rdb_modification_info_t {
-    std::shared_ptr<const scoped_cJSON_t> deleted;
-    std::shared_ptr<const scoped_cJSON_t> added;
+    counted_t<const ql::datum_t> deleted;
+    counted_t<const ql::datum_t> added;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
