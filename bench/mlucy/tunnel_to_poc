@@ -1,0 +1,23 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+poc=$1
+poc_offset=$2
+echo "Designating $poc (offset $poc_offset) our point of contact..."
+
+web_port=`free_port | tee web_port`
+target_web_port=$((WEB_PORT+poc_offset))
+tunnel_to $poc $web_port $target_web_port
+client_port=`free_port $web_port | tee client_port`
+target_client_port=$((CLIENT_PORT+poc_offset))
+tunnel_to $poc $client_port $target_client_port
+cluster_port=`free_port $client_port | tee cluster_port`
+target_cluster_port=$((CLUSTER_PORT+poc_offset))
+tunnel_to $poc $cluster_port $target_cluster_port
+cat >&2 <<EOF
+Tunneling:
+  Web:     `hostname`:$web_port -> $poc:$target_web_port
+  ReQL:    `hostname`:$client_port -> $poc:$target_client_port
+  Cluster: `hostname`:$cluster_port -> $poc:$target_cluster_port
+EOF
+echo $cluster_port
