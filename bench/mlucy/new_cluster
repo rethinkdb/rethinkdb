@@ -3,4 +3,4 @@
 
 name=$1
 num=$2
-seq -f "$PREFIX-$name-%g" $num | parallel -uj0 new_instance
+seq -f "$name-%g" $num | parallel -uj0 new_instance

@@ -6,6 +6,7 @@
 
 if [[ ! -z ${1-} ]]; then
     offset=$1
+    offset=$((offset+1))
 else
     id=$((`id -u`))
     offset=$(((id%100+20)*500))

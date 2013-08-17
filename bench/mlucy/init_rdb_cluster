@@ -4,12 +4,14 @@
 hosts=$1
 num_shards=$2
 rdb_dir=$3
+staging=$4
+servers="::: $hosts ::: `seq $num_shards`"
 
-echo "Resetting $STAGING on servers..."
+echo "Resetting $staging on servers..."
 parallel -uj0 "ssh_to {1} <<EOF
-sudo rm -rf $STAGING
-sudo mkdir -p $STAGING
-sudo chown ubuntu $STAGING
+sudo rm -rf $staging/*
+sudo mkdir -p $staging/.persist
+sudo chown -R ubuntu $staging
 EOF" ::: $hosts
 
 echo "Distributing $rdb_dir (symbols stripped for speed)..." >&2
@@ -17,17 +19,22 @@ d=`mktemp -d`
 { cp $rdb_dir/rethinkdb $d; strip $d/rethinkdb; } &
 cp -r $rdb_dir/rethinkdb_web_assets $d &
 wait
-{ pushd $d >/dev/null; tar -czf f.tgz *; popd >/dev/null; }
-parallel -uj0 "pv $d/f.tgz | ssh_to {1} 'cd $STAGING && tar -xzf -'" :::: server_hosts
+# { pushd $d >/dev/null; tar -czf f.tgz *; popd >/dev/null; }
+parallel -vuj0 "rsync_to '$d/*' {1} $staging/.persist" ::: $hosts
+
+exit 1
+# parallel -uj0 "pv $d/f.tgz | ssh_to {1} 'cd $staging && tar -xzf -'" ::: $hosts
 rm -r $d &
 
 jline=`parallel 'printf -- " -j {1}:$(({2}+$CLUSTER_PORT))"' $servers`
 parallel -uj0 "n={1}; n=\${n%%.*}; n=\${n#ec2-*-}; n+=-{2}; n=\$(echo \$n | tr - _);
 ssh_to {1} <<EOF
-cd $STAGING
-rm -r {2}
+cd $staging
+rm -rf {2}
 mkdir -p {2}
 cd {2}
 set -m
 </dev/null nohup ../rethinkdb $jline -o {2} -n \$n --bind all >stdout.log 2>stderr.log &
-EOF" :::: server_hosts ::: `seq $SERVER_INSTANCES`
+EOF" $servers
+
+wait

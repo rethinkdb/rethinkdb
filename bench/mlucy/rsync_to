@@ -7,4 +7,5 @@ ssh_flags+=" -o UserKnownHostsFile=/dev/null"
 ssh_flags+=" -o ConnectTimeout=10"
 ssh_flags+=" -i $BENCH_KEY"
 
-rsynv -avz $ssh_flags -- "$1" "ubuntu@$2:$3"
+rsync -az -e "ssh $ssh_flags" -- $1 "ubuntu@$2:$3"
+

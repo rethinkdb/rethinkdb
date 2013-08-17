@@ -3,15 +3,15 @@
 
 poc=$1
 poc_offset=$2
-echo "Designating $poc (offset $poc_offset) our point of contact..."
+echo "Designating $poc (offset $poc_offset) our point of contact..." >&2
 
-web_port=`free_port | tee web_port`
+web_port=`free_port | tee dbg_web_port`
 target_web_port=$((WEB_PORT+poc_offset))
 tunnel_to $poc $web_port $target_web_port
-client_port=`free_port $web_port | tee client_port`
+client_port=`free_port $web_port | tee dbg_client_port`
 target_client_port=$((CLIENT_PORT+poc_offset))
 tunnel_to $poc $client_port $target_client_port
-cluster_port=`free_port $client_port | tee cluster_port`
+cluster_port=`free_port $client_port | tee dbg_cluster_port`
 target_cluster_port=$((CLUSTER_PORT+poc_offset))
 tunnel_to $poc $cluster_port $target_cluster_port
 cat >&2 <<EOF
@@ -21,3 +21,5 @@ Tunneling:
   Cluster: `hostname`:$cluster_port -> $poc:$target_cluster_port
 EOF
 echo $cluster_port
+
+wait
