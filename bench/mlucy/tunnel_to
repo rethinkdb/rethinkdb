@@ -1,0 +1,5 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+set -m
+nohup ssh_to $1 -nNL '*'":$2:localhost:$3" >/dev/null 2>/dev/null &

@@ -1,0 +1,10 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+ssh_flags=""
+ssh_flags+=" -o StrictHostKeyChecking=no"
+ssh_flags+=" -o UserKnownHostsFile=/dev/null"
+ssh_flags+=" -o ConnectTimeout=10"
+ssh_flags+=" -i $BENCH_KEY"
+
+scp $ssh_flags -- "$1" "ubuntu@$2:$3"

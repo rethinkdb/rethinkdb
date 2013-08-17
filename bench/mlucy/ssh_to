@@ -2,6 +2,7 @@
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
 
 host=$1
+shift
 control_file=$host.control
 
 ssh_flags=""
@@ -9,13 +10,14 @@ ssh_flags+=" -o StrictHostKeyChecking=no"
 ssh_flags+=" -o UserKnownHostsFile=/dev/null"
 ssh_flags+=" -o ConnectTimeout=10"
 ssh_flags+=" -i $BENCH_KEY"
+if [[ -z ${INTERACTIVE-} ]]; then
+    ssh_flags+=" -T"
+fi
 
 control_flags=" -S $control_file"
 [ -e $control_file ] && ssh_flags+=$control_flags
-[ -z ${2-} ] && ssh_flags+=" -T"
-echo $ssh_flags
 
-ssh $ssh_flags ubuntu@$host
+ssh $ssh_flags ubuntu@$host "$@"
 
 if [[ ! -e $control_file ]]; then
     echo "Establishing $control_file..." >&2

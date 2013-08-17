@@ -12,15 +12,22 @@ export JAVA_HOME=/usr/lib/jvm/java-6-openjdk
 export AWS_DEFAULT_REGION=us-east-1
 export EC2_URL=https://ec2.us-east-1.amazonaws.com
 
-dir=`dirname $0`
-canon_dir=`cd -P -- "$dir" && pwd -P`
-export PATH=$canon_dir:$PATH
+export WEB_PORT=8080
+export CLIENT_PORT=28015
+export CLUSTER_PORT=29015
+
+function update_path() {
+    local dir=`dirname $0`
+    local canon_dir=`cd -P -- "$dir" && pwd -P`
+    export PATH=$canon_dir:$PATH
+}
+update_path
 
 function load_conf() {
     CONF=$1
-    local conffile=`basename "$conf"`
+    local conffile=`basename "$CONF"`
     PREFIX=${conffile%.*}
-    echo "Loading config from $conf..." >&2
+    echo "Loading config from $CONF..." >&2
     . $CONF
 }
 # echo $PATH
