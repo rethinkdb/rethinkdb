@@ -22,7 +22,6 @@ wait
 # { pushd $d >/dev/null; tar -czf f.tgz *; popd >/dev/null; }
 parallel -vuj0 "rsync_to '$d/*' {1} $staging/.persist" ::: $hosts
 
-exit 1
 # parallel -uj0 "pv $d/f.tgz | ssh_to {1} 'cd $staging && tar -xzf -'" ::: $hosts
 rm -r $d &
 
@@ -34,7 +33,7 @@ rm -rf {2}
 mkdir -p {2}
 cd {2}
 set -m
-</dev/null nohup ../rethinkdb $jline -o {2} -n \$n --bind all >stdout.log 2>stderr.log &
+</dev/null nohup ../.persist/rethinkdb $jline -o {2} -n \$n --bind all >1.log 2>2.log &
 EOF" $servers
 
 wait
