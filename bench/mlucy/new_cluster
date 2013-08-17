@@ -1,6 +1,5 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
-
 load_conf "$1"
 
 server_hosts=$PREFIX-server-hosts
@@ -34,7 +33,10 @@ jline=`parallel 'printf -- " -j {1}:$(({2}+$CLUSTER_PORT))"' $servers`
 # parallel -uj0 "pv $d/f.tgz | ssh_to {1} 'cd $STAGING && tar -xzf -'" :::: $server_hosts
 # rm -r $d &
 
-parallel -vuj0 "n={1}; n=\${n%%.*}; n=\${n#ec2-*-}; n+=-{2}; n=\$(echo \$n | tr - _);
+rm rethinkdb_for_admin
+ln -s $RETHINKDB_DIR/rethinkdb rethinkdb_for_admin
+
+parallel -uj0 "n={1}; n=\${n%%.*}; n=\${n#ec2-*-}; n+=-{2}; n=\$(echo \$n | tr - _);
 ssh_to {1} <<EOF
 cd $STAGING
 rm -r {2}
@@ -48,15 +50,28 @@ poc=`head -1 $server_hosts`
 poc_offset=1
 echo "Designating $poc (offset $poc_offset) our point of contact..."
 
-# web_port=`free_port`
-# target_web_port=$((WEB_PORT+poc_offset))
-# nohup ssh -nNL \*:$web_port:localhost:$target_web_port
-# cluster_port=`free_port`
-# client_port`free_port`
+web_port=`free_port | tee web_port`
+target_web_port=$((WEB_PORT+poc_offset))
+tunnel_to $poc $web_port $target_web_port
+client_port=`free_port $web_port | tee client_port`
+target_client_port=$((CLIENT_PORT+poc_offset))
+tunnel_to $poc $client_port $target_client_port
+cluster_port=`free_port $client_port | tee cluster_port`
+target_cluster_port=$((CLUSTER_PORT+poc_offset))
+tunnel_to $poc $cluster_port $target_cluster_port
+cat <<EOF
+Tunneling:
+  Web:     `hostname`:$web_port -> $poc:$target_web_port
+  ReQL:    `hostname`:$client_port -> $poc:$target_client_port
+  Cluster: `hostname`:$cluster_port -> $poc:$target_cluster_port
+EOF
 
-# echo "Tunneling `hostname`:$port -> $poc:$((CLUSTER_PORT+
+# db=`admin create database testbench | awk 'END {print $2}'`
+db=9b58e02d-2c3a-49db-bb92-e17a4f6130e2
+seq -f "bench_%g" $TABLES \
+    | parallel -uj0 create_table $db {1} $TABLE_SHARDS $TABLE_REPLICAS $TABLE_ACKS
 
-# # main_server=`head -1 $server_hosts`
-# # <$server_hosts parallel -uj0 setup_server
+# main_server=`head -1 $server_hosts`
+# <$server_hosts parallel -uj0 setup_server
 
-# wait
+wait

@@ -1,0 +1,18 @@
+#!/bin/bash -x
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+db=$1
+
+table=$2
+shards=$3
+replicas=$4
+acks=$5
+
+table=`admin create table "$table" --database "$db" | awk 'END {print $2}'`
+splits=`gen_splits $shards`
+admin <<EOF
+set replicas $table $replicas
+set acks $table $acks
+split shard $table $splits
+EOF
+
