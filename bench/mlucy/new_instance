@@ -1,0 +1,39 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+group=bench
+ami=ami-0c094f65
+name=$1
+log=$name.log
+machine=${2-m1.medium}
+
+host=terminated
+while [[ $host == terminated ]]; do
+    echo "Starting $name..." >&2
+    id_path=$name.id
+    f=`mktemp`
+    ec2-run-instances $ami -g $group -t $machine -k bench >$f
+    <$f tee -a $log | sed -n 2p | awk '{print $2}' > $name.id
+    id=`cat $name.id`
+    ec2-create-tags $id -t Name="`whoami`-$name" >>$log
+
+    ssh_response="start"
+    while [[ $ssh_response != test ]]; do
+        host=pending
+        while [[ $host == pending ]]; do
+            f=`mktemp`
+            ec2-describe-instances $id | tee -a $log | sed -n 2p | awk '{print $4}' >$f
+            host=`cat $f`
+        done
+        if [[ $host == terminated ]]; then
+            echo "Error starting $name, retrying..." >&2
+            ssh_response=test
+        else
+            if [[ $ssh_response == start ]]; then
+                echo "Started $name at $host, waiting for ssh..." >&2
+            fi
+            ssh_response=`echo "echo test" | ssh_to $host 2>$log | tail -1`
+        fi
+    done
+done
+echo $host

@@ -1,0 +1,17 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+# Note: This isn't actually correct, but conflicts are rare if you're
+# quick to claim the port.
+
+if [[ ! -z ${1-} ]]; then
+    offset=$1
+else
+    id=$((`id -u`))
+    offset=$(((id%100+20)*500))
+fi
+
+comm -23 \
+    <(seq $offset $((offset+500))) \
+    <(netstat -ant | awk '{print $4}' | sed 's/^.*://' | sort -u) \
+    | head -1

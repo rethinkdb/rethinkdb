@@ -68,8 +68,8 @@ EOF
 
 # db=`admin create database testbench | awk 'END {print $2}'`
 db=9b58e02d-2c3a-49db-bb92-e17a4f6130e2
-seq -f "bench_%g" $TABLES \
-    | parallel -uj0 create_table $db {1} $TABLE_SHARDS $TABLE_REPLICAS $TABLE_ACKS
+for i in `seq $TABLES`; do cat /proc/sys/kernel/random/uuid | tr - _; done >tables
+parallel -vuj0 create_table {} $TABLE_SHARDS $TABLE_REPLICAS $TABLE_ACKS :::: tables
 
 # main_server=`head -1 $server_hosts`
 # <$server_hosts parallel -uj0 setup_server
