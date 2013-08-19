@@ -1,9 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "rdb_protocol/btree.hpp"
+
 #include <string>
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
@@ -16,7 +17,7 @@
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
-#include "rdb_protocol/btree.hpp"
+
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
@@ -68,7 +69,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
     if (!kv_location.value.has()) {
-        response->data.reset(new scoped_cJSON_t(cJSON_CreateNull()));
+        response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
     } else {
         response->data = get_data(kv_location.value.get(), txn);
     }
@@ -95,7 +96,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const sto
 }
 
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
-                     boost::shared_ptr<scoped_cJSON_t> data,
+                     counted_t<const ql::datum_t> data,
                      btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn,
                      rdb_modification_info_t *mod_info_out) {
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
@@ -186,10 +187,8 @@ void rdb_replace_and_return_superblock(
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
-            boost::shared_ptr<scoped_cJSON_t> old_val_json =
-                get_data(kv_location.value.get(), txn);
-            guarantee(old_val_json->GetObjectItem(primary_key.c_str()));
-            old_val = make_counted<ql::datum_t>(old_val_json);
+            old_val = get_data(kv_location.value.get(), txn);
+            guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
         if (return_vals == RETURN_VALS) {
@@ -242,13 +241,12 @@ void rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                boost::shared_ptr<scoped_cJSON_t> new_val_as_json = new_val->as_json();
-                kv_location_set(&kv_location, key, new_val_as_json,
+                kv_location_set(&kv_location, key, new_val,
                                 slice, timestamp, txn,
                                 mod_info);
                 guarantee(mod_info->deleted.second.empty());
                 guarantee(!mod_info->added.second.empty());
-                mod_info->added.first = new_val_as_json;
+                mod_info->added.first = new_val;
             }
         } else {
             if (ended_empty) {
@@ -256,7 +254,7 @@ void rdb_replace_and_return_superblock(
                 kv_location_delete(&kv_location, key, slice, timestamp, txn, mod_info);
                 guarantee(!mod_info->deleted.second.empty());
                 guarantee(mod_info->added.second.empty());
-                mod_info->deleted.first = old_val->as_json();
+                mod_info->deleted.first = old_val;
             } else {
                 r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
                 if (*old_val == *new_val) {
@@ -265,14 +263,12 @@ void rdb_replace_and_return_superblock(
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    boost::shared_ptr<scoped_cJSON_t> new_val_as_json
-                        = new_val->as_json();
-                    kv_location_set(&kv_location, key, new_val_as_json,
+                    kv_location_set(&kv_location, key, new_val,
                                     slice, timestamp, txn, mod_info);
                     guarantee(!mod_info->deleted.second.empty());
                     guarantee(!mod_info->added.second.empty());
-                    mod_info->added.first = new_val_as_json;
-                    mod_info->deleted.first = old_val->as_json();
+                    mod_info->added.first = new_val;
+                    mod_info->deleted.first = old_val;
                 }
             }
         }
@@ -280,12 +276,12 @@ void rdb_replace_and_return_superblock(
     } catch (const ql::base_exc_t &e) {
         std::string msg = e.what();
         bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
-              || resp.add("first_error", make_counted<ql::datum_t>(msg));
+            || resp.add("first_error", make_counted<ql::datum_t>(std::move(msg)));
         guarantee(!b);
     } catch (const interrupted_exc_t &e) {
         std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
         bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
-              || resp.add("first_error", make_counted<ql::datum_t>(msg));
+            || resp.add("first_error", make_counted<ql::datum_t>(std::move(msg)));
         guarantee(!b);
         // We don't rethrow because we're in a coroutine.  Theoretically the
         // above message should never make it back to a user because the calling
@@ -385,7 +381,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
     }
 }
 
-void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response_out,
              rdb_modification_info_t *mod_info) {
@@ -611,10 +607,10 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     // auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
-// This is actually a kind of misleading name. This function estimates the size of a cJSON object
-// not a whole rget though it is used for that purpose (by summing up these responses).
-size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json) {
-    return cJSON_estimate_size(json->get());
+// This is actually a kind of misleading name. This function estimates the size of a datum,
+// not a whole rget, though it is used for that purpose (by summing up these responses).
+size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
+    return serialized_size(datum);
 }
 
 class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
@@ -733,8 +729,7 @@ public:
 
             if (sindex_function &&
                 ql::datum_t::key_is_truncated(store_key)) {
-                counted_t<const ql::datum_t> datum_value =
-                    make_counted<const ql::datum_t>(first_value.get());
+                counted_t<const ql::datum_t> datum_value = first_value.get();
                 sindex_value = sindex_function->call(datum_value)->as_datum();
             }
 
@@ -743,7 +738,7 @@ public:
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        std::list<boost::shared_ptr<scoped_cJSON_t> > tmp;
+                        std::list<counted_t<const ql::datum_t> > tmp;
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
@@ -768,17 +763,17 @@ public:
                 stream_t *stream = boost::get<stream_t>(&response->result);
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
-                    boost::shared_ptr<scoped_cJSON_t> cjson = it->get();
+                    counted_t<const ql::datum_t> datum = it->get();
                     if (sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                                                            sindex_value->as_json(),
-                                                                            cjson));
+                                                                            sindex_value,
+                                                                            datum));
                     } else {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                                                            cjson));
+                                                                            datum));
                     }
 
-                    cumulative_size += estimate_rget_response_size(cjson);
+                    cumulative_size += estimate_rget_response_size(datum);
                 }
 
                 return cumulative_size < rget_max_chunk_size;
@@ -827,7 +822,6 @@ class result_finalizer_visitor_t : public boost::static_visitor<void> {
 public:
     void operator()(const rget_read_response_t::stream_t &) const { }
     void operator()(const rget_read_response_t::groups_t &) const { }
-    void operator()(const rget_read_response_t::atom_t &) const { }
     void operator()(const rget_read_response_t::length_t &) const { }
     void operator()(const rget_read_response_t::inserted_t &) const { }
     void operator()(const query_language::runtime_exc_t &) const { }
@@ -963,33 +957,6 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
       lock_(lock)
 { }
 
-void rdb_modification_report_cb_t::add_row(const store_key_t &primary_key,
-        boost::shared_ptr<scoped_cJSON_t> added,
-        const std::vector<char> &value_ref) {
-    rdb_modification_report_t report(primary_key);
-    report.info.added = std::make_pair(added, value_ref);
-    on_mod_report(report);
-}
-
-void rdb_modification_report_cb_t::delete_row(const store_key_t &primary_key,
-        boost::shared_ptr<scoped_cJSON_t> deleted,
-        const std::vector<char> &value_ref) {
-    rdb_modification_report_t report(primary_key);
-    report.info.deleted = std::make_pair(deleted, value_ref);
-    on_mod_report(report);
-}
-
-void rdb_modification_report_cb_t::replace_row(const store_key_t &primary_key,
-        boost::shared_ptr<scoped_cJSON_t> added,
-        const std::vector<char> &added_value_ref,
-        boost::shared_ptr<scoped_cJSON_t> deleted,
-        const std::vector<char> &deleted_value_ref) {
-    rdb_modification_report_t report(primary_key);
-    report.info.added = std::make_pair(added, added_value_ref);
-    report.info.deleted = std::make_pair(deleted, deleted_value_ref);
-    on_mod_report(report);
-}
-
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
     if (token_pair_->sindex_write_token.has()) {
         token_pair_->sindex_write_token.reset();
@@ -1053,8 +1020,7 @@ void rdb_update_single_sindex(
         try {
             promise_t<superblock_t *> return_superblock_local;
             {
-                counted_t<const ql::datum_t> deleted =
-                    make_counted<ql::datum_t>(modification->info.deleted.first);
+                counted_t<const ql::datum_t> deleted = modification->info.deleted.first;
 
                 counted_t<const ql::datum_t> index =
                     mapping.compile(&env)->call(deleted)->as_datum();
@@ -1085,8 +1051,7 @@ void rdb_update_single_sindex(
 
     if (modification->info.added.first) {
         try {
-            counted_t<const ql::datum_t> added =
-                make_counted<ql::datum_t>(modification->info.added.first);
+            counted_t<const ql::datum_t> added = modification->info.added.first;
 
             counted_t<const ql::datum_t> index
                 = mapping.compile(&env)->call(added)->as_datum();

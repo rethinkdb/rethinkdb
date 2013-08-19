@@ -15,7 +15,7 @@ class json_stream_t;
 
 namespace ql {
 typedef query_language::sorting_hint_t sorting_hint_t;
-typedef std::pair<sorting_hint_t, counted_t<const datum_t> > hinted_datum_t;
+typedef query_language::hinted_datum_t hinted_datum_t;
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
@@ -313,9 +313,8 @@ private:
                 next_element = counted_t<const datum_t>();
             }
 
-            hinted_datum_t d;
             for (;;) {
-                d = src->sorting_hint_next();
+                const hinted_datum_t d = src->sorting_hint_next();
                 if (!d.second) {
                     break;
                 }
@@ -333,9 +332,7 @@ private:
                 }
             }
         }
-        //for (auto it = data.begin(); it != data.end(); ++it) {
-        //    debugf("Datum:\n%s\n", (*it)->print().c_str());
-        //}
+
         std::sort(data.begin(), data.end(), lt_cmp);
     }
     T lt_cmp;

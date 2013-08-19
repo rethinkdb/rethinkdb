@@ -233,43 +233,6 @@ std::string cJSON_type_to_string(int type) {
     }
 }
 
-size_t cJSON_estimate_size(const cJSON *json) {
-    guarantee(json, "Someone called cJSON_estimate_size with a NULL pointer.");
-
-    // The cJSON struct obviously takes up some memory by itself
-    size_t estimate = sizeof(struct cJSON);
-
-    // If this is a sub-field (of any type) the 'string' field is set
-    if (json->string)
-        estimate += strlen(json->string);
-
-    switch (json->type) {
-    case cJSON_False:
-    case cJSON_True:
-    case cJSON_NULL:
-    case cJSON_Number:
-        // No additional memory is used in these cases
-        break;
-    case cJSON_String:
-        guarantee(json->valuestring);
-        estimate += strlen(json->valuestring);
-        break;
-    case cJSON_Array:
-    case cJSON_Object: {
-        // These both use the embedded linked list to store fields
-        const cJSON *next = json->head;
-        while (next) {
-            estimate += cJSON_estimate_size(next);
-            next = next->next;
-        }
-    } break;
-    default:
-        unreachable();
-    };
-
-    return estimate;
-}
-
 write_message_t &operator<<(write_message_t &msg, const cJSON &cjson) {
     msg << cjson.type;
 
