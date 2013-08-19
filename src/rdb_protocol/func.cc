@@ -95,9 +95,9 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
         if (js_parent.has()) {
             r_sanity_check(!body.has() && source.has() && js_env != NULL);
             // Convert datum args to cJSON args for the JS runner
-            std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
+            std::vector<std::shared_ptr<const scoped_cJSON_t> > json_args;
             for (auto arg_iter = args.begin(); arg_iter != args.end(); ++arg_iter) {
-                json_args.push_back((*arg_iter)->as_json());
+                json_args.push_back(std::make_shared<scoped_cJSON_t>((*arg_iter)->as_json()));
             }
 
             js_runner_t::req_config_t config;
@@ -312,8 +312,8 @@ counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) cons
     unreachable();
 }
 counted_t<val_t> js_result_visitor_t::operator()(
-    const boost::shared_ptr<scoped_cJSON_t> json_val) const {
-    return parent->new_val(make_counted<const datum_t>(json_val));
+    const std::shared_ptr<const scoped_cJSON_t> json_val) const {
+    return parent->new_val(make_counted<const datum_t>(*json_val));
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {

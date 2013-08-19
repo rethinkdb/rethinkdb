@@ -15,7 +15,7 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
-#include "containers/archive/counted_type.hpp"
+#include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "protob/protob.hpp"
 #include "rdb_protocol/btree.hpp"
@@ -822,11 +822,6 @@ void read_t::unshard(read_response_t *responses, size_t count, read_response_t
     THROWS_ONLY(interrupted_exc_t) {
     rdb_r_unshard_visitor_t v(responses, count, response, ctx, interruptor);
     boost::apply_visitor(v, read);
-}
-
-bool rget_data_cmp(const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& a,
-                   const std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> >& b) {
-    return a.first < b.first;
 }
 
 /* write_t::get_region() implementation */
@@ -1716,7 +1711,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_range_t,
-                           start, end, start_open, end_open);
+                           empty_ok(start), empty_ok(end), start_open, end_open);
 RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_range,
                            transform, terminal, optargs, sorting);

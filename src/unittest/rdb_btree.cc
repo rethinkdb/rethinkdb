@@ -40,7 +40,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
 
         store_key_t pk(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i)).get(), backtrace_t()));
         rdb_modification_report_t mod_report(pk);
-        rdb_set(pk, boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_Parse(data.c_str()))),
+        rdb_set(pk, make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
                 superblock.get(), &response, &mod_report.info);
 
@@ -224,7 +224,7 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
-        ASSERT_EQ(0, query_language::json_cmp(expected_value.get(), stream->front().data->get()));
+        ASSERT_EQ(ql::datum_t(expected_value.get()), *stream->front().data);
     }
 }
 

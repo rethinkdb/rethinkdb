@@ -181,8 +181,7 @@ void run_sindex_btree_store_api_test() {
                     &sindex_super_block, &dummy_interuptor);
             ASSERT_TRUE(sindex_exists);
 
-            boost::shared_ptr<scoped_cJSON_t> data(new
-                    scoped_cJSON_t(cJSON_CreateNumber(1)));
+            counted_t<const ql::datum_t> data = make_counted<ql::datum_t>(1.0);
 
             rdb_protocol_t::point_write_response_t response;
             rdb_modification_info_t mod_info;
@@ -220,11 +219,7 @@ void run_sindex_btree_store_api_test() {
             rdb_get(key, store.get_sindex_slice(id), txn.get(),
                     sindex_super_block.get(), &response);
 
-            boost::shared_ptr<scoped_cJSON_t> data(new
-                    scoped_cJSON_t(cJSON_CreateNumber(1)));
-
-            ASSERT_EQ(query_language::json_cmp(response.data->get(),
-                        data->get()), 0);
+            ASSERT_EQ(ql::datum_t(1.0), *response.data);
         }
     }
 

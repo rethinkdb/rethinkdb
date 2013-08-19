@@ -11,6 +11,7 @@
 #include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/depth_first_traversal.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 class key_tester_t;
@@ -108,7 +109,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                          batched_replaces_response_t *response_out,
                          rdb_modification_report_cb_t *sindex_cb);
 
-void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
              rdb_modification_info_t *mod_info);
@@ -151,12 +152,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      signal_t *interruptor);
 
 /* RGETS */
-size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
-
-struct rget_response_t {
-    std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > pairs;
-    bool truncated;
-};
+size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
@@ -182,8 +178,8 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 /* Secondary Indexes */
 
 struct rdb_modification_info_t {
-    typedef std::pair<boost::shared_ptr<scoped_cJSON_t>,
-            std::vector<char>  > data_pair_t;
+    typedef std::pair<counted_t<const ql::datum_t>,
+                      std::vector<char> > data_pair_t;
     data_pair_t deleted;
     data_pair_t added;
 
@@ -222,15 +218,6 @@ public:
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
             transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
-    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added,
-            const std::vector<char> &value_ref);
-    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted,
-            const std::vector<char> &value_ref);
-    void replace_row(const store_key_t &primary_key,
-            boost::shared_ptr<scoped_cJSON_t> added,
-            const std::vector<char> &added_value_ref,
-            boost::shared_ptr<scoped_cJSON_t> deleted,
-            const std::vector<char> &deleted_value_ref);
 
     void on_mod_report(const rdb_modification_report_t &mod_report);
 

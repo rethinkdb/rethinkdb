@@ -115,11 +115,13 @@ private:
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
+        const size_t n = num_args();
         std::vector<counted_t<const datum_t> > paths;
-        for (size_t i = 1; i < num_args(); ++i) {
+        paths.reserve(n - 1);
+        for (size_t i = 1; i < n; ++i) {
             paths.push_back(arg(i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(paths), this);
+        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
         return new_val(project(obj, pathspec, DONT_RECURSE));
     }
     virtual const char *name() const { return "pluck"; }
@@ -135,10 +137,12 @@ private:
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         std::vector<counted_t<const datum_t> > paths;
-        for (size_t i = 1; i < num_args(); ++i) {
+        const size_t n = num_args();
+        paths.reserve(n - 1);
+        for (size_t i = 1; i < n; ++i) {
             paths.push_back(arg(i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(paths), this);
+        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
         return new_val(unproject(obj, pathspec, DONT_RECURSE));
     }
     virtual const char *name() const { return "without"; }
@@ -193,10 +197,12 @@ private:
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
         std::vector<counted_t<const datum_t> > paths;
-        for (size_t i = 1; i < num_args(); ++i) {
+        const size_t n = num_args();
+        paths.reserve(n - 1);
+        for (size_t i = 1; i < n; ++i) {
             paths.push_back(arg(i)->as_datum());
         }
-        pathspec_t pathspec(make_counted<const datum_t>(paths), this);
+        pathspec_t pathspec(make_counted<const datum_t>(std::move(paths)), this);
         return new_val_bool(contains(obj, pathspec));
     }
     virtual const char *name() const { return "has_fields"; }
