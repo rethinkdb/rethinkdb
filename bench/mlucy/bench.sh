@@ -4,8 +4,9 @@ load_conf "$1"
 
 function on_err() {
     figlet "ERROR" >&2
+    echo "ERROR $0:$1" >&2
 }
-trap on_err ERR
+trap 'on_err $LINENO' ERR
 
 # Used by `admin` command.
 export RETHINKDB_FOR_ADMIN=$RETHINKDB_DIR/rethinkdb

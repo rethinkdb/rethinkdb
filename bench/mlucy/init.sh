@@ -30,4 +30,9 @@ function load_conf() {
     echo "Loading config from $CONF..." >&2
     . $CONF
 }
+
+function on_err() {
+    echo "ERROR $0:$1" >&2
+}
+trap 'on_err $LINENO' ERR
 # echo $PATH

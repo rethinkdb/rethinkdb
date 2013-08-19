@@ -1,6 +1,5 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
-
 exec 2> >(grep -v '^Warning: Permanently added' >&2)
 
 ssh_flags=""
@@ -10,4 +9,3 @@ ssh_flags+=" -o ConnectTimeout=10"
 ssh_flags+=" -i $BENCH_KEY"
 
 rsync -az -e "ssh $ssh_flags" -- $1 "ubuntu@$2:$3"
-
