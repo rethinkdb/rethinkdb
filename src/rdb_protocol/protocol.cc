@@ -674,7 +674,6 @@ private:
 
         if (rg.sorting == sorting_t::UNORDERED) {
             for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(rr != NULL);
 
@@ -693,7 +692,6 @@ private:
             std::vector<std::pair<stream_t::const_iterator, stream_t::const_iterator> > iterators;
 
             for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(rr != NULL);
 
