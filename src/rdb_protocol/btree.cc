@@ -808,6 +808,12 @@ public:
         }
 
     }
+
+    size_t get_cumulative_size() const {
+        return cumulative_size;
+    }
+
+private:
     bool bad_init;
     transaction_t *const transaction;
     rget_read_response_t *const response;
@@ -821,6 +827,8 @@ public:
     const direction_t direction;
 
     counted_t<ql::func_t> sindex_function;
+
+    DISABLE_COPYING(rdb_rget_depth_first_traversal_callback_t);
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -854,7 +862,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
-    if (callback.cumulative_size >= rget_max_chunk_size) {
+    if (callback.get_cumulative_size() >= rget_max_chunk_size) {
         response->truncated = true;
     } else {
         response->truncated = false;
@@ -876,7 +884,7 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
             range, pk_range, direction, map_wire_func, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
-    if (callback.cumulative_size >= rget_max_chunk_size) {
+    if (callback.get_cumulative_size() >= rget_max_chunk_size) {
         response->truncated = true;
     } else {
         response->truncated = false;
