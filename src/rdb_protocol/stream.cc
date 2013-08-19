@@ -204,7 +204,7 @@ bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &ri
  * */
 hinted_json_t batched_rget_stream_t::sorting_hint_next() {
     /* The simple case. No sorting is happening. */
-    if (sorting == UNORDERED) {
+    if (sorting == sorting_t::UNORDERED) {
         boost::optional<rget_item_t> item = head();
         if (item) {
             pop();
@@ -278,10 +278,10 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
     } else {
         debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
-        if (sorting == ASCENDING) {
+        if (sorting == sorting_t::ASCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                       &rget_item_sindex_key_less);
-        } else if (sorting == DESCENDING) {
+        } else if (sorting == sorting_t::DESCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                       &rget_item_sindex_key_greater);
         } else {

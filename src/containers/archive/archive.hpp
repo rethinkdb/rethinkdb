@@ -126,7 +126,7 @@ MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
             typ2 v;                                                     \
             char buf[sizeof(typ2)];                                     \
         } u;                                                            \
-        u.v = x;                                                        \
+        u.v = static_cast<typ2>(x);                                     \
         msg.append(u.buf, sizeof(typ2));                                \
         return msg;                                                     \
     }

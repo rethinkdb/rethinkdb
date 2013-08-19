@@ -125,17 +125,17 @@ private:
         if (counted_t<val_t> index = optarg("index")) {
             rcheck(tbl.has(), base_exc_t::GENERIC,
                    "Indexed order_by can only be performed on a SELECTION.");
-            sorting_t sorting = UNORDERED;
+            sorting_t sorting = sorting_t::UNORDERED;
             for (int i = 0; i < get_src()->optargs_size(); ++i) {
                 if (get_src()->optargs(i).key() == "index") {
                     if (get_src()->optargs(i).val().type() == Term::DESC) {
-                        sorting = DESCENDING;
+                        sorting = sorting_t::DESCENDING;
                     } else {
-                        sorting = ASCENDING;
+                        sorting = sorting_t::ASCENDING;
                     }
                 }
             }
-            r_sanity_check(sorting != UNORDERED);
+            r_sanity_check(sorting != sorting_t::UNORDERED);
             seq = tbl->get_sorted(index->as_str(), sorting, backtrace());
         }
 

@@ -64,17 +64,17 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MI
 RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 
-enum sorting_t {
+enum class sorting_t {
     UNORDERED,
     ASCENDING,
     DESCENDING
 };
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, sorting_t::UNORDERED, sorting_t::DESCENDING);
 
 // RSI: Remove these, they're used badly.
 inline bool forward(sorting_t sorting) {
-    return sorting == ASCENDING || sorting == UNORDERED;
+    return sorting == sorting_t::ASCENDING || sorting == sorting_t::UNORDERED;
 }
 
 inline bool backward(sorting_t sorting) {
@@ -328,14 +328,14 @@ struct rdb_protocol_t {
         rget_read_t() { }
 
         explicit rget_read_t(const region_t &_region,
-                             sorting_t _sorting = UNORDERED)
+                             sorting_t _sorting = sorting_t::UNORDERED)
             : region(_region), sorting(_sorting) {
         }
 
 
         rget_read_t(const std::string &_sindex,
                     sindex_range_t _sindex_range,
-                    sorting_t _sorting = UNORDERED)
+                    sorting_t _sorting = sorting_t::UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
               sindex_region(sindex_range->to_region()),
@@ -344,7 +344,7 @@ struct rdb_protocol_t {
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
                     sindex_range_t _sindex_range,
-                    sorting_t _sorting = UNORDERED)
+                    sorting_t _sorting = sorting_t::UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
               sindex_region(_sindex_region), sorting(_sorting) { }
@@ -354,7 +354,7 @@ struct rdb_protocol_t {
                     sindex_range_t _sindex_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    sorting_t _sorting = UNORDERED)
+                    sorting_t _sorting = sorting_t::UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
               sindex_region(_sindex_region),
@@ -364,7 +364,7 @@ struct rdb_protocol_t {
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    sorting_t _sorting = UNORDERED)
+                    sorting_t _sorting = sorting_t::UNORDERED)
             : region(_region), transform(_transform),
               optargs(_optargs), sorting(_sorting) {
             rassert(optargs.size() != 0);

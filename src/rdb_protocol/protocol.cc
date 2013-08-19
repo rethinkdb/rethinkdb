@@ -672,7 +672,7 @@ private:
         rg_response->result = stream_t();
         stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
 
-        if (rg.sorting == UNORDERED) {
+        if (rg.sorting == sorting_t::UNORDERED) {
             for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -1168,7 +1168,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
                                             sindex_filter, backtrace_t()));
 
-            bool is_ordered = rget.sorting != UNORDERED;
+            bool is_ordered = rget.sorting != sorting_t::UNORDERED;
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
                     rget.sindex_region->inner,
