@@ -5,8 +5,6 @@
 #include "buffer_cache/types.hpp"
 #include "rdb_protocol/datum.hpp"
 
-#define MAX_RDB_VALUE_SIZE MAX_IN_NODE_VALUE_SIZE
-
 struct rdb_value_t {
     char contents[];
 

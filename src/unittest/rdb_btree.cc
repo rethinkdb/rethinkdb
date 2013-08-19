@@ -224,7 +224,6 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         std::string expected_data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         scoped_cJSON_t expected_value(cJSON_Parse(expected_data.c_str()));
-
         ASSERT_EQ(ql::datum_t(expected_value.get()), *stream->front().data);
     }
 }
