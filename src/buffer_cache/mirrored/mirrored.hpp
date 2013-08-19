@@ -327,6 +327,8 @@ public:
     mc_cache_t(serializer_t *serializer, const mirrored_cache_config_t &dynamic_config, perfmon_collection_t *);
     ~mc_cache_t();
 
+    void set_max_size(int64_t max_size);
+
     block_size_t get_block_size() const;
 
     // TODO: Come up with a consistent priority scheme, i.e. define a "default" priority etc.

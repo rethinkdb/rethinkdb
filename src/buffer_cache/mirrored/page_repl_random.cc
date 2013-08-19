@@ -50,6 +50,10 @@ page_repl_random_t::page_repl_random_t(size_t _unload_threshold, cache_t *_cache
       cache(_cache)
     {}
 
+void page_repl_random_t::set_unload_threshold(size_t _unload_threshold) {
+    unload_threshold = _unload_threshold;
+}
+
 bool page_repl_random_t::is_full(size_t space_needed) {
     cache->assert_thread();
     return array.size() + space_needed > unload_threshold;

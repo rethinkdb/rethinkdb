@@ -52,6 +52,9 @@ class page_repl_random_t {
 public:
     page_repl_random_t(size_t _unload_threshold, cache_t *_cache);
 
+    /* Lets you change the unload_threshold during runtime. */
+    void set_unload_threshold(size_t _unload_threshold);
+
     // If is_full(space_needed), the next call to make_space(space_needed) probably
     // has to evict something
     bool is_full(size_t space_needed);

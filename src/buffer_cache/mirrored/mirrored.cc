@@ -1238,6 +1238,12 @@ mc_cache_t::~mc_cache_t() {
     }
 }
 
+void mc_cache_t::set_max_size(int64_t max_size) {
+    guarantee(max_size > 0);
+    dynamic_config.max_size = max_size;
+    page_repl.set_unload_threshold(max_size / serializer->get_block_size().ser_value());
+}
+
 block_size_t mc_cache_t::get_block_size() const {
     return serializer->get_block_size();
 }
