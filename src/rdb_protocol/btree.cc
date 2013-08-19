@@ -809,16 +809,16 @@ public:
 
     }
     bool bad_init;
-    transaction_t *transaction;
-    rget_read_response_t *response;
+    transaction_t *const transaction;
+    rget_read_response_t *const response;
     size_t cumulative_size;
-    ql::env_t *ql_env;
+    ql::env_t *const ql_env;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
 
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
-    direction_t direction;
+    const direction_t direction;
 
     counted_t<ql::func_t> sindex_function;
 };
