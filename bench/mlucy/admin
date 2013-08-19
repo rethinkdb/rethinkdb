@@ -5,4 +5,4 @@ if [[ ! -e $rethbin ]]; then
     echo "ERROR: requires $rethbin to point to valid rethinkdb binary." >&2
     exit 1
 fi
-$RETHINKDB_FOR_ADMIN admin --join localhost:$CLUSTER_PORT "$@"
+$RETHINKDB_FOR_ADMIN admin --join localhost:$ADMIN_CLUSTER_PORT "$@"

@@ -1,6 +1,8 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
 
+exec 2> >(grep -v '^Warning: Permanently added' >&2)
+
 ssh_flags=""
 ssh_flags+=" -o StrictHostKeyChecking=no"
 ssh_flags+=" -o UserKnownHostsFile=/dev/null"

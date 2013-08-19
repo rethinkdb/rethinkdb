@@ -3,16 +3,31 @@
 
 table=$1
 shards=$2
-replicas=$3
-acks=$4
+conf=$3
 
 splits=`gen_splits $shards`
-{
-    admin <<EOF
-create database ${table}_db
+conf=`eval 'cat<<EOF
+create database \${table}_db
 create table $table --database ${table}_db
-set replicas $table $replicas
-set acks $table $acks
 split shard $table $splits
+'"$conf"'
+EOF'`
+
+echo "Creating and configuring table:" >&2
+awk '{print "  "$0}' >&2 <<EOF
+$conf
 EOF
-} >$table.log 2>$table.log
+
+admin >$table.1.log 2>$table.2.log <<EOF
+$conf
+EOF
+
+succ=$?
+if [[ $succ != 0 ]]; then
+    echo "ERROR CREATING TABLE:"
+    cat $table.1.log
+    echo "---"
+    cat $table.2.log
+    exit $succ
+fi
+
