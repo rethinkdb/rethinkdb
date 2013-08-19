@@ -194,35 +194,35 @@ class RqlQuery(object):
 
     # Non-operator versions of the above
 
-    def eq(self, *args):
-        return Eq(self, *args)
+    def eq(self, other, *rest):
+        return Eq(self, other, *rest)
 
-    def ne(self, *args):
-        return Ne(self, *args)
+    def ne(self, other, *rest):
+        return Ne(self, other, *rest)
 
-    def lt(self, *args):
-        return Lt(self, *args)
+    def lt(self, other, *rest):
+        return Lt(self, other, *rest)
 
-    def le(self, *args):
-        return Le(self, *args)
+    def le(self, other, *rest):
+        return Le(self, other, *rest)
 
-    def gt(self, *args):
-        return Gt(self, *args)
+    def gt(self, other, *rest):
+        return Gt(self, other, *rest)
 
-    def ge(self, *args):
-        return Ge(self, *args)
+    def ge(self, other, *rest):
+        return Ge(self, other, *rest)
 
-    def add(self, *args):
-        return Add(self, *args)
+    def add(self, other, *rest):
+        return Add(self, other, *rest)
 
-    def sub(self, *args):
-        return Sub(*args)
+    def sub(self, other, *rest):
+        return Sub(self, other, *rest)
 
-    def mul(self, *args):
-        return Mul(self, *args)
+    def mul(self, other, *rest):
+        return Mul(self, other, *rest)
 
-    def div(self, *args):
-        return Div(self, *args)
+    def div(self, other, *rest):
+        return Div(self, other, *rest)
 
     def mod(self, other):
         return Mod(self, other)
