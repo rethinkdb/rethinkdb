@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
@@ -21,8 +21,6 @@ enum direction_t {
     FORWARD,
     BACKWARD
 };
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
 
 /* Returns `true` if we reached the end of the btree or range, and `false` if
 `cb->handle_value()` returned `false`. */

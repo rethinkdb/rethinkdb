@@ -72,6 +72,7 @@ enum sorting_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
 
+// RSI: Remove these, they're used badly.
 inline bool forward(sorting_t sorting) {
     return sorting == ASCENDING || sorting == UNORDERED;
 }
