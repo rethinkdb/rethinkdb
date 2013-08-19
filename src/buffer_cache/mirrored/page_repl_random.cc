@@ -87,7 +87,7 @@ void page_repl_random_t::make_space(size_t space_needed) {
         // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are
         // dirty or in use.
         evictable_t *block_to_unload = NULL;
-        for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries --) {
+        for (int tries = PAGE_REPL_NUM_TRIES; tries > 0; tries--) {
             /* Choose a block in memory at random. */
             size_t n = randsize(array.size());
             evictable_t *block = array[n];

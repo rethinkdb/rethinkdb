@@ -147,6 +147,8 @@ public:
 
     coro_fifo_t &co_begin_coro_fifo() { return inner_cache.co_begin_coro_fifo(); }
 
+    void set_max_size(int64_t cache_size) { inner_cache.set_max_size(cache_size); }
+
 private:
     inner_cache_t inner_cache;
 

@@ -160,6 +160,13 @@ public:
         }
     }
 
+    void set_cache_size(int64_t _cache_size) {
+        cache_size = _cache_size;
+        for (size_t i = 0; i < stores_lifetimer_.stores()->size(); ++i) {
+            (*stores_lifetimer_.stores())[i]->set_cache_target(_cache_size);
+        }
+    }
+
     static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
         /* There are a bunch of weird corner cases: what if the namespace was
         deleted? What if we got an ack from a machine but then it was declared
@@ -414,8 +421,7 @@ template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
 
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator
-             it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
+    for (auto it = namespaces->namespaces.begin(); it != namespaces->namespaces.end(); ++it) {
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the
@@ -446,35 +452,38 @@ void reactor_driver_t<protocol_t>::on_change() {
             blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table->get());
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
+                /* Compute the cache_size of the table. */
+                int64_t cache_size;
+                if (it->second.get_ref().cache_size.in_conflict()) {
+                    cache_size = GIGABYTE;
+                } else {
+                    cache_size = it->second.get_ref().cache_size.get();
+                }
+
+                if (cache_size < 16 * MEGABYTE) {
+                    cache_size = 16 * MEGABYTE;
+                    logINF("Namespace %s(%s) has too small of a cache size. Increasing it to 16 megabytes.\n",
+                            uuid_to_str(it->first).c_str(),
+                            it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
+                }
+
+                if (cache_size > 64 * GIGABYTE) {
+                    cache_size = 16 * GIGABYTE;
+                    logINF("Namespace %s(%s) has too large of a cache size. Decreasing it to 64 gigabyes.\n",
+                            uuid_to_str(it->first).c_str(),
+                            it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
+                }
+
                 /* Either construct a new reactor (if this is a namespace we
                  * haven't seen before). Or send the new blueprint to the
                  * existing reactor. */
                 if (!std_contains(reactor_data, it->first)) {
-                    int64_t cache_size;
-                    if (it->second.get_ref().cache_size.in_conflict()) {
-                        cache_size = GIGABYTE;
-                    } else {
-                        cache_size = it->second.get_ref().cache_size.get();
-                    }
-
-                    if (cache_size < 16 * MEGABYTE) {
-                        cache_size = 16 * MEGABYTE;
-                        logINF("Namespace %s(%s) has too small of a cache size. Increasing it to 16 megabytes.\n",
-                                uuid_to_str(it->first).c_str(),
-                                it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
-                    }
-
-                    if (cache_size > 64 * GIGABYTE) {
-                        cache_size = 16 * GIGABYTE;
-                        logINF("Namespace %s(%s) has too large of a cache size. Decreasing it to 64 gigabyes.\n",
-                                uuid_to_str(it->first).c_str(),
-                                it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
-                    }
-
                     namespace_id_t tmp = it->first;
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
-                    reactor_data.find(it->first)->second->watchable.set_value(bp);
+                    auto jt = reactor_data.find(it->first);
+                    jt->second->watchable.set_value(bp);
+                    jt->second->set_cache_size(cache_size);
                 }
             } else {
                 /* The blueprint does not mentions us so we destroy the

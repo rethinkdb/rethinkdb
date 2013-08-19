@@ -110,6 +110,8 @@ public:
                 io_backender_t *io, const base_path_t &);
         ~store_t();
 
+        void set_cache_target(int64_t) { }
+
         void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
         void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
 

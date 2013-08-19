@@ -93,6 +93,11 @@ btree_store_t<protocol_t>::~btree_store_t() {
 }
 
 template <class protocol_t>
+void btree_store_t<protocol_t>::set_cache_target(int64_t cache_target) {
+    cache->set_max_size(cache_target);
+}
+
+template <class protocol_t>
 void btree_store_t<protocol_t>::read(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const typename protocol_t::read_t &read,
