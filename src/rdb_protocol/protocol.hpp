@@ -81,6 +81,10 @@ inline bool backward(sorting_t sorting) {
     return !forward(sorting);
 }
 
+inline direction_t to_direction(sorting_t sorting) {
+    return forward(sorting) ? direction_t::FORWARD : direction_t::BACKWARD;
+}
+
 
 namespace rdb_protocol_details {
 

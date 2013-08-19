@@ -29,7 +29,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
             end_index = internal_node::get_offset_index(inode, r.btree_key()) + 1;
         }
         for (int i = 0; i < end_index - start_index; ++i) {
-            int true_index = (direction == FORWARD ? start_index + i : (end_index - 1) - i);
+            int true_index = (direction == direction_t::FORWARD ? start_index + i : (end_index - 1) - i);
             const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, true_index);
             buf_lock_t lock(transaction, pair->lnode, rwi_read);
             if (!btree_depth_first_traversal(slice, transaction, &lock, range, cb, direction)) {
@@ -41,7 +41,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         const leaf_node_t *lnode = reinterpret_cast<const leaf_node_t *>(node);
         const btree_key_t *key;
 
-        if (direction == FORWARD) {
+        if (direction == direction_t::FORWARD) {
             for (auto it = leaf::inclusive_lower_bound(range.left.btree_key(), *lnode);
                  it != leaf::end(*lnode); ++it) {
                 key = (*it).first;

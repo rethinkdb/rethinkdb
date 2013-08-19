@@ -674,10 +674,10 @@ public:
 
     void init(const key_range_t &range) {
         try {
-            if (direction == FORWARD) {
+            if (direction == direction_t::FORWARD) {
                 response->last_considered_key = range.left;
             } else {
-                guarantee(direction == BACKWARD);
+                guarantee(direction == direction_t::BACKWARD);
                 if (!range.right.unbounded) {
                     response->last_considered_key = range.right.key;
                 } else {
@@ -718,8 +718,8 @@ public:
             }
         }
         try {
-            if ((response->last_considered_key < store_key && direction == FORWARD) ||
-                (response->last_considered_key > store_key && direction == BACKWARD)) {
+            if ((response->last_considered_key < store_key && direction == direction_t::FORWARD) ||
+                (response->last_considered_key > store_key && direction == direction_t::BACKWARD)) {
                 response->last_considered_key = store_key;
             }
 

@@ -17,7 +17,7 @@ protected:
     virtual ~depth_first_traversal_callback_t() { }
 };
 
-enum direction_t {
+enum class direction_t {
     FORWARD,
     BACKWARD
 };
