@@ -67,44 +67,44 @@ def desc(attr):
 
 # math and logic
 
-def eq(*args):
-    return Eq(*args)
+def eq(one, two, *rest):
+    return Eq(one, two, *rest)
 
-def ne(*args):
-    return Ne(*args)
+def ne(one, two, *rest):
+    return Ne(one, two, *rest)
 
-def lt(*args):
-    return Lt(*args)
+def lt(one, two, *rest):
+    return Lt(one, two, *rest)
 
-def le(*args):
-    return Le(*args)
+def le(one, two, *rest):
+    return Le(one, two, *rest)
 
-def gt(*args):
-    return Gt(*args)
+def gt(one, two, *rest):
+    return Gt(one, two, *rest)
 
-def ge(*args):
-    return Ge(*args)
+def ge(one, two, *rest):
+    return Ge(one, two, *rest)
 
-def add(*args):
-    return Add(*args)
+def add(one, two, *rest):
+    return Add(one, two, *rest)
 
-def sub(*args):
-    return Sub(*args)
+def sub(one, two, *rest):
+    return Sub(one, two, *rest)
 
-def mul(*args):
-    return Mul(*args)
+def mul(one, two, *rest):
+    return Mul(one, two, *rest)
 
-def div(*args):
-    return Div(*args)
+def div(one, two, *rest):
+    return Div(one, two, *rest)
 
 def mod(a, b):
     return Mod(a, b)
 
-def all(*args):
-    return All(*args)
+def all(one, two, *rest):
+    return All(one, two, *rest)
 
-def any(*args):
-    return Any(*args)
+def any(one, two, *rest):
+    return Any(one, two, *rest)
 
 def type_of(val):
     return TypeOf(val)
