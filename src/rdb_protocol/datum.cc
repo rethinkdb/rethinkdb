@@ -898,7 +898,7 @@ void datum_t::write_to_protobuf(Datum *d) const {
 // This must be kept in sync with operator<<(write_message_t &, const counted_t<const
 // datum_T> &).
 size_t serialized_size(const counted_t<const datum_t> &datum) {
-    guarantee(datum.has());
+    r_sanity_check(datum.has());
     const size_t typesize = 1;  // 1 byte for the type.
     switch (datum->get_type()) {
     case datum_t::R_ARRAY:
@@ -920,7 +920,7 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
 }
 
 write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {
-    guarantee(datum.has());
+    r_sanity_check(datum.has());
     int8_t type = datum->get_type();
     switch (type) {
     case datum_t::R_ARRAY: {
@@ -972,7 +972,11 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         if (res) {
             return res;
         }
-        datum->reset(new datum_t(std::move(value)));
+        try {
+            datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
     } break;
     case datum_t::R_BOOL: {
         bool value;
@@ -980,7 +984,11 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         if (res) {
             return res;
         }
-        datum->reset(new datum_t(datum_t::R_BOOL, value));
+        try {
+            datum->reset(new datum_t(datum_t::R_BOOL, value));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
     } break;
     case datum_t::R_NULL: {
         datum->reset(new datum_t(datum_t::R_NULL));
@@ -991,7 +999,11 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         if (res) {
             return res;
         }
-        datum->reset(new datum_t(value));
+        try {
+            datum->reset(new datum_t(value));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
     } break;
     case datum_t::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > value;
@@ -999,7 +1011,11 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         if (res) {
             return res;
         }
-        datum->reset(new datum_t(std::move(value)));
+        try {
+            datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
     } break;
     case datum_t::R_STR: {
         std::string value;
@@ -1007,7 +1023,11 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         if (res) {
             return res;
         }
-        datum->reset(new datum_t(std::move(value)));
+        try {
+            datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
     } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
