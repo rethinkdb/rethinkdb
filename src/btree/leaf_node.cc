@@ -1549,10 +1549,6 @@ iterator &iterator::operator--() {
 
 bool iterator::operator==(const iterator &other) const { return cmp(other) == 0; }
 bool iterator::operator!=(const iterator &other) const { return cmp(other) != 0; }
-bool iterator::operator<(const iterator &other) const { return cmp(other) < 0; }
-bool iterator::operator>(const iterator &other) const { return cmp(other) > 0; }
-bool iterator::operator<=(const iterator &other) const { return cmp(other) <= 0; }
-bool iterator::operator>=(const iterator &other) const { return cmp(other) >= 0; }
 
 int iterator::cmp(const iterator &other) const {
     guarantee(node_ == other.node_);
@@ -1580,10 +1576,6 @@ reverse_iterator &reverse_iterator::operator--() {
 
 bool reverse_iterator::operator==(const reverse_iterator &other) const { return inner_ == other.inner_; }
 bool reverse_iterator::operator!=(const reverse_iterator &other) const { return inner_ != other.inner_; }
-bool reverse_iterator::operator<(const reverse_iterator &other) const { return inner_ >= other.inner_; }
-bool reverse_iterator::operator>(const reverse_iterator &other) const { return inner_ <= other.inner_; }
-bool reverse_iterator::operator<=(const reverse_iterator &other) const { return inner_ > other.inner_; }
-bool reverse_iterator::operator>=(const reverse_iterator &other) const { return inner_ < other.inner_; }
 
 
 leaf_node_t::iterator begin(const leaf_node_t &leaf_node) {
