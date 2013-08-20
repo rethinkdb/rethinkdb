@@ -5,5 +5,4 @@ shards=$1
 seq 0 $((16**4/$shards)) $((16**4+1)) \
     | tail -n +2 \
     | head -$((shards-1)) \
-    | xargs printf "%04x\n" \
-    | paste -sd ' '
+    | xargs printf " '%04x'"
