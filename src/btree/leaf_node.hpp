@@ -174,8 +174,6 @@ public:
     bool operator==(const iterator &other) const;
     bool operator!=(const iterator &other) const;
 private:
-    /* negative return => this < other */
-    int cmp(const iterator &other) const;
     const leaf_node_t *node_;
     int index_;
 };
