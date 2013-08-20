@@ -236,15 +236,15 @@ void datum_t::pt_to_str_key(std::string *str_out) const {
     }
 }
 
-void datum_t::num_to_str_key(std::string *str_out) const {
-    r_sanity_check(type == R_NUM);
-    str_out->append("N");
+std::string number_as_pkey(const double value) {
+    std::string ret;
+    ret.push_back('N');
     union {
         double d;
         uint64_t u;
     } packed;
     guarantee(sizeof(packed.d) == sizeof(packed.u));
-    packed.d = as_num();
+    packed.d = value;
     // Mangle the value so that lexicographic ordering matches double ordering
     if (packed.u & (1ULL << 63)) {
         // If we have a negative double, flip all the bits.  Flipping the
@@ -260,8 +260,14 @@ void datum_t::num_to_str_key(std::string *str_out) const {
         packed.u ^= (1ULL << 63);
     }
     // The formatting here is sensitive.  Talk to mlucy before changing it.
-    str_out->append(strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u));
-    str_out->append(strprintf("#" DBLPRI, as_num()));
+    ret += strprintf("%.*" PRIx64, static_cast<int>(sizeof(double)*2), packed.u);
+    ret += strprintf("#" DBLPRI, value);
+    return ret;
+};
+
+void datum_t::num_to_str_key(std::string *str_out) const {
+    r_sanity_check(type == R_NUM);
+    *str_out = number_as_pkey(as_num());
 }
 
 void datum_t::str_to_str_key(std::string *str_out) const {

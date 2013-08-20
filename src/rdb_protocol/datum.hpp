@@ -30,6 +30,8 @@ void time_to_str_key(const datum_t &d, std::string *str_out);
 void sanitize_time(datum_t *time);
 } // namespace pseudo
 
+std::string number_as_pkey(const double value);
+
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
 // They should be passed to functions that have multiple behaviors (like `el` or
 // `add` below).
