@@ -17,7 +17,7 @@ module.exports.SerializeQuery = (query) ->
         native_pb.SerializeQuery(query)
     else
         querypb = new protodef.Query(query)
-        querypb.toArrayBuffer()
+        querypb.toBuffer()
 
 module.exports.ParseResponse = (data) ->
     if native_pb.ParseResponse?

@@ -81,7 +81,7 @@ class Connection extends events.EventEmitter
         @nextToken = 1
         @open = false
 
-        @buffer = new ArrayBuffer 0
+        @buffer = new Buffer(0)
 
         @_events = @_events || {}
 
@@ -102,18 +102,17 @@ class Connection extends events.EventEmitter
 
     _data: (buf) ->
         # Buffer data, execute return results if need be
-        @buffer = bufferConcat @buffer, buf
+        @buffer = Buffer.concat([@buffer, buf])
 
-        while @buffer.byteLength >= 4
-            responseLength = (new DataView @buffer).getUint32 0, true
-            unless @buffer.byteLength >= (4 + responseLength)
+        while @buffer.length >= 4
+            responseLength = @buffer.readUInt32LE(0)
+            unless @buffer.length >= (4 + responseLength)
                 break
 
             responseBuffer = @buffer.slice(4, responseLength + 4)
             response = pb.ParseResponse(responseBuffer)
             @_processResponse response
 
-            # For some reason, Arraybuffer.slice is not in my version of node
             @buffer = @buffer.slice(4 + responseLength)
 
     mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
@@ -260,12 +259,12 @@ class Connection extends events.EventEmitter
         # Serialize protobuf
         data = pb.SerializeQuery(query)
 
-        length = data.byteLength
-        finalArray = new Uint8Array length + 4
-        (new DataView(finalArray.buffer)).setInt32(0, length, true)
-        finalArray.set((new Uint8Array(data)), 4)
+        # Prepend length
+        length = data.length
+        lengthBuf = new Buffer(4)
+        lengthBuf.writeUInt32LE(length, 0)
 
-        @write finalArray.buffer
+        @write Buffer.concat([lengthBuf, data])
 
 class TcpConnection extends Connection
     @isAvailable: () -> !(process.browser)
@@ -291,32 +290,28 @@ class TcpConnection extends Connection
 
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
-            buf = new ArrayBuffer 8
-            buf_view = new DataView buf
-            buf_view.setUint32 0, 0x723081e1, true # VersionDummy.Version.V0_2
-            buf_view.setUint32 4, @authKey.length, true
+            buf = new Buffer(8)
+            buf.writeUInt32LE(0x723081e1, 0) # VersionDummy.Version.V0_2
+            buf.writeUInt32LE(@authKey.length, 4)
             @write buf
             @rawSocket.write @authKey, 'ascii'
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection
             handshake_callback = (buf) =>
-                arr = util.toArrayBuffer(buf)
-
-                @buffer = bufferConcat @buffer, arr
-                for b,i in new Uint8Array @buffer
+                @buffer = Buffer.concat([@buffer, buf])
+                for b,i in @buffer
                     if b is 0
                         @rawSocket.removeListener('data', handshake_callback)
 
                         status_buf = @buffer.slice(0, i)
                         @buffer = @buffer.slice(i + 1)
-                        status_str = String.fromCharCode.apply(null, new Uint8Array status_buf)
+                        status_str = status_buf.toString()
 
                         clearTimeout(timeout)
                         if status_str == "SUCCESS"
                             # We're good, finish setting up the connection
-                            @rawSocket.on 'data', (buf) =>
-                                @_data(util.toArrayBuffer(buf))
+                            @rawSocket.on 'data', (buf) => @_data(buf)
 
                             @emit 'connect'
                             return
@@ -339,13 +334,7 @@ class TcpConnection extends Connection
         @rawSocket.destroy()
         super()
 
-    write: (chunk) ->
-        # Alas we must convert to a node buffer
-        buf = new Buffer chunk.byteLength
-        for byte,i in (new Uint8Array chunk)
-            buf[i] = byte
-
-        @rawSocket.write buf
+    write: (chunk) -> @rawSocket.write chunk
 
 class HttpConnection extends Connection
     DEFAULT_PROTOCOL: 'http'
@@ -391,23 +380,17 @@ class HttpConnection extends Connection
                 @_data(xhr.response)
         xhr.send chunk
 
-bufferConcat = (buf1, buf2) ->
-    view = new Uint8Array (buf1.byteLength + buf2.byteLength)
-    view.set new Uint8Array(buf1), 0
-    view.set new Uint8Array(buf2), buf1.byteLength
-    view.buffer
-
 # The only exported function of this module
 module.exports.connect = ar (host, callback) ->
     # Host must be a string or an object
     unless typeof(host) is 'string' or typeof(host) is 'object'
         throw new err.RqlDriverError "First argument to `connect` must be a string giving the "+
-                                 "host to `connect` to or an object giving `host` and `port`."
+                                     "host to `connect` to or an object giving `host` and `port`."
 
     # Callback must be a function
     unless typeof(callback) is 'function'
         throw new err.RqlDriverError "Second argument to `connect` must be a callback to invoke with "+
-                                 "either an error or the successfully established connection."
+                                     "either an error or the successfully established connection."
 
     if TcpConnection.isAvailable()
         new TcpConnection host, callback
