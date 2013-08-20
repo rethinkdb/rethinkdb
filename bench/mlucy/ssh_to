@@ -1,5 +1,6 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+exec 2> >(grep -v '^Warning: Permanently added' >&2)
 
 host=$1
 shift

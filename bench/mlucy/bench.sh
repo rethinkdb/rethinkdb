@@ -8,9 +8,6 @@ function on_err() {
 }
 trap 'on_err $LINENO' ERR
 
-# Used by `admin` command.
-export RETHINKDB_FOR_ADMIN=$RETHINKDB_DIR/rethinkdb
-
 ################################################################################
 ##### Set up ec2 cluster.
 ################################################################################
@@ -34,11 +31,12 @@ wait
 ################################################################################
 # init_clients "`cat client_hosts`" &
 init_rdb_cluster "`cat server_hosts`" $SERVER_INSTANCES $RETHINKDB_DIR $STAGING &
-tunnel_to_poc $(head -1 server_hosts) 1 >cluster_port
+export POC=`head -1 server_hosts`
+tunnel_to_poc $POC 1 >cluster_port
 export ADMIN_CLUSTER_PORT=`cat cluster_port`
 wait
 for i in `seq $TABLES`; do cat /proc/sys/kernel/random/uuid | tr - _; done >tables
-parallel -uj0 create_table {} $TABLE_SHARDS "'$TABLE_CONF'" :::: tables
+parallel -uj0 create_table $POC 1 $STAGING {} $TABLE_SHARDS "'$TABLE_CONF'" :::: tables
 
 ################################################################################
 ##### Run Benchmark.

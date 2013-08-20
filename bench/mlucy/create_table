@@ -1,9 +1,12 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
 
-table=$1
-shards=$2
-conf=$3
+poc=$1
+offset=$2
+staging=$3
+table=$4
+shards=$5
+conf=$6
 
 splits=`gen_splits $shards`
 conf=`eval 'cat<<EOF
@@ -18,7 +21,7 @@ awk '{print "  "$0}' >&2 <<EOF
 $conf
 EOF
 
-admin >$table.1.log 2>$table.2.log <<EOF
+admin $poc $offset $staging >$table.1.log 2>$table.2.log <<EOF
 $conf
 EOF
 

@@ -1,8 +1,11 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
-rethbin=$RETHINKDB_FOR_ADMIN
-if [[ ! -e $rethbin ]]; then
-    echo "ERROR: requires $rethbin to point to valid rethinkdb binary." >&2
-    exit 1
-fi
-$RETHINKDB_FOR_ADMIN admin --join localhost:$ADMIN_CLUSTER_PORT "$@"
+
+poc=${1-$POC}
+shift
+offset=${1-1}
+shift
+staging=${1-$STAGING}
+shift
+rethbin=$staging/.persist/rethinkdb
+ssh_to "$poc" "$rethbin admin --join localhost:$((CLUSTER_PORT+offset)) $@"
