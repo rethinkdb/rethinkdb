@@ -1,0 +1,10 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+host=$1
+staging=$2
+
+echo "Running benchmark on $host..." >&2
+ssh_to $host <<EOF
+$staging/main.sh $staging/.tables $staging/.nodes
+EOF

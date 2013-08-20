@@ -24,11 +24,8 @@ function update_path() {
 update_path
 
 function load_conf() {
-    CONF=$1
-    local conffile=`basename "$CONF"`
-    PREFIX=${conffile%.*}
-    echo "Loading config from $CONF..." >&2
-    . $CONF
+    export PREFIX=`basename "$1"`
+    . "$1"/conf.sh
 }
 
 function on_err() {

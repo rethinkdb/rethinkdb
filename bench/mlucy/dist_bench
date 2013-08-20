@@ -1,0 +1,26 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+bench=$1
+host=$2
+staging=$3
+tables=$4
+nodes=$5
+
+echo "Distributing $bench to $host..." >&2
+rundir=`ssh_to $host <<EOF
+sudo mkdir -p $staging
+sudo chown -R ubuntu $staging
+EOF`
+rsync_to "$bench" "$host" "$staging" &
+
+ssh_to $host <<EOF
+cat >$staging/.tables <<06588ad8fe2d4e5488b80d5a42954824
+$tables
+06588ad8fe2d4e5488b80d5a42954824
+cat >$staging/.nodes <<06588ad8fe2d4e5488b80d5a42954824
+$nodes
+06588ad8fe2d4e5488b80d5a42954824
+EOF
+
+wait

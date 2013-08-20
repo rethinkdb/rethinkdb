@@ -1,6 +1,7 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
-load_conf "$1"
+bench=$1
+load_conf "$bench"
 
 function on_err() {
     figlet "ERROR" >&2
@@ -24,26 +25,31 @@ Using existing cluster (remove server_hosts or client_hosts to recreate):
 `<client_hosts awk '{print "    "$0}'`
 EOF
 fi
-wait
 
 ################################################################################
 ##### Set up RethinkDB cluster.
 ################################################################################
-# init_clients "`cat client_hosts`" &
+wait
 init_rdb_cluster "`cat server_hosts`" $SERVER_INSTANCES $RETHINKDB_DIR $STAGING &
 export POC=`head -1 server_hosts`
 tunnel_to_poc $POC 1 >cluster_port
 export ADMIN_CLUSTER_PORT=`cat cluster_port`
-wait
 for i in `seq $TABLES`; do cat /proc/sys/kernel/random/uuid | tr - _; done >tables
-parallel -uj0 create_table $POC 1 $STAGING {} $TABLE_SHARDS "'$TABLE_CONF'" :::: tables
+wait
+parallel -uj0 create_table $POC 1 $STAGING {} $TABLE_SHARDS "'$TABLE_CONF'" :::: tables &
+
+################################################################################
+##### Set up clients.
+################################################################################
+tables=`cat tables`
+node_pairs=":::: server_hosts ::: `seq $SERVER_INSTANCES`"
+nodes=`parallel -uj0 echo '{1}:$((CLIENT_PORT+{2}))' $node_pairs`
+parallel -uj0 dist_bench "$bench" {} $STAGING "'$tables'" "'$nodes'" :::: client_hosts
 
 ################################################################################
 ##### Run Benchmark.
 ################################################################################
-
-
-# clients=":::: client_hosts ::: `seq $CLIENT_INSTANCES`"
-
+wait
+parallel -j0 run_bench {} $STAGING :::: client_hosts
 
 wait
