@@ -25,12 +25,12 @@ const js_id_t MAX_ID = UINT64_MAX;
 // Picked from a hat.
 #define TO_JSON_RECURSION_LIMIT  500
 
-// Returns an empty pointer on error.
-std::shared_ptr<const scoped_cJSON_t> js_to_json(const v8::Handle<v8::Value> &value,
-                                                 std::string *errmsg);
+// Returns an empty counted_t on error.
+counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value,
+                                         std::string *errmsg);
 
 // Should never error.
-v8::Handle<v8::Value> js_from_json(const cJSON &json);
+v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum);
 
 // Worker-side JS evaluation environment.
 class js_env_t {
@@ -39,7 +39,7 @@ public:
     ~js_env_t();
 
     js_result_t eval(const std::string &source);
-    js_result_t call(js_id_t id, const std::vector<std::shared_ptr<const scoped_cJSON_t> > &args);
+    js_result_t call(js_id_t id, const std::vector<counted_t<const ql::datum_t> > &args);
     void release(js_id_t id);
 
 private:
@@ -99,7 +99,7 @@ js_result_t js_job_t::eval(const std::string &source) {
     return result;
 }
 
-js_result_t js_job_t::call(js_id_t id, std::vector<std::shared_ptr<const scoped_cJSON_t> > args) {
+js_result_t js_job_t::call(js_id_t id, const std::vector<counted_t<const ql::datum_t> > &args) {
     js_task_t task = js_task_t::TASK_CALL;
     write_message_t msg;
     msg.append(&task, sizeof(task));
@@ -162,7 +162,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
         case TASK_CALL:
             {
                 js_id_t id;
-                std::vector<std::shared_ptr<const scoped_cJSON_t> > args;
+                std::vector<counted_t<const ql::datum_t> > args;
                 res = deserialize(stream_in, &id);
                 if (res != ARCHIVE_SUCCESS) { return false; }
                 res = deserialize(stream_in, &args);
@@ -220,7 +220,7 @@ js_result_t js_env_t::eval(const std::string &source) {
 
     v8::HandleScope handle_scope;
 
-    // TODO(rntz): use an "external resource" to avoid copy?
+    // TODO: use an "external resource" to avoid copy?
     v8::Handle<v8::String> src = v8::String::New(source.data(), source.size());
 
     // This constructor registers itself with v8 so that any errors generated
@@ -250,9 +250,9 @@ js_result_t js_env_t::eval(const std::string &source) {
                 guarantee(!result_val.IsEmpty());
 
                 // JSONify result.
-                std::shared_ptr<const scoped_cJSON_t> json = js_to_json(result_val, errmsg);
-                if (json) {
-                    result = json;
+                counted_t<const ql::datum_t> datum = js_to_datum(result_val, errmsg);
+                if (datum.has()) {
+                    result = datum;
                 }
             }
         }
@@ -286,7 +286,7 @@ const boost::shared_ptr<v8::Persistent<v8::Value> > js_env_t::find_value(js_id_t
 }
 
 v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
-                                  const std::vector<std::shared_ptr<const scoped_cJSON_t> > &args,
+                                  const std::vector<counted_t<const ql::datum_t> > &args,
                                   std::string *errmsg) {
     v8::TryCatch try_catch;
     v8::HandleScope scope;
@@ -298,7 +298,7 @@ v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
     // Construct arguments.
     scoped_array_t<v8::Handle<v8::Value> > handles(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
-        handles[i] = js_from_json(*args[i]->get());
+        handles[i] = js_from_datum(args[i]);
         guarantee(!handles[i].IsEmpty());
     }
 
@@ -311,7 +311,7 @@ v8::Handle<v8::Value> run_js_func(v8::Handle<v8::Function> fn,
 }
 
 js_result_t js_env_t::call(js_id_t id,
-                           const std::vector<std::shared_ptr<const scoped_cJSON_t> > &args) {
+                           const std::vector<counted_t<const ql::datum_t> > &args) {
     js_context_t clean_context;
     js_result_t result("");
     std::string *errmsg = boost::get<std::string>(&result);
@@ -338,9 +338,9 @@ js_result_t js_env_t::call(js_id_t id,
             result = remember_value(sub_func);
         } else {
             // JSONify result.
-            std::shared_ptr<const scoped_cJSON_t> json = js_to_json(value, errmsg);
-            if (json) {
-                result = json;
+            counted_t<const ql::datum_t> datum = js_to_datum(value, errmsg);
+            if (datum.has()) {
+                result = datum;
             }
         }
     }
@@ -353,212 +353,167 @@ void js_env_t::release(js_id_t id) {
     guarantee(1 == num_erased);
 }
 
-// Returns NULL & sets `*errmsg` on failure.
-//
-// TODO(rntz): Is there a better way of detecting cyclic data structures than
-// using a recursion limit?
-static cJSON *js_make_json(const v8::Handle<v8::Value> &value, int recursion_limit, std::string *errmsg) {
+// TODO: Is there a better way of detecting circular references than a recursion limit?
+counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
+                                           int recursion_limit,
+                                           std::string *errmsg) {
+    counted_t<const ql::datum_t> result;
+
     if (0 == recursion_limit) {
-        *errmsg = "toJSON recursion limit exceeded (cyclic datastructure?)";
-        return NULL;
+        errmsg->assign("Recursion limit exceeded in js_to_json (circular reference?).");
+        return result;
     }
     --recursion_limit;
 
-    // TODO(rntz): should we handle BooleanObject, NumberObject, StringObject?
+    // TODO: should we handle BooleanObject, NumberObject, StringObject?
     v8::HandleScope handle_scope;
 
     if (value->IsString()) {
-        cJSON *p = cJSON_CreateBlank();
-        if (NULL == p) {
-            *errmsg = "cJSON_CreateBlank() failed";
-            return NULL;
-        }
-        scoped_cJSON_t result(p);
-
-        // Copy in the string. TODO(rntz): cJSON requires null termination. We
-        // should switch away from cJSON.
         v8::Handle<v8::String> string = value->ToString();
         guarantee(!string.IsEmpty());
-        int length = string->Utf8Length() + 1; // +1 for null byte
 
-        p->type = cJSON_String;
-        p->valuestring = reinterpret_cast<char *>(malloc(length));
-        if (NULL == p->valuestring) {
-            *errmsg = "failed to allocate space for string";
-            return NULL;
-        }
-        string->WriteUtf8(p->valuestring, length);
+        size_t length = string->Utf8Length();
+        scoped_array_t<char> temp_buffer(length);
+        string->WriteUtf8(temp_buffer.data(), length);
 
-        return result.release();
-
+        result = make_counted<const ql::datum_t>(std::string(temp_buffer.data(), length));
     } else if (value->IsObject()) {
         // This case is kinda weird. Objects can have stuff in them that isn't
         // represented in their JSON (eg. their prototype, v8 hidden fields).
 
         if (value->IsArray()) {
             v8::Handle<v8::Array> arrayh = v8::Handle<v8::Array>::Cast(value);
-            scoped_cJSON_t arrayj(cJSON_CreateArray());
-            if (NULL == arrayj.get()) {
-                *errmsg = "cJSON_CreateArray() failed";
-                return NULL;
-            }
+            std::vector<counted_t<const ql::datum_t> > datum_array;
+            datum_array.reserve(arrayh->Length());
 
-            uint32_t len = arrayh->Length();
-            for (uint32_t i = 0; i < len; ++i) {
+            for (uint32_t i = 0; i < arrayh->Length(); ++i) {
                 v8::Handle<v8::Value> elth = arrayh->Get(i);
-                guarantee(!elth.IsEmpty()); // FIXME
+                guarantee(!elth.IsEmpty());
 
-                cJSON *eltj = js_make_json(elth, recursion_limit, errmsg);
-                if (NULL == eltj) return NULL;
-
-                // Append it to the array.
-                cJSON_AddItemToArray(arrayj.get(), eltj);
+                counted_t<const ql::datum_t> item = js_make_datum(elth, recursion_limit, errmsg);
+                if (!item.has()) {
+                    // Result is still empty, the error message has been set
+                    return result;
+                }
+                datum_array.push_back(std::move(item));
             }
 
-            return arrayj.release();
-
+            result = make_counted<const ql::datum_t>(std::move(datum_array));
         } else if (value->IsFunction()) {
             // We can't represent functions in JSON.
-            *errmsg = "Can't convert function to JSON";
-            return NULL;
-
+            errmsg->assign("Cannot convert function to ql::datum_t.");
         } else if (value->IsRegExp()) {
-            // Ditto.
-            *errmsg = "Can't convert RegExp to JSON";
-            return NULL;
-
+            // We can't represent regular expressions in datums
+            errmsg->assign("Cannot convert RegExp to ql::datum_t.");
         } else {
             // Treat it as a dictionary.
             v8::Handle<v8::Object> objh = value->ToObject();
-            guarantee(!objh.IsEmpty()); // FIXME
-            v8::Handle<v8::Array> props = objh->GetPropertyNames();
-            guarantee(!props.IsEmpty()); // FIXME
+            guarantee(!objh.IsEmpty());
+            v8::Handle<v8::Array> properties = objh->GetPropertyNames();
+            guarantee(!properties.IsEmpty());
 
-            scoped_cJSON_t objj(cJSON_CreateObject());
-            if (NULL == objj.get()) {
-                *errmsg = "cJSON_CreateObject() failed";
-                return NULL;
-            }
+            std::map<std::string, counted_t<const ql::datum_t> > datum_map;
 
-            uint32_t len = props->Length();
+            uint32_t len = properties->Length();
             for (uint32_t i = 0; i < len; ++i) {
-                v8::Handle<v8::String> keyh = props->Get(i)->ToString();
-                guarantee(!keyh.IsEmpty()); // FIXME
+                v8::Handle<v8::String> keyh = properties->Get(i)->ToString();
+                guarantee(!keyh.IsEmpty());
                 v8::Handle<v8::Value> valueh = objh->Get(keyh);
-                guarantee(!valueh.IsEmpty()); // FIXME
+                guarantee(!valueh.IsEmpty());
 
-                scoped_cJSON_t valuej(js_make_json(valueh, recursion_limit, errmsg));
-                if (NULL == valuej.get()) return NULL;
+                counted_t<const ql::datum_t> item = js_make_datum(valueh, recursion_limit, errmsg);
 
-                // Create string key.
-                int length = keyh->Utf8Length() + 1; // +1 for null byte.
-                char *str = valuej.get()->string = reinterpret_cast<char *>(malloc(length));
-                if (NULL == str) {
-                    *errmsg = "could not allocate space for string";
-                    return NULL;
+                if (!item.has()) {
+                    // Result is still empty, the error message has been set
+                    return result;
                 }
-                keyh->WriteUtf8(str, length);
 
-                // Append to object.
-                cJSON_AddItemToArray(objj.get(), valuej.release());
+                size_t length = keyh->Utf8Length();
+                scoped_array_t<char> temp_buffer(length);
+                keyh->WriteUtf8(temp_buffer.data(), length);
+                std::string key_string(temp_buffer.data(), length);
+
+                datum_map.insert(std::make_pair(key_string, item));
             }
-
-            return objj.release();
+            result = make_counted<const ql::datum_t>(std::move(datum_map));
         }
-
     } else if (value->IsNumber()) {
-        double d = value->NumberValue();
-        cJSON *r = NULL;
+        double num_val = value->NumberValue();
+
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        if (isfinite(d)) {
-            r = cJSON_CreateNumber(value->NumberValue());
+        using namespace std; // NOLINT(build/namespaces)
+        if (!isfinite(num_val)) {
+            errmsg->assign("Number return value is not finite.");
+        } else {
+            result = make_counted<const ql::datum_t>(num_val);
         }
-        if (r == NULL) {
-            *errmsg = "cJSON_CreateNumber() failed";
-        }
-
-        return r;
     } else if (value->IsBoolean()) {
-        cJSON *r = cJSON_CreateBool(value->BooleanValue());
-        if (r == NULL) {
-            *errmsg = "cJSON_CreateBool() failed";
-        }
-
-        return r;
+        result = make_counted<const ql::datum_t>(ql::datum_t::R_BOOL, value->BooleanValue());
     } else if (value->IsNull()) {
-        cJSON *r = cJSON_CreateNull();
-        if (r == NULL) {
-            *errmsg = "cJSON_CreateNull() failed";
-        }
-
-        return r;
+        result = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
     } else {
-        *errmsg = value->IsUndefined()
-            ? "Cannot convert javascript `undefined` to JSON."
-            : "Unrecognized value type when converting to JSON.";
-        return NULL;
+        errmsg->assign(value->IsUndefined() ?
+                       "Cannot convert javascript `undefined` to ql::datum_t." :
+                       "Unrecognized value type when converting to ql::datum_t.");
     }
+    return result;
 }
 
-std::shared_ptr<const scoped_cJSON_t> js_to_json(const v8::Handle<v8::Value> &value, std::string *errmsg) {
+counted_t<const ql::datum_t> js_to_datum(const v8::Handle<v8::Value> &value, std::string *errmsg) {
     guarantee(!value.IsEmpty());
-    guarantee(errmsg);
+    guarantee(errmsg != NULL);
 
-    // TODO (rntz): probably want a TryCatch for javascript errors that might happen.
     v8::HandleScope handle_scope;
-    *errmsg = "unknown error when converting to JSON";
+    errmsg->assign("Unknown error when converting to ql::datum_t.");
 
-    cJSON *json = js_make_json(value, TO_JSON_RECURSION_LIMIT, errmsg);
-    if (json) {
-        return std::make_shared<const scoped_cJSON_t>(json);
-    } else {
-        return std::shared_ptr<const scoped_cJSON_t>();
-    }
+    return js_make_datum(value, TO_JSON_RECURSION_LIMIT, errmsg);
 }
 
-v8::Handle<v8::Value> js_from_json(const cJSON &json) {
-    switch (json.type & ~cJSON_IsReference) {
-    case cJSON_False:
-        return v8::False();
-    case cJSON_True:
-        return v8::True();
-    case cJSON_NULL:
+v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
+    guarantee(datum.has());
+    switch (datum->get_type()) {
+    case ql::datum_t::type_t::R_BOOL:
+        if (datum->as_bool()) {
+            return v8::True();
+        } else {
+            return v8::False();
+        }
+    case ql::datum_t::type_t::R_NULL:
         return v8::Null();
-    case cJSON_Number:
-        return v8::Number::New(json.valuedouble);
-    case cJSON_String:
-        return v8::String::New(json.valuestring);
-    case cJSON_Array: {
+    case ql::datum_t::type_t::R_NUM:
+        return v8::Number::New(datum->as_num());
+    case ql::datum_t::type_t::R_STR:
+        return v8::String::New(datum->as_str().c_str());
+    case ql::datum_t::type_t::R_ARRAY: {
         v8::Handle<v8::Array> array = v8::Array::New();
+        const std::vector<counted_t<const ql::datum_t> > &source_array = datum->as_array();
 
-        uint32_t index = 0;
-        for (cJSON *head = json.head; head; head = head->next, ++index) {
+        for (size_t i = 0; i < source_array.size(); ++i) {
             v8::HandleScope scope;
-            v8::Handle<v8::Value> val = js_from_json(*head);
+            v8::Handle<v8::Value> val = js_from_datum(source_array[i]);
             guarantee(!val.IsEmpty());
-            array->Set(index, val);
-            // FIXME: try_catch code
+            array->Set(i, val);
         }
 
         return array;
     }
-    case cJSON_Object: {
+    case ql::datum_t::type_t::R_OBJECT: {
         v8::Handle<v8::Object> obj = v8::Object::New();
+        const std::map<std::string, counted_t<const ql::datum_t> > &source_map = datum->as_object();
 
-        for (cJSON *head = json.head; head; head = head->next) {
+        for (auto it = source_map.begin(); it != source_map.end(); ++it) {
             v8::HandleScope scope;
-            v8::Handle<v8::Value> key = v8::String::New(head->string);
-            v8::Handle<v8::Value> val = js_from_json(*head);
+            v8::Handle<v8::Value> key = v8::String::New(it->first.c_str());
+            v8::Handle<v8::Value> val = js_from_datum(it->second);
             guarantee(!key.IsEmpty() && !val.IsEmpty());
-
-            obj->Set(key, val); // FIXME: try_catch code
+            obj->Set(key, val);
         }
 
         return obj;
     }
 
+    case ql::datum_t::type_t::UNINITIALIZED:
     default:
-        crash("bad cJSON value");
+        crash("bad datum value in js extproc");
     }
 }

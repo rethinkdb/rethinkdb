@@ -97,9 +97,9 @@ public:
           timeout_ms(_timeout_ms),
           parent(_parent) { }
     // This JS evaluation resulted in an error
-    counted_t<val_t> operator()(const std::string err_val) const;
+    counted_t<val_t> operator()(const std::string &err_val) const;
     // This JS call resulted in a JSON value
-    counted_t<val_t> operator()(const std::shared_ptr<const scoped_cJSON_t> json_val) const;
+    counted_t<val_t> operator()(const counted_t<const datum_t> &json_val) const;
     // This JS evaluation resulted in an id for a js function
     counted_t<val_t> operator()(const id_t id_val) const;
 private:

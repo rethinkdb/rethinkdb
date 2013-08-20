@@ -1109,7 +1109,8 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
      * deleted blob if it exists. */
     std::vector<char> ref_cpy(modification->info.deleted.second);
     if (modification->info.deleted.first) {
-        guarantee(!modification->info.deleted.second.empty());
+        ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
+        guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
 
         rdb_value_deleter_t deleter;
         deleter.delete_value(txn, ref_cpy.data());

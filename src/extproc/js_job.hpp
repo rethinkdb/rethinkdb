@@ -10,17 +10,19 @@
 
 #include "utils.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/counted.hpp"
 #include "concurrency/signal.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_job.hpp"
 #include "extproc/js_runner.hpp"
+#include "rdb_protocol/datum.hpp"
 
 class js_job_t {
 public:
     js_job_t(extproc_pool_t *pool, signal_t *interruptor);
 
     js_result_t eval(const std::string &source);
-    js_result_t call(js_id_t id, std::vector<std::shared_ptr<const scoped_cJSON_t> > args);
+    js_result_t call(js_id_t id, const std::vector<counted_t<const ql::datum_t> > &args);
     void release(js_id_t id);
     void exit();
 
