@@ -1555,47 +1555,12 @@ bool iterator::operator!=(const iterator &other) const {
     return !operator==(other);
 }
 
-reverse_iterator::reverse_iterator() { }
-
-reverse_iterator::reverse_iterator(const leaf_node_t *node, int index)
-    : inner_(node, index) { }
-
-std::pair<const btree_key_t *, const void *> reverse_iterator::operator*() const {
-    return *inner_;
-}
-
-reverse_iterator &reverse_iterator::operator++() {
-    --inner_;
-    return *this;
-}
-
-reverse_iterator &reverse_iterator::operator--() {
-    ++inner_;
-    return *this;
-}
-
-bool reverse_iterator::operator==(const reverse_iterator &other) const {
-    return inner_ == other.inner_;
-}
-bool reverse_iterator::operator!=(const reverse_iterator &other) const {
-    return !operator==(other);
-}
-
-
 leaf_node_t::iterator begin(const leaf_node_t &leaf_node) {
     return ++leaf_node_t::iterator(&leaf_node, -1);
 }
 
 leaf_node_t::iterator end(const leaf_node_t &leaf_node) {
     return leaf_node_t::iterator(&leaf_node, leaf_node.num_pairs);
-}
-
-leaf_node_t::reverse_iterator rbegin(const leaf_node_t &leaf_node) {
-    return ++leaf_node_t::reverse_iterator(&leaf_node, leaf_node.num_pairs);
-}
-
-leaf_node_t::reverse_iterator rend(const leaf_node_t &leaf_node) {
-    return leaf_node_t::reverse_iterator(&leaf_node, -1);
 }
 
 // RSI: Make this and the upper bound function take a pointer to leaf_node_t.  Make all
@@ -1628,21 +1593,6 @@ leaf::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_
     } else {
         return leaf_node_t::iterator(&leaf_node, index);
     }
-}
-
-leaf::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
-    int index;
-    leaf::find_key(&leaf_node, key, &index);
-    if (index < leaf_node.num_pairs) {
-        const leaf::entry_t *entry = leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]);
-        const btree_key_t *ekey = leaf::entry_key(entry);
-        if (entry_is_live(entry) &&
-            sized_strcmp(ekey->contents, ekey->size, key->contents, key->size) == 0) {
-            return leaf_node_t::reverse_iterator(&leaf_node, index);
-        }
-    }
-
-    return ++leaf_node_t::reverse_iterator(&leaf_node, index);
 }
 
 }  // namespace leaf

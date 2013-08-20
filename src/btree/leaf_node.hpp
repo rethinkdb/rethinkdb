@@ -31,7 +31,6 @@ public:
 
 namespace leaf {
 class iterator;
-class reverse_iterator;
 } //namespace leaf
 
 // The leaf node begins with the following struct layout.
@@ -59,7 +58,6 @@ struct leaf_node_t {
 
     //Iteration
     typedef leaf::iterator iterator;
-    typedef leaf::reverse_iterator reverse_iterator;
 };
 
 namespace leaf {
@@ -67,11 +65,7 @@ namespace leaf {
 leaf_node_t::iterator begin(const leaf_node_t &leaf_node);
 leaf_node_t::iterator end(const leaf_node_t &leaf_node);
 
-leaf_node_t::reverse_iterator rbegin(const leaf_node_t &leaf_node);
-leaf_node_t::reverse_iterator rend(const leaf_node_t &leaf_node);
-
 leaf_node_t::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
-leaf_node_t::reverse_iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
 leaf_node_t::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
 
 
@@ -177,19 +171,6 @@ public:
 private:
     const leaf_node_t *node_;
     int index_;
-};
-
-class reverse_iterator {
-public:
-    reverse_iterator();
-    reverse_iterator(const leaf_node_t *node, int index);
-    std::pair<const btree_key_t *, const void *> operator*() const;
-    reverse_iterator &operator++();
-    reverse_iterator &operator--();
-    bool operator==(const reverse_iterator &other) const;
-    bool operator!=(const reverse_iterator &other) const;
-private:
-    iterator inner_;
 };
 
 }  // namespace leaf
