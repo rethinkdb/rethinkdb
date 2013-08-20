@@ -1598,6 +1598,8 @@ leaf_node_t::reverse_iterator rend(const leaf_node_t &leaf_node) {
     return leaf_node_t::reverse_iterator(&leaf_node, -1);
 }
 
+// RSI: Make this and the upper bound function take a pointer to leaf_node_t.  Make all
+// by-reference functions in this file take a pointer.
 leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
     leaf::find_key(&leaf_node, key, &index);
@@ -1605,7 +1607,26 @@ leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &
         entry_is_live(leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]))) {
         return leaf_node_t::iterator(&leaf_node, index);
     } else {
+        // RSI: Avoid this inelegance.
         return ++leaf_node_t::iterator(&leaf_node, index);
+    }
+}
+
+// RSI: Rename this.
+leaf::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
+    int index;
+    const bool key_equal = leaf::find_key(&leaf_node, key, &index);
+
+    if (index == leaf_node.num_pairs) {
+        return leaf_node_t::iterator(&leaf_node, index);
+    } else if (key_equal || !entry_is_live(leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]))) {
+        // Make sure we don't create an iterator to a dead entry, that would be bad.
+        guarantee(index < leaf_node.num_pairs);
+
+        // RSI: Avoid this inelegance (in the "dead entry" case).
+        return ++leaf_node_t::iterator(&leaf_node, index);
+    } else {
+        return leaf_node_t::iterator(&leaf_node, index);
     }
 }
 

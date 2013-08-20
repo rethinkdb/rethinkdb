@@ -390,21 +390,23 @@ void batched_rget_stream_t::read_more() {
 
         if (forward(sorting)) {
             range.left = p_res->last_considered_key;
-        } else {
-            range.right = key_range_t::right_bound_t(p_res->last_considered_key);
-        }
 
-        if (forward(sorting) &&
-            (!range.left.increment() ||
-            (!range.right.unbounded && (range.right.key < range.left)))) {
-            finished = true;
-        } else if (backward(sorting)) {
-            guarantee(!range.right.unbounded);
-            if (!range.right.key.decrement() ||
-                range.right.key < range.left) {
+            // We increment the closed left bound, to move past the last considered
+            // key.
+            if (!range.left.increment()) {
                 finished = true;
             }
+        } else {
+            range.right = key_range_t::right_bound_t(p_res->last_considered_key);
+
+            // We don't decrement the right key, the interval is always open on the
+            // right.
         }
+
+        if (!range.right.unbounded && range.left >= range.right.key) {
+            finished = true;
+        }
+
     } catch (const cannot_perform_query_exc_t &e) {
         if (table_scan_backtrace) {
             throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);

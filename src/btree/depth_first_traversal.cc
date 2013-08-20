@@ -54,16 +54,19 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
                 }
             }
         } else {
-            leaf_node_t::reverse_iterator it;
+            leaf_node_t::iterator it;
             if (range.right.unbounded) {
-                it = leaf::rbegin(*lnode);
+                it = leaf::end(*lnode);
             } else {
-                it = leaf::inclusive_upper_bound(range.right.key.btree_key(), *lnode);
+                it = leaf::inclusive_forward_upper_bound(range.right.key.btree_key(), *lnode);
             }
-            for (/* assignment above */; it != leaf::rend(*lnode); ++it) {
+
+            while (it != leaf::begin(*lnode)) {
+                --it;
+
                 key = (*it).first;
 
-                if (btree_key_cmp(key, range.left.btree_key()) <= 0) {
+                if (btree_key_cmp(key, range.left.btree_key()) < 0) {
                     break;
                 }
 
