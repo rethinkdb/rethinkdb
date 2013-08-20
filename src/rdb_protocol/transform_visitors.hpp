@@ -1,11 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_TRANSFORM_VISITORS_HPP_
 #define RDB_PROTOCOL_TRANSFORM_VISITORS_HPP_
 
 #include <list>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "http/json.hpp"
 #include "rdb_protocol/env.hpp"
@@ -28,9 +25,9 @@ namespace query_language {
 
 void transform_apply(ql::env_t *ql_env,
                      const backtrace_t &backtrace,
-                     boost::shared_ptr<scoped_cJSON_t> json,
+                     counted_t<const ql::datum_t> json,
                      rdb_protocol_details::transform_variant_t *t,
-                     std::list<boost::shared_ptr<scoped_cJSON_t> > *out);
+                     std::list<counted_t<const ql::datum_t> > *out);
 
 // Sets the result type based on a terminal.
 void terminal_initialize(ql::env_t *ql_env,

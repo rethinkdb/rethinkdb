@@ -2,13 +2,11 @@
 #define RDB_PROTOCOL_DATUM_HPP_
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "utils.hpp"
-#include <boost/shared_ptr.hpp>
 
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
@@ -62,20 +60,18 @@ public:
     explicit datum_t(float) = delete;
     // Need to explicitly ask to construct a bool.
     datum_t(type_t _type, bool _bool);
-    datum_t(type_t _type, std::string _reql_type);
     explicit datum_t(double _num);
-    explicit datum_t(const std::string &_str);
+    explicit datum_t(std::string &&str);
     explicit datum_t(const char *cstr);
-    explicit datum_t(const std::vector<counted_t<const datum_t> > &_array);
-    explicit datum_t(const std::map<std::string, counted_t<const datum_t> > &_object);
-    datum_t(const std::map<std::string, counted_t<const datum_t> > &_object, std::string reql_type);
+    explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
+    explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
 
     // These construct a datum from an equivalent representation.
     datum_t();
     explicit datum_t(const Datum *d);
     void init_from_pb(const Datum *d);
     explicit datum_t(cJSON *json);
-    explicit datum_t(const boost::shared_ptr<scoped_cJSON_t> &json);
+    explicit datum_t(const scoped_cJSON_t &json);
 
     ~datum_t();
 
@@ -121,8 +117,8 @@ public:
                                                     const rcheckable_t *caller);
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs, merge_res_f f) const;
 
-    cJSON *as_raw_json() const;
-    boost::shared_ptr<scoped_cJSON_t> as_json() const;
+    cJSON *as_json_raw() const;
+    scoped_cJSON_t as_json() const;
     counted_t<datum_stream_t> as_datum_stream(
         env_t *env, const protob_t<const Backtrace> &backtrace) const;
 
@@ -154,8 +150,6 @@ public:
      * thus truncated. */
     static bool key_is_truncated(const store_key_t &key);
 
-    void rdb_serialize(write_message_t &msg /*NOLINT*/) const;
-    archive_result_t rdb_deserialize(read_stream_t *s);
     void rcheck_is_ptype(const std::string s = "") const;
 
 private:
@@ -209,6 +203,14 @@ private:
     DISABLE_COPYING(datum_t);
 };
 
+size_t serialized_size(const counted_t<const datum_t> &datum);
+
+write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum);
+archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
+
+write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
+archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
+
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
 // basically a `scoped_ptr_t` that can access private methods on `datum_t` and
 // checks for pseudotype validity when you turn it into a `counted_t<const
@@ -216,7 +218,7 @@ private:
 class datum_ptr_t {
 public:
     template<class... Args>
-    explicit datum_ptr_t(Args... args) : ptr_(make_scoped<datum_t>(args...)) { }
+    explicit datum_ptr_t(Args... args) : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
     counted_t<const datum_t> to_counted(
             const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
         ptr()->maybe_sanitize_ptype(allowed_ptypes);

@@ -23,17 +23,32 @@ std::string cJSON_print_std_string(cJSON *json) THROWS_NOTHING;
 std::string cJSON_print_unformatted_std_string(cJSON *json) THROWS_NOTHING;
 std::string cJSON_type_to_string(int type);
 
-size_t cJSON_estimate_size(const cJSON *json);
-
 class scoped_cJSON_t {
 private:
     cJSON *val;
 
     DISABLE_COPYING(scoped_cJSON_t);
 
+    void swap(scoped_cJSON_t &other) {
+        cJSON *tmp = val;
+        val = other.val;
+        other.val = tmp;
+    }
+
 public:
     scoped_cJSON_t() : val(NULL) { }
     explicit scoped_cJSON_t(cJSON *v);
+
+    scoped_cJSON_t(scoped_cJSON_t &&movee) : val(movee.val) {
+        movee.val = NULL;
+    }
+
+    scoped_cJSON_t &operator=(scoped_cJSON_t &&movee) {
+        scoped_cJSON_t tmp(std::move(movee));
+        swap(tmp);
+        return *this;
+    }
+
     ~scoped_cJSON_t();
     cJSON *get() const;
     cJSON *release();
