@@ -14,23 +14,21 @@ try:
     # Check that the version of the driver is up-to-date
     version_ok = True
     try:
-        output = subprocess.check_output(["pip", "show", "rethinkdb"])
-        version_found = False
+        import pkg_resources
+        version_info = pkg_resources.get_distribution('rethinkdb').version
 
-        for line in output.split("\n"):
-            match = re.match("^Version: ([0-9]+)\.([0-9]+)\.([0-9]+)", line)
-            if match is not None:
-                version_found = True
-                minimum_version = [1, 8, 0]
-                installed_version = [int(match.group(1)), int(match.group(2)), int(match.group(3))]
+        match = re.match("([0-9]+)\.([0-9]+)\.([0-9]+)", version_info);
+        if match is None:
+            print "Could not determine rethinkdb python client version, unrecognized format: '%s'" % version_info
+            exit(1)
 
-                if installed_version < minimum_version:
-                    version_ok = False
+        minimum_version = [1, 8, 0]
+        installed_version = [int(match.group(1)), int(match.group(2)), int(match.group(3))]
 
-        if not version_found:
-            raise RuntimeError("Could not parse a version from pip output.")
-    except:
-        print "Could not determine rethinkdb python client version: `pip show rethinkdb` failed."
+        if installed_version < minimum_version:
+            version_ok = False
+    except ImportError:
+        print "Could not import pkg_resources, please install the python setuptools package."
         exit(1)
 
     if not version_ok:
