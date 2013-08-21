@@ -2595,15 +2595,27 @@ module 'DataExplorerView', ->
             @driver_connected = 'connected'
 
         # Called if the driver could not connect
-        error_on_connect: =>
-            @results_view.cursor_timed_out()
-            # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
-            # So if the user fails to reconnect after a failure, the alert will still flash
-            @.$('#user-alert-space').hide()
-            @.$('#user-alert-space').html @alert_connection_fail_template({})
-            @.$('#user-alert-space').slideDown 'fast'
-            @reconnecting = false
-            @driver_connected = 'error'
+        error_on_connect: (error) =>
+            if /^(Unexpected token)/.test(error.message)
+                # Unexpected token, the server couldn't parse the protobuf message
+                # The trugh is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
+                @.$('.loading_query_img').hide()
+                @results_view.render_error(null, error)
+
+                # We save the query since the callback will never be called.
+                @save_query
+                    query: @raw_query
+                    broken_query: true
+
+            else
+                @results_view.cursor_timed_out()
+                # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
+                # So if the user fails to reconnect after a failure, the alert will still flash
+                @$('#user-alert-space').hide()
+                @$('#user-alert-space').html @alert_connection_fail_template({})
+                @$('#user-alert-space').slideDown 'fast'
+                @reconnecting = false
+                @driver_connected = 'error'
 
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
@@ -3509,7 +3521,7 @@ module 'DataExplorerView', ->
             try
                 r.connect @server, (err, connection) ->
                     if err?
-                        that.on_fail()
+                        that.on_fail(err)
                     else
                         that.connection = connection
                         that.on_success(connection)
@@ -3518,7 +3530,7 @@ module 'DataExplorerView', ->
                 unless @dont_timeout_connection
                     @timeout = setTimeout @connect, 5*60*1000
             catch err
-                @on_fail()
+                @on_fail(err)
     
         postpone_reconnection: =>
             clearTimeout @timeout
