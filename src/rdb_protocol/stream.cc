@@ -32,7 +32,9 @@ rdb_protocol_t::rget_read_response_t::result_t json_stream_t::apply_terminal(
 
     counted_t<const ql::datum_t> json;
     while ((json = next())) {
-        terminal_apply(ql_env, backtrace, lazy_json_t(json), &t, &res);
+        std::list<lazy_json_t> jsons;
+        jsons.push_back(lazy_json_t(json));
+        terminal_apply(ql_env, backtrace, std::move(jsons), &t, &res);
     }
     return res;
 }

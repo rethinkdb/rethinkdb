@@ -777,11 +777,9 @@ public:
                 return cumulative_size < rget_max_chunk_size;
             } else {
                 try {
-                    for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        terminal_apply(ql_env, terminal->backtrace,
-                                       *jt,
-                                       &terminal->variant, &response->result);
-                    }
+                    terminal_apply(ql_env, terminal->backtrace,
+                                   std::move(data),
+                                   &terminal->variant, &response->result);
                     return true;
                 } catch (const ql::datum_exc_t &e2) {
                     /* Evaluation threw so we're not going to be accepting any

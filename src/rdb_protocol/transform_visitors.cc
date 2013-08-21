@@ -209,11 +209,15 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NO
 
 void terminal_apply(ql::env_t *ql_env,
                     const backtrace_t &backtrace,
-                    lazy_json_t json,
+                    std::list<lazy_json_t> &&jsons,
                     rdb_protocol_details::terminal_variant_t *t,
                     rget_read_response_t::result_t *out) {
-    boost::apply_visitor(terminal_visitor_t(json, ql_env, backtrace, out),
-                         *t);
+    std::list<lazy_json_t> locals = std::move(jsons);
+
+    for (auto it = locals.begin(); it != locals.end(); ++it) {
+        boost::apply_visitor(terminal_visitor_t(*it, ql_env, backtrace, out),
+                             *t);
+    }
 }
 
 
