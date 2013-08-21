@@ -39,38 +39,24 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         return true;
     } else {
         const leaf_node_t *lnode = reinterpret_cast<const leaf_node_t *>(node);
-        const btree_key_t *key;
+
+        leaf::iterator end_it = range.right.unbounded
+            ? leaf::end(lnode)
+            : leaf::lower_bound(range.right.key.btree_key(), lnode);
+
+        leaf::iterator beg_it = leaf::lower_bound(range.left.btree_key(), lnode);
 
         if (direction == direction_t::FORWARD) {
-            for (auto it = leaf::lower_bound(range.left.btree_key(), lnode);
-                 it != leaf::end(lnode); ++it) {
-                key = (*it).first;
-                if (!range.right.unbounded &&
-                    btree_key_cmp(key, range.right.key.btree_key()) >= 0) {
-                    break;
-                }
-                if (!cb->handle_pair(key, (*it).second)) {
+            for (; beg_it != end_it; ++beg_it) {
+                if (!cb->handle_pair((*beg_it).first, (*beg_it).second)) {
                     return false;
                 }
             }
         } else {
-            leaf_node_t::iterator it;
-            if (range.right.unbounded) {
-                it = leaf::end(lnode);
-            } else {
-                it = leaf::lower_bound(range.right.key.btree_key(), lnode);
-            }
+            while (end_it != beg_it) {
+                --end_it;
 
-            while (it != leaf::begin(lnode)) {
-                --it;
-
-                key = (*it).first;
-
-                if (btree_key_cmp(key, range.left.btree_key()) < 0) {
-                    break;
-                }
-
-                if (!cb->handle_pair(key, (*it).second)) {
+                if (!cb->handle_pair((*end_it).first, (*end_it).second)) {
                     return false;
                 }
             }
