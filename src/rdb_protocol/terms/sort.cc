@@ -136,7 +136,8 @@ private:
                 }
             }
             r_sanity_check(sorting != UNORDERED);
-            seq = tbl->get_sorted(index->as_str(), sorting, backtrace());
+            tbl->add_sorting(index->as_str(), sorting, backtrace());
+            seq = tbl->as_datum_stream(backtrace());
         }
 
         if (!comparisons.empty()) {

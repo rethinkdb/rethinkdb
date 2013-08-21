@@ -29,21 +29,20 @@ class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckabl
 public:
     table_t(env_t *_env, counted_t<const db_t> db, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
-    counted_t<datum_stream_t> as_datum_stream();
+    counted_t<datum_stream_t> as_datum_stream(const protob_t<const Backtrace> &bt);
     const std::string &get_pkey();
     counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
-    counted_t<datum_stream_t> get_rows(
-        counted_t<const datum_t> left_bound, bool left_bound_open,
-        counted_t<const datum_t> right_bound, bool right_bound_open,
+    counted_t<datum_stream_t> get_all(
+            counted_t<const datum_t> value,
+            const std::string &sindex_id,
+            const protob_t<const Backtrace> &bt);
+    void add_sorting(
+        const std::string &sindex_id, sorting_t sorting,
         const protob_t<const Backtrace> &bt);
-    counted_t<datum_stream_t> get_sindex_rows(
+    void add_bounds(
         counted_t<const datum_t> left_bound, bool left_bound_open,
         counted_t<const datum_t> right_bound, bool right_bound_open,
         const std::string &sindex_id, const protob_t<const Backtrace> &bt);
-
-    counted_t<datum_stream_t> get_sorted(
-        const std::string &sindex_id, sorting_t sorting,
-        const protob_t<const Backtrace> &bt);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
@@ -116,6 +115,18 @@ private:
     bool use_outdated;
     std::string pkey;
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
+
+    boost::optional<std::string> sindex_id;
+    sorting_t sorting;
+
+    struct bound_t { 
+        bound_t(counted_t<const datum_t> _value, bool _bound_open)
+            : value(_value), bound_open(_bound_open) { }
+        counted_t<const datum_t> value;
+        bool bound_open;
+    };
+
+    boost::optional<std::pair<bound_t, bound_t> > bounds;
 };
 
 
