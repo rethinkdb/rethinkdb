@@ -64,3 +64,4 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         return true;
     }
 }
+
