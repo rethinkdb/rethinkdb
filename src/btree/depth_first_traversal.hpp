@@ -3,9 +3,9 @@
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
 #include "btree/keys.hpp"
-#include "btree/slice.hpp"
-#include "containers/archive/archive.hpp"
+#include "buffer_cache/types.hpp"
 
+class btree_slice_t;
 class superblock_t;
 
 class depth_first_traversal_callback_t {
