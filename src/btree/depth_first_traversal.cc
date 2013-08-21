@@ -61,21 +61,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
 
         leaf::iterator beg_it = leaf::lower_bound(range.left.btree_key(), lnode);
 
-        if (direction == direction_t::FORWARD) {
-            for (; beg_it != end_it; ++beg_it) {
-                if (!cb->handle_pair((*beg_it).first, (*beg_it).second)) {
-                    return false;
-                }
-            }
-        } else {
-            while (end_it != beg_it) {
-                --end_it;
-
-                if (!cb->handle_pair((*end_it).first, (*end_it).second)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        pair_batch_t batch(direction, beg_it, end_it);
+        return cb->handle_pair(&batch);
     }
 }

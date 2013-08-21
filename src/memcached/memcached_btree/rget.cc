@@ -69,6 +69,18 @@ class rget_depth_first_traversal_callback_t : public depth_first_traversal_callb
 public:
     rget_depth_first_traversal_callback_t(transaction_t *txn, int max, exptime_t et) :
         transaction(txn), maximum(max), effective_time(et), cumulative_size(0) { }
+
+    // RSI: Reimplement this.
+    bool handle_pair(pair_batch_t *batch) {
+        std::pair<const btree_key_t *, const void *> pair;
+        while (batch->next(&pair)) {
+            if (!handle_pair(pair.first, pair.second)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     bool handle_pair(const btree_key_t *key, const void *value) {
         const memcached_value_t *mc_value = reinterpret_cast<const memcached_value_t *>(value);
         if (mc_value->expired(effective_time)) {

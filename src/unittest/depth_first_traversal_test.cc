@@ -62,6 +62,17 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
 struct dft_test_callback_t : public depth_first_traversal_callback_t {
     dft_test_callback_t() : count(0) { }
 
+    // RSI: Reimplement this?
+    bool handle_pair(pair_batch_t *batch) {
+        std::pair<const btree_key_t *, const void *> pair;
+        while (batch->next(&pair)) {
+            if (!handle_pair(pair.first, pair.second)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     bool handle_pair(const btree_key_t *key, UNUSED const void *value) {
         if (count == 0) {
             smallest_key.assign(key);
