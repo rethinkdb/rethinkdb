@@ -5,6 +5,7 @@
 # Number of servers, and number of RethinkDB instances per server.
 SERVERS=2
 SERVER_INSTANCES=2
+SERVER_MACHINE=m1.medium
 #TODO: SERVER_OPTS=""
 
 # Table configuration.
@@ -17,12 +18,11 @@ set acks $table 2
 EOF`
 
 # Number of clients.
-CLIENTS=1
-# This directory should contain everything a benchmark client needs to
-# run, and an executable `main`.  `main` will be called with two file
-# names as its arguments: a list `server:port` pairs, one per line,
-# and a list of tables, one per line, in that order.
-CLIENT_DIR=""
+CLIENTS=8
+CLIENT_MACHINE=m1.small
+# Be sure to mimic this quoting.
+CLIENT_MAP="grep ^read | awk '{print \$5}'"
+CLIENT_REDUCE="awk '{a+=\$0} END {print a}'"
 
 # Where to find `rethinkdb` and `rethinkdb_web_assets`.
 RETHINKDB_DIR=~/rethinkdb/build/release

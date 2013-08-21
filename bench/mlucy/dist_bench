@@ -12,7 +12,7 @@ rundir=`ssh_to $host <<EOF
 sudo mkdir -p $staging
 sudo chown -R ubuntu $staging
 EOF`
-rsync_to "$bench" "$host" "$staging" &
+rsync_to "${bench%/}/" "$host" "$staging" &
 
 ssh_to $host <<EOF
 cat >$staging/.tables <<06588ad8fe2d4e5488b80d5a42954824

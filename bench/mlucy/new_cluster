@@ -3,4 +3,5 @@
 
 name=$1
 num=$2
-seq -f "$PREFIX-$name-%g" $num | parallel -uj0 new_instance
+machine=${3-m1.medium}
+seq -f "$name-%g" $num | parallel -uj0 new_instance {} $machine

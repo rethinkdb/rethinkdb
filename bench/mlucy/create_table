@@ -21,16 +21,41 @@ awk '{print "  "$0}' >&2 <<EOF
 $conf
 EOF
 
-admin $poc $offset $staging >$table.1.log 2>$table.2.log <<EOF
+loop=true
+retries=3
+while [[ $loop == true ]]; do
+    set +e
+    admin $poc $offset $staging >$table.1.log 2>$table.2.log <<EOF
 $conf
 EOF
+    succ=$?
+    set -e
+    if [[ $succ != 0 ]]; then
+        echo "ERROR CREATING TABLE:"
+        cat $table.1.log
+        echo "---"
+        cat $table.2.log
+        exit $succ
+    fi
 
-succ=$?
-if [[ $succ != 0 ]]; then
-    echo "ERROR CREATING TABLE:"
-    cat $table.1.log
-    echo "---"
-    cat $table.2.log
-    exit $succ
-fi
+    if [[ ! -z `grep '^Warning: Cannot compute blueprint' $table.1.log` ]]; then
+        echo "Table creation failed:" >&2
+        <$table.1.log awk '{print "  "$0}' >&2
+        if [[ $retries -ge 0 ]]; then
+            echo "Retrying ($retries retries left)..." >&2
+            retries=$((retries-1))
+            admin $poc $offset $staging >>$table.1.log 2>>$table.2.log <<EOF
+rm database ${table}_db
+EOF
+            mv $table.1.log `mktemp $table.1.log.XXX`
+            mv $table.2.log `mktemp $table.2.log.XXX`
+        else
+            echo "Table creation failed $((retries+1)) times, aborting..." >&2
+            exit 1
+        fi
+    else
+        echo "Table creation SUCCESS!" >&2
+        loop=false
+    fi
+done
 

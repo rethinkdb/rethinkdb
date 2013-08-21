@@ -1,7 +1,9 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
 bench=$1
+postfix=${2-}
 load_conf "$bench"
+export PREFIX=$PREFIX$postfix
 
 function on_err() {
     figlet "ERROR" >&2
@@ -14,8 +16,8 @@ trap 'on_err $LINENO' ERR
 ################################################################################
 if [[ ! -f server_hosts && ! -f client_hosts ]]; then
     echo "Creating new cluster..." >&2
-    new_cluster "$PREFIX-server" $SERVERS > server_hosts &
-    new_cluster "$PREFIX-client" $CLIENTS > client_hosts &
+    new_cluster "$PREFIX-server" $SERVERS $SERVER_MACHINE > server_hosts &
+    new_cluster "$PREFIX-client" $CLIENTS $CLIENT_MACHINE > client_hosts &
 else
     cat >&2 <<EOF
 Using existing cluster (remove server_hosts or client_hosts to recreate):
@@ -50,6 +52,11 @@ parallel -uj0 dist_bench "$bench" {} $STAGING "'$tables'" "'$nodes'" :::: client
 ##### Run Benchmark.
 ################################################################################
 wait
-parallel -j0 run_bench {} $STAGING :::: client_hosts
+run_at=$((`date +%s`+20))
+echo "Running $bench at `date --date=@$run_at` ($run_at)..."
+rm -f raw raw.map
+bench="run_bench {} $STAGING $run_at | tee -a raw | $CLIENT_MAP"
+parallel -j0 $bench :::: client_hosts \
+    | tee raw.map | eval $CLIENT_REDUCE | tee -a runs.t
 
 wait

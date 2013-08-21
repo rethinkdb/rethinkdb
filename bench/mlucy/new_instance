@@ -9,7 +9,7 @@ machine=${2-m1.medium}
 
 host=terminated
 while [[ $host == terminated ]]; do
-    echo "Starting $name..." >&2
+    echo "Starting $name ($machine/$ami)..." >&2
     id_path=$name.id
     f=`mktemp`
     ec2-run-instances $ami -g $group -t $machine -k bench >$f
