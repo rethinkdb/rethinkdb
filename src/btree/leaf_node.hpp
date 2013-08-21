@@ -162,13 +162,19 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
 class iterator {
 public:
     iterator();
-    iterator(const leaf_node_t *node, int index);
+
+    // Constructs an iterator pointing at the end or at the live entry with smallest
+    // index_ that is greater than or equal to the parameter.
+    static iterator live_entry_ceiling(const leaf_node_t *node, int index);
+
     std::pair<const btree_key_t *, const void *> operator*() const;
     iterator &operator++();
     iterator &operator--();
     bool operator==(const iterator &other) const;
     bool operator!=(const iterator &other) const;
 private:
+    iterator(const leaf_node_t *node, int index);
+
     const leaf_node_t *node_;
     int index_;
 };

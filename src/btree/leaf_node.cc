@@ -1532,7 +1532,7 @@ std::pair<const btree_key_t *, const void *> iterator::operator*() const {
 
 iterator &iterator::operator++() {
     guarantee(index_ < static_cast<int>(node_->num_pairs),
-              "Trying to increment past the end of an iterator.");
+              "Trying to increment past the end iterator.");
     do {
         ++index_;
     } while (index_ < node_->num_pairs && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
@@ -1540,10 +1540,10 @@ iterator &iterator::operator++() {
 }
 
 iterator &iterator::operator--() {
-    guarantee(index_ > -1, "Trying to decrement past the beginning of an iterator.");
     do {
         --index_;
     } while (index_ >= 0 && !entry_is_live(get_entry(node_, node_->pair_offsets[index_])));
+    guarantee(index_ >= 0, "Trying to decrement past the begin iterator.");
     return *this;
 }
 
@@ -1555,12 +1555,22 @@ bool iterator::operator!=(const iterator &other) const {
     return !operator==(other);
 }
 
-leaf_node_t::iterator begin(const leaf_node_t &leaf_node) {
-    return ++leaf_node_t::iterator(&leaf_node, -1);
+iterator begin(const leaf_node_t &leaf_node) {
+    return iterator::live_entry_ceiling(&leaf_node, 0);
 }
 
-leaf_node_t::iterator end(const leaf_node_t &leaf_node) {
-    return leaf_node_t::iterator(&leaf_node, leaf_node.num_pairs);
+iterator end(const leaf_node_t &leaf_node) {
+    return iterator::live_entry_ceiling(&leaf_node, leaf_node.num_pairs);
+}
+
+iterator iterator::live_entry_ceiling(const leaf_node_t *node, const int index) {
+    guarantee(index >= 0 && index <= node->num_pairs);
+    int i = index;
+    while (i < node->num_pairs && !entry_is_live(get_entry(node, node->pair_offsets[i]))) {
+        ++i;
+    }
+
+    return iterator(node, i);
 }
 
 // RSI: Make this and the upper bound function take a pointer to leaf_node_t.  Make all
@@ -1568,31 +1578,14 @@ leaf_node_t::iterator end(const leaf_node_t &leaf_node) {
 leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
     leaf::find_key(&leaf_node, key, &index);
-    if (index == leaf_node.num_pairs ||
-        entry_is_live(leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]))) {
-        return leaf_node_t::iterator(&leaf_node, index);
-    } else {
-        // RSI: Avoid this inelegance.
-        return ++leaf_node_t::iterator(&leaf_node, index);
-    }
+    return iterator::live_entry_ceiling(&leaf_node, index);
 }
 
 // RSI: Rename this.
 leaf::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
     int index;
     const bool key_equal = leaf::find_key(&leaf_node, key, &index);
-
-    if (index == leaf_node.num_pairs) {
-        return leaf_node_t::iterator(&leaf_node, index);
-    } else if (key_equal || !entry_is_live(leaf::get_entry(&leaf_node, leaf_node.pair_offsets[index]))) {
-        // Make sure we don't create an iterator to a dead entry, that would be bad.
-        guarantee(index < leaf_node.num_pairs);
-
-        // RSI: Avoid this inelegance (in the "dead entry" case).
-        return ++leaf_node_t::iterator(&leaf_node, index);
-    } else {
-        return leaf_node_t::iterator(&leaf_node, index);
-    }
+    return iterator::live_entry_ceiling(&leaf_node, index + (key_equal ? 1 : 0));
 }
 
 }  // namespace leaf
