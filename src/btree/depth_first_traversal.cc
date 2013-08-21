@@ -42,8 +42,8 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         const btree_key_t *key;
 
         if (direction == direction_t::FORWARD) {
-            for (auto it = leaf::inclusive_lower_bound(range.left.btree_key(), *lnode);
-                 it != leaf::end(*lnode); ++it) {
+            for (auto it = leaf::inclusive_lower_bound(range.left.btree_key(), lnode);
+                 it != leaf::end(lnode); ++it) {
                 key = (*it).first;
                 if (!range.right.unbounded &&
                     btree_key_cmp(key, range.right.key.btree_key()) >= 0) {
@@ -56,12 +56,12 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         } else {
             leaf_node_t::iterator it;
             if (range.right.unbounded) {
-                it = leaf::end(*lnode);
+                it = leaf::end(lnode);
             } else {
-                it = leaf::inclusive_forward_upper_bound(range.right.key.btree_key(), *lnode);
+                it = leaf::inclusive_forward_upper_bound(range.right.key.btree_key(), lnode);
             }
 
-            while (it != leaf::begin(*lnode)) {
+            while (it != leaf::begin(lnode)) {
                 --it;
 
                 key = (*it).first;

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_LEAF_NODE_HPP_
 #define BTREE_LEAF_NODE_HPP_
 
@@ -62,11 +62,11 @@ struct leaf_node_t {
 
 namespace leaf {
 
-leaf_node_t::iterator begin(const leaf_node_t &leaf_node);
-leaf_node_t::iterator end(const leaf_node_t &leaf_node);
+leaf_node_t::iterator begin(const leaf_node_t *leaf_node);
+leaf_node_t::iterator end(const leaf_node_t *leaf_node);
 
-leaf_node_t::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
-leaf_node_t::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node);
+leaf_node_t::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t *leaf_node);
+leaf_node_t::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_node_t *leaf_node);
 
 
 

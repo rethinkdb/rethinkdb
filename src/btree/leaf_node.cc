@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_FORMAT_MACROS
 
 #include "btree/leaf_node.hpp"
@@ -1555,12 +1555,12 @@ bool iterator::operator!=(const iterator &other) const {
     return !operator==(other);
 }
 
-iterator begin(const leaf_node_t &leaf_node) {
-    return iterator::live_entry_ceiling(&leaf_node, 0);
+iterator begin(const leaf_node_t *leaf_node) {
+    return iterator::live_entry_ceiling(leaf_node, 0);
 }
 
-iterator end(const leaf_node_t &leaf_node) {
-    return iterator::live_entry_ceiling(&leaf_node, leaf_node.num_pairs);
+iterator end(const leaf_node_t *leaf_node) {
+    return iterator::live_entry_ceiling(leaf_node, leaf_node->num_pairs);
 }
 
 iterator iterator::live_entry_ceiling(const leaf_node_t *node, const int index) {
@@ -1575,17 +1575,17 @@ iterator iterator::live_entry_ceiling(const leaf_node_t *node, const int index) 
 
 // RSI: Make this and the upper bound function take a pointer to leaf_node_t.  Make all
 // by-reference functions in this file take a pointer.
-leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
+leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t *leaf_node) {
     int index;
-    leaf::find_key(&leaf_node, key, &index);
-    return iterator::live_entry_ceiling(&leaf_node, index);
+    leaf::find_key(leaf_node, key, &index);
+    return iterator::live_entry_ceiling(leaf_node, index);
 }
 
 // RSI: Rename this.
-leaf::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_node_t &leaf_node) {
+leaf::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_node_t *leaf_node) {
     int index;
-    const bool key_equal = leaf::find_key(&leaf_node, key, &index);
-    return iterator::live_entry_ceiling(&leaf_node, index + (key_equal ? 1 : 0));
+    const bool key_equal = leaf::find_key(leaf_node, key, &index);
+    return iterator::live_entry_ceiling(leaf_node, index + (key_equal ? 1 : 0));
 }
 
 }  // namespace leaf
