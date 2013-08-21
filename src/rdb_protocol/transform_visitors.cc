@@ -131,11 +131,15 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {  // N
 
 void transform_apply(ql::env_t *ql_env,
                      const backtrace_t &backtrace,
-                     counted_t<const ql::datum_t> json,
+                     std::list<lazy_json_t> &&jsons,
                      rdb_protocol_details::transform_variant_t *t,
                      std::list<counted_t<const ql::datum_t> > *out) {
-    boost::apply_visitor(transform_visitor_t(json, out, ql_env, backtrace),
-                         *t);
+    std::list<lazy_json_t> locals = std::move(jsons);
+
+    for (auto it = locals.begin(); it != locals.end(); ++it) {
+        boost::apply_visitor(transform_visitor_t(it->get(), out, ql_env, backtrace),
+                             *t);
+    }
 }
 
 /* A visitor for applying a terminal to a bit of json. */

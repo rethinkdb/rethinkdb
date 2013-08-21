@@ -739,11 +739,10 @@ public:
                     try {
                         std::list<counted_t<const ql::datum_t> > tmp;
 
-                        for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                            transform_apply(ql_env, it->backtrace,
-                                            jt->get(), &it->variant,
-                                            &tmp);
-                        }
+                        transform_apply(ql_env, it->backtrace,
+                                        std::move(data), &it->variant,
+                                        &tmp);
+
                         data.clear();
                         for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
                             data.push_back(lazy_json_t(*jt));

@@ -76,10 +76,14 @@ counted_t<const ql::datum_t> transform_stream_t::next() {
         for (tit_t it  = transform.begin();
                    it != transform.end();
                    ++it) {
-            std::list<counted_t<const ql::datum_t> > tmp;
+            // Appease the type system.
+            std::list<lazy_json_t> lazy_accumulator;
             for (auto jt = accumulator.begin(); jt != accumulator.end(); ++jt) {
-                transform_apply(ql_env, it->backtrace, *jt, &it->variant, &tmp);
+                lazy_accumulator.push_back(lazy_json_t(*jt));
             }
+
+            std::list<counted_t<const ql::datum_t> > tmp;
+            transform_apply(ql_env, it->backtrace, std::move(lazy_accumulator), &it->variant, &tmp);
 
             accumulator = std::move(tmp);
         }
