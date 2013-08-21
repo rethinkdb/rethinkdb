@@ -1573,13 +1573,13 @@ iterator iterator::live_entry_ceiling(const leaf_node_t *node, const int index) 
     return iterator(node, i);
 }
 
-leaf::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t *leaf_node) {
+leaf::iterator lower_bound(const btree_key_t *key, const leaf_node_t *leaf_node) {
     int index;
     leaf::find_key(leaf_node, key, &index);
     return iterator::live_entry_ceiling(leaf_node, index);
 }
 
-leaf::iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t *leaf_node) {
+leaf::iterator upper_bound(const btree_key_t *key, const leaf_node_t *leaf_node) {
     int index;
     const bool key_equal = leaf::find_key(leaf_node, key, &index);
     return iterator::live_entry_ceiling(leaf_node, index + (key_equal ? 1 : 0));

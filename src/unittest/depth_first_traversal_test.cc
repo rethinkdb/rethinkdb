@@ -62,12 +62,26 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
 struct dft_test_callback_t : public depth_first_traversal_callback_t {
     dft_test_callback_t() : count(0) { }
 
-    bool handle_pair(UNUSED const btree_key_t *key, UNUSED const void *value) {
+    bool handle_pair(const btree_key_t *key, UNUSED const void *value) {
+        if (count == 0) {
+            smallest_key.assign(key);
+            largest_key.assign(key);
+        } else {
+            if (btree_key_cmp(key, smallest_key.btree_key()) < 0) {
+                smallest_key.assign(key);
+            }
+            if (btree_key_cmp(largest_key.btree_key(), key) < 0) {
+                largest_key.assign(key);
+            }
+        }
+
         ++count;
         return true;
     }
 
     int64_t count;
+    store_key_t smallest_key;
+    store_key_t largest_key;
 };
 
 void run_depth_first_traversal_test(direction_t direction) {
@@ -96,31 +110,59 @@ void run_depth_first_traversal_test(direction_t direction) {
             &io_backender,
             base_path_t("."));
 
-    insert_rows(0, 100, &store);
+    const int num_rows = 500;
+
+    insert_rows(0, num_rows, &store);
 
     btree_slice_t *slice = store.btree.get();
 
-    scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    get_btree_superblock_and_txn_for_reading(slice, rwi_read, order_token_t::ignore,
-                                             CACHE_SNAPSHOTTED_NO,
-                                             &superblock, &txn);
 
-    const int low = 50;
-    const int high = 80;
+    for (int low = 0; low <= num_rows; low += 13) {
+        for (int high = ceil_aligned(low, 17); high <= num_rows; high += 17) {
+            for (int k = 0; k < 4; ++k) {
+                const key_range_t::bound_t lowbound
+                    = (k & 1) ? key_range_t::open : key_range_t::closed;
+                const key_range_t::bound_t highbound
+                    = (k & 2) ? key_range_t::open : key_range_t::closed;
 
-    // A double-closed interval reveals the off-by-one error in the closed test.
-    key_range_t range(key_range_t::closed, store_key_t(ql::number_as_pkey(low)),
-                      key_range_t::closed, store_key_t(ql::number_as_pkey(high)));
+                if (low == high && lowbound == key_range_t::open &&
+                    highbound == key_range_t::open) {
+                    continue;
+                }
 
-    dft_test_callback_t dft_callback;
+                scoped_ptr_t<transaction_t> txn;
+                scoped_ptr_t<real_superblock_t> superblock;
+                get_btree_superblock_and_txn_for_reading(slice, rwi_read, order_token_t::ignore,
+                                                         CACHE_SNAPSHOTTED_NO,
+                                                         &superblock, &txn);
 
-    bool res = btree_depth_first_traversal(slice, txn.get(), superblock.get(),
-                                           range, &dft_callback, direction);
+                // A double-closed interval reveals the off-by-one error in the closed test.
+                key_range_t range(lowbound, store_key_t(ql::number_as_pkey(low)),
+                                  highbound, store_key_t(ql::number_as_pkey(high)));
 
-    ASSERT_TRUE(res);
+                dft_test_callback_t dft_callback;
 
-    ASSERT_EQ(1 + (high - low), dft_callback.count);
+                bool res = btree_depth_first_traversal(slice, txn.get(), superblock.get(),
+                                                       range, &dft_callback, direction);
+
+                ASSERT_TRUE(res);
+
+                const int expected_low = low + (lowbound == key_range_t::open);
+                const int expected_high = std::min(num_rows - 1, high - (highbound == key_range_t::open));
+
+                const int expected_count = std::max(0, expected_high - expected_low + 1);
+
+                ASSERT_EQ(expected_count, dft_callback.count) << "low=" << low << ", high=" << high << "k=" << k;
+
+                if (expected_count != 0) {
+                    ASSERT_EQ(ql::number_as_pkey(expected_low), key_to_unescaped_str(dft_callback.smallest_key))
+                        << "low=" << low << ", high=" << high << "k=" << k;
+                    ASSERT_EQ(ql::number_as_pkey(expected_high), key_to_unescaped_str(dft_callback.largest_key))
+                        << "low=" << low << ", high=" << high << "k=" << k;
+                }
+            }
+        }
+    }
 }
 
 void run_depth_first_traversal_forward() {
