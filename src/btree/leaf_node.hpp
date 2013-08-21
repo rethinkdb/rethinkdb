@@ -66,7 +66,7 @@ leaf_node_t::iterator begin(const leaf_node_t *leaf_node);
 leaf_node_t::iterator end(const leaf_node_t *leaf_node);
 
 leaf_node_t::iterator inclusive_lower_bound(const btree_key_t *key, const leaf_node_t *leaf_node);
-leaf_node_t::iterator inclusive_forward_upper_bound(const btree_key_t *key, const leaf_node_t *leaf_node);
+leaf_node_t::iterator inclusive_upper_bound(const btree_key_t *key, const leaf_node_t *leaf_node);
 
 
 
