@@ -126,6 +126,21 @@ tests:
       rb: tbl.order_by('a', :index => :id)[0]
       ot: ({'id':0, 'a':0})
 
+    - py: tbl.order_by(index='id').order_by(index='id')[0]
+      js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)
+      rb: tbl.order_by('a', :index => :id).order_by('a', :index => :id)[0]
+      ot: ({'id':0, 'a':0})
+
+    - py: tbl.between(5, None, index='id').order_by(index='id')[0]
+      js: tbl.between(5, null, {index:'id'}).orderBy({index:'id'}).nth(0)
+      rb: tbl.between(5, nil, :index => :id).order_by('a', :index => :id)[0]
+      ot: ({'id':5, 'a':1})
+
+    - py: tbl.order_by(index='id').between(5, None, index='id')[0]
+      js: tbl.orderBy({index:'id'}).between(5, null, {index:'id'}).nth(0)
+      rb: tbl.order_by('a', :index => :id).between(5, nil, :index => :id)[0]
+      ot: ({'id':5, 'a':1})
+
     - py: "tbl.order_by(lambda x: x['id'])[0]"
       js: tbl.orderBy(function (x) { return x('id'); }).nth(0)
       rb: tbl.order_by{|x| x[:id]}[0]
@@ -204,6 +219,11 @@ tests:
       rb: tbl.order_by(:index => r.desc(:id)).coerce_to("ARRAY").eq(tbl.order_by(r.desc(:id)).coerce_to("ARRAY"))
       js: tbl.order_by({index:r.desc('id')}).coerce_to("ARRAY").eq(tbl.order_by(r.desc('id')).coerce_to("ARRAY"))
       ot: true
+
+    - py: tbl.order_by(index='id').order_by(index='id').nth(0)
+      js: tbl.order_by({index:'id'}).order_by({index:'id'}).nth(0)
+      rb: tbl.order_by(:index => :id).order_by(:index => :id).nth(0)
+      ot: ({'id':0, 'a':0})
 
     # test skip
     - cd: tbl.skip(1).count()
