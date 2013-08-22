@@ -3,7 +3,6 @@
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
 #include "btree/keys.hpp"
-#include "btree/leaf_node.hpp"
 #include "buffer_cache/types.hpp"
 
 class btree_slice_t;
@@ -17,11 +16,17 @@ enum class direction_t {
 
 class depth_first_traversal_callback_t {
 public:
+    depth_first_traversal_callback_t() { }
+
     /* Return value of `true` indicates to keep going; `false` indicates to stop
     traversing the tree. */
     virtual bool handle_pair(const btree_key_t *key, const void *value) = 0;
+
 protected:
     virtual ~depth_first_traversal_callback_t() { }
+
+private:
+    DISABLE_COPYING(depth_first_traversal_callback_t);
 };
 
 /* Returns `true` if we reached the end of the btree or range, and `false` if
