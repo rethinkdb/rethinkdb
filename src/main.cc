@@ -6,7 +6,6 @@
 #include "clustering/administration/main/command_line.hpp"
 #include "clustering/administration/cli/admin_command_parser.hpp"
 #include "utils.hpp"
-#include "help.hpp"
 #include "config/args.hpp"
 
 int main(int argc, char *argv[]) {
