@@ -2598,7 +2598,7 @@ module 'DataExplorerView', ->
         error_on_connect: (error) =>
             if /^(Unexpected token)/.test(error.message)
                 # Unexpected token, the server couldn't parse the protobuf message
-                # The trugh is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
+                # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
                 @.$('.loading_query_img').hide()
                 @results_view.render_error(null, error)
 
@@ -3525,6 +3525,8 @@ module 'DataExplorerView', ->
                     else
                         that.connection = connection
                         that.on_success(connection)
+                        connection.removeAllListeners 'error'
+                        connection.on 'error', that.on_fail
                 if @container?
                     @container.results_view.cursor_timed_out()
                 unless @dont_timeout_connection
