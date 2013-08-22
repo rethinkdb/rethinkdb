@@ -1,3 +1,17 @@
+# Release 1.8.1 (High Noon)
+
+Released on 2013-08-21
+
+Bug fix update.
+
+* The shard suggester now works with times (#1335)
+* The python backup scripts no longer rely on `pip show` (#1331)
+* `rethinkdb help` no longer uses a pager (#1315, #1308)
+* The web UI now correctly positions `SVGRectElement` (#1314)
+* Fixed a bug that caused a crash when using `filter` with a non-deterministic value (#1299)
+
+--
+
 # Release 1.8.0 (High Noon)
 
 Released on 2013-08-14
