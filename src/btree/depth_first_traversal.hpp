@@ -35,16 +35,13 @@ private:
     // pair_batch_t::next.
     leaf::iterator beg_;
     leaf::iterator end_;
-
-    DISABLE_COPYING(pair_batch_t);
 };
 
 class depth_first_traversal_callback_t {
 public:
     /* Return value of `true` indicates to keep going; `false` indicates to stop
     traversing the tree. */
-    virtual bool handle_pair(pair_batch_t *batch) = 0;
-
+    virtual bool handle_pair(const btree_key_t *key, const void *value) = 0;
 protected:
     virtual ~depth_first_traversal_callback_t() { }
 };

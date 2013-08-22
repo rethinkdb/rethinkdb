@@ -701,17 +701,6 @@ public:
         }
     }
 
-    // RSI: Reimplement this.
-    bool handle_pair(pair_batch_t *batch) {
-        std::pair<const btree_key_t *, const void *> pair;
-        while (batch->next(&pair)) {
-            if (!handle_pair(pair.first, pair.second)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     bool handle_pair(const btree_key_t* key, const void *value) {
         store_key_t store_key(key);
         if (bad_init) {
