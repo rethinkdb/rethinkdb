@@ -15,28 +15,6 @@ enum class direction_t {
     BACKWARD
 };
 
-class pair_batch_t {
-public:
-    // Returns false if there's no more pairs in the batch.
-    bool next(std::pair<const btree_key_t *, const void *> *out);
-
-private:
-    friend bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
-                                            buf_lock_t *block, const key_range_t &range,
-                                            depth_first_traversal_callback_t *cb, direction_t direction);
-
-    pair_batch_t(direction_t direction, leaf::iterator beg, leaf::iterator end)
-        : direction_(direction), beg_(beg), end_(end) { }
-
-    // The direction in which we iterate.
-    const direction_t direction_;
-
-    // [beg_, end_) contain the pairs that have not yet been output by
-    // pair_batch_t::next.
-    leaf::iterator beg_;
-    leaf::iterator end_;
-};
-
 class depth_first_traversal_callback_t {
 public:
     /* Return value of `true` indicates to keep going; `false` indicates to stop
