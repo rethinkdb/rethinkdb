@@ -6,6 +6,7 @@
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/btree.hpp"

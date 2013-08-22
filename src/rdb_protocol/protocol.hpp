@@ -16,7 +16,6 @@
 #include <boost/optional.hpp>
 
 #include "btree/btree_store.hpp"
-#include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
@@ -80,11 +79,6 @@ inline bool forward(sorting_t sorting) {
 inline bool backward(sorting_t sorting) {
     return !forward(sorting);
 }
-
-inline direction_t to_direction(sorting_t sorting) {
-    return forward(sorting) ? direction_t::FORWARD : direction_t::BACKWARD;
-}
-
 
 namespace rdb_protocol_details {
 

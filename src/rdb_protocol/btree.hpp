@@ -10,7 +10,6 @@
 
 #include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
-#include "btree/depth_first_traversal.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 
@@ -46,6 +45,7 @@ typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
 class parallel_traversal_progress_t;
+enum class direction_t;
 
 static const size_t rget_max_chunk_size = MEGABYTE;
 

@@ -8,6 +8,7 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
 #include "btree/superblock.hpp"
@@ -1237,6 +1238,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     { }
 
 private:
+    static direction_t to_direction(sorting_t sorting) {
+        return forward(sorting) ? direction_t::FORWARD : direction_t::BACKWARD;
+    }
+
     read_response_t *response;
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
