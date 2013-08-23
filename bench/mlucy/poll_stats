@@ -1,0 +1,10 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+host=$1
+offset=$2
+
+while true; do
+    curl $host:$((WEB_PORT + offset))/ajax/stat >>stats 2>/dev/null
+    sleep 1
+done
