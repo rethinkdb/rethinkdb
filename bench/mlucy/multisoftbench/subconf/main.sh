@@ -16,7 +16,7 @@ while true; do
     set +e
     set -o pipefail
     `dirname "$0"`/stress.py \
-        --timeout 180 \
+        --timeout 160 \
         --clients=400 \
         --batch-size=100 \
         --value-size=64 \

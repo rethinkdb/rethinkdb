@@ -5,7 +5,6 @@ load_conf "$multibench"
 
 echo "$CONFS" | {
     while read line; do
-        echo "A"
         set -o pipefail
         (
             eval "$line"
@@ -13,7 +12,7 @@ echo "$CONFS" | {
             mkdir -p $name
             cd $name
             for i in `seq $RUNS`; do
-                echo "$name $i/$RUNS:" >&2
+                figlet "$name $i/$RUNS:" >&2
                 bench.sh "$multibench/$SUBCONF" >> mbruns.t
             done
             echo "$name: `<mbruns.t confint`"

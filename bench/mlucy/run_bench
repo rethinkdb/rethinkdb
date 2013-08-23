@@ -5,6 +5,6 @@ host=$1
 staging=$2
 run_at=$3
 
-ssh_to $host >&2 <<EOF
+ssh_to $host <<EOF
 $staging/main.sh $run_at $staging/.tables $staging/.nodes
 EOF
