@@ -318,7 +318,7 @@ tests:
   - rb: tbl.between(nil, nil).between(nil, nil).map{|x| x[:id]}
     py: tbl.between(None, None).between(None, None).map(lambda x:x['id'])
     js: tbl.between(null, null).between(null, null).map(function(x) { return x('id'); })
-    ot: [0, 1, 2, 3, 4]
+    ot: err('RqlRuntimeError', 'Cannot chain multiple betweens to the same table.', [0])
   - rb: tbl.between(0, nil).orderby(:id).map{|x| x[:id]}
     py: tbl.between(0, None).order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null).orderBy('id').map(function(x) { return x('id'); })
