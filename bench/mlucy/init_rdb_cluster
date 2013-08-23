@@ -5,6 +5,7 @@ hosts=$1
 num_shards=$2
 rdb_dir=$3
 staging=$4
+server_opts=$5
 servers="::: $hosts ::: `seq $num_shards`"
 
 echo "Resetting $staging on servers..." >&2
@@ -35,7 +36,7 @@ rm -rf {2}
 mkdir -p {2}
 cd {2}
 set -m
-</dev/null nohup ../.persist/rethinkdb $jline -o {2} -n \$n --bind all >1.log 2>2.log &
+</dev/null nohup ../.persist/rethinkdb $jline -o {2} -n \$n $server_opts --bind all >1.log 2>2.log &
 EOF" $servers >&2
 
 wait

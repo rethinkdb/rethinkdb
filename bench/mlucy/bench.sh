@@ -42,7 +42,8 @@ EOF
 ##### Set up RethinkDB cluster.
 ################################################################################
 wait
-init_rdb_cluster "`cat server_hosts`" $SERVER_INSTANCES $RETHINKDB_DIR $STAGING &
+init_rdb_cluster "`cat server_hosts`" \
+    $SERVER_INSTANCES $RETHINKDB_DIR $STAGING "$SERVER_OPTS" &
 export POC=`head -1 server_hosts`
 tunnel_to_poc $POC 1 >cluster_port
 export ADMIN_CLUSTER_PORT=`cat cluster_port`
@@ -65,7 +66,9 @@ wait
 run_at=$((`date +%s`+10))
 echo "Running $bench at `date --date=@$run_at` ($run_at)..." >&2
 rm -f raw raw.map
+stats_pid=`bash -c 'set -m; set -e; nohup poll_stats '"$POC"' 1 >/dev/null 2>/dev/null & echo $!'`
 bench="run_bench {} $STAGING $run_at | tee -a raw | $CLIENT_MAP"
 parallel -j0 $bench :::: client_hosts \
     | tee raw.map | eval $CLIENT_REDUCE | tee -a runs.t
+kill $stats_pid
 wait
