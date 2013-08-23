@@ -1,6 +1,10 @@
 #!/bin/bash
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
 
+# This script will produce overconfident bounds for very non-normal
+# data on small sample sizes, especially skewed data.  (Anecdotally,
+# benchmarking results appear to be roughly normally distributed.)
+
 function err() { echo "$@" >&2; exit 1; }
 function calc() { bc -l <<< "scale=${SCALE-6}; $@"; }
 
