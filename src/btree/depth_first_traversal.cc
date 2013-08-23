@@ -4,16 +4,6 @@
 #include "btree/operations.hpp"
 #include "containers/scoped.hpp"
 
-class counted_buf_lock_t : public buf_lock_t,
-                           public single_threaded_countable_t<counted_buf_lock_t> {
-public:
-    template <class... Args>
-    counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
-
-private:
-    DISABLE_COPYING(counted_buf_lock_t);
-};
-
 dft_value_t::dft_value_t(const btree_key_t *key, const void *value,
                          const counted_t<counted_buf_lock_t> &buf_lock)
     : key_(key), value_(value), btree_leaf_keepalive_(buf_lock) { }

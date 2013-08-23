@@ -3,7 +3,7 @@
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
 #include "btree/keys.hpp"
-#include "buffer_cache/types.hpp"
+#include "buffer_cache/buffer_cache.hpp"
 #include "containers/counted.hpp"
 
 class btree_slice_t;
@@ -15,7 +15,6 @@ enum class direction_t {
     BACKWARD
 };
 
-class counted_buf_lock_t;
 
 // For the lack of a better name...  This is the value held by a depth first
 // traversal callback.  It gets passed back to the depth first traversal function
@@ -33,12 +32,16 @@ public:
     const btree_key_t *key() const { return key_; }
     const void *value() const { return value_; }
 
+    movable_t<counted_buf_lock_t> release_keepalive() {
+        return std::move(btree_leaf_keepalive_);
+    }
+
 private:
     void swap(dft_value_t &other);
 
     const btree_key_t *key_;
     const void *value_;
-    counted_t<counted_buf_lock_t> btree_leaf_keepalive_;
+    movable_t<counted_buf_lock_t> btree_leaf_keepalive_;
 
     DISABLE_COPYING(dft_value_t);
 };

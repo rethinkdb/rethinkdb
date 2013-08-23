@@ -30,8 +30,8 @@ counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
                                       transaction_t *txn);
 
 class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee_t> {
-    lazy_json_pointee_t(const rdb_value_t *_rdb_value, transaction_t *_txn)
-        : rdb_value(_rdb_value), txn(_txn) {
+    lazy_json_pointee_t(const rdb_value_t *_rdb_value, transaction_t *_txn, movable_t<counted_buf_lock_t> &&_buf_ref)
+        : rdb_value(_rdb_value), txn(_txn), buf_ref(std::move(_buf_ref)) {
         guarantee(rdb_value != NULL);
         guarantee(txn != NULL);
     }
@@ -46,10 +46,12 @@ class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee
     // If empty, we haven't loaded the value yet.
     counted_t<const ql::datum_t> ptr;
 
-    // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and the
-    // transaction with which to load it.
+    // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and
+    // the transaction with which to load it.  Also, we hold a reference to the
+    // buf_lock_t which holds the json value (until it's been loaded).
     const rdb_value_t *rdb_value;
     transaction_t *txn;
+    movable_t<counted_buf_lock_t> buf_ref;
 
     DISABLE_COPYING(lazy_json_pointee_t);
 };
@@ -59,8 +61,8 @@ public:
     explicit lazy_json_t(const counted_t<const ql::datum_t> &ptr)
         : pointee(new lazy_json_pointee_t(ptr)) { }
 
-    lazy_json_t(const rdb_value_t *rdb_value, transaction_t *txn)
-        : pointee(new lazy_json_pointee_t(rdb_value, txn)) { }
+    lazy_json_t(const rdb_value_t *rdb_value, transaction_t *txn, movable_t<counted_buf_lock_t> &&buf_ref)
+        : pointee(new lazy_json_pointee_t(rdb_value, txn, std::move(buf_ref))) { }
 
     const counted_t<const ql::datum_t> &get() const;
 

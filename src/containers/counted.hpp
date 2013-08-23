@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <utility>
+
 #include "utils.hpp"
 
 // Yes, this is a clone of boost::intrusive_ptr.  This will probably
@@ -46,9 +48,7 @@ public:
     }
 
     void swap(counted_t &other) {
-        T *tmp = p_;
-        p_ = other.p_;
-        other.p_ = tmp;
+        std::swap(p_, other.p_);
     }
 
     // TODO: Add noexcept on versions of compilers that support it.
@@ -255,6 +255,46 @@ inline intptr_t counted_use_count(const slow_atomic_countable_t<T> *p) {
     rassert(tmp > 0);
     return tmp;
 }
+
+
+// A type for when you want something to be reference counted, but you want have
+// control of who's allowed to make additional references.  movable_t can be moved
+// and destroyed.  (Obviously there are loopholes.)
+template <class T>
+class movable_t {
+public:
+    movable_t() { }
+    movable_t(const counted_t<T> &ptr) : ptr_(ptr) { }
+    movable_t(counted_t<T> &&ptr) : ptr_(std::move(ptr)) { }
+    movable_t(movable_t &&other) : ptr_(std::move(other.ptr_)) { }
+    template <class U>
+    movable_t(movable_t<U> &&other) : ptr_(std::move(other.ptr_)) { }
+
+    movable_t &operator=(movable_t &&other) {
+        movable_t tmp(std::move(other));
+        swap(tmp);
+        return *this;
+    }
+
+    template <class U>
+    movable_t &operator=(movable_t<U> &&other) {
+        movable_t tmp(std::move(other));
+        swap(tmp);
+        return *this;
+    }
+
+    void swap(movable_t &other) { std::swap(ptr_, other.ptr_); }
+    T *operator->() const { return ptr_.get(); }
+    T *get() const { return ptr_.get(); }
+    T &operator*() const { return *ptr_.get(); }
+    bool has() const { return ptr_.has(); }
+
+    void reset() { ptr_.reset(); }
+
+private:
+    counted_t<T> ptr_;
+    DISABLE_COPYING(movable_t);
+};
 
 
 #endif  // CONTAINERS_COUNTED_HPP_

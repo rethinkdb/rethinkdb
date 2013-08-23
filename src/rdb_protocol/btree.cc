@@ -722,7 +722,8 @@ public:
                 response->last_considered_key = store_key;
             }
 
-            lazy_json_t first_value(static_cast<const rdb_value_t *>(value), transaction);
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(value), transaction,
+                                    keyvalue.release_keepalive());
 
             std::list<lazy_json_t> data;
             data.push_back(first_value);
@@ -742,9 +743,13 @@ public:
                     try {
                         std::list<counted_t<const ql::datum_t> > tmp;
 
-                        transform_apply(ql_env, it->backtrace,
-                                        std::move(data), &it->variant,
-                                        &tmp);
+                        {
+                            // RSI: Load the value _before_ locking.
+                            mutex_t::acq_t acq(&eval_mutex);
+                            transform_apply(ql_env, it->backtrace,
+                                            std::move(data), &it->variant,
+                                            &tmp);
+                        }
 
                         data.clear();
                         for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
@@ -780,6 +785,8 @@ public:
                 return cumulative_size < rget_max_chunk_size;
             } else {
                 try {
+                    // RSI: Load the value _before_ locking.
+                    mutex_t::acq_t acq(&eval_mutex);
                     terminal_apply(ql_env, terminal->backtrace,
                                    std::move(data),
                                    &terminal->variant, &response->result);
@@ -812,7 +819,11 @@ private:
     transaction_t *const transaction;
     rget_read_response_t *const response;
     size_t cumulative_size;
+
     ql::env_t *const ql_env;
+    // You can't run queries concurrently.  So we use eval_mutex to ensure that everything runs them non-concurrently.
+    mutex_t eval_mutex;
+
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
 
@@ -855,6 +866,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
+    // RSI: Spooky logic at a distance.
     if (callback.get_cumulative_size() >= rget_max_chunk_size) {
         response->truncated = true;
     } else {
@@ -882,6 +894,8 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
         response);
     btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
 
+    // RSI: Spooky logic at a distance.  We should get explicitly told whether
+    // truncation happened.
     if (callback.get_cumulative_size() >= rget_max_chunk_size) {
         response->truncated = true;
     } else {

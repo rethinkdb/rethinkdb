@@ -23,6 +23,7 @@ counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
 const counted_t<const ql::datum_t> &lazy_json_t::get() const {
     if (!pointee->ptr) {
         pointee->ptr = get_data(pointee->rdb_value, pointee->txn);
+        pointee->buf_ref.reset();
     }
     return pointee->ptr;
 }
