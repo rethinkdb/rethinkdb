@@ -143,12 +143,12 @@ commands:
         code:
           js: r.table('marvel').orderBy('damselsSaved', {index:'enemiesVanquished'}).run(conn, callback)
           py: r.table('marvel').order_by('damsels_saved', index='enemies_vanquished').run(conn)
-          rb: r.table('marvel').order_by(:enemies_vanquished, :index => :damsels_saved).run(conn)
+          rb: r.table('marvel').order_by(:damsels_saved, :index => :enemies_vanquished).run(conn)
       - description: You can also specify a descending order when using an index.
         code:
-          js: r.table('marvel').orderBy({index: r.desc('enemiesVanquished'})).run(conn, callback)
+          js: "r.table('marvel').orderBy({index: r.desc('enemiesVanquished'})).run(conn, callback)"
           py: r.table('marvel').order_by(index=r.desc('enemies_vanquished')).run(conn)
-          rb: r.table('marvel').order_by(:index => r.desc('damsels_saved')).run(conn)
+          rb: r.table('marvel').order_by(:index => r.desc('enemies_vanquished')).run(conn)
       - description: Let's lead with our best vanquishers by specify descending ordering.
         code:
           js: |-
