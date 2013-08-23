@@ -701,7 +701,10 @@ public:
         }
     }
 
-    bool handle_pair(const btree_key_t* key, const void *value) {
+    bool handle_pair(dft_value_t &&keyvalue) {
+        const btree_key_t *key = keyvalue.key();
+        const void *value = keyvalue.value();
+
         store_key_t store_key(key);
         if (bad_init) {
             return false;

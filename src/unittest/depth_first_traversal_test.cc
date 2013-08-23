@@ -62,7 +62,9 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
 struct dft_test_callback_t : public depth_first_traversal_callback_t {
     dft_test_callback_t() : count(0) { }
 
-    bool handle_pair(const btree_key_t *key, UNUSED const void *value) {
+    bool handle_pair(dft_value_t &&keyvalue) {
+        const btree_key_t *key = keyvalue.key();
+
         if (count == 0) {
             smallest_key.assign(key);
             largest_key.assign(key);

@@ -1,22 +1,47 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/depth_first_traversal.hpp"
 
 #include "btree/operations.hpp"
+#include "containers/scoped.hpp"
 
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, superblock_t *superblock, const key_range_t &range, depth_first_traversal_callback_t *cb, direction_t direction) {
-    block_id_t root_block_id = superblock->get_root_block_id();
-    if (root_block_id == NULL_BLOCK_ID) {
-        superblock->release();
-        return true;
-    } else {
-        buf_lock_t root_block(transaction, root_block_id, rwi_read);
-        superblock->release();
-        return btree_depth_first_traversal(slice, transaction, &root_block, range, cb, direction);
-    }
+class counted_buf_lock_t : public buf_lock_t,
+                           public single_threaded_countable_t<counted_buf_lock_t> {
+public:
+    template <class... Args>
+    counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
+
+private:
+    DISABLE_COPYING(counted_buf_lock_t);
+};
+
+dft_value_t::dft_value_t(const btree_key_t *key, const void *value,
+                         const counted_t<counted_buf_lock_t> &buf_lock)
+    : key_(key), value_(value), btree_leaf_keepalive_(buf_lock) { }
+
+dft_value_t::~dft_value_t() { }
+
+dft_value_t::dft_value_t(dft_value_t &&movee)
+    : key_(movee.key_), value_(movee.value_), btree_leaf_keepalive_(std::move(movee.btree_leaf_keepalive_)) {
+    movee.key_ = NULL;
+    movee.value_ = NULL;
+    movee.btree_leaf_keepalive_.reset();
 }
 
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, buf_lock_t *block, const key_range_t &range, depth_first_traversal_callback_t *cb, direction_t direction) {
-    const node_t *node = reinterpret_cast<const node_t *>(block->get_data_read());
+dft_value_t &dft_value_t::operator=(dft_value_t &&movee) {
+    dft_value_t tmp(std::move(movee));
+    swap(tmp);
+    return *this;
+}
+
+void dft_value_t::swap(dft_value_t &other) {
+    std::swap(key_, other.key_);
+    std::swap(value_, other.value_);
+    std::swap(btree_leaf_keepalive_, other.btree_leaf_keepalive_);
+}
+
+bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, scoped_ptr_t<counted_buf_lock_t> block,
+                                 const key_range_t &range, depth_first_traversal_callback_t *cb, direction_t direction) {
+    const node_t *node = static_cast<const node_t *>(block->get_data_read());
     if (node::is_internal(node)) {
         const internal_node_t *inode = reinterpret_cast<const internal_node_t *>(node);
         int start_index = internal_node::get_offset_index(inode, range.left.btree_key());
@@ -31,13 +56,15 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         for (int i = 0; i < end_index - start_index; ++i) {
             int true_index = (direction == direction_t::FORWARD ? start_index + i : (end_index - 1) - i);
             const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, true_index);
-            buf_lock_t lock(transaction, pair->lnode, rwi_read);
-            if (!btree_depth_first_traversal(slice, transaction, &lock, range, cb, direction)) {
+            auto lock = make_scoped<counted_buf_lock_t>(transaction, pair->lnode, rwi_read);
+            if (!btree_depth_first_traversal(slice, transaction, std::move(lock), range, cb, direction)) {
                 return false;
             }
         }
         return true;
     } else {
+        counted_t<counted_buf_lock_t> counted_block(block.release());
+
         const leaf_node_t *lnode = reinterpret_cast<const leaf_node_t *>(node);
 
         leaf::iterator end_it = range.right.unbounded
@@ -48,7 +75,8 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
 
         if (direction == direction_t::FORWARD) {
             for (; beg_it != end_it; ++beg_it) {
-                if (!cb->handle_pair((*beg_it).first, (*beg_it).second)) {
+                auto pair = *beg_it;
+                if (!cb->handle_pair(dft_value_t(pair.first, pair.second, counted_block))) {
                     return false;
                 }
             }
@@ -56,7 +84,8 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
             while (end_it != beg_it) {
                 --end_it;
 
-                if (!cb->handle_pair((*end_it).first, (*end_it).second)) {
+                auto pair = *end_it;
+                if (!cb->handle_pair(dft_value_t(pair.first, pair.second, counted_block))) {
                     return false;
                 }
             }
@@ -64,3 +93,16 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         return true;
     }
 }
+
+bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, superblock_t *superblock, const key_range_t &range, depth_first_traversal_callback_t *cb, direction_t direction) {
+    block_id_t root_block_id = superblock->get_root_block_id();
+    if (root_block_id == NULL_BLOCK_ID) {
+        superblock->release();
+        return true;
+    } else {
+        auto root_block = make_scoped<counted_buf_lock_t>(transaction, root_block_id, rwi_read);
+        superblock->release();
+        return btree_depth_first_traversal(slice, transaction, std::move(root_block), range, cb, direction);
+    }
+}
+
