@@ -4,7 +4,7 @@
 
 #include <list>
 
-#include "http/json.hpp"
+#include "concurrency/mutex.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -24,6 +24,7 @@ void transform_exception(const datum_exc_t &exc,
 namespace query_language {
 
 void transform_apply(ql::env_t *ql_env,
+                     mutex_t *eval_mutex,
                      const backtrace_t &backtrace,
                      std::list<lazy_json_t> &&jsons,
                      rdb_protocol_details::transform_variant_t *t,
@@ -36,6 +37,7 @@ void terminal_initialize(ql::env_t *ql_env,
                          rdb_protocol_t::rget_read_response_t::result_t *out);
 
 void terminal_apply(ql::env_t *ql_env,
+                    mutex_t *eval_mutex,
                     const backtrace_t &backtrace,
                     std::list<lazy_json_t> &&jsons,
                     rdb_protocol_details::terminal_variant_t *t,

@@ -744,9 +744,7 @@ public:
                         std::list<counted_t<const ql::datum_t> > tmp;
 
                         {
-                            // RSI: Load the value _before_ locking.
-                            mutex_t::acq_t acq(&eval_mutex);
-                            transform_apply(ql_env, it->backtrace,
+                            transform_apply(ql_env, &eval_mutex, it->backtrace,
                                             std::move(data), &it->variant,
                                             &tmp);
                         }
@@ -785,9 +783,7 @@ public:
                 return cumulative_size < rget_max_chunk_size;
             } else {
                 try {
-                    // RSI: Load the value _before_ locking.
-                    mutex_t::acq_t acq(&eval_mutex);
-                    terminal_apply(ql_env, terminal->backtrace,
+                    terminal_apply(ql_env, &eval_mutex, terminal->backtrace,
                                    std::move(data),
                                    &terminal->variant, &response->result);
                     return true;

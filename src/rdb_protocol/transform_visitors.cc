@@ -130,6 +130,7 @@ void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {  // N
 
 
 void transform_apply(ql::env_t *ql_env,
+                     mutex_t *eval_mutex,
                      const backtrace_t &backtrace,
                      std::list<lazy_json_t> &&jsons,
                      rdb_protocol_details::transform_variant_t *t,
@@ -137,8 +138,9 @@ void transform_apply(ql::env_t *ql_env,
     std::list<lazy_json_t> locals = std::move(jsons);
 
     for (auto it = locals.begin(); it != locals.end(); ++it) {
-        boost::apply_visitor(transform_visitor_t(it->get(), out, ql_env, backtrace),
-                             *t);
+        transform_visitor_t v(it->get(), out, ql_env, backtrace);
+        mutex_t::acq_t acq(eval_mutex);
+        boost::apply_visitor(v, *t);
     }
 }
 
@@ -147,6 +149,7 @@ class terminal_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_visitor_t(std::list<lazy_json_t> &&_jsons,
                        ql::env_t *_ql_env,
+                       mutex_t *_eval_mutex,
                        const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
 
@@ -157,15 +160,18 @@ public:
 private:
     std::list<lazy_json_t> jsons;
     ql::env_t *ql_env;
+    mutex_t *eval_mutex;
     backtrace_t backtrace;
     rget_read_response_t::result_t *out;
 };
 
 terminal_visitor_t::terminal_visitor_t(std::list<lazy_json_t> &&_jsons,
                                        ql::env_t *_ql_env,
+                                       mutex_t *_eval_mutex,
                                        const backtrace_t &_backtrace,
                                        rget_read_response_t::result_t *_out)
-    : jsons(std::move(_jsons)), ql_env(_ql_env), backtrace(_backtrace), out(_out) { }
+    : jsons(std::move(_jsons)), ql_env(_ql_env), eval_mutex(_eval_mutex),
+      backtrace(_backtrace), out(_out) { }
 
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
@@ -174,6 +180,8 @@ terminal_visitor_t::terminal_visitor_t(std::list<lazy_json_t> &&_jsons,
 void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLINT(runtime/references)
     for (auto it = jsons.begin(); it != jsons.end(); ++it) {
         counted_t<const ql::datum_t> json = it->get();
+
+        mutex_t::acq_t acq(eval_mutex);
 
         ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
         guarantee(obj);
@@ -203,6 +211,8 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NO
     for (auto it = jsons.begin(); it != jsons.end(); ++it) {
         counted_t<const ql::datum_t> json = it->get();
 
+        mutex_t::acq_t acq(eval_mutex);
+
         counted_t<const ql::datum_t> *d = boost::get<counted_t<const ql::datum_t> >(out);
         if (d != NULL) {
             *out = func.compile(ql_env)->call(*d, json)->as_datum();
@@ -214,11 +224,12 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NO
 }
 
 void terminal_apply(ql::env_t *ql_env,
+                    mutex_t *eval_mutex,
                     const backtrace_t &backtrace,
                     std::list<lazy_json_t> &&jsons,
                     rdb_protocol_details::terminal_variant_t *t,
                     rget_read_response_t::result_t *out) {
-    boost::apply_visitor(terminal_visitor_t(std::move(jsons), ql_env, backtrace, out),
+    boost::apply_visitor(terminal_visitor_t(std::move(jsons), ql_env, eval_mutex, backtrace, out),
                          *t);
 }
 

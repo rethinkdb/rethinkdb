@@ -34,7 +34,11 @@ rdb_protocol_t::rget_read_response_t::result_t json_stream_t::apply_terminal(
     while ((json = next())) {
         std::list<lazy_json_t> jsons;
         jsons.push_back(lazy_json_t(json));
-        terminal_apply(ql_env, backtrace, std::move(jsons), &t, &res);
+
+        // We aren't worried about concurrent access to ql_env here, so we don't need
+        // a mutex that means anything.
+        mutex_t useless_mutex;
+        terminal_apply(ql_env, &useless_mutex, backtrace, std::move(jsons), &t, &res);
     }
     return res;
 }
@@ -85,7 +89,11 @@ counted_t<const ql::datum_t> transform_stream_t::next() {
             }
 
             std::list<counted_t<const ql::datum_t> > tmp;
-            transform_apply(ql_env, it->backtrace, std::move(lazy_accumulator), &it->variant, &tmp);
+
+            // transform_apply takes a mutex, but right here, we don't have any
+            // concurrency to worry about, so we pass a useless mutex.
+            mutex_t useless_mutex;
+            transform_apply(ql_env, &useless_mutex, it->backtrace, std::move(lazy_accumulator), &it->variant, &tmp);
 
             accumulator = std::move(tmp);
         }
