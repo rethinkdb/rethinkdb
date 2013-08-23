@@ -260,11 +260,18 @@ class Connection extends events.EventEmitter
         data = pb.SerializeQuery(query)
 
         # Prepend length
-        length = data.length
-        lengthBuf = new Buffer(4)
-        lengthBuf.writeUInt32LE(length, 0)
+        totalBuf = new Buffer(data.length + 4)
+        totalBuf.writeUInt32LE(data.length, 0)
 
-        @write Buffer.concat([lengthBuf, data])
+        # Why loop and not just use Buffer.concat? Good question,
+        # The browserify implementation of Buffer.concat seems to
+        # be broken.
+        i = 0
+        while i < data.length
+            totalBuf.set(i+4, data.get(i))
+            i++
+
+        @write totalBuf
 
 class TcpConnection extends Connection
     @isAvailable: () -> !(process.browser)
@@ -377,8 +384,20 @@ class HttpConnection extends Connection
 
         xhr.onreadystatechange = (e) =>
             if xhr.readyState is 4 and xhr.status is 200
-                @_data(xhr.response)
-        xhr.send chunk
+                # Convert response from ArrayBuffer to node buffer
+
+                buf = new Buffer(b for b in (new Uint8Array(xhr.response)))
+                @_data(buf)
+
+        # Convert the chunk from node buffer to ArrayBuffer
+        array = new ArrayBuffer(chunk.length)
+        view = new Uint8Array(array)
+        i = 0
+        while i < chunk.length
+            view[i] = chunk.get(i)
+            i++
+
+        xhr.send array
 
 # The only exported function of this module
 module.exports.connect = ar (host, callback) ->
