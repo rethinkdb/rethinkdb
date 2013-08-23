@@ -257,9 +257,9 @@ inline intptr_t counted_use_count(const slow_atomic_countable_t<T> *p) {
 }
 
 
-// A type for when you want something to be reference counted, but you want have
-// control of who's allowed to make additional references.  movable_t can be moved
-// and destroyed.  (Obviously there are loopholes.)
+// A type for when you want something to be reference counted, but you want to have
+// control of who's allowed to make additional references.  movable_t points to a
+// reference-counted object, but it can only be moved and destroyed, not copied.
 template <class T>
 class movable_t {
 public:
