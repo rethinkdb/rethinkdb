@@ -14,9 +14,9 @@ sudo swapoff -a
 sudo mkdir -p $staging
 sudo chown -R ubuntu $staging
 EOF`
-rsync_to "${bench%/}/" "$host" "$staging" &
+rsync_to "${bench%/}/" "$host" "$staging" >&2 &
 
-ssh_to $host <<EOF
+ssh_to $host >&2 <<EOF
 cat >$staging/.tables <<06588ad8fe2d4e5488b80d5a42954824
 $tables
 06588ad8fe2d4e5488b80d5a42954824

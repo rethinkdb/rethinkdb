@@ -11,11 +11,10 @@ echo "Resetting $staging on servers..." >&2
 parallel -uj0 "ssh_to {1} <<EOF
 sudo service distcc-chroot stop
 sudo swapoff -a
-sudo killall -q -9 rethinkdb
 sudo rm -rf $staging/*
 sudo mkdir -p $staging/.persist
 sudo chown -R ubuntu $staging
-EOF" ::: $hosts
+EOF" ::: $hosts >&2
 
 echo "Distributing $rdb_dir (symbols stripped for speed)..." >&2
 d=`mktemp -d`
@@ -23,7 +22,7 @@ d=`mktemp -d`
 cp -r $rdb_dir/rethinkdb_web_assets $d &
 wait
 # { pushd $d >/dev/null; tar -czf f.tgz *; popd >/dev/null; }
-parallel -uj0 "rsync_to '$d/*' {1} $staging/.persist" ::: $hosts
+parallel -uj0 "rsync_to '$d/*' {1} $staging/.persist" ::: $hosts >&2
 
 # parallel -uj0 "pv $d/f.tgz | ssh_to {1} 'cd $staging && tar -xzf -'" ::: $hosts
 rm -r $d &
@@ -37,6 +36,6 @@ mkdir -p {2}
 cd {2}
 set -m
 </dev/null nohup ../.persist/rethinkdb $jline -o {2} -n \$n --bind all >1.log 2>2.log &
-EOF" $servers
+EOF" $servers >&2
 
 wait

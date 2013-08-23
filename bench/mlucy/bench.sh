@@ -15,9 +15,12 @@ trap 'on_err $LINENO' ERR
 ##### Set up server cluster.
 ################################################################################
 if [[ ${CLUSTER-} == local ]]; then
+    servers=`echo -e "magneto\nelectro"`
+    clients=`echo -e "riddler\npuzzler\nkingpin"`
     echo "Using local cluster:" >&2
-    echo -e "magneto\nelectro" | head -$SERVERS > server_hosts
-    echo -e "riddler\npuzzler\nkingpin" | head -$CLIENTS > client_hosts
+    echo "$servers" | head -$SERVERS > server_hosts
+    echo "$clients" | head -$CLIENTS > client_hosts
+    stop_rdb_cluster "$servers"
 elif [[ ! -f server_hosts && ! -f client_hosts ]]; then
     echo "Creating new cluster..." >&2
     new_cluster "$PREFIX-server" $SERVERS $SERVER_MACHINE > server_hosts &
@@ -25,6 +28,7 @@ elif [[ ! -f server_hosts && ! -f client_hosts ]]; then
     wait
     echo "New cluster:" >&2
 else
+    stop_rdb_cluster "`cat server_hosts`" &
     echo "Using existing cluster (remove server_hosts or client_hosts to recreate):" >&2
 fi
     cat >&2 <<EOF
@@ -59,10 +63,9 @@ parallel -uj0 dist_bench "$bench" {} $STAGING "'$tables'" "'$nodes'" :::: client
 ################################################################################
 wait
 run_at=$((`date +%s`+10))
-echo "Running $bench at `date --date=@$run_at` ($run_at)..."
+echo "Running $bench at `date --date=@$run_at` ($run_at)..." >&2
 rm -f raw raw.map
 bench="run_bench {} $STAGING $run_at | tee -a raw | $CLIENT_MAP"
 parallel -j0 $bench :::: client_hosts \
     | tee raw.map | eval $CLIENT_REDUCE | tee -a runs.t
-
 wait

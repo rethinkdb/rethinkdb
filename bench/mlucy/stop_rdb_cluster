@@ -1,0 +1,8 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+hosts=$1
+parallel -uj0 "ssh_to {1} <<EOF
+sudo killall -q -9 rethinkdb
+true
+EOF" ::: $hosts >&2
