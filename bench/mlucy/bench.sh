@@ -42,7 +42,8 @@ EOF
 ##### Set up RethinkDB cluster.
 ################################################################################
 wait
-init_rdb_cluster "`cat server_hosts`" $SERVER_INSTANCES $RETHINKDB_DIR $STAGING &
+init_rdb_cluster "`cat server_hosts`" \
+    $SERVER_INSTANCES $RETHINKDB_DIR $STAGING "$SERVER_OPTS" &
 export POC=`head -1 server_hosts`
 tunnel_to_poc $POC 1 >cluster_port
 export ADMIN_CLUSTER_PORT=`cat cluster_port`

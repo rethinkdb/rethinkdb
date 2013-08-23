@@ -6,7 +6,7 @@
 SERVERS=1
 SERVER_INSTANCES=4
 SERVER_MACHINE=m1.medium # EC2 only
-#TODO: SERVER_OPTS=""
+SERVER_OPTS=""
 
 # Table configuration.
 TABLES=1
