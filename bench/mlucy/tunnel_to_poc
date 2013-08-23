@@ -15,7 +15,7 @@ cluster_port=`free_port $client_port | tee dbg_cluster_port`
 target_cluster_port=$((CLUSTER_PORT+poc_offset))
 tunnel_to $poc $cluster_port $target_cluster_port
 cat >&2 <<EOF
-Tunneling:
+Tunneling (EXPERIMENTAL!):
   Web:     `hostname`:$web_port -> $poc:$target_web_port
   ReQL:    `hostname`:$client_port -> $poc:$target_client_port
   Cluster: `hostname`:$cluster_port -> $poc:$target_cluster_port

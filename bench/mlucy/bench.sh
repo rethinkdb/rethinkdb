@@ -12,21 +12,27 @@ function on_err() {
 trap 'on_err $LINENO' ERR
 
 ################################################################################
-##### Set up ec2 cluster.
+##### Set up server cluster.
 ################################################################################
-if [[ ! -f server_hosts && ! -f client_hosts ]]; then
+if [[ ${CLUSTER-} == local ]]; then
+    echo "Using local cluster:" >&2
+    echo -e "magneto\nelectro" | head -$SERVERS > server_hosts
+    echo -e "riddler\npuzzler\nkingpin" | head -$CLIENTS > client_hosts
+elif [[ ! -f server_hosts && ! -f client_hosts ]]; then
     echo "Creating new cluster..." >&2
     new_cluster "$PREFIX-server" $SERVERS $SERVER_MACHINE > server_hosts &
     new_cluster "$PREFIX-client" $CLIENTS $CLIENT_MACHINE > client_hosts &
+    wait
+    echo "New cluster:" >&2
 else
+    echo "Using existing cluster (remove server_hosts or client_hosts to recreate):" >&2
+fi
     cat >&2 <<EOF
-Using existing cluster (remove server_hosts or client_hosts to recreate):
   Servers:
 `<server_hosts awk '{print "    "$0}'`
   Clients:
 `<client_hosts awk '{print "    "$0}'`
 EOF
-fi
 
 ################################################################################
 ##### Set up RethinkDB cluster.
@@ -52,7 +58,7 @@ parallel -uj0 dist_bench "$bench" {} $STAGING "'$tables'" "'$nodes'" :::: client
 ##### Run Benchmark.
 ################################################################################
 wait
-run_at=$((`date +%s`+20))
+run_at=$((`date +%s`+10))
 echo "Running $bench at `date --date=@$run_at` ($run_at)..."
 rm -f raw raw.map
 bench="run_bench {} $STAGING $run_at | tee -a raw | $CLIENT_MAP"

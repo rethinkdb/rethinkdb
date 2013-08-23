@@ -9,6 +9,8 @@ nodes=$5
 
 echo "Distributing $bench to $host..." >&2
 rundir=`ssh_to $host <<EOF
+sudo service distcc-chroot stop
+sudo swapoff -a
 sudo mkdir -p $staging
 sudo chown -R ubuntu $staging
 EOF`

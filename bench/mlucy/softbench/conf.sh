@@ -13,8 +13,7 @@ TABLES=1
 TABLE_SHARDS=8
 # Put any admin commands you want here.
 TABLE_CONF=`cat <<"EOF"
-set replicas $table 2
-set acks $table 2
+set durability $table --soft
 EOF`
 
 # Number of clients.

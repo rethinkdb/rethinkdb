@@ -7,7 +7,7 @@ table=`head -1 "$2"`
 hostflags=`<"$3" awk '{print " --host="$0}'`
 
 while [[ `date +%s` -lt $run_at ]]; do
-    sleep 0.1
+    sleep 0.01
 done
 echo "Running on `hostname` at `date +%s`..." >&2
 
@@ -16,10 +16,11 @@ while true; do
     set +e
     set -o pipefail
     `dirname "$0"`/stress.py \
-        --timeout 30 \
-        --clients=512 \
-        --batch-size=10 \
-        --value-size=10000 \
+        --timeout 180 \
+        --clients=400 \
+        --batch-size=100 \
+        --value-size=64 \
+        --workload=1/0/3/0/0/0 \
         --table ${table}_db.$table $hostflags
     ret=$?
     set +o pipefail

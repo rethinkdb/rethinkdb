@@ -1,0 +1,43 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+function err() { echo "$@" >&2; exit 1; }
+function calc() { bc -l <<< "scale=${SCALE-6}; $@"; }
+
+f=`mktemp`
+cat >$f
+
+samples=`<$f wc -l`
+[[ $samples -lt 2 ]] && err "Got $samples samples (need at least 2)."
+
+degfree=$((samples-1))
+mean=`<$f awk '{a+=$0} END {print a/'$samples'}'`
+sample_stddev=`<$f awk '{a+=($0-'$mean')**2} END {print sqrt(a/('$degfree'))}'`
+stddev=`calc "$sample_stddev/sqrt($samples)"`
+
+# From Wikipedia, 1-indexed by degree of freedom.
+t_table_95=" 12.71 4.303 3.182 2.776 2.571 2.447 2.365 2.306 2.262 2.228 "
+t_table_95+="2.201 2.179 2.160 2.145 2.131 2.120 2.110 2.101 2.093 2.086 "
+t_table_95+="2.080 2.074 2.069 2.064 2.060 2.056 2.052 2.048 2.045 2.042 "
+t_inf_95="1.960"
+t_table_99=" 63.66 9.925 5.841 4.604 4.032 3.707 3.499 3.355 3.250 3.169 "
+t_table_99+="3.106 3.055 3.012 2.977 2.947 2.921 2.898 2.878 2.861 2.845 "
+t_table_99+="2.831 2.819 2.807 2.797 2.787 2.779 2.771 2.763 2.756 2.750 "
+t_inf_99="2.576"
+
+[[ $degfree -le 30 ]] \
+    && tval_95=`awk '{print $'$degfree'}' <<< "$t_table_95"` \
+    || tval_95=$t_inf_95
+[[ $degfree -le 30 ]] \
+    && tval_99=`awk '{print $'$degfree'}' <<< "$t_table_99"` \
+    || tval_99=$t_inf_99
+
+diff_95=`calc "$tval_95*$stddev"`
+lb_95=`calc "$mean-$diff_95"`
+ub_95=`calc "$mean+$diff_95"`
+
+diff_99=`calc "$tval_99*$stddev"`
+lb_99=`calc "$mean-$diff_99"`
+ub_99=`calc "$mean+$diff_99"`
+
+echo "$lb_99 $lb_95 $mean $ub_95 $ub_99"
