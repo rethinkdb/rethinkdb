@@ -153,7 +153,14 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         <p class="error">A query could not be executed.</p>
         <pre class="error error_details">{{query}}</pre>
     {{/if}}
-    <p class="error">Error: </p>
+    <p class="error_title">
+        {{#if js_error}}
+            JavaScript error:
+        {{else}}
+            Server side error:
+        {{/if}}
+    </p>
+
     <pre class="error error_details">{{error}}</pre>
 </script>
 

@@ -2309,14 +2309,14 @@ module 'DataExplorerView', ->
                 if @queries.length is 0
                     error = @query_error_template
                         no_query: true
-                    @results_view.render_error(null, error)
+                    @results_view.render_error(null, error, true)
                 else
                     @.$('.loading_query_img').show()
                     @execute_portion()
 
             catch err
                 @.$('.loading_query_img').hide()
-                @results_view.render_error(@query, err)
+                @results_view.render_error(@query, err, true)
                 @save_query
                     query: @raw_query
                     broken_query: true
@@ -2332,7 +2332,7 @@ module 'DataExplorerView', ->
                     rdb_query = @evaluate(full_query)
                 catch err
                     @.$('.loading_query_img').hide()
-                    @results_view.render_error(@raw_queries[@index], err)
+                    @results_view.render_error(@raw_queries[@index], err, true)
                     @save_query
                         query: @raw_query
                         broken_query: true
@@ -2358,7 +2358,7 @@ module 'DataExplorerView', ->
                         @.$('.loading_query_img').hide()
                         error = @query_error_template
                             last_non_query: true
-                        @results_view.render_error(@raw_queries[@index-1], error)
+                        @results_view.render_error(@raw_queries[@index-1], error, true)
                         @save_query
                             query: @raw_query
                             broken_query: true
@@ -2730,10 +2730,11 @@ module 'DataExplorerView', ->
             @container.saved_data.view = view
             @render_result()
 
-        render_error: (query, err) =>
+        render_error: (query, err, js_error) =>
             @.$el.html @error_template
                 query: query
                 error: err.toString().replace(/^(\s*)/, '')
+                js_error: js_error is true
             return @
 
         json_to_tree: (result) =>
