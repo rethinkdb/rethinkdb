@@ -17,13 +17,36 @@ module.exports.SerializeQuery = (query) ->
         native_pb.SerializeQuery(query)
     else
         querypb = new protodef.Query(query)
-        querypb.toArrayBuffer()
+        querypb.toBuffer()
 
 module.exports.ParseResponse = (data) ->
     if native_pb.ParseResponse?
         native_pb.ParseResponse(data)
     else
-        protodef.Response.decode(data)
+        # We need to convert back to an ArrayBuffer here
+        # because protobufjs is not able to handle the
+        # browserify Buffer class. This is all spectacularly
+        # inefficient but this code path is only executed
+        # in the web version of the driver where performance
+        # doesn't matter.
+
+        array = new ArrayBuffer(data.length)
+        view = new Uint8Array(array)
+        i = 0
+        while i < data.length
+            view[i] = data.get(i)
+            i++
+
+        response = protodef.Response.decode(array)
+        # response.token is a "Long", used to represent
+        # 64bit integers. The browser version for some
+        # reason does not implement typeOf to return a
+        # JS num so we'll replace it. This is the only
+        # int64 field in the protobuf definition so we
+        # don't have to worry about this issue elsewhere.
+        response.token = response.token.toInt()
+
+        return response
 
 # Switch on the response type field of response
 module.exports.ResponseTypeSwitch = (response, map, dflt) ->
