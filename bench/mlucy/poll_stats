@@ -6,6 +6,6 @@ host=$1
 offset=$2
 
 while true; do
-    curl $host:$((WEB_PORT + offset))/ajax/stat >stats/`date +%s.%N` 2>/dev/null
-    sleep 1
+    curl "$host:$((WEB_PORT + offset))/ajax/stat?timeout=5000" \
+        >stats/`date +%s.%N` 2>/dev/null
 done

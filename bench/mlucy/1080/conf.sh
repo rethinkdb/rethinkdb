@@ -3,21 +3,20 @@
 # variables.
 
 # Number of servers, and number of RethinkDB instances per server.
-SERVERS=2
-SERVER_INSTANCES=2
+SERVERS=1
+SERVER_INSTANCES=1
 SERVER_MACHINE=m1.medium # EC2 only
 SERVER_OPTS=""
 
 # Table configuration.
 TABLES=1
-TABLE_SHARDS=8
+TABLE_SHARDS=1
 # Put any admin commands you want here.
 TABLE_CONF=`cat <<"EOF"
-set durability $table --soft
 EOF`
 
 # Number of clients.
-CLIENTS=3
+CLIENTS=1
 CLIENT_MACHINE=m1.small # EC2 only
 # Be sure to mimic this quoting.
 CLIENT_MAP="grep -E '^(read|write)' | awk '{print \$5}'"
@@ -28,4 +27,4 @@ RETHINKDB_DIR=~/rethinkdb/build/release
 
 # Where to stage from on the remote server.
 CLUSTER=local
-STAGING="/mnt/ssd/bench"
+STAGING="/mnt/rotational/bench"
