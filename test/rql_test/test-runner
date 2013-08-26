@@ -52,7 +52,7 @@ class PyLang(SrcLang):
         if not isinstance(val, types.UnicodeType):
             return repr(str(val))
         else:
-            return repr(unicode(val))
+            return "types.unicodeType(" + repr(unicode(val))[1:] + ")"
 
     def nulltranslate(self, strng):
         return re.sub("(?<!\"|')null(?!\"|')", 'None', strng)
@@ -299,7 +299,7 @@ class TestBuilder:
 
 def run_tests(lang, servers):
     if lang is 'py':
-        interpreter = os.getenv('PYTHON') or 'python'
+        interpreter = os.getenv('PYTHON') or 'python3'
     elif lang is 'js':
         interpreter = os.getenv('NODE') or 'node'
     elif lang is 'rb':

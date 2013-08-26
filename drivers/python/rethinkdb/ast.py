@@ -2,11 +2,13 @@ import ql2_pb2 as p
 import types
 import sys
 import datetime
+import numbers
+import collections
 import time
 import re
 import json as py_json
 from threading import Lock
-from errors import *
+from .errors import *
 import repl # For the repl connection
 
 # This is both an external function and one used extensively
@@ -39,7 +41,7 @@ def expr(val, nesting_depth=20):
         for k in val.keys():
             obj[k] = expr(val[k], nesting_depth - 1)
         return MakeObj(obj)
-    elif callable(val):
+    elif isinstance(val, collections.Callable):
         return Func(val)
     else:
         return Datum(val)
@@ -56,7 +58,7 @@ def exprJSON(val, nesting_depth=20):
         return Json(py_json.dumps(val))
     elif isinstance(val, dict):
         copy = val.copy()
-        for k,v in copy.iteritems():
+        for k,v in copy.items():
             copy[k] = exprJSON(v, nesting_depth)
         return MakeObj(copy)
     elif isinstance(val, list):
@@ -75,7 +77,7 @@ def isJSON(val, nesting_depth=20):
     if isinstance(val, RqlQuery):
         return False
     elif isinstance(val, dict):
-        return all([isinstance(k, types.StringTypes) and isJSON(v, nesting_depth - 1) for k,v in val.iteritems()])
+        return all([isinstance(k, types.StringTypes) and isJSON(v, nesting_depth - 1) for k,v in val.items()])
     elif isinstance(val, list):
         return all([isJSON(v, nesting_depth - 1) for v in val])
     elif isinstance(val, (int, float, str, unicode, bool)):
@@ -342,7 +344,7 @@ class RqlQuery(object):
         return ConcatMap(self, func_wrap(func))
 
     def order_by(self, *obs, **kwargs):
-        obs = map(lambda ob: ob if isinstance(ob, Asc) or isinstance(ob, Desc) else func_wrap(ob), obs)
+        obs = [ob if isinstance(ob, Asc) or isinstance(ob, Desc) else func_wrap(ob) for ob in obs]
         return OrderBy(self, *obs, **kwargs)
 
     def between(self, left=None, right=None, left_bound=(), right_bound=(), index=()):
@@ -497,10 +499,10 @@ class RqlTzinfo(datetime.tzinfo):
         return datetime.timedelta(0)
 
 def reql_type_time_to_datetime(obj):
-    if not obj.has_key('epoch_time'):
+    if not 'epoch_time' in obj:
         raise RqlDriverError('psudo-type TIME object %s does not have expected field "epoch_time".' % py_json.dumps(obj))
 
-    if obj.has_key('timezone'):
+    if 'timezone' in obj:
         return datetime.datetime.fromtimestamp(obj['epoch_time'], RqlTzinfo(obj['timezone']))
     else:
         return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
@@ -527,7 +529,7 @@ class Datum(RqlQuery):
         elif isinstance(self.data, bool):
             term.datum.type = p.Datum.R_BOOL
             term.datum.r_bool = self.data
-        elif isinstance(self.data, int) or isinstance(self.data, float) or isinstance(self.data, long):
+        elif isinstance(self.data, numbers.Real):
             term.datum.type = p.Datum.R_NUM
             term.datum.r_num = self.data
         elif isinstance(self.data, types.StringTypes):
@@ -568,7 +570,7 @@ class Datum(RqlQuery):
             # be an object or something else. We need a second layer of type switching, this
             # time on an obfuscated field "$reql_type$" rather than the datum type field we
             # already switched on.
-            if obj.has_key('$reql_type$'):
+            if '$reql_type$' in obj:
                 if obj['$reql_type$'] == 'TIME':
                     if time_format == 'native':
                         # Convert to native python datetime object
@@ -1119,7 +1121,7 @@ def func_wrap(val):
             return True
         if any([ivar_scan(arg) for arg in node.args]):
             return True
-        if any([ivar_scan(arg) for k,arg in node.optargs.iteritems()]):
+        if any([ivar_scan(arg) for k,arg in node.optargs.items()]):
             return True
         return False
 
@@ -1136,7 +1138,7 @@ class Func(RqlQuery):
     def __init__(self, lmbd):
         vrs = []
         vrids = []
-        for i in xrange(lmbd.func_code.co_argcount):
+        for i in range(lmbd.func_code.co_argcount):
             vrs.append(Var(Func.nextVarId))
             vrids.append(Func.nextVarId)
             Func.lock.acquire()

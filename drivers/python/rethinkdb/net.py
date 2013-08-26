@@ -6,10 +6,10 @@ import socket
 import struct
 from os import environ
 
-if environ.has_key('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'):
+if 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION' in environ:
     protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
     if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
-        import rethinkdb_pbcpp
+       from . import rethinkdb_pbcpp
 else:
     try:
         # Set an environment variable telling the protobuf library
@@ -22,16 +22,16 @@ else:
         from google.protobuf.internal import cpp_message
         import rethinkdb_pbcpp
         protobuf_implementation = 'cpp'
-    except ImportError, e:
+    except ImportError as e:
         # Default to using the python implementation of protobuf
         environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
         protobuf_implementation = 'python'
 
-import ql2_pb2 as p
+from . import ql2_pb2 as p
 
 import repl # For the repl connection
-from errors import *
-from ast import Datum, DB, expr
+from .errors import *
+from .ast import Datum, DB, expr
 
 class Cursor(object):
     def __init__(self, conn, opts, query, term, chunk, complete):
@@ -149,7 +149,7 @@ class Connection(object):
             if self.db:
                global_opt_args['db'] = DB(self.db)
 
-        for k,v in global_opt_args.iteritems():
+        for k,v in global_opt_args.items():
             pair = query.global_optargs.add()
             pair.key = k
             expr(v).build(pair.val)
@@ -181,7 +181,7 @@ class Connection(object):
         query_header = struct.pack("<L", len(query_protobuf))
         self.socket.sendall(query_header + query_protobuf)
 
-        if opts.has_key('noreply') and opts['noreply']:
+        if 'noreply' in opts and opts['noreply']:
             return None
 
         # Get response
@@ -218,7 +218,7 @@ class Connection(object):
             raise RqlDriverError("Unexpected response received.")
 
         time_format = 'native'
-        if opts.has_key('time_format'):
+        if 'time_format' in opts:
             time_format = opts['time_format']
 
         # Error responses

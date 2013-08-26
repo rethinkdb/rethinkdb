@@ -1,5 +1,5 @@
-from ast import *
-import ql2_pb2 as p
+from .ast import *
+from . import ql2_pb2 as p
 import datetime
 
 """

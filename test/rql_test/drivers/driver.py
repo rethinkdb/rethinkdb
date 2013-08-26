@@ -25,11 +25,11 @@ failure_count = 0
 def print_test_failure(test_name, test_src, message):
     global failure_count
     failure_count = failure_count + 1
-    print ''
-    print "TEST FAILURE: %s" % test_name.encode('utf-8')
-    print "TEST BODY: %s" % test_src.encode('utf-8')
-    print message
-    print ''
+    print('')
+    print("TEST FAILURE: %s", test_name.encode('utf-8'))
+    print("TEST BODY: %s", test_src.encode('utf-8'))
+    print(message)
+    print('')
 
 class Lst:
     def __init__(self, lst):
@@ -198,8 +198,8 @@ class PyTestDriver:
         #print 'Connecting to JS server on port ' + str(JSPORT)
         #self.js_conn = r.connect(host='localhost', port=JSPORT)
 
-        print 'Connecting to CPP server on port ' + str(CPPPORT)
-        print ''
+        print('Connecting to CPP server on port ' + str(CPPPORT))
+        print('')
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
         if 'test' not in r.db_list().run(self.cpp_conn):
             r.db_create('test').run(self.cpp_conn)
