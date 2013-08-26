@@ -3368,6 +3368,7 @@ module 'DataExplorerView', ->
 
         events:
             'click .load_query': 'load_query'
+            'click .delete_query': 'delete_query'
 
         start_resize: (event) =>
             @start_y = event.pageY
@@ -3414,6 +3415,14 @@ module 'DataExplorerView', ->
             # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)].query
             @container.saved_data.current_query = @history[parseInt(id)].query
+
+        delete_query: (event) =>
+            that = @
+            id = parseInt(@$(event.target).data().id)
+            @history.splice(id, 1)
+            @$('#query_history_'+id).slideUp 'fast', =>
+                that.$(this).remove()
+                that.render()
 
         add_query: (args) =>
             query = args.query
