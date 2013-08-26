@@ -164,6 +164,10 @@ tests:
     py: tbl.get_all(1, index='bi').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3]
+  - rb: tbl.get_all(1, :index => :bi).orderby(:index => :id).map{|x| x[:id]}
+    py: tbl.get_all(1, index='bi').order_by(index='id').map(lambda x:x['id'])
+    js: tbl.getAll(1, {index:'bi'}).orderBy({index:'id'}).map(function(x) { return x('id'); })
+    ot: [3]
   - rb: tbl.get_all(1, :index => :ci).orderby(:id).map{|x| x[:id]}
     py: tbl.get_all(1, index='ci').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'ci'}).orderBy('id').map(function(x) { return x('id'); })
