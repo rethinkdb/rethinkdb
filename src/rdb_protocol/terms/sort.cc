@@ -114,7 +114,9 @@ private:
         counted_t<table_t> tbl;
         counted_t<datum_stream_t> seq;
         counted_t<val_t> v0 = arg(0);
-        if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
+        if (v0->get_type().is_convertible(val_t::type_t::TABLE)) {
+            tbl = v0->as_table();
+        } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection();
             tbl = ts.first;
@@ -122,9 +124,13 @@ private:
         } else {
             seq = v0->as_seq();
         }
+
+        /* Add a sorting to the table if we're doing indexed sorting. */
         if (counted_t<val_t> index = optarg("index")) {
             rcheck(tbl.has(), base_exc_t::GENERIC,
-                   "Indexed order_by can only be performed on a SELECTION.");
+                   "Indexed order_by can only be performed on a TABLE.");
+            rcheck(!seq.has(), base_exc_t::GENERIC,
+                   "Indexed order_by can only be performed on a TABLE.");
             sorting_t sorting = UNORDERED;
             for (int i = 0; i < get_src()->optargs_size(); ++i) {
                 if (get_src()->optargs(i).key() == "index") {
@@ -137,6 +143,11 @@ private:
             }
             r_sanity_check(sorting != UNORDERED);
             tbl->add_sorting(index->as_str(), sorting, backtrace());
+        }
+
+        /* Compute the seq if we haven't already (if we were passed a table).
+         * */
+        if (!seq.has()) {
             seq = tbl->as_datum_stream(backtrace());
         }
 
