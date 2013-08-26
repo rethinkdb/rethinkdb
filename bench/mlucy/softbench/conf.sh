@@ -3,7 +3,7 @@
 # variables.
 
 # Number of servers, and number of RethinkDB instances per server.
-SERVERS=2
+SERVERS=1
 SERVER_INSTANCES=2
 SERVER_MACHINE=m1.medium # EC2 only
 SERVER_OPTS=""
@@ -28,4 +28,4 @@ RETHINKDB_DIR=~/rethinkdb/build/release
 
 # Where to stage from on the remote server.
 CLUSTER=local
-STAGING="/mnt/ssd/bench"
+STAGING="/mnt/rotational/bench"

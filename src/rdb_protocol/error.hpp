@@ -117,7 +117,7 @@ private:
 #define rfail_datum(type, args...) do {                          \
         rcheck_datum(false, type, strprintf(args));              \
         unreachable();                                           \
-    } while (0)                                                  
+    } while (0)
 #define rfail_target(target, type, args...) do {                 \
         rcheck_target(target, type, false, strprintf(args));     \
         unreachable();                                           \

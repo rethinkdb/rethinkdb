@@ -20,7 +20,7 @@ while true; do
         --clients=10 \
         --batch-size=1 \
         --value-size=64 \
-        --workload=1/0/3/0/0/0 \
+        --workload=1/0/0/0/0/0 \
         --table ${table}_db.$table $hostflags
     ret=$?
     set +o pipefail

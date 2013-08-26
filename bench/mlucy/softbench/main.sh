@@ -16,11 +16,11 @@ while true; do
     set +e
     set -o pipefail
     `dirname "$0"`/stress.py \
-        --timeout 180 \
+        --timeout 120 \
         --clients=400 \
         --batch-size=100 \
         --value-size=64 \
-        --workload=1/0/3/0/0/0 \
+        --workload=1/0/0/0/0/0 \
         --table ${table}_db.$table $hostflags
     ret=$?
     set +o pipefail
