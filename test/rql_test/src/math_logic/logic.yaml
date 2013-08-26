@@ -34,6 +34,12 @@ tests:
     - py: ~r.expr(False)
       cd: r(false).not()
       ot: true
+    - py: r.expr(True).not_()
+      cd: r(true).not()
+      ot: false
+    - py: r.expr(False).not_()
+      cd: r(false).not()
+      ot: true
 
     ## DeMorgan's rules!
 
