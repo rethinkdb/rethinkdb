@@ -1,4 +1,4 @@
-import ql2_pb2 as p
+from . import ql2_pb2 as p
 import types
 import sys
 import datetime
@@ -9,7 +9,7 @@ import re
 import json as py_json
 from threading import Lock
 from .errors import *
-import repl # For the repl connection
+from . import repl # For the repl connection
 
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types

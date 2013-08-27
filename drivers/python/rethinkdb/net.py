@@ -29,7 +29,7 @@ else:
 
 from . import ql2_pb2 as p
 
-import repl # For the repl connection
+from . import repl # For the repl connection
 from .errors import *
 from .ast import Datum, DB, expr
 
@@ -98,17 +98,17 @@ class Connection(object):
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
-        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
+        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + bytes(self.auth_key, 'ascii'))
 
         # Read out the response from the server, which will be a null-terminated string
-        response = ""
+        response = b""
         while True:
             char = self.socket.recv(1)
-            if char == "\0":
+            if char == b"\0":
                 break
             response += char
 
-        if response != "SUCCESS":
+        if response != b"SUCCESS":
             self.socket.close()
             raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
 
@@ -185,9 +185,9 @@ class Connection(object):
             return None
 
         # Get response
-        response_buf = ''
+        response_buf = b''
         try:
-            response_header = ''
+            response_header = b''
             while len(response_header) < 4:
                 chunk = self.socket.recv(4)
                 if len(chunk) == 0:
@@ -199,7 +199,7 @@ class Connection(object):
 
             while len(response_buf) < response_len:
                 chunk = self.socket.recv(response_len - len(response_buf))
-                if chunk == '':
+                if len(chunk) == 0:
                     raise RqlDriverError("Connection is broken.")
                 response_buf += chunk
         except KeyboardInterrupt as err:
