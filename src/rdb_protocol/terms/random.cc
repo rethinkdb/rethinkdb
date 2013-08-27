@@ -16,7 +16,7 @@ public:
                base_exc_t::GENERIC,
                strprintf("Number of items to sample must be non-negative, got `%"
                          PRId64 "`.", num_int));
-        size_t num = num_int;
+        const size_t num = num_int;
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
         counted_t<val_t> v = arg(0);
@@ -31,6 +31,7 @@ public:
         }
 
         std::vector<counted_t<const datum_t> > result;
+        result.reserve(num);
         size_t element_number = 0;
         while (counted_t<const datum_t> row = seq->next()) {
             element_number++;
@@ -49,8 +50,8 @@ public:
         std::random_shuffle(result.begin(), result.end());
 
         counted_t<datum_stream_t> new_ds(
-                new array_datum_stream_t(env, make_counted<const datum_t>(result),
-                                         backtrace()));
+            new array_datum_stream_t(env, make_counted<const datum_t>(std::move(result)),
+                                     backtrace()));
 
         return t.has() ? new_val(new_ds, t) : new_val(new_ds);
     }

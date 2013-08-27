@@ -54,14 +54,15 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
     datum_ptr_t d(datum_t::R_OBJECT);
-    const std::string err = exception.what();
+    std::string err = exception.what();
 
     // The bool is true if there's a conflict when inserting the
     // key, but since we just created an empty object above conflicts
     // are impossible here.  If you want to harden this against future
     // changes, you could store the bool and `r_sanity_check` that it's
     // false.
-    DEBUG_VAR bool had_first_error = d.add("first_error", make_counted<datum_t>(err));
+    DEBUG_VAR bool had_first_error
+        = d.add("first_error", make_counted<datum_t>(std::move(err)));
     rassert(!had_first_error);
 
     DEBUG_VAR bool had_errors = d.add("errors", make_counted<datum_t>(1.0));
@@ -295,7 +296,6 @@ MUST_USE bool table_t::sindex_drop(const std::string &id) {
 }
 
 counted_t<const datum_t> table_t::sindex_list() {
-    datum_ptr_t array(datum_t::R_ARRAY);
     rdb_protocol_t::sindex_list_t sindex_list;
     rdb_protocol_t::read_t read(sindex_list);
     try {
@@ -306,15 +306,18 @@ counted_t<const datum_t> table_t::sindex_list() {
             boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
         r_sanity_check(s_res);
 
+        std::vector<counted_t<const datum_t> > array;
+        array.reserve(s_res->sindexes.size());
+
         for (std::vector<std::string>::const_iterator it = s_res->sindexes.begin();
              it != s_res->sindexes.end(); ++it) {
-            array.add(make_counted<datum_t>(*it));
+            array.push_back(make_counted<datum_t>(std::string(*it)));
         }
+        return make_counted<datum_t>(std::move(array));
+
     } catch (const cannot_perform_query_exc_t &ex) {
         rfail(ql::base_exc_t::GENERIC, "cannot perform read: %s", ex.what());
     }
-
-    return array.to_counted();
 }
 
 counted_t<const datum_t> table_t::do_replace(
@@ -398,7 +401,7 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
     rdb_protocol_t::point_read_response_t *p_res =
         boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
     r_sanity_check(p_res);
-    return make_counted<datum_t>(p_res->data);
+    return p_res->data;
 }
 
 counted_t<datum_stream_t> table_t::get_all(

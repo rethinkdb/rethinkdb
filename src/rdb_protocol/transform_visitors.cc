@@ -2,6 +2,7 @@
 #include "rdb_protocol/transform_visitors.hpp"
 
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/lazy_json.hpp"
 
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
 
@@ -81,8 +82,8 @@ namespace query_language {
 /* A visitor for applying a transformation to a bit of json. */
 class transform_visitor_t : public boost::static_visitor<void> {
 public:
-    transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
-                        std::list<boost::shared_ptr<scoped_cJSON_t> > *_out,
+    transform_visitor_t(counted_t<const ql::datum_t> _arg,
+                        std::list<counted_t<const ql::datum_t> > *_out,
                         ql::env_t *_ql_env,
                         const backtrace_t &_backtrace);
 
@@ -92,17 +93,17 @@ public:
     void operator()(ql::concatmap_wire_func_t &func) const;  // NOLINT(runtime/references)
 
 private:
-    boost::shared_ptr<scoped_cJSON_t> json;
-    std::list<boost::shared_ptr<scoped_cJSON_t> > *out;
+    counted_t<const ql::datum_t> arg;
+    std::list<counted_t<const ql::datum_t> > *out;
     ql::env_t *ql_env;
     backtrace_t backtrace;
 };
 
-transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
-                                         json_list_t *_out,
+transform_visitor_t::transform_visitor_t(counted_t<const ql::datum_t> _arg,
+                                         std::list<counted_t<const ql::datum_t> > *_out,
                                          ql::env_t *_ql_env,
                                          const backtrace_t &_backtrace)
-    : json(_json), out(_out), ql_env(_ql_env),
+    : arg(_arg), out(_out), ql_env(_ql_env),
       backtrace(_backtrace) { }
 
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
@@ -110,32 +111,29 @@ transform_visitor_t::transform_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
 void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {  // NOLINT(runtime/references)
-    counted_t<const ql::datum_t> arg(new ql::datum_t(json));
-    out->push_back(func.compile(ql_env)->call(arg)->as_datum()->as_json());
+    out->push_back(func.compile(ql_env)->call(arg)->as_datum());
 }
 
 void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {  // NOLINT(runtime/references)
-    counted_t<const ql::datum_t> arg(new ql::datum_t(json));
     counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(arg)->as_seq();
     while (counted_t<const ql::datum_t> d = ds->next()) {
-        out->push_back(d->as_json());
+        out->push_back(d);
     }
 }
 
 void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {  // NOLINT(runtime/references)
     counted_t<ql::func_t> f = func.compile(ql_env);
-    counted_t<const ql::datum_t> arg(new ql::datum_t(json));
     if (f->filter_call(arg)) {
-        out->push_back(arg->as_json());
+        out->push_back(arg);
     }
 }
 
 
 void transform_apply(ql::env_t *ql_env,
                      const backtrace_t &backtrace,
-                     boost::shared_ptr<scoped_cJSON_t> json,
+                     counted_t<const ql::datum_t> json,
                      rdb_protocol_details::transform_variant_t *t,
-                     std::list<boost::shared_ptr<scoped_cJSON_t> > *out) {
+                     std::list<counted_t<const ql::datum_t> > *out) {
     boost::apply_visitor(transform_visitor_t(json, out, ql_env, backtrace),
                          *t);
 }
@@ -143,7 +141,7 @@ void transform_apply(ql::env_t *ql_env,
 /* A visitor for applying a terminal to a bit of json. */
 class terminal_visitor_t : public boost::static_visitor<void> {
 public:
-    terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
+    terminal_visitor_t(lazy_json_t _json,
                        ql::env_t *_ql_env,
                        const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
@@ -153,16 +151,16 @@ public:
     void operator()(ql::gmr_wire_func_t &) const;
     void operator()(ql::reduce_wire_func_t &) const;
 private:
-    boost::shared_ptr<scoped_cJSON_t> json;
+    lazy_json_t json;
     ql::env_t *ql_env;
     backtrace_t backtrace;
     rget_read_response_t::result_t *out;
 };
 
-terminal_visitor_t::terminal_visitor_t(boost::shared_ptr<scoped_cJSON_t> _json,
-                   ql::env_t *_ql_env,
-                   const backtrace_t &_backtrace,
-                   rget_read_response_t::result_t *_out)
+terminal_visitor_t::terminal_visitor_t(lazy_json_t _json,
+                                       ql::env_t *_ql_env,
+                                       const backtrace_t &_backtrace,
+                                       rget_read_response_t::result_t *_out)
     : json(_json), ql_env(_ql_env), backtrace(_backtrace), out(_out) { }
 
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
@@ -173,10 +171,10 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLIN
     ql::wire_datum_map_t *obj = boost::get<ql::wire_datum_map_t>(out);
     guarantee(obj);
 
-    counted_t<const ql::datum_t> el(new ql::datum_t(json));
+    counted_t<const ql::datum_t> el = json.get();
     counted_t<const ql::datum_t> el_group
         = func.compile_group(ql_env)->call(el)->as_datum();
-    counted_t<const ql::datum_t> elm(new ql::datum_t(json));
+    counted_t<const ql::datum_t> elm = json.get();
     counted_t<const ql::datum_t> el_map
         = func.compile_map(ql_env)->call(elm)->as_datum();
 
@@ -196,7 +194,7 @@ void terminal_visitor_t::operator()(UNUSED const ql::count_wire_func_t &func) co
 
 void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NOLINT(runtime/references)
     counted_t<const ql::datum_t> *d = boost::get<counted_t<const ql::datum_t> >(out);
-    counted_t<const ql::datum_t> rhs(new ql::datum_t(json));
+    counted_t<const ql::datum_t> rhs = json.get();
     if (d != NULL) {
         *out = func.compile(ql_env)->call(*d, rhs)->as_datum();
     } else {
@@ -207,7 +205,7 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NO
 
 void terminal_apply(ql::env_t *ql_env,
                     const backtrace_t &backtrace,
-                    boost::shared_ptr<scoped_cJSON_t> json,
+                    lazy_json_t json,
                     rdb_protocol_details::terminal_variant_t *t,
                     rget_read_response_t::result_t *out) {
     boost::apply_visitor(terminal_visitor_t(json, ql_env, backtrace, out),

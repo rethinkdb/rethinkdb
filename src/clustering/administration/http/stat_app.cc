@@ -122,9 +122,9 @@ boost::optional<http_res_t> parse_query_params(
                     out_set->insert(*s);
                 }
             } catch (const boost::escaped_list_error &e) {
-                return boost::optional<http_res_t>(http_error_res(
-                    "Boost tokenizer error: "+std::string(e.what())
-                    +" ("+it->key+"="+it->val+")"));
+                std::string msg = strprintf("Boost tokenizer error: %s (%s=%s)",
+                                            e.what(), it->key.c_str(), it->val.c_str());
+                return boost::optional<http_res_t>(http_error_res(msg));
             }
         } else {
             return boost::optional<http_res_t>(http_error_res(

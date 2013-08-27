@@ -246,7 +246,7 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
 
     // Print this out afterwards to avoid spammy warnings if retries must be performed
     if (!error.empty()) {
-        printf("%s\n", error.c_str());
+        fprintf(stderr, "%s\n", error.c_str());
     }
 }
 

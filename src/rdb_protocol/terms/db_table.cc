@@ -353,7 +353,6 @@ public:
         meta_op_t(env, term, argspec_t(0)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        datum_ptr_t arr(datum_t::R_ARRAY);
         std::vector<std::string> dbs;
         {
             rethreading_metadata_accessor_t meta(this);
@@ -365,10 +364,14 @@ private:
                 dbs.push_back(it->second.get_ref().name.get().c_str());
             }
         }
+
+        std::vector<counted_t<const datum_t> > arr;
+        arr.reserve(dbs.size());
         for (auto it = dbs.begin(); it != dbs.end(); ++it) {
-            arr.add(make_counted<datum_t>(*it));
+            arr.push_back(make_counted<datum_t>(std::move(*it)));
         }
-        return new_val(arr.to_counted());
+
+        return new_val(make_counted<const datum_t>(std::move(arr)));
     }
     virtual const char *name() const { return "db_list"; }
 };
@@ -379,7 +382,6 @@ public:
         meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        datum_ptr_t arr(datum_t::R_ARRAY);
         uuid_u db_id;
         if (num_args() == 0) {
             counted_t<val_t> dbv = optarg("db");
@@ -400,10 +402,13 @@ private:
                 tables.push_back(it->second.get_ref().name.get().c_str());
             }
         }
+
+        std::vector<counted_t<const datum_t> > arr;
+        arr.reserve(tables.size());
         for (auto it = tables.begin(); it != tables.end(); ++it) {
-            arr.add(make_counted<datum_t>(*it));
+            arr.push_back(make_counted<datum_t>(std::move(*it)));
         }
-        return new_val(arr.to_counted());
+        return new_val(make_counted<const datum_t>(std::move(arr)));
     }
     virtual const char *name() const { return "table_list"; }
 };

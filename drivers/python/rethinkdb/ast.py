@@ -227,6 +227,9 @@ class RqlQuery(object):
     def mod(self, other):
         return Mod(self, other)
 
+    def not_(self):
+        return Not(self)
+
     # N.B. Cannot use 'in' operator because it must return a boolean
     def contains(self, *attr):
         return Contains(self, *map(func_wrap, attr))
@@ -874,7 +877,7 @@ class Nth(RqlQuery):
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
 
-class Match(RqlQuery):
+class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
 

@@ -133,7 +133,6 @@
         if ((actualWidth == undefined || actualWidth == 0) && ($tip[0] !== undefined) && ($tip[0].getBBox !== undefined)) {
             actualWidth = $tip[0].getBBox().width
             actualWidth = $tip[0].getBBox().height
-            console.log(actualWidth)
         }
 
         switch (inside ? placement.split(' ')[1] : placement) {
@@ -204,11 +203,13 @@
         box_width = this.$element[0].getBBox().width;
         box_height = this.$element[0].getBBox().height;
       }
-
-      return $.extend({}, (inside ? {top: 0, left: 0} : this.$element.offset()), {
-        width: Math.max(this.$element[0].offsetWidth, box_width)
-      , height: Math.max(this.$element[0].offsetHeight, box_height)
-      })
+      // offsetWidth/offsetHeight can be undefined for a SVGRectElement in Firefox
+      // Math.max(undefined, 1) returns NaN...
+      var size = {
+        width: (this.$element[0].offsetWidth != null) ? Math.max(this.$element[0].offsetWidth, box_width) : box_width,
+        height: (this.$element[0].offsetHeight != null) ? Math.max(this.$element[0].offsetHeight, box_height) : box_height
+      }
+      return $.extend({}, (inside ? {top: 0, left: 0} : this.$element.offset()), size)
     }
 
   , getTitle: function () {

@@ -125,9 +125,9 @@ TEST(RDBProtocol, OvershardedSetupTeardown) {
 
 /* `GetSet` tests basic get and set operations */
 void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateNull()));
     {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"), data),
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"),
+                                                                    make_counted<ql::datum_t>(ql::datum_t::R_NULL)),
                                       DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 
@@ -149,8 +149,8 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
         nsi->read(read, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"), &interruptor);
 
         if (rdb_protocol_t::point_read_response_t *maybe_point_read_response = boost::get<rdb_protocol_t::point_read_response_t>(&response.response)) {
-            ASSERT_TRUE(maybe_point_read_response->data->get() != NULL);
-            ASSERT_TRUE(cJSON_Equal(data->get(), maybe_point_read_response->data->get()));
+            ASSERT_TRUE(maybe_point_read_response->data.has());
+            ASSERT_EQ(ql::datum_t(ql::datum_t::R_NULL), *maybe_point_read_response->data);
         } else {
             ADD_FAILURE() << "got wrong result back";
         }
@@ -213,7 +213,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     /* Create a secondary index. */
     std::string id = create_sindex(nsi, osource);
 
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
+    std::shared_ptr<const scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0, \"sid\" : 1}")));
     store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
     counted_t<const ql::datum_t> sindex_key_literal = make_counted<ql::datum_t>(1.0);
 
@@ -221,7 +221,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
                                       DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 
@@ -249,7 +249,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
             rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&rget_resp->result);
             ASSERT_TRUE(stream != NULL);
             ASSERT_EQ(1u, stream->size());
-            ASSERT_EQ(0, query_language::json_cmp(stream->at(0).data->get(), data->get()));
+            ASSERT_EQ(ql::datum_t(*data), *stream->at(0).data);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -359,8 +359,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
         for (size_t j = 100; j < 200; j += 5) {
             std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10, static_cast<char>(j));
             std::string sid(j, 'a');
-            auto sindex_key_literal = make_counted<const ql::datum_t>(sid);
-            boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateObject()));
+            auto sindex_key_literal = make_counted<const ql::datum_t>(std::string(sid));
+            std::shared_ptr<const scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_CreateObject()));
             cJSON_AddItemToObject(data->get(), "id", cJSON_CreateString(id.c_str()));
             cJSON_AddItemToObject(data->get(), "sid", cJSON_CreateString(sid.c_str()));
             store_key_t pk;
@@ -376,7 +376,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
             {
                 /* Insert a piece of data (it will be indexed using the secondary
                  * index). */
-                rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+                rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
                                               DURABILITY_REQUIREMENT_DEFAULT);
                 rdb_protocol_t::write_response_t response;
 
@@ -428,13 +428,13 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
     query_language::backtrace_t b;
     create_sindex(nsi, osource);
 
-    boost::shared_ptr<scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
+    std::shared_ptr<const scoped_cJSON_t> data(new scoped_cJSON_t(cJSON_Parse("{\"id\" : 0}")));
     store_key_t pk = store_key_t(cJSON_print_primary(cJSON_GetObjectItem(data->get(), "id"), b));
     ASSERT_TRUE(data->get());
     {
         /* Insert a piece of data (it will be indexed using the secondary
          * index). */
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, data),
+        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
                                       DURABILITY_REQUIREMENT_DEFAULT);
         rdb_protocol_t::write_response_t response;
 

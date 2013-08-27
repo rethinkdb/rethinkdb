@@ -94,11 +94,6 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
     try {
         if (js_parent.has()) {
             r_sanity_check(!body.has() && source.has() && js_env != NULL);
-            // Convert datum args to cJSON args for the JS runner
-            std::vector<boost::shared_ptr<scoped_cJSON_t> > json_args;
-            for (auto arg_iter = args.begin(); arg_iter != args.end(); ++arg_iter) {
-                json_args.push_back((*arg_iter)->as_json());
-            }
 
             js_runner_t::req_config_t config;
             config.timeout_ms = js_timeout_ms;
@@ -107,7 +102,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             js_result_t result;
 
             try {
-                result = js_env->get_js_runner()->call(js_source, json_args, config);
+                result = js_env->get_js_runner()->call(js_source, args, config);
             } catch (const js_worker_exc_t &e) {
                 rfail(base_exc_t::GENERIC,
                       "Javascript query `%s` caused a crash in a worker process.",
@@ -307,13 +302,13 @@ void debug_print(printf_buffer_t *buf, const wire_func_t &func) {
     debug_print(buf, func.debug_str());
 }
 
-counted_t<val_t> js_result_visitor_t::operator()(const std::string err_val) const {
+counted_t<val_t> js_result_visitor_t::operator()(const std::string &err_val) const {
     rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
     unreachable();
 }
 counted_t<val_t> js_result_visitor_t::operator()(
-    const boost::shared_ptr<scoped_cJSON_t> json_val) const {
-    return parent->new_val(make_counted<const datum_t>(json_val));
+    const counted_t<const ql::datum_t> &datum) const {
+    return parent->new_val(datum);
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {

@@ -479,13 +479,14 @@ void sanitize_time(datum_t *time) {
             }
         } else if (it->first == timezone_key) {
             if (it->second->get_type() == datum_t::R_STR) {
-                std::string tz, raw_tz = it->second->as_str();
+                const std::string raw_tz = it->second->as_str();
+                std::string tz;
                 if (tz_valid(raw_tz, &tz)) {
                     has_timezone = true;
                     tz = (tz == "Z") ? "+00:00" : tz;
                     if (tz != raw_tz) {
                         bool b = time->add(timezone_key,
-                                           make_counted<const datum_t>(tz),
+                                           make_counted<const datum_t>(std::move(tz)),
                                            CLOBBER);
                         r_sanity_check(b);
                     }
@@ -541,7 +542,7 @@ counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
         UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);
     } else {
         UNUSED bool b =
-            t2.add(timezone_key, make_counted<const datum_t>(new_tzs), CLOBBER);
+            t2.add(timezone_key, make_counted<const datum_t>(std::move(new_tzs)), CLOBBER);
     }
     return t2.to_counted();
 }
@@ -551,7 +552,7 @@ counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
     bool clobber = res.add(datum_t::reql_type_string,
                            make_counted<const datum_t>(time_string));
     clobber |= res.add(epoch_time_key, make_counted<const datum_t>(epoch_time));
-    clobber |= res.add(timezone_key, make_counted<const datum_t>(tz));
+    clobber |= res.add(timezone_key, make_counted<const datum_t>(std::move(tz)));
     r_sanity_check(!clobber);
     return res.to_counted();
 }
