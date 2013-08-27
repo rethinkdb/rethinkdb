@@ -405,8 +405,7 @@ counted_t<datum_stream_t> table_t::get_all(
         counted_t<const datum_t> value,
         const std::string &_sindex_id,
         const protob_t<const Backtrace> &bt) {
-    pb_rcheckable_t checkable(bt);
-    rcheck_target(&checkable, base_exc_t::GENERIC, !sindex_id,
+    rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
             "Cannot chain get_all and other indexed operations.");
     r_sanity_check(sorting == UNORDERED);
     r_sanity_check(!bounds);
@@ -426,37 +425,35 @@ counted_t<datum_stream_t> table_t::get_all(
     }
 }
 
-void table_t::add_sorting(const std::string &_sindex_id, sorting_t _sorting,
-                          const protob_t<const Backtrace> &bt) {
+void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
+                          const rcheckable_t *parent) {
     r_sanity_check(_sorting != UNORDERED);
 
-    pb_rcheckable_t checkable(bt);
-    rcheck_target(&checkable, base_exc_t::GENERIC, !sorting,
+    rcheck_target(parent, base_exc_t::GENERIC, !sorting,
             "Cannot apply 2 indexed orderings to the same TABLE.");
-    if (sindex_id && *sindex_id != _sindex_id) {
-        rcheck_target(&checkable, base_exc_t::GENERIC, *sindex_id == _sindex_id,
+    if (sindex_id && *sindex_id != new_sindex_id) {
+        rcheck_target(parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
                 "Can only use one index per table access.");
     }
 
-    sindex_id = _sindex_id;
+    sindex_id = new_sindex_id;
     sorting = _sorting;
 }
 
 void table_t::add_bounds(
     counted_t<const datum_t> left_bound, bool left_bound_open,
     counted_t<const datum_t> right_bound, bool right_bound_open,
-    const std::string &_sindex_id, const protob_t<const Backtrace> &bt) {
+    const std::string &new_sindex_id, const rcheckable_t *parent) {
 
-    pb_rcheckable_t checkable(bt);
     if (sindex_id) {
-        rcheck_target(&checkable, base_exc_t::GENERIC, *sindex_id == _sindex_id,
+        rcheck_target(parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
                 "Can only use one index per table access.");
     }
 
-    rcheck_target(&checkable, base_exc_t::GENERIC, !bounds,
+    rcheck_target(parent, base_exc_t::GENERIC, !bounds,
             "Cannot chain multiple betweens to the same table.");
 
-    sindex_id = _sindex_id;
+    sindex_id = new_sindex_id;
     bounds = std::make_pair(
             bound_t(left_bound, left_bound_open),
             bound_t(right_bound, right_bound_open));

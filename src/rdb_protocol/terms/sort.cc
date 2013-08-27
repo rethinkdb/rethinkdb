@@ -142,7 +142,7 @@ private:
                 }
             }
             r_sanity_check(sorting != UNORDERED);
-            tbl->add_sorting(index->as_str(), sorting, backtrace());
+            tbl->add_sorting(index->as_str(), sorting, this);
         }
 
         /* Compute the seq if we haven't already (if we were passed a table).

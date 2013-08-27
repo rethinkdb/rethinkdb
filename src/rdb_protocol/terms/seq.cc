@@ -120,7 +120,7 @@ private:
         counted_t<val_t> sindex = optarg("index");
         std::string sid = (sindex.has() ? sindex->as_str() : tbl->get_pkey());
 
-        tbl->add_bounds(lb, left_open(), rb, right_open(), sid, backtrace());
+        tbl->add_bounds(lb, left_open(), rb, right_open(), sid, this);
         return new_val(tbl);
     }
     virtual const char *name() const { return "between"; }

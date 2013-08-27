@@ -38,11 +38,11 @@ public:
             const protob_t<const Backtrace> &bt);
     void add_sorting(
         const std::string &sindex_id, sorting_t sorting,
-        const protob_t<const Backtrace> &bt);
+        const rcheckable_t *parent);
     void add_bounds(
         counted_t<const datum_t> left_bound, bool left_bound_open,
         counted_t<const datum_t> right_bound, bool right_bound_open,
-        const std::string &sindex_id, const protob_t<const Backtrace> &bt);
+        const std::string &sindex_id, const rcheckable_t *parent);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
