@@ -84,7 +84,7 @@ private:
                             counted_t<const datum_t> *datum_out) {
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
-            counted_t<const datum_t> keyd(new datum_t(key));
+            counted_t<const datum_t> keyd(new datum_t(std::string(key)));
             datum_ptr_t d(datum_t::R_OBJECT);
             bool conflict = d.add(tbl->get_pkey(), keyd);
             r_sanity_check(!conflict);
@@ -153,12 +153,13 @@ private:
         }
 
         if (generated_keys.size() > 0) {
-            datum_ptr_t genkeys(datum_t::R_ARRAY);
+            std::vector<counted_t<const datum_t> > genkeys;
+            genkeys.reserve(generated_keys.size());
             for (size_t i = 0; i < generated_keys.size(); ++i) {
-                genkeys.add(make_counted<datum_t>(generated_keys[i]));
+                genkeys.push_back(make_counted<datum_t>(std::move(generated_keys[i])));
             }
             datum_ptr_t d(datum_t::R_OBJECT);
-            UNUSED bool b = d.add("generated_keys", genkeys.to_counted());
+            UNUSED bool b = d.add("generated_keys", make_counted<datum_t>(std::move(genkeys)));
             stats = stats->merge(d.to_counted(), pure_merge);
         }
 

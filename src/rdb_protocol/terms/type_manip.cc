@@ -163,16 +163,18 @@ private:
 
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
-                    datum_ptr_t arr(datum_t::R_ARRAY);
                     const std::map<std::string, counted_t<const datum_t> > &obj
                         = d->as_object();
+                    std::vector<counted_t<const datum_t> > arr;
+                    arr.reserve(obj.size());
                     for (auto it = obj.begin(); it != obj.end(); ++it) {
-                        datum_ptr_t pair(datum_t::R_ARRAY);
-                        pair.add(make_counted<datum_t>(it->first));
-                        pair.add(it->second);
-                        arr.add(pair.to_counted());
+                        std::vector<counted_t<const datum_t> > pair;
+                        pair.reserve(2);
+                        pair.push_back(make_counted<datum_t>(std::string(it->first)));
+                        pair.push_back(it->second);
+                        arr.push_back(make_counted<datum_t>(std::move(pair)));
                     }
-                    return new_val(arr.to_counted());
+                    return new_val(make_counted<const datum_t>(std::move(arr)));
                 }
 
                 // STR -> NUM
@@ -279,12 +281,12 @@ private:
 
         switch (type) {
         case DB_TYPE: {
-            b |= info.add("name", make_counted<datum_t>(v->as_db()->name));
+            b |= info.add("name", make_counted<datum_t>(std::string(v->as_db()->name)));
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
-            b |= info.add("name", make_counted<datum_t>(table->name));
-            b |= info.add("primary_key", make_counted<datum_t>(table->get_pkey()));
+            b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
+            b |= info.add("primary_key", make_counted<datum_t>(std::string(table->get_pkey())));
             b |= info.add("indexes", table->sindex_list());
             b |= info.add("db", val_info(new_val(table->db)));
         } break;

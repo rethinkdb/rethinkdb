@@ -10,39 +10,36 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
-#include "help.hpp"
-
 namespace migrate {
 
 NORETURN void usage(UNUSED const char *name) {
-    help_pager_t *help = help_pager_t::instance();
-    help->pagef("Usage:\n"
-                "        rethinkdb migrate --in -f <file_1> [-f <file_2> ...] --out -f <file_1> [-f <file_2>] [--intermediate file]\n");
-    help->pagef("\n"
-                "Migrate legacy versions of RethinkDB data files to the current version.\n"
-                "\n"
-                "Options:\n"
-                "      --in              Specify the input file flags -f (or --file) following\n"
-                "                        this command. This is the older version of the database\n"
-                "                        to be migrated.\n"
-                "      --out             Specify the output file flags -f (or --file) following\n"
-                "                        this command. This is where the database will be written\n"
-                "                        to in a new format.\n"
-                "      -f, --file        Path to a file or block device that constitutes\n"
-                "                        either the input or the output database.\n"
-                "      --intermediate    File to store intermediate raw memcached commands.\n"
-                "                        It defaults to: %s.\n", TEMP_MIGRATION_FILE);
-    help->pagef("      --force           Allow migrate to overwrite an existing database file.\n");
-    help->pagef("\n"
-                "Migration extracts data from the old database into a portable format of raw\n"
-                "memcached commands and then reinserts the data into a new file version being\n"
-                "migrated to.\n"
-                "Migration can be done from a set of files to themselves. Effectively migrating\n"
-                "in place. This requires a --force flag.\n"
-                "Note: if migration in place (using the --force flag) is interrupted it has the\n"
-                "potential to leave the target files with missing data. Should this happen the\n"
-                "intermediate file will be the only remaining copy of the data. Please consult\n"
-                "support for help getting this data back in to a database.\n");
+    printf("Usage:\n"
+           "        rethinkdb migrate --in -f <file_1> [-f <file_2> ...] --out -f <file_1> [-f <file_2>] [--intermediate file]\n");
+    printf("\n"
+           "Migrate legacy versions of RethinkDB data files to the current version.\n"
+           "\n"
+           "Options:\n"
+           "      --in              Specify the input file flags -f (or --file) following\n"
+           "                        this command. This is the older version of the database\n"
+           "                        to be migrated.\n"
+           "      --out             Specify the output file flags -f (or --file) following\n"
+           "                        this command. This is where the database will be written\n"
+           "                        to in a new format.\n"
+           "      -f, --file        Path to a file or block device that constitutes\n"
+           "                        either the input or the output database.\n"
+           "      --intermediate    File to store intermediate raw memcached commands.\n"
+           "                        It defaults to: %s.\n", TEMP_MIGRATION_FILE);
+    printf("      --force           Allow migrate to overwrite an existing database file.\n");
+    printf("\n"
+           "Migration extracts data from the old database into a portable format of raw\n"
+           "memcached commands and then reinserts the data into a new file version being\n"
+           "migrated to.\n"
+           "Migration can be done from a set of files to themselves. Effectively migrating\n"
+           "in place. This requires a --force flag.\n"
+           "Note: if migration in place (using the --force flag) is interrupted it has the\n"
+           "potential to leave the target files with missing data. Should this happen the\n"
+           "intermediate file will be the only remaining copy of the data. Please consult\n"
+           "support for help getting this data back in to a database.\n");
     exit(EXIT_SUCCESS);
 }
 

@@ -21,6 +21,12 @@ namespace std {
 // Implementations for pair, map, set, string, and vector.
 
 template <class T, class U>
+size_t serialized_size(const std::pair<T, U> &p) {
+    return serialized_size(p.first) + serialized_size(p.second);
+}
+
+// Keep in sync with serialized_size.
+template <class T, class U>
 write_message_t &operator<<(write_message_t &msg, const std::pair<T, U> &p) {
     msg << p.first;
     msg << p.second;
@@ -35,6 +41,17 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::pair<T, U> *p) {
     return res;
 }
 
+// Keep in sync with operator<<.
+template <class K, class V, class C>
+size_t serialized_size(const std::map<K, V, C> &m) {
+    size_t ret = serialized_size_t<uint64_t>::value;
+    for (auto it = m.begin(), e = m.end(); it != e; ++it) {
+        ret += serialized_size(*it);
+    }
+    return ret;
+}
+
+// Keep in sync with serialized_size.
 template <class K, class V, class C>
 write_message_t &operator<<(write_message_t &msg, const std::map<K, V, C> &m) {
     // Extreme platform paranoia: It could become important that we
@@ -43,7 +60,7 @@ write_message_t &operator<<(write_message_t &msg, const std::map<K, V, C> &m) {
     uint64_t sz = m.size();
 
     msg << sz;
-    for (typename std::map<K, V, C>::const_iterator it = m.begin(), e = m.end(); it != e; ++it) {
+    for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         msg << *it;
     }
 
@@ -104,56 +121,30 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
     return ARCHIVE_SUCCESS;
 }
 
-inline
-write_message_t &operator<<(write_message_t &msg, const std::string &s) {
-    const char *data = s.data();
-    int64_t sz = s.size();
-    rassert(sz >= 0);
+size_t serialized_size(const std::string &s);
+write_message_t &operator<<(write_message_t &msg, const std::string &s);
+MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out);
 
-    msg << sz;
-    msg.append(data, sz);
-
-    return msg;
+// Think twice before using this function on vectors containing a primitive type --
+// it'll take O(n) time!
+// Keep in sync with operator<<.
+template <class T>
+size_t serialized_size(const std::vector<T> &v) {
+    size_t ret = serialized_size_t<uint64_t>::value;
+    for (auto it = v.begin(), e = v.end(); it != e; ++it) {
+        ret += serialized_size(*it);
+    }
+    return ret;
 }
 
-inline
-MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out) {
-    out->clear();
 
-    int64_t sz;
-    archive_result_t res = deserialize(s, &sz);
-    if (res) { return res; }
-
-    if (sz < 0) {
-        return ARCHIVE_RANGE_ERROR;
-    }
-
-    // Unfortunately we have to do an extra copy before dumping data
-    // into a std::string.
-    std::vector<char> v(sz);
-    rassert(v.size() == uint64_t(sz));
-
-    int64_t num_read = force_read(s, v.data(), sz);
-    if (num_read == -1) {
-        return ARCHIVE_SOCK_ERROR;
-    }
-    if (num_read < sz) {
-        return ARCHIVE_SOCK_EOF;
-    }
-
-    rassert(num_read == sz, "force_read returned an invalid value %" PRIi64, num_read);
-
-    out->assign(v.data(), v.size());
-
-    return ARCHIVE_SUCCESS;
-}
-
+// Keep in sync with serialized_size.
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const std::vector<T> &v) {
     uint64_t sz = v.size();
 
     msg << sz;
-    for (typename std::vector<T>::const_iterator it = v.begin(), e = v.end(); it != e; ++it) {
+    for (auto it = v.begin(), e = v.end(); it != e; ++it) {
         msg << *it;
     }
 

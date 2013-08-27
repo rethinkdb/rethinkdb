@@ -1,3 +1,108 @@
+# Release 1.8.1 (High Noon)
+
+Released on 2013-08-21
+
+Bug fix update.
+
+* The shard suggester now works with times (#1335)
+* The Python backup scripts no longer rely on `pip show` (#1331)
+* `rethinkdb help` no longer uses a pager (#1315, #1308)
+* The web UI now correctly positions `SVGRectElement` (#1314)
+* Fixed a bug that caused a crash when using `filter` with a non-deterministic value (#1299)
+
+--
+
+# Release 1.8.0 (High Noon)
+
+Released on 2013-08-14
+
+This release introduces date and time support, a new syntax for querying nested objects and 8x improvement in disk usage.
+
+## New Features ##
+
+* ReQL
+  * `order_by` now accepts a function as an argument and can efficiently sort by index (#159, #1120, #1258)
+  * `slice` and `between` are now half-open by default (#869)
+    * The behaviour can be changed by setting the new optional `right_bound` argument to `closed`
+      or by setting `left_bound` to `open`
+  * `contains` can now be passed a predicate (#870)
+  * `merge` is now deep by default (#872)
+    * Introduced `literal` to merge flat values
+  * `coerce_to` can now convert strings to numbers (#877)
+  * Added support for times (#977)
+    * `+`, `-`, `<`, `<=`, `>`, `>=`, `==` and `!=`: arithmetic and comparison
+    * `during`: match a time with an interval
+    * `in_timezone`: change the timezone offset
+    * `date`, `time_of_day`, `timezone`, `year`, `month`, `day`, `weekday`, `hour`, `minute` and `second`: accessors
+    * `time`, `epoch_time` and `iso8601`: constructors
+    * `monday` to `sunday` and `january` to `december`: constants
+    * `now`: current time
+    * `to_iso8601`, `to_epoch_time`: conversion
+  * Add the nested document syntax to functions other than `pluck` (#1094)
+    * `without`, `group_by`, `with_fields` and `has_fields`
+  * Remove Google Closure from the JavaScript driver (#1194)
+    * It now depends on the `protobufjs` and `node-protobuf` libraries
+* Server
+  * Added a `--canonical-address HOST[:PORT]` command line option for connecting RethinkDB nodes across different networks (#486)
+    * Two instances behind proxies can now be configured to connect to each other
+  * Optimize space efficiency by allowing smaller block sizes (#939)
+  * Added a `--no-direct-io` startup flag that turns off direct IO (#1051)
+  * Rewrote the `extproc` code, making `r.js` interuptible and fixing many crashes (#1097, #1106)
+  * Added support for V8 >= 3.19 (#1195)
+  * Clear blobs when they are unused (#1286)
+* Web UI
+  * Use relative paths (#1053)
+* Build
+  * Add support for Emacs' `flymake-mode` (#1161)
+
+## Fixed Bugs ##
+
+* ReQL
+  * Check the type of the callback passed to `next` and `each` in the JavaScript driver (#656)
+  * Fixed how some backtraces are printed in the JavaScript driver (#973)
+  * Coerce the port argument to a number in the Python driver (#1017)
+  * Functions that are polymorphic on objects and sequences now only recurse one level deep (#1045)
+    * Affects `pluck`, `has_fields`, `with_fields`, etc
+  * In the JavaScript driver, no longer fail when requiring the module twice (#1047)
+  * `r.union` now returns a stream when given two streams (#1081)
+  * `r.db` can now be chained with `do` in the JavaScript driver (#1082)
+  * Improve the error message when combining `for_each` and `return_vals` (#1104)
+  * Fixed a bug causing the JavaScript driver to overflow the stack when given an object with circular references (#1133)
+  * Don't leak internal functions in the JavaScript driver (#1164)
+  * Fix the qurey printing in the Python driver (#1178)
+  * Correctly depend on node >= 0.10 in the JavaScript driver (#1197)
+* Server
+  * Improved the error message when there is a version mismatch in data files (#521)
+  * The `--no-http-admin` option now disables the check for the web assets folder (#1092)
+  * No longer compile JavaScript expressions once per row (#1105)
+  * Fixed a crash in the 32-bit version caused by not using 64-bit file offsets (#1129)
+  * Fixed a crash caused by malformed json documents (#1132)
+  * Fixed a crash caused by moving `func_t` betweek threads (#1157)
+  * Improved the scheduling the coroutines that sometimes caused heartbeat timeouts (#1169)
+  * Fixed `conflict_resolving_diskmgr_t` to suport files over 1TB (#1170)
+  * Fixed a crash caused by disconnecting too fast (#1182)
+  * Fixed the error message when `js_runner_t::call` times out (#1218)
+  * Fixed a crash caused by serializing unintitialised values (#1219)
+  * Fixed a bug that caused an assertion failure in `protob_server_t` (#1220)
+  * Fixed a bug causing too many file descriptors to be open (#1225)
+  * Fixed memory leaks reported by valgrind (#1233)
+  * Fixed a crash triggered by the BTreeSindex test (#1237)
+  * Fixed some problems with import performance, interruption, parsing, and error reporting (#1252)
+  * RethinkDB proxy no longer crashes when interacting with the Web UI (#1276)
+* Tests
+  * Fixed the connectivity tests for OS X (#613)
+  * Fix the python connection tests (#1110)
+* Web UI
+  * Provide a less scary error message when a request times out (#1074)
+  * Provide proper suggestions in the presence of comments in the Data Explorer (#1214)
+  * The `More data` link in the data explorer now works consistently (#1222)
+* Documentation
+  * Improved the documentaiton for `update` and `pluck` (#1141)
+* Build
+  * Fixed bugs that caused make to not rebuild certain files or build files it should not (#1162, #1215, #1216, #1229, #1230, #1272)
+
+--
+
 # Release 1.7.3 (Nights of Cabiria)
 
 Released on 2013-07-19

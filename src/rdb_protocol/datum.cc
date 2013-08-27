@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 
 #include "rdb_protocol/datum.hpp"
 
@@ -23,31 +23,31 @@ const char* const datum_t::reql_type_string = "$reql_type$";
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
 }
-datum_t::datum_t(type_t _type, std::string _reql_type)
-    : type(_type), r_object(new std::map<std::string, counted_t<const datum_t> >) {
-    r_sanity_check(_type == R_OBJECT);
-    r_object->insert(std::make_pair(std::string(reql_type_string),
-                                    make_counted<const datum_t>(_reql_type)));
-}
+
 datum_t::datum_t(double _num) : type(R_NUM), r_num(_num) {
     // so we can use `isfinite` in a GCC 4.4.3-compatible way
     using namespace std;  // NOLINT(build/namespaces)
     rcheck(isfinite(r_num), base_exc_t::GENERIC,
            strprintf("Non-finite number: " DBLPRI, r_num));
 }
-datum_t::datum_t(const std::string &_str)
-    : type(R_STR), r_str(new std::string(_str)) {
-    check_str_validity(_str);
+
+datum_t::datum_t(std::string &&_str)
+    : type(R_STR), r_str(new std::string(std::move(_str))) {
+    check_str_validity(*r_str);
 }
+
 datum_t::datum_t(const char *cstr)
     : type(R_STR), r_str(new std::string(cstr)) { }
-datum_t::datum_t(const std::vector<counted_t<const datum_t> > &_array)
-    : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(_array)) { }
-datum_t::datum_t(const std::map<std::string, counted_t<const datum_t> > &_object)
+
+datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
+    : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) { }
+
+datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
     : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(_object)) {
+      r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(_object))) {
     maybe_sanitize_ptype();
 }
+
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
     switch (type) {
@@ -163,8 +163,8 @@ void datum_t::check_str_validity(const std::string &str) {
 datum_t::datum_t(cJSON *json) {
     init_json(json);
 }
-datum_t::datum_t(const boost::shared_ptr<scoped_cJSON_t> &json) {
-    init_json(json->get());
+datum_t::datum_t(const scoped_cJSON_t &json) {
+    init_json(json.get());
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
@@ -213,7 +213,7 @@ std::string datum_t::get_type_name() const {
 }
 
 std::string datum_t::print() const {
-    return as_json()->Print();
+    return as_json().Print();
 }
 
 std::string datum_t::trunc_print() const {
@@ -600,7 +600,7 @@ const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() con
     return *r_object;
 }
 
-cJSON *datum_t::as_raw_json() const {
+cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
     case R_NULL: return cJSON_CreateNull();
     case R_BOOL: return cJSON_CreateBool(as_bool());
@@ -609,7 +609,7 @@ cJSON *datum_t::as_raw_json() const {
     case R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
         for (size_t i = 0; i < as_array().size(); ++i) {
-            arr.AddItemToArray(as_array()[i]->as_raw_json());
+            arr.AddItemToArray(as_array()[i]->as_json_raw());
         }
         return arr.release();
     } break;
@@ -617,7 +617,7 @@ cJSON *datum_t::as_raw_json() const {
         scoped_cJSON_t obj(cJSON_CreateObject());
         for (std::map<std::string, counted_t<const datum_t> >::const_iterator
                  it = r_object->begin(); it != r_object->end(); ++it) {
-            obj.AddItemToObject(it->first.c_str(), it->second->as_raw_json());
+            obj.AddItemToObject(it->first.c_str(), it->second->as_json_raw());
         }
         return obj.release();
     } break;
@@ -626,8 +626,9 @@ cJSON *datum_t::as_raw_json() const {
     }
     unreachable();
 }
-boost::shared_ptr<scoped_cJSON_t> datum_t::as_json() const {
-    return boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(as_raw_json()));
+
+scoped_cJSON_t datum_t::as_json() const {
+    return scoped_cJSON_t(as_json_raw());
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
@@ -851,20 +852,6 @@ bool datum_t::key_is_truncated(const store_key_t &key) {
     return key.size() == MAX_KEY_SIZE;
 }
 
-void datum_t::rdb_serialize(write_message_t &msg /*NOLINT*/) const {
-    Datum d;
-    write_to_protobuf(&d);
-    msg << d;
-}
-archive_result_t datum_t::rdb_deserialize(read_stream_t *s) {
-    Datum d;
-    archive_result_t res = deserialize(s, &d);
-    if (res) return res;
-    init_from_pb(&d);
-    return ARCHIVE_SUCCESS;
-}
-
-
 void datum_t::write_to_protobuf(Datum *d) const {
     switch (get_type()) {
     case R_NULL: {
@@ -905,6 +892,178 @@ void datum_t::write_to_protobuf(Datum *d) const {
     default: unreachable();
     }
 }
+
+
+
+// This must be kept in sync with operator<<(write_message_t &, const counted_t<const
+// datum_T> &).
+size_t serialized_size(const counted_t<const datum_t> &datum) {
+    r_sanity_check(datum.has());
+    const size_t typesize = 1;  // 1 byte for the type.
+    switch (datum->get_type()) {
+    case datum_t::R_ARRAY:
+        return typesize + serialized_size(datum->as_array());
+    case datum_t::R_BOOL:
+        return typesize + serialized_size_t<bool>::value;
+    case datum_t::R_NULL:
+        return typesize;
+    case datum_t::R_NUM:
+        return typesize + serialized_size_t<double>::value;
+    case datum_t::R_OBJECT:
+        return typesize + serialized_size(datum->as_object());
+    case datum_t::R_STR:
+        return typesize + serialized_size(datum->as_str());
+    case datum_t::UNINITIALIZED:  // fall through
+    default:
+        unreachable();
+    }
+}
+
+write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {
+    r_sanity_check(datum.has());
+    int8_t type = datum->get_type();
+    switch (type) {
+    case datum_t::R_ARRAY: {
+        wm << type;
+        const std::vector<counted_t<const datum_t> > &value = datum->as_array();
+        wm << value;
+    } break;
+    case datum_t::R_BOOL: {
+        wm << type;
+        bool value = datum->as_bool();
+        wm << value;
+    } break;
+    case datum_t::R_NULL: {
+        wm << type;
+    } break;
+    case datum_t::R_NUM: {
+        wm << type;
+        double value = datum->as_num();
+        wm << value;
+    } break;
+    case datum_t::R_OBJECT: {
+        wm << type;
+        const std::map<std::string, counted_t<const datum_t> > &value = datum->as_object();
+        wm << value;
+    } break;
+    case datum_t::R_STR: {
+        wm << type;
+        const std::string &value = datum->as_str();
+        wm << value;
+    } break;
+    case datum_t::UNINITIALIZED:  // fall through
+    default:
+        unreachable();
+    }
+    return wm;
+}
+
+archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
+    int8_t type;
+    archive_result_t res = deserialize(s, &type);
+    if (res) {
+        return res;
+    }
+
+    switch (type) {
+    case datum_t::R_ARRAY: {
+        std::vector<counted_t<const datum_t> > value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        try {
+            datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+    } break;
+    case datum_t::R_BOOL: {
+        bool value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        try {
+            datum->reset(new datum_t(datum_t::R_BOOL, value));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+    } break;
+    case datum_t::R_NULL: {
+        datum->reset(new datum_t(datum_t::R_NULL));
+    } break;
+    case datum_t::R_NUM: {
+        double value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        try {
+            datum->reset(new datum_t(value));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+    } break;
+    case datum_t::R_OBJECT: {
+        std::map<std::string, counted_t<const datum_t> > value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        try {
+            datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+    } break;
+    case datum_t::R_STR: {
+        std::string value;
+        res = deserialize(s, &value);
+        if (res) {
+            return res;
+        }
+        try {
+            datum->reset(new datum_t(std::move(value)));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+    } break;
+    case datum_t::UNINITIALIZED:  // fall through
+    default:
+        return ARCHIVE_RANGE_ERROR;
+    }
+
+    return ARCHIVE_SUCCESS;
+}
+
+write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum) {
+    const counted_t<const datum_t> *pointer = datum.get();
+    const bool has = pointer->has();
+    wm << has;
+    if (has) {
+        wm << *pointer;
+    }
+    return wm;
+}
+
+archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum) {
+    bool has;
+    archive_result_t res = deserialize(s, &has);
+    if (res) {
+        return res;
+    }
+
+    counted_t<const datum_t> *pointer = datum.get();
+
+    if (!has) {
+        pointer->reset();
+        return ARCHIVE_SUCCESS;
+    } else {
+        return deserialize(s, pointer);
+    }
+}
+
 
 bool wire_datum_map_t::has(counted_t<const datum_t> key) {
     r_sanity_check(state == COMPILED);

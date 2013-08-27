@@ -100,6 +100,9 @@ def div(*args):
 def mod(a, b):
     return Mod(a, b)
 
+def not_(a):
+    return Not(a)
+
 def all(*args):
     return All(*args)
 
@@ -149,6 +152,9 @@ september   = type('', (RqlTimeName,), {'tt': p.Term.SEPTEMBER, 'st': 'september
 october     = type('', (RqlTimeName,), {'tt': p.Term.OCTOBER, 'st': 'october'})()
 november    = type('', (RqlTimeName,), {'tt': p.Term.NOVEMBER, 'st': 'november'})()
 december    = type('', (RqlTimeName,), {'tt': p.Term.DECEMBER, 'st': 'december'})()
+
+def make_timezone(tzstring):
+    return RqlTzinfo(tzstring)
 
 # Merge values
 def literal(val=()):

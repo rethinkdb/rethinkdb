@@ -267,21 +267,29 @@ void socket_stream_t::shutdown_write() {
 }
 
 bool socket_stream_t::wait_for_read() {
+    interrupted_exc_t saved_exception;
     try {
         return fd_watcher_->wait_for_read(interruptor);
-    } catch (const interrupted_exc_t &) {
-        shutdown_read();
-        throw;
+    } catch (const interrupted_exc_t &ex) {
+        // Don't shutdown_read here, as is it possible that it may cause a coroutine
+        //  switch, which we are not allowed to do in a catch statement
+        saved_exception = ex;
     }
+    shutdown_read();
+    throw saved_exception;
 }
 
 bool socket_stream_t::wait_for_write() {
+    interrupted_exc_t saved_exception;
     try {
         return fd_watcher_->wait_for_write(interruptor);
-    } catch (const interrupted_exc_t &) {
-        shutdown_write();
-        throw;
+    } catch (const interrupted_exc_t &ex) {
+        // Don't shutdown_write here, as is it possible that it may cause a coroutine
+        //  switch, which we are not allowed to do in a catch statement
+        saved_exception = ex;
     }
+    shutdown_write();
+    throw saved_exception;
 }
 
 bool socket_stream_t::check_can_read() {

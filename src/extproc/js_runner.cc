@@ -123,6 +123,9 @@ js_result_t js_runner_t::eval(const std::string &source,
     } catch (...) {
         // Sentry must be destroyed before the js_timeout
         sentry.reset();
+        // This will mark the worker as errored so we don't try to re-sync with it
+        //  on the next line (since we're in a catch statement, we aren't allowed)
+        job_data->js_job.worker_error();
         job_data.reset();
         throw;
     }
@@ -137,7 +140,7 @@ js_result_t js_runner_t::eval(const std::string &source,
 }
 
 js_result_t js_runner_t::call(const std::string &source,
-                              const std::vector<boost::shared_ptr<scoped_cJSON_t> > &args,
+                              const std::vector<counted_t<const ql::datum_t> > &args,
                               const req_config_t &config) {
     assert_thread();
     guarantee(job_data.has());
@@ -155,6 +158,9 @@ js_result_t js_runner_t::call(const std::string &source,
     } catch (...) {
         // Sentry must be destroyed before the js_timeout
         sentry.reset();
+        // This will mark the worker as errored so we don't try to re-sync with it
+        //  on the next line (since we're in a catch statement, we aren't allowed)
+        job_data->js_job.worker_error();
         job_data.reset();
         throw;
     }
@@ -202,6 +208,9 @@ void js_runner_t::trim_cache() {
         release_id(oldest_func->second.id);
         job_data->id_cache.erase(oldest_func);
     } catch (...) {
+        // This will mark the worker as errored so we don't try to re-sync with it
+        //  on the next line (since we're in a catch statement, we aren't allowed)
+        job_data->js_job.worker_error();
         job_data.reset();
         throw;
     }

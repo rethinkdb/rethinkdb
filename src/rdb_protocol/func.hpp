@@ -8,6 +8,7 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
@@ -96,9 +97,9 @@ public:
           timeout_ms(_timeout_ms),
           parent(_parent) { }
     // This JS evaluation resulted in an error
-    counted_t<val_t> operator()(const std::string err_val) const;
+    counted_t<val_t> operator()(const std::string &err_val) const;
     // This JS call resulted in a JSON value
-    counted_t<val_t> operator()(const boost::shared_ptr<scoped_cJSON_t> json_val) const;
+    counted_t<val_t> operator()(const counted_t<const datum_t> &json_val) const;
     // This JS evaluation resulted in an id for a js function
     counted_t<val_t> operator()(const id_t id_val) const;
 private:

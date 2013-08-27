@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 import signal
 
-# When running a subprocess, we may inherit the signal handler - remove it
-signal.signal(signal.SIGINT, signal.SIG_DFL)
-
 import sys, os, datetime, time, copy, json, traceback, csv, cPickle, string
 import multiprocessing, multiprocessing.queues, subprocess, re
 from optparse import OptionParser
@@ -14,23 +11,21 @@ try:
     # Check that the version of the driver is up-to-date
     version_ok = True
     try:
-        output = subprocess.check_output(["pip", "show", "rethinkdb"])
-        version_found = False
+        import pkg_resources
+        version_info = pkg_resources.get_distribution('rethinkdb').version
 
-        for line in output.split("\n"):
-            match = re.match("^Version: ([0-9]+)\.([0-9]+)\.([0-9]+)", line)
-            if match is not None:
-                version_found = True
-                minimum_version = [1, 8, 0]
-                installed_version = [int(match.group(1)), int(match.group(2)), int(match.group(3))]
+        match = re.match("([0-9]+)\.([0-9]+)\.([0-9]+)", version_info);
+        if match is None:
+            print "Could not determine rethinkdb python client version, unrecognized format: '%s'" % version_info
+            exit(1)
 
-                if installed_version < minimum_version:
-                    version_ok = False
+        minimum_version = [1, 8, 0]
+        installed_version = [int(match.group(1)), int(match.group(2)), int(match.group(3))]
 
-        if not version_found:
-            raise RuntimeError("Could not parse a version from pip output.")
-    except:
-        print "Could not determine rethinkdb python client version: `pip show rethinkdb` failed."
+        if installed_version < minimum_version:
+            version_ok = False
+    except ImportError:
+        print "Could not import pkg_resources, please install the python setuptools package."
         exit(1)
 
     if not version_ok:
@@ -58,8 +53,9 @@ def print_import_help():
     print "                                   to (defaults to localhost:28015)"
     print "  -a [ --auth ] AUTH_KEY           authorization key for rethinkdb clients"
     print "  --clients NUM_CLIENTS            the number of client connections to use (defaults"
-    print "                                   to 64)"
-    print "  --force                          import data even if a table already exists"
+    print "                                   to 8)"
+    print "  --force                          import data even if a table already exists, and"
+    print "                                   overwrite duplicate primary keys"
     print "  --fields                         limit which fields to use when importing one table"
     print ""
     print "Import directory:"
@@ -107,7 +103,7 @@ def parse_options():
     parser.add_option("-c", "--connect", dest="host", metavar="HOST:PORT", default="localhost:28015", type="string")
     parser.add_option("-a", "--auth", dest="auth_key", metavar="AUTHKEY", default="", type="string")
     parser.add_option("--fields", dest="fields", metavar="FIELD,FIELD...", default=None, type="string")
-    parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=64, type="int")
+    parser.add_option("--clients", dest="clients", metavar="NUM_CLIENTS", default=8, type="int")
     parser.add_option("--force", dest="force", action="store_true", default=False)
 
     # Directory import options
@@ -272,7 +268,7 @@ def parse_options():
     return res
 
 # This is run for each client requested, and accepts tasks from the reader processes
-def client_process(host, port, auth_key, task_queue, error_queue):
+def client_process(host, port, auth_key, task_queue, error_queue, use_upsert):
     try:
         conn = r.connect(host, port, auth_key=auth_key)
         while True:
@@ -280,12 +276,13 @@ def client_process(host, port, auth_key, task_queue, error_queue):
             if len(task) == 3:
                 # Unpickle objects (TODO: super inefficient, would be nice if we could pass down json)
                 objs = [cPickle.loads(obj) for obj in task[2]]
-                res = r.db(task[0]).table(task[1]).insert(objs, durability="soft", upsert=True).run(conn)
+                res = r.db(task[0]).table(task[1]).insert(objs, durability="soft", upsert=use_upsert).run(conn)
                 if res["errors"] > 0:
-                    raise RuntimeError(res["first_error"])
+                    raise RuntimeError("Error when importing into table '%s.%s': %s" %
+                                       (task[0], task[1], res["first_error"]))
             else:
                 break
-    except (r.RqlClientError, r.RqlDriverError) as ex:
+    except (r.RqlClientError, r.RqlDriverError, r.RqlRuntimeError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
@@ -294,6 +291,10 @@ def client_process(host, port, auth_key, task_queue, error_queue):
 batch_length_limit = 200
 batch_size_limit = 500000
 
+class InterruptedError(Exception):
+    def __str__(self):
+        return "interrupted"
+
 # This function is called for each object read from a file by the reader processes
 #  and will push tasks to the client processes on the task queue
 def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fields, exit_event):
@@ -301,7 +302,7 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
     global batch_length_limit
 
     if exit_event.is_set():
-        raise RuntimeError("reader interrupted by import process")
+        raise InterruptedError()
 
     if not isinstance(obj, dict):
         raise RuntimeError("Invalid input, expected an object, but got %s" % type(obj))
@@ -321,7 +322,7 @@ def object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, fi
         del buffer_sizes[0:len(buffer_sizes)]
     return obj
 
-json_read_chunk_size = 8 * 1024 * 1024
+json_read_chunk_size = 32 * 1024
 
 def read_json_single_object(json_data, file_in, callback):
     decoder = json.JSONDecoder()
@@ -340,31 +341,37 @@ def read_json_single_object(json_data, file_in, callback):
 
 def read_json_array(json_data, file_in, callback):
     decoder = json.JSONDecoder()
-    offset = json.decoder.WHITESPACE.match(json_data, 0).end()
-
-    if json_data[offset] == "]": # Empty file
-        return json_data[offset + 1:]
-
+    offset = 0
     while True:
         try:
+            offset = json.decoder.WHITESPACE.match(json_data, offset).end()
+
+            if json_data[offset] == "]": # End of JSON
+                break
+
             (obj, offset) = decoder.raw_decode(json_data, offset)
-            json_data = json_data[offset:]
             callback(obj)
 
-            # Read to the next record - "]" indicates the end of the objects
+            # Read past whitespace to the next record
+            json_data = json_data[offset:]
             offset = json.decoder.WHITESPACE.match(json_data, 0).end()
-            if json_data[offset] == "]":
-                break
-            elif json_data[offset] != ",":
+
+            if json_data[offset] == ",":
+                # Read past the comma
+                offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+            elif json_data[offset] != "]":
                 raise ValueError("JSON format not recognized - expected ',' or ']' after object")
 
-            # Read past the comma
-            offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
-        except ValueError:
+        except (ValueError, IndexError):
             before_len = len(json_data)
             json_data += file_in.read(json_read_chunk_size)
-            if before_len == len(json_data):
+            if json_data[offset] == ",":
+                offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
+            elif before_len == len(json_data):
                 raise
+
+    # Read the rest of the file and return it so it can be checked for unexpected data
+    json_data += file_in.read()
     return json_data[offset + 1:]
 
 def json_reader(task_queue, filename, db, table, primary_key, fields, exit_event):
@@ -455,21 +462,25 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
                        exit_event)
         else:
             raise RuntimeError("unknown file format specified")
-    except (r.RqlClientError, r.RqlDriverError) as ex:
+    except (r.RqlClientError, r.RqlDriverError, r.RqlRuntimeError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
+    except InterruptedError:
+        pass # Don't save interrupted errors, they are side-effects
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb), file_info["file"]))
 
-def abort_import(signum, frame, exit_event, task_queue, clients, interrupt_event):
-    interrupt_event.set()
-    exit_event.set()
+def abort_import(signum, frame, parent_pid, exit_event, task_queue, clients, interrupt_event):
+    # Only do the abort from the parent process
+    if os.getpid() == parent_pid:
+        interrupt_event.set()
+        exit_event.set()
 
-    for client in clients:
-        if client.is_alive():
-            # TODO: this could theoretically block indefinitely if
-            #   the queue is full and clients aren't reading
-            task_queue.put("exit")
+        for client in clients:
+            if client.is_alive():
+                # TODO: this could theoretically block indefinitely if
+                #   the queue is full and clients aren't reading
+                task_queue.put("exit")
 
 def spawn_import_clients(options, files_info):
     # Spawn one reader process for each db.table, as well as many client processes
@@ -481,7 +492,8 @@ def spawn_import_clients(options, files_info):
     reader_procs = []
     client_procs = []
 
-    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, exit_event, task_queue, client_procs, interrupt_event))
+    parent_pid = os.getpid()
+    signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
 
     try:
         for i in range(options["clients"]):
@@ -490,7 +502,8 @@ def spawn_import_clients(options, files_info):
                                                               options["port"],
                                                               options["auth_key"],
                                                               task_queue,
-                                                              error_queue)))
+                                                              error_queue,
+                                                              options["force"])))
             client_procs[-1].start()
 
         for file_info in files_info:
