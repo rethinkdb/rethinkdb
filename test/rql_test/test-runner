@@ -299,7 +299,7 @@ class TestBuilder:
 
 def run_tests(lang, servers):
     if lang is 'py':
-        interpreter = os.getenv('PYTHON') or 'python3'
+        interpreter = os.getenv('PYTHON') or 'python'
     elif lang is 'js':
         interpreter = os.getenv('NODE') or 'node'
     elif lang is 'rb':
