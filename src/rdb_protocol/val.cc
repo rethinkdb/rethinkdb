@@ -431,10 +431,10 @@ void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
 
     rcheck_target(parent, base_exc_t::GENERIC, !sorting,
             "Cannot apply 2 indexed orderings to the same TABLE.");
-    if (sindex_id && *sindex_id != new_sindex_id) {
-        rcheck_target(parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
-                "Can only use one index per table access.");
-    }
+    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id || *sindex_id == new_sindex_id,
+            strprintf(
+                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
+                sindex_id->c_str(), new_sindex_id.c_str()));
 
     sindex_id = new_sindex_id;
     sorting = _sorting;
