@@ -874,7 +874,7 @@ class Nth(RqlQuery):
     def compose(self, args, optargs):
         return T(args[0], '[', args[1], ']')
 
-class Match(RqlQuery):
+class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
 
