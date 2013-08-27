@@ -403,14 +403,14 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
 
 counted_t<datum_stream_t> table_t::get_all(
         counted_t<const datum_t> value,
-        const std::string &_sindex_id,
+        const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
     rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
             "Cannot chain get_all and other indexed operations.");
     r_sanity_check(sorting == UNORDERED);
     r_sanity_check(!bounds);
 
-    if (sindex_id == get_pkey()) {
+    if (get_all_sindex_id == get_pkey()) {
         return make_counted<lazy_datum_stream_t>(
                 env, use_outdated, access.get(),
                 value, false,
@@ -421,7 +421,7 @@ counted_t<datum_stream_t> table_t::get_all(
                 env, use_outdated, access.get(),
                 value, false,
                 value, false,
-                _sindex_id, UNORDERED, bt);
+                get_all_sindex_id, UNORDERED, bt);
     }
 }
 
