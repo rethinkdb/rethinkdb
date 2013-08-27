@@ -20,6 +20,8 @@ def tests():
     print (r.expr(1) >= 2).run(c) # false
     print (~r.expr(True)).run(c)  # false
     print (~r.expr(False)).run(c) # true
+    print (r.expr(True).not_()).run(c)  # false
+    print (r.expr(False).not_()).run(c) # true
 
     print (r.expr(1) + 2).run(c) # 3
     print (r.expr(1) - 2).run(c) # -1

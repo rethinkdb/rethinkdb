@@ -100,6 +100,9 @@ def div(*args):
 def mod(a, b):
     return Mod(a, b)
 
+def not_(a):
+    return Not(a)
+
 def all(*args):
     return All(*args)
 
