@@ -447,7 +447,9 @@ void table_t::add_bounds(
 
     if (sindex_id) {
         rcheck_target(parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
-                "Can only use one index per table access.");
+            strprintf(
+                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
+                sindex_id->c_str(), new_sindex_id.c_str()));
     }
 
     rcheck_target(parent, base_exc_t::GENERIC, !bounds,
