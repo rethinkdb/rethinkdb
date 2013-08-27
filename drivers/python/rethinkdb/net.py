@@ -98,7 +98,7 @@ class Connection(object):
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
-        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + bytes(self.auth_key, 'ascii'))
+        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
 
         # Read out the response from the server, which will be a null-terminated string
         response = b""
