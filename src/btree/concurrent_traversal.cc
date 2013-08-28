@@ -31,6 +31,7 @@ public:
 
     explicit concurrent_traversal_adapter_t(concurrent_traversal_callback_t *cb)
         : semaphore_(concurrent_traversal::initial_semaphore_capacity, 0.5),
+          sink_waiters_(0),
           cb_(cb) { }
 
     void handle_pair_coro(dft_value_t *fragile_keyvalue,
