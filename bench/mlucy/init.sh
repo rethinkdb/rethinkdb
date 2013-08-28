@@ -32,4 +32,6 @@ function on_err() {
     echo "ERROR $0:$1" >&2
 }
 trap 'on_err $LINENO' ERR
+
+function calc() { bc -l <<< "scale=${SCALE-6}; $@"; }
 # echo $PATH

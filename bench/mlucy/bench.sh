@@ -47,9 +47,12 @@ init_rdb_cluster "`cat server_hosts`" \
 export POC=`head -1 server_hosts`
 tunnel_to_poc $POC 1 >cluster_port
 export ADMIN_CLUSTER_PORT=`cat cluster_port`
-for i in `seq $TABLES`; do cat /proc/sys/kernel/random/uuid | tr - _; done >tables
-wait
-parallel -uj0 create_table $POC 1 $STAGING {} $TABLE_SHARDS "'$TABLE_CONF'" :::: tables &
+if [[ $TABLES -gt 0 ]]; then
+    for i in `seq $TABLES`; do cat /proc/sys/kernel/random/uuid | tr - _; done >tables
+    wait
+    parallel -uj0 create_table $POC 1 $STAGING {} $TABLE_SHARDS "'$TABLE_CONF'" \
+        :::: tables &
+fi
 
 ################################################################################
 ##### Set up clients.
@@ -63,12 +66,12 @@ parallel -uj0 dist_bench "$bench" {} $STAGING "'$tables'" "'$nodes'" :::: client
 ##### Run Benchmark.
 ################################################################################
 wait
-run_at=$((`date +%s`+10))
+run_at=$((`date +%s`+${RUN_AT_SLEEP-10}))
 echo "Running $bench at `date --date=@$run_at` ($run_at)..." >&2
 rm -f raw raw.map
 stats_pid=`bash -c 'set -m; set -e; nohup poll_stats '"$POC"' 1 >/dev/null 2>/dev/null & echo $!'`
-bench="run_bench {} $STAGING $run_at | tee -a raw | $CLIENT_MAP"
+bench="run_bench {} $STAGING $run_at | tee -a raw | ${CLIENT_MAP-cat}"
 parallel -j0 $bench :::: client_hosts \
-    | tee raw.map | eval $CLIENT_REDUCE | tee -a runs.t
-kill $stats_pid
+    | tee raw.map | eval ${CLIENT_REDUCE-cat} | tee -a runs.t
+bash -c "set -m; set -e; nohup kill $stats_pid >/dev/null 2>/dev/null &"
 wait

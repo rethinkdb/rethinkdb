@@ -1,0 +1,33 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+num=$1
+
+# Defaults to ~1.161 to give 80-20 rule.
+alpha=${2-`calc "l(5)/l(4)"`}
+
+# Area under the Lorenz curve
+function area() {
+    frac=$1
+    [[ `calc "$frac==1"` == 1 ]] && echo "1" || \
+        calc "1-e(l(1-($frac))*(1-(1/($alpha))))"
+}
+
+for i in `seq $num`; do
+    echo $(calc "`area "$i/$num"`-`area "($i-1)/$num"`")
+done
+
+# p=${2-6.21257}
+
+# # function area() {
+# #     calc "e(l($1)*($2))"
+# # }
+# function area() {
+#     calc "e(l($1)*($2))"
+# }
+
+# for i in `seq $num`; do
+#     [[ $i -eq 1 ]] && rhs=0 || rhs=`area "($i-1)/$num" "$p+1"`
+#     area=`calc "e(l($i/$num)*($p+1)) - $rhs"`
+#     echo $area
+# done
