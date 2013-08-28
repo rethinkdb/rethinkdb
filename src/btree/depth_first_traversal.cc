@@ -3,6 +3,12 @@
 
 #include "btree/operations.hpp"
 
+/* Returns `true` if we reached the end of the subtree or range, and `false` if
+`cb->handle_value()` returned `false`. */
+bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
+        buf_lock_t *block, const key_range_t &range,
+        depth_first_traversal_callback_t *cb, direction_t direction);
+
 bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction, superblock_t *superblock, const key_range_t &range, depth_first_traversal_callback_t *cb, direction_t direction) {
     block_id_t root_block_id = superblock->get_root_block_id();
     if (root_block_id == NULL_BLOCK_ID) {

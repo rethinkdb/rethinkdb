@@ -30,10 +30,4 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         superblock_t *superblock, const key_range_t &range,
         depth_first_traversal_callback_t *cb, direction_t direction);
 
-/* Returns `true` if we reached the end of the subtree or range, and `false` if
-`cb->handle_value()` returned `false`. */
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
-        buf_lock_t *block, const key_range_t &range,
-        depth_first_traversal_callback_t *cb, direction_t direction);
-
 #endif /* BTREE_DEPTH_FIRST_TRAVERSAL_HPP_ */
