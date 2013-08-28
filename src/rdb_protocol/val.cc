@@ -19,7 +19,7 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
       name(_name),
       env(_env),
       use_outdated(_use_outdated),
-      sorting(UNORDERED) {
+      sorting(sorting_t::UNORDERED) {
     uuid_u db_id = db->id;
     name_string_t table_name;
     bool b = table_name.assign_value(name);
@@ -424,7 +424,7 @@ counted_t<datum_stream_t> table_t::get_all(
                 env, use_outdated, access.get(),
                 value, false,
                 value, false,
-                get_all_sindex_id, UNORDERED, bt);
+                get_all_sindex_id, sorting_t::UNORDERED, bt);
     }
 }
 
@@ -432,7 +432,7 @@ void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
                           const rcheckable_t *parent) {
     r_sanity_check(_sorting != sorting_t::UNORDERED);
 
-    rcheck_target(parent, base_exc_t::GENERIC, !sorting,
+    rcheck_target(parent, base_exc_t::GENERIC, sorting == sorting_t::UNORDERED,
             "Cannot apply 2 indexed orderings to the same TABLE.");
     rcheck_target(parent, base_exc_t::GENERIC, !sindex_id || *sindex_id == new_sindex_id,
             strprintf(
