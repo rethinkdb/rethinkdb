@@ -52,7 +52,7 @@ class PyLang(SrcLang):
         if not isinstance(val, types.UnicodeType):
             return repr(str(val))
         else:
-            return "types.unicodeType(" + repr(unicode(val))[1:] + ")"
+            return repr(unicode(val))
 
     def nulltranslate(self, strng):
         return re.sub("(?<!\"|')null(?!\"|')", 'None', strng)
