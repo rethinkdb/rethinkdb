@@ -684,8 +684,8 @@ public:
         }
     }
 
-    bool handle_pair(const btree_key_t* key, const void *value) {
-        store_key_t store_key(key);
+    bool handle_pair(dft_value_t &&keyvalue) {
+        store_key_t store_key(keyvalue.key());
         if (bad_init) {
             return false;
         }
@@ -702,8 +702,9 @@ public:
                 response->last_considered_key = store_key;
             }
 
-            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(value);
+            const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(keyvalue.value());
             boost::shared_ptr<scoped_cJSON_t> first_value = get_data(rdb_value, transaction);
+            keyvalue.release_keepalive();
 
             json_list_t data;
             data.push_back(first_value);

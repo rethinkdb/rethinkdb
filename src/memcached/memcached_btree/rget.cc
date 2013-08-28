@@ -69,7 +69,10 @@ class rget_depth_first_traversal_callback_t : public depth_first_traversal_callb
 public:
     rget_depth_first_traversal_callback_t(transaction_t *txn, int max, exptime_t et) :
         transaction(txn), maximum(max), effective_time(et), cumulative_size(0) { }
-    bool handle_pair(const btree_key_t *key, const void *value) {
+    bool handle_pair(dft_value_t &&keyvalue) {
+        const btree_key_t *key = keyvalue.key();
+        const void *value = keyvalue.value();
+
         const memcached_value_t *mc_value = reinterpret_cast<const memcached_value_t *>(value);
         if (mc_value->expired(effective_time)) {
             return true;
