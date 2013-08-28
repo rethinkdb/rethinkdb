@@ -2,6 +2,7 @@
 
 __all__ = ['connect', 'Connection', 'Cursor','protobuf_implementation']
 
+import errno
 import socket
 import struct
 from os import environ
@@ -97,13 +98,13 @@ class Connection(object):
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
-        self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
-        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
+        self._sock_sendall(struct.pack("<L", p.VersionDummy.V0_2))
+        self._sock_sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
 
         # Read out the response from the server, which will be a null-terminated string
         response = ""
         while True:
-            char = self.socket.recv(1)
+            char = self._sock_recv(1)
             if char == "\0":
                 break
             response += char
@@ -170,6 +171,22 @@ class Connection(object):
         query.token = orig_query.token
         return self._send_query(query, orig_term)
 
+    def _sock_recv(self, length):
+        while True:
+            try:
+                return self.socket.recv(length)
+            except IOError, e:
+                if e.errno != errno.EINTR:
+                    raise
+
+    def _sock_sendall(self, data):
+        while True:
+            try:
+                return self.socket.sendall(data)
+            except IOError, e:
+                if e.errno != errno.EINTR:
+                    raise
+
     def _send_query(self, query, term, opts={}):
 
         # Error if this connection has closed
@@ -179,7 +196,7 @@ class Connection(object):
         # Send protobuf
         query_protobuf = query.SerializeToString()
         query_header = struct.pack("<L", len(query_protobuf))
-        self.socket.sendall(query_header + query_protobuf)
+        self._sock_sendall(query_header + query_protobuf)
 
         if opts.has_key('noreply') and opts['noreply']:
             return None
@@ -189,7 +206,7 @@ class Connection(object):
         try:
             response_header = ''
             while len(response_header) < 4:
-                chunk = self.socket.recv(4)
+                chunk = self._sock_recv(4)
                 if len(chunk) == 0:
                     raise RqlDriverError("Connection is closed.")
                 response_header += chunk
@@ -198,7 +215,7 @@ class Connection(object):
             (response_len,) = struct.unpack("<L", response_header)
 
             while len(response_buf) < response_len:
-                chunk = self.socket.recv(response_len - len(response_buf))
+                chunk = self._sock_recv(response_len - len(response_buf))
                 if chunk == '':
                     raise RqlDriverError("Connection is broken.")
                 response_buf += chunk
