@@ -3,13 +3,34 @@
 
 #include "btree/depth_first_traversal.hpp"
 
+class concurrent_traversal_adapter_t;
+
+class concurrent_traversal_waiter_t {
+public:
+    void wait_interruptible() THROWS_ONLY(interrupted_exc_t);
+
+private:
+    friend class concurrent_traversal_adapter_t;
+
+    concurrent_traversal_waiter_t(signal_t *eval_exclusivity_signal,
+                                  concurrent_traversal_adapter_t *parent);
+
+    signal_t *const eval_exclusivity_signal_;
+    concurrent_traversal_adapter_t *const parent_;
+};
+
 class concurrent_traversal_callback_t {
 public:
     concurrent_traversal_callback_t() { }
 
+    // Passes a keyvalue and a callback.  waiter.wait_interruptible() must be called to
+    // begin the region of "exclusive access", which only handle_pair implementation
+    // can enters at a time.  (This should happen after loading the value from disk
+    // (which should be done concurrently) and before using ql::env_t to evaluate
+    // transforms and terminals, or whatever non-reentrant behavior you have in mind.)
     virtual bool handle_pair(dft_value_t &&keyvalue,
-                             signal_t *eval_exclusivity_signal,
-                             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+                             concurrent_traversal_waiter_t waiter)
+        THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:
     virtual ~concurrent_traversal_callback_t() { }

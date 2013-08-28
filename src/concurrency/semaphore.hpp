@@ -50,27 +50,6 @@ public:
     void lock_now(int count = 1);
 };
 
-class semaphore_acq_t {
-public:
-    semaphore_acq_t(semaphore_t *_acquiree) : acquiree(_acquiree) {
-        acquiree->co_lock();
-    }
-
-    semaphore_acq_t(semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
-        movee.acquiree = NULL;
-    }
-
-    ~semaphore_acq_t() {
-        if (acquiree) {
-            acquiree->unlock();
-        }
-    }
-
-private:
-    semaphore_t *acquiree;
-    DISABLE_COPYING(semaphore_acq_t);
-};
-
 /* `adjustable_semaphore_t` is a `semaphore_t` where you can change the
 capacity at runtime. If you call `set_capacity()` and the new capacity is less
 than the current number of objects that hold the semaphore, then new objects
@@ -119,10 +98,34 @@ public:
 
     void set_capacity(int new_capacity);
 
+    int get_capacity() const { return capacity; }
+
 private:
     bool try_lock(int count);
 
     void pump();
+};
+
+
+class adjustable_semaphore_acq_t {
+public:
+    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree) : acquiree(_acquiree) {
+        acquiree->co_lock();
+    }
+
+    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
+        movee.acquiree = NULL;
+    }
+
+    ~adjustable_semaphore_acq_t() {
+        if (acquiree) {
+            acquiree->unlock();
+        }
+    }
+
+private:
+    adjustable_semaphore_t *acquiree;
+    DISABLE_COPYING(adjustable_semaphore_acq_t);
 };
 
 #endif /* CONCURRENCY_SEMAPHORE_HPP_ */
