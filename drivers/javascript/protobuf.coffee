@@ -9,6 +9,11 @@ catch err
     # In the browserified code (require('./native-protobuf')) always returns ({})
     native_pb = {}
 
+if native_pb.SerializeQuery?
+    module.exports.protobuf_implementation = "cpp"
+else
+    module.exports.protobuf_implementation = "js"
+
 # Initialize message classes from protobuf definition module
 protodef = require('./proto-def')
 
