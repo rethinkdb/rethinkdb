@@ -1137,11 +1137,12 @@ class Func(RqlQuery):
         vrs = []
         vrids = []
         for i in xrange(lmbd.func_code.co_argcount):
-            vrs.append(Var(Func.nextVarId))
-            vrids.append(Func.nextVarId)
             Func.lock.acquire()
+            var_id = Func.nextVarId
             Func.nextVarId += 1
             Func.lock.release()
+            vrs.append(Var(var_id))
+            vrids.append(var_id)
 
         self.vrs = vrs
         self.args = [MakeArray(*vrids), expr(lmbd(*vrs))]
