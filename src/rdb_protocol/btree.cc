@@ -700,17 +700,17 @@ public:
             }
         }
         try {
-            if ((response->last_considered_key < store_key && direction == FORWARD) ||
-                (response->last_considered_key > store_key && direction == BACKWARD)) {
-                response->last_considered_key = store_key;
-            }
-
             const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(keyvalue.value());
             boost::shared_ptr<scoped_cJSON_t> first_value = get_data(rdb_value, transaction);
 
             keyvalue.reset();
 
             waiter.wait_interruptible();
+
+            if ((response->last_considered_key < store_key && direction == FORWARD) ||
+                (response->last_considered_key > store_key && direction == BACKWARD)) {
+                response->last_considered_key = store_key;
+            }
 
             json_list_t data;
             data.push_back(first_value);
