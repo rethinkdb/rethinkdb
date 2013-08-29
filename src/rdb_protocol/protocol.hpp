@@ -155,6 +155,9 @@ struct rget_item_t {
 
 } // namespace rdb_protocol_details
 
+enum sindex_tags_bool_t { TAGS, NOT_TAGS };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_tags_bool_t, int8_t, TAGS, NOT_TAGS);
 
 class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
@@ -584,13 +587,15 @@ struct rdb_protocol_t {
     class sindex_create_t {
     public:
         sindex_create_t() { }
-        sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping)
-            : id(_id), mapping(_mapping), region(region_t::universe())
+        sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping,
+                        sindex_tags_bool_t _tags)
+            : id(_id), mapping(_mapping), region(region_t::universe()), tags(_tags)
         { }
 
         std::string id;
         ql::map_wire_func_t mapping;
         region_t region;
+        sindex_tags_bool_t tags;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

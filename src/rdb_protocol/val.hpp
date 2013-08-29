@@ -70,7 +70,8 @@ public:
         bool upsert,
         durability_requirement_t durability_requirement);
 
-    MUST_USE bool sindex_create(const std::string &name, counted_t<func_t> index_func);
+    MUST_USE bool sindex_create(const std::string &name, counted_t<func_t> index_func,
+            sindex_tags_bool_t tags);
     MUST_USE bool sindex_drop(const std::string &name);
     counted_t<const datum_t> sindex_list();
 

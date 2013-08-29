@@ -18,7 +18,7 @@ class sindex_create_term_t : private env_t::special_var_shadower_t, public op_te
 public:
     sindex_create_term_t(env_t *env, const protob_t<const Term> &term)
         : env_t::special_var_shadower_t(env, env_t::SINDEX_ERROR_VAR),
-          op_term_t(env, term, argspec_t(2, 3)) { }
+          op_term_t(env, term, argspec_t(2, 3), optargspec_t({"tags"})) { }
 
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
@@ -44,7 +44,14 @@ public:
         }
         r_sanity_check(index_func.has());
 
-        bool success = table->sindex_create(name, index_func);
+        /* Check if we're doing a tags index or a normal index. */
+        counted_t<const datum_t> _tags = optarg("tags")->as_datum();
+        sindex_tags_bool_t tags =
+            (_tags && _tags->as_bool() ?
+             sindex_tags_bool_t::TAGS :
+             sindex_tags_bool_t::NOT_TAGS);
+
+        bool success = table->sindex_create(name, index_func, tags);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));

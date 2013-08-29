@@ -988,6 +988,22 @@ void rdb_modification_report_cb_t::on_mod_report(
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
+void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
+                  ql::map_wire_func_t *mapping, sindex_tags_bool_t tags, ql::env_t *env,
+                  std::vector<store_key_t> *keys_out) {
+    guarantee(keys_out->empty());
+    counted_t<const ql::datum_t> index =
+        mapping->compile(env)->call(doc)->as_datum();
+
+    if (tags == TAGS && index->get_type() == ql::datum_t::R_ARRAY) {
+        for (auto it = index->as_array().begin(); it != index->as_array().end(); ++it) {
+            keys_out->push_back(store_key_t((*it)->print_secondary(primary_key)));
+        }
+    } else {
+        keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
+    }
+}
+
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
@@ -1001,8 +1017,11 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
+    sindex_tags_bool_t tags;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
+    guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+    success = deserialize(&read_stream, &tags); 
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
     // TODO we just use a NULL environment here. People should not be able
@@ -1018,32 +1037,32 @@ void rdb_update_single_sindex(
     if (modification->info.deleted.first) {
         guarantee(!modification->info.deleted.second.empty());
         try {
-            promise_t<superblock_t *> return_superblock_local;
-            {
-                counted_t<const ql::datum_t> deleted = modification->info.deleted.first;
+            counted_t<const ql::datum_t> deleted = modification->info.deleted.first;
 
-                counted_t<const ql::datum_t> index =
-                    mapping.compile(&env)->call(deleted)->as_datum();
+            std::vector<store_key_t> keys;
 
-                store_key_t sindex_key(
-                    index->print_secondary(modification->primary_key));
+            compute_keys(modification->primary_key, deleted, &mapping, tags, &env, &keys);
 
-                keyvalue_location_t<rdb_value_t> kv_location;
+            for (auto it = keys.begin(); it != keys.end(); ++it) {
+                promise_t<superblock_t *> return_superblock_local;
+                {
+                    keyvalue_location_t<rdb_value_t> kv_location;
 
-                find_keyvalue_location_for_write(txn, super_block,
-                                                 sindex_key.btree_key(),
-                                                 &kv_location,
-                                                 &sindex->btree->root_eviction_priority,
-                                                 &sindex->btree->stats,
-                                                 &return_superblock_local);
+                    find_keyvalue_location_for_write(txn, super_block,
+                                                     it->btree_key(),
+                                                     &kv_location,
+                                                     &sindex->btree->root_eviction_priority,
+                                                     &sindex->btree->stats,
+                                                     &return_superblock_local);
 
-                if (kv_location.value.has()) {
-                    kv_location_delete(&kv_location, sindex_key,
-                                       sindex->btree, repli_timestamp_t::distant_past, txn, NULL);
+                    if (kv_location.value.has()) {
+                        kv_location_delete(&kv_location, *it,
+                            sindex->btree, repli_timestamp_t::distant_past, txn, NULL);
+                    }
+                    // The keyvalue location gets destroyed here.
                 }
-                // The keyvalue location gets destroyed here.
+                super_block = return_superblock_local.wait();
             }
-            super_block = return_superblock_local.wait();
         } catch (const ql::base_exc_t &) {
             // Do nothing (it wasn't actually in the index).
         }
@@ -1053,25 +1072,29 @@ void rdb_update_single_sindex(
         try {
             counted_t<const ql::datum_t> added = modification->info.added.first;
 
-            counted_t<const ql::datum_t> index
-                = mapping.compile(&env)->call(added)->as_datum();
+            std::vector<store_key_t> keys;
 
-            store_key_t sindex_key(index->print_secondary(modification->primary_key));
+            compute_keys(modification->primary_key, added, &mapping, tags, &env, &keys);
 
-            keyvalue_location_t<rdb_value_t> kv_location;
+            for (auto it = keys.begin(); it != keys.end(); ++it) {
+                promise_t<superblock_t *> return_superblock_local;
+                {
+                    keyvalue_location_t<rdb_value_t> kv_location;
 
-            promise_t<superblock_t *> dummy;
-            find_keyvalue_location_for_write(txn,
-                                             super_block,
-                                             sindex_key.btree_key(),
-                                             &kv_location,
-                                             &sindex->btree->root_eviction_priority,
-                                             &sindex->btree->stats,
-                                             &dummy);
+                    find_keyvalue_location_for_write(txn, super_block,
+                                                     it->btree_key(),
+                                                     &kv_location,
+                                                     &sindex->btree->root_eviction_priority,
+                                                     &sindex->btree->stats,
+                                                     &return_superblock_local);
 
-            kv_location_set(&kv_location, sindex_key,
-                            modification->info.added.second, sindex->btree,
-                            repli_timestamp_t::distant_past, txn);
+                    kv_location_set(&kv_location, *it,
+                                    modification->info.added.second, sindex->btree,
+                                    repli_timestamp_t::distant_past, txn);
+                    // The keyvalue location gets destroyed here.
+                }
+                super_block = return_superblock_local.wait();
+            }
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
         }
