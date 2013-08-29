@@ -125,7 +125,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                     replacement_generator->call(original_values[i])->as_datum();
 
                 Term t;
-                const sym_t x = env->gensym();
+                const sym_t x = env->symgen.gensym();
                 Term *const arg = pb::set_func(&t, x);
                 replacement->write_to_protobuf(pb::set_datum(arg));
                 propagate(&t);
@@ -152,7 +152,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     for (size_t i = 0; i < original_values.size(); ++i) {
         try {
             Term t;
-            const sym_t x = env->gensym();
+            const sym_t x = env->symgen.gensym();
             Term *const arg = pb::set_func(&t, x);
             if (upsert) {
                 replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
@@ -369,7 +369,7 @@ counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
                                              durability_requirement_t durability_requirement,
                                              bool return_vals) {
     Term t;
-    sym_t x = env->gensym();
+    sym_t x = env->symgen.gensym();
     Term *arg = pb::set_func(&t, x);
     if (upsert) {
         d->write_to_protobuf(pb::set_datum(arg));

@@ -159,7 +159,6 @@ public:
     func_cache_t func_cache;
     global_optargs_t global_optargs;
     gensym_t symgen;
-    sym_t gensym() { return symgen.gensym(); }
 
     scopes_t scopes;
     implicit_vars_t implicits;

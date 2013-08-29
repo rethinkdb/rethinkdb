@@ -275,7 +275,7 @@ counted_t<func_t> func_t::new_get_field_func(env_t *env, counted_t<const datum_t
                                             const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *arg = twrap.get();
-    sym_t obj = env->gensym();
+    sym_t obj = env->symgen.gensym();
     arg = pb::set_func(arg, obj);
     N2(GET_FIELD, NVAR(obj), NDATUM(key));
     propagate_backtrace(twrap.get(), bt_src.get());
@@ -286,7 +286,7 @@ counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> ob
                                  const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
-    sym_t var = env->gensym();
+    sym_t var = env->symgen.gensym();
     // RSI: FUCK FUCK FUCK THIS IS FUCKING STUPID WHY DOES A FUNC TAKE DOUBLES FOR THIS
     N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(PLUCK, NVAR(var), NDATUM(obj)));
@@ -298,7 +298,7 @@ counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const dat
                     const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
-    sym_t var = env->gensym();
+    sym_t var = env->symgen.gensym();
     N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(EQ, NDATUM(obj), NVAR(var)));
     propagate_backtrace(twrap.get(), bt_src.get());

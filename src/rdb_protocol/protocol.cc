@@ -1659,8 +1659,8 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
 
 void rdb_protocol_t::sindex_range_t::write_filter_func(
     ql::env_t *env, Term *filter, const Term &sindex_mapping) const {
-    const ql::sym_t arg1 = env->gensym();
-    const ql::sym_t sindex_val = env->gensym();
+    const ql::sym_t arg1 = env->symgen.gensym();
+    const ql::sym_t sindex_val = env->symgen.gensym();
     Term *arg = ql::pb::set_func(filter, arg1);
     if (!start.has() && !end.has()) {
         NDATUM_BOOL(true);
