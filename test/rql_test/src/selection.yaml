@@ -52,7 +52,7 @@ tests:
 
     # make sure we can insert and query json docs with arbitrary unicode attrs
     - js: tbl3.insert({'id':'Здравствуй','value':'Земля!'})
-      py: tbl3.insert({'id':types.unicodeType('Здравствуй'),'value':types.unicodeType('Земля!')})
+      py: tbl3.insert({'id':u'Здравствуй','value':u'Земля!'})
       rb: tbl3.insert({:id => 'Здравствуй', :value => 'Земля!'})
       ot: ({'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':1})
 

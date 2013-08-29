@@ -86,7 +86,7 @@ class Dct:
             val = other[key]
             if isinstance(val, str) or isinstance(val, unicode):
                 # Remove additional error info that creeps in in debug mode
-                val = re.sub("\nFailed assertion:.*", "", val, flags=re.M|re.S)
+                val = re.sub("(?ms)\nFailed assertion:.*", "", val)
             other[key] = val
             if not self.dct[key] == other[key]:
                 return False
@@ -115,8 +115,8 @@ class Err:
         else:
 
             # Strip "offending object" from the error message
-            other.message = re.sub(":\n.*", ".", other.message, flags=re.M|re.S)
-            other.message = re.sub("\nFailed assertion:.*", "", other.message, flags=re.M|re.S)
+            other.message = re.sub("(?ms):\n.*", ".", other.message)
+            other.message = re.sub("(?ms)\nFailed assertion:.*", "", other.message)
 
             if self.emsg and self.emsg != other.message:
                 return False
