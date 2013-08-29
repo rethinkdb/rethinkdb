@@ -33,7 +33,7 @@ private:
     std::map<uuid_u, counted_t<func_t> > cached_funcs;
 
 public:
-    // returns whether or not there was a key conflict
+    // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
     counted_t<val_t> get_optarg(const std::string &key); // returns NULL if no entry
@@ -42,7 +42,7 @@ private:
     std::map<std::string, wire_func_t> optargs;
 
 public:
-    // returns a globaly unique variable
+    // Returns a globally unique variable.
     int gensym(bool allow_implicit = false);
     static bool var_allows_implicit(int varnum);
 private:
