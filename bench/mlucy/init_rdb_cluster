@@ -8,16 +8,26 @@ staging=$4
 server_opts=$5
 servers="::: $hosts ::: `seq $num_shards`"
 
-echo "Resetting $staging on servers..." >&2
-parallel -uj0 "ssh_to {1} <<EOF
+staging_dirs=`seq -f "$staging%g " $num_shards | tr "\n" " "`
+echo "$staging_dirs"
+
+echo "Prepping servers..." >&2
+parallel -uj0 "ssh_to {1} <<\"EOF\"
 sudo service distcc-chroot stop
 sudo swapoff -a
-sudo rm -rf $staging/*
-sudo mkdir -p $staging/.persist
-sudo chown -R ubuntu $staging
+sudo killall -q rethinkdb
+for d in $staging_dirs; do
+    echo \$d
+    [[ -f \$d ]] || { echo \"ERROR no directory \$d on {1}\"; exit 1; }
+    rm -rf \$d/*
+    mkdir -p \$d/.persist
+done
 EOF" ::: $hosts >&2
 
 echo "Distributing $rdb_dir (symbols stripped for speed)..." >&2
+parallel -uj0 "rsync_to $staging" $servers
+
+parallel -uj0 "rsync_to $staging" $servers
 d=`mktemp -d`
 { cp $rdb_dir/rethinkdb $d; strip $d/rethinkdb; } &
 cp -r $rdb_dir/rethinkdb_web_assets $d &

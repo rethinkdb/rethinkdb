@@ -28,6 +28,8 @@ function load_conf() {
     . "$1"/conf.sh
 }
 
+function err() { echo "$@" >&2; exit 1; }
+
 function on_err() {
     echo "ERROR $0:$1" >&2
 }

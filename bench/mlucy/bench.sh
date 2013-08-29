@@ -8,40 +8,38 @@ export PREFIX=$PREFIX$postfix
 function on_err() {
     figlet "ERROR" >&2
     echo "ERROR $0:$1" >&2
+    echo "WTF is this error?  Do you even bench?" >&2
 }
 trap 'on_err $LINENO' ERR
 
 ################################################################################
-##### Set up server cluster.
+##### Set up hosts.
 ################################################################################
-if [[ ${CLUSTER-} == local ]]; then
-    servers=`echo -e "magneto\nelectro"`
-    clients=`echo -e "riddler\npuzzler\nkingpin"`
-    echo "Using local cluster:" >&2
-    echo "$servers" | head -$SERVERS > server_hosts
-    echo "$clients" | head -$CLIENTS > client_hosts
-    stop_rdb_cluster "$servers"
-elif [[ ! -f server_hosts && ! -f client_hosts ]]; then
-    echo "Creating new cluster..." >&2
-    new_cluster "$PREFIX-server" $SERVERS $SERVER_MACHINE > server_hosts &
-    new_cluster "$PREFIX-client" $CLIENTS $CLIENT_MACHINE > client_hosts &
+{
+    echo `provision servers $SERVERS` > server_hosts
+    export POC=`head -1 server_hosts`
+    init_rdb_cluster "`cat server_hosts`" \
+        $SERVER_INSTANCES $bench/server $SERVER_STAGING "$SERVER_OPTS" &
     wait
-    echo "New cluster:" >&2
-else
-    stop_rdb_cluster "`cat server_hosts`" &
-    echo "Using existing cluster (remove server_hosts or client_hosts to recreate):" >&2
-fi
-    cat >&2 <<EOF
+} &
+server_hosts_ready=$!
+{
+    echo `provision clients $CLIENTS` > client_hosts &
+#    parallel -uj0 reset_client :::: client_hosts
+} &
+client_hosts_ready=$!
+wait
+cat >&2 <<EOF
   Servers:
 `<server_hosts awk '{print "    "$0}'`
   Clients:
 `<client_hosts awk '{print "    "$0}'`
 EOF
+exit 0
 
 ################################################################################
 ##### Set up RethinkDB cluster.
 ################################################################################
-wait
 init_rdb_cluster "`cat server_hosts`" \
     $SERVER_INSTANCES $RETHINKDB_DIR $STAGING "$SERVER_OPTS" &
 export POC=`head -1 server_hosts`

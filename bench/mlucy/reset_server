@@ -1,0 +1,16 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+type=$1
+num=$2
+out=$(
+    case $type in
+        servers) echo -e "magneto\nelectro" ;;
+        clients) echo -e "puzzler\nriddler\nkingpin" ;;
+        *) err "Unrecognized provisioning class $type." ;;
+    esac | head -$num
+)
+
+provisioned=`wc -l <<< "$out"`
+[[ $provisioned -ne $num ]] && \
+    err "ERROR: Requested $num but provisioned $provisioned."
+echo "$out"
