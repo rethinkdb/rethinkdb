@@ -17,7 +17,6 @@ sudo service distcc-chroot stop
 sudo swapoff -a
 sudo killall -q rethinkdb
 for d in $staging_dirs; do
-    echo \$d
     [[ -f \$d ]] || { echo \"ERROR no directory \$d on {1}\"; exit 1; }
     rm -rf \$d/*
     mkdir -p \$d/.persist
