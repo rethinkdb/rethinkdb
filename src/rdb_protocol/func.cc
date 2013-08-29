@@ -183,7 +183,7 @@ void func_t::set_default_filter_val(counted_t<func_t> func) {
     default_filter_val = func;
 }
 
-protob_t<const Term> func_t::get_source() {
+protob_t<const Term> func_t::get_source() const {
     return source;
 }
 
