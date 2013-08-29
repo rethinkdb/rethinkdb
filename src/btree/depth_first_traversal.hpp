@@ -16,6 +16,8 @@ public:
     counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
 };
 
+// A btree leaf key/value pair that also owns a reference to the buf_lock_t that
+// contains said key/value pair.
 class scoped_key_value_t {
 public:
     scoped_key_value_t(const btree_key_t *key,
