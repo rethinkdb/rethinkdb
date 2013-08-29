@@ -16,15 +16,15 @@ public:
     counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
 };
 
-struct dft_value_t {
-    dft_value_t(const btree_key_t *key,
-                const void *value,
-                movable_t<counted_buf_lock_t> &&buf)
+class scoped_key_value_t {
+public:
+    scoped_key_value_t(const btree_key_t *key,
+                       const void *value,
+                       movable_t<counted_buf_lock_t> &&buf)
         : key_(key), value_(value), buf_(std::move(buf)) {
         guarantee(buf_.has());
     }
 
-public:
     const btree_key_t *key() const {
         guarantee(buf_.has());
         return key_;
@@ -36,7 +36,7 @@ public:
 
     // Releases the hold on the buf_lock_t, after which key() and value() may not be
     // used.
-    void release_keepalive() { buf_.reset(); }
+    void reset() { buf_.reset(); }
 
 private:
     const btree_key_t *key_;
@@ -48,7 +48,7 @@ class depth_first_traversal_callback_t {
 public:
     /* Return value of `true` indicates to keep going; `false` indicates to stop
     traversing the tree. */
-    virtual bool handle_pair(dft_value_t &&value) = 0;
+    virtual bool handle_pair(scoped_key_value_t &&keyvalue) = 0;
 protected:
     virtual ~depth_first_traversal_callback_t() { }
 };

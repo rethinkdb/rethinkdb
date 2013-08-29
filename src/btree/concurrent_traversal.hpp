@@ -28,7 +28,7 @@ public:
     // can enters at a time.  (This should happen after loading the value from disk
     // (which should be done concurrently) and before using ql::env_t to evaluate
     // transforms and terminals, or whatever non-reentrant behavior you have in mind.)
-    virtual bool handle_pair(dft_value_t &&keyvalue,
+    virtual bool handle_pair(scoped_key_value_t &&keyvalue,
                              concurrent_traversal_waiter_t waiter)
         THROWS_ONLY(interrupted_exc_t) = 0;
 

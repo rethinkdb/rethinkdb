@@ -64,8 +64,8 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
                     btree_key_cmp(key, range.right.key.btree_key()) >= 0) {
                     break;
                 }
-                if (!cb->handle_pair(dft_value_t(key, (*it).second,
-                                                 movable_t<counted_buf_lock_t>(block)))) {
+                if (!cb->handle_pair(scoped_key_value_t(key, (*it).second,
+                                                        movable_t<counted_buf_lock_t>(block)))) {
                     return false;
                 }
             }
@@ -83,8 +83,8 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
                     break;
                 }
 
-                if (!cb->handle_pair(dft_value_t(key, (*it).second,
-                                                 movable_t<counted_buf_lock_t>(block)))) {
+                if (!cb->handle_pair(scoped_key_value_t(key, (*it).second,
+                                                        movable_t<counted_buf_lock_t>(block)))) {
                     return false;
                 }
             }

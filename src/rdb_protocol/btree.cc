@@ -686,7 +686,7 @@ public:
 
     // RSI: Ask whether interrupted_exc_t is the only exception that could possibly
     // be thrown here.
-    bool handle_pair(dft_value_t &&keyvalue,
+    bool handle_pair(scoped_key_value_t &&keyvalue,
                      concurrent_traversal_waiter_t waiter) THROWS_ONLY(interrupted_exc_t) {
         store_key_t store_key(keyvalue.key());
         if (bad_init) {
@@ -707,7 +707,8 @@ public:
 
             const rdb_value_t *rdb_value = reinterpret_cast<const rdb_value_t *>(keyvalue.value());
             boost::shared_ptr<scoped_cJSON_t> first_value = get_data(rdb_value, transaction);
-            keyvalue.release_keepalive();
+
+            keyvalue.reset();
 
             waiter.wait_interruptible();
 

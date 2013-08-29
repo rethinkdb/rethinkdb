@@ -34,13 +34,13 @@ public:
           sink_waiters_(0),
           cb_(cb) { }
 
-    void handle_pair_coro(dft_value_t *fragile_keyvalue,
+    void handle_pair_coro(scoped_key_value_t *fragile_keyvalue,
                           adjustable_semaphore_acq_t *fragile_acq,
                           fifo_enforcer_write_token_t token,
                           auto_drainer_t::lock_t) {
         // This is called by coro_t::spawn_now_dangerously. We need to get these
         // values before the caller's stack frame is destroyed.
-        dft_value_t keyvalue = std::move(*fragile_keyvalue);
+        scoped_key_value_t keyvalue = std::move(*fragile_keyvalue);
 
         adjustable_semaphore_acq_t semaphore_acq(std::move(*fragile_acq));
 
@@ -60,7 +60,7 @@ public:
         }
     }
 
-    virtual bool handle_pair(dft_value_t &&keyvalue) {
+    virtual bool handle_pair(scoped_key_value_t &&keyvalue) {
         // First thing first: Get in line with the token enforcer.
 
         fifo_enforcer_write_token_t token = source_.enter_write();
