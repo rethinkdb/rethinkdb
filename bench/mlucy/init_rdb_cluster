@@ -2,50 +2,33 @@
 . `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
 
 hosts=$1
-num_shards=$2
+num_instances=$2
 rdb_dir=$3
 staging=$4
 server_opts=$5
-servers="::: $hosts ::: `seq $num_shards`"
+servers="::: $hosts ::: `seq $num_instances`"
 
-staging_dirs=`seq -f "$staging%g " $num_shards | tr "\n" " "`
-echo "$staging_dirs"
+staging_dirs=`seq -f "$staging%g " $num_instances | tr "\n" " "`
 
-echo "Prepping servers..." >&2
-parallel -uj0 "ssh_to {1} <<\"EOF\"
-sudo service distcc-chroot stop
+parallel -uj0 "echo Prepping {}...; ssh_to {} <<\"EOF\"
+sudo service distcc-chroot stop >/dev/null 2>/dev/null
 sudo swapoff -a
 sudo killall -q rethinkdb
 for d in $staging_dirs; do
-    [[ -f \$d ]] || { echo \"ERROR no directory \$d on {1}\"; exit 1; }
+    [[ -e \$d ]] || { echo \"ERROR no directory \$d on {}\"; exit 1; }
+    sudo chown ubuntu:ubuntu \$d
     rm -rf \$d/*
     mkdir -p \$d/.persist
 done
 EOF" ::: $hosts >&2
 
-echo "Distributing $rdb_dir (symbols stripped for speed)..." >&2
-parallel -uj0 "rsync_to $staging" $servers
-
-parallel -uj0 "rsync_to $staging" $servers
-d=`mktemp -d`
-{ cp $rdb_dir/rethinkdb $d; strip $d/rethinkdb; } &
-cp -r $rdb_dir/rethinkdb_web_assets $d &
-wait
-# { pushd $d >/dev/null; tar -czf f.tgz *; popd >/dev/null; }
-parallel -uj0 "rsync_to '$d/*' {1} $staging/.persist" ::: $hosts >&2
-
-# parallel -uj0 "pv $d/f.tgz | ssh_to {1} 'cd $staging && tar -xzf -'" ::: $hosts
-rm -r $d &
+parallel -uj0 echo "Distributing $rdb_dir to {1}{2}...;" \
+    "rsync_to '$rdb_dir/*' {1} $staging{2}/.persist" $servers >&2
 
 jline=`parallel 'printf -- " -j {1}:$(({2}+$CLUSTER_PORT))"' $servers`
-parallel -uj0 "n={1}; n=\${n%%.*}; n=\${n#ec2-*-}; n+=-{2}; n=\$(echo \$n | tr - _);
-ssh_to {1} <<EOF
-cd $staging
-rm -rf {2}
-mkdir -p {2}
-cd {2}
+parallel -uj0 "ssh_to {1} <<EOF
+cd $staging{2}
 set -m
-</dev/null nohup ../.persist/rethinkdb $jline -o {2} -n \$n $server_opts --bind all >1.log 2>2.log &
+</dev/null nohup .persist/rethinkdb $server_opts \
+  $jline -o {2} -n {1}{2} --bind all >1.log 2>2.log &
 EOF" $servers >&2
-
-wait

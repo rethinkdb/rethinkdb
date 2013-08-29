@@ -12,45 +12,26 @@ function on_err() {
 }
 trap 'on_err $LINENO' ERR
 
-################################################################################
-##### Set up hosts.
-################################################################################
-{
-    echo `provision servers $SERVERS` > server_hosts
-    export POC=`head -1 server_hosts`
-    init_rdb_cluster "`cat server_hosts`" \
-        $SERVER_INSTANCES $bench/server $SERVER_STAGING "$SERVER_OPTS" &
-    wait
-} &
-server_hosts_ready=$!
-{
-    echo `provision clients $CLIENTS` > client_hosts &
-#    parallel -uj0 reset_client :::: client_hosts
-} &
-client_hosts_ready=$!
+echo "`provision servers $SERVERS`" > server_hosts
+export POC=`head -1 server_hosts`
+export POC_OFFSET=1
+echo "`provision clients $CLIENTS`" > client_hosts
+echo SERVERS: `cat server_hosts` >&2
+echo CLIENTS: `cat client_hosts` >&2
+
+init_rdb_cluster "`cat server_hosts`" \
+    $SERVER_INSTANCES $bench/server $SERVER_STAGING "$SERVER_OPTS" &
+init_clients "`cat client_hosts`" $bench/client $CLIENT_STAGING &
 wait
-cat >&2 <<EOF
-  Servers:
-`<server_hosts awk '{print "    "$0}'`
-  Clients:
-`<client_hosts awk '{print "    "$0}'`
+
+echo "Running $bench/client/setup.sh on $POC..."
+ssh_to $POC <<EOF
+cd $SERVER_STAGING$POC_OFFSET
+.persist/setup.sh $POC $POC_OFFSET
 EOF
+
 exit 0
 
-################################################################################
-##### Set up RethinkDB cluster.
-################################################################################
-init_rdb_cluster "`cat server_hosts`" \
-    $SERVER_INSTANCES $RETHINKDB_DIR $STAGING "$SERVER_OPTS" &
-export POC=`head -1 server_hosts`
-tunnel_to_poc $POC 1 >cluster_port
-export ADMIN_CLUSTER_PORT=`cat cluster_port`
-if [[ $TABLES -gt 0 ]]; then
-    for i in `seq $TABLES`; do cat /proc/sys/kernel/random/uuid | tr - _; done >tables
-    wait
-    parallel -uj0 create_table $POC 1 $STAGING {} $TABLE_SHARDS "'$TABLE_CONF'" \
-        :::: tables &
-fi
 
 ################################################################################
 ##### Set up clients.

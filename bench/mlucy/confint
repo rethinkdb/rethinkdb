@@ -5,9 +5,6 @@
 # data on small sample sizes, especially skewed data.  (Anecdotally,
 # benchmarking results appear to be roughly normally distributed.)
 
-function err() { echo "$@" >&2; exit 1; }
-function calc() { bc -l <<< "scale=${SCALE-6}; $@"; }
-
 f=`mktemp`
 cat >$f
 

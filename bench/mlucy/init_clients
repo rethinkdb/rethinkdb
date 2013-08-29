@@ -1,0 +1,19 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+hosts=$1
+rdb_dir=$2
+staging=$3
+
+parallel -uj0 "echo Prepping {}...; ssh_to {} <<\"EOF\"
+sudo service distcc-chroot stop >/dev/null 2>/dev/null
+sudo swapoff -a
+killall -q main.sh stress.py stress_client.py
+sudo mkdir -p $staging
+sudo chown -R ubuntu:ubuntu $staging
+rm -rf $staging/*
+mkdir -p $staging/.persist
+EOF" ::: $hosts >&2
+
+parallel -uj0 echo "Distributing $rdb_dir to {}...;" \
+    "rsync_to '$rdb_dir/*' {} $staging/.persist" ::: $hosts >&2
