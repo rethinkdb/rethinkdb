@@ -337,7 +337,8 @@ commands:
     py: false
     rb: false
 
-  - tag: close (cursor)
+  - tag: close-cursor
+    name: close (cursor)
     section: module
     description: |
       Close a cursor. Closing a cursor cancels the corresponding query
