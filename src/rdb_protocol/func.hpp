@@ -14,6 +14,7 @@
 #include "containers/counted.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -54,7 +55,7 @@ public:
     counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2);
     bool filter_call(counted_t<const datum_t> arg);
 
-    void dump_scope(std::map<int64_t, Datum> *out) const;
+    void dump_scope(std::map<sym_t, Datum> *out) const;
     bool is_deterministic() const;
     void assert_deterministic(const char *extra_msg) const;
 
@@ -76,7 +77,7 @@ private:
     counted_t<func_t> default_filter_val;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
-    std::map<int64_t, counted_t<const datum_t> *> scope;
+    std::map<sym_t, counted_t<const datum_t> *> scope;
 
     counted_t<term_t> js_parent;
     env_t *js_env;

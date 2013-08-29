@@ -106,7 +106,8 @@ private:
 
     static void map_fn(env_t *env, Term *arg,
                        const std::string &dc, const Term *dc_arg) {
-        int obj = env->gensym(), attr = env->gensym();
+        const sym_t obj = env->gensym();
+        const sym_t attr = env->gensym();
         arg = pb::set_func(arg, obj);
         if (dc == "COUNT") {
             NDATUM(1.0);
@@ -129,7 +130,8 @@ private:
     }
     static void reduce_fn(env_t *env, Term *arg,
                           const std::string &dc, UNUSED const Term *dc_arg) {
-        int a = env->gensym(), b = env->gensym();
+        const sym_t a = env->gensym();
+        const sym_t b = env->gensym();
         arg = pb::set_func(arg, a, b);
         if (dc == "COUNT" || dc == "SUM") {
             N2(ADD, NVAR(a), NVAR(b));
@@ -143,9 +145,12 @@ private:
     }
     static Term *final_wrap(env_t *env, Term *arg,
                             const std::string &dc, UNUSED const Term *dc_arg) {
-        if (dc == "COUNT" || dc == "SUM") return arg;
+        if (dc == "COUNT" || dc == "SUM") {
+            return arg;
+        }
 
-        int val = env->gensym(), obj = env->gensym();
+        const sym_t val = env->gensym();
+        const sym_t obj = env->gensym();
         Term *argout = 0;
         if (dc == "AVG") {
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
@@ -170,11 +175,11 @@ public:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *left = &in->args(0);
-        const Term *right = &in->args(1);
-        const Term *func = &in->args(2);
-        int n = env->gensym();
-        int m = env->gensym();
+        const Term *const left = &in->args(0);
+        const Term *const right = &in->args(1);
+        const Term *const func = &in->args(2);
+        const sym_t n = env->gensym();
+        const sym_t m = env->gensym();
 
         Term *arg = out.get();
         // `left`.concatmap { |n|
@@ -203,10 +208,12 @@ public:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *left = &in->args(0);
-        const Term *right = &in->args(1);
-        const Term *func = &in->args(2);
-        int64_t n = env->gensym(), m = env->gensym(), lst = env->gensym();
+        const Term *const left = &in->args(0);
+        const Term *const right = &in->args(1);
+        const Term *const func = &in->args(2);
+        const sym_t n = env->gensym();
+        const sym_t m = env->gensym();
+        const sym_t lst = env->gensym();
 
         Term *arg = out.get();
 
@@ -251,10 +258,11 @@ private:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *left = &in->args(0);
-        const Term *left_attr = &in->args(1);
-        const Term *right = &in->args(2);
-        int row = env->gensym(), v = env->gensym();
+        const Term *const left = &in->args(0);
+        const Term *const left_attr = &in->args(1);
+        const Term *const right = &in->args(2);
+        const sym_t row = env->gensym();
+        const sym_t v = env->gensym();
 
         Term *arg = out.get();
         Term *optarg_inheritor = NULL;
@@ -281,7 +289,7 @@ private:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        int x = env->gensym();
+        const sym_t x = env->gensym();
 
         Term *arg = out.get();
         N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
@@ -299,8 +307,8 @@ private:
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         // The `false` values below mean that we don't bind the implicit variable.
-        int old_row = env->symgen.gensym(false);
-        int new_row = env->symgen.gensym(false);
+        const sym_t old_row = env->symgen.gensym(false);
+        const sym_t new_row = env->symgen.gensym(false);
 
         Term *arg = out.get();
         N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
@@ -346,7 +354,7 @@ private:
     static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        int row = env->symgen.gensym(false);
+        const sym_t row = env->symgen.gensym(false);
 
         Term *arg = out.get();
         N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, row);

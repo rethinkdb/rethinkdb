@@ -1155,7 +1155,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             Backtrace dummy_backtrace;
             ql::propagate_backtrace(&filter_term, &dummy_backtrace);
             ql::filter_wire_func_t sindex_filter(
-                filter_term, std::map<int64_t, Datum>());
+                    filter_term, std::map<ql::sym_t, Datum>());
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
@@ -1659,8 +1659,8 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
 
 void rdb_protocol_t::sindex_range_t::write_filter_func(
     ql::env_t *env, Term *filter, const Term &sindex_mapping) const {
-    int arg1 = env->gensym();
-    int sindex_val = env->gensym();
+    const ql::sym_t arg1 = env->gensym();
+    const ql::sym_t sindex_val = env->gensym();
     Term *arg = ql::pb::set_func(filter, arg1);
     if (!start.has() && !end.has()) {
         NDATUM_BOOL(true);

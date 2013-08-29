@@ -34,7 +34,7 @@ public:
             index_func = arg(2)->as_func();
         } else {
             protob_t<Term> func_term = make_counted_term();
-            int x = env->gensym();
+            sym_t x = env->gensym();
             {
                 Term *arg = pb::set_func(func_term.get(), x);
                 N2(GET_FIELD, NVAR(x), NDATUM(name_datum));

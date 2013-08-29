@@ -169,10 +169,11 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
                           order_source_t *osource) {
     std::string id = uuid_to_str(generate_uuid());
     Term mapping;
-    Term *arg = ql::pb::set_func(&mapping, 1);
-    N2(GET_FIELD, NVAR(1), NDATUM("sid"));
+    const ql::sym_t one(1);
+    Term *arg = ql::pb::set_func(&mapping, one);
+    N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
-    ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
+    ql::map_wire_func_t m(mapping, std::map<ql::sym_t, Datum>());
 
     rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
     rdb_protocol_t::write_response_t response;

@@ -16,6 +16,7 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"
+#include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/val.hpp"
 
 class extproc_pool_t;
@@ -54,10 +55,10 @@ class gensym_t {
 public:
     gensym_t() : next_gensym_val(-2) { }
     // Returns a globally unique variable.
-    int gensym(bool allow_implicit = false);
-    static bool var_allows_implicit(int varnum);
+    sym_t gensym(bool allow_implicit = false);
+    static bool var_allows_implicit(sym_t varnum);
 private:
-    int next_gensym_val; // always negative
+    int64_t next_gensym_val; // always negative
     DISABLE_COPYING(gensym_t);
 };
 
@@ -66,14 +67,14 @@ public:
     scopes_t();
 
     // Bind a variable in the current scope.
-    void push_var(int var, counted_t<const datum_t> *val);
+    void push_var(sym_t var, counted_t<const datum_t> *val);
 
     // Special variables have unusual behavior.
     enum special_var_t {
         SINDEX_ERROR_VAR = 1, // Throws an error when you try to access it.
     };
     // Push a special variable.  (Pop it off with the normal `pop_var`.)
-    void push_special_var(int var, special_var_t special_var);
+    void push_special_var(sym_t var, special_var_t special_var);
     // This will push a special variable over ever variable currently in scope
     // when constructed, then pop those variables when destructed.
     class special_var_shadower_t {
@@ -82,24 +83,24 @@ public:
         ~special_var_shadower_t();
     private:
         env_t *shadow_env;
-        std::map<int64_t, counted_t<const datum_t > *> current_scope;
+        std::map<sym_t, counted_t<const datum_t > *> current_scope;
     };
 
     // Get the current binding of a variable in the current scope.
-    counted_t<const datum_t> *top_var(int var, const rcheckable_t *caller);
+    counted_t<const datum_t> *top_var(sym_t var, const rcheckable_t *caller);
     // Unbind a variable in the current scope.
-    void pop_var(int var);
+    void pop_var(sym_t var);
 
     // Dump the current scope.
-    void dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out);
+    void dump_scope(std::map<sym_t, counted_t<const datum_t> *> *out);
     // Swap in a previously-dumped scope.
-    void push_scope(const std::map<int64_t, Datum> *in);
+    void push_scope(const std::map<sym_t, Datum> *in);
     // Discard a previously-pushed scope and restore original scope.
     void pop_scope();
 
 private:
-    std::map<int64_t, std::stack<counted_t<const datum_t> *> > vars;
-    std::stack<std::vector<std::pair<int, counted_t<const datum_t> > > > scope_stack;
+    std::map<sym_t, std::stack<counted_t<const datum_t> *> > vars;
+    std::stack<std::vector<std::pair<sym_t, counted_t<const datum_t> > > > scope_stack;
     DISABLE_COPYING(scopes_t);
 };
 
@@ -158,7 +159,7 @@ public:
     func_cache_t func_cache;
     global_optargs_t global_optargs;
     gensym_t symgen;
-    int gensym() { return symgen.gensym(); }
+    sym_t gensym() { return symgen.gensym(); }
 
     scopes_t scopes;
     implicit_vars_t implicits;

@@ -18,7 +18,7 @@ wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     }
     func->dump_scope(&scope);
 }
-wire_func_t::wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope)
+wire_func_t::wire_func_t(const Term &_source, const std::map<sym_t, Datum> &_scope)
     : source(make_counted_term_copy(_source)), scope(_scope), uuid(generate_uuid()) { }
 
 counted_t<func_t> wire_func_t::compile(env_t *env) {

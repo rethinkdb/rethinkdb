@@ -8,38 +8,38 @@ Datum *set_datum(Term *d) {
     return d->mutable_datum();
 }
 
-Term *set_func(Term *f, int varnum) {
+Term *set_func(Term *f, sym_t varnum) {
     f->set_type(Term::FUNC);
 
     Datum *vars = set_datum(f->add_args());
     vars->set_type(Datum::R_ARRAY);
     Datum *var1 = vars->add_r_array();
     var1->set_type(Datum::R_NUM);
-    var1->set_r_num(varnum);
+    var1->set_r_num(varnum.value);
 
     return f->add_args();
 }
 
-Term *set_func(Term *f, int varnum1, int varnum2) {
+Term *set_func(Term *f, sym_t varnum1, sym_t varnum2) {
     f->set_type(Term::FUNC);
 
     Datum *vars = set_datum(f->add_args());
     vars->set_type(Datum::R_ARRAY);
     Datum *var1 = vars->add_r_array();
     var1->set_type(Datum::R_NUM);
-    var1->set_r_num(varnum1);
+    var1->set_r_num(varnum1.value);
     Datum *var2 = vars->add_r_array();
     var2->set_type(Datum::R_NUM);
-    var2->set_r_num(varnum2);
+    var2->set_r_num(varnum2.value);
 
     return f->add_args();
 }
 
-void set_var(Term *v, int varnum) {
+void set_var(Term *v, sym_t varnum) {
     v->set_type(Term::VAR);
     Datum *vn = set_datum(v->add_args());
     vn->set_type(Datum::R_NUM);
-    vn->set_r_num(varnum);
+    vn->set_r_num(varnum.value);
 }
 
 void set_null(Term *t) {

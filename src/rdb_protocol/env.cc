@@ -69,7 +69,7 @@ bool global_optargs_t::add_optarg(env_t *env, const std::string &key, const Term
     protob_t<Term> arg = make_counted_term();
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
-    optargs[key] = wire_func_t(*arg, std::map<int64_t, Datum>());
+    optargs[key] = wire_func_t(*arg, std::map<sym_t, Datum>());
     counted_t<func_t> force_compilation = optargs[key].compile(env);
     r_sanity_check(force_compilation.has());
     return false;
@@ -93,20 +93,20 @@ const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;
 }
 
-
 static const int min_normal_gensym = -1000000;
-int gensym_t::gensym(bool allow_implicit) {
+sym_t gensym_t::gensym(bool allow_implicit) {
     r_sanity_check(0 > next_gensym_val && next_gensym_val >= min_normal_gensym);
-    int gensym = next_gensym_val--;
+    int64_t ret = next_gensym_val--;
     if (!allow_implicit) {
-        gensym += min_normal_gensym;
-        r_sanity_check(gensym < min_normal_gensym);
+        // RSI: this is extremely retarded, why would we limit ourselves to 1 million
+        ret += min_normal_gensym;
+        r_sanity_check(ret < min_normal_gensym);
     }
-    return gensym;
+    return sym_t(ret);
 }
 
-bool gensym_t::var_allows_implicit(int varnum) {
-    return varnum >= min_normal_gensym;
+bool gensym_t::var_allows_implicit(sym_t varnum) {
+    return varnum.value >= min_normal_gensym;
 }
 
 
@@ -130,13 +130,13 @@ void implicit_vars_t::pop_implicit() {
 
 scopes_t::scopes_t() { }
 
-void scopes_t::push_var(int var, counted_t<const datum_t> *val) {
+void scopes_t::push_var(sym_t var, counted_t<const datum_t> *val) {
     vars[var].push(val);
 }
 
 static counted_t<const datum_t> sindex_error_dummy_datum;
 // RSI: god dammit what the fuck is this ^^^
-void scopes_t::push_special_var(int var, special_var_t special_var) {
+void scopes_t::push_special_var(sym_t var, special_var_t special_var) {
     switch (special_var) {
     case SINDEX_ERROR_VAR: {
         vars[var].push(&sindex_error_dummy_datum);
@@ -159,28 +159,28 @@ scopes_t::special_var_shadower_t::~special_var_shadower_t() {
     }
 }
 
-counted_t<const datum_t> *scopes_t::top_var(int var, const rcheckable_t *caller) {
+counted_t<const datum_t> *scopes_t::top_var(sym_t var, const rcheckable_t *caller) {
     rcheck_target(caller, base_exc_t::GENERIC, !vars[var].empty(),
-                  strprintf("Unrecognized variabled %d", var));
+                  strprintf("Unrecognized variabled %" PRIi64, var.value));
     counted_t<const datum_t> *var_val = vars[var].top();
     rcheck_target(caller, base_exc_t::GENERIC,
                   var_val != &sindex_error_dummy_datum,
                   "Cannot reference external variables from inside an index.");
     return var_val;
 }
-void scopes_t::pop_var(int var) {
+void scopes_t::pop_var(sym_t var) {
     vars[var].pop();
 }
-void scopes_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
-    for (std::map<int64_t, std::stack<counted_t<const datum_t> *> >::iterator
-             it = vars.begin(); it != vars.end(); ++it) {
-        if (it->second.size() == 0) continue;
-        r_sanity_check(it->second.top());
-        (*out)[it->first] = it->second.top();
+void scopes_t::dump_scope(std::map<sym_t, counted_t<const datum_t> *> *out) {
+    for (auto it = vars.begin(); it != vars.end(); ++it) {
+        if (!it->second.empty()) {
+            r_sanity_check(it->second.top());
+            (*out)[it->first] = it->second.top();
+        }
     }
 }
-void scopes_t::push_scope(const std::map<int64_t, Datum> *in) {
-    scope_stack.push(std::vector<std::pair<int, counted_t<const datum_t> > >());
+void scopes_t::push_scope(const std::map<sym_t, Datum> *in) {
+    scope_stack.push(std::vector<std::pair<sym_t, counted_t<const datum_t> > >());
 
     for (auto it = in->begin(); it != in->end(); ++it) {
         scope_stack.top().push_back(
@@ -198,6 +198,7 @@ void scopes_t::pop_scope() {
     }
     // DO NOT pop the vector off the scope stack.  You might invalidate a
     // pointer too early.
+    // RSI: ^^^ pointers into a vector?  this fucking sucks
 }
 
 void env_t::set_eval_callback(eval_callback_t *callback) {

@@ -10,6 +10,7 @@
 
 #include "containers/uuid.hpp"
 #include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/sym.hpp"
 #include "rpc/serialize_macros.hpp"
 
 template <class> class counted_t;
@@ -25,7 +26,7 @@ class wire_func_t {
 public:
     wire_func_t();
     wire_func_t(env_t *env, counted_t<func_t> _func);
-    wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope);
+    wire_func_t(const Term &_source, const std::map<sym_t, Datum> &_scope);
 
     counted_t<func_t> compile(env_t *env);
 
@@ -46,7 +47,7 @@ private:
     // source is never null, even when wire_func_t is default-constructed.
     protob_t<Term> source;
     boost::optional<Term> default_filter_val;
-    std::map<int64_t, Datum> scope;
+    std::map<sym_t, Datum> scope;
     // This uuid is used for the func cache in `env_t`.
     uuid_u uuid;
 };

@@ -38,7 +38,7 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
            base_exc_t::GENERIC,
            strprintf("Func takes exactly two arguments (got %d)", t->args_size()));
 
-    std::vector<int> args;
+    std::vector<sym_t> args;
     const Term *vars = &t->args(0);
     if (vars->type() == Term_TermType_DATUM) {
         const Datum *d = &vars->datum();
@@ -50,7 +50,8 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
                    base_exc_t::GENERIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
-            args.push_back(dnum->r_num());
+            // this is fucking retarded
+            args.push_back(sym_t(dnum->r_num()));
         }
     } else if (vars->type() == Term_TermType_MAKE_ARRAY) {
         for (int i = 0; i < vars->args_size(); ++i) {
@@ -62,7 +63,8 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
             rcheck(dnum->type() == Datum_DatumType_R_NUM,
                    base_exc_t::GENERIC,
                    "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
-            args.push_back(dnum->r_num());
+            // this is fucking retarded
+            args.push_back(sym_t(dnum->r_num()));
         }
     } else {
         rfail(base_exc_t::GENERIC,
@@ -158,8 +160,8 @@ counted_t<val_t> func_t::call(counted_t<const datum_t> arg1,
     return call(args);
 }
 
-void func_t::dump_scope(std::map<int64_t, Datum> *out) const {
-    for (std::map<int64_t, counted_t<const datum_t> *>::const_iterator
+void func_t::dump_scope(std::map<sym_t, Datum> *out) const {
+    for (std::map<sym_t, counted_t<const datum_t> *>::const_iterator
              it = scope.begin(); it != scope.end(); ++it) {
         if (!it->second->has()) continue;
         (*it->second)->write_to_protobuf(&(*out)[it->first]);
@@ -273,7 +275,7 @@ counted_t<func_t> func_t::new_get_field_func(env_t *env, counted_t<const datum_t
                                             const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *arg = twrap.get();
-    int obj = env->gensym();
+    sym_t obj = env->gensym();
     arg = pb::set_func(arg, obj);
     N2(GET_FIELD, NVAR(obj), NDATUM(key));
     propagate_backtrace(twrap.get(), bt_src.get());
@@ -284,8 +286,9 @@ counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> ob
                                  const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
-    int var = env->gensym();
-    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var))),
+    sym_t var = env->gensym();
+    // RSI: FUCK FUCK FUCK THIS IS FUCKING STUPID WHY DOES A FUNC TAKE DOUBLES FOR THIS
+    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(PLUCK, NVAR(var), NDATUM(obj)));
     propagate_backtrace(twrap.get(), bt_src.get());
     return make_counted<func_t>(env, twrap);
@@ -295,8 +298,8 @@ counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const dat
                     const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
-    int var = env->gensym();
-    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var))),
+    sym_t var = env->gensym();
+    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(EQ, NDATUM(obj), NVAR(var)));
     propagate_backtrace(twrap.get(), bt_src.get());
     return make_counted<func_t>(env, twrap);

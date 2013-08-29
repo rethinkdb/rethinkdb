@@ -6,6 +6,7 @@
 
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/sym.hpp"
 
 namespace ql {
 namespace pb {
@@ -13,14 +14,15 @@ namespace pb {
 // Set `d` to be a datum term, return a pointer to its datum member.
 Datum *set_datum(Term *d);
 // Set `f` to be a function of `varnum`, return a pointer to its body.
-Term *set_func(Term *f, int varnum);
+Term *set_func(Term *f, sym_t varnum);
 // As above but with two variables.
-Term *set_func(Term *f, int varnum1, int varnum2);
+Term *set_func(Term *f, sym_t varnum1, sym_t varnum2);
 // Set `v` to be the variable `varnum`.
-void set_var(Term *v, int varnum);
+void set_var(Term *v, sym_t varnum);
 
 // Set `t` to be a particular datum.
 void set_null(Term *t);
+// RSI: What the fuck is using an int?
 void set_int(Term *t, int num);
 void set_str(Term *t, const std::string &s);
 
