@@ -42,7 +42,7 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *stream);
 
 private:
-    friend class env_t;
+    friend class func_cache_t;
     // source is never null, even when wire_func_t is default-constructed.
     protob_t<Term> source;
     boost::optional<Term> default_filter_val;

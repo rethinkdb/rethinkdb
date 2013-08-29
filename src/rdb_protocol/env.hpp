@@ -24,13 +24,18 @@ namespace ql {
 class datum_t;
 class term_t;
 
-
-class env_t : private home_thread_mixin_t {
+class func_cache_t {
 public:
-    counted_t<func_t> get_or_compile_func(const wire_func_t *wf);
+    counted_t<func_t> get_or_compile_func(env_t *env, const wire_func_t *wf);
     void precache_func(const wire_func_t *wf, counted_t<func_t> func);
 private:
     std::map<uuid_u, counted_t<func_t> > cached_funcs;
+};
+
+
+class env_t : public home_thread_mixin_t {
+public:
+    func_cache_t func_cache;
 
 public:
     // Returns whether or not there was a key conflict.

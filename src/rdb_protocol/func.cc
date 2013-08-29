@@ -66,6 +66,7 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
               "CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
     }
 
+    // RSI: MOTHER OF FUCK
     argptrs.init(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         env->push_var(args[i], &argptrs[i]);

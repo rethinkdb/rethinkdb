@@ -20,19 +20,19 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
-counted_t<func_t> env_t::get_or_compile_func(const wire_func_t *wf) {
-    assert_thread();
+counted_t<func_t> func_cache_t::get_or_compile_func(env_t *env, const wire_func_t *wf) {
+    env->assert_thread();
     auto it = cached_funcs.find(wf->uuid);
     if (it == cached_funcs.end()) {
-        push_scope(&wf->scope);
+        env->push_scope(&wf->scope);
         try {
             it = cached_funcs.insert(
                 std::make_pair(
-                    wf->uuid, compile_term(this, wf->source)->eval()->as_func())).first;
+                    wf->uuid, compile_term(env, wf->source)->eval()->as_func())).first;
             if (wf->default_filter_val) {
                 it->second->set_default_filter_val(
                     make_counted<func_t>(
-                        this, make_counted_term_copy(*wf->default_filter_val)));
+                        env, make_counted_term_copy(*wf->default_filter_val)));
             }
         } catch (const base_exc_t &e) {
             // If we have a non-`base_exc_t` exception, we don't want to pop the
@@ -42,15 +42,16 @@ counted_t<func_t> env_t::get_or_compile_func(const wire_func_t *wf) {
             // that's the only kind of exception that we might recover from in
             // the ReQL layer, which is the only case where the un-popped scope
             // might matter.)
-            pop_scope();
+            // RSI: ^^^^  fucking retarded
+            env->pop_scope();
             throw;
         }
-        pop_scope();
+        env->pop_scope();
     }
     return it->second;
 }
 
-void env_t::precache_func(const wire_func_t *wf, counted_t<func_t> func) {
+void func_cache_t::precache_func(const wire_func_t *wf, counted_t<func_t> func) {
     cached_funcs[wf->uuid] = func;
 }
 

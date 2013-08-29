@@ -12,8 +12,9 @@ wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     if (func->default_filter_val.has()) {
         default_filter_val = *func->default_filter_val->source.get();
     }
+    // RSI: vvv this can be sometimes NULL, sometimes not?  when the fuck why
     if (env) {
-        env->precache_func(this, func);
+        env->func_cache.precache_func(this, func);
     }
     func->dump_scope(&scope);
 }
@@ -22,7 +23,7 @@ wire_func_t::wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_s
 
 counted_t<func_t> wire_func_t::compile(env_t *env) {
     r_sanity_check(!uuid.is_unset() && !uuid.is_nil());
-    return env->get_or_compile_func(this);
+    return env->func_cache.get_or_compile_func(env, this);
 }
 
 protob_t<const Backtrace> wire_func_t::get_bt() const {
