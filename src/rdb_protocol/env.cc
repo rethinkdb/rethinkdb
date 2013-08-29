@@ -26,7 +26,7 @@ counted_t<func_t> func_cache_t::get_or_compile_func(env_t *env, const wire_func_
     env->assert_thread();
     auto it = cached_funcs.find(wf->uuid);
     if (it == cached_funcs.end()) {
-        env->push_scope(&wf->scope);
+        env->scopes.push_scope(&wf->scope);
         try {
             it = cached_funcs.insert(
                 std::make_pair(
@@ -45,10 +45,10 @@ counted_t<func_t> func_cache_t::get_or_compile_func(env_t *env, const wire_func_
             // the ReQL layer, which is the only case where the un-popped scope
             // might matter.)
             // RSI: ^^^^  fucking retarded
-            env->pop_scope();
+            env->scopes.pop_scope();
             throw;
         }
-        env->pop_scope();
+        env->scopes.pop_scope();
     }
     return it->second;
 }
@@ -124,12 +124,13 @@ void env_t::pop_implicit() {
     implicit_var.pop();
 }
 
-void env_t::push_var(int var, counted_t<const datum_t> *val) {
+void scopes_t::push_var(int var, counted_t<const datum_t> *val) {
     vars[var].push(val);
 }
 
 static counted_t<const datum_t> sindex_error_dummy_datum;
-void env_t::push_special_var(int var, special_var_t special_var) {
+// RSI: god dammit what the fuck is this ^^^
+void scopes_t::push_special_var(int var, special_var_t special_var) {
     switch (special_var) {
     case SINDEX_ERROR_VAR: {
         vars[var].push(&sindex_error_dummy_datum);
@@ -138,21 +139,21 @@ void env_t::push_special_var(int var, special_var_t special_var) {
     }
 }
 
-env_t::special_var_shadower_t::special_var_shadower_t(
+scopes_t::special_var_shadower_t::special_var_shadower_t(
     env_t *env, special_var_t special_var) : shadow_env(env) {
-    shadow_env->dump_scope(&current_scope);
+    shadow_env->scopes.dump_scope(&current_scope);
     for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
-        shadow_env->push_special_var(it->first, special_var);
+        shadow_env->scopes.push_special_var(it->first, special_var);
     }
 }
 
-env_t::special_var_shadower_t::~special_var_shadower_t() {
+scopes_t::special_var_shadower_t::~special_var_shadower_t() {
     for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
-        shadow_env->pop_var(it->first);
+        shadow_env->scopes.pop_var(it->first);
     }
 }
 
-counted_t<const datum_t> *env_t::top_var(int var, const rcheckable_t *caller) {
+counted_t<const datum_t> *scopes_t::top_var(int var, const rcheckable_t *caller) {
     rcheck_target(caller, base_exc_t::GENERIC, !vars[var].empty(),
                   strprintf("Unrecognized variabled %d", var));
     counted_t<const datum_t> *var_val = vars[var].top();
@@ -161,10 +162,10 @@ counted_t<const datum_t> *env_t::top_var(int var, const rcheckable_t *caller) {
                   "Cannot reference external variables from inside an index.");
     return var_val;
 }
-void env_t::pop_var(int var) {
+void scopes_t::pop_var(int var) {
     vars[var].pop();
 }
-void env_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
+void scopes_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
     for (std::map<int64_t, std::stack<counted_t<const datum_t> *> >::iterator
              it = vars.begin(); it != vars.end(); ++it) {
         if (it->second.size() == 0) continue;
@@ -172,7 +173,7 @@ void env_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
         (*out)[it->first] = it->second.top();
     }
 }
-void env_t::push_scope(const std::map<int64_t, Datum> *in) {
+void scopes_t::push_scope(const std::map<int64_t, Datum> *in) {
     scope_stack.push(std::vector<std::pair<int, counted_t<const datum_t> > >());
 
     for (auto it = in->begin(); it != in->end(); ++it) {
@@ -184,7 +185,7 @@ void env_t::push_scope(const std::map<int64_t, Datum> *in) {
         push_var(scope_stack.top()[i].first, &scope_stack.top()[i].second);
     }
 }
-void env_t::pop_scope() {
+void scopes_t::pop_scope() {
     r_sanity_check(scope_stack.size() > 0);
     for (size_t i = 0; i < scope_stack.top().size(); ++i) {
         pop_var(scope_stack.top()[i].first);

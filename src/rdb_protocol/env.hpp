@@ -61,14 +61,10 @@ private:
     DISABLE_COPYING(gensym_t);
 };
 
-class env_t : public home_thread_mixin_t {
+class scopes_t {
 public:
-    func_cache_t func_cache;
-    global_optargs_t global_optargs;
-    gensym_t symgen;
-    int gensym() { return symgen.gensym(); }
+    scopes_t();
 
-public:
     // Bind a variable in the current scope.
     void push_var(int var, counted_t<const datum_t> *val);
 
@@ -100,9 +96,21 @@ public:
     void push_scope(const std::map<int64_t, Datum> *in);
     // Discard a previously-pushed scope and restore original scope.
     void pop_scope();
+
 private:
     std::map<int64_t, std::stack<counted_t<const datum_t> *> > vars;
     std::stack<std::vector<std::pair<int, counted_t<const datum_t> > > > scope_stack;
+    DISABLE_COPYING(scopes_t);
+};
+
+class env_t : public home_thread_mixin_t {
+public:
+    func_cache_t func_cache;
+    global_optargs_t global_optargs;
+    gensym_t symgen;
+    int gensym() { return symgen.gensym(); }
+
+    scopes_t scopes;
 
 public:
     // Implicit Variables (same interface as normal variables above).

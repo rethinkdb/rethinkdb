@@ -10,7 +10,7 @@ public:
     var_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) {
         int var = arg(0)->as_int<int>();
-        datum_val = env->top_var(var, this);
+        datum_val = env->scopes.top_var(var, this);
     }
 private:
     counted_t<const datum_t> *datum_val; // pointer to variable's slot in argument array

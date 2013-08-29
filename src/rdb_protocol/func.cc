@@ -20,7 +20,7 @@ func_t::func_t(env_t *env,
       js_env(env),
       js_source(_js_source),
       js_timeout_ms(timeout_ms) {
-    env->dump_scope(&scope);
+    env->scopes.dump_scope(&scope);
 }
 
 func_t::func_t(env_t *env, protob_t<const Term> _source)
@@ -69,26 +69,26 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
     // RSI: MOTHER OF FUCK
     argptrs.init(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
-        env->push_var(args[i], &argptrs[i]);
+        env->scopes.push_var(args[i], &argptrs[i]);
     }
     if (args.size() == 1 && gensym_t::var_allows_implicit(args[0])) {
         env->push_implicit(&argptrs[0]);
     }
     if (args.size() != 0) {
-        guarantee(env->top_var(args[0], this) == &argptrs[0]);
+        guarantee(env->scopes.top_var(args[0], this) == &argptrs[0]);
     }
 
     protob_t<const Term> body_source = t.make_child(&t->args(1));
     body = compile_term(env, body_source);
 
     for (size_t i = 0; i < args.size(); ++i) {
-        env->pop_var(args[i]);
+        env->scopes.pop_var(args[i]);
     }
     if (args.size() == 1 && gensym_t::var_allows_implicit(args[0])) {
         env->pop_implicit();
     }
 
-    env->dump_scope(&scope);
+    env->scopes.dump_scope(&scope);
 }
 
 counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args) {
