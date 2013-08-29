@@ -47,13 +47,13 @@ public:
         env_t *env, counted_t<const datum_t> obj,
         const protob_t<const Backtrace> &bt_src);
 
-    counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args);
+    counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const;
 
     // Prefer these versions of call.
-    counted_t<val_t> call();
-    counted_t<val_t> call(counted_t<const datum_t> arg);
-    counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2);
-    bool filter_call(counted_t<const datum_t> arg);
+    counted_t<val_t> call() const;
+    counted_t<val_t> call(counted_t<const datum_t> arg) const;
+    counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
+    bool filter_call(counted_t<const datum_t> arg) const;
 
     void dump_scope(std::map<sym_t, Datum> *out) const;
     bool is_deterministic() const;

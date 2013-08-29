@@ -95,7 +95,7 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
     env->scopes.dump_scope(&scope);
 }
 
-counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args) {
+counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args) const {
     try {
         if (js_parent.has()) {
             r_sanity_check(!body.has() && source.has() && js_env != NULL);
@@ -139,19 +139,19 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
     }
 }
 
-counted_t<val_t> func_t::call() {
+counted_t<val_t> func_t::call() const {
     std::vector<counted_t<const datum_t> > args;
     return call(args);
 }
 
-counted_t<val_t> func_t::call(counted_t<const datum_t> arg) {
+counted_t<val_t> func_t::call(counted_t<const datum_t> arg) const {
     std::vector<counted_t<const datum_t> > args;
     args.push_back(arg);
     return call(args);
 }
 
 counted_t<val_t> func_t::call(counted_t<const datum_t> arg1,
-                              counted_t<const datum_t> arg2) {
+                              counted_t<const datum_t> arg2) const {
     std::vector<counted_t<const datum_t> > args;
     args.push_back(arg1);
     args.push_back(arg2);
@@ -198,7 +198,7 @@ bool func_term_t::is_deterministic_impl() const {
     return func->is_deterministic();
 }
 
-bool func_t::filter_call(counted_t<const datum_t> arg) {
+bool func_t::filter_call(counted_t<const datum_t> arg) const {
     // We have to catch every exception type and save it so we can rethrow it later
     // So we don't trigger a coroutine wait in a catch statement
     std::exception_ptr saved_exception;
