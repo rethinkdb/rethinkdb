@@ -512,6 +512,12 @@ tests:
     - cd: tbl3.filter({'b':{'c':6}})
       ot: ([])
 
+    - cd: tbl3.filter(r.literal({'id':0}))
+      ot: ([])
+
+    - cd: tbl3.filter({'b':r.literal({'c':0})}).pluck('id').order_by('id').nth(0)
+      ot: ({'id':0})
+
     # Clean up
     - cd: r.db('test').table_drop('test1')
       ot: ({'dropped':1})
