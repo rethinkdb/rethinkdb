@@ -24,13 +24,13 @@ class build_ext_nofail(build_ext):
             try:
                 import google.protobuf.internal.cpp_message
             except ImportError:
-                print >> sys.stderr, "*** WARNING: The installed protobuf library does not seem to include the C++ extension"
-                print >> sys.stderr, "*** WARNING: The RethinkDB driver will fallback to using the pure python implementation"
+                print("*** WARNING: The installed protobuf library does not seem to include the C++ extension", file=sys.stderr)
+                print("*** WARNING: The RethinkDB driver will fallback to using the pure python implementation", file=sys.stderr) 
 
     def _failed(self, e):
-            print >> sys.stderr, "*** WARNING: Unable to compile the C++ extension"
-            print >> sys.stderr, e
-            print >> sys.stderr, "*** WARNING: Defaulting to the python implementation"
+            print("*** WARNING: Unable to compile the C++ extension", file=sys.stderr)
+            print(e, file=sys.stderr)
+            print("*** WARNING: Defaulting to the python implementation", file=sys.stderr)
 
 setup(name="rethinkdb"
      ,version="1.8.0-0"
