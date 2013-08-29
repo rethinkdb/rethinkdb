@@ -29,10 +29,12 @@ static const int max_semaphore_capacity = 30;
 class concurrent_traversal_adapter_t : public depth_first_traversal_callback_t {
 public:
 
-    explicit concurrent_traversal_adapter_t(concurrent_traversal_callback_t *cb)
+    explicit concurrent_traversal_adapter_t(concurrent_traversal_callback_t *cb,
+                                            cond_t *failure_cond)
         : semaphore_(concurrent_traversal::initial_semaphore_capacity, 0.5),
           sink_waiters_(0),
-          cb_(cb) { }
+          cb_(cb),
+          failure_cond_(failure_cond) { }
 
     void handle_pair_coro(scoped_key_value_t *fragile_keyvalue,
                           adjustable_semaphore_acq_t *fragile_acq,
@@ -56,7 +58,7 @@ public:
         }
 
         if (!success) {
-            failure_cond_.pulse_if_not_already_pulsed();
+            failure_cond_->pulse_if_not_already_pulsed();
         }
     }
 
@@ -73,7 +75,7 @@ public:
                       this, &keyvalue, &acq, token, auto_drainer_t::lock_t(&drainer_)));
 
         // Report if we've failed by the time this handle_pair call is called.
-        return !failure_cond_.is_pulsed();
+        return !failure_cond_->is_pulsed();
     }
 
 private:
@@ -91,7 +93,7 @@ private:
 
     // Signals when the query has failed, when we should give up all hope in executing
     // the query.
-    cond_t failure_cond_;
+    cond_t *failure_cond_;
 
     // We don't use the drainer's drain signal, we use failure_cond_
     auto_drainer_t drainer_;
@@ -122,14 +124,24 @@ void concurrent_traversal_waiter_t::wait_interruptible() THROWS_ONLY(interrupted
                                                   parent_->semaphore_.get_capacity() + 1));
     }
 
-    ::wait_interruptible(eval_exclusivity_signal_, &parent_->failure_cond_);
+    ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
 }
 
 bool btree_concurrent_traversal(btree_slice_t *slice, transaction_t *transaction,
                                 superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
                                 direction_t direction) {
-    concurrent_traversal_adapter_t adapter(cb);
-    return btree_depth_first_traversal(slice, transaction, superblock, range, &adapter,
-                                       direction);
+    cond_t failure_cond;
+    bool failure_seen;
+    {
+        concurrent_traversal_adapter_t adapter(cb, &failure_cond);
+        failure_seen = !btree_depth_first_traversal(slice, transaction, superblock,
+                                                    range, &adapter, direction);
+    }
+    // Now that adapter is destroyed, the operations that might have failed have all
+    // drained.  (If we fail, we try to report it to btree_depth_first_traversal (to
+    // kill the traversal), but it's possible for us to fail after
+    // btree_depth_first_traversal returns.)
+    guarantee(!(failure_seen && !failure_cond.is_pulsed()));
+    return !failure_cond.is_pulsed();
 }
