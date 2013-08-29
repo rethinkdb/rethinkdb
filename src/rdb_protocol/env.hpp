@@ -50,18 +50,23 @@ private:
     std::map<std::string, wire_func_t> optargs;
 };
 
-
-class env_t : public home_thread_mixin_t {
+class gensym_t {
 public:
-    func_cache_t func_cache;
-    global_optargs_t global_optargs;
-
-public:
+    gensym_t() : next_gensym_val(-2) { }
     // Returns a globally unique variable.
     int gensym(bool allow_implicit = false);
     static bool var_allows_implicit(int varnum);
 private:
     int next_gensym_val; // always negative
+    DISABLE_COPYING(gensym_t);
+};
+
+class env_t : public home_thread_mixin_t {
+public:
+    func_cache_t func_cache;
+    global_optargs_t global_optargs;
+    gensym_t symgen;
+    int gensym() { return symgen.gensym(); }
 
 public:
     // Bind a variable in the current scope.

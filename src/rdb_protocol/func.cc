@@ -71,7 +71,7 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
     for (size_t i = 0; i < args.size(); ++i) {
         env->push_var(args[i], &argptrs[i]);
     }
-    if (args.size() == 1 && env_t::var_allows_implicit(args[0])) {
+    if (args.size() == 1 && gensym_t::var_allows_implicit(args[0])) {
         env->push_implicit(&argptrs[0]);
     }
     if (args.size() != 0) {
@@ -84,7 +84,7 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
     for (size_t i = 0; i < args.size(); ++i) {
         env->pop_var(args[i]);
     }
-    if (args.size() == 1 && env_t::var_allows_implicit(args[0])) {
+    if (args.size() == 1 && gensym_t::var_allows_implicit(args[0])) {
         env->pop_implicit();
     }
 

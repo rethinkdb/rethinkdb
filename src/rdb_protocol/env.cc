@@ -95,7 +95,7 @@ const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
 
 
 static const int min_normal_gensym = -1000000;
-int env_t::gensym(bool allow_implicit) {
+int gensym_t::gensym(bool allow_implicit) {
     r_sanity_check(0 > next_gensym_val && next_gensym_val >= min_normal_gensym);
     int gensym = next_gensym_val--;
     if (!allow_implicit) {
@@ -105,7 +105,7 @@ int env_t::gensym(bool allow_implicit) {
     return gensym;
 }
 
-bool env_t::var_allows_implicit(int varnum) {
+bool gensym_t::var_allows_implicit(int varnum) {
     return varnum >= min_normal_gensym;
 }
 
@@ -256,7 +256,6 @@ env_t::env_t(
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
   : global_optargs(_optargs),
-    next_gensym_val(-2),
     implicit_depth(0),
     extproc_pool(_extproc_pool),
     ns_repo(_ns_repo),
@@ -270,8 +269,7 @@ env_t::env_t(
 
 // RSI: Who calls this constructor?
 env_t::env_t(signal_t *_interruptor)
-  : next_gensym_val(-2),
-    implicit_depth(0),
+  : implicit_depth(0),
     extproc_pool(NULL),
     ns_repo(NULL),
     directory_read_manager(NULL),
