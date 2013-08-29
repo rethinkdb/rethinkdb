@@ -79,9 +79,10 @@ private:
     // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<sym_t, counted_t<const datum_t> *> scope;
 
+    // RSI: It seems there are two kinds of functions, this js stuff doesn't get used
+    // most of the time.
     counted_t<term_t> js_parent;
     env_t *js_env;
-    boost::shared_ptr<js_runner_t> js_runner;
     std::string js_source;
     uint64_t js_timeout_ms;
 };
