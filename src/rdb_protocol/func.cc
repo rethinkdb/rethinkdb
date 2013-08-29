@@ -3,6 +3,7 @@
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/term_walker.hpp"
 
@@ -198,21 +199,25 @@ bool func_term_t::is_deterministic_impl() const {
  * the object which we check to make sure matches the predicate. */
 bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> value,
         rcheckable_t *parent) {
-    const std::map<std::string, counted_t<const datum_t> > &obj = predicate->as_object();
-    for (auto it = obj.begin(); it != obj.end(); ++it) {
-        r_sanity_check(it->second.has());
-        counted_t<const datum_t> elt = value->get(it->first, NOTHROW);
-        if (!elt.has()) {
-            rfail_target(parent, base_exc_t::NON_EXISTENCE,
-                    "No attribute `%s` in object.", it->first.c_str());
-        } else if (it->second->get_type() == datum_t::R_OBJECT &&
-                   elt->get_type() == datum_t::R_OBJECT) {
-            if (!filter_match(it->second, elt, parent)) { return false; }
-        } else if (*elt != *it->second) {
-            return false;
+    if (predicate->is_ptype(pseudo::literal_string)) {
+        return *predicate->get(pseudo::value_key) == *value;
+    } else {
+        const std::map<std::string, counted_t<const datum_t> > &obj = predicate->as_object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            r_sanity_check(it->second.has());
+            counted_t<const datum_t> elt = value->get(it->first, NOTHROW);
+            if (!elt.has()) {
+                rfail_target(parent, base_exc_t::NON_EXISTENCE,
+                        "No attribute `%s` in object.", it->first.c_str());
+            } else if (it->second->get_type() == datum_t::R_OBJECT &&
+                       elt->get_type() == datum_t::R_OBJECT) {
+                if (!filter_match(it->second, elt, parent)) { return false; }
+            } else if (*elt != *it->second) {
+                return false;
+            }
         }
+        return true;
     }
-    return true;
 }
 
 bool func_t::filter_call(counted_t<const datum_t> arg) {
