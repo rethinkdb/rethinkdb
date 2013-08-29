@@ -229,7 +229,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                                    rdb_protocol_t::point_replace_t(
                                        pk, store_key,
                                        *replacements[i].replacer,
-                                       env->get_all_optargs(),
+                                       env->global_optargs.get_all_optargs(),
                                        false)));
             }
         } catch (const base_exc_t& exc) {
@@ -338,7 +338,7 @@ counted_t<const datum_t> table_t::do_replace(
     store_key_t store_key(orig->get(pk)->print_primary());
     rdb_protocol_t::write_t write(
         rdb_protocol_t::point_replace_t(
-            pk, store_key, mwf, env->get_all_optargs(), return_vals),
+            pk, store_key, mwf, env->global_optargs.get_all_optargs(), return_vals),
         durability_requirement);
 
     rdb_protocol_t::write_response_t response;

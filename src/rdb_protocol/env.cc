@@ -20,6 +20,8 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
+func_cache_t::func_cache_t() { }
+
 counted_t<func_t> func_cache_t::get_or_compile_func(env_t *env, const wire_func_t *wf) {
     env->assert_thread();
     auto it = cached_funcs.find(wf->uuid);
@@ -55,32 +57,39 @@ void func_cache_t::precache_func(const wire_func_t *wf, counted_t<func_t> func) 
     cached_funcs[wf->uuid] = func;
 }
 
-bool env_t::add_optarg(const std::string &key, const Term &val) {
-    if (optargs.count(key)) return true;
+global_optargs_t::global_optargs_t() { }
+
+global_optargs_t::global_optargs_t(const std::map<std::string, wire_func_t> &_optargs)
+    : optargs(_optargs) { }
+
+bool global_optargs_t::add_optarg(env_t *env, const std::string &key, const Term &val) {
+    if (optargs.count(key)) {
+        return true;
+    }
     protob_t<Term> arg = make_counted_term();
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
     optargs[key] = wire_func_t(*arg, std::map<int64_t, Datum>());
-    counted_t<func_t> force_compilation = optargs[key].compile(this);
-    r_sanity_check(force_compilation != NULL);
+    counted_t<func_t> force_compilation = optargs[key].compile(env);
+    r_sanity_check(force_compilation.has());
     return false;
 }
 
-void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
+void global_optargs_t::init_optargs(env_t *env, const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
     for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        counted_t<func_t> force_compilation = it->second.compile(this);
-        r_sanity_check(force_compilation != NULL);
+        counted_t<func_t> force_compilation = it->second.compile(env);
+        r_sanity_check(force_compilation.has());
     }
 }
-counted_t<val_t> env_t::get_optarg(const std::string &key){
+counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
     if (!optargs.count(key)) {
         return counted_t<val_t>();
     }
-    return optargs[key].compile(this)->call();
+    return optargs[key].compile(env)->call();
 }
-const std::map<std::string, wire_func_t> &env_t::get_all_optargs() {
+const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;
 }
 
@@ -246,7 +255,7 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
-  : optargs(_optargs),
+  : global_optargs(_optargs),
     next_gensym_val(-2),
     implicit_depth(0),
     extproc_pool(_extproc_pool),
@@ -259,6 +268,7 @@ env_t::env_t(
     interruptor(_interruptor),
     this_machine(_this_machine) { }
 
+// RSI: Who calls this constructor?
 env_t::env_t(signal_t *_interruptor)
   : next_gensym_val(-2),
     implicit_depth(0),

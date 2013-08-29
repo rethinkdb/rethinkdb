@@ -26,25 +26,35 @@ class term_t;
 
 class func_cache_t {
 public:
+    func_cache_t();
     counted_t<func_t> get_or_compile_func(env_t *env, const wire_func_t *wf);
     void precache_func(const wire_func_t *wf, counted_t<func_t> func);
 private:
     std::map<uuid_u, counted_t<func_t> > cached_funcs;
+    DISABLE_COPYING(func_cache_t);
+};
+
+class global_optargs_t {
+public:
+    global_optargs_t();
+    // RSI: Could this use an rvalue ref?
+    global_optargs_t(const std::map<std::string, wire_func_t> &_optargs);
+
+    // RSI: Why is there an add_optarg function?
+    // Returns whether or not there was a key conflict.
+    MUST_USE bool add_optarg(env_t *env, const std::string &key, const Term &val);
+    void init_optargs(env_t *env, const std::map<std::string, wire_func_t> &_optargs);
+    counted_t<val_t> get_optarg(env_t *env, const std::string &key); // returns NULL if no entry
+    const std::map<std::string, wire_func_t> &get_all_optargs();
+private:
+    std::map<std::string, wire_func_t> optargs;
 };
 
 
 class env_t : public home_thread_mixin_t {
 public:
     func_cache_t func_cache;
-
-public:
-    // Returns whether or not there was a key conflict.
-    MUST_USE bool add_optarg(const std::string &key, const Term &val);
-    void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
-    counted_t<val_t> get_optarg(const std::string &key); // returns NULL if no entry
-    const std::map<std::string, wire_func_t> &get_all_optargs();
-private:
-    std::map<std::string, wire_func_t> optargs;
+    global_optargs_t global_optargs;
 
 public:
     // Returns a globally unique variable.

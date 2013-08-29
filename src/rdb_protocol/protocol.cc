@@ -1101,7 +1101,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (rget.transform.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
-        ql_env.init_optargs(rget.optargs);
+        ql_env.global_optargs.init_optargs(&ql_env, rget.optargs);
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
@@ -1263,7 +1263,7 @@ void store_t::protocol_read(const read_t &read,
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
         try {
-            ql_env.init_optargs(r.optargs);
+            ql_env.global_optargs.init_optargs(&ql_env, r.optargs);
         } catch (const interrupted_exc_t &) {
             // Clear the sindex_write_token because we didn't have a chance to use it
             token_pair->sindex_write_token.reset();

@@ -97,7 +97,7 @@ counted_t<val_t> op_term_t::optarg(const std::string &key) {
         return it->second->eval();
     }
     // returns counted_t<val_t>() if the key isn't found
-    return env->get_optarg(key);
+    return env->global_optargs.get_optarg(env, key);
 }
 
 counted_t<func_t> op_term_t::lazy_literal_optarg(const std::string &key) {
