@@ -128,6 +128,8 @@ void implicit_vars_t::pop_implicit() {
     implicit_var.pop();
 }
 
+scopes_t::scopes_t() { }
+
 void scopes_t::push_var(int var, counted_t<const datum_t> *val) {
     vars[var].push(val);
 }
@@ -208,8 +210,26 @@ void env_t::do_eval_callback() {
     }
 }
 
-void env_t::join_and_wait_to_propagate(
-    const cluster_semilattice_metadata_t &metadata_to_join)
+cluster_env_t::cluster_env_t(
+        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+
+        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+            _namespaces_semilattice_metadata,
+
+        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+             _databases_semilattice_metadata,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _semilattice_metadata,
+        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager)
+    : ns_repo(_ns_repo),
+      namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
+      databases_semilattice_metadata(_databases_semilattice_metadata),
+      semilattice_metadata(_semilattice_metadata),
+      directory_read_manager(_directory_read_manager) { }
+
+void cluster_env_t::join_and_wait_to_propagate(
+        const cluster_semilattice_metadata_t &metadata_to_join,
+        signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     cluster_semilattice_metadata_t sl_metadata;
     {
@@ -262,11 +282,11 @@ env_t::env_t(
     const std::map<std::string, wire_func_t> &_optargs)
   : global_optargs(_optargs),
     extproc_pool(_extproc_pool),
-    ns_repo(_ns_repo),
-    namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-    databases_semilattice_metadata(_databases_semilattice_metadata),
-    semilattice_metadata(_semilattice_metadata),
-    directory_read_manager(_directory_read_manager),
+    cluster_env(_ns_repo,
+                _namespaces_semilattice_metadata,
+                _databases_semilattice_metadata,
+                _semilattice_metadata,
+                _directory_read_manager),
     DEBUG_ONLY(eval_callback(NULL), )
     interruptor(_interruptor),
     this_machine(_this_machine) { }
@@ -274,8 +294,11 @@ env_t::env_t(
 // RSI: Who calls this constructor?
 env_t::env_t(signal_t *_interruptor)
   : extproc_pool(NULL),
-    ns_repo(NULL),
-    directory_read_manager(NULL),
+    cluster_env(NULL,
+                clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
+                clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
+                boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+                NULL),
     DEBUG_ONLY(eval_callback(NULL), )
     interruptor(_interruptor) { }
 

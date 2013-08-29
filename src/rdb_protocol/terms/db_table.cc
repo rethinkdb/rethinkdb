@@ -33,11 +33,11 @@ public:
     meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
         : op_term_t(env, term, argspec),
           original_thread(get_thread_id()),
-          metadata_home_thread(env->semilattice_metadata->home_thread()) { }
+          metadata_home_thread(env->cluster_env.semilattice_metadata->home_thread()) { }
     meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
         : op_term_t(env, term, argspec, optargspec),
           original_thread(get_thread_id()),
-          metadata_home_thread(env->semilattice_metadata->home_thread()) { }
+          metadata_home_thread(env->cluster_env.semilattice_metadata->home_thread()) { }
 
 protected:
     struct wait_rethreader_t : public on_thread_t {
@@ -47,7 +47,7 @@ protected:
     struct rethreading_metadata_accessor_t : public on_thread_t {
         explicit rethreading_metadata_accessor_t(meta_op_t *parent)
             : on_thread_t(parent->metadata_home_thread),
-              metadata(parent->env->semilattice_metadata->get()),
+              metadata(parent->env->cluster_env.semilattice_metadata->get()),
               ns_change(&metadata.rdb_namespaces),
               ns_searcher(&ns_change.get()->namespaces),
               db_searcher(&metadata.databases.databases),
@@ -77,11 +77,11 @@ public:
 private:
     void init() {
         on_thread_t rethreader(metadata_home_thread);
-        rcheck(env->directory_read_manager,
+        rcheck(env->cluster_env.directory_read_manager,
                base_exc_t::GENERIC,
                "Cannot nest meta operations inside queries.");
-        guarantee(env->directory_read_manager->home_thread() == metadata_home_thread);
-        directory_metadata = env->directory_read_manager->get_root_view();
+        guarantee(env->cluster_env.directory_read_manager->home_thread() == metadata_home_thread);
+        directory_metadata = env->cluster_env.directory_read_manager->get_root_view();
     }
 
     virtual std::string write_eval_impl(eval_flags_t flags) = 0;
@@ -142,7 +142,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->join_and_wait_to_propagate(meta.metadata);
+        env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->interruptor);
 
         return "created";
     }
@@ -239,7 +239,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->join_and_wait_to_propagate(meta.metadata);
+        env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->interruptor);
 
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
@@ -247,8 +247,9 @@ private:
         // subsequent writes will succeed.
         wait_rethreader_t wait(this);
         try {
-            wait_for_rdb_table_readiness(env->ns_repo, namespace_id,
-                                         env->interruptor, env->semilattice_metadata);
+            wait_for_rdb_table_readiness(env->cluster_env.ns_repo, namespace_id,
+                                         env->interruptor,
+                                         env->cluster_env.semilattice_metadata);
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC, "Query interrupted, probably by user.");
         }
@@ -296,7 +297,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->join_and_wait_to_propagate(meta.metadata);
+        env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->interruptor);
 
         return "dropped";
     }
@@ -340,7 +341,7 @@ private:
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->join_and_wait_to_propagate(meta.metadata);
+        env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->interruptor);
 
         return "dropped";
     }

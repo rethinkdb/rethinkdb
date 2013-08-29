@@ -118,6 +118,41 @@ private:
     DISABLE_COPYING(implicit_vars_t);
 };
 
+class cluster_env_t {
+public:
+    typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
+    cluster_env_t(
+        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+
+        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+            _namespaces_semilattice_metadata,
+
+        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+             _databases_semilattice_metadata,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _semilattice_metadata,
+        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager);
+
+    base_namespace_repo_t<rdb_protocol_t> *ns_repo;
+
+    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t > > >
+        namespaces_semilattice_metadata;
+    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+        databases_semilattice_metadata;
+    // TODO this should really just be the namespace metadata... but
+    // constructing views is too hard :-/
+    // RSI: What the fuck is this fucking babby-ass complaint ^^
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+        semilattice_metadata;
+    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
+
+    // Semilattice modification functions
+    void join_and_wait_to_propagate(
+            const cluster_semilattice_metadata_t &metadata_to_join,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+};
+
 class env_t : public home_thread_mixin_t {
 public:
     func_cache_t func_cache;
@@ -129,8 +164,8 @@ public:
     implicit_vars_t implicits;
 
 public:
-    // This is copied basically verbatim from old code.
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
+    // This is copied basically verbatim from old code.
     env_t(
         extproc_pool_t *_extproc_pool,
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
@@ -152,22 +187,8 @@ public:
     ~env_t();
 
     extproc_pool_t *extproc_pool;      // for running external JS jobs
-    base_namespace_repo_t<rdb_protocol_t> *ns_repo;
 
-    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t > > >
-        namespaces_semilattice_metadata;
-    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
-        databases_semilattice_metadata;
-    // TODO this should really just be the namespace metadata... but
-    // constructing views is too hard :-/
-    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
-        semilattice_metadata;
-    directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
-
-    // Semilattice modification functions
-    void join_and_wait_to_propagate(
-        const cluster_semilattice_metadata_t &metadata_to_join)
-        THROWS_ONLY(interrupted_exc_t);
+    cluster_env_t cluster_env;
 
     void throw_if_interruptor_pulsed() {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
