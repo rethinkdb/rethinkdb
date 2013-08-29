@@ -146,16 +146,16 @@ void scopes_t::push_special_var(sym_t var, special_var_t special_var) {
 }
 
 scopes_t::special_var_shadower_t::special_var_shadower_t(
-    env_t *env, special_var_t special_var) : shadow_env(env) {
-    shadow_env->scopes.dump_scope(&current_scope);
+    scopes_t *scopes, special_var_t special_var) : shadow_scopes(scopes) {
+    shadow_scopes->dump_scope(&current_scope);
     for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
-        shadow_env->scopes.push_special_var(it->first, special_var);
+        shadow_scopes->push_special_var(it->first, special_var);
     }
 }
 
 scopes_t::special_var_shadower_t::~special_var_shadower_t() {
     for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
-        shadow_env->scopes.pop_var(it->first);
+        shadow_scopes->pop_var(it->first);
     }
 }
 

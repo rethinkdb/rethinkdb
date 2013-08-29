@@ -78,10 +78,10 @@ public:
     // when constructed, then pop those variables when destructed.
     class special_var_shadower_t {
     public:
-        special_var_shadower_t(env_t *env, special_var_t special_var);
+        special_var_shadower_t(scopes_t *scopes, special_var_t special_var);
         ~special_var_shadower_t();
     private:
-        env_t *shadow_env;
+        scopes_t *shadow_scopes;
         std::map<sym_t, counted_t<const datum_t > *> current_scope;
     };
 

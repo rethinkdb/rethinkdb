@@ -18,7 +18,7 @@ namespace ql {
 class sindex_create_term_t : private scopes_t::special_var_shadower_t, public op_term_t {
 public:
     sindex_create_term_t(env_t *env, const protob_t<const Term> &term)
-        : scopes_t::special_var_shadower_t(env, scopes_t::SINDEX_ERROR_VAR),
+        : scopes_t::special_var_shadower_t(&env->scopes, scopes_t::SINDEX_ERROR_VAR),
           op_term_t(env, term, argspec_t(2, 3)) { }
 
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
