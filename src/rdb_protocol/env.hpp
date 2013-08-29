@@ -190,7 +190,7 @@ public:
 
     cluster_env_t cluster_env;
 
-    void throw_if_interruptor_pulsed() {
+    void throw_if_interruptor_pulsed() THROWS_ONLY(interrupted_exc_t) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
     }
 private:
