@@ -24,7 +24,7 @@ class implicit_var_term_t : public op_term_t {
 public:
     implicit_var_term_t(env_t *env, const protob_t<const Term> &term) :
         op_term_t(env, term, argspec_t(0)) {
-        datum_val = env->top_implicit(this);
+        datum_val = env->implicits.top_implicit(this);
     }
 private:
     counted_t<const datum_t> *datum_val;

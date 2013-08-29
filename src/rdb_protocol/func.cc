@@ -26,6 +26,9 @@ func_t::func_t(env_t *env,
 func_t::func_t(env_t *env, protob_t<const Term> _source)
     : pb_rcheckable_t(_source), source(_source),
       js_env(NULL), js_timeout_ms(0) {
+    // RSI: This is why we have the google style guide.  This fucking is too fucking
+    // long.
+
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
     rcheck(t->optargs_size() == 0,
@@ -72,7 +75,7 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
         env->scopes.push_var(args[i], &argptrs[i]);
     }
     if (args.size() == 1 && gensym_t::var_allows_implicit(args[0])) {
-        env->push_implicit(&argptrs[0]);
+        env->implicits.push_implicit(&argptrs[0]);
     }
     if (args.size() != 0) {
         guarantee(env->scopes.top_var(args[0], this) == &argptrs[0]);
@@ -85,7 +88,7 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
         env->scopes.pop_var(args[i]);
     }
     if (args.size() == 1 && gensym_t::var_allows_implicit(args[0])) {
-        env->pop_implicit();
+        env->implicits.pop_implicit();
     }
 
     env->scopes.dump_scope(&scope);

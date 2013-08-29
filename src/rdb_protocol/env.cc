@@ -109,17 +109,21 @@ bool gensym_t::var_allows_implicit(int varnum) {
     return varnum >= min_normal_gensym;
 }
 
-void env_t::push_implicit(counted_t<const datum_t> *val) {
+
+implicit_vars_t::implicit_vars_t()
+    : implicit_depth(0) { }
+
+void implicit_vars_t::push_implicit(counted_t<const datum_t> *val) {
     implicit_var.push(val);
 }
-counted_t<const datum_t> *env_t::top_implicit(const rcheckable_t *caller) {
+counted_t<const datum_t> *implicit_vars_t::top_implicit(const rcheckable_t *caller) {
     rcheck_target(caller, base_exc_t::GENERIC, !implicit_var.empty(),
                   "r.row is not defined in this context.");
     rcheck_target(caller, base_exc_t::GENERIC, implicit_var.size() == 1,
                   "Cannot use r.row in nested queries.  Use functions instead.");
     return implicit_var.top();
 }
-void env_t::pop_implicit() {
+void implicit_vars_t::pop_implicit() {
     r_sanity_check(implicit_var.size() > 0);
     implicit_var.pop();
 }
@@ -257,7 +261,6 @@ env_t::env_t(
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
   : global_optargs(_optargs),
-    implicit_depth(0),
     extproc_pool(_extproc_pool),
     ns_repo(_ns_repo),
     namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
@@ -270,8 +273,7 @@ env_t::env_t(
 
 // RSI: Who calls this constructor?
 env_t::env_t(signal_t *_interruptor)
-  : implicit_depth(0),
-    extproc_pool(NULL),
+  : extproc_pool(NULL),
     ns_repo(NULL),
     directory_read_manager(NULL),
     DEBUG_ONLY(eval_callback(NULL), )

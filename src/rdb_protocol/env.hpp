@@ -103,16 +103,9 @@ private:
     DISABLE_COPYING(scopes_t);
 };
 
-class env_t : public home_thread_mixin_t {
+class implicit_vars_t {
 public:
-    func_cache_t func_cache;
-    global_optargs_t global_optargs;
-    gensym_t symgen;
-    int gensym() { return symgen.gensym(); }
-
-    scopes_t scopes;
-
-public:
+    implicit_vars_t();
     // Implicit Variables (same interface as normal variables above).
     void push_implicit(counted_t<const datum_t> *val);
     counted_t<const datum_t> *top_implicit(const rcheckable_t *caller);
@@ -122,6 +115,18 @@ private:
     friend class implicit_binder_t;
     int implicit_depth;
     std::stack<counted_t<const datum_t> *> implicit_var;
+    DISABLE_COPYING(implicit_vars_t);
+};
+
+class env_t : public home_thread_mixin_t {
+public:
+    func_cache_t func_cache;
+    global_optargs_t global_optargs;
+    gensym_t symgen;
+    int gensym() { return symgen.gensym(); }
+
+    scopes_t scopes;
+    implicit_vars_t implicits;
 
 public:
     // This is copied basically verbatim from old code.
