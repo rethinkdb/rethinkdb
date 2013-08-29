@@ -215,8 +215,9 @@ private:
     eval_callback_t *eval_callback;
 
 public:
+    // RSI: Holy mother of fuck this isn't const (thanks stream_cache.cc).
     signal_t *interruptor;
-    uuid_u this_machine;
+    const uuid_u this_machine;
 
 private:
     DISABLE_COPYING(env_t);
