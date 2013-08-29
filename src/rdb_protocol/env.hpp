@@ -38,7 +38,6 @@ private:
 class global_optargs_t {
 public:
     global_optargs_t();
-    // RSI: Could this use an rvalue ref?
     global_optargs_t(const std::map<std::string, wire_func_t> &_optargs);
 
     // RSI: Why is there an add_optarg function?
@@ -142,7 +141,7 @@ public:
         databases_semilattice_metadata;
     // TODO this should really just be the namespace metadata... but
     // constructing views is too hard :-/
-    // RSI: What the fuck is this fucking babby-ass complaint ^^
+    // RSI: Constructing views isn't hard, construct a view.
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         semilattice_metadata;
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
@@ -215,7 +214,8 @@ private:
     eval_callback_t *eval_callback;
 
 public:
-    // RSI: Holy mother of fuck this isn't const (thanks stream_cache.cc).
+    // RSI: This variable isn't const, thanks to stream_cache2.cc.  It should be
+    // const.
     signal_t *interruptor;
     const uuid_u this_machine;
 

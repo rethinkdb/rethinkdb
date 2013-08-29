@@ -44,7 +44,7 @@ counted_t<func_t> func_cache_t::get_or_compile_func(env_t *env, const wire_func_
             // that's the only kind of exception that we might recover from in
             // the ReQL layer, which is the only case where the un-popped scope
             // might matter.)
-            // RSI: ^^^^  fucking retarded
+            // RSI: ^^^^ This is retarded, don't do this.
             env->scopes.pop_scope();
             throw;
         }
@@ -135,7 +135,7 @@ void scopes_t::push_var(sym_t var, counted_t<const datum_t> *val) {
 }
 
 static counted_t<const datum_t> sindex_error_dummy_datum;
-// RSI: god dammit what the fuck is this ^^^
+// RSI: This is probably terrible ^^^.
 void scopes_t::push_special_var(sym_t var, special_var_t special_var) {
     switch (special_var) {
     case SINDEX_ERROR_VAR: {
@@ -198,7 +198,7 @@ void scopes_t::pop_scope() {
     }
     // DO NOT pop the vector off the scope stack.  You might invalidate a
     // pointer too early.
-    // RSI: ^^^ pointers into a vector?  this fucking sucks
+    // RSI: ^^^ Pointers into a vector???
 }
 
 void env_t::set_eval_callback(eval_callback_t *callback) {

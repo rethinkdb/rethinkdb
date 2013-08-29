@@ -26,8 +26,7 @@ func_t::func_t(env_t *env,
 func_t::func_t(env_t *env, protob_t<const Term> _source)
     : pb_rcheckable_t(_source), source(_source),
       js_env(NULL), js_timeout_ms(0) {
-    // RSI: This is why we have the google style guide.  This fucking is too fucking
-    // long.
+    // RSI: This function is absurdly long and complicated.
 
     protob_t<const Term> t = _source;
     r_sanity_check(t->type() == Term_TermType_FUNC);
@@ -71,7 +70,7 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
               "CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
     }
 
-    // RSI: MOTHER OF FUCK
+    // RSI: I hope an exception doesn't happen...
     argptrs.init(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         env->scopes.push_var(args[i], &argptrs[i]);
@@ -287,7 +286,7 @@ counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> ob
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     sym_t var = env->symgen.gensym();
-    // RSI: FUCK FUCK FUCK THIS IS FUCKING STUPID WHY DOES A FUNC TAKE DOUBLES FOR THIS
+    // RSI: We construct a ReQL array to hold sym_t values???
     N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(PLUCK, NVAR(var), NDATUM(obj)));
     propagate_backtrace(twrap.get(), bt_src.get());

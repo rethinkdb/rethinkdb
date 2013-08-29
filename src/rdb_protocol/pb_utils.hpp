@@ -22,9 +22,6 @@ void set_var(Term *v, sym_t varnum);
 
 // Set `t` to be a particular datum.
 void set_null(Term *t);
-// RSI: What the fuck is using an int?
-void set_int(Term *t, int num);
-void set_str(Term *t, const std::string &s);
 
 // Set `out` to be `type` with the appropriate arguments.
 void set(Term *out, Term_TermType type, std::vector<Term *> *args_out, int num_args);

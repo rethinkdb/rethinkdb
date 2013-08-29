@@ -14,7 +14,7 @@ namespace ql {
 // We need to use inheritance rather than composition for
 // `env_t::special_var_shadower_t` because it needs to be initialized before
 // `op_term_t`.
-// RSI: vvv holy FUCK, special_var_shadower_t is being used as a superclass?
+// RSI: vvv special_var_shadower_t is being used as a superclass???
 class sindex_create_term_t : private scopes_t::special_var_shadower_t, public op_term_t {
 public:
     sindex_create_term_t(env_t *env, const protob_t<const Term> &term)

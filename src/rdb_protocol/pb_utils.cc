@@ -47,18 +47,6 @@ void set_null(Term *t) {
     d->set_type(Datum::R_NULL);
 }
 
-void set_int(Term *t, int num) {
-    Datum *d = set_datum(t);
-    d->set_type(Datum::R_NUM);
-    d->set_r_num(num);
-}
-
-void set_str(Term *t, const std::string &s) {
-    Datum *d = set_datum(t);
-    d->set_type(Datum::R_STR);
-    d->set_r_str(s);
-}
-
 void set(Term *out, Term_TermType type, std::vector<Term *> *args_out, int num_args) {
     out->set_type(type);
     for (int i = 0; i < num_args; ++i) args_out->push_back(out->add_args());

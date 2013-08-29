@@ -12,7 +12,8 @@ wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     if (func->default_filter_val.has()) {
         default_filter_val = *func->default_filter_val->source.get();
     }
-    // RSI: vvv this can be sometimes NULL, sometimes not?  when the fuck why
+    // RSI: vvv this can be sometimes NULL, sometimes not?  This is bad.  When can it
+    // be NULL?
     if (env) {
         env->func_cache.precache_func(this, func);
     }
