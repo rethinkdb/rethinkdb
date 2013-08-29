@@ -47,4 +47,7 @@ sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE)
 publish: sdist
 	cd $(PY_PKG_DIR) && python setup.py register upload
 
-.PHONY: all clean publish sdist
+install: sdist
+	cd $(PY_PKG_DIR) && python setup.py install
+
+.PHONY: all clean publish sdist install
