@@ -281,7 +281,6 @@ counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> ob
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     sym_t var = env->symgen.gensym();
-    // RSI: We construct a ReQL array to hold sym_t values???
     N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(PLUCK, NVAR(var), NDATUM(obj)));
     propagate_backtrace(twrap.get(), bt_src.get());

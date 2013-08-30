@@ -93,7 +93,6 @@ sym_t gensym_t::gensym(bool allow_implicit) {
     r_sanity_check(0 > next_gensym_val && next_gensym_val >= min_normal_gensym);
     int64_t ret = next_gensym_val--;
     if (!allow_implicit) {
-        // RSI: this is extremely retarded, why would we limit ourselves to 1 million
         ret += min_normal_gensym;
         r_sanity_check(ret < min_normal_gensym);
     }
@@ -287,7 +286,7 @@ env_t::env_t(
     interruptor(_interruptor),
     this_machine(_this_machine) { }
 
-// RSI: Who calls this constructor?
+// RSI: Do we really want people calling this constructor?
 env_t::env_t(signal_t *_interruptor)
   : extproc_pool(NULL),
     cluster_env(NULL,

@@ -40,7 +40,6 @@ public:
     global_optargs_t();
     global_optargs_t(const std::map<std::string, wire_func_t> &_optargs);
 
-    // RSI: Why is there an add_optarg function?
     // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(env_t *env, const std::string &key, const Term &val);
     void init_optargs(env_t *env, const std::map<std::string, wire_func_t> &_optargs);
