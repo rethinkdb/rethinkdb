@@ -60,7 +60,6 @@ public:
     void assert_deterministic(const char *extra_msg) const;
 
     std::string print_src() const;
-    void set_default_filter_val(counted_t<func_t> func);
     protob_t<const Term> get_source() const;
 private:
     // Pointers to this function's arguments.
