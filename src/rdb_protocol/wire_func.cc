@@ -9,11 +9,8 @@ namespace ql {
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     : source(make_counted_term_copy(*func->source)), uuid(generate_uuid()) {
-    // RSI: vvv this can be sometimes NULL, sometimes not?  This is bad.  When can it
-    // be NULL?
-    if (env) {
-        env->func_cache.precache_func(this, func);
-    }
+    r_sanity_check(env != NULL);
+    env->func_cache.precache_func(this, func);
     func->dump_scope(&scope);
 }
 wire_func_t::wire_func_t(const Term &_source, const std::map<sym_t, Datum> &_scope)
