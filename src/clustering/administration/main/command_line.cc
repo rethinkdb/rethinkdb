@@ -1501,26 +1501,17 @@ bool get_rethinkdb_exe_directory(std::string *result) {
 #endif
 
 void run_backup_script(const std::string& script_name, char * const arguments[]) {
-    std::string exe_dir;
 
-    if (!get_rethinkdb_exe_directory(&exe_dir)) {
-        return;
-    }
-
-    // First attempt to launch the script from the same directory as us
-    std::string local_script = exe_dir + "/" + script_name;
-    int res = execvp(local_script.c_str(), arguments);
-
-    fprintf(stderr, "Warning: error when running %s: %s\n",
-            local_script.c_str(), errno_string(errno).c_str());
-    fprintf(stderr, "  attempting to run using PATH\n");
-
-    // If that fails, try to run it from the system path
-    res = execvp(script_name.c_str(), arguments);
+    int res = execvp(script_name.c_str(), arguments);
     if (res == -1) {
-        fprintf(stderr, "Error when launching %s: %s\n",
+        fprintf(stderr,
+                "Error when launching %s: %s\n"
+                "The %s command depends on the python driver, which much be installed.\n"
+                "Instructions for installing the python driver are available here:\n"
+                "http://www.rethinkdb.com/docs/install-drivers/python/\n",
                 script_name.c_str(),
-                errno_string(errno).c_str());
+                errno_string(errno).c_str(),
+                script_name.c_str());
     }
 }
 
