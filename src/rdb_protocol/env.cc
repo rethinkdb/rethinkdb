@@ -104,8 +104,7 @@ bool gensym_t::var_allows_implicit(sym_t varnum) {
 }
 
 
-implicit_vars_t::implicit_vars_t()
-    : implicit_depth(0) { }
+implicit_vars_t::implicit_vars_t() { }
 
 void implicit_vars_t::push_implicit(counted_t<const datum_t> *val) {
     implicit_var.push(val);

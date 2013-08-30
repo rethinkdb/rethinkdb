@@ -114,7 +114,6 @@ public:
 
 private:
     friend class implicit_binder_t;
-    int implicit_depth;
     std::stack<counted_t<const datum_t> *> implicit_var;
     DISABLE_COPYING(implicit_vars_t);
 };
