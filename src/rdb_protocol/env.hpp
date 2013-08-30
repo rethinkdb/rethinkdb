@@ -72,8 +72,7 @@ public:
     enum special_var_t {
         SINDEX_ERROR_VAR = 1, // Throws an error when you try to access it.
     };
-    // Push a special variable.  (Pop it off with the normal `pop_var`.)
-    void push_special_var(sym_t var, special_var_t special_var);
+
     // This will push a special variable over ever variable currently in scope
     // when constructed, then pop those variables when destructed.
     class special_var_shadower_t {
@@ -98,6 +97,9 @@ public:
     void pop_scope();
 
 private:
+    // Push a special variable.  (Pop it off with the normal `pop_var`.)
+    void push_special_var(sym_t var, special_var_t special_var);
+
     std::map<sym_t, std::stack<counted_t<const datum_t> *> > vars;
     std::stack<std::vector<std::pair<sym_t, counted_t<const datum_t> > > > scope_stack;
     DISABLE_COPYING(scopes_t);
