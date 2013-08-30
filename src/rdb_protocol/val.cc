@@ -18,7 +18,8 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
       db(_db),
       name(_name),
       env(_env),
-      use_outdated(_use_outdated) {
+      use_outdated(_use_outdated),
+      sorting(UNORDERED) {
     uuid_u db_id = db->id;
     name_string_t table_name;
     bool b = table_name.assign_value(name);
@@ -403,39 +404,92 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
     return p_res->data;
 }
 
-counted_t<datum_stream_t> table_t::get_rows(
-        counted_t<const datum_t> left_bound, bool left_bound_open,
-        counted_t<const datum_t> right_bound, bool right_bound_open,
+counted_t<datum_stream_t> table_t::get_all(
+        counted_t<const datum_t> value,
+        const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
-    return make_counted<lazy_datum_stream_t>(
-        env, use_outdated, access.get(),
-        left_bound, left_bound_open, right_bound, right_bound_open, UNORDERED, bt);
-}
+    rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
+            "Cannot chain get_all and other indexed operations.");
+    r_sanity_check(sorting == UNORDERED);
+    r_sanity_check(!bounds);
 
-counted_t<datum_stream_t> table_t::get_sindex_rows(
-        counted_t<const datum_t> left_bound, bool left_bound_open,
-        counted_t<const datum_t> right_bound, bool right_bound_open,
-        const std::string &sindex_id, const protob_t<const Backtrace> &bt) {
-    return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
-        left_bound, left_bound_open, right_bound, right_bound_open,
-        sindex_id, UNORDERED, bt);
-}
-
-counted_t<datum_stream_t> table_t::get_sorted(const std::string &sindex_id,
-                                              sorting_t sorting,
-                                              const protob_t<const Backtrace> &bt) {
-    if (sindex_id == pkey) {
-        return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
-                                                 sorting, bt);
+    if (get_all_sindex_id == get_pkey()) {
+        return make_counted<lazy_datum_stream_t>(
+                env, use_outdated, access.get(),
+                value, false,
+                value, false,
+                UNORDERED, bt);
     } else {
-        return make_counted<lazy_datum_stream_t>(env, use_outdated, access.get(),
-                                                 sindex_id, sorting, bt);
+        return make_counted<lazy_datum_stream_t>(
+                env, use_outdated, access.get(),
+                value, false,
+                value, false,
+                get_all_sindex_id, UNORDERED, bt);
     }
 }
 
-counted_t<datum_stream_t> table_t::as_datum_stream() {
-    return make_counted<lazy_datum_stream_t>(
-        env, use_outdated, access.get(), UNORDERED, backtrace());
+void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
+                          const rcheckable_t *parent) {
+    r_sanity_check(_sorting != UNORDERED);
+
+    rcheck_target(parent, base_exc_t::GENERIC, !sorting,
+            "Cannot apply 2 indexed orderings to the same TABLE.");
+    rcheck_target(parent, base_exc_t::GENERIC, !sindex_id || *sindex_id == new_sindex_id,
+            strprintf(
+                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
+                sindex_id->c_str(), new_sindex_id.c_str()));
+
+    sindex_id = new_sindex_id;
+    sorting = _sorting;
+}
+
+void table_t::add_bounds(
+    counted_t<const datum_t> left_bound, bool left_bound_open,
+    counted_t<const datum_t> right_bound, bool right_bound_open,
+    const std::string &new_sindex_id, const rcheckable_t *parent) {
+
+    if (sindex_id) {
+        rcheck_target(parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
+            strprintf(
+                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
+                sindex_id->c_str(), new_sindex_id.c_str()));
+    }
+
+    rcheck_target(parent, base_exc_t::GENERIC, !bounds,
+            "Cannot chain multiple betweens to the same table.");
+
+    sindex_id = new_sindex_id;
+    bounds = std::make_pair(
+            bound_t(left_bound, left_bound_open),
+            bound_t(right_bound, right_bound_open));
+}
+
+counted_t<datum_stream_t> table_t::as_datum_stream(const protob_t<const Backtrace> &bt) {
+    if (!sindex_id || *sindex_id == get_pkey()) {
+        if (bounds) {
+            return make_counted<lazy_datum_stream_t>(
+                env, use_outdated, access.get(),
+                bounds->first.value, bounds->first.bound_open,
+                bounds->second.value, bounds->second.bound_open,
+                sorting, bt);
+        } else {
+            return make_counted<lazy_datum_stream_t>(
+                env, use_outdated, access.get(),
+                sorting, bt);
+        }
+    } else {
+        if (bounds) {
+            return make_counted<lazy_datum_stream_t>(
+                env, use_outdated, access.get(),
+                bounds->first.value, bounds->first.bound_open,
+                bounds->second.value, bounds->second.bound_open,
+                *sindex_id, sorting, bt);
+        } else {
+            return make_counted<lazy_datum_stream_t>(
+                env, use_outdated, access.get(),
+                *sindex_id, sorting, bt);
+        }
+    }
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }
@@ -569,7 +623,7 @@ counted_t<datum_stream_t> val_t::as_seq() {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         return sequence();
     } else if (type.raw_type == type_t::TABLE) {
-        return table->as_datum_stream();
+        return table->as_datum_stream(backtrace());
     } else if (type.raw_type == type_t::DATUM) {
         return datum()->as_datum_stream(env, backtrace());
     }

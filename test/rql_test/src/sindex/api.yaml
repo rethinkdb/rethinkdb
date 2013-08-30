@@ -164,6 +164,14 @@ tests:
     py: tbl.get_all(1, index='bi').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'bi'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3]
+  - rb: tbl.get_all(1, :index => :bi).orderby(:index => :id).map{|x| x[:id]}
+    py: tbl.get_all(1, index='bi').order_by(index='id').map(lambda x:x['id'])
+    js: tbl.getAll(1, {index:'bi'}).orderBy({index:'id'}).map(function(x) { return x('id'); })
+    ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+  - rb: tbl.get_all(1, :index => :bi).between(1, 1, :index => :id).map{|x| x[:id]}
+    py: tbl.get_all(1, index='bi').between(1, 1, index='id').map(lambda x:x['id'])
+    js: tbl.getAll(1, {index:'bi'}).between(1, 1, {index:'id'}).map(function(x) { return x('id'); })
+    ot: err('RqlRuntimeError', 'Expected type TABLE but found SELECTION.', [0])
   - rb: tbl.get_all(1, :index => :ci).orderby(:id).map{|x| x[:id]}
     py: tbl.get_all(1, index='ci').order_by('id').map(lambda x:x['id'])
     js: tbl.getAll(1, {index:'ci'}).orderBy('id').map(function(x) { return x('id'); })
@@ -311,6 +319,14 @@ tests:
     py: tbl.between(None, None).order_by('id').map(lambda x:x['id'])
     js: tbl.between(null, null).orderBy('id').map(function(x) { return x('id'); })
     ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(nil, nil).orderby(:index => :id).map{|x| x[:id]}
+    py: tbl.between(None, None).order_by(index='id').map(lambda x:x['id'])
+    js: tbl.between(null, null).orderBy({index:'id'}).map(function(x) { return x('id'); })
+    ot: [0, 1, 2, 3, 4]
+  - rb: tbl.between(nil, nil).between(nil, nil).map{|x| x[:id]}
+    py: tbl.between(None, None).between(None, None).map(lambda x:x['id'])
+    js: tbl.between(null, null).between(null, null).map(function(x) { return x('id'); })
+    ot: err('RqlRuntimeError', 'Cannot chain multiple betweens to the same table.', [0])
   - rb: tbl.between(0, nil).orderby(:id).map{|x| x[:id]}
     py: tbl.between(0, None).order_by('id').map(lambda x:x['id'])
     js: tbl.between(0, null).orderBy('id').map(function(x) { return x('id'); })
