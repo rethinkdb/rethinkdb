@@ -369,7 +369,7 @@ die () {
 # Generate a not found error
 not_found () {
     if $required; then
-	if contains "$support_deps" "$1"; then
+	if contains "$support_deps" "`lc $1`"; then
             error "missing $1. Install it, specify the full path with $(uc $1)= or run ./configure with --allow-fetch"
 	else
             error "missing $1. Install it or specify the full path with $(uc $1)="
@@ -836,7 +836,7 @@ test_protobuf () {
             "$CXX" "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "`dirname $0`" $PROTOBUF_LIBS $PTHREAD_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
     then
         error_details="$out"
-        error "Unable to compile sample protobuf file"
+        error "Unable to compile sample protobuf file. Try running ./configure with the --fetch protoc option"
         return
     fi
     show ok
