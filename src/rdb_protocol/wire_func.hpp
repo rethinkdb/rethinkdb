@@ -60,13 +60,6 @@ public:
     explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
-// RSI: Nobody uses this.
-class filter_wire_func_t : public wire_func_t {
-public:
-    template <class... Args>
-    explicit filter_wire_func_t(Args... args) : wire_func_t(args...) { }
-};
-
 class reduce_wire_func_t : public wire_func_t {
 public:
     template <class... Args>

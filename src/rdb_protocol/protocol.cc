@@ -1155,7 +1155,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 &ql_env, &filter_term, sindex_mapping.get_term());
             Backtrace dummy_backtrace;
             ql::propagate_backtrace(&filter_term, &dummy_backtrace);
-            filter_transform_t sindex_filter(ql::filter_wire_func_t(filter_term, std::map<ql::sym_t, Datum>()),
+            filter_transform_t sindex_filter(ql::wire_func_t(filter_term, std::map<ql::sym_t, Datum>()),
                                              boost::none);
 
             // We then add this new filter to the beginning of the transform stack
