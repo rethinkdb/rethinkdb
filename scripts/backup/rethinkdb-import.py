@@ -349,7 +349,7 @@ def read_json_array(json_data, file_in, callback):
             if json_data[offset] == "]": # End of JSON
                 break
 
-            (obj, offset) = decoder.raw_decode(json_data, offset)
+            (obj, offset) = decoder.raw_decode(json_data, idx=offset)
             callback(obj)
 
             # Read past whitespace to the next record
