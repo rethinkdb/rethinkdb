@@ -55,9 +55,6 @@ include $(TOP)/docs/rql/build.mk
 # Build the web assets
 include $(TOP)/mk/webui.mk
 
-# Copying the backup scripts
-include $(TOP)/mk/backup-scripts.mk
-
 # Building the rethinkdb executable
 include $(TOP)/src/build.mk
 
