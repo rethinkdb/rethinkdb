@@ -262,7 +262,6 @@ module RethinkDB
             Thread.current.terminate
             abort("unreachable")
           end
-          #TODO: Recovery
           begin
             protob = Response.parse(response)
           rescue

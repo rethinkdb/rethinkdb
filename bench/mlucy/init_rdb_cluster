@@ -13,7 +13,7 @@ staging_dirs=`seq -f "$staging%g " $num_instances | tr "\n" " "`
 parallel -uj0 "echo Prepping {}...; ssh_to {} <<\"EOF\"
 sudo service distcc-chroot stop >/dev/null 2>/dev/null
 sudo swapoff -a
-sudo killall -q rethinkdb
+sudo killall -q rethinkdb setup.sh
 for d in $staging_dirs; do
     [[ -e \$d ]] || { echo \"ERROR no directory \$d on {}\"; exit 1; }
     sudo chown ubuntu:ubuntu \$d
@@ -29,6 +29,8 @@ jline=`parallel 'printf -- " -j {1}:$(({2}+$CLUSTER_PORT))"' $servers`
 parallel -uj0 "ssh_to {1} <<EOF
 cd $staging{2}
 set -m
+ulimit -c unlimited
+echo .persist/rethinkdb $server_opts $jline -o {2} -n {1}{2} --bind all >cmd.t
 </dev/null nohup .persist/rethinkdb $server_opts \
   $jline -o {2} -n {1}{2} --bind all >1.log 2>2.log &
 EOF" $servers >&2

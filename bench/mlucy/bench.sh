@@ -24,10 +24,12 @@ init_rdb_cluster "`cat server_hosts`" \
 init_clients "`cat client_hosts`" $bench/client $CLIENT_STAGING &
 wait
 
-echo "Running $bench/client/setup.sh on $POC..."
+echo "Running $bench/server/setup.sh on $POC..."
+node_pairs=":::: server_hosts ::: `seq $SERVER_INSTANCES`"
+nodes=`parallel -uj0 echo -n '" {1}:$((CLIENT_PORT+{2}))"' $node_pairs`
 ssh_to $POC <<EOF
 cd $SERVER_STAGING$POC_OFFSET
-.persist/setup.sh $POC $POC_OFFSET
+.persist/setup.sh $POC $POC_OFFSET '$nodes'
 EOF
 
 exit 0
