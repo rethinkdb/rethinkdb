@@ -154,7 +154,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     unreachable();
 }
 
-void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
+void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
          Response *res, stream_cache2_t *stream_cache2,
          bool *response_needed_out) {
     try {
@@ -166,7 +166,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
-    env_t *env = env_ptr->get();
+    env_t *env = env_ptr.get();
     int64_t token = q->token();
 
     switch (q->type()) {
@@ -252,7 +252,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                stream_cache2->insert(token, env_ptr, val->as_seq());
+                stream_cache2->insert(token, std::move(env_ptr), val->as_seq());
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {

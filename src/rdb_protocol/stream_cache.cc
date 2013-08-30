@@ -9,11 +9,11 @@ bool stream_cache2_t::contains(int64_t key) {
 }
 
 void stream_cache2_t::insert(int64_t key,
-                             scoped_ptr_t<env_t> *val_env,
+                             scoped_ptr_t<env_t> &&val_env,
                              counted_t<datum_stream_t> val_stream) {
     maybe_evict();
     std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res =
-        streams.insert(key, new entry_t(time(0), val_env, val_stream));
+        streams.insert(key, new entry_t(time(0), std::move(val_env), val_stream));
     guarantee(res.second);
 }
 
@@ -67,9 +67,9 @@ void stream_cache2_t::maybe_evict() {
     // We never evict right now.
 }
 
-stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> *env_ptr,
+stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> &&env_ptr,
                                   counted_t<datum_stream_t> _stream)
-    : last_activity(_last_activity), env(env_ptr->release()), stream(_stream),
+    : last_activity(_last_activity), env(std::move(env_ptr)), stream(_stream),
       max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE) { }
 
 stream_cache2_t::entry_t::~entry_t() { }
