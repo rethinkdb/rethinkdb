@@ -46,7 +46,6 @@ private:
     friend class func_cache_t;
     // source is never null, even when wire_func_t is default-constructed.
     protob_t<Term> source;
-    boost::optional<Term> default_filter_val;
     std::map<sym_t, Datum> scope;
     // This uuid is used for the func cache in `env_t`.
     uuid_u uuid;
@@ -61,6 +60,7 @@ public:
     explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
 };
 
+// RSI: Nobody uses this.
 class filter_wire_func_t : public wire_func_t {
 public:
     template <class... Args>

@@ -51,8 +51,8 @@ public:
         *res_out = exc_t(exc, func.get_bt().get(), 1);
     }
 
-    void operator()(const filter_wire_func_t &func) const {
-        *res_out = exc_t(exc, func.get_bt().get(), 1);
+    void operator()(const filter_transform_t &transf) const {
+        *res_out = exc_t(exc, transf.filter_func.get_bt().get(), 1);
     }
 
     void operator()(const concatmap_wire_func_t &func) const {
@@ -89,7 +89,7 @@ public:
 
     // This is a non-const reference because it caches the compiled function
     void operator()(ql::map_wire_func_t &func) const;  // NOLINT(runtime/references)
-    void operator()(ql::filter_wire_func_t &func) const;  // NOLINT(runtime/references)
+    void operator()(filter_transform_t &func) const;  // NOLINT(runtime/references)
     void operator()(ql::concatmap_wire_func_t &func) const;  // NOLINT(runtime/references)
 
 private:
@@ -121,9 +121,12 @@ void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {  /
     }
 }
 
-void transform_visitor_t::operator()(ql::filter_wire_func_t &func) const {  // NOLINT(runtime/references)
-    counted_t<ql::func_t> f = func.compile(ql_env);
-    if (f->filter_call(arg)) {
+void transform_visitor_t::operator()(filter_transform_t &transf) const {  // NOLINT(runtime/references)
+    counted_t<ql::func_t> f = transf.filter_func.compile(ql_env);
+    counted_t<ql::func_t> default_filter_val = transf.default_filter_val ?
+        transf.default_filter_val->compile(ql_env) :
+        counted_t<ql::func_t>();
+    if (f->filter_call(arg, default_filter_val)) {
         out->push_back(arg);
     }
 }

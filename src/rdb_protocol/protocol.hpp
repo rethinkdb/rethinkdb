@@ -81,6 +81,19 @@ inline bool backward(sorting_t sorting) {
 }
 
 
+struct filter_transform_t {
+    filter_transform_t() { }
+    filter_transform_t(const ql::wire_func_t &_filter_func,
+                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+        : filter_func(_filter_func),
+          default_filter_val(_default_filter_val) { }
+
+    ql::wire_func_t filter_func;
+    boost::optional<ql::wire_func_t> default_filter_val;
+};
+
+RDB_DECLARE_SERIALIZABLE(filter_transform_t);
+
 namespace rdb_protocol_details {
 
 struct backfill_atom_t {
@@ -99,8 +112,9 @@ struct backfill_atom_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
+
 typedef boost::variant<ql::map_wire_func_t,
-                       ql::filter_wire_func_t,
+                       filter_transform_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
 
 struct transform_atom_t {

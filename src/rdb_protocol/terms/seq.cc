@@ -22,11 +22,11 @@ private:
         if (num_args() == 1) {
             return new_val(arg(0)->as_seq()->count());
         } else if (arg(1)->get_type().is_convertible(val_t::type_t::FUNC)) {
-            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func())->count());
+            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func(), counted_t<func_t>())->count());
         } else {
             counted_t<func_t> f =
                 func_t::new_eq_comparison_func(env, arg(1)->as_datum(), backtrace());
-            return new_val(arg(0)->as_seq()->filter(f)->count());
+            return new_val(arg(0)->as_seq()->filter(f, counted_t<func_t>())->count());
         }
     }
     virtual const char *name() const { return "count"; }
@@ -64,15 +64,12 @@ private:
         counted_t<val_t> v0 = arg(0);
         counted_t<val_t> v1 = arg(1);
         counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
-        if (default_filter_val.has()) {
-            f->set_default_filter_val(default_filter_val);
-        }
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection();
-            return new_val(ts.second->filter(f), ts.first);
+            return new_val(ts.second->filter(f, default_filter_val), ts.first);
         } else {
-            return new_val(v0->as_seq()->filter(f));
+            return new_val(v0->as_seq()->filter(f, default_filter_val));
         }
     }
     counted_t<func_t> default_filter_val;

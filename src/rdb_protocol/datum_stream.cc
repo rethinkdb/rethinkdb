@@ -99,8 +99,9 @@ counted_t<const datum_t> eager_datum_stream_t::gmr(counted_t<func_t> group,
     return wd_map.to_arr();
 }
 
-counted_t<datum_stream_t> eager_datum_stream_t::filter(counted_t<func_t> f) {
-    return make_counted<filter_datum_stream_t>(env, f, this->counted_from_this());
+counted_t<datum_stream_t> eager_datum_stream_t::filter(counted_t<func_t> f,
+                                                       counted_t<func_t> default_filter_val) {
+    return make_counted<filter_datum_stream_t>(env, f, default_filter_val, this->counted_from_this());
 }
 counted_t<datum_stream_t> eager_datum_stream_t::map(counted_t<func_t> f) {
     return make_counted<map_datum_stream_t>(env, f, this->counted_from_this());
@@ -185,10 +186,16 @@ counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
         env, query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
-counted_t<datum_stream_t> lazy_datum_stream_t::filter(counted_t<func_t> f) {
+counted_t<datum_stream_t>
+lazy_datum_stream_t::filter(counted_t<func_t> f,
+                            counted_t<func_t> default_filter_val) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
-        rdb_protocol_details::transform_variant_t(filter_wire_func_t(env, f)),
+        rdb_protocol_details::transform_variant_t(filter_transform_t(
+            wire_func_t(env, f),
+            default_filter_val.has() ?
+                boost::make_optional(wire_func_t(env, default_filter_val)) :
+                boost::none)),
         env, query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
@@ -307,7 +314,7 @@ counted_t<const datum_t> indexes_of_datum_stream_t::next_impl() {
         counted_t<const datum_t> arg = source->next();
         if (!arg.has()) {
             return counted_t<const datum_t>();
-        } else if (f->filter_call(arg)) {
+        } else if (f->filter_call(arg, counted_t<func_t>())) {
             return make_counted<datum_t>(static_cast<double>(index++));
         } else {
             index++;
@@ -317,8 +324,10 @@ counted_t<const datum_t> indexes_of_datum_stream_t::next_impl() {
 
 // FILTER_DATUM_STREAM_T
 filter_datum_stream_t::filter_datum_stream_t(env_t *env, counted_t<func_t> _f,
+                                             counted_t<func_t> _default_filter_val,
                                              counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
+    : eager_datum_stream_t(env, _source->backtrace()), f(_f),
+      default_filter_val(_default_filter_val), source(_source) {
     guarantee(f.has() && source.has());
 }
 
@@ -330,7 +339,7 @@ counted_t<const datum_t> filter_datum_stream_t::next_impl() {
             return counted_t<const datum_t>();
         }
 
-        if (f->filter_call(arg)) {
+        if (f->filter_call(arg, default_filter_val)) {
             return arg;
         }
     }
@@ -406,9 +415,9 @@ counted_t<const datum_t> zip_datum_stream_t::next_impl() {
 }
 
 // UNION_DATUM_STREAM_T
-counted_t<datum_stream_t> union_datum_stream_t::filter(counted_t<func_t> f) {
+counted_t<datum_stream_t> union_datum_stream_t::filter(counted_t<func_t> f, counted_t<func_t> default_filter_val) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->filter(f);
+        *it = (*it)->filter(f, default_filter_val);
     }
     return counted_t<datum_stream_t>(this);
 }

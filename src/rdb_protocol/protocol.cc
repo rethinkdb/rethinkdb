@@ -91,6 +91,7 @@ const std::string rdb_protocol_t::protocol_name("rdb");
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 
+RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
 
 namespace rdb_protocol_details {
 
@@ -1154,8 +1155,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 &ql_env, &filter_term, sindex_mapping.get_term());
             Backtrace dummy_backtrace;
             ql::propagate_backtrace(&filter_term, &dummy_backtrace);
-            ql::filter_wire_func_t sindex_filter(
-                    filter_term, std::map<ql::sym_t, Datum>());
+            filter_transform_t sindex_filter(ql::filter_wire_func_t(filter_term, std::map<ql::sym_t, Datum>()),
+                                             boost::none);
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);

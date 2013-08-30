@@ -31,11 +31,6 @@ counted_t<func_t> func_cache_t::get_or_compile_func(env_t *env, const wire_func_
             it = cached_funcs.insert(
                 std::make_pair(
                     wf->uuid, compile_term(env, wf->source)->eval()->as_func())).first;
-            if (wf->default_filter_val) {
-                it->second->set_default_filter_val(
-                    make_counted<func_t>(
-                        env, make_counted_term_copy(*wf->default_filter_val)));
-            }
         } catch (const base_exc_t &e) {
             // If we have a non-`base_exc_t` exception, we don't want to pop the
             // scope because we might have corruption, and we might fail a check

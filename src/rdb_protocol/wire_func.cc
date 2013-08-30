@@ -9,9 +9,6 @@ namespace ql {
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
     : source(make_counted_term_copy(*func->source)), uuid(generate_uuid()) {
-    if (func->default_filter_val.has()) {
-        default_filter_val = *func->default_filter_val->source.get();
-    }
     // RSI: vvv this can be sometimes NULL, sometimes not?  This is bad.  When can it
     // be NULL?
     if (env) {
@@ -41,7 +38,6 @@ std::string wire_func_t::debug_str() const {
 void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
     guarantee(source.has());
     msg << *source;
-    msg << default_filter_val;
     msg << scope;
     msg << uuid;
 }
@@ -50,8 +46,6 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
     guarantee(source.has());
     source = make_counted_term();
     archive_result_t res = deserialize(stream, source.get());
-    if (res != ARCHIVE_SUCCESS) { return res; }
-    res = deserialize(stream, &default_filter_val);
     if (res != ARCHIVE_SUCCESS) { return res; }
     res = deserialize(stream, &scope);
     if (res != ARCHIVE_SUCCESS) { return res; }

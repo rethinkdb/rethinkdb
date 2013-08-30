@@ -179,10 +179,6 @@ std::string func_t::print_src() const {
     return source->DebugString();
 }
 
-void func_t::set_default_filter_val(counted_t<func_t> func) {
-    default_filter_val = func;
-}
-
 protob_t<const Term> func_t::get_source() const {
     return source;
 }
@@ -198,7 +194,7 @@ bool func_term_t::is_deterministic_impl() const {
     return func->is_deterministic();
 }
 
-bool func_t::filter_call(counted_t<const datum_t> arg) const {
+bool func_t::filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const {
     // We have to catch every exception type and save it so we can rethrow it later
     // So we don't trigger a coroutine wait in a catch statement
     std::exception_ptr saved_exception;
