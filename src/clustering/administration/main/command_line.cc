@@ -1502,7 +1502,7 @@ bool get_rethinkdb_exe_directory(std::string *result) {
 
 void run_backup_script(const std::string& script_name, char * const arguments[]) {
 
-    res = execvp(script_name.c_str(), arguments);
+    int res = execvp(script_name.c_str(), arguments);
     if (res == -1) {
         fprintf(stderr,
                 "Error when launching %s: %s\n"

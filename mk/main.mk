@@ -11,7 +11,7 @@ default-goal: real-default-goal
 
 # Build the webui, drivers and executable
 .PHONY: all
-all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all backup-scripts
+all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
 
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
