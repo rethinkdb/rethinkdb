@@ -317,6 +317,7 @@ struct rdb_protocol_t {
         void write_filter_func(ql::env_t *env, Term *filter,
                                const Term &sindex_mapping) const;
         region_t to_region() const;
+        bool contains(counted_t<const ql::datum_t> value) const;
         RDB_DECLARE_ME_SERIALIZABLE;
     private:
         counted_t<const ql::datum_t> start, end;

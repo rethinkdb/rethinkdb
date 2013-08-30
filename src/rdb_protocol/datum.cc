@@ -4,6 +4,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include <algorithm>
 
@@ -384,7 +385,7 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
-std::string datum_t::print_secondary(const store_key_t &primary_key) const {
+std::string datum_t::print_secondary(const store_key_t &primary_key, int tag_num) const {
     std::string s;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
@@ -412,24 +413,52 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - 1) +
-        std::string(1, '\0') + primary_key_string;
+    std::string tag_str;
+    if (tag_num != -1) {
+        tag_str = strprintf("%d", tag_num);
+    }
+
+    s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - tag_str.length() - 2) +
+        std::string(1, '\0') + primary_key_string +
+        std::string(1, '\0') + tag_str;
 
     return s;
 }
 
-std::string datum_t::unprint_secondary(
-        const std::string &secondary_and_primary) {
-    size_t separator = secondary_and_primary.find_last_of('\0');
+struct components_t {
+    std::string secondary;
+    std::string primary;
+    int tag_num;
+};
 
-    return secondary_and_primary.substr(separator + 1, std::string::npos);
+void parse_secondary(const std::string &key, components_t *components) {
+    size_t tag_primary_sep = key.rfind('\0');
+    size_t primary_secondary_sep = key.rfind('\0', tag_primary_sep - 1);
+
+    components->secondary = key.substr(0, primary_secondary_sep);
+    components->primary = key.substr(primary_secondary_sep + 1, tag_primary_sep);
+    components->tag_num = atoi(key.substr(tag_primary_sep + 1, std::string::npos).c_str());
+}
+
+std::string datum_t::unprint_secondary(
+        const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.primary;
 }
 
 std::string datum_t::extract_secondary(
-        const std::string &secondary_and_primary) {
-    size_t separator = secondary_and_primary.find_last_of('\0');
+        const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.secondary;
+}
 
-    return secondary_and_primary.substr(0, separator);
+int datum_t::extract_tag(
+        const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.tag_num;
 }
 
 // This function returns a store_key_t suitable for searching by a secondary-index.

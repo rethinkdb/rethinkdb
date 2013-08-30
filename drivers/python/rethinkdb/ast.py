@@ -813,11 +813,10 @@ class Table(RqlQuery):
     def get_all(self, *keys, **kwargs):
         return GetAll(self, *keys, **kwargs)
 
-    def index_create(self, name, fundef=None):
-        if fundef:
-            return IndexCreate(self, name, func_wrap(fundef))
-        else:
-            return IndexCreate(self, name)
+    def index_create(self, name, fundef=(), tags=()):
+        args = [self, name] + [func_wrap(fundef)] if fundef else []
+        kwargs = {"tags" : tags} if tags else {}
+        return IndexCreate(*args, **kwargs)
 
     def index_drop(self, name):
         return IndexDrop(self, name)

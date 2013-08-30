@@ -216,7 +216,7 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
                rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
                                                 store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
                txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-               boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
+               boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
@@ -256,7 +256,7 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
                rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
                                                 store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
                txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-               boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
+               boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);

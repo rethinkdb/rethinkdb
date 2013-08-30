@@ -45,6 +45,8 @@ typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 typedef rdb_protocol_t::point_delete_t point_delete_t;
 typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
+typedef rdb_protocol_t::sindex_range_t sindex_range_t;
+
 class parallel_traversal_progress_t;
 
 static const size_t rget_max_chunk_size = MEGABYTE;
@@ -159,17 +161,16 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    direction_t direction,
+                    sorting_t sorting,
                     rget_read_response_t *response);
 
-void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
-                    transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env,
+void rdb_rget_secondary_slice(btree_slice_t *slice, const rdb_protocol_t::sindex_range_t &sindex_range,
+                    transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
-                    direction_t direction,
-                    const boost::optional<ql::map_wire_func_t> &map_wire_func,
+                    sorting_t sorting,
+                    const ql::map_wire_func_t &sindex_func,
                     rget_read_response_t *response);
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,

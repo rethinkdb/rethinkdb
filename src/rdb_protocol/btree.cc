@@ -622,7 +622,7 @@ public:
                                               const rdb_protocol_details::transform_t &_transform,
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range,
-                                              direction_t _direction,
+                                              sorting_t _sorting,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -631,7 +631,7 @@ public:
         ql_env(_ql_env),
         transform(_transform),
         terminal(_terminal),
-        direction(_direction)
+        sorting(_sorting)
     {
         init(range);
     }
@@ -650,8 +650,9 @@ public:
                                               boost::optional<rdb_protocol_details::terminal_t> _terminal,
                                               const key_range_t &range,
                                               const key_range_t &_primary_key_range,
-                                              direction_t _direction,
-                                              boost::optional<ql::map_wire_func_t> _sindex_function,
+                                              sorting_t _sorting,
+                                              ql::map_wire_func_t _sindex_function,
+                                              sindex_range_t _sindex_range,
                                               rget_read_response_t *_response) :
         bad_init(false),
         transaction(txn),
@@ -660,21 +661,20 @@ public:
         ql_env(_ql_env),
         transform(_transform),
         terminal(_terminal),
+        sorting(_sorting),
         primary_key_range(_primary_key_range),
-        direction(_direction)
+        sindex_range(_sindex_range)
     {
-        if (_sindex_function) {
-            sindex_function = _sindex_function->compile(_ql_env);
-        }
+        sindex_function = _sindex_function.compile(_ql_env);
         init(range);
     }
 
     void init(const key_range_t &range) {
         try {
-            if (direction == FORWARD) {
+            if (forward(sorting)) {
                 response->last_considered_key = range.left;
             } else {
-                guarantee(direction == BACKWARD);
+                guarantee(backward(sorting));
                 if (!range.right.unbounded) {
                     response->last_considered_key = range.right.key;
                 } else {
@@ -715,8 +715,8 @@ public:
             }
         }
         try {
-            if ((response->last_considered_key < store_key && direction == FORWARD) ||
-                (response->last_considered_key > store_key && direction == BACKWARD)) {
+            if ((response->last_considered_key < store_key && forward(sorting)) ||
+                (response->last_considered_key > store_key && backward(sorting))) {
                 response->last_considered_key = store_key;
             }
 
@@ -726,11 +726,12 @@ public:
             data.push_back(first_value);
 
             counted_t<const ql::datum_t> sindex_value;
-
-            if (sindex_function &&
-                ql::datum_t::key_is_truncated(store_key)) {
-                counted_t<const ql::datum_t> datum_value = first_value.get();
-                sindex_value = sindex_function->call(datum_value)->as_datum();
+            if (sindex_function) {
+                sindex_value = sindex_function->call(first_value.get())->as_datum();
+                guarantee(sindex_range);
+                if (!sindex_range->contains(sindex_value)) {
+                    return true;
+                }
             }
 
             // Apply transforms to the data
@@ -764,7 +765,7 @@ public:
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
                     counted_t<const ql::datum_t> datum = it->get();
-                    if (sindex_value) {
+                    if (sorting == UNORDERED && sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
                                                                             sindex_value,
                                                                             datum));
@@ -810,11 +811,11 @@ public:
     ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
+    sorting_t sorting;
 
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
-    direction_t direction;
-
+    boost::optional<sindex_range_t> sindex_range;
     counted_t<ql::func_t> sindex_function;
 };
 
@@ -843,10 +844,10 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    direction_t direction,
+                    sorting_t sorting,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
+    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, sorting, response);
+    btree_depth_first_traversal(slice, txn, superblock, range, &callback, (forward(sorting) ? FORWARD : BACKWARD));
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -857,18 +858,20 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
-void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
-                    transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env,
+void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex_range,
+                    transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
-                    direction_t direction,
-                    const boost::optional<ql::map_wire_func_t> &map_wire_func,
+                    sorting_t sorting,
+                    const ql::map_wire_func_t &sindex_func,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
-            range, pk_range, direction, map_wire_func, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
+            sindex_range.to_region().inner, pk_range,
+            sorting, sindex_func, sindex_range, response);
+
+    btree_depth_first_traversal(slice, txn, superblock, sindex_range.to_region().inner,
+            &callback, (forward(sorting) ? FORWARD : BACKWARD));
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -996,8 +999,9 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
         mapping->compile(env)->call(doc)->as_datum();
 
     if (tags == TAGS && index->get_type() == ql::datum_t::R_ARRAY) {
-        for (auto it = index->as_array().begin(); it != index->as_array().end(); ++it) {
-            keys_out->push_back(store_key_t((*it)->print_secondary(primary_key)));
+        for (size_t i = 0; i < index->size(); ++i) {
+            keys_out->push_back(
+                store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
         }
     } else {
         keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
@@ -1079,6 +1083,7 @@ void rdb_update_single_sindex(
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
+                    debugf("Setting value %s\n", key_to_debug_str(*it).c_str());
                     keyvalue_location_t<rdb_value_t> kv_location;
 
                     find_keyvalue_location_for_write(txn, super_block,

@@ -1110,7 +1110,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // Normal rget
             rdb_rget_slice(btree, rget.region.inner, txn, superblock,
                     &ql_env, rget.transform, rget.terminal,
-                    (forward(rget.sorting) ? FORWARD : BACKWARD), res);
+                    rget.sorting, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
@@ -1136,6 +1136,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 return;
             }
 
+            guarantee(rget.sindex_range, "If an rget has a sindex specified "
+                      "it should also have a sindex_region.");
             guarantee(rget.sindex_region, "If an rget has a sindex specified "
                       "it should also have a sindex_region.");
 
@@ -1149,27 +1151,25 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-            Term filter_term;
-            rget.sindex_range->write_filter_func(
-                &ql_env, &filter_term, sindex_mapping.get_term());
-            Backtrace dummy_backtrace;
-            ql::propagate_backtrace(&filter_term, &dummy_backtrace);
-            ql::filter_wire_func_t sindex_filter(
-                filter_term, std::map<int64_t, Datum>());
+            //Term filter_term;
+            //rget.sindex_range->write_filter_func(
+            //    &ql_env, &filter_term, sindex_mapping.get_term());
+            //Backtrace dummy_backtrace;
+            //ql::propagate_backtrace(&filter_term, &dummy_backtrace);
+            //ql::filter_wire_func_t sindex_filter(
+            //    filter_term, std::map<int64_t, Datum>());
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
-            sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
-                                            sindex_filter, backtrace_t()));
+            //sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
+            //                                sindex_filter, backtrace_t()));
 
-            bool is_ordered = rget.sorting != UNORDERED;
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
-                    rget.sindex_region->inner,
+                    *rget.sindex_range, //guaranteed present above
                     txn, sindex_sb.get(), &ql_env, sindex_transform,
-                    rget.terminal, rget.region.inner,
-                    (forward(rget.sorting) ? FORWARD : BACKWARD),
-                    (is_ordered ? sindex_mapping : boost::optional<ql::map_wire_func_t>()),
+                    rget.terminal, rget.region.inner, rget.sorting,
+                    sindex_mapping,
                     res);
         }
     }
@@ -1695,6 +1695,11 @@ region_t rdb_protocol_t::sindex_range_t::to_region() const {
     return region_t(rdb_protocol_t::sindex_key_range(
         start != NULL ? start->truncated_secondary() : store_key_t::min(),
         end != NULL ? end->truncated_secondary() : store_key_t::max()));
+}
+
+bool rdb_protocol_t::sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
+    return (start < value || (start == value && !start_open)) &&
+           (value < end   || (value == end && !end_open));
 }
 
 

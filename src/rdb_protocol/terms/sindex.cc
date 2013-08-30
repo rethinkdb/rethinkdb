@@ -47,9 +47,10 @@ public:
         /* Check if we're doing a tags index or a normal index. */
         counted_t<const datum_t> _tags = optarg("tags")->as_datum();
         sindex_tags_bool_t tags =
-            (_tags && _tags->as_bool() ?
-             sindex_tags_bool_t::TAGS :
-             sindex_tags_bool_t::NOT_TAGS);
+            (_tags && _tags->as_bool() ?  TAGS : NOT_TAGS);
+        if (tags == TAGS) {
+            debugf("Got a tagged index.");
+        }
 
         bool success = table->sindex_create(name, index_func, tags);
         if (success) {
