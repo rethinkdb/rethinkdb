@@ -5,14 +5,14 @@
 
 class concurrent_traversal_adapter_t;
 
-class concurrent_traversal_waiter_t {
+class concurrent_traversal_fifo_enforcer_signal_t {
 public:
     void wait_interruptible() THROWS_ONLY(interrupted_exc_t);
 
 private:
     friend class concurrent_traversal_adapter_t;
 
-    concurrent_traversal_waiter_t(signal_t *eval_exclusivity_signal,
+    concurrent_traversal_fifo_enforcer_signal_t(signal_t *eval_exclusivity_signal,
                                   concurrent_traversal_adapter_t *parent);
 
     signal_t *const eval_exclusivity_signal_;
@@ -29,7 +29,7 @@ public:
     // (which should be done concurrently) and before using ql::env_t to evaluate
     // transforms and terminals, or whatever non-reentrant behavior you have in mind.)
     virtual bool handle_pair(scoped_key_value_t &&keyvalue,
-                             concurrent_traversal_waiter_t waiter)
+                             concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
 protected:

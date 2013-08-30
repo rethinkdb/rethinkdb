@@ -687,7 +687,7 @@ public:
     // RSI: Ask whether interrupted_exc_t is the only exception that could possibly
     // be thrown here.
     bool handle_pair(scoped_key_value_t &&keyvalue,
-                     concurrent_traversal_waiter_t waiter) THROWS_ONLY(interrupted_exc_t) {
+                     concurrent_traversal_fifo_enforcer_signal_t waiter) THROWS_ONLY(interrupted_exc_t) {
         store_key_t store_key(keyvalue.key());
         if (bad_init) {
             return false;

@@ -51,7 +51,7 @@ public:
         bool success;
         try {
             success = cb_->handle_pair(std::move(keyvalue),
-                                       concurrent_traversal_waiter_t(&exit_write,
+                                       concurrent_traversal_fifo_enforcer_signal_t(&exit_write,
                                                                      this));
         } catch (const interrupted_exc_t &) {
             success = false;
@@ -79,7 +79,7 @@ public:
     }
 
 private:
-    friend class concurrent_traversal_waiter_t;
+    friend class concurrent_traversal_fifo_enforcer_signal_t;
 
     adjustable_semaphore_t semaphore_;
 
@@ -100,13 +100,13 @@ private:
     DISABLE_COPYING(concurrent_traversal_adapter_t);
 };
 
-concurrent_traversal_waiter_t::concurrent_traversal_waiter_t(
+concurrent_traversal_fifo_enforcer_signal_t::concurrent_traversal_fifo_enforcer_signal_t(
         signal_t *eval_exclusivity_signal,
         concurrent_traversal_adapter_t *parent)
     : eval_exclusivity_signal_(eval_exclusivity_signal),
       parent_(parent) { }
 
-void concurrent_traversal_waiter_t::wait_interruptible() THROWS_ONLY(interrupted_exc_t) {
+void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible() THROWS_ONLY(interrupted_exc_t) {
     incr_decr_t incr_decr(&parent_->sink_waiters_);
 
     if (parent_->sink_waiters_ >= 2) {
