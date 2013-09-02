@@ -181,13 +181,13 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(counted_t<const datum_t> _datum, const term_t *parent);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *parent);
-    val_t(env_t *env, counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(counted_t<table_t> _table, const term_t *parent);
-    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(counted_t<const db_t> _db, const term_t *parent);
-    val_t(counted_t<func_t> _func, const term_t *parent);
+    val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
+    val_t(env_t *env, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
     ~val_t();
 
     counted_t<const db_t> as_db();

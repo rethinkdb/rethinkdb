@@ -547,16 +547,16 @@ const char *val_t::type_t::name() const {
 }
 
 // RSI: Probably shouldn't take term_t, should just take a backtrace.
-val_t::val_t(counted_t<const datum_t> _datum, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
+val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::DATUM),
       u(_datum) {
     guarantee(datum().has());
 }
 
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
-             const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
+             protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
       table(_table),
       u(_datum) {
@@ -564,8 +564,9 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
     guarantee(datum().has());
 }
 
-val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
+val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
+             protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::SEQUENCE),
       u(_sequence) {
     guarantee(sequence().has());
@@ -579,8 +580,8 @@ val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence, const term_t *pare
 
 val_t::val_t(counted_t<table_t> _table,
              counted_t<datum_stream_t> _sequence,
-             const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
+             protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::SELECTION),
       table(_table),
       u(_sequence) {
@@ -588,20 +589,20 @@ val_t::val_t(counted_t<table_t> _table,
     guarantee(sequence().has());
 }
 
-val_t::val_t(counted_t<table_t> _table, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
+val_t::val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
       table(_table) {
     guarantee(table.has());
 }
-val_t::val_t(counted_t<const db_t> _db, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
+val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::DB),
       u(_db) {
     guarantee(db().has());
 }
-val_t::val_t(counted_t<func_t> _func, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
+val_t::val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::FUNC),
       u(_func) {
     guarantee(func().has());
