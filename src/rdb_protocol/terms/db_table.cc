@@ -42,7 +42,7 @@ public:
           metadata_home_thread(env->cluster_env.semilattice_metadata->home_thread()) { }
 
 protected:
-    // RSI: These types are fucking inheriting from on_thread_t.  These aren't rethreaders either!
+    // RSI: Holy cow, these types inherit from on_thread_t.  These aren't rethreaders either!  (That's the name of a type that changes something's home thread.)
     struct wait_rethreader_t : public on_thread_t {
         explicit wait_rethreader_t(meta_op_t *parent)
             : on_thread_t(parent->original_thread) { }
