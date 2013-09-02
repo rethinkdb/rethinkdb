@@ -37,7 +37,6 @@ counted_t<const datum_t> datum_stream_t::next(env_t *env) {
     }
 }
 
-// RSI: What?  Is this function ever used?
 std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(env_t *env) {
     env->throw_if_interruptor_pulsed();
     try {
