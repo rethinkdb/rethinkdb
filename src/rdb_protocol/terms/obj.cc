@@ -10,8 +10,8 @@ public:
     keys_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<const datum_t> d = arg(0)->as_datum();
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<const datum_t> d = arg(env, 0)->as_datum();
         const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
 
         std::vector<counted_t<const datum_t> > arr;

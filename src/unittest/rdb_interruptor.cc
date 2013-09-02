@@ -141,6 +141,7 @@ public:
 
 void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32_t *count_out,
                  verify_callback_t *verify_callback) {
+    // RSI: This test_rdb_env_t::instance_t type is probably dumb.
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance;
     test_env->make_env(&env_instance);
 
@@ -149,7 +150,7 @@ void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32
 
     counted_t<ql::term_t> compiled_term = ql::compile_term(env_instance->get(), term);
 
-    UNUSED counted_t<ql::val_t> result = compiled_term->eval();
+    UNUSED counted_t<ql::val_t> result = compiled_term->eval(env_instance->get());
     rassert(*count_out > 0);
     guarantee(verify_callback->verify(env_instance.get()));
 }
@@ -167,7 +168,7 @@ void interrupt_test(test_rdb_env_t *test_env,
     counted_t<ql::term_t> compiled_term = ql::compile_term(env_instance->get(), term);
 
     try {
-        UNUSED counted_t<ql::val_t> result = compiled_term->eval();
+        UNUSED counted_t<ql::val_t> result = compiled_term->eval(env_instance->get());
     } catch (const interrupted_exc_t &ex) {
         guarantee(verify_callback->verify(env_instance.get()));
         return;

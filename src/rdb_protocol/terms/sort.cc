@@ -27,8 +27,8 @@ public:
     asc_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return arg(0);
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        return arg(env, 0);
     }
     virtual const char *name() const { return "asc"; }
 };
@@ -38,8 +38,8 @@ public:
     desc_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return arg(0);
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        return arg(env, 0);
     }
     virtual const char *name() const { return "desc"; }
 };
@@ -96,16 +96,16 @@ private:
         std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
     };
 
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(
-                        std::make_pair(DESC, arg(i)->as_func(env, GET_FIELD_SHORTCUT)));
+                        std::make_pair(DESC, arg(env, i)->as_func(env, GET_FIELD_SHORTCUT)));
             } else {
                 comparisons.push_back(
-                        std::make_pair(ASC, arg(i)->as_func(env, GET_FIELD_SHORTCUT)));
+                        std::make_pair(ASC, arg(env, i)->as_func(env, GET_FIELD_SHORTCUT)));
             }
         }
         lt_cmp_t lt_cmp(comparisons);
@@ -113,7 +113,7 @@ private:
 
         counted_t<table_t> tbl;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v0 = arg(0);
+        counted_t<val_t> v0 = arg(env, 0);
         if (v0->get_type().is_convertible(val_t::type_t::TABLE)) {
             tbl = v0->as_table();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
@@ -126,7 +126,7 @@ private:
         }
 
         /* Add a sorting to the table if we're doing indexed sorting. */
-        if (counted_t<val_t> index = optarg("index")) {
+        if (counted_t<val_t> index = optarg(env, "index")) {
             rcheck(tbl.has(), base_exc_t::GENERIC,
                    "Indexed order_by can only be performed on a TABLE.");
             rcheck(!seq.has(), base_exc_t::GENERIC,
@@ -155,7 +155,7 @@ private:
             seq = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
         }
 
-        return tbl.has() ? new_val(seq, tbl) : new_val(seq);
+        return tbl.has() ? new_val(seq, tbl) : new_val(env, seq);
     }
 
     virtual const char *name() const { return "orderby"; }
@@ -170,11 +170,11 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         scoped_ptr_t<datum_stream_t> s(
             new sort_datum_stream_t< bool (*)(
                 counted_t<const datum_t>,
-                counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(env), backtrace()));
+                counted_t<const datum_t>)>(env, lt_cmp, arg(env, 0)->as_seq(env), backtrace()));
         datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
         while (counted_t<const datum_t> d = s->next(env)) {
@@ -186,7 +186,7 @@ private:
         }
         counted_t<datum_stream_t> out =
             make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());
-        return new_val(out);
+        return new_val(env, out);
     }
     virtual const char *name() const { return "distinct"; }
 };

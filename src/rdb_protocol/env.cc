@@ -30,7 +30,7 @@ counted_t<func_t> func_cache_t::get_or_compile_func(env_t *env, const wire_func_
         try {
             it = cached_funcs.insert(
                 std::make_pair(
-                    wf->uuid, compile_term(env, wf->source)->eval()->as_func(env))).first;
+                    wf->uuid, compile_term(env, wf->source)->eval(env)->as_func(env))).first;
         } catch (const base_exc_t &e) {
             // If we have a non-`base_exc_t` exception, we don't want to pop the
             // scope because we might have corruption, and we might fail a check

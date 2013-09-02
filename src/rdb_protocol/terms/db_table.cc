@@ -33,21 +33,27 @@ public:
     meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
         : op_term_t(env, term, argspec),
           original_thread(get_thread_id()),
+          // RSI: checking semilattice_metadata's home thread and assuming it applies for everything else is bad.
           metadata_home_thread(env->cluster_env.semilattice_metadata->home_thread()) { }
     meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
         : op_term_t(env, term, argspec, optargspec),
           original_thread(get_thread_id()),
+          // RSI: checking semilattice_metadata's home thread and assuming it applies for everything else is bad.
           metadata_home_thread(env->cluster_env.semilattice_metadata->home_thread()) { }
 
 protected:
+    // RSI: These types are fucking inheriting from on_thread_t.  These aren't rethreaders either!
     struct wait_rethreader_t : public on_thread_t {
         explicit wait_rethreader_t(meta_op_t *parent)
             : on_thread_t(parent->original_thread) { }
     };
+    // RSI: We're accessing env from a different thread (we access its cluster_env
+    // field).  Maybe env_t should be what makes it impossible to access cluster_env
+    // from the wrong thread.
     struct rethreading_metadata_accessor_t : public on_thread_t {
-        explicit rethreading_metadata_accessor_t(meta_op_t *parent)
+        explicit rethreading_metadata_accessor_t(meta_op_t *parent, env_t *env)
             : on_thread_t(parent->metadata_home_thread),
-              metadata(parent->env->cluster_env.semilattice_metadata->get()),
+              metadata(env->cluster_env.semilattice_metadata->get()),
               ns_change(&metadata.rdb_namespaces),
               ns_searcher(&ns_change.get()->namespaces),
               db_searcher(&metadata.databases.databases),
@@ -64,18 +70,23 @@ protected:
 private:
     friend class meta_write_op_t;
     virtual bool is_deterministic_impl() const { return false; }
-    int original_thread, metadata_home_thread;
+    int original_thread;
+    int metadata_home_thread;
 };
 
 class meta_write_op_t : public meta_op_t {
 public:
     meta_write_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
-        : meta_op_t(env, term, argspec) { init(); }
+        : meta_op_t(env, term, argspec) {
+        init(env);
+    }
     meta_write_op_t(env_t *env, protob_t<const Term> term,
                     argspec_t argspec, optargspec_t optargspec)
-        : meta_op_t(env, term, argspec, optargspec) { init(); }
+        : meta_op_t(env, term, argspec, optargspec) {
+        init(env);
+    }
 private:
-    void init() {
+    void init(env_t *env) {
         on_thread_t rethreader(metadata_home_thread);
         rcheck(env->cluster_env.directory_read_manager,
                base_exc_t::GENERIC,
@@ -84,9 +95,9 @@ private:
         directory_metadata = env->cluster_env.directory_read_manager->get_root_view();
     }
 
-    virtual std::string write_eval_impl(eval_flags_t flags) = 0;
-    virtual counted_t<val_t> eval_impl(eval_flags_t flags) {
-        std::string op = write_eval_impl(flags);
+    virtual std::string write_eval_impl(env_t *env, eval_flags_t flags) = 0;
+    virtual counted_t<val_t> eval_impl(env_t *env, eval_flags_t flags) {
+        std::string op = write_eval_impl(env, flags);
         datum_ptr_t res(datum_t::R_OBJECT);
         UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
         return new_val(res.to_counted());
@@ -100,11 +111,11 @@ class db_term_t : public meta_op_t {
 public:
     db_term_t(env_t *env, const protob_t<const Term> &term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        name_string_t db_name = get_name(arg(0), this);
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        name_string_t db_name = get_name(arg(env, 0), this);
         uuid_u uuid;
         {
-            rethreading_metadata_accessor_t meta(this);
+            rethreading_metadata_accessor_t meta(this, env);
             uuid = meta_get_uuid(&meta.db_searcher, db_name,
                                  strprintf("Database `%s` does not exist.",
                                            db_name.c_str()), this);
@@ -119,10 +130,10 @@ public:
     db_create_term_t(env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual std::string write_eval_impl(UNUSED eval_flags_t flags) {
-        name_string_t db_name = get_name(arg(0), this);
+    virtual std::string write_eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        name_string_t db_name = get_name(arg(env, 0), this);
 
-        rethreading_metadata_accessor_t meta(this);
+        rethreading_metadata_accessor_t meta(this, env);
 
         // Ensure database doesn't already exist.
         metadata_search_status_t status;
@@ -168,12 +179,12 @@ public:
                         optargspec_t({"datacenter", "primary_key",
                                     "cache_size", "durability"})) { }
 private:
-    virtual std::string write_eval_impl(UNUSED eval_flags_t flags) {
+    virtual std::string write_eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         uuid_u dc_id = nil_uuid();
-        if (counted_t<val_t> v = optarg("datacenter")) {
+        if (counted_t<val_t> v = optarg(env, "datacenter")) {
             name_string_t name = get_name(v, this);
             {
-                rethreading_metadata_accessor_t meta(this);
+                rethreading_metadata_accessor_t meta(this, env);
                 dc_id = meta_get_uuid(&meta.dc_searcher, name,
                                       strprintf("Datacenter `%s` does not exist.",
                                                 name.str().c_str()),
@@ -182,34 +193,34 @@ private:
         }
 
         const bool hard_durability
-            = is_hard(parse_durability_optarg(optarg("durability"), this));
+            = is_hard(parse_durability_optarg(optarg(env, "durability"), this));
 
         std::string primary_key = "id";
-        if (counted_t<val_t> v = optarg("primary_key")) {
+        if (counted_t<val_t> v = optarg(env, "primary_key")) {
             primary_key = v->as_str();
         }
 
         int cache_size = 1073741824;
-        if (counted_t<val_t> v = optarg("cache_size")) {
+        if (counted_t<val_t> v = optarg(env, "cache_size")) {
             cache_size = v->as_int<int>();
         }
 
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
-            counted_t<val_t> dbv = optarg("db");
+            counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
-            tbl_name = get_name(arg(0), this);
+            tbl_name = get_name(arg(env, 0), this);
         } else {
-            db_id = arg(0)->as_db()->id;
-            tbl_name = get_name(arg(1), this);
+            db_id = arg(env, 0)->as_db()->id;
+            tbl_name = get_name(arg(env, 1), this);
         }
         // Ensure table doesn't already exist.
         metadata_search_status_t status;
         namespace_predicate_t pred(&tbl_name, &db_id);
 
-        rethreading_metadata_accessor_t meta(this);
+        rethreading_metadata_accessor_t meta(this, env);
         meta.ns_searcher.find_uniq(pred, &status);
         rcheck(status == METADATA_ERR_NONE,
                base_exc_t::GENERIC,
@@ -264,10 +275,10 @@ public:
     db_drop_term_t(env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual std::string write_eval_impl(UNUSED eval_flags_t flags) {
-        name_string_t db_name = get_name(arg(0), this);
+    virtual std::string write_eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        name_string_t db_name = get_name(arg(env, 0), this);
 
-        rethreading_metadata_accessor_t meta(this);
+        rethreading_metadata_accessor_t meta(this, env);
 
         // Get database metadata.
         metadata_search_status_t status;
@@ -309,20 +320,20 @@ public:
     table_drop_term_t(env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual std::string write_eval_impl(UNUSED eval_flags_t flags) {
+    virtual std::string write_eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
-            counted_t<val_t> dbv = optarg("db");
+            counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
-            tbl_name = get_name(arg(0), this);
+            tbl_name = get_name(arg(env, 0), this);
         } else {
-            db_id = arg(0)->as_db()->id;
-            tbl_name = get_name(arg(1), this);
+            db_id = arg(env, 0)->as_db()->id;
+            tbl_name = get_name(arg(env, 1), this);
         }
 
-        rethreading_metadata_accessor_t meta(this);
+        rethreading_metadata_accessor_t meta(this, env);
 
         // Get table metadata.
         metadata_search_status_t status;
@@ -353,10 +364,10 @@ public:
     db_list_term_t(env_t *env, const protob_t<const Term> &term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::string> dbs;
         {
-            rethreading_metadata_accessor_t meta(this);
+            rethreading_metadata_accessor_t meta(this, env);
             for (auto it = meta.db_searcher.find_next(meta.db_searcher.begin());
                  it != meta.db_searcher.end();
                  it = meta.db_searcher.find_next(++it)) {
@@ -382,19 +393,19 @@ public:
     table_list_term_t(env_t *env, const protob_t<const Term> &term) :
         meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         uuid_u db_id;
         if (num_args() == 0) {
-            counted_t<val_t> dbv = optarg("db");
+            counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
         } else {
-            db_id = arg(0)->as_db()->id;
+            db_id = arg(env, 0)->as_db()->id;
         }
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
         {
-            rethreading_metadata_accessor_t meta(this);
+            rethreading_metadata_accessor_t meta(this, env);
             for (auto it = meta.ns_searcher.find_next(meta.ns_searcher.begin(), pred);
                  it != meta.ns_searcher.end();
                  it = meta.ns_searcher.find_next(++it, pred)) {
@@ -419,20 +430,20 @@ public:
     table_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<val_t> t = optarg("use_outdated");
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> t = optarg(env, "use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
         counted_t<const db_t> db;
         std::string name;
         if (num_args() == 1) {
-            counted_t<val_t> dbv = optarg("db");
+            counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv.has());
             db = dbv->as_db();
-            name = arg(0)->as_str();
+            name = arg(env, 0)->as_str();
         } else {
             r_sanity_check(num_args() == 2);
-            db = arg(0)->as_db();
-            name = arg(1)->as_str();
+            db = arg(env, 0)->as_db();
+            name = arg(env, 1)->as_str();
         }
         return new_val(make_counted<table_t>(env, db, name, use_outdated, backtrace()));
     }
@@ -444,9 +455,9 @@ class get_term_t : public op_term_t {
 public:
     get_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<table_t> table = arg(0)->as_table();
-        counted_t<const datum_t> pkey = arg(1)->as_datum();
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
+        counted_t<const datum_t> pkey = arg(env, 1)->as_datum();
         counted_t<const datum_t> row = table->get_row(env, pkey);
         return new_val(row, table);
     }
@@ -458,13 +469,13 @@ public:
     get_all_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<table_t> table = arg(0)->as_table();
-        counted_t<val_t> index = optarg("index");
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
+        counted_t<val_t> index = optarg(env, "index");
         if (index && index->as_str() != table->get_pkey()) {
             std::vector<counted_t<datum_stream_t> > streams;
             for (size_t i = 1; i < num_args(); ++i) {
-                counted_t<const datum_t> key = arg(i)->as_datum();
+                counted_t<const datum_t> key = arg(env, i)->as_datum();
                 counted_t<datum_stream_t> seq =
                     table->get_all(env, key, index->as_str(), backtrace());
                 streams.push_back(seq);
@@ -475,7 +486,7 @@ private:
         } else {
             datum_ptr_t arr(datum_t::R_ARRAY);
             for (size_t i = 1; i < num_args(); ++i) {
-                counted_t<const datum_t> key = arg(i)->as_datum();
+                counted_t<const datum_t> key = arg(env, i)->as_datum();
                 counted_t<const datum_t> row = table->get_row(env, key);
                 if (row->get_type() != datum_t::R_NULL) {
                     arr.add(row);

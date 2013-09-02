@@ -17,7 +17,7 @@ namespace ql {
 
 counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     switch (t->type()) {
-    case Term::DATUM:              return make_datum_term(env, t);
+    case Term::DATUM:              return make_datum_term(t);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
     case Term::VAR:                return make_var_term(env, t);
@@ -237,7 +237,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         }
 
         try {
-            counted_t<val_t> val = root_term->eval();
+            counted_t<val_t> val = root_term->eval(env);
 
             if (!*response_needed_out) {
                 // It's fine to just abort here because we don't allow write
@@ -293,10 +293,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env, protob_t<const Term> _src)
-    : pb_rcheckable_t(_src), env(_env), src(_src) {
-    guarantee(env != NULL);
-}
+term_t::term_t(protob_t<const Term> _src)
+    : pb_rcheckable_t(_src), src(_src) { }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
@@ -332,7 +330,7 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
+counted_t<val_t> term_t::eval(env_t *env, eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
     DEBUG_ONLY_CODE(env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
@@ -341,7 +339,7 @@ counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl(eval_flags);
+            counted_t<val_t> ret = eval_impl(env, eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;
@@ -364,7 +362,7 @@ counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> 
     return make_counted<val_t>(d, t, backtrace());
 }
 
-counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
+counted_t<val_t> term_t::new_val(env_t *env, counted_t<datum_stream_t> s) {
     return make_counted<val_t>(env, s, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {

@@ -10,22 +10,22 @@
 
 namespace ql {
 
-func_t::func_t(env_t *env,
+func_t::func_t(env_t *_env,
                const std::string &_js_source,
                uint64_t timeout_ms,
                counted_t<term_t> parent)
     : pb_rcheckable_t(parent->backtrace()),
+      env(_env),
       source(parent->get_src()),
       js_parent(parent),
-      js_env(env),
       js_source(_js_source),
       js_timeout_ms(timeout_ms) {
     env->scopes.dump_scope(&scope);
 }
 
-func_t::func_t(env_t *env, protob_t<const Term> _source)
-    : pb_rcheckable_t(_source), source(_source),
-      js_env(NULL), js_timeout_ms(0) {
+func_t::func_t(env_t *_env, protob_t<const Term> _source)
+    : pb_rcheckable_t(_source), env(_env), source(_source),
+      js_timeout_ms(0) {
     // RSI: This function is absurdly long and complicated.
 
     protob_t<const Term> t = _source;
@@ -95,10 +95,11 @@ func_t::func_t(env_t *env, protob_t<const Term> _source)
     env->scopes.dump_scope(&scope);
 }
 
+// RSI: This shouldn't take an env_t.
 counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args) const {
     try {
         if (js_parent.has()) {
-            r_sanity_check(!body.has() && source.has() && js_env != NULL);
+            r_sanity_check(!body.has() && source.has());
 
             js_runner_t::req_config_t config;
             config.timeout_ms = js_timeout_ms;
@@ -107,7 +108,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             js_result_t result;
 
             try {
-                result = js_env->get_js_runner()->call(js_source, args, config);
+                result = env->get_js_runner()->call(js_source, args, config);
             } catch (const js_worker_exc_t &e) {
                 rfail(base_exc_t::GENERIC,
                       "Javascript query `%s` caused a crash in a worker process.",
@@ -119,10 +120,10 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
             }
 
             return boost::apply_visitor(
-                js_result_visitor_t(js_env, js_source, js_timeout_ms, js_parent),
+                js_result_visitor_t(env, js_source, js_timeout_ms, js_parent),
                 result);
         } else {
-            r_sanity_check(body.has() && source.has() && js_env == NULL);
+            r_sanity_check(body.has() && source.has());
             rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
                    base_exc_t::GENERIC,
                    strprintf("Expected %zd argument(s) but found %zu.",
@@ -131,7 +132,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
                 r_sanity_check(args[i].has());
                 argptrs[i] = args[i];
             }
-            return body->eval();
+            return body->eval(env);
         }
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
@@ -184,9 +185,9 @@ protob_t<const Term> func_t::get_source() const {
 }
 
 func_term_t::func_term_t(env_t *env, const protob_t<const Term> &term)
-    : term_t(env, term), func(make_counted<func_t>(env, term)) { }
+    : term_t(term), func(make_counted<func_t>(env, term)) { }
 
-counted_t<val_t> func_term_t::eval_impl(UNUSED eval_flags_t flags) {
+counted_t<val_t> func_term_t::eval_impl(env_t *, UNUSED eval_flags_t flags) {
     return new_val(func);
 }
 

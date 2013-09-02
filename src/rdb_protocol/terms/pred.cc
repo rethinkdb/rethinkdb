@@ -41,10 +41,10 @@ public:
         guarantee(namestr && pred);
     }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<const datum_t> lhs = arg(0)->as_datum();
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<const datum_t> lhs = arg(env, 0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            counted_t<const datum_t> rhs = arg(i)->as_datum();
+            counted_t<const datum_t> rhs = arg(env, i)->as_datum();
             if (!(lhs.get()->*pred)(*rhs)) {
                 return new_val_bool(static_cast<bool>(false ^ invert));
             }
@@ -62,8 +62,8 @@ class not_term_t : public op_term_t {
 public:
     not_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return new_val_bool(!arg(0)->as_bool());
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        return new_val_bool(!arg(env, 0)->as_bool());
     }
     virtual const char *name() const { return "not"; }
 };

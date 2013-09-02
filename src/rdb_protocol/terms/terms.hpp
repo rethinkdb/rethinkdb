@@ -41,7 +41,7 @@ counted_t<term_t> make_branch_term(env_t *env, const protob_t<const Term> &term)
 counted_t<term_t> make_funcall_term(env_t *env, const protob_t<const Term> &term);
 
 // datum_terms.cc
-counted_t<term_t> make_datum_term(env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_datum_term(const protob_t<const Term> &term);
 counted_t<term_t> make_constant_term(env_t *env, const protob_t<const Term> &term,
                                      double constant, const char *name);
 counted_t<term_t> make_make_array_term(env_t *env, const protob_t<const Term> &term);

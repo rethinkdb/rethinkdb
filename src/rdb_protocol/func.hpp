@@ -61,7 +61,11 @@ public:
 
     std::string print_src() const;
     protob_t<const Term> get_source() const;
+
 private:
+    // RSI: Some kind of cleanup work to do about this env.
+    env_t *const env;
+
     // Pointers to this function's arguments.
     scoped_array_t<counted_t<const datum_t> > argptrs;
     counted_t<term_t> body; // body to evaluate with functions bound
@@ -76,7 +80,7 @@ private:
     // RSI: It seems there are two kinds of functions, this js stuff doesn't get used
     // most of the time.
     counted_t<term_t> js_parent;
-    env_t *js_env;
+    // RSI: This is used in places as a flag indicating that this is a javascript function.
     std::string js_source;
     uint64_t js_timeout_ms;
 };
@@ -111,7 +115,7 @@ public:
     func_term_t(env_t *env, const protob_t<const Term> &term);
 private:
     virtual bool is_deterministic_impl() const;
-    virtual counted_t<val_t> eval_impl(eval_flags_t flags);
+    virtual counted_t<val_t> eval_impl(env_t *env, eval_flags_t flags);
     virtual const char *name() const { return "func"; }
     counted_t<func_t> func;
 };

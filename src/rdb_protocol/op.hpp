@@ -55,17 +55,17 @@ public:
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments
-    counted_t<val_t> arg(size_t i, eval_flags_t flags = NO_FLAGS); // returns argument `i`
+    counted_t<val_t> arg(env_t *env, size_t i, eval_flags_t flags = NO_FLAGS); // returns argument `i`
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not
     // found.
-    counted_t<val_t> optarg(const std::string &key);
+    counted_t<val_t> optarg(env_t *env, const std::string &key);
     // This returns an optarg which is:
     // * lazy -- it's wrapped in a function, so you don't get the value until
     //   you call that function.
     // * literal -- it checks whether this operation has the literal key you
     //   provided and doesn't look anywhere else for optargs (in particular, it
     //   doesn't check global optargs).
-    counted_t<func_t> lazy_literal_optarg(const std::string &key);
+    counted_t<func_t> lazy_literal_optarg(env_t *env, const std::string &key);
 private:
     virtual bool is_deterministic_impl() const;
     std::vector<counted_t<term_t> > args;
@@ -81,16 +81,16 @@ public:
         : op_term_t(env, term, argspec,
                     optargspec.with({"left_bound", "right_bound"})),
           left_open_(false), right_open_(true) {
-        left_open_ = open_bool("left_bound", false);
-        right_open_ = open_bool("right_bound", true);
+        left_open_ = open_bool(env, "left_bound", false);
+        right_open_ = open_bool(env, "right_bound", true);
     }
     virtual ~bounded_op_term_t() { }
 protected:
     bool left_open() { return left_open_; }
     bool right_open() { return right_open_; }
 private:
-    bool open_bool(const std::string &key, bool def/*ault*/) {
-        counted_t<val_t> v = optarg(key);
+    bool open_bool(env_t *env, const std::string &key, bool def/*ault*/) {
+        counted_t<val_t> v = optarg(env, key);
         if (!v.has()) return def;
         const std::string &s = v->as_str();
         if (s == "open") {

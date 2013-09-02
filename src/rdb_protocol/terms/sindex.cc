@@ -21,9 +21,9 @@ public:
         : scopes_t::special_var_shadower_t(&env->scopes, scopes_t::SINDEX_ERROR_VAR),
           op_term_t(env, term, argspec_t(2, 3)) { }
 
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<table_t> table = arg(0)->as_table();
-        counted_t<const datum_t> name_datum = arg(1)->as_datum();
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
+        counted_t<const datum_t> name_datum = arg(env, 1)->as_datum();
         std::string name = name_datum->as_str();
         rcheck(name != table->get_pkey(),
                base_exc_t::GENERIC,
@@ -31,7 +31,7 @@ public:
                          name.c_str()));
         counted_t<func_t> index_func;
         if (num_args() == 3) {
-            index_func = arg(2)->as_func(env);
+            index_func = arg(env, 2)->as_func(env);
         } else {
             protob_t<Term> func_term = make_counted_term();
             sym_t x = env->symgen.gensym();
@@ -63,9 +63,9 @@ public:
     sindex_drop_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<table_t> table = arg(0)->as_table();
-        std::string name = arg(1)->as_datum()->as_str();
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
+        std::string name = arg(env, 1)->as_datum()->as_str();
         bool success = table->sindex_drop(env, name);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
@@ -84,8 +84,8 @@ public:
     sindex_list_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<table_t> table = arg(0)->as_table();
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
 
         return new_val(table->sindex_list(env));
     }

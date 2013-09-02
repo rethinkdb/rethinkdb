@@ -11,8 +11,8 @@ public:
     sample_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        int64_t num_int = arg(1)->as_int();
+    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        int64_t num_int = arg(env, 1)->as_int();
         rcheck(num_int >= 0,
                base_exc_t::GENERIC,
                strprintf("Number of items to sample must be non-negative, got `%"
@@ -20,7 +20,7 @@ public:
         const size_t num = num_int;
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v = arg(0);
+        counted_t<val_t> v = arg(env, 0);
 
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
@@ -54,7 +54,7 @@ public:
             new array_datum_stream_t(make_counted<const datum_t>(std::move(result)),
                                      backtrace()));
 
-        return t.has() ? new_val(new_ds, t) : new_val(new_ds);
+        return t.has() ? new_val(new_ds, t) : new_val(env, new_ds);
     }
 
     bool is_deterministic_impl() const {

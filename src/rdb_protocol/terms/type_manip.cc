@@ -130,8 +130,8 @@ public:
     coerce_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<val_t> val = arg(0);
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> val = arg(env, 0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
         int start_subtype = 0;
@@ -141,7 +141,7 @@ private:
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = arg(1)->as_str();
+        std::string end_type_name = arg(env, 1)->as_str();
         int end_type = get_type(end_type_name, this);
 
         // Identity
@@ -254,13 +254,13 @@ public:
     typeof_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<val_t> v = arg(0);
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> v = arg(env, 0);
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
         } else {
-            return new_val(make_counted<const datum_t>(get_name(val_type(arg(0)))));
+            return new_val(make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
         }
     }
     virtual const char *name() const { return "typeof"; }
@@ -270,11 +270,11 @@ class info_term_t : public op_term_t {
 public:
     info_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return new_val(val_info(arg(0)));
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        return new_val(val_info(env, arg(env, 0)));
     }
 
-    counted_t<const datum_t> val_info(counted_t<val_t> v) {
+    counted_t<const datum_t> val_info(env_t *env, counted_t<val_t> v) {
         datum_ptr_t info(datum_t::R_OBJECT);
         int type = val_type(v);
         bool b = info.add("type", make_counted<datum_t>(get_name(type)));
@@ -288,13 +288,13 @@ private:
             b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
             b |= info.add("primary_key", make_counted<datum_t>(std::string(table->get_pkey())));
             b |= info.add("indexes", table->sindex_list(env));
-            b |= info.add("db", val_info(new_val(table->db)));
+            b |= info.add("db", val_info(env, new_val(table->db)));
         } break;
         case SELECTION_TYPE: {
-            b |= info.add("table", val_info(new_val(v->as_selection(env).first)));
+            b |= info.add("table", val_info(env, new_val(v->as_selection(env).first)));
         } break;
         case SINGLE_SELECTION_TYPE: {
-            b |= info.add("table", val_info(new_val(v->as_single_selection().first)));
+            b |= info.add("table", val_info(env, new_val(v->as_single_selection().first)));
         } break;
         case SEQUENCE_TYPE: {
             // No more info.

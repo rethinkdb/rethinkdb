@@ -12,9 +12,9 @@ public:
     match_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        std::string str = arg(0)->as_str();
-        RE2 regexp(arg(1)->as_str());
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        std::string str = arg(env, 0)->as_str();
+        RE2 regexp(arg(env, 1)->as_str());
         if (!regexp.ok()) {
             rfail(base_exc_t::GENERIC,
                   "Error in regexp `%s` (portion `%s`): %s",

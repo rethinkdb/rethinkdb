@@ -93,20 +93,20 @@ private:
         }
     }
 
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<table_t> t = arg(0)->as_table();
-        counted_t<val_t> upsert_val = optarg("upsert");
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> t = arg(env, 0)->as_table();
+        counted_t<val_t> upsert_val = optarg(env, "upsert");
         bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
-        counted_t<val_t> return_vals_val = optarg("return_vals");
+        counted_t<val_t> return_vals_val = optarg(env, "return_vals");
         bool return_vals = return_vals_val.has() ? return_vals_val->as_bool() : false;
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(optarg("durability"), this);
+            = parse_durability_optarg(optarg(env, "durability"), this);
 
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
         std::vector<std::string> generated_keys;
-        counted_t<val_t> v1 = arg(1);
+        counted_t<val_t> v1 = arg(env, 1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             counted_t<const datum_t> d = v1->as_datum();
             if (d->get_type() == datum_t::R_OBJECT) {
@@ -175,25 +175,25 @@ public:
                     optargspec_t({"non_atomic", "durability", "return_vals"})) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         bool nondet_ok = false;
-        if (counted_t<val_t> v = optarg("non_atomic")) {
+        if (counted_t<val_t> v = optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
         }
         bool return_vals = false;
-        if (counted_t<val_t> v = optarg("return_vals")) {
+        if (counted_t<val_t> v = optarg(env, "return_vals")) {
             return_vals = v->as_bool();
         }
 
         const durability_requirement_t durability_requirement
-            = parse_durability_optarg(optarg("durability"), this);
+            = parse_durability_optarg(optarg(env, "durability"), this);
 
-        counted_t<func_t> f = arg(1)->as_func(env, CONSTANT_SHORTCUT);
+        counted_t<func_t> f = arg(env, 1)->as_func(env, CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
         }
 
-        counted_t<val_t> v0 = arg(0);
+        counted_t<val_t> v0 = arg(env, 0);
         counted_t<const datum_t> stats = new_stats_object();
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
@@ -238,13 +238,13 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
-        counted_t<datum_stream_t> ds = arg(0)->as_seq(env);
+        counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         while (counted_t<const datum_t> row = ds->next(env)) {
-            counted_t<val_t> v = arg(1)->as_func(env, CONSTANT_SHORTCUT)->call(row);
+            counted_t<val_t> v = arg(env, 1)->as_func(env, CONSTANT_SHORTCUT)->call(row);
             try {
                 counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {

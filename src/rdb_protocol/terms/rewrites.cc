@@ -20,7 +20,7 @@ public:
                                              protob_t<const Term> in,
                                              protob_t<Term> out,
                                              const pb_rcheckable_t *bt_src))
-        : term_t(env, term), in(term), out(make_counted_term()) {
+        : term_t(term), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
         rcheck(argspec.contains(args_size),
                base_exc_t::GENERIC,
@@ -35,8 +35,14 @@ public:
     }
 
 private:
-    virtual bool is_deterministic_impl() const { return real->is_deterministic(); }
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) { return real->eval(); }
+    virtual bool is_deterministic_impl() const {
+        return real->is_deterministic();
+    }
+
+    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+        return real->eval(env);
+    }
+
     protob_t<const Term> in;
     protob_t<Term> out;
 

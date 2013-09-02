@@ -9,12 +9,12 @@ class var_term_t : public op_term_t {
 public:
     var_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) {
-        sym_t var = sym_t(arg(0)->as_int<int>());
+        sym_t var = sym_t(arg(env, 0)->as_int<int>());
         datum_val = env->scopes.top_var(var, this);
     }
 private:
     counted_t<const datum_t> *datum_val; // pointer to variable's slot in argument array
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(env_t *, UNUSED eval_flags_t flags) {
         return new_val(*datum_val);
     }
     virtual const char *name() const { return "var"; }
@@ -28,7 +28,7 @@ public:
     }
 private:
     counted_t<const datum_t> *datum_val;
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(env_t *, UNUSED eval_flags_t flags) {
         return new_val(*datum_val);
     }
     virtual const char *name() const { return "implicit_var"; }
