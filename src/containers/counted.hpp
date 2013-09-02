@@ -257,4 +257,29 @@ inline intptr_t counted_use_count(const slow_atomic_countable_t<T> *p) {
 }
 
 
+// A noncopyable reference to a reference-counted object.
+template <class T>
+class movable_t {
+public:
+    movable_t(const counted_t<T> &copyee) : ptr_(copyee) { }
+    movable_t(movable_t &&movee) : ptr_(std::move(movee.ptr_)) { }
+    movable_t &operator=(movable_t &&movee) {
+        ptr_ = std::move(movee.ptr_);
+        return *this;
+    }
+
+    void reset() { ptr_.reset(); }
+
+    T *get() const { return ptr_.get(); }
+    T *operator->() const { return ptr_.get(); }
+    T &operator*() const { return *ptr_; }
+
+    bool has() const { return ptr_.has(); }
+
+private:
+    counted_t<T> ptr_;
+    DISABLE_COPYING(movable_t);
+};
+
+
 #endif  // CONTAINERS_COUNTED_HPP_
