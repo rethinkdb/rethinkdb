@@ -124,7 +124,7 @@ private:
         }
 
         if (!done) {
-            counted_t<datum_stream_t> datum_stream = v1->as_seq();
+            counted_t<datum_stream_t> datum_stream = v1->as_seq(env);
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row inserts.");
 
@@ -188,7 +188,7 @@ private:
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(optarg("durability"), this);
 
-        counted_t<func_t> f = arg(1)->as_func(CONSTANT_SHORTCUT);
+        counted_t<func_t> f = arg(1)->as_func(env, CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
         }
@@ -204,7 +204,7 @@ private:
             stats = stats->merge(result, stats_merge);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
-                = v0->as_selection();
+                = v0->as_selection(env);
             counted_t<table_t> tbl = tblrows.first;
             counted_t<datum_stream_t> ds = tblrows.second;
 
@@ -241,10 +241,10 @@ private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
-        counted_t<datum_stream_t> ds = arg(0)->as_seq();
+        counted_t<datum_stream_t> ds = arg(0)->as_seq(env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         while (counted_t<const datum_t> row = ds->next(env)) {
-            counted_t<val_t> v = arg(1)->as_func(CONSTANT_SHORTCUT)->call(row);
+            counted_t<val_t> v = arg(1)->as_func(env, CONSTANT_SHORTCUT)->call(row);
             try {
                 counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {

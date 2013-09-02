@@ -31,7 +31,7 @@ public:
                          name.c_str()));
         counted_t<func_t> index_func;
         if (num_args() == 3) {
-            index_func = arg(2)->as_func();
+            index_func = arg(2)->as_func(env);
         } else {
             protob_t<Term> func_term = make_counted_term();
             sym_t x = env->symgen.gensym();

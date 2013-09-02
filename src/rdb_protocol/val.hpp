@@ -181,22 +181,23 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(env_t *env, counted_t<const datum_t> _datum, const term_t *parent);
-    val_t(env_t *env, counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *parent);
+    val_t(counted_t<const datum_t> _datum, const term_t *parent);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *parent);
     val_t(env_t *env, counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(env_t *env, counted_t<table_t> _table, const term_t *parent);
-    val_t(env_t *env, counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(env_t *env, counted_t<const db_t> _db, const term_t *parent);
-    val_t(env_t *env, counted_t<func_t> _func, const term_t *parent);
+    val_t(counted_t<table_t> _table, const term_t *parent);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
+    val_t(counted_t<const db_t> _db, const term_t *parent);
+    val_t(counted_t<func_t> _func, const term_t *parent);
     ~val_t();
 
     counted_t<const db_t> as_db();
     counted_t<table_t> as_table();
-    std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection();
-    counted_t<datum_stream_t> as_seq();
+    std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection(env_t *env);
+    counted_t<datum_stream_t> as_seq(env_t *env);
     std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
-    counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
+    // RSI: This shortcut parameter is very questionable.
+    counted_t<func_t> as_func(env_t *env, function_shortcut_t shortcut = NO_SHORTCUT);
 
     counted_t<const datum_t> as_datum(); // prefer the 4 below
     counted_t<const datum_t> as_ptype(const std::string s = "");
@@ -214,6 +215,7 @@ public:
     int64_t as_int();
     const std::string &as_str();
 
+    // RSI: Move to .cc file.
     std::string print() {
         if (get_type().is_convertible(type_t::DATUM)) {
             return as_datum()->print();
@@ -223,7 +225,7 @@ public:
             return strprintf("table(\"%s\")", as_table()->name.c_str());
         } else if (get_type().is_convertible(type_t::SELECTION)) {
             return strprintf("OPAQUE SELECTION ON table(%s)",
-                             as_selection().first->name.c_str());
+                             table->name.c_str());
         } else {
             // TODO: Do something smarter here?
             return strprintf("OPAQUE VALUE %s", get_type().name());
@@ -245,8 +247,6 @@ public:
 
 private:
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
-
-    env_t *env;
 
     type_t type;
     counted_t<table_t> table;

@@ -62,7 +62,7 @@ private:
         try {
             counted_t<val_t> def = arg(1);
             if (def->get_type().is_convertible(val_t::type_t::FUNC)) {
-                return def->as_func()->call(func_arg);
+                return def->as_func(env)->call(func_arg);
             } else {
                 return def;
             }

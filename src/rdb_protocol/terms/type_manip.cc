@@ -199,7 +199,7 @@ private:
                  && start_type != R_ARRAY_TYPE)) {
             counted_t<datum_stream_t> ds;
             try {
-                ds = val->as_seq();
+                ds = val->as_seq(env);
             } catch (const base_exc_t &e) {
                 rfail(base_exc_t::GENERIC,
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
@@ -291,7 +291,7 @@ private:
             b |= info.add("db", val_info(new_val(table->db)));
         } break;
         case SELECTION_TYPE: {
-            b |= info.add("table", val_info(new_val(v->as_selection().first)));
+            b |= info.add("table", val_info(new_val(v->as_selection(env).first)));
         } break;
         case SINGLE_SELECTION_TYPE: {
             b |= info.add("table", val_info(new_val(v->as_single_selection().first)));
@@ -302,7 +302,7 @@ private:
 
         case FUNC_TYPE: {
             b |= info.add("source_code",
-                          make_counted<datum_t>(v->as_func()->print_src()));
+                          make_counted<datum_t>(v->as_func(env)->print_src()));
         } break;
 
         case R_NULL_TYPE:   // fallthru

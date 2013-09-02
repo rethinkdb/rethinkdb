@@ -369,7 +369,7 @@ counted_t<const datum_t> concatmap_datum_stream_t::next_impl(env_t *env) {
             if (!arg.has()) {
                 return counted_t<const datum_t>();
             }
-            subsource = f->call(arg)->as_seq();
+            subsource = f->call(arg)->as_seq(env);
         }
 
         counted_t<const datum_t> datum = subsource->next(env);

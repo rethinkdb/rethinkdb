@@ -24,11 +24,11 @@ public:
 
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
-                = v->as_selection();
+                = v->as_selection(env);
             t = t_seq.first;
             seq = t_seq.second;
         } else {
-            seq = v->as_seq();
+            seq = v->as_seq(env);
         }
 
         std::vector<counted_t<const datum_t> > result;

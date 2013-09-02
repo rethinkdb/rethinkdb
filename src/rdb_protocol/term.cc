@@ -252,7 +252,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                stream_cache2->insert(token, std::move(env_ptr), val->as_seq());
+                stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
@@ -357,27 +357,28 @@ counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
     }
 }
 
+// RSI: Most of these "helpers" are no longer helpful.
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
-    return make_counted<val_t>(env, d, this);
+    return make_counted<val_t>(d, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
-    return make_counted<val_t>(env, d, t, this);
+    return make_counted<val_t>(d, t, this);
 }
 
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
-    return make_counted<val_t>(env, s, this);
+    return make_counted<val_t>(this->env, s, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
-    return make_counted<val_t>(env, d, s, this);
+    return make_counted<val_t>(d, s, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<const db_t> db) {
-    return make_counted<val_t>(env, db, this);
+    return make_counted<val_t>(db, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
-    return make_counted<val_t>(env, t, this);
+    return make_counted<val_t>(t, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
-    return make_counted<val_t>(env, f, this);
+    return make_counted<val_t>(f, this);
 }
 counted_t<val_t> term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));
