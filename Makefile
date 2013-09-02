@@ -42,7 +42,7 @@ MAKE_CMD_LINE += --no-print-directory
 MAKE_CMD_LINE += --warn-undefined-variables
 MAKE_CMD_LINE += --no-builtin-rules
 MAKE_CMD_LINE += --no-builtin-variables
-MAKE_CMD_LINE += TOP=$(TOP) CWD=$(CWD) NO_CONFIGURE=1
+MAKE_CMD_LINE += TOP=$(TOP) CWD=$(CWD)
 
 # Makefiles can override the goals by setting OVERRIDE_GOALS=<goal>=<replacement>
 OVERRIDE_GOALS ?=
@@ -97,7 +97,7 @@ else
 endif
 
 # Build the list of phony targets
-$(TOP)/mk/gen/phony-list.mk:
+$(TOP)/mk/gen/phony-list.mk: $(CONFIG)
 	+@MAKEFLAGS= $(MAKE_CMD_LINE) --print-data-base var-MAKEFILE_LIST JUST_SCAN_MAKEFILES=1 \
 	  | egrep '^.PHONY: |MAKEFILE_LIST = ' \
 	  | sed 's/^.PHONY:/PHONY_LIST :=/' \

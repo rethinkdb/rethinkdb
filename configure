@@ -4,9 +4,6 @@
 # This script detects the build settings local to the local build
 # environment and saves them in the config.mk file.
 #
-# It is called automatically by make but can also be run manually
-# with extra arguments to change some of the settings.
-#
 # See ./configure --help for more information.
 
 set -u
@@ -144,7 +141,13 @@ configure () {
 main () {
     init
 
-    read_args "$@"
+    if test -e configure.default; then
+        echo "* Reading arguments from 'configure.default'"
+        default_args=$(cat configure.default)
+        echo "* Prepending the following arguments:" $default_args
+    fi
+
+    read_args ${default_args:-} "$@"
 
     echo "* Detecting system configuration"
 
@@ -154,7 +157,7 @@ main () {
     write "# Command line: $@" 3>> "$config"
     write "CONFIGURE_STATUS := started" 3>> "$config"
     write "CONFIGURE_ERROR := " 3>> "$config"
-    write "CONFIGURE_COMMAND_LINE := $@" 3>> "$config"
+    write "CONFIGURE_COMMAND_LINE := $(echo ${default_args:-}) $@" 3>> "$config"
     configure 3>> "$config"
 
     trap - EXIT
