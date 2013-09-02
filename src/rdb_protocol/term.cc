@@ -358,26 +358,26 @@ counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
 }
 
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
-    return make_counted<val_t>(d, this);
+    return make_counted<val_t>(env, d, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
-    return make_counted<val_t>(d, t, this);
+    return make_counted<val_t>(env, d, t, this);
 }
 
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
-    return make_counted<val_t>(s, this);
+    return make_counted<val_t>(env, s, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
-    return make_counted<val_t>(d, s, this);
+    return make_counted<val_t>(env, d, s, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<const db_t> db) {
-    return make_counted<val_t>(db, this);
+    return make_counted<val_t>(env, db, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
-    return make_counted<val_t>(t, this);
+    return make_counted<val_t>(env, t, this);
 }
 counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
-    return make_counted<val_t>(f, this);
+    return make_counted<val_t>(env, f, this);
 }
 counted_t<val_t> term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));

@@ -111,6 +111,7 @@ private:
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
 
+    // RSI: Probably we shouldn't have env as a local.
     env_t *env;
     bool use_outdated;
     std::string pkey;
@@ -119,7 +120,7 @@ private:
     boost::optional<std::string> sindex_id;
     sorting_t sorting;
 
-    struct bound_t { 
+    struct bound_t {
         bound_t(counted_t<const datum_t> _value, bool _bound_open)
             : value(_value), bound_open(_bound_open) { }
         counted_t<const datum_t> value;
@@ -174,13 +175,13 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(counted_t<const datum_t> _datum, const term_t *parent);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *parent);
-    val_t(counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(counted_t<table_t> _table, const term_t *parent);
-    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(counted_t<const db_t> _db, const term_t *parent);
-    val_t(counted_t<func_t> _func, const term_t *parent);
+    val_t(env_t *env, counted_t<const datum_t> _datum, const term_t *parent);
+    val_t(env_t *env, counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *parent);
+    val_t(env_t *env, counted_t<datum_stream_t> _sequence, const term_t *parent);
+    val_t(env_t *env, counted_t<table_t> _table, const term_t *parent);
+    val_t(env_t *env, counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
+    val_t(env_t *env, counted_t<const db_t> _db, const term_t *parent);
+    val_t(env_t *env, counted_t<func_t> _func, const term_t *parent);
     ~val_t();
 
     counted_t<const db_t> as_db();
