@@ -20,13 +20,13 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         if (num_args() == 1) {
-            return new_val(arg(0)->as_seq()->count());
+            return new_val(arg(0)->as_seq()->count(env));
         } else if (arg(1)->get_type().is_convertible(val_t::type_t::FUNC)) {
-            return new_val(arg(0)->as_seq()->filter(arg(1)->as_func(), counted_t<func_t>())->count());
+            return new_val(arg(0)->as_seq()->filter(env, arg(1)->as_func(), counted_t<func_t>())->count(env));
         } else {
             counted_t<func_t> f =
                 func_t::new_eq_comparison_func(env, arg(1)->as_datum(), backtrace());
-            return new_val(arg(0)->as_seq()->filter(f, counted_t<func_t>())->count());
+            return new_val(arg(0)->as_seq()->filter(env, f, counted_t<func_t>())->count(env));
         }
     }
     virtual const char *name() const { return "count"; }
@@ -38,7 +38,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return new_val(arg(0)->as_seq()->map(arg(1)->as_func()));
+        return new_val(arg(0)->as_seq()->map(env, arg(1)->as_func()));
     }
     virtual const char *name() const { return "map"; }
 };
@@ -49,7 +49,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return new_val(arg(0)->as_seq()->concatmap(arg(1)->as_func()));
+        return new_val(arg(0)->as_seq()->concatmap(env, arg(1)->as_func()));
     }
     virtual const char *name() const { return "concatmap"; }
 };
@@ -67,9 +67,9 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection();
-            return new_val(ts.second->filter(f, default_filter_val), ts.first);
+            return new_val(ts.second->filter(env, f, default_filter_val), ts.first);
         } else {
-            return new_val(v0->as_seq()->filter(f, default_filter_val));
+            return new_val(v0->as_seq()->filter(env, f, default_filter_val));
         }
     }
     counted_t<func_t> default_filter_val;
@@ -82,7 +82,8 @@ public:
         op_term_t(env, term, argspec_t(2), optargspec_t({ "base" })) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return new_val(arg(0)->as_seq()->reduce(optarg("base"),
+        return new_val(arg(0)->as_seq()->reduce(env,
+                                                optarg("base"),
                                                 arg(1)->as_func()));
     }
     virtual const char *name() const { return "reduce"; }
@@ -109,7 +110,7 @@ private:
             if (*lb > *rb || ((left_open() || right_open()) && *lb == *rb)) {
                 counted_t<const datum_t> arr = make_counted<datum_t>(datum_t::R_ARRAY);
                 counted_t<datum_stream_t> ds(
-                    new array_datum_stream_t(env, arr, backtrace()));
+                    new array_datum_stream_t(arr, backtrace()));
                 return new_val(ds, tbl);
             }
         }
@@ -136,7 +137,7 @@ private:
             streams.push_back(arg(i)->as_seq());
         }
         counted_t<datum_stream_t> union_stream
-            = make_counted<union_datum_stream_t>(env, streams, backtrace());
+            = make_counted<union_datum_stream_t>(streams, backtrace());
         return new_val(union_stream);
     }
     virtual const char *name() const { return "union"; }

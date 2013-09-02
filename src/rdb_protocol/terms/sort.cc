@@ -177,7 +177,7 @@ private:
                 counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), backtrace()));
         datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
-        while (counted_t<const datum_t> d = s->next()) {
+        while (counted_t<const datum_t> d = s->next(env)) {
             if (last.has() && *last == *d) {
                 continue;
             }
@@ -185,7 +185,7 @@ private:
             arr.add(last);
         }
         counted_t<datum_stream_t> out =
-            make_counted<array_datum_stream_t>(env, arr.to_counted(), backtrace());
+            make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());
         return new_val(out);
     }
     virtual const char *name() const { return "distinct"; }

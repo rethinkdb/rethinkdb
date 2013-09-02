@@ -470,7 +470,7 @@ private:
                 streams.push_back(seq);
             }
             counted_t<datum_stream_t> stream
-                = make_counted<union_datum_stream_t>(env, streams, backtrace());
+                = make_counted<union_datum_stream_t>(streams, backtrace());
             return new_val(stream, table);
         } else {
             datum_ptr_t arr(datum_t::R_ARRAY);
@@ -482,8 +482,7 @@ private:
                 }
             }
             counted_t<datum_stream_t> stream
-                = make_counted<array_datum_stream_t>(
-                    env, arr.to_counted(), backtrace());
+                = make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());
             return new_val(stream, table);
         }
     }

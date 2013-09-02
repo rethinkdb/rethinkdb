@@ -84,7 +84,7 @@ private:
 
             counted_t<const datum_t> last_d;
             for (int32_t i = 0; ; ++i) {
-                counted_t<const datum_t> d = s->next();
+                counted_t<const datum_t> d = s->next(env);
                 if (!d.has()) {
                     rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
                            strprintf("Index out of bounds: %d", n));
@@ -105,7 +105,7 @@ public:
         op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-      bool is_empty = !arg(0)->as_seq()->next().has();
+      bool is_empty = !arg(0)->as_seq()->next(env).has();
       return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
     }
     virtual const char *name() const { return "is_empty"; }
@@ -429,7 +429,7 @@ private:
                 required_els.push_back(v->as_datum());
             }
         }
-        while (counted_t<const datum_t> el = seq->next()) {
+        while (counted_t<const datum_t> el = seq->next(env)) {
             for (auto it = required_els.begin(); it != required_els.end(); ++it) {
                 if (**it == *el) {
                     std::swap(*it, required_els.back());

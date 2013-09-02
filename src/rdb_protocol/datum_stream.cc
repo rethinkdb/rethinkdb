@@ -16,33 +16,34 @@ const char *const empty_stream_msg =
 
 // DATUM_STREAM_T
 counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
-    return make_counted<slice_datum_stream_t>(env, l, r, this->counted_from_this());
+    return make_counted<slice_datum_stream_t>(l, r, this->counted_from_this());
 }
 counted_t<datum_stream_t> datum_stream_t::zip() {
-    return make_counted<zip_datum_stream_t>(env, this->counted_from_this());
+    return make_counted<zip_datum_stream_t>(this->counted_from_this());
 }
 counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
-    return make_counted<indexes_of_datum_stream_t>(env, f, counted_from_this());
+    return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
 }
 
-counted_t<const datum_t> datum_stream_t::next() {
+counted_t<const datum_t> datum_stream_t::next(env_t *env) {
     // This is a hook for unit tests to change things mid-query.
     DEBUG_ONLY_CODE(env->do_eval_callback());
     env->throw_if_interruptor_pulsed();
     try {
-        return next_impl();
+        return next_impl(env);
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
         unreachable();
     }
 }
 
-std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
+// RSI: What?  Is this function ever used?
+std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(env_t *env) {
     env->throw_if_interruptor_pulsed();
     try {
         std::vector<counted_t<const datum_t> > batch;
         for (;;) {
-            counted_t<const datum_t> datum = next_impl();
+            counted_t<const datum_t> datum = next_impl(env);
             if (datum.has()) {
                 batch.push_back(datum);
             }
@@ -56,37 +57,39 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_batch() {
     }
 }
 
-hinted_datum_t datum_stream_t::sorting_hint_next() {
-    return hinted_datum_t(query_language::CONTINUE, next());
+hinted_datum_t datum_stream_t::sorting_hint_next(env_t *env) {
+    return hinted_datum_t(query_language::CONTINUE, next(env));
 }
 
-counted_t<const datum_t> eager_datum_stream_t::count() {
+counted_t<const datum_t> eager_datum_stream_t::count(env_t *env) {
     int64_t i = 0;
     for (;;) {
-        counted_t<const datum_t> value = next();
+        counted_t<const datum_t> value = next(env);
         if (!value.has()) { break; }
         ++i;
     }
     return make_counted<datum_t>(static_cast<double>(i));
 }
 
-counted_t<const datum_t> eager_datum_stream_t::reduce(counted_t<val_t> base_val,
+counted_t<const datum_t> eager_datum_stream_t::reduce(env_t *env,
+                                                      counted_t<val_t> base_val,
                                                       counted_t<func_t> f) {
-    counted_t<const datum_t> base = base_val.has() ? base_val->as_datum() : next();
+    counted_t<const datum_t> base = base_val.has() ? base_val->as_datum() : next(env);
     rcheck(base.has(), base_exc_t::NON_EXISTENCE, empty_stream_msg);
 
-    while (counted_t<const datum_t> rhs = next()) {
+    while (counted_t<const datum_t> rhs = next(env)) {
         base = f->call(base, rhs)->as_datum();
     }
     return base;
 }
 
-counted_t<const datum_t> eager_datum_stream_t::gmr(counted_t<func_t> group,
+counted_t<const datum_t> eager_datum_stream_t::gmr(env_t *env,
+                                                   counted_t<func_t> group,
                                                    counted_t<func_t> map,
                                                    counted_t<const datum_t> base,
                                                    counted_t<func_t> reduce) {
     wire_datum_map_t wd_map;
-    while (counted_t<const datum_t> el = next()) {
+    while (counted_t<const datum_t> el = next(env)) {
         counted_t<const datum_t> el_group = group->call(el)->as_datum();
         counted_t<const datum_t> el_map = map->call(el)->as_datum();
         if (!wd_map.has(el_group)) {
@@ -99,20 +102,23 @@ counted_t<const datum_t> eager_datum_stream_t::gmr(counted_t<func_t> group,
     return wd_map.to_arr();
 }
 
-counted_t<datum_stream_t> eager_datum_stream_t::filter(counted_t<func_t> f,
+counted_t<datum_stream_t> eager_datum_stream_t::filter(UNUSED env_t *env,
+                                                       counted_t<func_t> f,
                                                        counted_t<func_t> default_filter_val) {
-    return make_counted<filter_datum_stream_t>(env, f, default_filter_val, this->counted_from_this());
+    return make_counted<filter_datum_stream_t>(f, default_filter_val, this->counted_from_this());
 }
-counted_t<datum_stream_t> eager_datum_stream_t::map(counted_t<func_t> f) {
-    return make_counted<map_datum_stream_t>(env, f, this->counted_from_this());
+counted_t<datum_stream_t> eager_datum_stream_t::map(UNUSED env_t *env,
+                                                    counted_t<func_t> f) {
+    return make_counted<map_datum_stream_t>(f, this->counted_from_this());
 }
-counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
-    return make_counted<concatmap_datum_stream_t>(env, f, this->counted_from_this());
+counted_t<datum_stream_t> eager_datum_stream_t::concatmap(UNUSED env_t *env,
+                                                          counted_t<func_t> f) {
+    return make_counted<concatmap_datum_stream_t>(f, this->counted_from_this());
 }
 
-counted_t<const datum_t> eager_datum_stream_t::as_array() {
+counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
     datum_ptr_t arr(datum_t::R_ARRAY);
-    while (counted_t<const datum_t> d = next()) {
+    while (counted_t<const datum_t> d = next(env)) {
         arr.add(d);
     }
     return arr.to_counted();
@@ -122,7 +128,7 @@ counted_t<const datum_t> eager_datum_stream_t::as_array() {
 lazy_datum_stream_t::lazy_datum_stream_t(
     env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
     sorting_t sorting, const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(env, bt_src),
+    : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor,
                       counted_t<datum_t>(), false, counted_t<const datum_t>(), false,
@@ -134,7 +140,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
         const std::string &sindex_id, sorting_t sorting,
         const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(env, bt_src),
+    : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
                       counted_t<datum_t>(), false, counted_t<datum_t>(), false,
@@ -147,7 +153,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     counted_t<const datum_t> left_bound, bool left_bound_open,
     counted_t<const datum_t> right_bound, bool right_bound_open,
     sorting_t sorting, const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(env, bt_src),
+    : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor,
                       left_bound, left_bound_open, right_bound, right_bound_open,
@@ -161,7 +167,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     counted_t<const datum_t> right_bound, bool right_bound_open,
     const std::string &sindex_id, sorting_t sorting,
     const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(env, bt_src),
+    : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
                       *ns_access, env->interruptor, sindex_id,
                       left_bound, left_bound_open, right_bound, right_bound_open,
@@ -169,9 +175,9 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
-    : datum_stream_t(src->env, src->backtrace()), json_stream(src->json_stream) { }
+    : datum_stream_t(src->backtrace()), json_stream(src->json_stream) { }
 
-counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
+counted_t<datum_stream_t> lazy_datum_stream_t::map(env_t *env, counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f)),
@@ -179,7 +185,7 @@ counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
     return counted_t<datum_stream_t>(out.release());
 }
 
-counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
+counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(env_t *env, counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f)),
@@ -187,7 +193,8 @@ counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
     return counted_t<datum_stream_t>(out.release());
 }
 counted_t<datum_stream_t>
-lazy_datum_stream_t::filter(counted_t<func_t> f,
+lazy_datum_stream_t::filter(env_t *env,
+                            counted_t<func_t> f,
                             counted_t<func_t> default_filter_val) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
@@ -203,21 +210,23 @@ lazy_datum_stream_t::filter(counted_t<func_t> f,
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the
 // shard data.
 rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(
-    const rdb_protocol_details::terminal_variant_t &t) {
+        env_t *env,
+        const rdb_protocol_details::terminal_variant_t &t) {
     return json_stream->apply_terminal(
         t, env, query_language::backtrace_t());
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::count() {
+counted_t<const datum_t> lazy_datum_stream_t::count(env_t *env) {
     rdb_protocol_t::rget_read_response_t::result_t res =
-        run_terminal(count_wire_func_t());
+        run_terminal(env, count_wire_func_t());
     return boost::get<counted_t<const datum_t> >(res);
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val,
+counted_t<const datum_t> lazy_datum_stream_t::reduce(env_t *env,
+                                                     counted_t<val_t> base_val,
                                                      counted_t<func_t> f) {
     rdb_protocol_t::rget_read_response_t::result_t res
-        = run_terminal(reduce_wire_func_t(env, f));
+        = run_terminal(env, reduce_wire_func_t(env, f));
 
     if (counted_t<const datum_t> *d = boost::get<counted_t<const datum_t> >(&res)) {
         counted_t<const datum_t> datum = *d;
@@ -236,7 +245,8 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(counted_t<val_t> base_val,
     }
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
+counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
+                                                  counted_t<func_t> g,
                                                   counted_t<func_t> m,
                                                   counted_t<const datum_t> base,
                                                   counted_t<func_t> r) {
@@ -263,20 +273,20 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(counted_t<func_t> g,
     }
 }
 
-hinted_datum_t lazy_datum_stream_t::sorting_hint_next() {
+hinted_datum_t lazy_datum_stream_t::sorting_hint_next(UNUSED env_t *env) {
     return json_stream->sorting_hint_next();
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::next_impl() {
+counted_t<const datum_t> lazy_datum_stream_t::next_impl(UNUSED env_t *env) {
     return json_stream->next();
 }
 
 // ARRAY_DATUM_STREAM_T
-array_datum_stream_t::array_datum_stream_t(env_t *env, counted_t<const datum_t> _arr,
+array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
                                            const protob_t<const Backtrace> &bt_source)
-    : eager_datum_stream_t(env, bt_source), index(0), arr(_arr) { }
+    : eager_datum_stream_t(bt_source), index(0), arr(_arr) { }
 
-counted_t<const datum_t> array_datum_stream_t::next_impl() {
+counted_t<const datum_t> array_datum_stream_t::next_impl(UNUSED env_t *env) {
     counted_t<const datum_t> datum = arr->get(index, NOTHROW);
     if (!datum.has()) {
         return counted_t<const datum_t>();
@@ -287,14 +297,14 @@ counted_t<const datum_t> array_datum_stream_t::next_impl() {
 }
 
 // MAP_DATUM_STREAM_T
-map_datum_stream_t::map_datum_stream_t(env_t *env, counted_t<func_t> _f,
+map_datum_stream_t::map_datum_stream_t(counted_t<func_t> _f,
                                        counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
+    : eager_datum_stream_t(_source->backtrace()), f(_f), source(_source) {
     guarantee(f.has() && source.has());
 }
 
-counted_t<const datum_t> map_datum_stream_t::next_impl() {
-    counted_t<const datum_t> arg = source->next();
+counted_t<const datum_t> map_datum_stream_t::next_impl(env_t *env) {
+    counted_t<const datum_t> arg = source->next(env);
     if (!arg.has()) {
         return counted_t<const datum_t>();
     } else {
@@ -303,15 +313,15 @@ counted_t<const datum_t> map_datum_stream_t::next_impl() {
 }
 
 // INDEXES_OF_DATUM_STREAM_T
-indexes_of_datum_stream_t::indexes_of_datum_stream_t(env_t *env, counted_t<func_t> _f,
+indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<func_t> _f,
                                                      counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source), index(0) {
+    : eager_datum_stream_t(_source->backtrace()), f(_f), source(_source), index(0) {
     guarantee(f.has() && source.has());
 }
 
-counted_t<const datum_t> indexes_of_datum_stream_t::next_impl() {
+counted_t<const datum_t> indexes_of_datum_stream_t::next_impl(env_t *env) {
     for (;;) {
-        counted_t<const datum_t> arg = source->next();
+        counted_t<const datum_t> arg = source->next(env);
         if (!arg.has()) {
             return counted_t<const datum_t>();
         } else if (f->filter_call(arg, counted_t<func_t>())) {
@@ -323,17 +333,17 @@ counted_t<const datum_t> indexes_of_datum_stream_t::next_impl() {
 }
 
 // FILTER_DATUM_STREAM_T
-filter_datum_stream_t::filter_datum_stream_t(env_t *env, counted_t<func_t> _f,
+filter_datum_stream_t::filter_datum_stream_t(counted_t<func_t> _f,
                                              counted_t<func_t> _default_filter_val,
                                              counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(env, _source->backtrace()), f(_f),
+    : eager_datum_stream_t(_source->backtrace()), f(_f),
       default_filter_val(_default_filter_val), source(_source) {
     guarantee(f.has() && source.has());
 }
 
-counted_t<const datum_t> filter_datum_stream_t::next_impl() {
+counted_t<const datum_t> filter_datum_stream_t::next_impl(env_t *env) {
     for (;;) {
-        counted_t<const datum_t> arg = source->next();
+        counted_t<const datum_t> arg = source->next(env);
 
         if (!arg.has()) {
             return counted_t<const datum_t>();
@@ -346,23 +356,23 @@ counted_t<const datum_t> filter_datum_stream_t::next_impl() {
 }
 
 // CONCATMAP_DATUM_STREAM_T
-concatmap_datum_stream_t::concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f,
+concatmap_datum_stream_t::concatmap_datum_stream_t(counted_t<func_t> _f,
                                                    counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(env, _source->backtrace()), f(_f), source(_source) {
+    : eager_datum_stream_t(_source->backtrace()), f(_f), source(_source) {
     guarantee(f.has() && source.has());
 }
 
-counted_t<const datum_t> concatmap_datum_stream_t::next_impl() {
+counted_t<const datum_t> concatmap_datum_stream_t::next_impl(env_t *env) {
     for (;;) {
         if (!subsource.has()) {
-            counted_t<const datum_t> arg = source->next();
+            counted_t<const datum_t> arg = source->next(env);
             if (!arg.has()) {
                 return counted_t<const datum_t>();
             }
             subsource = f->call(arg)->as_seq();
         }
 
-        counted_t<const datum_t> datum = subsource->next();
+        counted_t<const datum_t> datum = subsource->next(env);
         if (datum.has()) {
             return datum;
         }
@@ -372,25 +382,25 @@ counted_t<const datum_t> concatmap_datum_stream_t::next_impl() {
 }
 
 // SLICE_DATUM_STREAM_T
-slice_datum_stream_t::slice_datum_stream_t(env_t *env, size_t _left, size_t _right,
+slice_datum_stream_t::slice_datum_stream_t(size_t _left, size_t _right,
                                            counted_t<datum_stream_t> _src)
-    : wrapper_datum_stream_t(env, _src), index(0),
+    : wrapper_datum_stream_t(_src), index(0),
       left(_left), right(_right) { }
 
-counted_t<const datum_t> slice_datum_stream_t::next_impl() {
+counted_t<const datum_t> slice_datum_stream_t::next_impl(env_t *env) {
     if (left >= right || index >= right) {
         return counted_t<const datum_t>();
     }
 
     while (index < left) {
-        counted_t<const datum_t> discard = source->next();
+        counted_t<const datum_t> discard = source->next(env);
         if (!discard.has()) {
             return counted_t<const datum_t>();
         }
         ++index;
     }
 
-    counted_t<const datum_t> datum = source->next();
+    counted_t<const datum_t> datum = source->next(env);
     if (datum.has()) {
         ++index;
     }
@@ -398,11 +408,11 @@ counted_t<const datum_t> slice_datum_stream_t::next_impl() {
 }
 
 // ZIP_DATUM_STREAM_T
-zip_datum_stream_t::zip_datum_stream_t(env_t *env, counted_t<datum_stream_t> _src)
-    : wrapper_datum_stream_t(env, _src) { }
+zip_datum_stream_t::zip_datum_stream_t(counted_t<datum_stream_t> _src)
+    : wrapper_datum_stream_t(_src) { }
 
-counted_t<const datum_t> zip_datum_stream_t::next_impl() {
-    counted_t<const datum_t> datum = source->next();
+counted_t<const datum_t> zip_datum_stream_t::next_impl(env_t *env) {
+    counted_t<const datum_t> datum = source->next(env);
     if (!datum.has()) {
         return counted_t<const datum_t>();
     }
@@ -415,40 +425,45 @@ counted_t<const datum_t> zip_datum_stream_t::next_impl() {
 }
 
 // UNION_DATUM_STREAM_T
-counted_t<datum_stream_t> union_datum_stream_t::filter(counted_t<func_t> f, counted_t<func_t> default_filter_val) {
+counted_t<datum_stream_t> union_datum_stream_t::filter(env_t *env,
+                                                       counted_t<func_t> f,
+                                                       counted_t<func_t> default_filter_val) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->filter(f, default_filter_val);
+        *it = (*it)->filter(env, f, default_filter_val);
     }
     return counted_t<datum_stream_t>(this);
 }
-counted_t<datum_stream_t> union_datum_stream_t::map(counted_t<func_t> f) {
+counted_t<datum_stream_t> union_datum_stream_t::map(env_t *env,
+                                                    counted_t<func_t> f) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->map(f);
+        *it = (*it)->map(env, f);
     }
     return counted_t<datum_stream_t>(this);
 }
-counted_t<datum_stream_t> union_datum_stream_t::concatmap(counted_t<func_t> f) {
+counted_t<datum_stream_t> union_datum_stream_t::concatmap(env_t *env,
+                                                          counted_t<func_t> f) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->concatmap(f);
+        *it = (*it)->concatmap(env, f);
     }
     return counted_t<datum_stream_t>(this);
 }
-counted_t<const datum_t> union_datum_stream_t::count() {
+counted_t<const datum_t> union_datum_stream_t::count(env_t *env) {
     counted_t<const datum_t> acc(new datum_t(0.0));
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        acc = make_counted<const datum_t>(acc->as_num() + (*it)->count()->as_num());
+        acc = make_counted<const datum_t>(acc->as_num() + (*it)->count(env)->as_num());
     }
     return acc;
 }
-counted_t<const datum_t> union_datum_stream_t::reduce(
-    counted_t<val_t> base_val, counted_t<func_t> f) {
+counted_t<const datum_t> union_datum_stream_t::reduce(env_t *env,
+                                                      counted_t<val_t> base_val,
+                                                      counted_t<func_t> f) {
     counted_t<const datum_t> base =
         base_val.has() ? base_val->as_datum() : counted_t<const datum_t>();
     std::vector<counted_t<const datum_t> > vals;
 
     for (auto it = streams.begin(); it != streams.end(); ++it) {
         try {
-            counted_t<const datum_t> d = (*it)->reduce(base_val, f);
+            counted_t<const datum_t> d = (*it)->reduce(env, base_val, f);
             vals.push_back(d);
         } catch (const base_exc_t &e) {
             // TODO: This is a terrible hack that will go away when we get rid
@@ -475,11 +490,12 @@ counted_t<const datum_t> union_datum_stream_t::reduce(
 }
 
 counted_t<const datum_t> union_datum_stream_t::gmr(
-    counted_t<func_t> g, counted_t<func_t> m,
-    counted_t<const datum_t> base, counted_t<func_t> r) {
+        env_t *env,
+        counted_t<func_t> g, counted_t<func_t> m,
+        counted_t<const datum_t> base, counted_t<func_t> r) {
     wire_datum_map_t dm;
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        counted_t<const datum_t> d = (*it)->gmr(g, m, base, r);
+        counted_t<const datum_t> d = (*it)->gmr(env, g, m, base, r);
         for (size_t i = 0; i < d->size(); ++i) {
             counted_t<const datum_t> el = d->get(i);
             counted_t<const datum_t> el_group = el->get("group");
@@ -502,20 +518,20 @@ bool union_datum_stream_t::is_array() {
     }
     return true;
 }
-counted_t<const datum_t> union_datum_stream_t::as_array() {
+counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     if (!is_array()) {
         return counted_t<const datum_t>();
     }
     datum_ptr_t arr(datum_t::R_ARRAY);
-    while (counted_t<const datum_t> d = next()) {
+    while (counted_t<const datum_t> d = next(env)) {
         arr.add(d);
     }
     return arr.to_counted();
 }
 
-counted_t<const datum_t> union_datum_stream_t::next_impl() {
+counted_t<const datum_t> union_datum_stream_t::next_impl(env_t *env) {
     for (; streams_index < streams.size(); ++streams_index) {
-        counted_t<const datum_t> datum = streams[streams_index]->next();
+        counted_t<const datum_t> datum = streams[streams_index]->next(env);
         if (datum.has()) {
             return datum;
         }

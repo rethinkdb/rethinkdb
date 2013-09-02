@@ -563,7 +563,7 @@ val_t::val_t(env_t *_env, counted_t<datum_stream_t> _sequence, const term_t *par
       u(_sequence) {
     guarantee(sequence().has());
     // Some streams are really arrays in disguise.
-    counted_t<const datum_t> arr = sequence()->as_array();
+    counted_t<const datum_t> arr = sequence()->as_array(env);
     if (arr.has()) {
         type = type_t::DATUM;
         u = arr;
@@ -627,7 +627,7 @@ counted_t<datum_stream_t> val_t::as_seq() {
     } else if (type.raw_type == type_t::TABLE) {
         return table->as_datum_stream(backtrace());
     } else if (type.raw_type == type_t::DATUM) {
-        return datum()->as_datum_stream(env, backtrace());
+        return datum()->as_datum_stream(backtrace());
     }
     rcheck_literal_type(type_t::SEQUENCE);
     unreachable();

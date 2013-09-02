@@ -130,7 +130,7 @@ private:
 
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = datum_stream->next_batch();
+                    = datum_stream->next_batch(env);
                 if (datums.empty()) {
                     break;
                 }
@@ -212,7 +212,7 @@ private:
                    "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
             for (;;) {
-                std::vector<counted_t<const datum_t> > datums = ds->next_batch();
+                std::vector<counted_t<const datum_t> > datums = ds->next_batch(env);
                 if (datums.empty()) {
                     break;
                 }
@@ -243,7 +243,7 @@ private:
 
         counted_t<datum_stream_t> ds = arg(0)->as_seq();
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
-        while (counted_t<const datum_t> row = ds->next()) {
+        while (counted_t<const datum_t> row = ds->next(env)) {
             counted_t<val_t> v = arg(1)->as_func(CONSTANT_SHORTCUT)->call(row);
             try {
                 counted_t<const datum_t> d = v->as_datum();

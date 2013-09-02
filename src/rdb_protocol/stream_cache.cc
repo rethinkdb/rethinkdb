@@ -32,16 +32,20 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         // the time we reach here, so we just reset it to a good one.
         entry->env->interruptor = interruptor;
 
+        // RSI: it seems clear (from the above hack) that we only really use the
+        // env's interruptor when traversing a stream, and nothing else (besides
+        // do_eval_callback).
+
         int chunk_size = 0;
         if (entry->next_datum.has()) {
             *res->add_response() = *entry->next_datum.get();
             ++chunk_size;
             entry->next_datum.reset();
         }
-        while (counted_t<const datum_t> d = entry->stream->next()) {
+        while (counted_t<const datum_t> d = entry->stream->next(entry->env.get())) {
             d->write_to_protobuf(res->add_response());
             if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                if (counted_t<const datum_t> next_d = entry->stream->next()) {
+                if (counted_t<const datum_t> next_d = entry->stream->next(entry->env.get())) {
                     r_sanity_check(!entry->next_datum.has());
                     entry->next_datum.init(new Datum());
                     next_d->write_to_protobuf(entry->next_datum.get());

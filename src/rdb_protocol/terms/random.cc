@@ -10,6 +10,7 @@ class sample_term_t : public op_term_t {
 public:
     sample_term_t(env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
+
     counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         int64_t num_int = arg(1)->as_int();
         rcheck(num_int >= 0,
@@ -33,7 +34,7 @@ public:
         std::vector<counted_t<const datum_t> > result;
         result.reserve(num);
         size_t element_number = 0;
-        while (counted_t<const datum_t> row = seq->next()) {
+        while (counted_t<const datum_t> row = seq->next(env)) {
             element_number++;
             if (result.size() < num) {
                 result.push_back(row);
@@ -50,14 +51,16 @@ public:
         std::random_shuffle(result.begin(), result.end());
 
         counted_t<datum_stream_t> new_ds(
-            new array_datum_stream_t(env, make_counted<const datum_t>(std::move(result)),
+            new array_datum_stream_t(make_counted<const datum_t>(std::move(result)),
                                      backtrace()));
 
         return t.has() ? new_val(new_ds, t) : new_val(new_ds);
     }
+
     bool is_deterministic_impl() const {
         return false;
     }
+
     virtual const char *name() const { return "sample"; }
 };
 

@@ -633,8 +633,7 @@ scoped_cJSON_t datum_t::as_json() const {
 
 // TODO: make STR and OBJECT convertible to sequence?
 counted_t<datum_stream_t>
-datum_t::as_datum_stream(env_t *env,
-                         const protob_t<const Backtrace> &backtrace) const {
+datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     switch (get_type()) {
     case R_NULL: // fallthru
     case R_BOOL: // fallthru
@@ -644,8 +643,7 @@ datum_t::as_datum_stream(env_t *env,
         type_error(strprintf("Cannot convert %s to SEQUENCE",
                              get_type_name().c_str()));
     case R_ARRAY:
-        return make_counted<array_datum_stream_t>(env,
-                                                  this->counted_from_this(),
+        return make_counted<array_datum_stream_t>(this->counted_from_this(),
                                                   backtrace);
     case UNINITIALIZED: // fallthru
     default: unreachable();

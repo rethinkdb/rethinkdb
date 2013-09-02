@@ -116,7 +116,7 @@ void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {  // NOLI
 
 void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {  // NOLINT(runtime/references)
     counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(arg)->as_seq();
-    while (counted_t<const ql::datum_t> d = ds->next()) {
+    while (counted_t<const ql::datum_t> d = ds->next(ql_env)) {
         out->push_back(d);
     }
 }
