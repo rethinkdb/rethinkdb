@@ -23,7 +23,7 @@ typedef query_language::hinted_datum_t hinted_datum_t;
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
-    datum_stream_t(const protob_t<const Backtrace> &bt_src)
+    explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
         : pb_rcheckable_t(bt_src) { }
     virtual ~datum_stream_t() { }
 
@@ -107,7 +107,7 @@ private:
 
 class eager_datum_stream_t : public datum_stream_t {
 public:
-    eager_datum_stream_t(const protob_t<const Backtrace> &bt_src)
+    explicit eager_datum_stream_t(const protob_t<const Backtrace> &bt_src)
         : datum_stream_t(bt_src) { }
 
     virtual counted_t<datum_stream_t> filter(env_t *env,
@@ -134,7 +134,7 @@ public:
 
 class wrapper_datum_stream_t : public eager_datum_stream_t {
 public:
-    wrapper_datum_stream_t(counted_t<datum_stream_t> _source)
+    explicit wrapper_datum_stream_t(counted_t<datum_stream_t> _source)
         : eager_datum_stream_t(_source->backtrace()), source(_source) { }
     virtual bool is_array() { return source->is_array(); }
     virtual counted_t<const datum_t> as_array(env_t *env) {
@@ -272,7 +272,7 @@ private:
 
 class zip_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    zip_datum_stream_t(counted_t<datum_stream_t> src);
+    explicit zip_datum_stream_t(counted_t<datum_stream_t> src);
 private:
     counted_t<const datum_t> next_impl(env_t *env);
 };
