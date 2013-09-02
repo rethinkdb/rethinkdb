@@ -190,7 +190,7 @@ public:
     val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
     ~val_t();
 
-    counted_t<const db_t> as_db();
+    counted_t<const db_t> as_db() const;
     counted_t<table_t> as_table();
     std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection(env_t *env);
     counted_t<datum_stream_t> as_seq(env_t *env);
@@ -199,7 +199,7 @@ public:
     // RSI: This shortcut parameter is very questionable.
     counted_t<func_t> as_func(env_t *env, function_shortcut_t shortcut = NO_SHORTCUT);
 
-    counted_t<const datum_t> as_datum(); // prefer the 4 below
+    counted_t<const datum_t> as_datum() const; // prefer the 4 below
     counted_t<const datum_t> as_ptype(const std::string s = "");
     bool as_bool();
     double as_num();
@@ -215,38 +215,11 @@ public:
     int64_t as_int();
     const std::string &as_str();
 
-    // RSI: Move to .cc file.
-    std::string print() {
-        if (get_type().is_convertible(type_t::DATUM)) {
-            return as_datum()->print();
-        } else if (get_type().is_convertible(type_t::DB)) {
-            return strprintf("db(\"%s\")", as_db()->name.c_str());
-        } else if (get_type().is_convertible(type_t::TABLE)) {
-            return strprintf("table(\"%s\")", as_table()->name.c_str());
-        } else if (get_type().is_convertible(type_t::SELECTION)) {
-            return strprintf("OPAQUE SELECTION ON table(%s)",
-                             table->name.c_str());
-        } else {
-            // TODO: Do something smarter here?
-            return strprintf("OPAQUE VALUE %s", get_type().name());
-        }
-    }
-
-    std::string trunc_print() {
-        if (get_type().is_convertible(type_t::DATUM)) {
-            return as_datum()->trunc_print();
-        } else {
-            std::string s = print();
-            if (s.size() > datum_t::trunc_len) {
-                s.erase(s.begin() + (datum_t::trunc_len - 3), s.end());
-                s += "...";
-            }
-            return s;
-        }
-    }
+    std::string print() const;
+    std::string trunc_print() const;
 
 private:
-    void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
+    void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;
     counted_t<table_t> table;
@@ -259,13 +232,16 @@ private:
                    counted_t<const datum_t>,
                    counted_t<func_t> > u;
 
-    counted_t<const db_t> db() {
+    const counted_t<const db_t> &db() const {
         return boost::get<counted_t<const db_t> >(u);
     }
     counted_t<datum_stream_t> &sequence() {
         return boost::get<counted_t<datum_stream_t> >(u);
     }
     counted_t<const datum_t> &datum() {
+        return boost::get<counted_t<const datum_t> >(u);
+    }
+    const counted_t<const datum_t> &datum() const {
         return boost::get<counted_t<const datum_t> >(u);
     }
     counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }

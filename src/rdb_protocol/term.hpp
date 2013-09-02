@@ -47,6 +47,8 @@ private:
     virtual counted_t<val_t> eval_impl(env_t *env, eval_flags_t) = 0;
     virtual bool is_deterministic_impl() const = 0;
     protob_t<const Term> src;
+
+    DISABLE_COPYING(term_t);
 };
 
 counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t);

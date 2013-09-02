@@ -55,7 +55,7 @@ base_exc_t::type_t exc_type(const counted_t<const datum_t> &d) {
     r_sanity_check(d.has());
     return exc_type(d.get());
 }
-base_exc_t::type_t exc_type(val_t *v) {
+base_exc_t::type_t exc_type(const val_t *v) {
     r_sanity_check(v);
     if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
         return exc_type(v->as_datum());

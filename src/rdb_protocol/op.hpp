@@ -89,20 +89,8 @@ protected:
     bool left_open() { return left_open_; }
     bool right_open() { return right_open_; }
 private:
-    bool open_bool(env_t *env, const std::string &key, bool def/*ault*/) {
-        counted_t<val_t> v = optarg(env, key);
-        if (!v.has()) return def;
-        const std::string &s = v->as_str();
-        if (s == "open") {
-            return true;
-        } else if (s == "closed") {
-            return false;
-        } else {
-            rfail(base_exc_t::GENERIC,
-                  "Expected `open` or `closed` for optarg `%s` (got `%s`).",
-                  key.c_str(), v->trunc_print().c_str());
-        }
-    }
+    bool open_bool(env_t *env, const std::string &key, bool def/*ault*/);
+
     bool left_open_, right_open_;
 };
 

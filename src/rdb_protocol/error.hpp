@@ -144,7 +144,7 @@ class datum_t;
 class val_t;
 base_exc_t::type_t exc_type(const datum_t *d);
 base_exc_t::type_t exc_type(const counted_t<const datum_t> &d);
-base_exc_t::type_t exc_type(val_t *d);
+base_exc_t::type_t exc_type(const val_t *d);
 base_exc_t::type_t exc_type(const counted_t<val_t> &v);
 
 // r_sanity_check should be used in place of guarantee if you think the

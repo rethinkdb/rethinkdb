@@ -125,4 +125,20 @@ bool op_term_t::is_deterministic_impl() const {
     return true;
 }
 
+bool bounded_op_term_t::open_bool(env_t *env, const std::string &key, bool def/*ault*/) {
+    counted_t<val_t> v = optarg(env, key);
+    if (!v.has()) return def;
+    const std::string &s = v->as_str();
+    if (s == "open") {
+        return true;
+    } else if (s == "closed") {
+        return false;
+    } else {
+        rfail(base_exc_t::GENERIC,
+              "Expected `open` or `closed` for optarg `%s` (got `%s`).",
+              key.c_str(), v->trunc_print().c_str());
+    }
+}
+
+
 } // namespace ql

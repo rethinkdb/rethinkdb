@@ -613,7 +613,7 @@ val_t::~val_t() { }
 val_t::type_t val_t::get_type() const { return type; }
 const char * val_t::get_type_name() const { return get_type().name(); }
 
-counted_t<const datum_t> val_t::as_datum() {
+counted_t<const datum_t> val_t::as_datum() const {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
         rcheck_literal_type(type_t::DATUM);
     }
@@ -681,7 +681,7 @@ counted_t<func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut) {
     unreachable();
 }
 
-counted_t<const db_t> val_t::as_db() {
+counted_t<const db_t> val_t::as_db() const {
     rcheck_literal_type(type_t::DB);
     return db();
 }
@@ -738,11 +738,41 @@ const std::string &val_t::as_str() {
     }
 }
 
-void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
+void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) const {
     rcheck_typed_target(
         this, type.raw_type == expected_raw_type,
         strprintf("Expected type %s but found %s:\n%s",
                   type_t(expected_raw_type).name(), type.name(), print().c_str()));
 }
+
+std::string val_t::print() const {
+    if (get_type().is_convertible(type_t::DATUM)) {
+        return as_datum()->print();
+    } else if (get_type().is_convertible(type_t::DB)) {
+        return strprintf("db(\"%s\")", as_db()->name.c_str());
+    } else if (get_type().is_convertible(type_t::TABLE)) {
+        return strprintf("table(\"%s\")", table->name.c_str());
+    } else if (get_type().is_convertible(type_t::SELECTION)) {
+        return strprintf("OPAQUE SELECTION ON table(%s)",
+                         table->name.c_str());
+    } else {
+        // TODO: Do something smarter here?
+        return strprintf("OPAQUE VALUE %s", get_type().name());
+    }
+}
+
+std::string val_t::trunc_print() const {
+    if (get_type().is_convertible(type_t::DATUM)) {
+        return as_datum()->trunc_print();
+    } else {
+        std::string s = print();
+        if (s.size() > datum_t::trunc_len) {
+            s.erase(s.begin() + (datum_t::trunc_len - 3), s.end());
+            s += "...";
+        }
+        return s;
+    }
+}
+
 
 } // namespace ql
