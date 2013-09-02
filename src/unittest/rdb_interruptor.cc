@@ -34,13 +34,13 @@ void add_table_arg(Term *term, const std::string &db_name, const std::string &ta
     add_string_arg(arg, table_name);
 }
 
-Term* add_term_arg(Term *term, Term::TermType type) {
+Term *add_term_arg(Term *term, Term::TermType type) {
     Term *new_term = term->add_args();
     new_term->set_type(type);
     return new_term;
 }
 
-Datum* add_object_arg(Term *term) {
+Datum *add_object_arg(Term *term) {
     Term *arg = term->add_args();
     arg->set_type(Term::DATUM);
     Datum *datum = arg->mutable_datum();
@@ -136,7 +136,7 @@ private:
 class verify_callback_t {
 public:
     virtual ~verify_callback_t() { }
-    virtual bool verify(test_rdb_env_t::instance_t*) = 0;
+    virtual bool verify(test_rdb_env_t::instance_t *) = 0;
 };
 
 void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32_t *count_out,
@@ -184,8 +184,8 @@ public:
         should_exist(_should_exist) { }
     virtual ~exists_verify_callback_t() { }
 
-    bool verify(test_rdb_env_t::instance_t* env_instance) {
-        const std::map<store_key_t, scoped_cJSON_t*> *data = env_instance->get_data(ns_id);
+    bool verify(test_rdb_env_t::instance_t *env_instance) {
+        const std::map<store_key_t, scoped_cJSON_t *> *data = env_instance->get_data(ns_id);
         bool exists = data->find(key) != data->end();
         return should_exist == exists;
     }
