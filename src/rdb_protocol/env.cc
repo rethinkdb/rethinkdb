@@ -192,6 +192,7 @@ void scopes_t::pop_scope() {
     // DO NOT pop the vector off the scope stack.  You might invalidate a
     // pointer too early.
     // RSI: ^^^ Pointers into a vector???
+    // RSI: This ain't no stack.
 }
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
