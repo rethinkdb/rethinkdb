@@ -123,7 +123,8 @@ public:
     virtual ~interrupt_callback_t() { }
 
     void eval_callback() {
-        if (--delay == 0) {
+        --delay;
+        if (delay == 0) {
             test_env_instance->interrupt();
         }
     }
