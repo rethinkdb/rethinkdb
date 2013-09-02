@@ -447,7 +447,7 @@ private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
         counted_t<const datum_t> pkey = arg(1)->as_datum();
-        counted_t<const datum_t> row = table->get_row(pkey);
+        counted_t<const datum_t> row = table->get_row(env, pkey);
         return new_val(row, table);
     }
     virtual const char *name() const { return "get"; }
@@ -466,7 +466,7 @@ private:
             for (size_t i = 1; i < num_args(); ++i) {
                 counted_t<const datum_t> key = arg(i)->as_datum();
                 counted_t<datum_stream_t> seq =
-                    table->get_all(key, index->as_str(), backtrace());
+                    table->get_all(env, key, index->as_str(), backtrace());
                 streams.push_back(seq);
             }
             counted_t<datum_stream_t> stream
@@ -476,7 +476,7 @@ private:
             datum_ptr_t arr(datum_t::R_ARRAY);
             for (size_t i = 1; i < num_args(); ++i) {
                 counted_t<const datum_t> key = arg(i)->as_datum();
-                counted_t<const datum_t> row = table->get_row(key);
+                counted_t<const datum_t> row = table->get_row(env, key);
                 if (row->get_type() != datum_t::R_NULL) {
                     arr.add(row);
                 }

@@ -117,7 +117,7 @@ private:
                     // TODO: that solution sucks.
                 }
                 counted_t<const datum_t> new_stats =
-                    t->replace(d, d, upsert, durability_requirement, return_vals);
+                    t->replace(env, d, d, upsert, durability_requirement, return_vals);
                 stats = stats->merge(new_stats, stats_merge);
                 done = true;
             }
@@ -145,7 +145,7 @@ private:
                 }
 
                 std::vector<counted_t<const datum_t> > results =
-                    t->batch_replace(datums, datums, upsert, durability_requirement);
+                    t->batch_replace(env, datums, datums, upsert, durability_requirement);
                 for (auto it = results.begin(); it != results.end(); ++it) {
                     stats = stats->merge(*it, stats_merge);
                 }
@@ -199,7 +199,7 @@ private:
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
             counted_t<const datum_t> result =
-                tblrow.first->replace(tblrow.second, f, nondet_ok,
+                tblrow.first->replace(env, tblrow.second, f, nondet_ok,
                                       durability_requirement, return_vals);
             stats = stats->merge(result, stats_merge);
         } else {
@@ -217,7 +217,7 @@ private:
                     break;
                 }
                 std::vector<counted_t<const datum_t> > results =
-                    tbl->batch_replace(datums, f, nondet_ok, durability_requirement);
+                    tbl->batch_replace(env, datums, f, nondet_ok, durability_requirement);
 
                 for (auto result = results.begin(); result != results.end(); ++result) {
                     stats = stats->merge(*result, stats_merge);

@@ -27,12 +27,15 @@ public:
 
 class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
-    table_t(env_t *_env, counted_t<const db_t> db, const std::string &name,
+    table_t(env_t *env,
+            counted_t<const db_t> db, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
-    counted_t<datum_stream_t> as_datum_stream(const protob_t<const Backtrace> &bt);
+    counted_t<datum_stream_t> as_datum_stream(env_t *env,
+                                              const protob_t<const Backtrace> &bt);
     const std::string &get_pkey();
-    counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
+    counted_t<const datum_t> get_row(env_t *env, counted_t<const datum_t> pval);
     counted_t<datum_stream_t> get_all(
+            env_t *env,
             counted_t<const datum_t> value,
             const std::string &sindex_id,
             const protob_t<const Backtrace> &bt);
@@ -47,32 +50,36 @@ public:
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
 
-    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> replace(env_t *env,
+                                     counted_t<const datum_t> orig,
                                      counted_t<func_t> f,
                                      bool nondet_ok,
                                      durability_requirement_t durability_requirement,
                                      bool return_vals);
-    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> replace(env_t *env,
+                                     counted_t<const datum_t> orig,
                                      counted_t<const datum_t> d,
                                      bool upsert,
                                      durability_requirement_t durability_requirement,
                                      bool return_vals);
 
     std::vector<counted_t<const datum_t> > batch_replace(
+        env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
         counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement);
 
     std::vector<counted_t<const datum_t> > batch_replace(
+        env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
         const std::vector<counted_t<const datum_t> > &replacement_values,
         bool upsert,
         durability_requirement_t durability_requirement);
 
-    MUST_USE bool sindex_create(const std::string &name, counted_t<func_t> index_func);
-    MUST_USE bool sindex_drop(const std::string &name);
-    counted_t<const datum_t> sindex_list();
+    MUST_USE bool sindex_create(env_t *env, const std::string &name, counted_t<func_t> index_func);
+    MUST_USE bool sindex_drop(env_t *env, const std::string &name);
+    counted_t<const datum_t> sindex_list(env_t *env);
 
     counted_t<const db_t> db;
     const std::string name;
@@ -93,26 +100,25 @@ private:
     };
 
     std::vector<counted_t<const datum_t> > batch_replace(
+        env_t *env,
         const std::vector<datum_func_pair_t> &replacements,
         durability_requirement_t durability_requirement);
 
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
                                         const map_wire_func_t &mwf,
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
                                         counted_t<func_t> f,
                                         bool nondet_ok,
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
                                         counted_t<const datum_t> d,
                                         bool upsert,
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
 
-    // RSI: Probably we shouldn't have env as a local.
-    env_t *env;
     bool use_outdated;
     std::string pkey;
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;

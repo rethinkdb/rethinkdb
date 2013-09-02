@@ -287,7 +287,7 @@ private:
             counted_t<table_t> table = v->as_table();
             b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
             b |= info.add("primary_key", make_counted<datum_t>(std::string(table->get_pkey())));
-            b |= info.add("indexes", table->sindex_list());
+            b |= info.add("indexes", table->sindex_list(env));
             b |= info.add("db", val_info(new_val(table->db)));
         } break;
         case SELECTION_TYPE: {

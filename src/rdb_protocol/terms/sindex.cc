@@ -45,7 +45,7 @@ public:
         }
         r_sanity_check(index_func.has());
 
-        bool success = table->sindex_create(name, index_func);
+        bool success = table->sindex_create(env, name, index_func);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));
@@ -66,7 +66,7 @@ public:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
         std::string name = arg(1)->as_datum()->as_str();
-        bool success = table->sindex_drop(name);
+        bool success = table->sindex_drop(env, name);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
             UNUSED bool b = res.add("dropped", make_counted<datum_t>(1.0));
@@ -87,7 +87,7 @@ public:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
 
-        return new_val(table->sindex_list());
+        return new_val(table->sindex_list(env));
     }
 
     virtual const char *name() const { return "sindex_list"; }

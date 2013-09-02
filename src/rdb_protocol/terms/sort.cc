@@ -148,7 +148,7 @@ private:
         /* Compute the seq if we haven't already (if we were passed a table).
          * */
         if (!seq.has()) {
-            seq = tbl->as_datum_stream(backtrace());
+            seq = tbl->as_datum_stream(env, backtrace());
         }
 
         if (!comparisons.empty()) {
