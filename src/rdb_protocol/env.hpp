@@ -80,16 +80,16 @@ public:
         ~special_var_shadower_t();
     private:
         scopes_t *shadow_scopes;
-        std::map<sym_t, counted_t<const datum_t > *> current_scope;
+        std::map<sym_t, const counted_t<const datum_t > *> current_scope;
     };
 
     // Get the current binding of a variable in the current scope.
-    counted_t<const datum_t> *top_var(sym_t var, const rcheckable_t *caller);
+    const counted_t<const datum_t> *top_var(sym_t var, const rcheckable_t *caller);
     // Unbind a variable in the current scope.
     void pop_var(sym_t var);
 
     // Dump the current scope.
-    void dump_scope(std::map<sym_t, counted_t<const datum_t> *> *out);
+    void dump_scope(std::map<sym_t, const counted_t<const datum_t> *> *out);
     // Swap in a previously-dumped scope.
     void push_scope(const std::map<sym_t, Datum> *in);
     // Discard a previously-pushed scope and restore original scope.
@@ -99,7 +99,7 @@ private:
     // Push a special variable.  (Pop it off with the normal `pop_var`.)
     void push_special_var(sym_t var, special_var_t special_var);
 
-    std::map<sym_t, std::stack<counted_t<const datum_t> *> > vars;
+    std::map<sym_t, std::stack<const counted_t<const datum_t> *> > vars;
     std::stack<std::vector<std::pair<sym_t, counted_t<const datum_t> > > > scope_stack;
     DISABLE_COPYING(scopes_t);
 };

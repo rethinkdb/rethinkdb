@@ -13,7 +13,7 @@ public:
         datum_val = env->scopes.top_var(var, this);
     }
 private:
-    counted_t<const datum_t> *datum_val; // pointer to variable's slot in argument array
+    const counted_t<const datum_t> *datum_val; // pointer to variable's slot in argument array
     virtual counted_t<val_t> eval_impl(env_t *, UNUSED eval_flags_t flags) {
         return new_val(*datum_val);
     }

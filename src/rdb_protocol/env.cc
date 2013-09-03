@@ -152,10 +152,10 @@ scopes_t::special_var_shadower_t::~special_var_shadower_t() {
     }
 }
 
-counted_t<const datum_t> *scopes_t::top_var(sym_t var, const rcheckable_t *caller) {
+const counted_t<const datum_t> *scopes_t::top_var(sym_t var, const rcheckable_t *caller) {
     rcheck_target(caller, base_exc_t::GENERIC, !vars[var].empty(),
                   strprintf("Unrecognized variabled %" PRIi64, var.value));
-    counted_t<const datum_t> *var_val = vars[var].top();
+    const counted_t<const datum_t> *var_val = vars[var].top();
     rcheck_target(caller, base_exc_t::GENERIC,
                   var_val != &sindex_error_dummy_datum,
                   "Cannot reference external variables from inside an index.");
@@ -164,7 +164,7 @@ counted_t<const datum_t> *scopes_t::top_var(sym_t var, const rcheckable_t *calle
 void scopes_t::pop_var(sym_t var) {
     vars[var].pop();
 }
-void scopes_t::dump_scope(std::map<sym_t, counted_t<const datum_t> *> *out) {
+void scopes_t::dump_scope(std::map<sym_t, const counted_t<const datum_t> *> *out) {
     for (auto it = vars.begin(); it != vars.end(); ++it) {
         if (!it->second.empty()) {
             r_sanity_check(it->second.top());

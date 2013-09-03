@@ -75,7 +75,7 @@ private:
     protob_t<const Term> source;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
-    std::map<sym_t, counted_t<const datum_t> *> scope;
+    std::map<sym_t, const counted_t<const datum_t> *> scope;
 
     // RSI: It seems there are two kinds of functions, this js stuff doesn't get used
     // most of the time.

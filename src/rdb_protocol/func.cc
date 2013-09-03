@@ -160,9 +160,10 @@ counted_t<val_t> func_t::call(counted_t<const datum_t> arg1,
 }
 
 void func_t::dump_scope(std::map<sym_t, Datum> *out) const {
-    for (std::map<sym_t, counted_t<const datum_t> *>::const_iterator
-             it = scope.begin(); it != scope.end(); ++it) {
-        if (!it->second->has()) continue;
+    for (auto it = scope.begin(); it != scope.end(); ++it) {
+        if (!it->second->has()) {
+            continue;
+        }
         (*it->second)->write_to_protobuf(&(*out)[it->first]);
     }
 }
