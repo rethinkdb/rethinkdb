@@ -3418,11 +3418,20 @@ module 'DataExplorerView', ->
 
         delete_query: (event) =>
             that = @
+
+            # Remove the query and overwrite localStorage.rethinkdb_history
             id = parseInt(@$(event.target).data().id)
             @history.splice(id, 1)
+            window.localStorage.rethinkdb_history = JSON.stringify @history
+
+            # Animate the deletion
+            is_at_bottom = @$('.history_list').height() is $('.nano > .content').scrollTop()+$('.nano').height()
             @$('#query_history_'+id).slideUp 'fast', =>
                 that.$(this).remove()
                 that.render()
+                that.container.adjust_collapsible_panel_height
+                    is_at_bottom: is_at_bottom
+
 
         add_query: (args) =>
             query = args.query
