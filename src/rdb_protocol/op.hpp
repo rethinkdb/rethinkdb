@@ -77,13 +77,8 @@ private:
 class bounded_op_term_t : public op_term_t {
 public:
     bounded_op_term_t(env_t *env, protob_t<const Term> term,
-                      argspec_t argspec, optargspec_t optargspec = optargspec_t({}))
-        : op_term_t(env, term, argspec,
-                    optargspec.with({"left_bound", "right_bound"})),
-          left_open_(false), right_open_(true) {
-        left_open_ = open_bool(env, "left_bound", false);
-        right_open_ = open_bool(env, "right_bound", true);
-    }
+                      argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
+
     virtual ~bounded_op_term_t() { }
 protected:
     bool left_open() { return left_open_; }
