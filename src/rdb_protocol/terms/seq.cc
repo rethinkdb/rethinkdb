@@ -57,13 +57,14 @@ private:
 class filter_term_t : public op_term_t {
 public:
     filter_term_t(env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2), optargspec_t({"default"})),
-          default_filter_val(lazy_literal_optarg(env, "default")) { }
+        : op_term_t(env, term, argspec_t(2), optargspec_t({"default"})) { }
+
 private:
     virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(env, 0);
         counted_t<val_t> v1 = arg(env, 1, LITERAL_OK);
         counted_t<func_t> f = v1->as_func(env, CONSTANT_SHORTCUT);
+        counted_t<func_t> default_filter_val = lazy_literal_optarg(env, "default");
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
                 = v0->as_selection(env);
@@ -72,7 +73,7 @@ private:
             return new_val(env, v0->as_seq(env)->filter(env, f, default_filter_val));
         }
     }
-    counted_t<func_t> default_filter_val;
+
     virtual const char *name() const { return "filter"; }
 };
 
