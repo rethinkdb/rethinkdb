@@ -80,13 +80,13 @@ public:
                       argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
 
     virtual ~bounded_op_term_t() { }
+
 protected:
-    bool left_open() { return left_open_; }
-    bool right_open() { return right_open_; }
+    bool left_open(env_t *env);
+    bool right_open(env_t *env);
+
 private:
     bool open_bool(env_t *env, const std::string &key, bool def/*ault*/);
-
-    bool left_open_, right_open_;
 };
 
 }  // namespace ql

@@ -107,7 +107,7 @@ private:
         }
 
         if (lb.has() && rb.has()) {
-            if (*lb > *rb || ((left_open() || right_open()) && *lb == *rb)) {
+            if (*lb > *rb || ((left_open(env) || right_open(env)) && *lb == *rb)) {
                 counted_t<const datum_t> arr = make_counted<datum_t>(datum_t::R_ARRAY);
                 counted_t<datum_stream_t> ds(
                     new array_datum_stream_t(arr, backtrace()));
@@ -118,7 +118,7 @@ private:
         counted_t<val_t> sindex = optarg(env, "index");
         std::string sid = (sindex.has() ? sindex->as_str() : tbl->get_pkey());
 
-        tbl->add_bounds(lb, left_open(), rb, right_open(), sid, this);
+        tbl->add_bounds(lb, left_open(env), rb, right_open(env), sid, this);
         return new_val(tbl);
     }
     virtual const char *name() const { return "between"; }

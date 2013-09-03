@@ -128,10 +128,14 @@ bool op_term_t::is_deterministic_impl() const {
 bounded_op_term_t::bounded_op_term_t(env_t *env, protob_t<const Term> term,
                                      argspec_t argspec, optargspec_t optargspec)
     : op_term_t(env, term, argspec,
-                optargspec.with({"left_bound", "right_bound"})),
-      left_open_(false), right_open_(true) {
-    left_open_ = open_bool(env, "left_bound", false);
-    right_open_ = open_bool(env, "right_bound", true);
+                optargspec.with({"left_bound", "right_bound"})) { }
+
+bool bounded_op_term_t::left_open(env_t *env) {
+    return open_bool(env, "left_bound", false);
+}
+
+bool bounded_op_term_t::right_open(env_t *env) {
+    return open_bool(env, "right_bound", true);
 }
 
 bool bounded_op_term_t::open_bool(env_t *env, const std::string &key, bool def/*ault*/) {

@@ -130,14 +130,14 @@ private:
             uint64_t real_l = canonicalize(this, fake_l, arr->size(), &l_oob);
             if (l_oob) {
                 real_l = 0;
-            } else if (left_open()) {
+            } else if (left_open(env)) {
                 real_l += 1; // This is safe because it was an int64_t before.
             }
             bool r_oob = false;
             uint64_t real_r = canonicalize(this, fake_r, arr->size(), &r_oob);
             if (r_oob) {
                 return new_val(make_counted<const datum_t>(datum_t::R_ARRAY));
-            } else if (!right_open()) {
+            } else if (!right_open(env)) {
                 real_r += 1; // This is safe because it was an int64_t before.
             }
 
@@ -164,17 +164,17 @@ private:
             rcheck(fake_l >= 0, base_exc_t::GENERIC,
                    "Cannot use a negative left index on a stream.");
             uint64_t real_l = fake_l;
-            if (left_open()) {
+            if (left_open(env)) {
                 real_l += 1; // This is safe because it was an int64_t before.
             }
             uint64_t real_r = fake_r;
             if (fake_r < -1) {
                 rfail(base_exc_t::GENERIC, "Cannot use a right index < -1 on a stream.");
             } else if (fake_r == -1) {
-                rcheck(!right_open(), base_exc_t::GENERIC,
+                rcheck(!right_open(env), base_exc_t::GENERIC,
                        "Cannot slice to an open right index of -1 on a stream.");
                 real_r = std::numeric_limits<uint64_t>::max();
-            } else if (!right_open()) {
+            } else if (!right_open(env)) {
                 real_r += 1;  // This is safe because it was an int32_t before.
             }
             counted_t<datum_stream_t> new_ds = seq->slice(real_l, real_r);
