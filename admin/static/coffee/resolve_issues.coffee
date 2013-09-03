@@ -44,12 +44,16 @@ module 'ResolveIssuesView', ->
         on_submit: ->
             super
 
-            $.ajax
-                url: "ajax/semilattice/machines/#{@machine_to_kill.id}"
-                type: 'DELETE'
-                contentType: 'application/json'
-                success: @on_success
-                error: @on_error
+            if @$('.verification').val().toLowerCase() is 'permanently remove'
+                $.ajax
+                    url: "ajax/semilattice/machines/#{@machine_to_kill.id}"
+                    type: 'DELETE'
+                    contentType: 'application/json'
+                    success: @on_success
+                    error: @on_error
+            else
+                @.$('.error_verification').slideDown 'fast'
+                @reset_buttons()
 
         on_success_with_error: =>
             @.$('.error_answer').html @template_issue_error
