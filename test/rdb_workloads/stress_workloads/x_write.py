@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import md5, sys, os, random, time, errno, string
-from pareto import Pareto
+import md5, sys, os, random, string, pareto
+import multiprocessing
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
 import rethinkdb as r
@@ -9,36 +9,32 @@ class Workload:
     def __init__(self, options):
         self.db = options["db"]
         self.table = options["table"]
-        self.cid_dist = Pareto(1000)
-        self.typ_dist = Pareto(10)
+        self.cid_dist = pareto.Pareto(1000)
+        self.typ_dist = pareto.Pareto(10)
 
-        # Load the max_key
-        # We use a named pipe "./db.table.key_pipe" to coordinate max key
-        new_fifo = False
-        fifo_filename = "./%s.%s.key_pipe" % (self.db, self.table)
-        try:
-            os.mkfifo(fifo_filename)
-            new_fifo = True
-        except OSError as ex:
-            if ex.errno != errno.EEXIST:
-                raise
+        # We use a multiprocessing shared value to store the latest key
+        self.max_key = multiprocessing.Value('L', options["max_key"])
 
-        self.key_pipe = os.open(fifo_filename, os.O_RDWR)
-        if new_fifo:
-            self.write_key(options["max_key"])
+        if options["max_key_file"] is not None:
+            self.key_file = open(options["max_key_file"], "w")
+        else:
+            self.key_file = None
 
-    # This sort of depends on being atomic - which means partial reads are a problem
-    # Thus we write and read exactly 32 bytes every time
+    def update_max_key(self, new_key):
+        if new_key % 100 == 0:
+            if self.key_file is not None:
+                self.key_file.seek(0)
+                new_max_key = self.key_file.write(str(new_key)) # TODO: handle EINTR
+
     def get_key(self):
-        key_str = os.read(self.key_pipe, 32)
-        if len(key_str) != 32:
-            raise RuntimeError("Incomplete read from key_pipe: %d of 32" % len(key_str))
-        key = int(key_str) + 1
-        self.write_key(key)
-        return key
-
-    def write_key(self, key):
-        os.write(self.key_pipe, "%032d" % key)
+        self.max_key.acquire()
+        try:
+            new_key = self.max_key.value + 1
+            self.max_key.value = new_key
+        finally:
+            self.max_key.release()
+        self.update_max_key(new_key)
+        return new_key
 
     def generate_nested(self, levels):
         nested = { }

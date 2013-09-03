@@ -123,12 +123,11 @@ def print_stats(stats, start_time, end_time, num_clients):
 
 def interrupt_handler(signal, frame, exit_event, parent_pid):
     if os.getpid() == parent_pid:
-        print "Interrupted"
         exit_event.set()
 
 class QueryThrottler:
     def __init__(self, options, stat_queue):
-        self.workload = options["workload"].Workload(options)
+        self.workload = options["workload"]
         self.stat_queue = stat_queue
         self.secs_per_op = float(options["clients"]) / options["ops_per_sec"]
 
@@ -229,6 +228,7 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default=None, type="string")
     parser.add_option("--max-key", dest="max_key", metavar="KEY", default=None, type="int")
+    parser.add_option("--max-key-file", dest="max_key_file", metavar="FILE", default=None, type="string")
     parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=1000, type="int")
     parser.add_option("--ops-per-conn", dest="ops_per_conn", metavar="NUMBER", default=1000, type="int")
     parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, type="int")
@@ -242,15 +242,29 @@ if __name__ == "__main__":
                 "quiet": parsed_options.quiet,
                 "hosts": [ ] }
 
-    if parsed_options.max_key is None:
-        print "no max key given"
-        exit(1)
-
-    options["max_key"] = parsed_options.max_key
-
     if len(args) != 0:
         print "no positional arguments supported"
         exit(1)
+
+    options["max_key"] = parsed_options.max_key
+    options["max_key_file"] = parsed_options.max_key_file
+
+    if options["max_key_file"] is None:
+        if options["max_key"] is None:
+            print "no max key or max key file given"
+            exit(1)
+    else:
+        if not os.path.isfile(options["max_key_file"]):
+            # File doesn't exist, initialize it
+            if options["max_key"] is None:
+                print "no max key given and max key file doesn't exist"
+                exit(1)
+            with open(options["max_key_file"], "w") as max_key_file:
+                max_key_file.write(str(options["max_key"]))
+        elif options["max_key"] is None:
+            # Load max key
+            with open(options["max_key_file"], "r") as max_key_file:
+                options["max_key"] = int(max_key_file.read())
 
     # Parse out host/port pairs
     for host_port in parsed_options.hosts:
@@ -263,11 +277,6 @@ if __name__ == "__main__":
     if parsed_options.workload is None:
         print "no workload specified"
         exit(1)
-
-    # Parse out workload info
-    # Add the stress_workload subdirectory to the import search path
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'stress_workloads')))
-    options["workload"] = __import__(parsed_options.workload)
 
     # Get table name, and make sure it exists on the server
     if parsed_options.db_table is None:
@@ -285,5 +294,10 @@ if __name__ == "__main__":
         else:
             # Using existing table
             pass
+
+    # Parse out workload info
+    # Add the stress_workload subdirectory to the import search path
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'stress_workloads')))
+    options["workload"] = __import__(parsed_options.workload).Workload(options)
 
     stress_controller(options)

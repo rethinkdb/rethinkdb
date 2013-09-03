@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-import sys, os, time, datetime
-import pareto
+import sys, os, datetime, pareto
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
 import rethinkdb as r
