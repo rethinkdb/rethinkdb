@@ -60,6 +60,32 @@ private:
     DISABLE_COPYING(gensym_t);
 };
 
+// RSI: Make this efficient.
+class var_visibility_t {
+public:
+    var_visibility_t();
+    var_visibility_t with_var_names(const std::vector<sym_t> &new_visibles) const;
+    var_visibility_t with_implicit() const;
+private:
+    std::set<sym_t> visibles;
+    size_t num_implicits;
+};
+
+// RSI: Make this efficient.
+class var_scope_t {
+public:
+    var_scope_t();
+    var_scope_t with_vars(const std::vector<std::pair<sym_t, counted_t<const datum_t> > > &vars) const;
+    var_scope_t with_implicit(counted_t<const datum_t> implicit_var) const;
+
+private:
+    std::map<sym_t, counted_t<const datum_t> > vars;
+
+    size_t implicit_depth;
+    // Is non-empty IFF implicits_depth == 1.
+    counted_t<const datum_t> maybe_implicit;
+};
+
 class scopes_t {
 public:
     scopes_t();

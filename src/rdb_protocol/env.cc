@@ -104,6 +104,41 @@ bool gensym_t::var_allows_implicit(sym_t varnum) {
 }
 
 
+var_visibility_t::var_visibility_t() : num_implicits(0) { }
+
+var_visibility_t var_visibility_t::with_var_names(const std::vector<sym_t> &new_visibles) const {
+    var_visibility_t ret = *this;
+     // RSI: Maybe we should check for overlap and fail (because each function's symbol in the syntax tree should be different).
+    ret.visibles.insert(new_visibles.begin(), new_visibles.end());
+    return ret;
+}
+
+var_visibility_t var_visibility_t::with_implicit() const {
+    var_visibility_t ret = *this;
+    ++ret.num_implicits;
+    return ret;
+}
+
+var_scope_t::var_scope_t() : implicit_depth(0) { }
+
+var_scope_t var_scope_t::with_vars(const std::vector<std::pair<sym_t, counted_t<const datum_t> > > &new_vars) const {
+    var_scope_t ret = *this;
+    ret.vars.insert(new_vars.begin(), new_vars.end());
+    return ret;
+}
+
+var_scope_t var_scope_t::with_implicit(counted_t<const datum_t> implicit_var) const {
+    var_scope_t ret = *this;
+    if (ret.implicit_depth == 0) {
+        ret.maybe_implicit = implicit_var;
+    } else {
+        ret.maybe_implicit.reset();
+    }
+    ++ret.implicit_depth;
+    return ret;
+}
+
+
 implicit_vars_t::implicit_vars_t() { }
 
 void implicit_vars_t::push_implicit(counted_t<const datum_t> *val) {
