@@ -15,7 +15,6 @@ class Workload:
         cursor = r.db(self.db).table(self.table).get_all(cid, index="customer_id").group_by("type", r.count).run(conn)
 
         for row in cursor:
-            print row
             pass
 
         return { }

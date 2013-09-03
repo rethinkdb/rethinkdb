@@ -229,7 +229,7 @@ if __name__ == "__main__":
     parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default=None, type="string")
     parser.add_option("--max-key", dest="max_key", metavar="KEY", default=None, type="int")
     parser.add_option("--max-key-file", dest="max_key_file", metavar="FILE", default=None, type="string")
-    parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=1000, type="int")
+    parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=1000, type="float")
     parser.add_option("--ops-per-conn", dest="ops_per_conn", metavar="NUMBER", default=1000, type="int")
     parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, type="int")
     parser.add_option("--workload", "-w", dest="workload", metavar="WORKLOAD", default=None, type="string")
