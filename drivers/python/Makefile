@@ -37,14 +37,17 @@ clean:
 PY_PKG_DIR=$(RETHINKDB_HOME)/build/packages/python
 
 sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE)
-	/usr/bin/python setup.py sdist
-
-publish: $(PYTHON_PB_FILE)
 	mkdir -p $(PY_PKG_DIR)
 	cp setup.py $(PY_PKG_DIR)
 	cp MANIFEST.in $(PY_PKG_DIR)
 	cp -r rethinkdb $(PY_PKG_DIR)
 	cp $(PYTHON_PB_FILE) $(PY_PKG_DIR)/rethinkdb
-	cd $(PY_PKG_DIR); python setup.py register sdist upload
+	cd $(PY_PKG_DIR) && python setup.py sdist
 
-.PHONY: all clean publish sdist
+publish: sdist
+	cd $(PY_PKG_DIR) && python setup.py register upload
+
+install: sdist
+	cd $(PY_PKG_DIR) && python setup.py install
+
+.PHONY: all clean publish sdist install

@@ -218,7 +218,7 @@ def csv_writer(filename, fields, task_queue, error_queue):
     try:
         with open(filename, "w") as out:
             out_writer = csv.writer(out)
-            out_writer.writerow(fields)
+            out_writer.writerow([s.encode('utf-8') for s in fields])
 
             while True:
                 item = task_queue.get()
@@ -230,8 +230,10 @@ def csv_writer(filename, fields, task_queue, error_queue):
                 for field in fields:
                     if field not in row:
                         info.append(None)
-                    elif isinstance(row[field], (int, long, float, complex, str, unicode)):
-                        info.append(str(row[field]))
+                    elif isinstance(row[field], (int, long, float, complex)):
+                        info.append(str(row[field]).encode('utf-8'))
+                    elif isinstance(row[field], (str, unicode)):
+                        info.append(row[field].encode('utf-8'))
                     else:
                         info.append(json.dumps(row[field]))
                 out_writer.writerow(info)
