@@ -224,21 +224,25 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
     }
 }
 
-bool concrete_func_t::filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const {
+bool concrete_func_t::filter_helper(counted_t<const datum_t> arg) const {
+    counted_t<const datum_t> d = call(make_vector(arg))->as_datum();
+    if (d->get_type() == datum_t::R_OBJECT &&
+        (source->args(1).type() == Term::MAKE_OBJ ||
+         source->args(1).type() == Term::DATUM)) {
+        return filter_match(d, arg, this);
+    } else {
+        return d->as_bool();
+    }
+}
+
+bool func_t::filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const {
     // We have to catch every exception type and save it so we can rethrow it later
     // So we don't trigger a coroutine wait in a catch statement
     std::exception_ptr saved_exception;
     base_exc_t::type_t exception_type;
 
     try {
-        counted_t<const datum_t> d = call(make_vector(arg))->as_datum();
-        if (d->get_type() == datum_t::R_OBJECT &&
-            (source->args(1).type() == Term::MAKE_OBJ ||
-             source->args(1).type() == Term::DATUM)) {
-            return filter_match(d, arg, this);
-        } else {
-            return d->as_bool();
-        }
+        return filter_helper(arg);
     } catch (const base_exc_t &e) {
         saved_exception = std::current_exception();
         exception_type = e.get_type();

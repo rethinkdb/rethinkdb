@@ -30,7 +30,6 @@ public:
     virtual ~func_t();
 
     virtual counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const = 0;
-    virtual bool filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const = 0;
 
     virtual protob_t<const Term> get_source() const = 0;
     virtual void dump_scope(std::map<sym_t, Datum> *out) const = 0;
@@ -39,12 +38,16 @@ public:
 
     void assert_deterministic(const char *extra_msg) const;
 
-    // Helpers that call the vector version of call.
+    bool filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const;
+
+    // These are simple, they call the vector version of call.
     counted_t<val_t> call() const;
     counted_t<val_t> call(counted_t<const datum_t> arg) const;
     counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
 
 private:
+    virtual bool filter_helper(counted_t<const datum_t> arg) const = 0;
+
     DISABLE_COPYING(func_t);
 };
 
@@ -61,14 +64,14 @@ public:
     // function as their argument.
     counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const;
 
-    bool filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const;
-
     void dump_scope(std::map<sym_t, Datum> *out) const;
     bool is_deterministic() const;
 
     protob_t<const Term> get_source() const;
 
 private:
+    bool filter_helper(counted_t<const datum_t> arg) const;
+
     // RSI: Some kind of cleanup work to do about this env.
     env_t *const env;
 
