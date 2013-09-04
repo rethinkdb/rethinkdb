@@ -13,7 +13,7 @@ staging_dirs=`seq -f "$staging%g " $num_instances | tr "\n" " "`
 parallel -uj0 "echo Prepping {}...; ssh_to {} <<\"EOF\"
 sudo service distcc-chroot stop >/dev/null 2>/dev/null
 sudo swapoff -a
-sudo killall -q rethinkdb setup.sh
+sudo killall -q -9 rethinkdb setup.sh
 for d in $staging_dirs; do
     [[ -e \$d ]] || { echo \"ERROR no directory \$d on {}\"; exit 1; }
     sudo chown ubuntu:ubuntu \$d

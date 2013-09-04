@@ -17,23 +17,27 @@ export POC=`head -1 server_hosts`
 export POC_OFFSET=1
 echo "`provision clients $CLIENTS`" > client_hosts
 echo SERVERS: `cat server_hosts` >&2
+node_pairs=":::: server_hosts ::: `seq $SERVER_INSTANCES`"
+nodes=`parallel -uj0 echo -n '" {1}:$((CLIENT_PORT+{2}))"' $node_pairs`
+echo NODES: "$nodes" >&2
 echo CLIENTS: `cat client_hosts` >&2
 
-init_rdb_cluster "`cat server_hosts`" \
-    $SERVER_INSTANCES $bench/server $SERVER_STAGING "$SERVER_OPTS" &
 init_clients "`cat client_hosts`" $bench/client $CLIENT_STAGING &
+init_rdb_cluster "`cat server_hosts`" \
+    $SERVER_INSTANCES $bench/server $SERVER_STAGING "$SERVER_OPTS"
+
 wait
 
 echo "Running $bench/server/setup.sh on $POC..."
-node_pairs=":::: server_hosts ::: `seq $SERVER_INSTANCES`"
-nodes=`parallel -uj0 echo -n '" {1}:$((CLIENT_PORT+{2}))"' $node_pairs`
 ssh_to $POC <<EOF
 cd $SERVER_STAGING$POC_OFFSET
 .persist/setup.sh $POC $POC_OFFSET '$nodes'
 EOF
 
-exit 0
+wait
+run_workload "`cat client_hosts`" $CLIENT_STAGING "$nodes"
 
+exit 0
 
 ################################################################################
 ##### Set up clients.

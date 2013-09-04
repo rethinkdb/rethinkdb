@@ -8,7 +8,7 @@ staging=$3
 parallel -uj0 "echo Prepping {}...; ssh_to {} <<\"EOF\"
 sudo service distcc-chroot stop >/dev/null 2>/dev/null
 sudo swapoff -a
-killall -q main.sh stress.py stress_client.py
+killall -q -9 main.sh stress.py stress_client.py
 sudo mkdir -p $staging
 sudo chown -R ubuntu:ubuntu $staging
 rm -rf $staging/*

@@ -1,0 +1,14 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+
+hosts=$1
+staging=$2
+nodes=$3
+
+run_at=$((`date +%s`+${RUN_AT_SLEEP-3}))
+parallel -uj0 "{ echo Running workload on {}...; ssh_to {} <<\"EOF\"
+cd $staging
+.persist/main.sh $run_at \"$nodes\"
+EOF
+} | tee -a {}.stdout" ::: $hosts >&2
+
