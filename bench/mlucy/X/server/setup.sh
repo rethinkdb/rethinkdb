@@ -12,9 +12,9 @@ servers=$3
 alpha=${ALPHA-1.160964}
 
 function ruby() {
+    local counter=${1-0}
     local num_servers=`wc -w <<< "$servers"`
-    local rand=$(((`echo -n 1; </dev/urandom tr -cd 0-9 | head -c3`-1000)%num_servers))
-    local server=`awk '{print $'$((rand+1))'}' <<< "$servers"`
+    local server=`awk '{print $'$(((counter%num_servers)+1))'}' <<< "$servers"`
     local host=${server%:*}
     local port=${server#*:}
     echo "Connecting to $host $port..." >>setup.log
@@ -92,7 +92,8 @@ num_insert=8000000
 function populate_table() {
     local start_offset=$1
     local end_offset=$2
-    ruby <<EOF
+    local counter=$3
+    ruby $counter <<EOF
 canon_row = {
   id: "eac8b0d0-d136-453c-a543-49f9a9e0ebf3",
   customer_id: "mlucy@rethinkdb.com",
@@ -157,7 +158,7 @@ concur=5
   row[:customer_id] = "customer#{sprintf("%03d", pareto(1000))}"
   rows << row
   if rows.size >= 100
-    tbl.insert(rows, durability:'soft').run(noreply:true)
+    tbl.insert(rows, durability:'soft').run
     rows = []
   end
 }
@@ -174,11 +175,12 @@ case $table_status in
         configure_table
 
         echo "Populating table..." >&2
-        num_clients=10
+        num_clients=20
         for i in `seq $num_clients`; do
             start=$(((num_insert*(i-1))/num_clients))
             end=$(((num_insert*i)/num_clients))
-            populate_table $start $end &
+            populate_table $start $end $i &
+            sleep 0.1
         done
         wait
         ;;
