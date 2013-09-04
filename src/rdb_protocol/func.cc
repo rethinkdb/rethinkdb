@@ -126,6 +126,8 @@ concrete_func_t::concrete_func_t(env_t *_env, protob_t<const Term> _source)
     env->scopes.dump_scope(&scope);
 }
 
+concrete_func_t::~concrete_func_t() { }
+
 counted_t<val_t> concrete_func_t::call(const std::vector<counted_t<const datum_t> > &args) const {
     try {
         if (js_parent.has()) {

@@ -55,6 +55,8 @@ public:
                     uint64_t timeout_ms,
                     counted_t<term_t> parent);
     concrete_func_t(env_t *env, protob_t<const Term> _source);
+    ~concrete_func_t();
+
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
     counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const;
@@ -91,6 +93,10 @@ private:
 
     DISABLE_COPYING(concrete_func_t);
 };
+
+// Some queries, like filter, can take a shortcut object instead of a
+// function as their argument.
+// RSI: Such queries should handle shortcut objects explicitly.
 
 counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
                                     const protob_t<const Backtrace> &root);
