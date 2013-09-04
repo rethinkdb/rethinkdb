@@ -8,7 +8,7 @@ namespace ql {
 
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
 wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
-    : source(make_counted_term_copy(*func->source)), uuid(generate_uuid()) {
+    : source(make_counted_term_copy(*func->get_source())), uuid(generate_uuid()) {
     r_sanity_check(env != NULL);
     env->func_cache.precache_func(this, func);
     func->dump_scope(&scope);

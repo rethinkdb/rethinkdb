@@ -41,7 +41,7 @@ public:
             }
 
             prop_bt(func_term.get());
-            index_func = make_counted<func_t>(env, func_term);
+            index_func = make_counted<concrete_func_t>(env, func_term);
         }
         r_sanity_check(index_func.has());
 

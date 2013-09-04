@@ -6,16 +6,46 @@
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/term_walker.hpp"
+#include "stl_utils.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
 
-func_t::func_t(env_t *_env,
-               const std::string &_js_source,
-               uint64_t timeout_ms,
-               counted_t<term_t> parent)
-    : pb_rcheckable_t(parent->backtrace()),
+func_t::func_t(const protob_t<const Term> &term) : pb_rcheckable_t(term) { }
+func_t::func_t(const protob_t<const Backtrace> &bt_source) : pb_rcheckable_t(bt_source) { }
+func_t::~func_t() { }
+
+counted_t<val_t> func_t::call() const {
+    std::vector<counted_t<const datum_t> > args;
+    return call(args);
+}
+
+counted_t<val_t> func_t::call(counted_t<const datum_t> arg) const {
+    std::vector<counted_t<const datum_t> > args;
+    args.push_back(std::move(arg));
+    return call(args);
+}
+
+counted_t<val_t> func_t::call(counted_t<const datum_t> arg1,
+                              counted_t<const datum_t> arg2) const {
+    std::vector<counted_t<const datum_t> > args;
+    args.push_back(std::move(arg1));
+    args.push_back(std::move(arg2));
+    return call(args);
+}
+
+void func_t::assert_deterministic(const char *extra_msg) const {
+    rcheck(is_deterministic(),
+           base_exc_t::GENERIC,
+           strprintf("Could not prove function deterministic.  %s", extra_msg));
+}
+
+concrete_func_t::concrete_func_t(env_t *_env,
+                                 const std::string &_js_source,
+                                 uint64_t timeout_ms,
+                                 counted_t<term_t> parent)
+    : func_t(parent->backtrace()),
       env(_env),
       source(parent->get_src()),
       js_parent(parent),
@@ -24,8 +54,8 @@ func_t::func_t(env_t *_env,
     env->scopes.dump_scope(&scope);
 }
 
-func_t::func_t(env_t *_env, protob_t<const Term> _source)
-    : pb_rcheckable_t(_source), env(_env), source(_source),
+concrete_func_t::concrete_func_t(env_t *_env, protob_t<const Term> _source)
+    : func_t(_source), env(_env), source(_source),
       js_timeout_ms(0) {
     // RSI: This function is absurdly long and complicated.
 
@@ -96,8 +126,7 @@ func_t::func_t(env_t *_env, protob_t<const Term> _source)
     env->scopes.dump_scope(&scope);
 }
 
-// RSI: This shouldn't take an env_t.
-counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args) const {
+counted_t<val_t> concrete_func_t::call(const std::vector<counted_t<const datum_t> > &args) const {
     try {
         if (js_parent.has()) {
             r_sanity_check(!body.has() && source.has());
@@ -141,26 +170,7 @@ counted_t<val_t> func_t::call(const std::vector<counted_t<const datum_t> > &args
     }
 }
 
-counted_t<val_t> func_t::call() const {
-    std::vector<counted_t<const datum_t> > args;
-    return call(args);
-}
-
-counted_t<val_t> func_t::call(counted_t<const datum_t> arg) const {
-    std::vector<counted_t<const datum_t> > args;
-    args.push_back(arg);
-    return call(args);
-}
-
-counted_t<val_t> func_t::call(counted_t<const datum_t> arg1,
-                              counted_t<const datum_t> arg2) const {
-    std::vector<counted_t<const datum_t> > args;
-    args.push_back(arg1);
-    args.push_back(arg2);
-    return call(args);
-}
-
-void func_t::dump_scope(std::map<sym_t, Datum> *out) const {
+void concrete_func_t::dump_scope(std::map<sym_t, Datum> *out) const {
     for (auto it = scope.begin(); it != scope.end(); ++it) {
         if (!it->second->has()) {
             continue;
@@ -168,26 +178,16 @@ void func_t::dump_scope(std::map<sym_t, Datum> *out) const {
         (*it->second)->write_to_protobuf(&(*out)[it->first]);
     }
 }
-bool func_t::is_deterministic() const {
+bool concrete_func_t::is_deterministic() const {
     return body.has() ? body->is_deterministic() : false;
 }
-void func_t::assert_deterministic(const char *extra_msg) const {
-    rcheck(is_deterministic(),
-           base_exc_t::GENERIC,
-           strprintf("Could not prove function deterministic.  %s", extra_msg));
-}
 
-std::string func_t::print_src() const {
-    r_sanity_check(source.has());
-    return source->DebugString();
-}
-
-protob_t<const Term> func_t::get_source() const {
+protob_t<const Term> concrete_func_t::get_source() const {
     return source;
 }
 
 func_term_t::func_term_t(env_t *env, const protob_t<const Term> &term)
-    : term_t(term), func(make_counted<func_t>(env, term)) { }
+    : term_t(term), func(make_counted<concrete_func_t>(env, term)) { }
 
 counted_t<val_t> func_term_t::eval_impl(env_t *, UNUSED eval_flags_t flags) {
     return new_val(func);
@@ -222,14 +222,14 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
     }
 }
 
-bool func_t::filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const {
+bool concrete_func_t::filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const {
     // We have to catch every exception type and save it so we can rethrow it later
     // So we don't trigger a coroutine wait in a catch statement
     std::exception_ptr saved_exception;
     base_exc_t::type_t exception_type;
 
     try {
-        counted_t<const datum_t> d = call(arg)->as_datum();
+        counted_t<const datum_t> d = call(make_vector(arg))->as_datum();
         if (d->get_type() == datum_t::R_OBJECT &&
             (source->args(1).type() == Term::MAKE_OBJ ||
              source->args(1).type() == Term::DATUM)) {
@@ -279,7 +279,7 @@ counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
     propagate_backtrace(twrap.get(), bt_src.get());
-    return make_counted<func_t>(env, twrap);
+    return make_counted<concrete_func_t>(env, twrap);
 }
 
 counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
@@ -290,7 +290,7 @@ counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
     arg = pb::set_func(arg, obj);
     N2(GET_FIELD, NVAR(obj), NDATUM(key));
     propagate_backtrace(twrap.get(), bt_src.get());
-    return make_counted<func_t>(env, twrap);
+    return make_counted<concrete_func_t>(env, twrap);
 }
 
 counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
@@ -301,7 +301,7 @@ counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
     N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(PLUCK, NVAR(var), NDATUM(obj)));
     propagate_backtrace(twrap.get(), bt_src.get());
-    return make_counted<func_t>(env, twrap);
+    return make_counted<concrete_func_t>(env, twrap);
 }
 
 counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
@@ -312,7 +312,7 @@ counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> ob
     N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(EQ, NDATUM(obj), NVAR(var)));
     propagate_backtrace(twrap.get(), bt_src.get());
-    return make_counted<func_t>(env, twrap);
+    return make_counted<concrete_func_t>(env, twrap);
 }
 
 void debug_print(printf_buffer_t *buf, const wire_func_t &func) {
@@ -329,7 +329,8 @@ counted_t<val_t> js_result_visitor_t::operator()(
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
-    return parent->new_val(make_counted<func_t>(env, code, timeout_ms, parent));
+    counted_t<func_t> func = make_counted<concrete_func_t>(env, code, timeout_ms, parent);
+    return parent->new_val(func);
 }
 
 } // namespace ql

@@ -24,26 +24,46 @@ namespace ql {
 
 class func_t : public single_threaded_countable_t<func_t>, public pb_rcheckable_t {
 public:
-    func_t(env_t *env,
-           const std::string &_js_source,
-           uint64_t timeout_ms,
-           counted_t<term_t> parent);
-    func_t(env_t *env, protob_t<const Term> _source);
+    explicit func_t(const protob_t<const Term> &term);
+    explicit func_t(const protob_t<const Backtrace> &bt_source);
+
+    virtual ~func_t();
+
+    virtual counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const = 0;
+    virtual bool filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const = 0;
+
+    virtual protob_t<const Term> get_source() const = 0;
+    virtual void dump_scope(std::map<sym_t, Datum> *out) const = 0;
+
+    virtual bool is_deterministic() const = 0;
+
+    void assert_deterministic(const char *extra_msg) const;
+
+    // Helpers that call the vector version of call.
+    counted_t<val_t> call() const;
+    counted_t<val_t> call(counted_t<const datum_t> arg) const;
+    counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
+
+private:
+    DISABLE_COPYING(func_t);
+};
+
+class concrete_func_t : public func_t {
+public:
+    concrete_func_t(env_t *env,
+                    const std::string &_js_source,
+                    uint64_t timeout_ms,
+                    counted_t<term_t> parent);
+    concrete_func_t(env_t *env, protob_t<const Term> _source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
     counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const;
 
-    // Prefer these versions of call.
-    counted_t<val_t> call() const;
-    counted_t<val_t> call(counted_t<const datum_t> arg) const;
-    counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
     bool filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const;
 
     void dump_scope(std::map<sym_t, Datum> *out) const;
     bool is_deterministic() const;
-    void assert_deterministic(const char *extra_msg) const;
 
-    std::string print_src() const;
     protob_t<const Term> get_source() const;
 
 private:
@@ -55,6 +75,7 @@ private:
     counted_t<term_t> body; // body to evaluate with functions bound
 
     // This is what's serialized over the wire.
+    // RSI: get_source() is public, is this friendship necessary?
     friend class wire_func_t;
     protob_t<const Term> source;
 
@@ -67,6 +88,8 @@ private:
     // RSI: This is used in places as a flag indicating that this is a javascript function.
     std::string js_source;
     uint64_t js_timeout_ms;
+
+    DISABLE_COPYING(concrete_func_t);
 };
 
 counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,

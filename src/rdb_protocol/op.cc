@@ -106,7 +106,7 @@ counted_t<func_t> op_term_t::lazy_literal_optarg(env_t *env, const std::string &
         protob_t<Term> func(make_counted_term());
         Term *arg = func.get();
         N2(FUNC, N0(MAKE_ARRAY), *arg = *it->second->get_src().get());
-        return make_counted<func_t>(env, func);
+        return make_counted<concrete_func_t>(env, func);
     }
     return counted_t<func_t>();
 }

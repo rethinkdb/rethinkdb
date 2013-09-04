@@ -87,14 +87,14 @@ private:
             }
             switch (poly_type) {
             case MAP:
-                return new_val(env, v0->as_seq(env)->map(env, make_counted<func_t>(env, func)));
+                return new_val(env, v0->as_seq(env)->map(env, make_counted<concrete_func_t>(env, func)));
             case FILTER:
                 return new_val(env, v0->as_seq(env)->filter(env,
-                                                            make_counted<func_t>(env, func),
+                                                            make_counted<concrete_func_t>(env, func),
                                                             counted_t<func_t>()));
             case SKIP_MAP:
                 return new_val(env, v0->as_seq(env)->concatmap(env,
-                                                               make_counted<func_t>(env, func)));
+                                                               make_counted<concrete_func_t>(env, func)));
             default: unreachable();
             }
             unreachable();

@@ -301,8 +301,10 @@ private:
         } break;
 
         case FUNC_TYPE: {
-            b |= info.add("source_code",
-                          make_counted<datum_t>(v->as_func(env)->print_src()));
+            protob_t<const Term> source = v->as_func(env)->get_source();
+            r_sanity_check(source.has());
+            // RSI: DebugString is badly named if there's a term that accesses the value.
+            b |= info.add("source_code", make_counted<datum_t>(source->DebugString()));
         } break;
 
         case R_NULL_TYPE:   // fallthru
