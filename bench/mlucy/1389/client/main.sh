@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 set -o nounset
-#!/bin/bash
-set -e
-set -o nounset
 
 run_at=$1
 nodes=$2

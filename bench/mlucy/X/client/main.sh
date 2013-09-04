@@ -3,10 +3,10 @@ set -e
 set -o nounset
 
 run_at=$1
-table=`head -1 "$2"`
-hosts=`cat $3`
+nodes=$2
 
+cd `dirname "$0"`
 while [[ `date +%s` -lt $run_at ]]; do
-    sleep 0.01
+    sleep 0.1
 done
-echo "$run_at $table $hosts"
+echo "$run_at $nodes"
