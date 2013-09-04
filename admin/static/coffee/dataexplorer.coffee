@@ -2282,6 +2282,7 @@ module 'DataExplorerView', ->
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
+                # We print the query here (the user just hit `more data`)
                 @results_view.render_error(@query, err)
 
         # Function that execute the queries in a synchronous way.
@@ -2316,6 +2317,7 @@ module 'DataExplorerView', ->
 
             catch err
                 @.$('.loading_query_img').hide()
+                # Missing brackets, so we display everything (we don't know if we properly splitted the query)
                 @results_view.render_error(@query, err, true)
                 @save_query
                     query: @raw_query
@@ -2332,7 +2334,11 @@ module 'DataExplorerView', ->
                     rdb_query = @evaluate(full_query)
                 catch err
                     @.$('.loading_query_img').hide()
-                    @results_view.render_error(@raw_queries[@index], err, true)
+                    if @queries.length > 1
+                        @results_view.render_error(@raw_queries[@index], err, true)
+                    else
+                        @results_view.render_error(null, err, true)
+
                     @save_query
                         query: @raw_query
                         broken_query: true
@@ -2359,6 +2365,7 @@ module 'DataExplorerView', ->
                         error = @query_error_template
                             last_non_query: true
                         @results_view.render_error(@raw_queries[@index-1], error, true)
+
                         @save_query
                             query: @raw_query
                             broken_query: true
@@ -2373,7 +2380,10 @@ module 'DataExplorerView', ->
 
                     if error?
                         @.$('.loading_query_img').hide()
-                        @results_view.render_error(@raw_queries[@index-1], error)
+                        if @queries.length > 1
+                            @results_view.render_error(@raw_queries[@index-1], error)
+                        else
+                            @results_view.render_error(null, error)
                         @save_query
                             query: @raw_query
                             broken_query: true
@@ -2424,7 +2434,10 @@ module 'DataExplorerView', ->
             get_result_callback = (error, data) =>
                 if @id_execution is id_execution
                     if error?
-                        @results_view.render_error(@query, error)
+                        if @queries.lenth > 1
+                            @results_view.render_error(@query, error)
+                        else
+                            @results_view.render_error(null, error)
                         return false
 
                     if data isnt undefined
