@@ -814,7 +814,7 @@ class Table(RqlQuery):
         return GetAll(self, *keys, **kwargs)
 
     def index_create(self, name, fundef=(), tags=()):
-        args = [self, name] + [func_wrap(fundef)] if fundef else []
+        args = [self, name] + ([func_wrap(fundef)] if fundef else [])
         kwargs = {"tags" : tags} if tags else {}
         return IndexCreate(*args, **kwargs)
 

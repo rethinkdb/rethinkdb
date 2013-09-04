@@ -652,6 +652,7 @@ public:
                                               const key_range_t &_primary_key_range,
                                               sorting_t _sorting,
                                               ql::map_wire_func_t _sindex_function,
+                                              sindex_tags_bool_t _sindex_tags,
                                               sindex_range_t _sindex_range,
                                               rget_read_response_t *_response) :
         bad_init(false),
@@ -663,7 +664,8 @@ public:
         terminal(_terminal),
         sorting(_sorting),
         primary_key_range(_primary_key_range),
-        sindex_range(_sindex_range)
+        sindex_range(_sindex_range),
+        sindex_tags(_sindex_tags)
     {
         sindex_function = _sindex_function.compile(_ql_env);
         init(range);
@@ -729,6 +731,14 @@ public:
             if (sindex_function) {
                 sindex_value = sindex_function->call(first_value.get())->as_datum();
                 guarantee(sindex_range);
+                guarantee(sindex_tags);
+
+                if (sindex_tags == TAGS) {
+                    int tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
+                    guarantee(sindex_value->get_type() == ql::datum_t::R_ARRAY);
+                    guarantee(static_cast<int>(sindex_value->size()) > tag);
+                    sindex_value = sindex_value->get(tag);
+                }
                 if (!sindex_range->contains(sindex_value)) {
                     return true;
                 }
@@ -765,7 +775,7 @@ public:
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
                     counted_t<const ql::datum_t> datum = it->get();
-                    if (sorting == UNORDERED && sindex_value) {
+                    if (sorting != UNORDERED && sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(store_key,
                                                                             sindex_value,
                                                                             datum));
@@ -817,6 +827,7 @@ public:
     boost::optional<key_range_t> primary_key_range;
     boost::optional<sindex_range_t> sindex_range;
     counted_t<ql::func_t> sindex_function;
+    boost::optional<sindex_tags_bool_t> sindex_tags;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -865,10 +876,11 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex
                     const key_range_t &pk_range,
                     sorting_t sorting,
                     const ql::map_wire_func_t &sindex_func,
+                    sindex_tags_bool_t sindex_tags,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
             sindex_range.to_region().inner, pk_range,
-            sorting, sindex_func, sindex_range, response);
+            sorting, sindex_func, sindex_tags, sindex_range, response);
 
     btree_depth_first_traversal(slice, txn, superblock, sindex_range.to_region().inner,
             &callback, (forward(sorting) ? FORWARD : BACKWARD));
@@ -1021,7 +1033,7 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
-    sindex_tags_bool_t tags;
+    sindex_tags_bool_t tags = TAGS;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
@@ -1083,7 +1095,6 @@ void rdb_update_single_sindex(
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
                 {
-                    debugf("Setting value %s\n", key_to_debug_str(*it).c_str());
                     keyvalue_location_t<rdb_value_t> kv_location;
 
                     find_keyvalue_location_for_write(txn, super_block,

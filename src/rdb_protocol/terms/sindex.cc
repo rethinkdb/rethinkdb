@@ -45,12 +45,10 @@ public:
         r_sanity_check(index_func.has());
 
         /* Check if we're doing a tags index or a normal index. */
-        counted_t<const datum_t> _tags = optarg("tags")->as_datum();
+        counted_t<val_t> tags_val = optarg("tags");
         sindex_tags_bool_t tags =
-            (_tags && _tags->as_bool() ?  TAGS : NOT_TAGS);
-        if (tags == TAGS) {
-            debugf("Got a tagged index.");
-        }
+            (tags_val && tags_val->as_datum() && 
+             tags_val->as_datum()->as_bool() ?  TAGS : NOT_TAGS);
 
         bool success = table->sindex_create(name, index_func, tags);
         if (success) {

@@ -155,7 +155,7 @@ struct rget_item_t {
 
 } // namespace rdb_protocol_details
 
-enum sindex_tags_bool_t { TAGS, NOT_TAGS };
+enum sindex_tags_bool_t { TAGS = 0, NOT_TAGS = 1};
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_tags_bool_t, int8_t, TAGS, NOT_TAGS);
 

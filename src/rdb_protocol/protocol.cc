@@ -1147,30 +1147,19 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
+            sindex_tags_bool_t tags_bool = TAGS;
             vector_read_stream_t read_stream(&sindex_mapping_data);
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
-
-            //Term filter_term;
-            //rget.sindex_range->write_filter_func(
-            //    &ql_env, &filter_term, sindex_mapping.get_term());
-            //Backtrace dummy_backtrace;
-            //ql::propagate_backtrace(&filter_term, &dummy_backtrace);
-            //ql::filter_wire_func_t sindex_filter(
-            //    filter_term, std::map<int64_t, Datum>());
-
-            // We then add this new filter to the beginning of the transform stack
-            rdb_protocol_details::transform_t sindex_transform(rget.transform);
-            //sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
-            //                                sindex_filter, backtrace_t()));
+            success = deserialize(&read_stream, &tags_bool);
+            guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
                     *rget.sindex_range, //guaranteed present above
-                    txn, sindex_sb.get(), &ql_env, sindex_transform,
+                    txn, sindex_sb.get(), &ql_env, rget.transform,
                     rget.terminal, rget.region.inner, rget.sorting,
-                    sindex_mapping,
-                    res);
+                    sindex_mapping, tags_bool, res);
         }
     }
 
@@ -1698,8 +1687,8 @@ region_t rdb_protocol_t::sindex_range_t::to_region() const {
 }
 
 bool rdb_protocol_t::sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
-    return (start < value || (start == value && !start_open)) &&
-           (value < end   || (value == end && !end_open));
+    return (!start || (*start < *value || (*start == *value && !start_open))) &&
+           (!end   || (*value < *end   || (*value == *end && !end_open)));
 }
 
 
