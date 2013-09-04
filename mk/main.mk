@@ -11,7 +11,7 @@ default-goal: real-default-goal
 
 # Build the webui, drivers and executable
 .PHONY: all
-all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all backup-scripts
+all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
 
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
@@ -54,9 +54,6 @@ include $(TOP)/docs/rql/build.mk
 
 # Build the web assets
 include $(TOP)/mk/webui.mk
-
-# Copying the backup scripts
-include $(TOP)/mk/backup-scripts.mk
 
 # Building the rethinkdb executable
 include $(TOP)/src/build.mk
