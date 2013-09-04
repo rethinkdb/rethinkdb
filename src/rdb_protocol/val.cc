@@ -669,11 +669,11 @@ counted_t<func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut) {
     // shortcut.
     switch (shortcut) {
     case CONSTANT_SHORTCUT:
-        return func_t::new_constant_func(env, as_datum(), backtrace());
+        return new_constant_func(env, as_datum(), backtrace());
     case GET_FIELD_SHORTCUT:
-        return func_t::new_get_field_func(env, as_datum(), backtrace());
+        return new_get_field_func(env, as_datum(), backtrace());
     case PLUCK_SHORTCUT:
-        return func_t::new_pluck_func(env, as_datum(), backtrace());
+        return new_pluck_func(env, as_datum(), backtrace());
     case NO_SHORTCUT:
         // fallthru
     default: unreachable();

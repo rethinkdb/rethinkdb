@@ -409,7 +409,7 @@ private:
         if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
             fun = v->as_func(env);
         } else {
-            fun = func_t::new_eq_comparison_func(env, v->as_datum(), backtrace());
+            fun = new_eq_comparison_func(env, v->as_datum(), backtrace());
         }
         return new_val(env, arg(env, 0)->as_seq(env)->indexes_of(fun));
     }

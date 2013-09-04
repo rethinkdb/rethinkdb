@@ -273,8 +273,8 @@ bool func_t::filter_call(counted_t<const datum_t> arg, counted_t<func_t> default
     std::rethrow_exception(saved_exception);
 }
 
-counted_t<func_t> func_t::new_constant_func(env_t *env, counted_t<const datum_t> obj,
-                                            const protob_t<const Backtrace> &bt_src) {
+counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
+                                    const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
@@ -282,8 +282,8 @@ counted_t<func_t> func_t::new_constant_func(env_t *env, counted_t<const datum_t>
     return make_counted<func_t>(env, twrap);
 }
 
-counted_t<func_t> func_t::new_get_field_func(env_t *env, counted_t<const datum_t> key,
-                                            const protob_t<const Backtrace> &bt_src) {
+counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
+                                     const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *arg = twrap.get();
     sym_t obj = env->symgen.gensym();
@@ -293,7 +293,7 @@ counted_t<func_t> func_t::new_get_field_func(env_t *env, counted_t<const datum_t
     return make_counted<func_t>(env, twrap);
 }
 
-counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
@@ -304,8 +304,8 @@ counted_t<func_t> func_t::new_pluck_func(env_t *env, counted_t<const datum_t> ob
     return make_counted<func_t>(env, twrap);
 }
 
-counted_t<func_t> func_t::new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
-                    const protob_t<const Backtrace> &bt_src) {
+counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+                                         const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     sym_t var = env->symgen.gensym();

@@ -25,7 +25,7 @@ private:
             return new_val(arg(env, 0)->as_seq(env)->filter(env, arg(env, 1)->as_func(env), counted_t<func_t>())->count(env));
         } else {
             counted_t<func_t> f =
-                func_t::new_eq_comparison_func(env, arg(env, 1)->as_datum(), backtrace());
+                new_eq_comparison_func(env, arg(env, 1)->as_datum(), backtrace());
             return new_val(arg(env, 0)->as_seq(env)->filter(env, f, counted_t<func_t>())->count(env));
         }
     }

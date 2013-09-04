@@ -31,22 +31,6 @@ public:
     func_t(env_t *env, protob_t<const Term> _source);
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    static counted_t<func_t> new_constant_func(
-        env_t *env, counted_t<const datum_t> obj,
-        const protob_t<const Backtrace> &root);
-
-    static counted_t<func_t> new_pluck_func(
-        env_t *env, counted_t<const datum_t> obj,
-        const protob_t<const Backtrace> &bt_src);
-
-    static counted_t<func_t> new_get_field_func(
-        env_t *env, counted_t<const datum_t> obj,
-        const protob_t<const Backtrace> &bt_src);
-
-    static counted_t<func_t> new_eq_comparison_func(
-        env_t *env, counted_t<const datum_t> obj,
-        const protob_t<const Backtrace> &bt_src);
-
     counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const;
 
     // Prefer these versions of call.
@@ -84,6 +68,18 @@ private:
     std::string js_source;
     uint64_t js_timeout_ms;
 };
+
+counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
+                                    const protob_t<const Backtrace> &root);
+
+counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+                                 const protob_t<const Backtrace> &bt_src);
+
+counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> obj,
+                                     const protob_t<const Backtrace> &bt_src);
+
+counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+                                         const protob_t<const Backtrace> &bt_src);
 
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
