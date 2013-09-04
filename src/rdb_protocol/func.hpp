@@ -77,8 +77,6 @@ private:
     counted_t<term_t> body; // body to evaluate with functions bound
 
     // This is what's serialized over the wire.
-    // RSI: get_source() is public, is this friendship necessary?
-    friend class wire_func_t;
     protob_t<const Term> source;
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
