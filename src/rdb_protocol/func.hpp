@@ -53,10 +53,6 @@ private:
 
 class concrete_func_t : public func_t {
 public:
-    concrete_func_t(env_t *env,
-                    const std::string &_js_source,
-                    uint64_t timeout_ms,
-                    counted_t<term_t> parent);
     concrete_func_t(env_t *env, protob_t<const Term> _source);
     ~concrete_func_t();
 
@@ -84,13 +80,6 @@ private:
 
     // TODO: make this smarter (it's sort of slow and shitty as-is)
     std::map<sym_t, const counted_t<const datum_t> *> scope;
-
-    // RSI: It seems there are two kinds of functions, this js stuff doesn't get used
-    // most of the time.
-    counted_t<term_t> js_parent;
-    // RSI: This is used in places as a flag indicating that this is a javascript function.
-    std::string js_source;
-    uint64_t js_timeout_ms;
 
     DISABLE_COPYING(concrete_func_t);
 };
