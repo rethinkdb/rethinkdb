@@ -12,6 +12,50 @@
 
 namespace ql {
 
+class js_func_t : public func_t {
+public:
+    js_func_t(env_t *env,
+                    const std::string &_js_source,
+                    uint64_t timeout_ms,
+                    counted_t<term_t> parent);
+    js_func_t(env_t *env, protob_t<const Term> _source);
+    ~js_func_t();
+
+    // Some queries, like filter, can take a shortcut object instead of a
+    // function as their argument.
+    counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const;
+
+    void dump_scope(std::map<sym_t, Datum> *out) const;
+    bool is_deterministic() const;
+
+    protob_t<const Term> get_source() const;
+
+private:
+    bool filter_helper(counted_t<const datum_t> arg) const;
+
+    // RSI: Some kind of cleanup work to do about this env.
+    env_t *const env;
+
+    // Pointers to this function's arguments.
+    scoped_array_t<counted_t<const datum_t> > argptrs;
+    counted_t<term_t> body; // body to evaluate with functions bound
+
+    // This is what's serialized over the wire.
+    protob_t<const Term> source;
+
+    // TODO: make this smarter (it's sort of slow and shitty as-is)
+    std::map<sym_t, const counted_t<const datum_t> *> scope;
+
+    // RSI: It seems there are two kinds of functions, this js stuff doesn't get used
+    // most of the time.
+    counted_t<term_t> js_parent;
+    // RSI: This is used in places as a flag indicating that this is a javascript function.
+    std::string js_source;
+    uint64_t js_timeout_ms;
+
+    DISABLE_COPYING(js_func_t);
+};
+
 func_t::func_t(const protob_t<const Term> &term) : pb_rcheckable_t(term) { }
 func_t::func_t(const protob_t<const Backtrace> &bt_source) : pb_rcheckable_t(bt_source) { }
 func_t::~func_t() { }
@@ -45,6 +89,19 @@ concrete_func_t::concrete_func_t(env_t *_env,
                                  const std::string &_js_source,
                                  uint64_t timeout_ms,
                                  counted_t<term_t> parent)
+    : func_t(parent->backtrace()),
+      env(_env),
+      source(parent->get_src()),
+      js_parent(parent),
+      js_source(_js_source),
+      js_timeout_ms(timeout_ms) {
+    env->scopes.dump_scope(&scope);
+}
+
+js_func_t::js_func_t(env_t *_env,
+                     const std::string &_js_source,
+                     uint64_t timeout_ms,
+                     counted_t<term_t> parent)
     : func_t(parent->backtrace()),
       env(_env),
       source(parent->get_src()),
@@ -126,9 +183,127 @@ concrete_func_t::concrete_func_t(env_t *_env, protob_t<const Term> _source)
     env->scopes.dump_scope(&scope);
 }
 
+js_func_t::js_func_t(env_t *_env, protob_t<const Term> _source)
+    : func_t(_source), env(_env), source(_source),
+      js_timeout_ms(0) {
+    // RSI: This function is absurdly long and complicated.
+
+    protob_t<const Term> t = _source;
+    r_sanity_check(t->type() == Term_TermType_FUNC);
+    rcheck(t->optargs_size() == 0,
+           base_exc_t::GENERIC,
+           "FUNC takes no optional arguments.");
+    rcheck(t->args_size() == 2,
+           base_exc_t::GENERIC,
+           strprintf("Func takes exactly two arguments (got %d)", t->args_size()));
+
+    std::vector<sym_t> args;
+    const Term *vars = &t->args(0);
+    if (vars->type() == Term_TermType_DATUM) {
+        const Datum *d = &vars->datum();
+        rcheck(d->type() == Datum_DatumType_R_ARRAY,
+               base_exc_t::GENERIC,
+               "CLIENT ERROR: FUNC variables must be a literal *array* of numbers.");
+        for (int i = 0; i < d->r_array_size(); ++i) {
+            const Datum *dnum = &d->r_array(i);
+            rcheck(dnum->type() == Datum_DatumType_R_NUM,
+                   base_exc_t::GENERIC,
+                   "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
+            // this is fucking retarded
+            args.push_back(sym_t(dnum->r_num()));
+        }
+    } else if (vars->type() == Term_TermType_MAKE_ARRAY) {
+        for (int i = 0; i < vars->args_size(); ++i) {
+            const Term *arg = &vars->args(i);
+            rcheck(arg->type() == Term_TermType_DATUM,
+                   base_exc_t::GENERIC,
+                   "CLIENT ERROR: FUNC variables must be a *literal* array of numbers.");
+            const Datum *dnum = &arg->datum();
+            rcheck(dnum->type() == Datum_DatumType_R_NUM,
+                   base_exc_t::GENERIC,
+                   "CLIENT ERROR: FUNC variables must be a literal array of *numbers*.");
+            // this is fucking retarded
+            args.push_back(sym_t(dnum->r_num()));
+        }
+    } else {
+        rfail(base_exc_t::GENERIC,
+              "CLIENT ERROR: FUNC variables must be a *literal array of numbers*.");
+    }
+
+    // RSI: I hope an exception doesn't happen...
+    argptrs.init(args.size());
+    for (size_t i = 0; i < args.size(); ++i) {
+        env->scopes.push_var(args[i], &argptrs[i]);
+    }
+    if (args.size() == 1 && gensym_t::var_allows_implicit(args[0])) {
+        env->implicits.push_implicit(&argptrs[0]);
+    }
+    if (args.size() != 0) {
+        guarantee(env->scopes.top_var(args[0], this) == &argptrs[0]);
+    }
+
+    protob_t<const Term> body_source = t.make_child(&t->args(1));
+    body = compile_term(env, body_source);
+
+    for (size_t i = 0; i < args.size(); ++i) {
+        env->scopes.pop_var(args[i]);
+    }
+    if (args.size() == 1 && gensym_t::var_allows_implicit(args[0])) {
+        env->implicits.pop_implicit();
+    }
+
+    env->scopes.dump_scope(&scope);
+}
+
 concrete_func_t::~concrete_func_t() { }
 
+js_func_t::~js_func_t() { }
+
 counted_t<val_t> concrete_func_t::call(const std::vector<counted_t<const datum_t> > &args) const {
+    try {
+        if (js_parent.has()) {
+            r_sanity_check(!body.has() && source.has());
+
+            js_runner_t::req_config_t config;
+            config.timeout_ms = js_timeout_ms;
+
+            r_sanity_check(!js_source.empty());
+            js_result_t result;
+
+            try {
+                result = env->get_js_runner()->call(js_source, args, config);
+            } catch (const js_worker_exc_t &e) {
+                rfail(base_exc_t::GENERIC,
+                      "Javascript query `%s` caused a crash in a worker process.",
+                      js_source.c_str());
+            } catch (const interrupted_exc_t &e) {
+                rfail(base_exc_t::GENERIC,
+                      "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
+                      js_source.c_str(), js_timeout_ms / 1000, js_timeout_ms % 1000);
+            }
+
+            return boost::apply_visitor(
+                js_result_visitor_t(env, js_source, js_timeout_ms, js_parent),
+                result);
+        } else {
+            r_sanity_check(body.has() && source.has());
+            rcheck(args.size() == argptrs.size() || argptrs.size() == 0,
+                   base_exc_t::GENERIC,
+                   strprintf("Expected %zd argument(s) but found %zu.",
+                             argptrs.size(), args.size()));
+            for (size_t i = 0; i < argptrs.size(); ++i) {
+                r_sanity_check(args[i].has());
+                argptrs[i] = args[i];
+            }
+            return body->eval(env);
+        }
+    } catch (const datum_exc_t &e) {
+        rfail(e.get_type(), "%s", e.what());
+        unreachable();
+    }
+}
+
+counted_t<val_t> js_func_t::call(const std::vector<counted_t<const datum_t> > &args) const {
     try {
         if (js_parent.has()) {
             r_sanity_check(!body.has() && source.has());
@@ -180,11 +355,29 @@ void concrete_func_t::dump_scope(std::map<sym_t, Datum> *out) const {
         (*it->second)->write_to_protobuf(&(*out)[it->first]);
     }
 }
+
+void js_func_t::dump_scope(std::map<sym_t, Datum> *out) const {
+    for (auto it = scope.begin(); it != scope.end(); ++it) {
+        if (!it->second->has()) {
+            continue;
+        }
+        (*it->second)->write_to_protobuf(&(*out)[it->first]);
+    }
+}
+
 bool concrete_func_t::is_deterministic() const {
     return body.has() ? body->is_deterministic() : false;
 }
 
+bool js_func_t::is_deterministic() const {
+    return body.has() ? body->is_deterministic() : false;
+}
+
 protob_t<const Term> concrete_func_t::get_source() const {
+    return source;
+}
+
+protob_t<const Term> js_func_t::get_source() const {
     return source;
 }
 
@@ -225,6 +418,17 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
 }
 
 bool concrete_func_t::filter_helper(counted_t<const datum_t> arg) const {
+    counted_t<const datum_t> d = call(make_vector(arg))->as_datum();
+    if (d->get_type() == datum_t::R_OBJECT &&
+        (source->args(1).type() == Term::MAKE_OBJ ||
+         source->args(1).type() == Term::DATUM)) {
+        return filter_match(d, arg, this);
+    } else {
+        return d->as_bool();
+    }
+}
+
+bool js_func_t::filter_helper(counted_t<const datum_t> arg) const {
     counted_t<const datum_t> d = call(make_vector(arg))->as_datum();
     if (d->get_type() == datum_t::R_OBJECT &&
         (source->args(1).type() == Term::MAKE_OBJ ||
@@ -335,7 +539,7 @@ counted_t<val_t> js_result_visitor_t::operator()(
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
-    counted_t<func_t> func = make_counted<concrete_func_t>(env, code, timeout_ms, parent);
+    counted_t<func_t> func = make_counted<js_func_t>(env, code, timeout_ms, parent);
     return parent->new_val(func);
 }
 

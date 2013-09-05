@@ -95,6 +95,7 @@ private:
     DISABLE_COPYING(concrete_func_t);
 };
 
+
 // Some queries, like filter, can take a shortcut object instead of a
 // function as their argument.
 // RSI: Such queries should handle shortcut objects explicitly.
