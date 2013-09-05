@@ -67,6 +67,8 @@ class Workload:
             nested["nested2"] = self.generate_nested(levels - 1)
             nested["nested3"] = self.generate_nested(levels - 1)
 
+        return nested
+
     def generate_row(self):
         row = { }
         row["id"] = md5.new(str(self.get_key())).hexdigest()
