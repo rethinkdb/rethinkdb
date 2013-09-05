@@ -1,13 +1,10 @@
 #!/usr/bin/python
-import sys, os, time, signal, random, string, traceback, errno, md5, json
-import multiprocessing, multiprocessing.queues, threading, Queue
+import sys, os, time, signal, random, traceback, errno
+import multiprocessing, multiprocessing.queues
 from optparse import OptionParser
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'drivers', 'python')))
 import rethinkdb as r
-
-import faulthandler
-faulthandler.enable()
 
 def call_ignore_interrupt(fun):
     while True:
