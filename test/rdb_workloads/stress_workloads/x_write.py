@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import md5, sys, os, random, string, pareto
+import md5, sys, os, random, string, x_stress_util
 import multiprocessing
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'drivers', 'python')))
@@ -9,22 +9,43 @@ class Workload:
     def __init__(self, options):
         self.db = options["db"]
         self.table = options["table"]
-        self.cid_dist = pareto.Pareto(1000)
-        self.typ_dist = pareto.Pareto(10)
+        self.cid_dist = x_stress_util.Pareto(1000)
+        self.typ_dist = x_stress_util.Pareto(10)
+
+        # Get the current max key from environment variables
+        max_key = os.getenv("X_MAX_KEY")
+        max_key_file = os.getenv("X_MAX_KEY_FILE")
+
+        if max_key is None:
+            if max_key_file is None:
+                raise RuntimeError("X_MAX_KEY and X_MAX_KEY_FILE are both undefined")
+            elif not os.path.isfile(max_key_file):
+                raise RuntimeError("X_MAX_KEY not defined, and key file '%s' does not exist" % max_key_file)
+            else:
+                with open(max_key_file, "r") as f:
+                    max_key = int(f.readline())
+        else:
+            if os.path.isfile(max_key_file):
+                with open(max_key_file, "r") as f:
+                    max_key = int(f.readline())
+            else:
+                max_key = int(max_key)
 
         # We use a multiprocessing shared value to store the latest key
-        self.max_key = multiprocessing.Value('L', options["max_key"])
+        self.max_key = multiprocessing.Value('L', max_key)
 
-        if options["max_key_file"] is not None:
-            self.key_file = open(options["max_key_file"], "w")
+        if max_key_file is not None:
+            self.key_file = open(max_key_file, "w")
+            self.update_max_key(max_key)
         else:
             self.key_file = None
 
     def update_max_key(self, new_key):
-        if new_key % 100 == 0:
+        if new_key % 200 == 0:
             if self.key_file is not None:
                 self.key_file.seek(0)
-                new_max_key = self.key_file.write(str(new_key)) # TODO: handle EINTR
+                new_max_key = x_stress_util.perform_ignore_interrupt(lambda: self.key_file.write("%d\n" % new_key))
+                x_stress_util.perform_ignore_interrupt(lambda: self.key_file.flush())
 
     def get_key(self):
         self.max_key.acquire()

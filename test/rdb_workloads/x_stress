@@ -21,20 +21,32 @@ def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset
     host_offset = host_offset % len(options["hosts"])
     host = options["hosts"][host_offset][0]
     port = options["hosts"][host_offset][1]
+    ops_per_conn = options["ops_per_conn"]
+
+    # Stagger ops_left so not all clients reconnect at once
+    ops_done = int(random.random() * ops_per_conn)
+
+    if ops_per_conn == 0:
+        loop_cond = lambda: True
+    else:
+        loop_cond = lambda: ops_done < ops_per_conn
 
     random.seed()
 
     runner = QueryThrottler(options, stat_queue)
     stat_queue.put("ready")
 
+    random.seed()
+
     start_event.wait()
     while not exit_event.is_set():
         with r.connect(host, port) as conn:
-            # TODO: consider staggering this so we don't end up with all clients reconnecting at once
-            for i in xrange(options["ops_per_conn"]):
+            while loop_cond():
                 if exit_event.is_set():
                     break
                 runner.send_query(conn)
+                ops_done += 1
+            ops_done = 0
 
 def spawn_clients(options, start_event, exit_event, stat_queue):
     num_clients = options["clients"]
@@ -199,6 +211,7 @@ def stress_controller(options):
                 # Print new stat
                 if not options["quiet"]:
                     print "%0.3f: %0.6f" % (stat["timestamp"], stat["latency"])
+                    sys.stdout.flush()
 
                 stats["count"] += 1
                 stats["latency"] += stat["latency"]
@@ -227,10 +240,8 @@ def stress_controller(options):
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default=None, type="string")
-    parser.add_option("--max-key", dest="max_key", metavar="KEY", default=None, type="int")
-    parser.add_option("--max-key-file", dest="max_key_file", metavar="FILE", default=None, type="string")
-    parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=1000, type="float")
-    parser.add_option("--ops-per-conn", dest="ops_per_conn", metavar="NUMBER", default=1000, type="int")
+    parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=100, type="float")
+    parser.add_option("--ops-per-conn", dest="ops_per_conn", metavar="NUMBER", default=0, type="int")
     parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=64, type="int")
     parser.add_option("--workload", "-w", dest="workload", metavar="WORKLOAD", default=None, type="string")
     parser.add_option("--host", dest="hosts", metavar="HOST:PORT", action="append", default=[], type="string")
@@ -245,26 +256,6 @@ if __name__ == "__main__":
     if len(args) != 0:
         print "no positional arguments supported"
         exit(1)
-
-    options["max_key"] = parsed_options.max_key
-    options["max_key_file"] = parsed_options.max_key_file
-
-    if options["max_key_file"] is None:
-        if options["max_key"] is None:
-            print "no max key or max key file given"
-            exit(1)
-    else:
-        if not os.path.isfile(options["max_key_file"]):
-            # File doesn't exist, initialize it
-            if options["max_key"] is None:
-                print "no max key given and max key file doesn't exist"
-                exit(1)
-            with open(options["max_key_file"], "w") as max_key_file:
-                max_key_file.write(str(options["max_key"]))
-        elif options["max_key"] is None:
-            # Load max key
-            with open(options["max_key_file"], "r") as max_key_file:
-                options["max_key"] = int(max_key_file.read())
 
     # Parse out host/port pairs
     for host_port in parsed_options.hosts:
