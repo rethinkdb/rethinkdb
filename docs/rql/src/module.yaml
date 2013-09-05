@@ -337,6 +337,30 @@ commands:
     py: false
     rb: false
 
+  - tag: close-cursor
+    name: close (cursor)
+    section: module
+    description: |
+      Close a cursor. Closing a cursor cancels the corresponding query
+      and frees the memory associated with the open request.
+
+    body:
+      py: "$PARENT.close()"
+      rb: "$PARENT.close"
+      js: "$PARENT.close()"
+
+    io:
+      - - cursor 
+        - null
+
+    examples:
+      - description: Close a cursor.
+        validate: false
+        code: cursor.close()
+
+    py: false
+    rb: false
+
   - tag: addListener
     section: module
     description: |
