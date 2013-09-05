@@ -1147,11 +1147,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
-            sindex_tags_bool_t tags_bool = TAGS;
+            sindex_multi_bool_t multi_bool = MULTI;
             vector_read_stream_t read_stream(&sindex_mapping_data);
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
-            success = deserialize(&read_stream, &tags_bool);
+            success = deserialize(&read_stream, &multi_bool);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
             rdb_rget_secondary_slice(
@@ -1159,7 +1159,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     *rget.sindex_range, //guaranteed present above
                     txn, sindex_sb.get(), &ql_env, rget.transform,
                     rget.terminal, rget.region.inner, rget.sorting,
-                    sindex_mapping, tags_bool, res);
+                    sindex_mapping, multi_bool, res);
         }
     }
 
@@ -1308,7 +1308,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
         write_message_t wm;
         wm << c.mapping;
-        wm << c.tags;
+        wm << c.multi;
 
         vector_stream_t stream;
         int write_res = send_write_message(&stream, &wm);
@@ -1729,7 +1729,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_t, point_replaces);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, tags);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_t, write, durability_requirement);

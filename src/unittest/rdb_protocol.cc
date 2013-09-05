@@ -174,7 +174,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
 
     ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
 
-    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, NOT_TAGS));
+    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, SINGLE));
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;

@@ -18,7 +18,7 @@ class sindex_create_term_t : private env_t::special_var_shadower_t, public op_te
 public:
     sindex_create_term_t(env_t *env, const protob_t<const Term> &term)
         : env_t::special_var_shadower_t(env, env_t::SINDEX_ERROR_VAR),
-          op_term_t(env, term, argspec_t(2, 3), optargspec_t({"tags"})) { }
+          op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi"})) { }
 
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(0)->as_table();
@@ -44,13 +44,13 @@ public:
         }
         r_sanity_check(index_func.has());
 
-        /* Check if we're doing a tags index or a normal index. */
-        counted_t<val_t> tags_val = optarg("tags");
-        sindex_tags_bool_t tags =
-            (tags_val && tags_val->as_datum() && 
-             tags_val->as_datum()->as_bool() ?  TAGS : NOT_TAGS);
+        /* Check if we're doing a multi index or a normal index. */
+        counted_t<val_t> multi_val = optarg("multi");
+        sindex_multi_bool_t multi =
+            (multi_val && multi_val->as_datum() &&
+             multi_val->as_datum()->as_bool() ?  MULTI : SINGLE);
 
-        bool success = table->sindex_create(name, index_func, tags);
+        bool success = table->sindex_create(name, index_func, multi);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));

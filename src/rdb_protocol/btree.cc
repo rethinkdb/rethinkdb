@@ -652,7 +652,7 @@ public:
                                               const key_range_t &_primary_key_range,
                                               sorting_t _sorting,
                                               ql::map_wire_func_t _sindex_function,
-                                              sindex_tags_bool_t _sindex_tags,
+                                              sindex_multi_bool_t _sindex_multi,
                                               sindex_range_t _sindex_range,
                                               rget_read_response_t *_response) :
         bad_init(false),
@@ -665,7 +665,7 @@ public:
         sorting(_sorting),
         primary_key_range(_primary_key_range),
         sindex_range(_sindex_range),
-        sindex_tags(_sindex_tags)
+        sindex_multi(_sindex_multi)
     {
         sindex_function = _sindex_function.compile(_ql_env);
         init(range);
@@ -731,9 +731,9 @@ public:
             if (sindex_function) {
                 sindex_value = sindex_function->call(first_value.get())->as_datum();
                 guarantee(sindex_range);
-                guarantee(sindex_tags);
+                guarantee(sindex_multi);
 
-                if (sindex_tags == TAGS) {
+                if (sindex_multi == MULTI) {
                     int tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
                     guarantee(sindex_value->get_type() == ql::datum_t::R_ARRAY);
                     guarantee(static_cast<int>(sindex_value->size()) > tag);
@@ -827,7 +827,7 @@ public:
     boost::optional<key_range_t> primary_key_range;
     boost::optional<sindex_range_t> sindex_range;
     counted_t<ql::func_t> sindex_function;
-    boost::optional<sindex_tags_bool_t> sindex_tags;
+    boost::optional<sindex_multi_bool_t> sindex_multi;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -876,11 +876,11 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex
                     const key_range_t &pk_range,
                     sorting_t sorting,
                     const ql::map_wire_func_t &sindex_func,
-                    sindex_tags_bool_t sindex_tags,
+                    sindex_multi_bool_t sindex_multi,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
             sindex_range.to_region().inner, pk_range,
-            sorting, sindex_func, sindex_tags, sindex_range, response);
+            sorting, sindex_func, sindex_multi, sindex_range, response);
 
     btree_depth_first_traversal(slice, txn, superblock, sindex_range.to_region().inner,
             &callback, (forward(sorting) ? FORWARD : BACKWARD));
@@ -1004,13 +1004,13 @@ void rdb_modification_report_cb_t::on_mod_report(
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
 void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
-                  ql::map_wire_func_t *mapping, sindex_tags_bool_t tags, ql::env_t *env,
+                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi, ql::env_t *env,
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
     counted_t<const ql::datum_t> index =
         mapping->compile(env)->call(doc)->as_datum();
 
-    if (tags == TAGS && index->get_type() == ql::datum_t::R_ARRAY) {
+    if (multi == MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
         for (size_t i = 0; i < index->size(); ++i) {
             keys_out->push_back(
                 store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
@@ -1033,11 +1033,11 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
-    sindex_tags_bool_t tags = TAGS;
+    sindex_multi_bool_t multi = MULTI;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
-    success = deserialize(&read_stream, &tags); 
+    success = deserialize(&read_stream, &multi);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
     // TODO we just use a NULL environment here. People should not be able
@@ -1057,7 +1057,7 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, deleted, &mapping, tags, &env, &keys);
+            compute_keys(modification->primary_key, deleted, &mapping, multi, &env, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;
@@ -1090,7 +1090,7 @@ void rdb_update_single_sindex(
 
             std::vector<store_key_t> keys;
 
-            compute_keys(modification->primary_key, added, &mapping, tags, &env, &keys);
+            compute_keys(modification->primary_key, added, &mapping, multi, &env, &keys);
 
             for (auto it = keys.begin(); it != keys.end(); ++it) {
                 promise_t<superblock_t *> return_superblock_local;

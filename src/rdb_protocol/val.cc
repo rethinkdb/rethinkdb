@@ -266,11 +266,11 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
 
 MUST_USE bool table_t::sindex_create(const std::string &id,
                                      counted_t<func_t> index_func,
-                                     sindex_tags_bool_t tags) {
+                                     sindex_multi_bool_t multi) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(env, index_func);
     rdb_protocol_t::write_t write(
-            rdb_protocol_t::sindex_create_t(id, wire_func, tags));
+            rdb_protocol_t::sindex_create_t(id, wire_func, multi));
 
     rdb_protocol_t::write_response_t res;
     access->get_namespace_if()->write(

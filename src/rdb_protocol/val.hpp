@@ -71,7 +71,7 @@ public:
         durability_requirement_t durability_requirement);
 
     MUST_USE bool sindex_create(const std::string &name, counted_t<func_t> index_func,
-            sindex_tags_bool_t tags);
+            sindex_multi_bool_t multi);
     MUST_USE bool sindex_drop(const std::string &name);
     counted_t<const datum_t> sindex_list();
 
