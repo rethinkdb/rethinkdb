@@ -62,7 +62,7 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(0);
-        counted_t<val_t> v1 = arg(1);
+        counted_t<val_t> v1 = arg(1, LITERAL_OK);
         counted_t<func_t> f = v1->as_func(CONSTANT_SHORTCUT);
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
