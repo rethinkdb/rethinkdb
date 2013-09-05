@@ -164,7 +164,7 @@ private:
     const std::map<std::string, ql::wire_func_t> optargs;
     bool use_outdated;
 
-    rdb_protocol_t::sindex_range_t sindex_range;
+    sindex_range_t sindex_range;
     key_range_t range;
 
     boost::optional<backtrace_t> table_scan_backtrace;

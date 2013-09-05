@@ -326,7 +326,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            sindex_id, rdb_protocol_t::sindex_range_t(                sindex_key_literal, false, sindex_key_literal, false)));
+            sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

@@ -55,6 +55,10 @@ public:
         *res_out = exc_t(exc, transf.filter_func.get_bt().get(), 1);
     }
 
+    void operator()(const range_and_func_filter_transform_t &transf) const {
+        *res_out = exc_t(exc, transf.mapping_func.get_bt().get(), 1);
+    }
+
     void operator()(const concatmap_wire_func_t &func) const {
         *res_out = exc_t(exc, func.get_bt().get(), 1);
     }
@@ -88,8 +92,10 @@ public:
                         const backtrace_t &_backtrace);
 
     // This is a non-const reference because it caches the compiled function
+    // RSI: These could be const references now.
     void operator()(ql::map_wire_func_t &func) const;  // NOLINT(runtime/references)
     void operator()(filter_transform_t &func) const;  // NOLINT(runtime/references)
+    void operator()(range_and_func_filter_transform_t &func) const;  // NOLINT(runtime/references)
     void operator()(ql::concatmap_wire_func_t &func) const;  // NOLINT(runtime/references)
 
 private:
@@ -129,6 +135,34 @@ void transform_visitor_t::operator()(filter_transform_t &transf) const {  // NOL
     if (f->filter_call(arg, default_filter_val)) {
         out->push_back(arg);
     }
+}
+
+void transform_visitor_t::operator()(range_and_func_filter_transform_t &transf) const {  // NOLINT(runtime/references)
+    if (!(transf.range_predicate.start.has() || transf.range_predicate.end.has())) {
+        out->push_back(arg);
+        return;
+    }
+
+    counted_t<ql::func_t> f = transf.mapping_func.compile(ql_env);
+    counted_t<const ql::datum_t> mapped_arg = f->call(arg)->as_datum();
+
+    if (transf.range_predicate.start.has()) {
+        if (!(transf.range_predicate.start_open
+              ? *transf.range_predicate.start < *mapped_arg
+              : *transf.range_predicate.start <= *mapped_arg)) {
+            return;
+        }
+    }
+
+    if (transf.range_predicate.end.has()) {
+        if (!(transf.range_predicate.end_open
+              ? *mapped_arg < *transf.range_predicate.end
+              : *mapped_arg <= *transf.range_predicate.end)) {
+            return;
+        }
+    }
+
+    out->push_back(arg);
 }
 
 

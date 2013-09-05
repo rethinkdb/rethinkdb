@@ -92,6 +92,7 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
 
 RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
+RDB_IMPL_SERIALIZABLE_2(range_and_func_filter_transform_t, range_predicate, mapping_func);
 
 namespace rdb_protocol_details {
 
@@ -1137,8 +1138,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 return;
             }
 
-            guarantee(rget.sindex_region, "If an rget has a sindex specified "
-                      "it should also have a sindex_region.");
+            guarantee(rget.sindex_region, "If an rget has an sindex specified, "
+                      "it should also have an sindex_region.");
+            guarantee(rget.sindex_range, "If an rget has an sindex specified, "
+                      "it shoud also have an sindex_range.");
 
             // This chunk of code puts together a filter so we can exclude any items
             //  that don't fall in the specified range.  Because the secondary index
@@ -1150,13 +1153,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-            Term filter_term;
-            rget.sindex_range->write_filter_func(
-                &ql_env, &filter_term, sindex_mapping.get_term());
-            Backtrace dummy_backtrace;
-            ql::propagate_backtrace(&filter_term, &dummy_backtrace);
-            filter_transform_t sindex_filter(ql::wire_func_t(filter_term, std::map<ql::sym_t, Datum>()),
-                                             boost::none);
+            range_and_func_filter_transform_t sindex_filter(*rget.sindex_range, sindex_mapping);
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
@@ -1657,42 +1654,9 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
-
-void rdb_protocol_t::sindex_range_t::write_filter_func(
-    ql::env_t *env, Term *filter, const Term &sindex_mapping) const {
-    const ql::sym_t arg1 = env->symgen.gensym();
-    const ql::sym_t sindex_val = env->symgen.gensym();
-    Term *arg = ql::pb::set_func(filter, arg1);
-    if (!start.has() && !end.has()) {
-        NDATUM_BOOL(true);
-        return;
-    }
-
-    N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
-       N2(ALL,
-          if (start.has()) {
-              if (start_open) {
-                  N2(GT, NVAR(sindex_val), NDATUM(start));
-              } else {
-                  N2(GE, NVAR(sindex_val), NDATUM(start));
-              }
-          } else {
-              NDATUM_BOOL(true);
-          },
-          if (end.has()) {
-              if (end_open) {
-                  N2(LT, NVAR(sindex_val), NDATUM(end));
-              } else {
-                  N2(LE, NVAR(sindex_val), NDATUM(end));
-              }
-          } else {
-              NDATUM_BOOL(true);
-          }),
-       N2(FUNCALL, *arg = sindex_mapping, NVAR(arg1)));
-}
-
-region_t rdb_protocol_t::sindex_range_t::to_region() const {
-    return region_t(rdb_protocol_t::sindex_key_range(
+hash_region_t<key_range_t> sindex_range_t::to_region() const {
+    // RSI: This is possibly broken, shouldn't we ceil end->truncated_secondary or something?
+    return hash_region_t<key_range_t>(rdb_protocol_t::sindex_key_range(
         start != NULL ? start->truncated_secondary() : store_key_t::min(),
         end != NULL ? end->truncated_secondary() : store_key_t::max()));
 }
@@ -1710,7 +1674,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_range_t,
+RDB_IMPL_ME_SERIALIZABLE_4(sindex_range_t,
                            empty_ok(start), empty_ok(end), start_open, end_open);
 RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_range,
