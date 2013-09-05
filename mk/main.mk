@@ -19,17 +19,11 @@ all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
 # check-env.mk provides check-env-start and check-env-check
 include $(TOP)/mk/check-env.mk
 
-# Include custom.mk, the way, and generate and include the config file
+# Include custom.mk and the config file
 include $(TOP)/mk/configure.mk
 
 # Makefile related definitions
 include $(TOP)/mk/lib.mk
-
-# Don't parse the rest of the rules if the configure step is not complete
-ifneq (success,$(CONFIGURE_STATUS))
-  # Don't build anything
-  real-default-goal:
-else # if CONFIGURE_STATUS = success
 
 # The default goal
 real-default-goal: $(DEFAULT_GOAL)
@@ -72,5 +66,3 @@ include $(TOP)/mk/local.mk
 
 .PHONY: clean
 clean: build-clean
-
-endif # CONFIGURE_STATUS = success

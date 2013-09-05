@@ -200,9 +200,10 @@ private:
             primary_key = v->as_str();
         }
 
-        int cache_size = 1073741824;
+        // RSI: Magic constant.
+        int64_t cache_size = 1073741824;
         if (counted_t<val_t> v = optarg(env, "cache_size")) {
-            cache_size = v->as_int<int>();
+            cache_size = v->as_int<int64_t>();
         }
 
         uuid_u db_id;
