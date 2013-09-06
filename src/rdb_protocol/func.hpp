@@ -63,7 +63,6 @@ public:
     ~reql_func_t();
 
     counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
-    // RSI: Does anybody call this?
     bool is_deterministic() const;
 
     std::string print_source() const;
@@ -85,10 +84,6 @@ private:
 
 class js_func_t : public func_t {
 public:
-    // RSI: Remove this first constructor.
-    js_func_t(const std::string &_js_source,
-              uint64_t timeout_ms,
-              const pb_rcheckable_t *parent);
     js_func_t(const std::string &_js_source,
               uint64_t timeout_ms,
               protob_t<const Backtrace> backtrace);

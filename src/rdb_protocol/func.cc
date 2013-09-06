@@ -74,18 +74,10 @@ bool reql_func_t::is_deterministic() const {
 
 js_func_t::js_func_t(const std::string &_js_source,
                      uint64_t timeout_ms,
-                     const pb_rcheckable_t *parent)
-    : func_t(parent->backtrace()),
-      js_source(_js_source),
-      js_timeout_ms(timeout_ms) { }
-
-js_func_t::js_func_t(const std::string &_js_source,
-                     uint64_t timeout_ms,
                      protob_t<const Backtrace> backtrace)
-    : func_t(std::move(backtrace)),
+    : func_t(backtrace),
       js_source(_js_source),
       js_timeout_ms(timeout_ms) { }
-
 
 js_func_t::~js_func_t() { }
 
@@ -380,7 +372,7 @@ counted_t<val_t> js_result_visitor_t::operator()(
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
-    counted_t<const func_t> func = make_counted<js_func_t>(code, timeout_ms, parent);
+    counted_t<const func_t> func = make_counted<js_func_t>(code, timeout_ms, parent->backtrace());
     return make_counted<val_t>(func, parent->backtrace());
 }
 
