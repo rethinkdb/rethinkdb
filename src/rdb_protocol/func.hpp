@@ -7,8 +7,6 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/optional.hpp>  // RSI
-#include <boost/shared_ptr.hpp>  // RSI
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
