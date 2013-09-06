@@ -107,10 +107,10 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(
-                        std::make_pair(DESC, arg(env, i)->as_func(env, GET_FIELD_SHORTCUT)));
+                        std::make_pair(DESC, arg(env, i)->as_func(env->env, GET_FIELD_SHORTCUT)));
             } else {
                 comparisons.push_back(
-                        std::make_pair(ASC, arg(env, i)->as_func(env, GET_FIELD_SHORTCUT)));
+                        std::make_pair(ASC, arg(env, i)->as_func(env->env, GET_FIELD_SHORTCUT)));
             }
         }
         lt_cmp_t lt_cmp(env->env, comparisons);
@@ -127,7 +127,7 @@ private:
             tbl = ts.first;
             seq = ts.second;
         } else {
-            seq = v0->as_seq(env);
+            seq = v0->as_seq(env->env);
         }
 
         /* Add a sorting to the table if we're doing indexed sorting. */
@@ -179,7 +179,7 @@ private:
         scoped_ptr_t<datum_stream_t> s(
             new sort_datum_stream_t< bool (*)(
                 counted_t<const datum_t>,
-                counted_t<const datum_t>)>(env->env, lt_cmp, arg(env, 0)->as_seq(env), backtrace()));
+                counted_t<const datum_t>)>(env->env, lt_cmp, arg(env, 0)->as_seq(env->env), backtrace()));
         datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
         while (counted_t<const datum_t> d = s->next(env->env)) {

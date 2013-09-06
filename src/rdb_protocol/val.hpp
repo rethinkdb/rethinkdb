@@ -195,14 +195,10 @@ public:
     counted_t<table_t> as_table();
     std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection(env_t *env);
     counted_t<datum_stream_t> as_seq(env_t *env);
-    // RSI: This function is possibly silly.
-    counted_t<datum_stream_t> as_seq(const scope_env_t *env);
     std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     // RSI: This shortcut parameter is very questionable.
     counted_t<func_t> as_func(env_t *env, function_shortcut_t shortcut = NO_SHORTCUT);
-    // RSI: This function is possibly silly.
-    counted_t<func_t> as_func(const scope_env_t *env, function_shortcut_t shortcut = NO_SHORTCUT);
 
     counted_t<const datum_t> as_datum() const; // prefer the 4 below
     counted_t<const datum_t> as_ptype(const std::string s = "");

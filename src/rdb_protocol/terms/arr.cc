@@ -78,7 +78,7 @@ private:
             size_t real_n = canonicalize(this, n, arr->size());
             return new_val(arr->get(real_n));
         } else {
-            counted_t<datum_stream_t> s = v->as_seq(env);
+            counted_t<datum_stream_t> s = v->as_seq(env->env);
             rcheck(n >= -1,
                    base_exc_t::GENERIC,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
@@ -106,7 +106,7 @@ public:
         op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-      bool is_empty = !arg(env, 0)->as_seq(env)->next(env->env).has();
+      bool is_empty = !arg(env, 0)->as_seq(env->env)->next(env->env).has();
       return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
     }
     virtual const char *name() const { return "is_empty"; }
@@ -158,7 +158,7 @@ private:
                 t = t_seq.first;
                 seq = t_seq.second;
             } else {
-                seq = v->as_seq(env);
+                seq = v->as_seq(env->env);
             }
 
             rcheck(fake_l >= 0, base_exc_t::GENERIC,
@@ -198,7 +198,7 @@ private:
             // RSI: Is discarding as_selection(env).second causing us to do wasteful work?
             t = v->as_selection(env->env).first;
         }
-        counted_t<datum_stream_t> ds = v->as_seq(env);
+        counted_t<datum_stream_t> ds = v->as_seq(env->env);
         int32_t r = arg(env, 1)->as_int<int32_t>();
         rcheck(r >= 0, base_exc_t::GENERIC,
                strprintf("LIMIT takes a non-negative argument (got %d)", r));
@@ -407,11 +407,11 @@ private:
         counted_t<val_t> v = arg(env, 1);
         counted_t<func_t> fun;
         if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
-            fun = v->as_func(env);
+            fun = v->as_func(env->env);
         } else {
             fun = new_eq_comparison_func(env->env, v->as_datum(), backtrace());
         }
-        return new_val(env, arg(env, 0)->as_seq(env)->indexes_of(fun));
+        return new_val(env, arg(env, 0)->as_seq(env->env)->indexes_of(fun));
     }
     virtual const char *name() const { return "indexes_of"; }
 };
@@ -422,13 +422,13 @@ public:
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        counted_t<datum_stream_t> seq = arg(env, 0)->as_seq(env);
+        counted_t<datum_stream_t> seq = arg(env, 0)->as_seq(env->env);
         std::vector<counted_t<const datum_t> > required_els;
         std::vector<counted_t<func_t> > required_funcs;
         for (size_t i = 1; i < num_args(); ++i) {
             counted_t<val_t> v = arg(env, i);
             if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
-                required_funcs.push_back(v->as_func(env));
+                required_funcs.push_back(v->as_func(env->env));
             } else {
                 required_els.push_back(v->as_datum());
             }

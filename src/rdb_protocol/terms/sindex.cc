@@ -29,7 +29,7 @@ public:
                          name.c_str()));
         counted_t<func_t> index_func;
         if (num_args() == 3) {
-            index_func = arg(env, 2)->as_func(env);
+            index_func = arg(env, 2)->as_func(env->env);
         } else {
             protob_t<Term> func_term = make_counted_term();
             sym_t x = env->env->symgen.gensym();

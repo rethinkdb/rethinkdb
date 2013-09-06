@@ -28,7 +28,7 @@ public:
             t = t_seq.first;
             seq = t_seq.second;
         } else {
-            seq = v->as_seq(env);
+            seq = v->as_seq(env->env);
         }
 
         std::vector<counted_t<const datum_t> > result;

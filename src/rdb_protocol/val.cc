@@ -638,10 +638,6 @@ counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     unreachable();
 }
 
-counted_t<datum_stream_t> val_t::as_seq(const scope_env_t *env) {
-    return as_seq(env->env);
-}
-
 std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection(env_t *env) {
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
@@ -684,10 +680,6 @@ counted_t<func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut) {
     default: unreachable();
     }
     unreachable();
-}
-
-counted_t<func_t> val_t::as_func(const scope_env_t *env, function_shortcut_t shortcut) {
-    return as_func(env->env, shortcut);
 }
 
 counted_t<const db_t> val_t::as_db() const {

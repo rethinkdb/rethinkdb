@@ -17,10 +17,10 @@ private:
         counted_t<const datum_t> base = baseval.has() ?
             baseval->as_datum() :
             counted_t<const datum_t>();
-        counted_t<func_t> g = arg(env, 1)->as_func(env, PLUCK_SHORTCUT);
-        counted_t<func_t> m = arg(env, 2)->as_func(env);
-        counted_t<func_t> r = arg(env, 3)->as_func(env);
-        return new_val(arg(env, 0)->as_seq(env)->gmr(env->env, g, m, base, r));
+        counted_t<func_t> g = arg(env, 1)->as_func(env->env, PLUCK_SHORTCUT);
+        counted_t<func_t> m = arg(env, 2)->as_func(env->env);
+        counted_t<func_t> r = arg(env, 3)->as_func(env->env);
+        return new_val(arg(env, 0)->as_seq(env->env)->gmr(env->env, g, m, base, r));
     }
     virtual const char *name() const { return "grouped_map_reduce"; }
 };

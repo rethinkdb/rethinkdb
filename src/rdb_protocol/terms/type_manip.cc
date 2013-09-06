@@ -199,7 +199,7 @@ private:
                  && start_type != R_ARRAY_TYPE)) {
             counted_t<datum_stream_t> ds;
             try {
-                ds = val->as_seq(env);
+                ds = val->as_seq(env->env);
             } catch (const base_exc_t &e) {
                 rfail(base_exc_t::GENERIC,
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
