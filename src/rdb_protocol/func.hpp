@@ -122,7 +122,6 @@ protected:
 
 // Some queries, like filter, can take a shortcut object instead of a
 // function as their argument.
-// RSI: Such queries should handle shortcut objects explicitly.
 
 counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
                                     const protob_t<const Backtrace> &root);

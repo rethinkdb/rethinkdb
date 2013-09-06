@@ -1,4 +1,3 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/func.hpp"
 
 #include "rdb_protocol/counted_term.hpp"
@@ -49,7 +48,10 @@ reql_func_t::~reql_func_t() { }
 
 counted_t<val_t> reql_func_t::call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const {
     try {
-        // RSI: This allow arg_names.size() to be 0.  Why do we allow this?
+        // We allow arg_names.size() == 0 to specifically permit users (Ruby users
+        // especially) to use zero-arity functions without the drivers to know anything
+        // about that.  Some server-created functions might also be constructed this
+        // way (thanks to entropy).  TODO: This is bad.
         rcheck(arg_names.size() == args.size() || arg_names.size() == 0,
                base_exc_t::GENERIC,
                strprintf("Expected %zd argument(s) but found %zu.",
@@ -230,7 +232,6 @@ bool reql_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const 
 }
 
 std::string reql_func_t::print_source() const {
-    // RSI: Have some debate over the format returned by this implementation.
     std::string ret = "function (captures = " + captured_scope.print() + ") (args = [";
     for (size_t i = 0; i < arg_names.size(); ++i) {
         if (i != 0) {
@@ -244,7 +245,6 @@ std::string reql_func_t::print_source() const {
 }
 
 std::string js_func_t::print_source() const {
-    // RSI: Have some debate over the format returned by this implementation.
     std::string ret = strprintf("javascript timeout=%" PRIu64 "ms, source=", js_timeout_ms);
     ret += js_source;
     return ret;
