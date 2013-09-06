@@ -60,8 +60,6 @@ public:
 
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
     counted_t<const datum_t> next(env_t *env);
-    // RSI: This function is possibly silly.
-    counted_t<const datum_t> next(const scope_env_t *env);
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
