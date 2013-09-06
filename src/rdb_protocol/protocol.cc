@@ -803,7 +803,7 @@ private:
                         if (!map->has(key)) {
                             map->set(key, val);
                         } else {
-                            counted_t<const ql::func_t> r
+                            counted_t<ql::func_t> r
                                 = local_gmr_func.compile_reduce(&ql_env);
                             map->set(key, r->call(&ql_env, map->get(key), val)->as_datum());
                         }

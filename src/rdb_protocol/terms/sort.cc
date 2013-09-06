@@ -54,7 +54,7 @@ private:
     class lt_cmp_t {
     public:
         explicit lt_cmp_t(env_t *_env,
-                          std::vector<std::pair<order_direction_t, counted_t<const func_t> > > _comparisons)
+                          std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
             : env(_env), comparisons(std::move(_comparisons)) { }
 
         bool operator()(counted_t<const datum_t> l, counted_t<const datum_t> r) {
@@ -98,11 +98,11 @@ private:
 
     private:
         env_t *const env;
-        std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons;
+        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
     };
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons;
+        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {

@@ -41,7 +41,7 @@ public:
 
     void assert_deterministic(const char *extra_msg) const;
 
-    bool filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<const func_t> default_filter_val) const;
+    bool filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const;
 
     // These are simple, they call the vector version of call.
     counted_t<val_t> call(env_t *env) const;
@@ -123,16 +123,16 @@ protected:
 // function as their argument.
 // RSI: Such queries should handle shortcut objects explicitly.
 
-counted_t<const func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
                                     const protob_t<const Backtrace> &root);
 
-counted_t<const func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src);
 
-counted_t<const func_t> new_get_field_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> obj,
                                      const protob_t<const Backtrace> &bt_src);
 
-counted_t<const func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src);
 
 
@@ -162,7 +162,7 @@ class func_term_t : public term_t {
 public:
     func_term_t(visibility_env_t *env, const protob_t<const Term> &term);
 
-    counted_t<const func_t> eval_to_func(scope_env_t *env);
+    counted_t<func_t> eval_to_func(scope_env_t *env);
 
 private:
     virtual bool is_deterministic_impl() const;

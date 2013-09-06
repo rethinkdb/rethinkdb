@@ -53,7 +53,7 @@ public:
 
     counted_t<const datum_t> replace(env_t *env,
                                      counted_t<const datum_t> orig,
-                                     counted_t<const func_t> f,
+                                     counted_t<func_t> f,
                                      bool nondet_ok,
                                      durability_requirement_t durability_requirement,
                                      bool return_vals);
@@ -67,7 +67,7 @@ public:
     std::vector<counted_t<const datum_t> > batch_replace(
         env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
-        counted_t<const func_t> replacement_generator,
+        counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement);
 
@@ -78,7 +78,7 @@ public:
         bool upsert,
         durability_requirement_t durability_requirement);
 
-    MUST_USE bool sindex_create(env_t *env, const std::string &name, counted_t<const func_t> index_func);
+    MUST_USE bool sindex_create(env_t *env, const std::string &name, counted_t<func_t> index_func);
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
     counted_t<const datum_t> sindex_list(env_t *env);
 
@@ -110,7 +110,7 @@ private:
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
     counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
-                                        counted_t<const func_t> f,
+                                        counted_t<func_t> f,
                                         bool nondet_ok,
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
@@ -188,7 +188,7 @@ public:
     val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
     val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
     val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<const func_t> _func, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
     ~val_t();
 
     counted_t<const db_t> as_db() const;
@@ -200,9 +200,9 @@ public:
     std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     // RSI: This shortcut parameter is very questionable.
-    counted_t<const func_t> as_func(env_t *env, function_shortcut_t shortcut = NO_SHORTCUT);
+    counted_t<func_t> as_func(env_t *env, function_shortcut_t shortcut = NO_SHORTCUT);
     // RSI: This function is possibly silly.
-    counted_t<const func_t> as_func(const scope_env_t *env, function_shortcut_t shortcut = NO_SHORTCUT);
+    counted_t<func_t> as_func(const scope_env_t *env, function_shortcut_t shortcut = NO_SHORTCUT);
 
     counted_t<const datum_t> as_datum() const; // prefer the 4 below
     counted_t<const datum_t> as_ptype(const std::string s = "");
@@ -235,7 +235,7 @@ private:
     boost::variant<counted_t<const db_t>,
                    counted_t<datum_stream_t>,
                    counted_t<const datum_t>,
-                   counted_t<const func_t> > u;
+                   counted_t<func_t> > u;
 
     const counted_t<const db_t> &db() const {
         return boost::get<counted_t<const db_t> >(u);
@@ -249,7 +249,7 @@ private:
     const counted_t<const datum_t> &datum() const {
         return boost::get<counted_t<const datum_t> >(u);
     }
-    counted_t<const func_t> &func() { return boost::get<counted_t<const func_t> >(u); }
+    counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }
 
     DISABLE_COPYING(val_t);
 };

@@ -405,7 +405,7 @@ public:
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(env, 1);
-        counted_t<const func_t> fun;
+        counted_t<func_t> fun;
         if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
             fun = v->as_func(env);
         } else {
@@ -424,7 +424,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<datum_stream_t> seq = arg(env, 0)->as_seq(env);
         std::vector<counted_t<const datum_t> > required_els;
-        std::vector<counted_t<const func_t> > required_funcs;
+        std::vector<counted_t<func_t> > required_funcs;
         for (size_t i = 1; i < num_args(); ++i) {
             counted_t<val_t> v = arg(env, i);
             if (v->get_type().is_convertible(val_t::type_t::FUNC)) {

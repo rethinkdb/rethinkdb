@@ -72,7 +72,7 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 
 counted_t<const datum_t> table_t::replace(env_t *env,
                                           counted_t<const datum_t> original,
-                                          counted_t<const func_t> replacement_generator,
+                                          counted_t<func_t> replacement_generator,
                                           bool nondet_ok,
                                           durability_requirement_t durability_requirement,
                                           bool return_vals) {
@@ -102,7 +102,7 @@ counted_t<const datum_t> table_t::replace(env_t *env,
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
         env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
-        counted_t<const func_t> replacement_generator,
+        counted_t<func_t> replacement_generator,
         const bool nondeterministic_replacements_ok,
         const durability_requirement_t durability_requirement) {
     if (replacement_generator->is_deterministic()) {
@@ -271,7 +271,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
 
 MUST_USE bool table_t::sindex_create(env_t *env,
                                      const std::string &id,
-                                     counted_t<const func_t> index_func) {
+                                     counted_t<func_t> index_func) {
     index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(index_func);
     rdb_protocol_t::write_t write(
@@ -358,7 +358,7 @@ counted_t<const datum_t> table_t::do_replace(
 
 counted_t<const datum_t> table_t::do_replace(env_t *env,
                                              counted_t<const datum_t> orig,
-                                             counted_t<const func_t> f,
+                                             counted_t<func_t> f,
                                              bool nondet_ok,
                                              durability_requirement_t durability_requirement,
                                              bool return_vals) {
@@ -602,7 +602,7 @@ val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
       u(_db) {
     guarantee(db().has());
 }
-val_t::val_t(counted_t<const func_t> _func, protob_t<const Backtrace> backtrace)
+val_t::val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::FUNC),
       u(_func) {
@@ -654,7 +654,7 @@ std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_select
     return std::make_pair(table, datum());
 }
 
-counted_t<const func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut) {
+counted_t<func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut) {
     if (get_type().is_convertible(type_t::FUNC)) {
         r_sanity_check(func().has());
         return func();
@@ -686,7 +686,7 @@ counted_t<const func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut)
     unreachable();
 }
 
-counted_t<const func_t> val_t::as_func(const scope_env_t *env, function_shortcut_t shortcut) {
+counted_t<func_t> val_t::as_func(const scope_env_t *env, function_shortcut_t shortcut) {
     return as_func(env->env, shortcut);
 }
 

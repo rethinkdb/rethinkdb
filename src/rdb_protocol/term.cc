@@ -376,7 +376,7 @@ counted_t<val_t> term_t::new_val(counted_t<const db_t> db) {
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
     return make_counted<val_t>(t, backtrace());
 }
-counted_t<val_t> term_t::new_val(counted_t<const func_t> f) {
+counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
     return make_counted<val_t>(f, backtrace());
 }
 counted_t<val_t> term_t::new_val_bool(bool b) {

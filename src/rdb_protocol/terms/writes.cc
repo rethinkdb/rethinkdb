@@ -188,7 +188,7 @@ private:
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(optarg(env, "durability"), this);
 
-        counted_t<const func_t> f = arg(env, 1)->as_func(env, CONSTANT_SHORTCUT);
+        counted_t<func_t> f = arg(env, 1)->as_func(env, CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             f->assert_deterministic("Maybe you want to use the non_atomic flag?");
         }

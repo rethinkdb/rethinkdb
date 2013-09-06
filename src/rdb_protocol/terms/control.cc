@@ -87,7 +87,7 @@ private:
                 rfail(base_exc_t::GENERIC,
                       "Unrecognized value `%d` for _SHORTCUT_ argument.", shortcut);
         }
-        counted_t<const func_t> f = arg(env, 0, flags)->as_func(env, shortcut);
+        counted_t<func_t> f = arg(env, 0, flags)->as_func(env, shortcut);
         std::vector<counted_t<const datum_t> > args;
         for (size_t i = 1; i < num_args(); ++i) {
             args.push_back(arg(env, i)->as_datum());

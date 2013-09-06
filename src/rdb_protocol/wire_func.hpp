@@ -43,14 +43,14 @@ RDB_DECLARE_SERIALIZABLE(wire_js_func_t);
 class wire_func_t {
 public:
     wire_func_t();
-    wire_func_t(counted_t<const func_t> f);
+    wire_func_t(counted_t<func_t> f);
 
     // Constructs a wire_func_t with a body and arglist, but no scope (and empty backtrace!)
     // RSI: This is a dumb hack, no?
     wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names);
 
     // RSI: Audit callers of this, make sure nothing's relying on the cache (hint: some things are).
-    counted_t<const func_t> compile(env_t *env) const;
+    counted_t<func_t> compile(env_t *env) const;
     protob_t<const Backtrace> get_bt() const;
 
     std::string debug_str() const;
@@ -69,10 +69,10 @@ private:
 class wire_func_t {
 public:
     wire_func_t();
-    wire_func_t(env_t *env, counted_t<const func_t> _func);
+    wire_func_t(env_t *env, counted_t<func_t> _func);
     wire_func_t(const Term &_source, const std::map<sym_t, Datum> &_scope);
 
-    counted_t<const func_t> compile(env_t *env);
+    counted_t<func_t> compile(env_t *env);
 
     protob_t<const Backtrace> get_bt() const;
 
@@ -128,12 +128,12 @@ public:
 class gmr_wire_func_t {
 public:
     gmr_wire_func_t() { }
-    gmr_wire_func_t(counted_t<const func_t> _group,
-                    counted_t<const func_t> _map,
-                    counted_t<const func_t> _reduce);
-    counted_t<const func_t> compile_group(env_t *env);
-    counted_t<const func_t> compile_map(env_t *env);
-    counted_t<const func_t> compile_reduce(env_t *env);
+    gmr_wire_func_t(counted_t<func_t> _group,
+                    counted_t<func_t> _map,
+                    counted_t<func_t> _reduce);
+    counted_t<func_t> compile_group(env_t *env);
+    counted_t<func_t> compile_map(env_t *env);
+    counted_t<func_t> compile_reduce(env_t *env);
 
     protob_t<const Backtrace> get_bt() const {
         // If this goes wrong at the toplevel, it goes wrong in reduce.
