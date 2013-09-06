@@ -111,8 +111,7 @@ private:
 
 class func_visitor_t {
 public:
-    // RSI: Rename this when you rename the type.
-    virtual void on_good_func(const reql_func_t *good_func) = 0;
+    virtual void on_reql_func(const reql_func_t *good_func) = 0;
     virtual void on_js_func(const js_func_t *js_func) = 0;
 protected:
     func_visitor_t() { }

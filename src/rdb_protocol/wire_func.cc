@@ -13,7 +13,7 @@ class wire_func_construction_visitor_t : public func_visitor_t {
 public:
     explicit wire_func_construction_visitor_t(wire_func_t *_that) : that(_that) { }
 
-    void on_good_func(const reql_func_t *good_func) {
+    void on_reql_func(const reql_func_t *good_func) {
         that->func = wire_reql_func_t();
         wire_reql_func_t *p = boost::get<wire_reql_func_t>(&that->func);
         p->captured_scope = good_func->captured_scope;

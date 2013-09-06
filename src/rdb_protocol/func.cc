@@ -115,7 +115,7 @@ bool js_func_t::is_deterministic() const {
 }
 
 void reql_func_t::visit(func_visitor_t *visitor) const {
-    visitor->on_good_func(this);
+    visitor->on_reql_func(this);
 }
 
 void js_func_t::visit(func_visitor_t *visitor) const {
