@@ -63,7 +63,7 @@ counted_t<val_t> reql_func_t::call(env_t *env, const std::vector<counted_t<const
         }
         var_scope_t new_scope = captured_scope.with_func_arg_list(new_vars);
 
-        scope_env_t scope_env(env, new_scope);
+        scope_env_t scope_env(env, std::move(new_scope));
         return body->eval(&scope_env);
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
@@ -172,7 +172,7 @@ func_term_t::func_term_t(visibility_env_t *env, const protob_t<const Term> &t)
 
     var_visibility_t varname_visibility = env->visibility.with_func_arg_name_list(args);
 
-    visibility_env_t body_env(env->env, varname_visibility);
+    visibility_env_t body_env(env->env, std::move(varname_visibility));
 
     protob_t<const Term> body_source = t.make_child(&t->args(1));
     counted_t<term_t> compiled_body = compile_term(&body_env, body_source);

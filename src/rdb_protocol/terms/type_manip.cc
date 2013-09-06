@@ -305,7 +305,6 @@ private:
             b |= info.add("source_code", make_counted<datum_t>(v->as_func(env->env)->print_source()));
         } break;
 
-            // RSI: These R_NULL_TYPE, etc, values, don't overlap with the other values?
         case R_NULL_TYPE:   // fallthru
         case R_BOOL_TYPE:   // fallthru
         case R_NUM_TYPE:    // fallthru

@@ -196,7 +196,6 @@ private:
         counted_t<val_t> v = arg(env, 0);
         counted_t<table_t> t;
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
-            // RSI: Is discarding as_selection(env).second causing us to do wasteful work?
             t = v->as_selection(env->env).first;
         }
         counted_t<datum_stream_t> ds = v->as_seq(env->env);

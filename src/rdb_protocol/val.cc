@@ -547,7 +547,6 @@ const char *val_t::type_t::name() const {
     unreachable();
 }
 
-// RSI: Probably shouldn't take term_t, should just take a backtrace.
 val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::DATUM),

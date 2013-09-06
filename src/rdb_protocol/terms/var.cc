@@ -31,8 +31,6 @@ class implicit_var_term_t : public op_term_t {
 public:
     implicit_var_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         op_term_t(env, term, argspec_t(0)) {
-        // RSI: Is this the right way to do this?  We could certainly be more explicit
-        // (nested functions vs. no function).
         rcheck(env->visibility.implicit_is_accessible(), base_exc_t::GENERIC,
                env->visibility.get_implicit_depth() == 0
                ? "r.row is not defined in this context."

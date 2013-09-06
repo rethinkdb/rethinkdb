@@ -1,7 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/op.hpp"
 
-#include "backtrace.hpp"  // RSI
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
@@ -76,10 +75,10 @@ op_term_t::op_term_t(visibility_env_t *env, protob_t<const Term> term,
         }
         rcheck(optargs.count(ap->key()) == 0,
                base_exc_t::GENERIC,
-               strprintf("Duplicate %s: %s (on type %d) (value %s)",
+               strprintf("Duplicate %s: %s",
                          (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),
-                         ap->key().c_str(), term->type(), term->DebugString().c_str()));
+                         ap->key().c_str()));
         counted_t<term_t> t = compile_term(env, term.make_child(&ap->val()));
         optargs.insert(std::make_pair(ap->key(), t));
     }
