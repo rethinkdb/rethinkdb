@@ -4,6 +4,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
@@ -43,7 +44,7 @@ RDB_DECLARE_SERIALIZABLE(wire_js_func_t);
 class wire_func_t {
 public:
     wire_func_t();
-    wire_func_t(counted_t<func_t> f);
+    explicit wire_func_t(counted_t<func_t> f);
 
     // Constructs a wire_func_t with a body and arglist, but no scope (and empty backtrace!)
     // RSI: This is a dumb hack, no?

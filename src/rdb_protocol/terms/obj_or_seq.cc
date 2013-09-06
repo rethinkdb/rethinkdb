@@ -1,6 +1,6 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 // RSI: Rename this file (it autocompletes with obj.cc).
-// RSI: Add copyright notices to these files.
 
 #include <string>
 

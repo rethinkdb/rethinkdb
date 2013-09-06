@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
 #include <string>

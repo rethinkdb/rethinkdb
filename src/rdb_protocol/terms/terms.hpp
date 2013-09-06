@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_TERMS_TERMS_HPP_
 #define RDB_PROTOCOL_TERMS_TERMS_HPP_
 

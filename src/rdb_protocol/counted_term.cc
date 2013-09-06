@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/counted_term.hpp"
 
 #include "rdb_protocol/ql2.pb.h"

@@ -1,5 +1,12 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_VAR_TYPES_HPP_
 #define RDB_PROTOCOL_VAR_TYPES_HPP_
+
+#include <map>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "containers/counted.hpp"
 #include "containers/archive/archive.hpp"
