@@ -229,6 +229,7 @@ bool reql_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const 
 }
 
 std::string reql_func_t::print_source() const {
+    // RSI: Have some debate over the format returned by this implementation.
     std::string ret = "function (captures = " + captured_scope.print() + ") (args = [";
     for (size_t i = 0; i < arg_names.size(); ++i) {
         if (i != 0) {
@@ -242,6 +243,7 @@ std::string reql_func_t::print_source() const {
 }
 
 std::string js_func_t::print_source() const {
+    // RSI: Have some debate over the format returned by this implementation.
     std::string ret = strprintf("javascript timeout=%" PRIu64 "ms, source=", js_timeout_ms);
     ret += js_source;
     return ret;
