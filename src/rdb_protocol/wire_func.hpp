@@ -63,42 +63,6 @@ private:
 };
 
 
-// RSI: Remove this.
-#if 0
-// Used to serialize a function (or gmr) over the wire.
-class wire_func_t {
-public:
-    wire_func_t();
-    wire_func_t(env_t *env, counted_t<func_t> _func);
-    wire_func_t(const Term &_source, const std::map<sym_t, Datum> &_scope);
-
-    counted_t<func_t> compile(env_t *env);
-
-    protob_t<const Backtrace> get_bt() const;
-
-    const Term &get_term() const {
-        return *source;
-    }
-
-    std::string debug_str() const;
-
-    // They're manually implemented because source is now a protob_t<Term>.
-    void rdb_serialize(write_message_t &msg) const;  // NOLINT(runtime/references)
-    archive_result_t rdb_deserialize(read_stream_t *stream);
-
-private:
-    friend class func_cache_t;
-    // source is never null, even when wire_func_t is default-constructed.
-    protob_t<Term> source;
-    std::map<sym_t, Datum> scope;
-    // This uuid is used for the func cache in `env_t`.
-    uuid_u uuid;
-};
-
-void debug_print(printf_buffer_t *buf, const wire_func_t &func);
-#endif // 0
-
-
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>

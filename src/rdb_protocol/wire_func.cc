@@ -153,54 +153,6 @@ archive_result_t deserialize(read_stream_t *s, wire_js_func_t *func) {
 
 RDB_IMPL_ME_SERIALIZABLE_1(wire_func_t, func);
 
-// RSI: Remove this old wire_func_t.
-#if 0
-wire_func_t::wire_func_t() : source(make_counted_term()) { }
-wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
-    : source(make_counted_term_copy(*func->get_source())), uuid(generate_uuid()) {
-    r_sanity_check(env != NULL);
-    env->func_cache.precache_func(this, func);
-    func->dump_scope(&scope);
-}
-wire_func_t::wire_func_t(const Term &_source, const std::map<sym_t, Datum> &_scope)
-    : source(make_counted_term_copy(_source)), scope(_scope), uuid(generate_uuid()) { }
-
-counted_t<func_t> wire_func_t::compile(env_t *env) {
-    r_sanity_check(!uuid.is_unset() && !uuid.is_nil());
-    // RSI: Is this right?
-    visibility_env_t visibility_env;
-    visibility_env.env = env;
-    return env->func_cache.get_or_compile_func(&visibility_env, this);
-}
-
-protob_t<const Backtrace> wire_func_t::get_bt() const {
-    return get_backtrace(source);
-}
-
-std::string wire_func_t::debug_str() const {
-    return source->DebugString();
-}
-
-
-
-void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
-    guarantee(source.has());
-    msg << *source;
-    msg << scope;
-    msg << uuid;
-}
-
-archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
-    guarantee(source.has());
-    source = make_counted_term();
-    archive_result_t res = deserialize(stream, source.get());
-    if (res != ARCHIVE_SUCCESS) { return res; }
-    res = deserialize(stream, &scope);
-    if (res != ARCHIVE_SUCCESS) { return res; }
-    return deserialize(stream, &uuid);
-}
-#endif  // 0
-
 gmr_wire_func_t::gmr_wire_func_t(counted_t<func_t> _group,
                                  counted_t<func_t> _map,
                                  counted_t<func_t> _reduce)
