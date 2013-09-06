@@ -54,6 +54,9 @@ public:
                                const char *test, const char *file, int line,
                                bool pred, std::string msg) const = 0;
 };
+
+protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t);
+
 // This is a particular type of rcheckable.  A `pb_rcheckable_t` corresponds to
 // a part of the protobuf source tree, and can be used to produce a useful
 // backtrace.  (By contrast, a normal rcheckable might produce an error with no
@@ -61,8 +64,8 @@ public:
 // is violated.)
 class pb_rcheckable_t : public rcheckable_t {
 public:
-    explicit pb_rcheckable_t(protob_t<const Term> t)
-        : bt_src(t.make_child(&t->GetExtension(ql2::extension::backtrace))) { }
+    explicit pb_rcheckable_t(const protob_t<const Term> &t)
+        : bt_src(get_backtrace(t)) { }
 
     explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
         : bt_src(_bt_src) { }

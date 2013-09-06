@@ -37,14 +37,6 @@ void func_t::assert_deterministic(const char *extra_msg) const {
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
 
-// RSI: Ugh, the source parameter.
-reql_func_t::reql_func_t(const protob_t<const Term> source,
-                         const var_scope_t &_captured_scope,
-                         std::vector<sym_t> _arg_names,
-                         counted_t<term_t> _body)
-    : func_t(source), captured_scope(_captured_scope),
-      arg_names(std::move(_arg_names)), body(std::move(_body)) { }
-
 reql_func_t::reql_func_t(const protob_t<const Backtrace> backtrace,
                          const var_scope_t &_captured_scope,
                          std::vector<sym_t> _arg_names,
@@ -200,7 +192,7 @@ counted_t<val_t> func_term_t::eval_impl(scope_env_t *env, UNUSED eval_flags_t fl
 }
 
 counted_t<const func_t> func_term_t::eval_to_func(scope_env_t *env) {
-    return make_counted<reql_func_t>(get_src(), env->scope, arg_names, body);
+    return make_counted<reql_func_t>(get_backtrace(get_src()), env->scope, arg_names, body);
 }
 
 bool func_term_t::is_deterministic_impl() const {

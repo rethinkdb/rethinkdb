@@ -56,11 +56,6 @@ private:
 
 class reql_func_t : public func_t {
 public:
-    // RSI: Make this take a protob_t<const Backtrace> instead of source.
-    reql_func_t(const protob_t<const Term> source,  // for pb_rcheckable_t
-                const var_scope_t &captured_scope,
-                std::vector<sym_t> arg_names,
-                counted_t<term_t> body);
     reql_func_t(const protob_t<const Backtrace> backtrace,  // for pb_rcheckable_t
                 const var_scope_t &captured_scope,
                 std::vector<sym_t> arg_names,

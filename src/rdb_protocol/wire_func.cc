@@ -174,7 +174,7 @@ counted_t<const func_t> wire_func_t::compile(env_t *env) {
 }
 
 protob_t<const Backtrace> wire_func_t::get_bt() const {
-    return source.make_child(&source->GetExtension(ql2::extension::backtrace));
+    return get_backtrace(source);
 }
 
 std::string wire_func_t::debug_str() const {
