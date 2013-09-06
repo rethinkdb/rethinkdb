@@ -52,7 +52,7 @@ function get_table_status() {
 dbs = r.db_list.run
 linger{r.db_create('test').run} if !dbs.include?('test')
 tbls = r.table_list.run
-linger{r.table_create('bench', :cache_size => 10*(1024**3)).run} if !tbls.include?('bench')
+linger{r.table_create('bench').run} if !tbls.include?('bench')
 puts(tbls.include?('bench') ? 'nothing' : 'created')
 EOF
 }
@@ -88,7 +88,7 @@ EOF
 }
 
 start_time=1360000000
-num_insert=8000000
+num_insert=64000000
 function populate_table() {
     local start_offset=$1
     local end_offset=$2
