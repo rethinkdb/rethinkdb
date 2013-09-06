@@ -38,23 +38,23 @@ void func_t::assert_deterministic(const char *extra_msg) const {
 }
 
 // RSI: Ugh, the source parameter.
-good_func_t::good_func_t(const protob_t<const Term> source,
+reql_func_t::reql_func_t(const protob_t<const Term> source,
                          const var_scope_t &_captured_scope,
                          std::vector<sym_t> _arg_names,
                          counted_t<term_t> _body)
     : func_t(source), captured_scope(_captured_scope),
       arg_names(std::move(_arg_names)), body(std::move(_body)) { }
 
-good_func_t::good_func_t(const protob_t<const Backtrace> backtrace,
+reql_func_t::reql_func_t(const protob_t<const Backtrace> backtrace,
                          const var_scope_t &_captured_scope,
                          std::vector<sym_t> _arg_names,
                          counted_t<term_t> _body)
     : func_t(backtrace), captured_scope(_captured_scope),
       arg_names(std::move(_arg_names)), body(std::move(_body)) { }
 
-good_func_t::~good_func_t() { }
+reql_func_t::~reql_func_t() { }
 
-counted_t<val_t> good_func_t::call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const {
+counted_t<val_t> reql_func_t::call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const {
     try {
         // RSI: This allow arg_names.size() to be 0.  Why do we allow this?  (Is the behavior subtly different in the new implementation?  Because in the old implementation, maybe some stuff saw random old argptrs values...)
         rcheck(arg_names.size() == args.size() || arg_names.size() == 0,
@@ -76,7 +76,7 @@ counted_t<val_t> good_func_t::call(env_t *env, const std::vector<counted_t<const
     }
 }
 
-bool good_func_t::is_deterministic() const {
+bool reql_func_t::is_deterministic() const {
     return body->is_deterministic();
 }
 
@@ -130,7 +130,7 @@ bool js_func_t::is_deterministic() const {
     return false;
 }
 
-void good_func_t::visit(func_visitor_t *visitor) const {
+void reql_func_t::visit(func_visitor_t *visitor) const {
     visitor->on_good_func(this);
 }
 
@@ -200,7 +200,7 @@ counted_t<val_t> func_term_t::eval_impl(scope_env_t *env, UNUSED eval_flags_t fl
 }
 
 counted_t<const func_t> func_term_t::eval_to_func(scope_env_t *env) {
-    return make_counted<good_func_t>(get_src(), env->scope, arg_names, body);
+    return make_counted<reql_func_t>(get_src(), env->scope, arg_names, body);
 }
 
 bool func_term_t::is_deterministic_impl() const {
@@ -232,7 +232,7 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
     }
 }
 
-bool good_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
+bool reql_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
     counted_t<const datum_t> d = call(env, make_vector(arg))->as_datum();
     // RSI: This body->get_src() stuff is fragile shit.
     if (d->get_type() == datum_t::R_OBJECT &&
@@ -244,7 +244,7 @@ bool good_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const 
     }
 }
 
-std::string good_func_t::print_source() const {
+std::string reql_func_t::print_source() const {
     std::string ret = "function (captures = " + captured_scope.print() + ") (args = [";
     for (size_t i = 0; i < arg_names.size(); ++i) {
         if (i != 0) {

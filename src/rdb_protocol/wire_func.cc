@@ -13,9 +13,9 @@ class wire_func_construction_visitor_t : public func_visitor_t {
 public:
     explicit wire_func_construction_visitor_t(wire_func_t *_that) : that(_that) { }
 
-    void on_good_func(const good_func_t *good_func) {
-        that->func = wire_good_func_t();
-        wire_good_func_t *p = boost::get<wire_good_func_t>(&that->func);
+    void on_good_func(const reql_func_t *good_func) {
+        that->func = wire_reql_func_t();
+        wire_reql_func_t *p = boost::get<wire_reql_func_t>(&that->func);
         p->captured_scope = good_func->captured_scope;
         p->arg_names = good_func->arg_names;
         p->body = good_func->body->get_src();
@@ -40,8 +40,8 @@ wire_func_t::wire_func_t(counted_t<const func_t> f) {
 }
 
 wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names) {
-    func = wire_good_func_t();
-    wire_good_func_t *p = boost::get<wire_good_func_t>(&func);
+    func = wire_reql_func_t();
+    wire_reql_func_t *p = boost::get<wire_reql_func_t>(&func);
     p->arg_names = std::move(arg_names);
     p->body = std::move(body);
     p->backtrace = make_counted_backtrace();
@@ -54,10 +54,10 @@ struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<cons
     wire_func_compile_visitor_t(env_t *_env) : env(_env) { }
     env_t *env;
 
-    counted_t<const func_t> operator()(const wire_good_func_t &func) const {
+    counted_t<const func_t> operator()(const wire_reql_func_t &func) const {
         r_sanity_check(func.body.has() && func.backtrace.has());
         visibility_env_t visibility_env(env, func.captured_scope.compute_visibility().with_func_arg_name_list(func.arg_names));
-        return make_counted<good_func_t>(func.backtrace, func.captured_scope, func.arg_names,
+        return make_counted<reql_func_t>(func.backtrace, func.captured_scope, func.arg_names,
                                          compile_term(&visibility_env, func.body));
     }
 
@@ -92,7 +92,7 @@ std::string wire_func_t::debug_str() const {
     return "wire_func_t";
 }
 
-write_message_t &operator<<(write_message_t &msg, const wire_good_func_t &func) {  // NOLINT(runtime/references)
+write_message_t &operator<<(write_message_t &msg, const wire_reql_func_t &func) {  // NOLINT(runtime/references)
     guarantee(func.body.has() && func.backtrace.has());
     msg << func.captured_scope;
     msg << func.arg_names;
@@ -101,7 +101,7 @@ write_message_t &operator<<(write_message_t &msg, const wire_good_func_t &func) 
     return msg;
 }
 
-archive_result_t deserialize(read_stream_t *s, wire_good_func_t *func) {
+archive_result_t deserialize(read_stream_t *s, wire_reql_func_t *func) {
     var_scope_t captured_scope;
     archive_result_t res = deserialize(s, &captured_scope);
     if (res) { return res; }

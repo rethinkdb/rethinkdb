@@ -22,14 +22,14 @@ namespace ql {
 class func_t;
 class env_t;
 
-struct wire_good_func_t {
+struct wire_reql_func_t {
     var_scope_t captured_scope;
     std::vector<sym_t> arg_names;
     protob_t<const Term> body;
     protob_t<const Backtrace> backtrace;
 };
 
-RDB_DECLARE_SERIALIZABLE(wire_good_func_t);
+RDB_DECLARE_SERIALIZABLE(wire_reql_func_t);
 
 // RSI: We shouldn't actually be sending js funcs over the wire, right?
 struct wire_js_func_t {
@@ -59,7 +59,7 @@ public:
 
 private:
     friend class wire_func_construction_visitor_t;
-    boost::variant<wire_good_func_t, wire_js_func_t> func;
+    boost::variant<wire_reql_func_t, wire_js_func_t> func;
 };
 
 

@@ -48,7 +48,7 @@ public:
     counted_t<const datum_t> lookup_implicit() const;
 
     // Dumps a complete "human readable" description of the var_scope_t.  Is used by
-    // info_term_t via good_func_t::print_source().
+    // info_term_t via reql_func_t::print_source().
     std::string print() const;
 
     var_visibility_t compute_visibility() const;

@@ -54,19 +54,18 @@ private:
     DISABLE_COPYING(func_t);
 };
 
-// RSI: Rename this type.
-class good_func_t : public func_t {
+class reql_func_t : public func_t {
 public:
     // RSI: Make this take a protob_t<const Backtrace> instead of source.
-    good_func_t(const protob_t<const Term> source,  // for pb_rcheckable_t
+    reql_func_t(const protob_t<const Term> source,  // for pb_rcheckable_t
                 const var_scope_t &captured_scope,
                 std::vector<sym_t> arg_names,
                 counted_t<term_t> body);
-    good_func_t(const protob_t<const Backtrace> backtrace,  // for pb_rcheckable_t
+    reql_func_t(const protob_t<const Backtrace> backtrace,  // for pb_rcheckable_t
                 const var_scope_t &captured_scope,
                 std::vector<sym_t> arg_names,
                 counted_t<term_t> body);
-    ~good_func_t();
+    ~reql_func_t();
 
     counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
     // RSI: Does anybody call this?
@@ -86,7 +85,7 @@ private:
     std::vector<sym_t> arg_names;
     counted_t<term_t> body;
 
-    DISABLE_COPYING(good_func_t);
+    DISABLE_COPYING(reql_func_t);
 };
 
 class js_func_t : public func_t {
@@ -123,7 +122,7 @@ private:
 class func_visitor_t {
 public:
     // RSI: Rename this when you rename the type.
-    virtual void on_good_func(const good_func_t *good_func) = 0;
+    virtual void on_good_func(const reql_func_t *good_func) = 0;
     virtual void on_js_func(const js_func_t *js_func) = 0;
 protected:
     func_visitor_t() { }
