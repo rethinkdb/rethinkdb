@@ -22,11 +22,11 @@ private:
         if (num_args() == 1) {
             return new_val(arg(env, 0)->as_seq(env)->count(env->env));
         } else if (arg(env, 1)->get_type().is_convertible(val_t::type_t::FUNC)) {
-            return new_val(arg(env, 0)->as_seq(env)->filter(env->env, arg(env, 1)->as_func(env), counted_t<func_t>())->count(env->env));
+            return new_val(arg(env, 0)->as_seq(env)->filter(env->env, arg(env, 1)->as_func(env), counted_t<const func_t>())->count(env->env));
         } else {
-            counted_t<func_t> f =
+            counted_t<const func_t> f =
                 new_eq_comparison_func(env->env, arg(env, 1)->as_datum(), backtrace());
-            return new_val(arg(env, 0)->as_seq(env)->filter(env->env, f, counted_t<func_t>())->count(env->env));
+            return new_val(arg(env, 0)->as_seq(env)->filter(env->env, f, counted_t<const func_t>())->count(env->env));
         }
     }
     virtual const char *name() const { return "count"; }
@@ -64,10 +64,10 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(env, 0);
         counted_t<val_t> v1 = arg(env, 1, LITERAL_OK);
-        counted_t<func_t> f = v1->as_func(env, CONSTANT_SHORTCUT);
-        counted_t<func_t> default_filter_val = default_filter_term.has()
+        counted_t<const func_t> f = v1->as_func(env, CONSTANT_SHORTCUT);
+        counted_t<const func_t> default_filter_val = default_filter_term.has()
             ? default_filter_term->eval_to_func(env)
-            : counted_t<func_t>();
+            : counted_t<const func_t>();
 
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts

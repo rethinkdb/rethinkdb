@@ -128,10 +128,10 @@ void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {  /
 }
 
 void transform_visitor_t::operator()(filter_transform_t &transf) const {  // NOLINT(runtime/references)
-    counted_t<ql::func_t> f = transf.filter_func.compile(ql_env);
-    counted_t<ql::func_t> default_filter_val = transf.default_filter_val ?
+    counted_t<const ql::func_t> f = transf.filter_func.compile(ql_env);
+    counted_t<const ql::func_t> default_filter_val = transf.default_filter_val ?
         transf.default_filter_val->compile(ql_env) :
-        counted_t<ql::func_t>();
+        counted_t<const ql::func_t>();
     if (f->filter_call(ql_env, arg, default_filter_val)) {
         out->push_back(arg);
     }
@@ -143,7 +143,7 @@ void transform_visitor_t::operator()(range_and_func_filter_transform_t &transf) 
         return;
     }
 
-    counted_t<ql::func_t> f = transf.mapping_func.compile(ql_env);
+    counted_t<const ql::func_t> f = transf.mapping_func.compile(ql_env);
     counted_t<const ql::datum_t> mapped_arg = f->call(ql_env, arg)->as_datum();
 
     if (transf.range_predicate.start.has()) {
@@ -260,9 +260,9 @@ public:
 
 
     void operator()(ql::gmr_wire_func_t &f) const {  // NOLINT(runtime/references)
-        counted_t<ql::func_t> group = f.compile_group(ql_env);
-        counted_t<ql::func_t> map = f.compile_map(ql_env);
-        counted_t<ql::func_t> reduce = f.compile_reduce(ql_env);
+        counted_t<const ql::func_t> group = f.compile_group(ql_env);
+        counted_t<const ql::func_t> map = f.compile_map(ql_env);
+        counted_t<const ql::func_t> reduce = f.compile_reduce(ql_env);
         guarantee(group.has() && map.has() && reduce.has());
         *out = ql::wire_datum_map_t();
     }
@@ -272,7 +272,7 @@ public:
     }
 
     void operator()(ql::reduce_wire_func_t &f) const {  // NOLINT(runtime/references)
-        counted_t<ql::func_t> reduce = f.compile(ql_env);
+        counted_t<const ql::func_t> reduce = f.compile(ql_env);
         guarantee(reduce.has());
         *out = rget_read_response_t::empty_t();
     }

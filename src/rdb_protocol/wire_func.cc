@@ -33,7 +33,7 @@ private:
     wire_func_t *that;
 };
 
-wire_func_t::wire_func_t(counted_t<func_t> f) {
+wire_func_t::wire_func_t(counted_t<const func_t> f) {
     r_sanity_check(f.has());
     wire_func_construction_visitor_t v(this);
     f->visit(&v);
@@ -50,18 +50,18 @@ wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names
 
 // RSI: Go through all code everywhere and look for non-temporary "env;" variables pointing to some env.
 
-struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func_t> > {
+struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<const func_t> > {
     wire_func_compile_visitor_t(env_t *_env) : env(_env) { }
     env_t *env;
 
-    counted_t<func_t> operator()(const wire_good_func_t &func) const {
+    counted_t<const func_t> operator()(const wire_good_func_t &func) const {
         r_sanity_check(func.body.has() && func.backtrace.has());
         visibility_env_t visibility_env(env, func.captured_scope.compute_visibility().with_func_arg_name_list(func.arg_names));
         return make_counted<good_func_t>(func.backtrace, func.captured_scope, func.arg_names,
                                          compile_term(&visibility_env, func.body));
     }
 
-    counted_t<func_t> operator()(const wire_js_func_t &func) const {
+    counted_t<const func_t> operator()(const wire_js_func_t &func) const {
         r_sanity_check(func.backtrace.has());
         return make_counted<js_func_t>(func.js_source, func.js_timeout_ms, func.backtrace);
     }
@@ -69,7 +69,7 @@ struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func
     DISABLE_COPYING(wire_func_compile_visitor_t);
 };
 
-counted_t<func_t> wire_func_t::compile(env_t *env) const {
+counted_t<const func_t> wire_func_t::compile(env_t *env) const {
     return boost::apply_visitor(wire_func_compile_visitor_t(env), func);
 }
 
@@ -156,7 +156,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(wire_func_t, func);
 // RSI: Remove this old wire_func_t.
 #if 0
 wire_func_t::wire_func_t() : source(make_counted_term()) { }
-wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
+wire_func_t::wire_func_t(env_t *env, counted_t<const func_t> func)
     : source(make_counted_term_copy(*func->get_source())), uuid(generate_uuid()) {
     r_sanity_check(env != NULL);
     env->func_cache.precache_func(this, func);
@@ -165,7 +165,7 @@ wire_func_t::wire_func_t(env_t *env, counted_t<func_t> func)
 wire_func_t::wire_func_t(const Term &_source, const std::map<sym_t, Datum> &_scope)
     : source(make_counted_term_copy(_source)), scope(_scope), uuid(generate_uuid()) { }
 
-counted_t<func_t> wire_func_t::compile(env_t *env) {
+counted_t<const func_t> wire_func_t::compile(env_t *env) {
     r_sanity_check(!uuid.is_unset() && !uuid.is_nil());
     // RSI: Is this right?
     visibility_env_t visibility_env;
@@ -201,18 +201,18 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *stream) {
 }
 #endif  // 0
 
-gmr_wire_func_t::gmr_wire_func_t(counted_t<func_t> _group,
-                                 counted_t<func_t> _map,
-                                 counted_t<func_t> _reduce)
+gmr_wire_func_t::gmr_wire_func_t(counted_t<const func_t> _group,
+                                 counted_t<const func_t> _map,
+                                 counted_t<const func_t> _reduce)
     : group(_group), map(_map), reduce(_reduce) { }
 
-counted_t<func_t> gmr_wire_func_t::compile_group(env_t *env) {
+counted_t<const func_t> gmr_wire_func_t::compile_group(env_t *env) {
     return group.compile(env);
 }
-counted_t<func_t> gmr_wire_func_t::compile_map(env_t *env) {
+counted_t<const func_t> gmr_wire_func_t::compile_map(env_t *env) {
     return map.compile(env);
 }
-counted_t<func_t> gmr_wire_func_t::compile_reduce(env_t *env) {
+counted_t<const func_t> gmr_wire_func_t::compile_reduce(env_t *env) {
     return reduce.compile(env);
 }
 

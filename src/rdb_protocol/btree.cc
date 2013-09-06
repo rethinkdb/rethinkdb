@@ -815,7 +815,7 @@ public:
     boost::optional<key_range_t> primary_key_range;
     direction_t direction;
 
-    counted_t<ql::func_t> sindex_function;
+    counted_t<const ql::func_t> sindex_function;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {

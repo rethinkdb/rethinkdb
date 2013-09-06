@@ -27,7 +27,7 @@ public:
                base_exc_t::GENERIC,
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          name.c_str()));
-        counted_t<func_t> index_func;
+        counted_t<const func_t> index_func;
         if (num_args() == 3) {
             index_func = arg(env, 2)->as_func(env);
         } else {

@@ -199,7 +199,7 @@ counted_t<val_t> func_term_t::eval_impl(scope_env_t *env, UNUSED eval_flags_t fl
     return new_val(eval_to_func(env));
 }
 
-counted_t<func_t> func_term_t::eval_to_func(scope_env_t *env) {
+counted_t<const func_t> func_term_t::eval_to_func(scope_env_t *env) {
     return make_counted<good_func_t>(get_src(), env->scope, arg_names, body);
 }
 
@@ -268,7 +268,7 @@ bool js_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
     return d->as_bool();
 }
 
-bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const {
+bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<const func_t> default_filter_val) const {
     // We have to catch every exception type and save it so we can rethrow it later
     // So we don't trigger a coroutine wait in a catch statement
     std::exception_ptr saved_exception;
@@ -312,7 +312,7 @@ bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<fun
     std::rethrow_exception(saved_exception);
 }
 
-counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<const func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
                                     const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
@@ -326,7 +326,7 @@ counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
     return func_term->eval_to_func(&empty_scope_env);
 }
 
-counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
+counted_t<const func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
                                      const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *arg = twrap.get();
@@ -342,7 +342,7 @@ counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
     return func_term->eval_to_func(&empty_scope_env);
 }
 
-counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<const func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
@@ -358,7 +358,7 @@ counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
     return func_term->eval_to_func(&empty_scope_env);
 }
 
-counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<const func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
@@ -388,7 +388,7 @@ counted_t<val_t> js_result_visitor_t::operator()(
 }
 // This JS evaluation resulted in an id for a js function
 counted_t<val_t> js_result_visitor_t::operator()(UNUSED const id_t id_val) const {
-    counted_t<func_t> func = make_counted<js_func_t>(code, timeout_ms, parent);
+    counted_t<const func_t> func = make_counted<js_func_t>(code, timeout_ms, parent);
     return make_counted<val_t>(func, parent->backtrace());
 }
 

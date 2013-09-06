@@ -36,9 +36,9 @@ bool global_optargs_t::add_optarg(env_t *env, const std::string &key, const Term
     visibility_env_t empty_visibility_env(env, var_visibility_t());
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_visibility_env, arg);
     scope_env_t empty_scope_env(env, var_scope_t());
-    counted_t<func_t> func = func_term->eval_to_func(&empty_scope_env);
+    counted_t<const func_t> func = func_term->eval_to_func(&empty_scope_env);
 
-    // RSI: Store counted_t<func_t>'s in optargs instead of wire funcs.  (Hey, maybe do that everywhere!)
+    // RSI: Store counted_t<const func_t>'s in optargs instead of wire funcs.  (Hey, maybe do that everywhere!)
     optargs[key] = wire_func_t(func);
     return false;
 }
@@ -47,7 +47,7 @@ void global_optargs_t::init_optargs(env_t *env, const std::map<std::string, wire
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
     for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        counted_t<func_t> force_compilation = it->second.compile(env);
+        counted_t<const func_t> force_compilation = it->second.compile(env);
         r_sanity_check(force_compilation.has());
     }
 }
