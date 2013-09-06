@@ -74,7 +74,7 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
 
 class insert_term_t : public op_term_t {
 public:
-    insert_term_t(env_t *env, const protob_t<const Term> &term)
+    insert_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"upsert", "durability", "return_vals"})) { }
 
@@ -93,7 +93,7 @@ private:
         }
     }
 
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> t = arg(env, 0)->as_table();
         counted_t<val_t> upsert_val = optarg(env, "upsert");
         bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
@@ -117,7 +117,7 @@ private:
                     // TODO: that solution sucks.
                 }
                 counted_t<const datum_t> new_stats =
-                    t->replace(env, d, d, upsert, durability_requirement, return_vals);
+                    t->replace(env->env, d, d, upsert, durability_requirement, return_vals);
                 stats = stats->merge(new_stats, stats_merge);
                 done = true;
             }
@@ -130,7 +130,7 @@ private:
 
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = datum_stream->next_batch(env);
+                    = datum_stream->next_batch(env->env);
                 if (datums.empty()) {
                     break;
                 }
@@ -145,7 +145,7 @@ private:
                 }
 
                 std::vector<counted_t<const datum_t> > results =
-                    t->batch_replace(env, datums, datums, upsert, durability_requirement);
+                    t->batch_replace(env->env, datums, datums, upsert, durability_requirement);
                 for (auto it = results.begin(); it != results.end(); ++it) {
                     stats = stats->merge(*it, stats_merge);
                 }
@@ -170,12 +170,12 @@ private:
 
 class replace_term_t : public op_term_t {
 public:
-    replace_term_t(env_t *env, const protob_t<const Term> &term)
+    replace_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2),
                     optargspec_t({"non_atomic", "durability", "return_vals"})) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         bool nondet_ok = false;
         if (counted_t<val_t> v = optarg(env, "non_atomic")) {
             nondet_ok = v->as_bool();
@@ -199,12 +199,12 @@ private:
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
             counted_t<const datum_t> result =
-                tblrow.first->replace(env, tblrow.second, f, nondet_ok,
+                tblrow.first->replace(env->env, tblrow.second, f, nondet_ok,
                                       durability_requirement, return_vals);
             stats = stats->merge(result, stats_merge);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
-                = v0->as_selection(env);
+                = v0->as_selection(env->env);
             counted_t<table_t> tbl = tblrows.first;
             counted_t<datum_stream_t> ds = tblrows.second;
 
@@ -212,12 +212,12 @@ private:
                    "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
             for (;;) {
-                std::vector<counted_t<const datum_t> > datums = ds->next_batch(env);
+                std::vector<counted_t<const datum_t> > datums = ds->next_batch(env->env);
                 if (datums.empty()) {
                     break;
                 }
                 std::vector<counted_t<const datum_t> > results =
-                    tbl->batch_replace(env, datums, f, nondet_ok, durability_requirement);
+                    tbl->batch_replace(env->env, datums, f, nondet_ok, durability_requirement);
 
                 for (auto result = results.begin(); result != results.end(); ++result) {
                     stats = stats->merge(*result, stats_merge);
@@ -234,17 +234,17 @@ private:
 
 class foreach_term_t : public op_term_t {
 public:
-    foreach_term_t(env_t *env, const protob_t<const Term> &term)
+    foreach_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         const char *fail_msg = "FOREACH expects one or more basic write queries.";
 
         counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         while (counted_t<const datum_t> row = ds->next(env)) {
-            counted_t<val_t> v = arg(env, 1)->as_func(env, CONSTANT_SHORTCUT)->call(row);
+            counted_t<val_t> v = arg(env, 1)->as_func(env, CONSTANT_SHORTCUT)->call(env->env, row);
             try {
                 counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {
@@ -266,13 +266,13 @@ private:
     virtual const char *name() const { return "foreach"; }
 };
 
-counted_t<term_t> make_insert_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_insert_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<insert_term_t>(env, term);
 }
-counted_t<term_t> make_replace_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_replace_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<replace_term_t>(env, term);
 }
-counted_t<term_t> make_foreach_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_foreach_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<foreach_term_t>(env, term);
 }
 

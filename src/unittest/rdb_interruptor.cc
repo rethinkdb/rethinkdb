@@ -142,16 +142,17 @@ public:
 
 void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32_t *count_out,
                  verify_callback_t *verify_callback) {
-    // RSI: This test_rdb_env_t::instance_t type is probably dumb.
     scoped_ptr_t<test_rdb_env_t::instance_t> env_instance;
     test_env->make_env(&env_instance);
 
     count_callback_t callback(count_out);
     env_instance->get()->set_eval_callback(&callback);
 
-    counted_t<ql::term_t> compiled_term = ql::compile_term(env_instance->get(), term);
+    ql::visibility_env_t visibility_env(env_instance->get());
+    counted_t<ql::term_t> compiled_term = ql::compile_term(&visibility_env, term);
 
-    UNUSED counted_t<ql::val_t> result = compiled_term->eval(env_instance->get());
+    ql::scope_env_t scope_env(env_instance->get());
+    UNUSED counted_t<ql::val_t> result = compiled_term->eval(&scope_env);
     rassert(*count_out > 0);
     guarantee(verify_callback->verify(env_instance.get()));
 }
@@ -166,10 +167,12 @@ void interrupt_test(test_rdb_env_t *test_env,
     interrupt_callback_t callback(interrupt_phase, env_instance.get());
     env_instance->get()->set_eval_callback(&callback);
 
-    counted_t<ql::term_t> compiled_term = ql::compile_term(env_instance->get(), term);
+    ql::visibility_env_t visibility_env(env_instance->get());
+    counted_t<ql::term_t> compiled_term = ql::compile_term(&visibility_env, term);
 
     try {
-        UNUSED counted_t<ql::val_t> result = compiled_term->eval(env_instance->get());
+        ql::scope_env_t scope_env(env_instance->get());
+        UNUSED counted_t<ql::val_t> result = compiled_term->eval(&scope_env);
     } catch (const interrupted_exc_t &ex) {
         guarantee(verify_callback->verify(env_instance.get()));
         return;

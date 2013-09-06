@@ -107,7 +107,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         const durability_requirement_t durability_requirement) {
     if (replacement_generator->is_deterministic()) {
         std::vector<datum_func_pair_t> pairs(original_values.size());
-        map_wire_func_t wire_func = map_wire_func_t(env, replacement_generator);
+        map_wire_func_t wire_func = map_wire_func_t(replacement_generator);
         for (size_t i = 0; i < original_values.size(); ++i) {
             try {
                 pairs[i] = datum_func_pair_t(original_values[i], &wire_func);
@@ -125,15 +125,15 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         for (size_t i = 0; i < original_values.size(); ++i) {
             try {
                 counted_t<const datum_t> replacement =
-                    replacement_generator->call(original_values[i])->as_datum();
+                    replacement_generator->call(env, original_values[i])->as_datum();
 
-                Term t;
+                protob_t<Term> twrap = make_counted_term();
+                Term *const arg = twrap.get();
                 const sym_t x = env->symgen.gensym();
-                Term *const arg = pb::set_func(&t, x);
                 replacement->write_to_protobuf(pb::set_datum(arg));
-                propagate(&t);
+                propagate(arg);  // RSI: Oh?  Before we called propagate on a set_func'd term.
 
-                funcs[i] = map_wire_func_t(t, std::map<sym_t, Datum>());
+                funcs[i] = map_wire_func_t(twrap, make_vector(x));
                 pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
             } catch (const base_exc_t &exc) {
                 pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -155,9 +155,10 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     std::vector<datum_func_pair_t> pairs(original_values.size());
     for (size_t i = 0; i < original_values.size(); ++i) {
         try {
-            Term t;
+            protob_t<Term> twrap = make_counted_term();
+            Term *const arg = twrap.get();
+
             const sym_t x = env->symgen.gensym();
-            Term *const arg = pb::set_func(&t, x);
             if (upsert) {
                 replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
             } else {
@@ -167,8 +168,8 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                    N1(ERROR, NDATUM("Duplicate primary key.")));
             }
 
-            propagate(&t);
-            funcs[i] = map_wire_func_t(t, std::map<sym_t, Datum>());
+            propagate(arg);  // RSI: Oh?  Before we called propagate on a set_func'd term.
+            funcs[i] = map_wire_func_t(twrap, make_vector(x));
             pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
         } catch (const base_exc_t &exc) {
             pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -216,7 +217,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 if (orig->get_type() == datum_t::R_NULL) {
                     // TODO: We copy this for some reason, possibly no reason.
                     map_wire_func_t mwf = *replacements[i].replacer;
-                    orig = mwf.compile(env)->call(orig)->as_datum();
+                    orig = mwf.compile(env)->call(env, orig)->as_datum();
                     if (orig->get_type() == datum_t::R_NULL) {
                         datum_ptr_t resp(datum_t::R_OBJECT);
                         counted_t<const datum_t> one(new datum_t(1.0));
@@ -272,7 +273,7 @@ MUST_USE bool table_t::sindex_create(env_t *env,
                                      const std::string &id,
                                      counted_t<func_t> index_func) {
     index_func->assert_deterministic("Index functions must be deterministic.");
-    map_wire_func_t wire_func(env, index_func);
+    map_wire_func_t wire_func(index_func);
     rdb_protocol_t::write_t write(
             rdb_protocol_t::sindex_create_t(id, wire_func));
 
@@ -334,7 +335,7 @@ counted_t<const datum_t> table_t::do_replace(
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
-        orig = mwf2.compile(env)->call(orig)->as_datum();
+        orig = mwf2.compile(env)->call(env, orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
             datum_ptr_t resp(datum_t::R_OBJECT);
             bool b = resp.add("skipped", make_counted<datum_t>(1.0));
@@ -362,11 +363,11 @@ counted_t<const datum_t> table_t::do_replace(env_t *env,
                                              durability_requirement_t durability_requirement,
                                              bool return_vals) {
     if (f->is_deterministic()) {
-        return do_replace(env, orig, map_wire_func_t(env, f),
+        return do_replace(env, orig, map_wire_func_t(f),
                           durability_requirement, return_vals);
     } else {
         r_sanity_check(nondet_ok);
-        return do_replace(env, orig, f->call(orig)->as_datum(), true,
+        return do_replace(env, orig, f->call(env, orig)->as_datum(), true,
                           durability_requirement, return_vals);
     }
 }
@@ -377,9 +378,9 @@ counted_t<const datum_t> table_t::do_replace(env_t *env,
                                              bool upsert,
                                              durability_requirement_t durability_requirement,
                                              bool return_vals) {
-    Term t;
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
     sym_t x = env->symgen.gensym();
-    Term *arg = pb::set_func(&t, x);
     if (upsert) {
         d->write_to_protobuf(pb::set_datum(arg));
     } else {
@@ -389,8 +390,8 @@ counted_t<const datum_t> table_t::do_replace(env_t *env,
            N1(ERROR, NDATUM("Duplicate primary key.")));
     }
 
-    propagate(&t);
-    return do_replace(env, orig, map_wire_func_t(t, std::map<sym_t, Datum>()),
+    propagate(arg);  // RSI: We used to call propagate on a set_func'd term.
+    return do_replace(env, orig, map_wire_func_t(twrap, make_vector(x)),
                       durability_requirement, return_vals);
 }
 
@@ -564,14 +565,14 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
     guarantee(datum().has());
 }
 
-val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
+val_t::val_t(scope_env_t *env, counted_t<datum_stream_t> _sequence,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SEQUENCE),
       u(_sequence) {
     guarantee(sequence().has());
     // Some streams are really arrays in disguise.
-    counted_t<const datum_t> arr = sequence()->as_array(env);
+    counted_t<const datum_t> arr = sequence()->as_array(env->env);
     if (arr.has()) {
         type = type_t::DATUM;
         u = arr;
@@ -637,6 +638,10 @@ counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     unreachable();
 }
 
+counted_t<datum_stream_t> val_t::as_seq(const scope_env_t *env) {
+    return as_seq(env->env);
+}
+
 std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection(env_t *env) {
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
@@ -679,6 +684,10 @@ counted_t<func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut) {
     default: unreachable();
     }
     unreachable();
+}
+
+counted_t<func_t> val_t::as_func(const scope_env_t *env, function_shortcut_t shortcut) {
+    return as_func(env->env, shortcut);
 }
 
 counted_t<const db_t> val_t::as_db() const {

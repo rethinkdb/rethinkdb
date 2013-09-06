@@ -23,6 +23,8 @@ inline bool operator<(sym_t x, sym_t y) {
 
 RDB_DECLARE_SERIALIZABLE(sym_t);
 
+void debug_print(printf_buffer_t *buf, sym_t sym);
+
 }  // namespace ql
 
 

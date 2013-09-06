@@ -7,13 +7,14 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/optional.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/optional.hpp>  // RSI
+#include <boost/shared_ptr.hpp>  // RSI
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -22,6 +23,8 @@ class js_runner_t;
 
 namespace ql {
 
+class func_visitor_t;
+
 class func_t : public single_threaded_countable_t<func_t>, public pb_rcheckable_t {
 public:
     explicit func_t(const protob_t<const Term> &term);
@@ -29,61 +32,106 @@ public:
 
     virtual ~func_t();
 
-    virtual counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const = 0;
-
-    virtual protob_t<const Term> get_source() const = 0;
-    virtual void dump_scope(std::map<sym_t, Datum> *out) const = 0;
+    virtual counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const = 0;
 
     virtual bool is_deterministic() const = 0;
 
+    // Used by info_term_t.
+    virtual std::string print_source() const = 0;
+
+    virtual void visit(func_visitor_t *visitor) const = 0;
+
     void assert_deterministic(const char *extra_msg) const;
 
-    bool filter_call(counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const;
+    bool filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const;
 
     // These are simple, they call the vector version of call.
-    counted_t<val_t> call() const;
-    counted_t<val_t> call(counted_t<const datum_t> arg) const;
-    counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
+    counted_t<val_t> call(env_t *env) const;
+    counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg) const;
+    counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
 
 private:
-    virtual bool filter_helper(counted_t<const datum_t> arg) const = 0;
+    virtual bool filter_helper(env_t *env, counted_t<const datum_t> arg) const = 0;
 
     DISABLE_COPYING(func_t);
 };
 
-class concrete_func_t : public func_t {
+// RSI: Rename this type.
+class good_func_t : public func_t {
 public:
-    concrete_func_t(env_t *env, protob_t<const Term> _source);
-    ~concrete_func_t();
+    // RSI: Make this take a protob_t<const Backtrace> instead of source.
+    good_func_t(const protob_t<const Term> source,  // for pb_rcheckable_t
+                const var_scope_t &captured_scope,
+                std::vector<sym_t> arg_names,
+                counted_t<term_t> body);
+    good_func_t(const protob_t<const Backtrace> backtrace,  // for pb_rcheckable_t
+                const var_scope_t &captured_scope,
+                std::vector<sym_t> arg_names,
+                counted_t<term_t> body);
+    ~good_func_t();
+
+    counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
+    // RSI: Does anybody call this?
+    bool is_deterministic() const;
+
+    std::string print_source() const;
+
+    void visit(func_visitor_t *visitor) const;
+
+private:
+    friend class wire_func_construction_visitor_t;
+    bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
+
+    // RSI: Capture just the part of the scope this function uses, not the _whole_ scope.
+    var_scope_t captured_scope;
+
+    std::vector<sym_t> arg_names;
+    counted_t<term_t> body;
+
+    DISABLE_COPYING(good_func_t);
+};
+
+class js_func_t : public func_t {
+public:
+    // RSI: Remove this first constructor.
+    js_func_t(const std::string &_js_source,
+              uint64_t timeout_ms,
+              const pb_rcheckable_t *parent);
+    js_func_t(const std::string &_js_source,
+              uint64_t timeout_ms,
+              protob_t<const Backtrace> backtrace);
+    ~js_func_t();
 
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args) const;
+    counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
 
-    void dump_scope(std::map<sym_t, Datum> *out) const;
     bool is_deterministic() const;
 
-    protob_t<const Term> get_source() const;
+    std::string print_source() const;
+
+    void visit(func_visitor_t *visitor) const;
 
 private:
-    bool filter_helper(counted_t<const datum_t> arg) const;
+    friend class wire_func_construction_visitor_t;
+    bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
 
-    // RSI: Some kind of cleanup work to do about this env.
-    env_t *const env;
+    std::string js_source;
+    uint64_t js_timeout_ms;
 
-    // Pointers to this function's arguments.
-    scoped_array_t<counted_t<const datum_t> > argptrs;
-    counted_t<term_t> body; // body to evaluate with functions bound
-
-    // This is what's serialized over the wire.
-    protob_t<const Term> source;
-
-    // TODO: make this smarter (it's sort of slow and shitty as-is)
-    std::map<sym_t, const counted_t<const datum_t> *> scope;
-
-    DISABLE_COPYING(concrete_func_t);
+    DISABLE_COPYING(js_func_t);
 };
 
+class func_visitor_t {
+public:
+    // RSI: Rename this when you rename the type.
+    virtual void on_good_func(const good_func_t *good_func) = 0;
+    virtual void on_js_func(const js_func_t *js_func) = 0;
+protected:
+    func_visitor_t() { }
+    virtual ~func_visitor_t() { }
+    DISABLE_COPYING(func_visitor_t);
+};
 
 // Some queries, like filter, can take a shortcut object instead of a
 // function as their argument.
@@ -104,12 +152,10 @@ counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> ob
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
-    js_result_visitor_t(env_t *_env,
-                        const std::string &_code,
+    js_result_visitor_t(const std::string &_code,
                         uint64_t _timeout_ms,
-                        counted_t<term_t> _parent)
-        : env(_env),
-          code(_code),
+                        const pb_rcheckable_t *_parent)
+        : code(_code),
           timeout_ms(_timeout_ms),
           parent(_parent) { }
     // This JS evaluation resulted in an error
@@ -118,22 +164,27 @@ public:
     counted_t<val_t> operator()(const counted_t<const datum_t> &json_val) const;
     // This JS evaluation resulted in an id for a js function
     counted_t<val_t> operator()(const id_t id_val) const;
+
 private:
-    env_t *env;
     std::string code;
     uint64_t timeout_ms;
-    counted_t<term_t> parent;
+    const pb_rcheckable_t *parent;
 };
 
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
-    func_term_t(env_t *env, const protob_t<const Term> &term);
+    func_term_t(visibility_env_t *env, const protob_t<const Term> &term);
+
+    counted_t<func_t> eval_to_func(scope_env_t *env);
+
 private:
     virtual bool is_deterministic_impl() const;
-    virtual counted_t<val_t> eval_impl(env_t *env, eval_flags_t flags);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags);
     virtual const char *name() const { return "func"; }
-    counted_t<func_t> func;
+
+    std::vector<sym_t> arg_names;
+    counted_t<term_t> body;
 };
 
 } // namespace ql

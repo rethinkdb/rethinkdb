@@ -5,10 +5,10 @@
 namespace ql {
 class json_term_t : public op_term_t {
 public:
-    json_term_t(env_t *env, const protob_t<const Term> &term)
+    json_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::string data = arg(env, 0)->as_str();
         scoped_cJSON_t cjson(cJSON_Parse(data.c_str()));
         rcheck(cjson.get() != NULL, base_exc_t::GENERIC,
@@ -23,7 +23,7 @@ public:
     virtual const char *name() const { return "json"; }
 };
 
-counted_t<term_t> make_json_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_json_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<json_term_t>(env, term);
 }
 } // namespace ql

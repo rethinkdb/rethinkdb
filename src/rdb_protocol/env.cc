@@ -20,38 +20,6 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
-func_cache_t::func_cache_t() { }
-
-counted_t<func_t> func_cache_t::get_or_compile_func(env_t *env, const wire_func_t *wf) {
-    env->assert_thread();
-    auto it = cached_funcs.find(wf->uuid);
-    if (it == cached_funcs.end()) {
-        env->scopes.push_scope(&wf->scope);
-        try {
-            it = cached_funcs.insert(
-                std::make_pair(
-                    wf->uuid, compile_term(env, wf->source)->eval(env)->as_func(env))).first;
-        } catch (const base_exc_t &e) {
-            // If we have a non-`base_exc_t` exception, we don't want to pop the
-            // scope because we might have corruption, and we might fail a check
-            // and try to throw again while this exception is on the stack.  (We
-            // only need to pop the scope for a `base_exc_t` exception because
-            // that's the only kind of exception that we might recover from in
-            // the ReQL layer, which is the only case where the un-popped scope
-            // might matter.)
-            // RSI: ^^^^ This is retarded, don't do this.
-            env->scopes.pop_scope();
-            throw;
-        }
-        env->scopes.pop_scope();
-    }
-    return it->second;
-}
-
-void func_cache_t::precache_func(const wire_func_t *wf, counted_t<func_t> func) {
-    cached_funcs[wf->uuid] = func;
-}
-
 global_optargs_t::global_optargs_t() { }
 
 global_optargs_t::global_optargs_t(const std::map<std::string, wire_func_t> &_optargs)
@@ -64,9 +32,14 @@ bool global_optargs_t::add_optarg(env_t *env, const std::string &key, const Term
     protob_t<Term> arg = make_counted_term();
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
-    optargs[key] = wire_func_t(*arg, std::map<sym_t, Datum>());
-    counted_t<func_t> force_compilation = optargs[key].compile(env);
-    r_sanity_check(force_compilation.has());
+
+    visibility_env_t empty_visibility_env(env, var_visibility_t());
+    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_visibility_env, arg);
+    scope_env_t empty_scope_env(env, var_scope_t());
+    counted_t<func_t> func = func_term->eval_to_func(&empty_scope_env);
+
+    // RSI: Store counted_t<func_t>'s in optargs instead of wire funcs.  (Hey, maybe do that everywhere!)
+    optargs[key] = wire_func_t(func);
     return false;
 }
 
@@ -82,7 +55,7 @@ counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key
     if (!optargs.count(key)) {
         return counted_t<val_t>();
     }
-    return optargs[key].compile(env)->call();
+    return optargs[key].compile(env)->call(env);
 }
 const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;
@@ -101,41 +74,6 @@ sym_t gensym_t::gensym(bool allow_implicit) {
 
 bool gensym_t::var_allows_implicit(sym_t varnum) {
     return varnum.value >= min_normal_gensym;
-}
-
-
-var_visibility_t::var_visibility_t() : num_implicits(0) { }
-
-var_visibility_t var_visibility_t::with_var_names(const std::vector<sym_t> &new_visibles) const {
-    var_visibility_t ret = *this;
-     // RSI: Maybe we should check for overlap and fail (because each function's symbol in the syntax tree should be different).
-    ret.visibles.insert(new_visibles.begin(), new_visibles.end());
-    return ret;
-}
-
-var_visibility_t var_visibility_t::with_implicit() const {
-    var_visibility_t ret = *this;
-    ++ret.num_implicits;
-    return ret;
-}
-
-var_scope_t::var_scope_t() : implicit_depth(0) { }
-
-var_scope_t var_scope_t::with_vars(const std::vector<std::pair<sym_t, counted_t<const datum_t> > > &new_vars) const {
-    var_scope_t ret = *this;
-    ret.vars.insert(new_vars.begin(), new_vars.end());
-    return ret;
-}
-
-var_scope_t var_scope_t::with_implicit(counted_t<const datum_t> implicit_var) const {
-    var_scope_t ret = *this;
-    if (ret.implicit_depth == 0) {
-        ret.maybe_implicit = implicit_var;
-    } else {
-        ret.maybe_implicit.reset();
-    }
-    ++ret.implicit_depth;
-    return ret;
 }
 
 

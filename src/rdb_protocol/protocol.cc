@@ -90,6 +90,8 @@ const std::string rdb_protocol_t::protocol_name("rdb");
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
+RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
+
 
 RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
 RDB_IMPL_SERIALIZABLE_2(range_and_func_filter_transform_t, range_predicate, mapping_func);
@@ -756,7 +758,7 @@ private:
                     } else {
                         if (lhs) {
                             counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile(&ql_env)->call(*lhs, *rhs)->as_datum();
+                                local_reduce_func.compile(&ql_env)->call(&ql_env, *lhs, *rhs)->as_datum();
                             rg_response->result = reduced_val;
                         } else {
                             guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
@@ -803,7 +805,7 @@ private:
                         } else {
                             counted_t<ql::func_t> r
                                 = local_gmr_func.compile_reduce(&ql_env);
-                            map->set(key, r->call(map->get(key), val)->as_datum());
+                            map->set(key, r->call(&ql_env, map->get(key), val)->as_datum());
                         }
                     }
                 }

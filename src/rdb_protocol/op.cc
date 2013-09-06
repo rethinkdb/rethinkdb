@@ -1,5 +1,6 @@
 #include "rdb_protocol/op.hpp"
 
+#include "backtrace.hpp"  // RSI
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 
@@ -53,7 +54,7 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
     return ret;
 }
 
-op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
+op_term_t::op_term_t(visibility_env_t *env, protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(term) {
     for (int i = 0; i < term->args_size(); ++i) {
@@ -74,10 +75,10 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
         }
         rcheck(optargs.count(ap->key()) == 0,
                base_exc_t::GENERIC,
-               strprintf("Duplicate %s: %s",
+               strprintf("Duplicate %s: %s (on type %d) (value %s)",
                          (term->type() == Term_TermType_MAKE_OBJ ?
                           "object key" : "optional argument"),
-                         ap->key().c_str()));
+                         ap->key().c_str(), term->type(), term->DebugString().c_str()));
         counted_t<term_t> t = compile_term(env, term.make_child(&ap->val()));
         optargs.insert(std::make_pair(ap->key(), t));
     }
@@ -85,30 +86,30 @@ op_term_t::op_term_t(env_t *env, protob_t<const Term> term,
 op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
-counted_t<val_t> op_term_t::arg(env_t *env, size_t i, eval_flags_t flags) {
+counted_t<val_t> op_term_t::arg(scope_env_t *env, size_t i, eval_flags_t flags) {
     rcheck(i < num_args(), base_exc_t::NON_EXISTENCE,
            strprintf("Index out of range: %zu", i));
     return args[i]->eval(env, flags);
 }
 
-counted_t<val_t> op_term_t::optarg(env_t *env, const std::string &key) {
+counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) {
     std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);
     if (it != optargs.end()) {
         return it->second->eval(env);
     }
     // returns counted_t<val_t>() if the key isn't found
-    return env->global_optargs.get_optarg(env, key);
+    return env->env->global_optargs.get_optarg(env->env, key);
 }
 
-counted_t<func_t> op_term_t::lazy_literal_optarg(env_t *env, const std::string &key) {
+counted_t<func_term_t> op_term_t::lazy_literal_optarg(visibility_env_t *env, const std::string &key) {
     std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);
     if (it != optargs.end()) {
         protob_t<Term> func(make_counted_term());
         Term *arg = func.get();
         N2(FUNC, N0(MAKE_ARRAY), *arg = *it->second->get_src().get());
-        return make_counted<concrete_func_t>(env, func);
+        return make_counted<func_term_t>(env, func);
     }
-    return counted_t<func_t>();
+    return counted_t<func_term_t>();
 }
 
 bool op_term_t::is_deterministic_impl() const {
@@ -125,20 +126,20 @@ bool op_term_t::is_deterministic_impl() const {
     return true;
 }
 
-bounded_op_term_t::bounded_op_term_t(env_t *env, protob_t<const Term> term,
+bounded_op_term_t::bounded_op_term_t(visibility_env_t *env, protob_t<const Term> term,
                                      argspec_t argspec, optargspec_t optargspec)
     : op_term_t(env, term, argspec,
                 optargspec.with({"left_bound", "right_bound"})) { }
 
-bool bounded_op_term_t::left_open(env_t *env) {
+bool bounded_op_term_t::left_open(scope_env_t *env) {
     return open_bool(env, "left_bound", false);
 }
 
-bool bounded_op_term_t::right_open(env_t *env) {
+bool bounded_op_term_t::right_open(scope_env_t *env) {
     return open_bool(env, "right_bound", true);
 }
 
-bool bounded_op_term_t::open_bool(env_t *env, const std::string &key, bool def/*ault*/) {
+bool bounded_op_term_t::open_bool(scope_env_t *env, const std::string &key, bool def/*ault*/) {
     counted_t<val_t> v = optarg(env, key);
     if (!v.has()) return def;
     const std::string &s = v->as_str();

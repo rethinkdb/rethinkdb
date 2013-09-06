@@ -10,7 +10,7 @@ namespace ql {
 
 class arith_term_t : public op_term_t {
 public:
-    arith_term_t(env_t *env, const protob_t<const Term> &term)
+    arith_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)), namestr(0), op(0) {
         int arithtype = term->type();
         switch (arithtype) {
@@ -23,7 +23,7 @@ public:
         guarantee(namestr && op);
     }
 
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<const datum_t> acc = arg(env, 0)->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             acc = (this->*op)(acc, arg(env, i)->as_datum());
@@ -114,9 +114,9 @@ private:
 
 class mod_term_t : public op_term_t {
 public:
-    mod_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
+    mod_term_t(visibility_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         int64_t i0 = arg(env, 0)->as_int();
         int64_t i1 = arg(env, 1)->as_int();
         rcheck(i1, base_exc_t::GENERIC, "Cannot take a number modulo 0.");
@@ -129,11 +129,11 @@ private:
 };
 
 
-counted_t<term_t> make_arith_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_arith_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<arith_term_t>(env, term);
 }
 
-counted_t<term_t> make_mod_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_mod_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<mod_term_t>(env, term);
 }
 

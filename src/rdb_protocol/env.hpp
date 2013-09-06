@@ -24,16 +24,7 @@ class extproc_pool_t;
 namespace ql {
 class datum_t;
 class term_t;
-
-class func_cache_t {
-public:
-    func_cache_t();
-    counted_t<func_t> get_or_compile_func(env_t *env, const wire_func_t *wf);
-    void precache_func(const wire_func_t *wf, counted_t<func_t> func);
-private:
-    std::map<uuid_u, counted_t<func_t> > cached_funcs;
-    DISABLE_COPYING(func_cache_t);
-};
+class visibility_env_t;
 
 class global_optargs_t {
 public:
@@ -58,32 +49,6 @@ public:
 private:
     int64_t next_gensym_val; // always negative
     DISABLE_COPYING(gensym_t);
-};
-
-// RSI: Make this efficient.
-class var_visibility_t {
-public:
-    var_visibility_t();
-    var_visibility_t with_var_names(const std::vector<sym_t> &new_visibles) const;
-    var_visibility_t with_implicit() const;
-private:
-    std::set<sym_t> visibles;
-    size_t num_implicits;
-};
-
-// RSI: Make this efficient.
-class var_scope_t {
-public:
-    var_scope_t();
-    var_scope_t with_vars(const std::vector<std::pair<sym_t, counted_t<const datum_t> > > &vars) const;
-    var_scope_t with_implicit(counted_t<const datum_t> implicit_var) const;
-
-private:
-    std::map<sym_t, counted_t<const datum_t> > vars;
-
-    size_t implicit_depth;
-    // Is non-empty IFF implicits_depth == 1.
-    counted_t<const datum_t> maybe_implicit;
 };
 
 class scopes_t {
@@ -181,12 +146,8 @@ public:
 
 class env_t : public home_thread_mixin_t {
 public:
-    func_cache_t func_cache;
     global_optargs_t global_optargs;
     gensym_t symgen;
-
-    scopes_t scopes;
-    implicit_vars_t implicits;
 
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
@@ -247,6 +208,24 @@ public:
 
 private:
     DISABLE_COPYING(env_t);
+};
+
+class visibility_env_t {
+public:
+    // RSI: no default arg, use const reference or something
+    visibility_env_t(env_t *_env, var_visibility_t _visibility = var_visibility_t())
+        : env(_env), visibility(_visibility) { }
+    env_t *env;
+    var_visibility_t visibility;
+};
+
+class scope_env_t {
+public:
+    // RSI: no default arg, use const reference or something
+    scope_env_t(env_t *_env, var_scope_t _scope = var_scope_t())
+        : env(_env), scope(_scope) { }
+    env_t *env;
+    var_scope_t scope;
 };
 
 }  // namespace ql

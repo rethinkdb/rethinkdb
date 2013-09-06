@@ -15,7 +15,7 @@
 
 namespace ql {
 
-counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
+counted_t<term_t> compile_term(visibility_env_t *env, protob_t<const Term> t) {
     switch (t->type()) {
     case Term::DATUM:              return make_datum_term(t);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
@@ -214,7 +214,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            root_term = compile_term(env, q.make_child(t));
+            visibility_env_t visibility_env(env);
+            root_term = compile_term(&visibility_env, q.make_child(t));
             // TODO: handle this properly
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
@@ -237,7 +238,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         }
 
         try {
-            counted_t<val_t> val = root_term->eval(env);
+            scope_env_t scope_env(env);
+            counted_t<val_t> val = root_term->eval(&scope_env);
 
             if (!*response_needed_out) {
                 // It's fine to just abort here because we don't allow write
@@ -330,11 +332,11 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-counted_t<val_t> term_t::eval(env_t *env, eval_flags_t eval_flags) {
+counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
-    DEBUG_ONLY_CODE(env->do_eval_callback());
+    DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
-    env->throw_if_interruptor_pulsed();
+    env->env->throw_if_interruptor_pulsed();
     INC_DEPTH;
 
     try {
@@ -362,7 +364,7 @@ counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> 
     return make_counted<val_t>(d, t, backtrace());
 }
 
-counted_t<val_t> term_t::new_val(env_t *env, counted_t<datum_stream_t> s) {
+counted_t<val_t> term_t::new_val(scope_env_t *env, counted_t<datum_stream_t> s) {
     return make_counted<val_t>(env, s, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {

@@ -10,10 +10,10 @@ namespace ql {
 
 class iso8601_term_t : public op_term_t {
 public:
-    iso8601_term_t(env_t *env, const protob_t<const Term> &term)
+    iso8601_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({"default_timezone"})) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(env, 0);
         std::string tz = "";
         if (counted_t<val_t> vtz = optarg(env, "default_timezone")) {
@@ -26,10 +26,10 @@ private:
 
 class to_iso8601_term_t : public op_term_t {
 public:
-    to_iso8601_term_t(env_t *env, const protob_t<const Term> &term)
+    to_iso8601_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(
             make_counted<const datum_t>(
                 pseudo::time_to_iso8601(arg(env, 0)->as_ptype(pseudo::time_string))));
@@ -39,10 +39,10 @@ private:
 
 class epoch_time_term_t : public op_term_t {
 public:
-    epoch_time_term_t(env_t *env, const protob_t<const Term> &term)
+    epoch_time_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(env, 0);
         return new_val(pseudo::make_time(v->as_num(), "+00:00"));
     }
@@ -51,10 +51,10 @@ private:
 
 class to_epoch_time_term_t : public op_term_t {
 public:
-    to_epoch_time_term_t(env_t *env, const protob_t<const Term> &term)
+    to_epoch_time_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(
             make_counted<const datum_t>(
                 pseudo::time_to_epoch_time(arg(env, 0)->as_ptype(pseudo::time_string))));
@@ -64,10 +64,10 @@ private:
 
 class now_term_t : public op_term_t {
 public:
-    now_term_t(env_t *env, const protob_t<const Term> &term)
+    now_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *, UNUSED eval_flags_t flags) {
         // This should never get called because we rewrite `now` calls to a
         // constant so that they're deterministic.
         // RSI: this is a code smell, instead the deterministic value should be stored in env_t.
@@ -80,10 +80,10 @@ private:
 
 class in_timezone_term_t : public op_term_t {
 public:
-    in_timezone_term_t(env_t *env, const protob_t<const Term> &term)
+    in_timezone_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(pseudo::time_in_tz(arg(env, 0)->as_ptype(pseudo::time_string),
                                           arg(env, 1)->as_datum()));
     }
@@ -92,10 +92,10 @@ private:
 
 class during_term_t : public bounded_op_term_t {
 public:
-    during_term_t(env_t *env, const protob_t<const Term> &term)
+    during_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : bounded_op_term_t(env, term, argspec_t(3)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<const datum_t> t = arg(env, 0)->as_ptype(pseudo::time_string);
         counted_t<const datum_t> lb = arg(env, 1)->as_ptype(pseudo::time_string);
         counted_t<const datum_t> rb = arg(env, 2)->as_ptype(pseudo::time_string);
@@ -109,10 +109,10 @@ private:
 
 class date_term_t : public op_term_t {
 public:
-    date_term_t(env_t *env, const protob_t<const Term> &term)
+    date_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(pseudo::time_date(arg(env, 0)->as_ptype(pseudo::time_string), this));
     }
     virtual const char *name() const { return "date"; }
@@ -120,10 +120,10 @@ private:
 
 class time_of_day_term_t : public op_term_t {
 public:
-    time_of_day_term_t(env_t *env, const protob_t<const Term> &term)
+    time_of_day_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(pseudo::time_of_day(arg(env, 0)->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "time_of_day"; }
@@ -131,10 +131,10 @@ private:
 
 class timezone_term_t : public op_term_t {
 public:
-    timezone_term_t(env_t *env, const protob_t<const Term> &term)
+    timezone_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(pseudo::time_tz(arg(env, 0)->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "timezone"; }
@@ -142,11 +142,11 @@ private:
 
 class portion_term_t : public op_term_t {
 public:
-    portion_term_t(env_t *env, protob_t<const Term> term,
+    portion_term_t(visibility_env_t *env, protob_t<const Term> term,
                    pseudo::time_component_t _component)
         : op_term_t(env, term, argspec_t(1)), component(_component) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         double d = pseudo::time_portion(arg(env, 0)->as_ptype(pseudo::time_string), component);
         return new_val(make_counted<const datum_t>(d));
     }
@@ -168,10 +168,10 @@ private:
 
 class time_term_t : public op_term_t {
 public:
-    time_term_t(env_t *env, const protob_t<const Term> &term)
+    time_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(4, 7)) { }
 private:
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         rcheck(num_args() == 4 || num_args() == 7, base_exc_t::GENERIC,
                strprintf("Got %zu arguments to TIME (expected 4 or 7).", num_args()));
         int year = arg(env, 0)->as_int<int>();
@@ -201,41 +201,41 @@ private:
     virtual const char *name() const { return "time"; }
 };
 
-counted_t<term_t> make_iso8601_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_iso8601_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<iso8601_term_t>(env, term);
 }
-counted_t<term_t> make_to_iso8601_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_to_iso8601_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<to_iso8601_term_t>(env, term);
 }
-counted_t<term_t> make_epoch_time_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_epoch_time_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<epoch_time_term_t>(env, term);
 }
-counted_t<term_t> make_to_epoch_time_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_to_epoch_time_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<to_epoch_time_term_t>(env, term);
 }
-counted_t<term_t> make_now_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_now_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<now_term_t>(env, term);
 }
-counted_t<term_t> make_in_timezone_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_in_timezone_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<in_timezone_term_t>(env, term);
 }
-counted_t<term_t> make_during_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_during_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<during_term_t>(env, term);
 }
 
-counted_t<term_t> make_date_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_date_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<date_term_t>(env, term);
 }
-counted_t<term_t> make_time_of_day_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_time_of_day_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<time_of_day_term_t>(env, term);
 }
-counted_t<term_t> make_timezone_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_timezone_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<timezone_term_t>(env, term);
 }
-counted_t<term_t> make_time_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_time_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<time_term_t>(env, term);
 }
-counted_t<term_t> make_portion_term(env_t *env, const protob_t<const Term> &term,
+counted_t<term_t> make_portion_term(visibility_env_t *env, const protob_t<const Term> &term,
                                     pseudo::time_component_t component) {
     return make_counted<portion_term_t>(env, term, component);
 }

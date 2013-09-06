@@ -37,6 +37,10 @@ counted_t<const datum_t> datum_stream_t::next(env_t *env) {
     }
 }
 
+counted_t<const datum_t> datum_stream_t::next(const scope_env_t *env) {
+    return next(env->env);
+}
+
 std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(env_t *env) {
     env->throw_if_interruptor_pulsed();
     try {
@@ -77,7 +81,7 @@ counted_t<const datum_t> eager_datum_stream_t::reduce(env_t *env,
     rcheck(base.has(), base_exc_t::NON_EXISTENCE, empty_stream_msg);
 
     while (counted_t<const datum_t> rhs = next(env)) {
-        base = f->call(base, rhs)->as_datum();
+        base = f->call(env, base, rhs)->as_datum();
     }
     return base;
 }
@@ -89,13 +93,13 @@ counted_t<const datum_t> eager_datum_stream_t::gmr(env_t *env,
                                                    counted_t<func_t> reduce) {
     wire_datum_map_t wd_map;
     while (counted_t<const datum_t> el = next(env)) {
-        counted_t<const datum_t> el_group = group->call(el)->as_datum();
-        counted_t<const datum_t> el_map = map->call(el)->as_datum();
+        counted_t<const datum_t> el_group = group->call(env, el)->as_datum();
+        counted_t<const datum_t> el_map = map->call(env, el)->as_datum();
         if (!wd_map.has(el_group)) {
             wd_map.set(el_group,
-                       base.has() ? reduce->call(base, el_map)->as_datum() : el_map);
+                       base.has() ? reduce->call(env, base, el_map)->as_datum() : el_map);
         } else {
-            wd_map.set(el_group, reduce->call(wd_map.get(el_group), el_map)->as_datum());
+            wd_map.set(el_group, reduce->call(env, wd_map.get(el_group), el_map)->as_datum());
         }
     }
     return wd_map.to_arr();
@@ -179,7 +183,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
 counted_t<datum_stream_t> lazy_datum_stream_t::map(env_t *env, counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
-        rdb_protocol_details::transform_variant_t(map_wire_func_t(env, f)),
+        rdb_protocol_details::transform_variant_t(map_wire_func_t(f)),
         env, query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
@@ -187,7 +191,7 @@ counted_t<datum_stream_t> lazy_datum_stream_t::map(env_t *env, counted_t<func_t>
 counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(env_t *env, counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
-        rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(env, f)),
+        rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(f)),
         env, query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
@@ -198,9 +202,9 @@ lazy_datum_stream_t::filter(env_t *env,
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(filter_transform_t(
-            wire_func_t(env, f),
+            wire_func_t(f),
             default_filter_val.has() ?
-                boost::make_optional(wire_func_t(env, default_filter_val)) :
+                boost::make_optional(wire_func_t(default_filter_val)) :
                 boost::none)),
         env, query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
@@ -225,12 +229,12 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(env_t *env,
                                                      counted_t<val_t> base_val,
                                                      counted_t<func_t> f) {
     rdb_protocol_t::rget_read_response_t::result_t res
-        = run_terminal(env, reduce_wire_func_t(env, f));
+        = run_terminal(env, reduce_wire_func_t(f));
 
     if (counted_t<const datum_t> *d = boost::get<counted_t<const datum_t> >(&res)) {
         counted_t<const datum_t> datum = *d;
         if (base_val.has()) {
-            return f->call(base_val->as_datum(), datum)->as_datum();
+            return f->call(env, base_val->as_datum(), datum)->as_datum();
         } else {
             return datum;
         }
@@ -251,7 +255,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
                                                   counted_t<func_t> r) {
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(
-            rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(env, g, m, r)),
+            rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(g, m, r)),
             env, query_language::backtrace_t());
     wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
     r_sanity_check(dm);
@@ -266,7 +270,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
             counted_t<const datum_t> key = dm_arr->get(f)->get("group");
             counted_t<const datum_t> val = dm_arr->get(f)->get("reduction");
             r_sanity_check(!map.has(key));
-            map.set(key, r->call(base, val)->as_datum());
+            map.set(key, r->call(env, base, val)->as_datum());
         }
         return map.to_arr();
     }
@@ -307,7 +311,7 @@ counted_t<const datum_t> map_datum_stream_t::next_impl(env_t *env) {
     if (!arg.has()) {
         return counted_t<const datum_t>();
     } else {
-        return f->call(arg)->as_datum();
+        return f->call(env, arg)->as_datum();
     }
 }
 
@@ -323,7 +327,7 @@ counted_t<const datum_t> indexes_of_datum_stream_t::next_impl(env_t *env) {
         counted_t<const datum_t> arg = source->next(env);
         if (!arg.has()) {
             return counted_t<const datum_t>();
-        } else if (f->filter_call(arg, counted_t<func_t>())) {
+        } else if (f->filter_call(env, arg, counted_t<func_t>())) {
             return make_counted<datum_t>(static_cast<double>(index++));
         } else {
             index++;
@@ -348,7 +352,7 @@ counted_t<const datum_t> filter_datum_stream_t::next_impl(env_t *env) {
             return counted_t<const datum_t>();
         }
 
-        if (f->filter_call(arg, default_filter_val)) {
+        if (f->filter_call(env, arg, default_filter_val)) {
             return arg;
         }
     }
@@ -368,7 +372,7 @@ counted_t<const datum_t> concatmap_datum_stream_t::next_impl(env_t *env) {
             if (!arg.has()) {
                 return counted_t<const datum_t>();
             }
-            subsource = f->call(arg)->as_seq(env);
+            subsource = f->call(env, arg)->as_seq(env);
         }
 
         counted_t<const datum_t> datum = subsource->next(env);
@@ -482,7 +486,7 @@ counted_t<const datum_t> union_datum_stream_t::reduce(env_t *env,
         auto start = vals.begin();
         d = base.has() ? base : *(start++);
         for (auto it = start; it != vals.end(); ++it) {
-            d = f->call(d, *it)->as_datum();
+            d = f->call(env, d, *it)->as_datum();
         }
         return d;
     }
@@ -502,7 +506,7 @@ counted_t<const datum_t> union_datum_stream_t::gmr(
             if (!dm.has(el_group)) {
                 dm.set(el_group, el_reduction);
             } else {
-                dm.set(el_group, r->call(dm.get(el_group), el_reduction)->as_datum());
+                dm.set(el_group, r->call(env, dm.get(el_group), el_reduction)->as_datum());
             }
         }
     }

@@ -17,6 +17,8 @@ namespace ql {
 typedef query_language::sorting_hint_t sorting_hint_t;
 typedef query_language::hinted_datum_t hinted_datum_t;
 
+class scope_env_t;
+
 // RSI: It's stupid for datum_stream_t to contain or use env_t at all -- we already
 // decided what datums to get, so why would an env_t play any role?  We use some
 // things inside of it: the interruptor, for exammple.
@@ -58,6 +60,8 @@ public:
 
     // Gets the next element from the stream.  (Wrapper around `next_impl`.)
     counted_t<const datum_t> next(env_t *env);
+    // RSI: This function is possibly silly.
+    counted_t<const datum_t> next(const scope_env_t *env);
 
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one

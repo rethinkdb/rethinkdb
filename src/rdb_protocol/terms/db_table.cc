@@ -28,18 +28,19 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
 // Meta operations (BUT NOT TABLE TERMS) should inherit from this.  It will
 // handle a lot of the nasty semilattice initialization stuff for them,
 // including the thread switching.
+// RSI: This should be called meta_op_term_t?
 class meta_op_t : public op_term_t {
 public:
-    meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
+    meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec)
         : op_term_t(env, term, argspec),
           original_thread(get_thread_id()),
           // RSI: checking semilattice_metadata's home thread and assuming it applies for everything else is bad.
-          metadata_home_thread(env->cluster_env.semilattice_metadata->home_thread()) { }
-    meta_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
+          metadata_home_thread(env->env->cluster_env.semilattice_metadata->home_thread()) { }
+    meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
         : op_term_t(env, term, argspec, optargspec),
           original_thread(get_thread_id()),
           // RSI: checking semilattice_metadata's home thread and assuming it applies for everything else is bad.
-          metadata_home_thread(env->cluster_env.semilattice_metadata->home_thread()) { }
+          metadata_home_thread(env->env->cluster_env.semilattice_metadata->home_thread()) { }
 
 protected:
     // RSI: Holy cow, these types inherit from on_thread_t.  These aren't rethreaders either!  (That's the name of a type that changes something's home thread.)
@@ -51,9 +52,9 @@ protected:
     // field).  Maybe env_t should be what makes it impossible to access cluster_env
     // from the wrong thread.
     struct rethreading_metadata_accessor_t : public on_thread_t {
-        explicit rethreading_metadata_accessor_t(meta_op_t *parent, env_t *env)
+        explicit rethreading_metadata_accessor_t(meta_op_t *parent, scope_env_t *env)
             : on_thread_t(parent->metadata_home_thread),
-              metadata(env->cluster_env.semilattice_metadata->get()),
+              metadata(env->env->cluster_env.semilattice_metadata->get()),
               ns_change(&metadata.rdb_namespaces),
               ns_searcher(&ns_change.get()->namespaces),
               db_searcher(&metadata.databases.databases),
@@ -76,27 +77,27 @@ private:
 
 class meta_write_op_t : public meta_op_t {
 public:
-    meta_write_op_t(env_t *env, protob_t<const Term> term, argspec_t argspec)
+    meta_write_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec)
         : meta_op_t(env, term, argspec) {
         init(env);
     }
-    meta_write_op_t(env_t *env, protob_t<const Term> term,
+    meta_write_op_t(visibility_env_t *env, protob_t<const Term> term,
                     argspec_t argspec, optargspec_t optargspec)
         : meta_op_t(env, term, argspec, optargspec) {
         init(env);
     }
 private:
-    void init(env_t *env) {
+    void init(visibility_env_t *env) {
         on_thread_t rethreader(metadata_home_thread);
-        rcheck(env->cluster_env.directory_read_manager,
+        rcheck(env->env->cluster_env.directory_read_manager,
                base_exc_t::GENERIC,
                "Cannot nest meta operations inside queries.");
-        guarantee(env->cluster_env.directory_read_manager->home_thread() == metadata_home_thread);
-        directory_metadata = env->cluster_env.directory_read_manager->get_root_view();
+        guarantee(env->env->cluster_env.directory_read_manager->home_thread() == metadata_home_thread);
+        directory_metadata = env->env->cluster_env.directory_read_manager->get_root_view();
     }
 
-    virtual std::string write_eval_impl(env_t *env, eval_flags_t flags) = 0;
-    virtual counted_t<val_t> eval_impl(env_t *env, eval_flags_t flags) {
+    virtual std::string write_eval_impl(scope_env_t *env, eval_flags_t flags) = 0;
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
         std::string op = write_eval_impl(env, flags);
         datum_ptr_t res(datum_t::R_OBJECT);
         UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
@@ -109,9 +110,9 @@ protected:
 
 class db_term_t : public meta_op_t {
 public:
-    db_term_t(env_t *env, const protob_t<const Term> &term) : meta_op_t(env, term, argspec_t(1)) { }
+    db_term_t(visibility_env_t *env, const protob_t<const Term> &term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(env, 0), this);
         uuid_u uuid;
         {
@@ -127,10 +128,10 @@ private:
 
 class db_create_term_t : public meta_write_op_t {
 public:
-    db_create_term_t(env_t *env, const protob_t<const Term> &term) :
+    db_create_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual std::string write_eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(env, 0), this);
 
         rethreading_metadata_accessor_t meta(this, env);
@@ -144,16 +145,16 @@ private:
 
         // Create database, insert into metadata, then join into real metadata.
         database_semilattice_metadata_t db;
-        db.name = vclock_t<name_string_t>(db_name, env->this_machine);
+        db.name = vclock_t<name_string_t>(db_name, env->env->this_machine);
         meta.metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
         try {
             fill_in_blueprints(&meta.metadata, directory_metadata->get(),
-                               env->this_machine, false);
+                               env->env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->interruptor);
+        env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "created";
     }
@@ -174,12 +175,12 @@ bool is_hard(durability_requirement_t requirement) {
 
 class table_create_term_t : public meta_write_op_t {
 public:
-    table_create_term_t(env_t *env, const protob_t<const Term> &term) :
+    table_create_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
                         optargspec_t({"datacenter", "primary_key",
                                     "cache_size", "durability"})) { }
 private:
-    virtual std::string write_eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         uuid_u dc_id = nil_uuid();
         if (counted_t<val_t> v = optarg(env, "datacenter")) {
             name_string_t name = get_name(v, this);
@@ -231,7 +232,7 @@ private:
         uuid_u namespace_id = generate_uuid();
         // The port here is a legacy from the day when memcached ran on a different port.
         namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-            new_namespace<rdb_protocol_t>(env->this_machine, db_id, dc_id, tbl_name,
+            new_namespace<rdb_protocol_t>(env->env->this_machine, db_id, dc_id, tbl_name,
                                           primary_key, port_defaults::reql_port,
                                           cache_size);
 
@@ -241,17 +242,17 @@ private:
         for (auto it = ack_map->begin(); it != ack_map->end(); ++it) {
             it->second = ack_expectation_t(it->second.expectation(), hard_durability);
         }
-        ns.ack_expectations.upgrade_version(env->this_machine);
+        ns.ack_expectations.upgrade_version(env->env->this_machine);
 
         meta.ns_change.get()->namespaces.insert(
             std::make_pair(namespace_id, make_deletable(ns)));
         try {
             fill_in_blueprints(&meta.metadata, directory_metadata->get(),
-                               env->this_machine, false);
+                               env->env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->interruptor);
+        env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
@@ -259,9 +260,9 @@ private:
         // subsequent writes will succeed.
         wait_rethreader_t wait(this);
         try {
-            wait_for_rdb_table_readiness(env->cluster_env.ns_repo, namespace_id,
-                                         env->interruptor,
-                                         env->cluster_env.semilattice_metadata);
+            wait_for_rdb_table_readiness(env->env->cluster_env.ns_repo, namespace_id,
+                                         env->env->interruptor,
+                                         env->env->cluster_env.semilattice_metadata);
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC, "Query interrupted, probably by user.");
         }
@@ -273,10 +274,10 @@ private:
 
 class db_drop_term_t : public meta_write_op_t {
 public:
-    db_drop_term_t(env_t *env, const protob_t<const Term> &term) :
+    db_drop_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
-    virtual std::string write_eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(env, 0), this);
 
         rethreading_metadata_accessor_t meta(this, env);
@@ -305,11 +306,11 @@ private:
         // Join
         try {
             fill_in_blueprints(&meta.metadata, directory_metadata->get(),
-                               env->this_machine, false);
+                               env->env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->interruptor);
+        env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "dropped";
     }
@@ -318,10 +319,10 @@ private:
 
 class table_drop_term_t : public meta_write_op_t {
 public:
-    table_drop_term_t(env_t *env, const protob_t<const Term> &term) :
+    table_drop_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
-    virtual std::string write_eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         uuid_u db_id;
         name_string_t tbl_name;
         if (num_args() == 1) {
@@ -349,11 +350,11 @@ private:
         ns_metadata->second.mark_deleted();
         try {
             fill_in_blueprints(&meta.metadata, directory_metadata->get(),
-                               env->this_machine, false);
+                               env->env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->interruptor);
+        env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "dropped";
     }
@@ -362,10 +363,10 @@ private:
 
 class db_list_term_t : public meta_op_t {
 public:
-    db_list_term_t(env_t *env, const protob_t<const Term> &term) :
+    db_list_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::string> dbs;
         {
             rethreading_metadata_accessor_t meta(this, env);
@@ -391,10 +392,10 @@ private:
 
 class table_list_term_t : public meta_op_t {
 public:
-    table_list_term_t(env_t *env, const protob_t<const Term> &term) :
+    table_list_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         uuid_u db_id;
         if (num_args() == 0) {
             counted_t<val_t> dbv = optarg(env, "db");
@@ -428,10 +429,10 @@ private:
 
 class table_term_t : public op_term_t {
 public:
-    table_term_t(env_t *env, const protob_t<const Term> &term)
+    table_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> t = optarg(env, "use_outdated");
         bool use_outdated = t ? t->as_bool() : false;
         counted_t<const db_t> db;
@@ -446,7 +447,7 @@ private:
             db = arg(env, 0)->as_db();
             name = arg(env, 1)->as_str();
         }
-        return new_val(make_counted<table_t>(env, db, name, use_outdated, backtrace()));
+        return new_val(make_counted<table_t>(env->env, db, name, use_outdated, backtrace()));
     }
     virtual bool is_deterministic_impl() const { return false; }
     virtual const char *name() const { return "table"; }
@@ -454,12 +455,12 @@ private:
 
 class get_term_t : public op_term_t {
 public:
-    get_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
+    get_term_t(visibility_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
         counted_t<const datum_t> pkey = arg(env, 1)->as_datum();
-        counted_t<const datum_t> row = table->get_row(env, pkey);
+        counted_t<const datum_t> row = table->get_row(env->env, pkey);
         return new_val(row, table);
     }
     virtual const char *name() const { return "get"; }
@@ -467,10 +468,10 @@ private:
 
 class get_all_term_t : public op_term_t {
 public:
-    get_all_term_t(env_t *env, const protob_t<const Term> &term)
+    get_all_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
         counted_t<val_t> index = optarg(env, "index");
         if (index && index->as_str() != table->get_pkey()) {
@@ -478,7 +479,7 @@ private:
             for (size_t i = 1; i < num_args(); ++i) {
                 counted_t<const datum_t> key = arg(env, i)->as_datum();
                 counted_t<datum_stream_t> seq =
-                    table->get_all(env, key, index->as_str(), backtrace());
+                    table->get_all(env->env, key, index->as_str(), backtrace());
                 streams.push_back(seq);
             }
             counted_t<datum_stream_t> stream
@@ -488,7 +489,7 @@ private:
             datum_ptr_t arr(datum_t::R_ARRAY);
             for (size_t i = 1; i < num_args(); ++i) {
                 counted_t<const datum_t> key = arg(env, i)->as_datum();
-                counted_t<const datum_t> row = table->get_row(env, key);
+                counted_t<const datum_t> row = table->get_row(env->env, key);
                 if (row->get_type() != datum_t::R_NULL) {
                     arr.add(row);
                 }
@@ -501,43 +502,43 @@ private:
     virtual const char *name() const { return "get_all"; }
 };
 
-counted_t<term_t> make_db_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_db_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<db_term_t>(env, term);
 }
 
-counted_t<term_t> make_table_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_table_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_term_t>(env, term);
 }
 
-counted_t<term_t> make_get_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_term_t>(env, term);
 }
 
-counted_t<term_t> make_get_all_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_all_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_all_term_t>(env, term);
 }
 
-counted_t<term_t> make_db_create_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_db_create_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<db_create_term_t>(env, term);
 }
 
-counted_t<term_t> make_db_drop_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_db_drop_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<db_drop_term_t>(env, term);
 }
 
-counted_t<term_t> make_db_list_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_db_list_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<db_list_term_t>(env, term);
 }
 
-counted_t<term_t> make_table_create_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_table_create_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_create_term_t>(env, term);
 }
 
-counted_t<term_t> make_table_drop_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_table_drop_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_drop_term_t>(env, term);
 }
 
-counted_t<term_t> make_table_list_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_table_list_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_list_term_t>(env, term);
 }
 

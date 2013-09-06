@@ -8,10 +8,10 @@ namespace ql {
 
 class sample_term_t : public op_term_t {
 public:
-    sample_term_t(env_t *env, const protob_t<const Term> &term)
+    sample_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         int64_t num_int = arg(env, 1)->as_int();
         rcheck(num_int >= 0,
                base_exc_t::GENERIC,
@@ -24,7 +24,7 @@ public:
 
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > t_seq
-                = v->as_selection(env);
+                = v->as_selection(env->env);
             t = t_seq.first;
             seq = t_seq.second;
         } else {
@@ -64,7 +64,7 @@ public:
     virtual const char *name() const { return "sample"; }
 };
 
-counted_t<term_t> make_sample_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sample_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return counted_t<sample_term_t>(new sample_term_t(env, term));
 }
 

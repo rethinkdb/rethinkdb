@@ -130,7 +130,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
         old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
     }
 
-    counted_t<const ql::datum_t> new_val = f->compile(env)->call(old_val)->as_datum();
+    counted_t<const ql::datum_t> new_val = f->compile(env)->call(env, old_val)->as_datum();
     data->erase(r.key);
 
     bool not_added;

@@ -127,10 +127,10 @@ static int merge_types(int supertype, int subtype) {
 
 class coerce_term_t : public op_term_t {
 public:
-    coerce_term_t(env_t *env, const protob_t<const Term> &term)
+    coerce_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> val = arg(env, 0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
@@ -251,10 +251,10 @@ int val_type(counted_t<val_t> v) {
 
 class typeof_term_t : public op_term_t {
 public:
-    typeof_term_t(env_t *env, const protob_t<const Term> &term)
+    typeof_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(env, 0);
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
@@ -268,13 +268,13 @@ private:
 
 class info_term_t : public op_term_t {
 public:
-    info_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
+    info_term_t(visibility_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(val_info(env, arg(env, 0)));
     }
 
-    counted_t<const datum_t> val_info(env_t *env, counted_t<val_t> v) {
+    counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) {
         datum_ptr_t info(datum_t::R_OBJECT);
         int type = val_type(v);
         bool b = info.add("type", make_counted<datum_t>(get_name(type)));
@@ -287,11 +287,11 @@ private:
             counted_t<table_t> table = v->as_table();
             b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
             b |= info.add("primary_key", make_counted<datum_t>(std::string(table->get_pkey())));
-            b |= info.add("indexes", table->sindex_list(env));
+            b |= info.add("indexes", table->sindex_list(env->env));
             b |= info.add("db", val_info(env, new_val(table->db)));
         } break;
         case SELECTION_TYPE: {
-            b |= info.add("table", val_info(env, new_val(v->as_selection(env).first)));
+            b |= info.add("table", val_info(env, new_val(v->as_selection(env->env).first)));
         } break;
         case SINGLE_SELECTION_TYPE: {
             b |= info.add("table", val_info(env, new_val(v->as_single_selection().first)));
@@ -301,12 +301,10 @@ private:
         } break;
 
         case FUNC_TYPE: {
-            protob_t<const Term> source = v->as_func(env)->get_source();
-            r_sanity_check(source.has());
-            // RSI: DebugString is badly named if there's a term that accesses the value.
-            b |= info.add("source_code", make_counted<datum_t>(source->DebugString()));
+            b |= info.add("source_code", make_counted<datum_t>(v->as_func(env->env)->print_source()));
         } break;
 
+            // RSI: These R_NULL_TYPE, etc, values, don't overlap with the other values?
         case R_NULL_TYPE:   // fallthru
         case R_BOOL_TYPE:   // fallthru
         case R_NUM_TYPE:    // fallthru
@@ -326,13 +324,13 @@ private:
     virtual const char *name() const { return "info"; }
 };
 
-counted_t<term_t> make_coerce_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_coerce_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<coerce_term_t>(env, term);
 }
-counted_t<term_t> make_typeof_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_typeof_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<typeof_term_t>(env, term);
 }
-counted_t<term_t> make_info_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_info_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<info_term_t>(env, term);
 }
 

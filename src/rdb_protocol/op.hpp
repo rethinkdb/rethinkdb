@@ -15,6 +15,8 @@
 
 namespace ql {
 
+class func_term_t;
+
 // Specifies the range of normal arguments a function can take.
 class argspec_t {
 public:
@@ -50,23 +52,25 @@ private:
 // access their arguments.
 class op_term_t : public term_t {
 public:
-    op_term_t(env_t *env, protob_t<const Term> term,
+    op_term_t(visibility_env_t *env, protob_t<const Term> term,
               argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments
-    counted_t<val_t> arg(env_t *env, size_t i, eval_flags_t flags = NO_FLAGS); // returns argument `i`
+    counted_t<val_t> arg(scope_env_t *env, size_t i, eval_flags_t flags = NO_FLAGS); // returns argument `i`
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not
     // found.
-    counted_t<val_t> optarg(env_t *env, const std::string &key);
-    // This returns an optarg which is:
+    counted_t<val_t> optarg(scope_env_t *env, const std::string &key);
+    // This reeturns an optarg which is:
     // * lazy -- it's wrapped in a function, so you don't get the value until
     //   you call that function.
     // * literal -- it checks whether this operation has the literal key you
     //   provided and doesn't look anywhere else for optargs (in particular, it
     //   doesn't check global optargs).
-    counted_t<func_t> lazy_literal_optarg(env_t *env, const std::string &key);
+    counted_t<func_term_t> lazy_literal_optarg(visibility_env_t *env, const std::string &key);
+
 private:
+    // RSI: Maybe we should cache whether or not this is deterministic, we probably redundantly compute this.
     virtual bool is_deterministic_impl() const;
     std::vector<counted_t<term_t> > args;
 
@@ -76,17 +80,17 @@ private:
 
 class bounded_op_term_t : public op_term_t {
 public:
-    bounded_op_term_t(env_t *env, protob_t<const Term> term,
+    bounded_op_term_t(visibility_env_t *env, protob_t<const Term> term,
                       argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
 
     virtual ~bounded_op_term_t() { }
 
 protected:
-    bool left_open(env_t *env);
-    bool right_open(env_t *env);
+    bool left_open(scope_env_t *env);
+    bool right_open(scope_env_t *env);
 
 private:
-    bool open_bool(env_t *env, const std::string &key, bool def/*ault*/);
+    bool open_bool(scope_env_t *env, const std::string &key, bool def/*ault*/);
 };
 
 }  // namespace ql

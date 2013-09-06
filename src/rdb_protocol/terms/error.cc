@@ -8,10 +8,10 @@ namespace ql {
 
 class error_term_t : public op_term_t {
 public:
-    error_term_t(env_t *env, const protob_t<const Term> &term)
+    error_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         if (num_args() == 0) {
             rfail(base_exc_t::EMPTY_USER, "Empty ERROR term outside a default block.");
         } else {
@@ -24,10 +24,10 @@ private:
 
 class default_term_t : public op_term_t {
 public:
-    default_term_t(env_t *env, const protob_t<const Term> &term)
+    default_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<const datum_t> func_arg;
         scoped_ptr_t<exc_t> err;
         counted_t<val_t> v;
@@ -62,7 +62,7 @@ private:
         try {
             counted_t<val_t> def = arg(env, 1);
             if (def->get_type().is_convertible(val_t::type_t::FUNC)) {
-                return def->as_func(env)->call(func_arg);
+                return def->as_func(env)->call(env->env, func_arg);
             } else {
                 return def;
             }
@@ -82,10 +82,10 @@ private:
     virtual const char *name() const { return "error"; }
 };
 
-counted_t<term_t> make_error_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_error_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<error_term_t>(env, term);
 }
-counted_t<term_t> make_default_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_default_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<default_term_t>(env, term);
 }
 

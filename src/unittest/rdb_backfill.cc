@@ -253,12 +253,12 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     std::string sindex_id("sid");
     {
         /* Create a secondary index object. */
-        Term mapping;
         const ql::sym_t one(1);
-        Term *arg = ql::pb::set_func(&mapping, one);
+        ql::protob_t<Term> twrap = ql::make_counted_term();
+        Term *arg = twrap.get();
         N2(GET_FIELD, NVAR(one), NDATUM("id"));
 
-        ql::map_wire_func_t m(mapping, std::map<ql::sym_t, Datum>());
+        ql::map_wire_func_t m(twrap, make_vector(one));
 
         rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
 

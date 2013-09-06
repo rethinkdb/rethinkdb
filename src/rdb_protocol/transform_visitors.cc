@@ -117,11 +117,11 @@ transform_visitor_t::transform_visitor_t(counted_t<const ql::datum_t> _arg,
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
 void transform_visitor_t::operator()(ql::map_wire_func_t &func) const {  // NOLINT(runtime/references)
-    out->push_back(func.compile(ql_env)->call(arg)->as_datum());
+    out->push_back(func.compile(ql_env)->call(ql_env, arg)->as_datum());
 }
 
 void transform_visitor_t::operator()(ql::concatmap_wire_func_t &func) const {  // NOLINT(runtime/references)
-    counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(arg)->as_seq(ql_env);
+    counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(ql_env, arg)->as_seq(ql_env);
     while (counted_t<const ql::datum_t> d = ds->next(ql_env)) {
         out->push_back(d);
     }
@@ -132,7 +132,7 @@ void transform_visitor_t::operator()(filter_transform_t &transf) const {  // NOL
     counted_t<ql::func_t> default_filter_val = transf.default_filter_val ?
         transf.default_filter_val->compile(ql_env) :
         counted_t<ql::func_t>();
-    if (f->filter_call(arg, default_filter_val)) {
+    if (f->filter_call(ql_env, arg, default_filter_val)) {
         out->push_back(arg);
     }
 }
@@ -144,7 +144,7 @@ void transform_visitor_t::operator()(range_and_func_filter_transform_t &transf) 
     }
 
     counted_t<ql::func_t> f = transf.mapping_func.compile(ql_env);
-    counted_t<const ql::datum_t> mapped_arg = f->call(arg)->as_datum();
+    counted_t<const ql::datum_t> mapped_arg = f->call(ql_env, arg)->as_datum();
 
     if (transf.range_predicate.start.has()) {
         if (!(transf.range_predicate.start_open
@@ -210,16 +210,16 @@ void terminal_visitor_t::operator()(ql::gmr_wire_func_t &func) const {  // NOLIN
 
     counted_t<const ql::datum_t> el = json.get();
     counted_t<const ql::datum_t> el_group
-        = func.compile_group(ql_env)->call(el)->as_datum();
+        = func.compile_group(ql_env)->call(ql_env, el)->as_datum();
     counted_t<const ql::datum_t> elm = json.get();
     counted_t<const ql::datum_t> el_map
-        = func.compile_map(ql_env)->call(elm)->as_datum();
+        = func.compile_map(ql_env)->call(ql_env, elm)->as_datum();
 
     if (!obj->has(el_group)) {
         obj->set(el_group, el_map);
     } else {
         counted_t<const ql::datum_t> lhs = obj->get(el_group);
-        obj->set(el_group, func.compile_reduce(ql_env)->call(lhs, el_map)->as_datum());
+        obj->set(el_group, func.compile_reduce(ql_env)->call(ql_env, lhs, el_map)->as_datum());
     }
 }
 
@@ -233,7 +233,7 @@ void terminal_visitor_t::operator()(ql::reduce_wire_func_t &func) const {  // NO
     counted_t<const ql::datum_t> *d = boost::get<counted_t<const ql::datum_t> >(out);
     counted_t<const ql::datum_t> rhs = json.get();
     if (d != NULL) {
-        *out = func.compile(ql_env)->call(*d, rhs)->as_datum();
+        *out = func.compile(ql_env)->call(ql_env, *d, rhs)->as_datum();
     } else {
         guarantee(boost::get<rget_read_response_t::empty_t>(out));
         *out = rhs;

@@ -15,8 +15,8 @@ namespace ql {
 
 class rewrite_term_t : public term_t {
 public:
-    rewrite_term_t(env_t *env, protob_t<const Term> term, argspec_t argspec,
-                   protob_t<Term> (*rewrite)(env_t *env,
+    rewrite_term_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec,
+                   protob_t<Term> (*rewrite)(visibility_env_t *env,
                                              protob_t<const Term> in,
                                              protob_t<Term> out,
                                              const pb_rcheckable_t *bt_src))
@@ -39,7 +39,7 @@ private:
         return real->is_deterministic();
     }
 
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return real->eval(env);
     }
 
@@ -51,10 +51,10 @@ private:
 
 class groupby_term_t : public rewrite_term_t {
 public:
-    groupby_term_t(env_t *env, const protob_t<const Term> &term)
+    groupby_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   const pb_rcheckable_t *bt_src) {
         std::string dc;
@@ -110,10 +110,10 @@ private:
         }
     }
 
-    static void map_fn(env_t *env, Term *arg,
+    static void map_fn(visibility_env_t *env, Term *arg,
                        const std::string &dc, const Term *dc_arg) {
-        const sym_t obj = env->symgen.gensym();
-        const sym_t attr = env->symgen.gensym();
+        const sym_t obj = env->env->symgen.gensym();
+        const sym_t attr = env->env->symgen.gensym();
         arg = pb::set_func(arg, obj);
         if (dc == "COUNT") {
             NDATUM(1.0);
@@ -134,10 +134,10 @@ private:
         } else if (dc == "AVG") {
         } else { unreachable(); }
     }
-    static void reduce_fn(env_t *env, Term *arg,
+    static void reduce_fn(visibility_env_t *env, Term *arg,
                           const std::string &dc, UNUSED const Term *dc_arg) {
-        const sym_t a = env->symgen.gensym();
-        const sym_t b = env->symgen.gensym();
+        const sym_t a = env->env->symgen.gensym();
+        const sym_t b = env->env->symgen.gensym();
         arg = pb::set_func(arg, a, b);
         if (dc == "COUNT" || dc == "SUM") {
             N2(ADD, NVAR(a), NVAR(b));
@@ -149,14 +149,14 @@ private:
                        N2(NTH, NVAR(b), NDATUM(1.0))));
         } else { unreachable(); }
     }
-    static Term *final_wrap(env_t *env, Term *arg,
+    static Term *final_wrap(visibility_env_t *env, Term *arg,
                             const std::string &dc, UNUSED const Term *dc_arg) {
         if (dc == "COUNT" || dc == "SUM") {
             return arg;
         }
 
-        const sym_t val = env->symgen.gensym();
-        const sym_t obj = env->symgen.gensym();
+        const sym_t val = env->env->symgen.gensym();
+        const sym_t obj = env->env->symgen.gensym();
         Term *argout = 0;
         if (dc == "AVG") {
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
@@ -175,17 +175,17 @@ private:
 
 class inner_join_term_t : public rewrite_term_t {
 public:
-    inner_join_term_t(env_t *env, const protob_t<const Term> &term)
+    inner_join_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         const Term *const left = &in->args(0);
         const Term *const right = &in->args(1);
         const Term *const func = &in->args(2);
-        const sym_t n = env->symgen.gensym();
-        const sym_t m = env->symgen.gensym();
+        const sym_t n = env->env->symgen.gensym();
+        const sym_t m = env->env->symgen.gensym();
 
         Term *arg = out.get();
         // `left`.concatmap { |n|
@@ -208,18 +208,18 @@ public:
 
 class outer_join_term_t : public rewrite_term_t {
 public:
-    outer_join_term_t(env_t *env, const protob_t<const Term> &term) :
+    outer_join_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         const Term *const left = &in->args(0);
         const Term *const right = &in->args(1);
         const Term *const func = &in->args(2);
-        const sym_t n = env->symgen.gensym();
-        const sym_t m = env->symgen.gensym();
-        const sym_t lst = env->symgen.gensym();
+        const sym_t n = env->env->symgen.gensym();
+        const sym_t m = env->env->symgen.gensym();
+        const sym_t lst = env->env->symgen.gensym();
 
         Term *arg = out.get();
 
@@ -257,18 +257,18 @@ public:
 
 class eq_join_term_t : public rewrite_term_t {
 public:
-    eq_join_term_t(env_t *env, const protob_t<const Term> &term) :
+    eq_join_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
 
-    static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         const Term *const left = &in->args(0);
         const Term *const left_attr = &in->args(1);
         const Term *const right = &in->args(2);
-        const sym_t row = env->symgen.gensym();
-        const sym_t v = env->symgen.gensym();
+        const sym_t row = env->env->symgen.gensym();
+        const sym_t v = env->env->symgen.gensym();
 
         Term *arg = out.get();
         Term *optarg_inheritor = NULL;
@@ -288,14 +288,14 @@ private:
 
 class delete_term_t : public rewrite_term_t {
 public:
-    delete_term_t(env_t *env, const protob_t<const Term> &term)
+    delete_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
 
-    static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const sym_t x = env->symgen.gensym();
+        const sym_t x = env->env->symgen.gensym();
 
         Term *arg = out.get();
         N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
@@ -306,15 +306,15 @@ private:
 
 class update_term_t : public rewrite_term_t {
 public:
-    update_term_t(env_t *env, const protob_t<const Term> &term)
+    update_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         // The `false` values below mean that we don't bind the implicit variable.
-        const sym_t old_row = env->symgen.gensym(false);
-        const sym_t new_row = env->symgen.gensym(false);
+        const sym_t old_row = env->env->symgen.gensym(false);
+        const sym_t new_row = env->env->symgen.gensym(false);
 
         Term *arg = out.get();
         N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
@@ -338,10 +338,10 @@ private:
 
 class skip_term_t : public rewrite_term_t {
 public:
-    skip_term_t(env_t *env, const protob_t<const Term> &term)
+    skip_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(UNUSED env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         Term *arg = out.get();
@@ -354,13 +354,13 @@ private:
 
 class difference_term_t : public rewrite_term_t {
 public:
-    difference_term_t(env_t *env, const protob_t<const Term> &term)
+    difference_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const sym_t row = env->symgen.gensym(false);
+        const sym_t row = env->env->symgen.gensym(false);
 
         Term *arg = out.get();
         N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, row);
@@ -374,10 +374,10 @@ private:
 
 class with_fields_term_t : public rewrite_term_t {
 public:
-    with_fields_term_t(env_t *env, const protob_t<const Term> &term)
+    with_fields_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
 private:
-    static protob_t<Term> rewrite(UNUSED env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(visibility_env_t *, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         Term *arg = out.get();
@@ -397,31 +397,31 @@ private:
      virtual const char *name() const { return "with_fields"; }
 };
 
-counted_t<term_t> make_skip_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_skip_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<skip_term_t>(env, term);
 }
-counted_t<term_t> make_groupby_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_groupby_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<groupby_term_t>(env, term);
 }
-counted_t<term_t> make_inner_join_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_inner_join_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<inner_join_term_t>(env, term);
 }
-counted_t<term_t> make_outer_join_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_outer_join_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<outer_join_term_t>(env, term);
 }
-counted_t<term_t> make_eq_join_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_eq_join_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<eq_join_term_t>(env, term);
 }
-counted_t<term_t> make_update_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_update_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<update_term_t>(env, term);
 }
-counted_t<term_t> make_delete_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_delete_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<delete_term_t>(env, term);
 }
-counted_t<term_t> make_difference_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_difference_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<difference_term_t>(env, term);
 }
-counted_t<term_t> make_with_fields_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_with_fields_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<with_fields_term_t>(env, term);
 }
 

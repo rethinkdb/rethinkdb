@@ -15,7 +15,7 @@ public:
     }
 private:
     virtual bool is_deterministic_impl() const { return true; }
-    virtual counted_t<val_t> eval_impl(env_t *, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *, UNUSED eval_flags_t flags) {
         return raw_val;
     }
     virtual const char *name() const { return "datum"; }
@@ -24,11 +24,11 @@ private:
 
 class constant_term_t : public op_term_t {
 public:
-    constant_term_t(env_t *env, protob_t<const Term> t,
+    constant_term_t(visibility_env_t *env, protob_t<const Term> t,
                     double constant, const char *name)
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *, UNUSED eval_flags_t flags) {
         return new_val(make_counted<const datum_t>(_constant));
     }
     virtual const char *name() const { return _name; }
@@ -38,10 +38,10 @@ private:
 
 class make_array_term_t : public op_term_t {
 public:
-    make_array_term_t(env_t *env, const protob_t<const Term> &term)
+    make_array_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         datum_ptr_t acc(datum_t::R_ARRAY);
         for (size_t i = 0; i < num_args(); ++i) {
             acc.add(arg(env, i)->as_datum());
@@ -53,10 +53,10 @@ private:
 
 class make_obj_term_t : public op_term_t {
 public:
-    make_obj_term_t(env_t *env, const protob_t<const Term> &term)
+    make_obj_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
         bool literal_ok = flags & LITERAL_OK;
         eval_flags_t new_flags = literal_ok ? LITERAL_OK : NO_FLAGS;
         datum_ptr_t acc(datum_t::R_OBJECT);
@@ -73,14 +73,14 @@ private:
 counted_t<term_t> make_datum_term(const protob_t<const Term> &term) {
     return make_counted<datum_term_t>(term);
 }
-counted_t<term_t> make_constant_term(env_t *env, const protob_t<const Term> &term,
+counted_t<term_t> make_constant_term(visibility_env_t *env, const protob_t<const Term> &term,
                                      double constant, const char *name) {
     return make_counted<constant_term_t>(env, term, constant, name);
 }
-counted_t<term_t> make_make_array_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_make_array_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_array_term_t>(env, term);
 }
-counted_t<term_t> make_make_obj_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_make_obj_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_obj_term_t>(env, term);
 }
 

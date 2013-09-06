@@ -88,10 +88,11 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
 
     Term mapping;
     const ql::sym_t one(1);
-    Term *arg = ql::pb::set_func(&mapping, one);
+    ql::protob_t<Term> twrap = ql::make_counted_term();
+    Term *arg = twrap.get();
     N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
-    ql::map_wire_func_t m(mapping, std::map<ql::sym_t, Datum>());
+    ql::map_wire_func_t m(twrap, make_vector(one));
 
     write_message_t wm;
     wm << m;

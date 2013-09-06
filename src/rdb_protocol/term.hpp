@@ -11,6 +11,8 @@ class datum_stream_t;
 class datum_t;
 class db_t;
 class env_t;
+class scope_env_t;
+class visibility_env_t;
 class func_t;
 class table_t;
 class val_t;
@@ -26,12 +28,12 @@ public:
     virtual ~term_t();
 
     virtual const char *name() const = 0;
-    counted_t<val_t> eval(env_t *env, eval_flags_t eval_flags = NO_FLAGS);
+    counted_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS);
 
     // Allocates a new value in the current environment.
     counted_t<val_t> new_val(counted_t<const datum_t> d);
     counted_t<val_t> new_val(counted_t<const datum_t> d, counted_t<table_t> t);
-    counted_t<val_t> new_val(env_t *env, counted_t<datum_stream_t> s);
+    counted_t<val_t> new_val(scope_env_t *env, counted_t<datum_stream_t> s);
     counted_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t);
     counted_t<val_t> new_val(counted_t<const db_t> db);
     counted_t<val_t> new_val(counted_t<table_t> t);
@@ -44,14 +46,14 @@ public:
     void prop_bt(Term *t) const;
 
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, eval_flags_t) = 0;
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) = 0;
     virtual bool is_deterministic_impl() const = 0;
     protob_t<const Term> src;
 
     DISABLE_COPYING(term_t);
 };
 
-counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t);
+counted_t<term_t> compile_term(visibility_env_t *env, protob_t<const Term> t);
 
 } // namespace ql
 

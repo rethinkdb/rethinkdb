@@ -1,4 +1,6 @@
 #include "rdb_protocol/terms/terms.hpp"
+// RSI: Rename this file (it autocompletes with obj.cc).
+// RSI: Add copyright notices to these files.
 
 #include <string>
 
@@ -23,11 +25,11 @@ public:
         FILTER = 1,
         SKIP_MAP = 2
     };
-    obj_or_seq_op_term_t(env_t *env, protob_t<const Term> term,
+    obj_or_seq_op_term_t(visibility_env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec)
         : op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
           poly_type(_poly_type), func(make_counted_term()) {
-        const sym_t varnum = env->symgen.gensym();
+        const sym_t varnum = env->env->symgen.gensym();
         Term *arg = pb::set_func(func.get(), varnum);
         Term *body = NULL;
         switch (poly_type) {
@@ -65,9 +67,9 @@ public:
         prop_bt(func.get());
     }
 private:
-    virtual counted_t<val_t> obj_eval(env_t *env, counted_t<val_t> v0) = 0;
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) = 0;
 
-    virtual counted_t<val_t> eval_impl(env_t *env, UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v0 = arg(env, 0);
         counted_t<const datum_t> d;
 
@@ -85,16 +87,24 @@ private:
                 rcheck(no_recurse->as_bool() == false, base_exc_t::GENERIC,
                        strprintf("Cannot perform %s on a sequence of sequences.", name()));
             }
+
+            // RSI: This is a complete hack.  We lazily delay creation of this
+            // func_term_t because otherwise you'd have infinite recursion (or you'd
+            // try to, but you'll get a duplicate optarg error with _NO_RECURSE_).
+            // (This _does_ correspond to what the code did before the #1328 refactor.)
+            visibility_env_t visibility_env(env->env, env->scope.compute_visibility());
+            counted_t<func_term_t> func_term = make_counted<func_term_t>(&visibility_env, func);
+
             switch (poly_type) {
             case MAP:
-                return new_val(env, v0->as_seq(env)->map(env, make_counted<concrete_func_t>(env, func)));
+                return new_val(env, v0->as_seq(env)->map(env->env, func_term->eval_to_func(env)));
             case FILTER:
-                return new_val(env, v0->as_seq(env)->filter(env,
-                                                            make_counted<concrete_func_t>(env, func),
+                return new_val(env, v0->as_seq(env)->filter(env->env,
+                                                            func_term->eval_to_func(env),
                                                             counted_t<func_t>()));
             case SKIP_MAP:
-                return new_val(env, v0->as_seq(env)->concatmap(env,
-                                                               make_counted<concrete_func_t>(env, func)));
+                return new_val(env, v0->as_seq(env)->concatmap(env->env,
+                                                               func_term->eval_to_func(env)));
             default: unreachable();
             }
             unreachable();
@@ -112,10 +122,10 @@ private:
 
 class pluck_term_t : public obj_or_seq_op_term_t {
 public:
-    pluck_term_t(env_t *env, const protob_t<const Term> &term) :
+    pluck_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
@@ -133,10 +143,10 @@ private:
 
 class without_term_t : public obj_or_seq_op_term_t {
 public:
-    without_term_t(env_t *env, const protob_t<const Term> &term) :
+    without_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
@@ -154,10 +164,10 @@ private:
 
 class literal_term_t : public op_term_t {
 public:
-    literal_term_t(env_t *env, const protob_t<const Term> &term)
+    literal_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(env_t *env, eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found, literal can only be present inside merge "
                "and cannot nest inside other literals.");
@@ -178,10 +188,10 @@ private:
 
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
-    merge_term_t(env_t *env, const protob_t<const Term> &term) :
+    merge_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
         counted_t<const datum_t> d = v0->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
             d = d->merge(arg(env, i, LITERAL_OK)->as_datum());
@@ -193,10 +203,10 @@ private:
 
 class has_fields_term_t : public obj_or_seq_op_term_t {
 public:
-    has_fields_term_t(env_t *env, const protob_t<const Term> &term)
+    has_fields_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
-    virtual counted_t<val_t> obj_eval(env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
         counted_t<const datum_t> obj = v0->as_datum();
         r_sanity_check(obj->get_type() == datum_t::R_OBJECT);
 
@@ -214,33 +224,33 @@ private:
 
 class get_field_term_t : public obj_or_seq_op_term_t {
 public:
-    get_field_term_t(env_t *env, const protob_t<const Term> &term)
+    get_field_term_t(visibility_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> obj_eval(env_t *env, counted_t<val_t> v0) {
+    virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
         return new_val(v0->as_datum()->get(arg(env, 1)->as_str()));
     }
     virtual const char *name() const { return "get_field"; }
 };
 
-counted_t<term_t> make_get_field_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_field_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_field_term_t>(env, term);
 }
 
-counted_t<term_t> make_has_fields_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_has_fields_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<has_fields_term_t>(env, term);
 }
 
-counted_t<term_t> make_pluck_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_pluck_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<pluck_term_t>(env, term);
 }
-counted_t<term_t> make_without_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_without_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<without_term_t>(env, term);
 }
-counted_t<term_t> make_literal_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_literal_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<literal_term_t>(env, term);
 }
-counted_t<term_t> make_merge_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_merge_term(visibility_env_t *env, const protob_t<const Term> &term) {
     return make_counted<merge_term_t>(env, term);
 }
 
