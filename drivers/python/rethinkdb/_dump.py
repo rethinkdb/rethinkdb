@@ -2,10 +2,11 @@
 import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
-usage = "'rethinkdb dump` creates an archive of data from a rethinkdb cluster\n\
-  rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
+info = "'rethinkdb dump' creates an archive of data from a rethinkdb cluster"
+usage = "  rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
 
 def print_dump_help():
+    print info
     print usage
     print ""
     print "  -h [ --help ]                    print this help"
@@ -38,7 +39,7 @@ def parse_options():
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("no positional arguments supported")
+        raise RuntimeError("Error: No positional arguments supported")
 
     if options.help:
         print_dump_help()
@@ -51,7 +52,7 @@ def parse_options():
     if len(host_port) == 1:
         host_port = (host_port[0], "28015") # If just a host, use the default port
     if len(host_port) != 2:
-        raise RuntimeError("invalid 'host:port' format")
+        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
     (res["host"], res["port"]) = host_port
 
     # Verify valid output file
@@ -62,15 +63,15 @@ def parse_options():
         res["out_file"] = os.path.abspath(options.out_file)
 
     if os.path.exists(res["out_file"]):
-        raise RuntimeError("output file already exists")
+        raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
 
     res["tables"] = options.tables
     res["auth_key"] = options.auth_key
     return res
 
-def do_export(export_script, temp_dir, options):
+def do_export(temp_dir, options):
     print "Exporting to directory..."
-    export_args = [export_script]
+    export_args = ["rethinkdb-export"]
     export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
     export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
     export_args.extend(["--auth", options["auth_key"]])
@@ -79,7 +80,7 @@ def do_export(export_script, temp_dir, options):
 
     res = subprocess.call(export_args)
     if res != 0:
-        raise RuntimeError("rethinkdb export failed")
+        raise RuntimeError("Error: rethinkdb-export failed")
 
     # 'Done' message will be printed by the export script
 
@@ -96,27 +97,21 @@ def do_zip(temp_dir, options):
     tar_args.append(options["temp_filename"])
     res = subprocess.call(tar_args)
     if res != 0:
-        raise RuntimeError("tar of export directory failed")
+        raise RuntimeError("Error: tar of export directory failed")
     print "  Done (%d seconds)" % (time.time() - start_time)
 
 def run_rethinkdb_export(options):
-    # Find the export script
-    export_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb-export"))
-
-    if not os.path.exists(export_script):
-        raise RuntimeError("could not find export script")
-
     # Create a temporary directory to store the intermediary results
     temp_dir = tempfile.mkdtemp()
     res = -1
 
     # Print a warning about the capabilities of dump, so no one is confused (hopefully)
-    print "NOTE: `rethinkdb dump` only dumps data and does *not* dump secondary indexes or"
+    print "NOTE: 'rethinkdb-dump' only dumps data and does *not* dump secondary indexes or"
     print " cluster metadata.  You will need to recreate your secondary indexes and cluster"
-    print " setup yourself after you run `rethinkdb restore`."
+    print " setup yourself after you run 'rethinkdb-restore'."
 
     try:
-        do_export(export_script, temp_dir, options)
+        do_export(temp_dir, options)
         do_zip(temp_dir, options)
     except KeyboardInterrupt:
         time.sleep(0.2)
@@ -127,10 +122,16 @@ def run_rethinkdb_export(options):
 def main():
     try:
         options = parse_options()
+    except RuntimeError as ex:
+        print >> sys.stderr, "Usage:\n%s" % usage
+        print >> sys.stderr, ex
+        return 1
+
+    try:
         start_time = time.time()
         run_rethinkdb_export(options)
     except RuntimeError as ex:
-        print ex
+        print >> sys.stderr, ex
         return 1
     return 0
 

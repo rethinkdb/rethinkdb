@@ -15,11 +15,13 @@ except ImportError:
     print "Please install the driver via `pip install rethinkdb`."
     exit(1)
 
-usage = "'rethinkdb export` exports data from a rethinkdb cluster into a directory\n\
+info = "'rethinkdb export` exports data from a rethinkdb cluster into a directory"
+usage = "\
   rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-f (csv | json)] [-d DIR]\n\
       [--fields FIELD,FIELD...] [-e (DB | DB.TABLE)]..."
 
 def print_export_help():
+    print info
     print usage
     print ""
     print "  -h [ --help ]                    print this help"
@@ -63,7 +65,7 @@ def parse_options():
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("no positional arguments supported")
+        raise RuntimeError("Error: No positional arguments supported")
 
     if options.help:
         print_export_help()
@@ -76,12 +78,12 @@ def parse_options():
     if len(host_port) == 1:
         host_port = (host_port[0], "28015") # If just a host, use the default port
     if len(host_port) != 2:
-        raise RuntimeError("invalid 'host:port' format")
+        raise RuntimeError("Error: Invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
 
     # Verify valid --format option
     if options.format not in ["csv", "json"]:
-        raise RuntimeError("unknown format specified, valid options are 'csv' and 'json'")
+        raise RuntimeError("Error: Unknown format specified, valid options are 'csv' and 'json'")
     res["format"] = options.format
 
     # Verify valid directory option
@@ -92,28 +94,28 @@ def parse_options():
     res["directory"] = os.path.abspath(dirname)
 
     if os.path.exists(res["directory"]):
-        raise RuntimeError("output directory already exists")
+        raise RuntimeError("Error: Output directory already exists: %s" % res["directory"])
 
     # Verify valid --export options
     res["tables"] = []
     for item in options.tables:
         if not all(c in string.ascii_letters + string.digits + "._" for c in item):
-            raise RuntimeError("invalid 'db' or 'db.table' name: %s" % item)
+            raise RuntimeError("Error: Invalid 'db' or 'db.table' name: %s" % item)
         db_table = item.split(".")
         if len(db_table) == 1:
             res["tables"].append(db_table)
         elif len(db_table) == 2:
             res["tables"].append(tuple(db_table))
         else:
-            raise RuntimeError("invalid 'db' or 'db.table' format: %s" % item)
+            raise RuntimeError("Error: Invalid 'db' or 'db.table' format: %s" % item)
 
     # Parse fields
     if options.fields is None:
         if options.format == "csv":
-            raise RuntimeError("cannot write a csv with no fields selected")
+            raise RuntimeError("Error: Cannot write a csv with no fields selected")
         res["fields"] = None
     elif len(res["tables"]) != 1 or len(res["tables"][0]) != 2:
-        raise RuntimeError("can only use the --fields option when exporting a single table")
+        raise RuntimeError("Error: Can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
 
@@ -134,13 +136,13 @@ def get_tables(host, port, auth_key, tables):
 
     for db_table in tables:
         if db_table[0] not in dbs:
-            raise RuntimeError("database '%s' not found" % db_table[0])
+            raise RuntimeError("Error: Database '%s' not found" % db_table[0])
 
         if len(db_table) == 1: # This is just a db name
             res.extend([(db_table[0], table) for table in r.db(db_table[0]).table_list().run(conn)])
         else: # This is db and table name
             if db_table[1] not in r.db(db_table[0]).table_list().run(conn):
-                raise RuntimeError("table not found: '%s.%s'" % tuple(db_table))
+                raise RuntimeError("Error: Table not found: '%s.%s'" % tuple(db_table))
             res.append(tuple(db_table))
 
     # Remove duplicates by making results a set
@@ -294,18 +296,24 @@ def run_clients(options, db_table_set):
             error = error_queue.get()
             print >> sys.stderr, "Traceback: %s" % (error[2])
             print >> sys.stderr, "%s: %s" % (error[0].__name__, error[1])
-            raise RuntimeError("errors occurred during export")
+            raise RuntimeError("Errors occurred during export")
 
 def main():
     try:
         options = parse_options()
+    except RuntimeError as ex:
+        print >> sys.stderr, "Usage:\n%s" % usage
+        print >> sys.stderr, ex
+        return 1
+
+    try:
         db_table_set = get_tables(options["host"], options["port"], options["auth_key"], options["tables"])
         del options["tables"] # This is not needed anymore, db_table_set is more useful
         prepare_directories(options["directory"], db_table_set)
         start_time = time.time()
         run_clients(options, db_table_set)
     except RuntimeError as ex:
-        print ex
+        print sys.stderr, ex
         return 1
     print "  Done (%d seconds)" % (time.time() - start_time)
     return 0

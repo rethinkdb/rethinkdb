@@ -2,10 +2,11 @@
 import sys, os, datetime, time, shutil, tempfile, subprocess, string
 from optparse import OptionParser
 
-usage = "'rethinkdb restore` loads data into a rethinkdb cluster from an archive\n\
-  rethinkdb restore FILE [-c HOST:PORT] [-a AUTH_KEY] [--force] [-i (DB | DB.TABLE)]..."
+info = "'rethinkdb restore' loads data into a rethinkdb cluster from an archive"
+usage = "  rethinkdb restore FILE [-c HOST:PORT] [-a AUTH_KEY] [--force] [-i (DB | DB.TABLE)]..."
 
 def print_restore_help():
+    print info
     print usage
     print ""
     print "  FILE                             the archive file to restore data from"
@@ -52,9 +53,9 @@ def parse_options():
 
     # Check validity of arguments
     if len(args) == 0:
-        raise RuntimeError("archive to import not specified")
+        raise RuntimeError("Error: Archive to import not specified")
     elif len(args) != 1:
-        raise RuntimeError("only one positional argument supported")
+        raise RuntimeError("Error: Only one positional argument supported")
 
     res = { }
 
@@ -63,28 +64,28 @@ def parse_options():
     if len(host_port) == 1:
         host_port = (host_port[0], "28015") # If just a host, use the default port
     if len(host_port) != 2:
-        raise RuntimeError("invalid 'host:port' format")
+        raise RuntimeError("Error: Invalid 'host:port' format")
     (res["host"], res["port"]) = host_port
 
     # Verify valid input file
     res["in_file"] = os.path.abspath(args[0])
 
     if not os.path.exists(res["in_file"]):
-        raise RuntimeError("input file does not exist")
+        raise RuntimeError("Error: Input file does not exist: %s" % res["in_file"])
 
     # Verify valid --import options
     res["dbs"] = []
     res["tables"] = []
     for item in options.tables:
         if not all(c in string.ascii_letters + string.digits + "._" for c in item):
-            raise RuntimeError("invalid 'db' or 'db.table' name: %s" % item)
+            raise RuntimeError("Error: Invalid 'db' or 'db.table' name: %s" % item)
         db_table = item.split(".")
         if len(db_table) == 1:
             res["dbs"].append(db_table[0])
         elif len(db_table) == 2:
             res["tables"].append(tuple(db_table))
         else:
-            raise RuntimeError("invalid 'db' or 'db.table' format: %s" % item)
+            raise RuntimeError("Error: Invalid 'db' or 'db.table' format: %s" % item)
 
     res["auth_key"] = options.auth_key
     res["force"] = options.force
@@ -111,14 +112,14 @@ def do_unzip(temp_dir, options):
 
     res = subprocess.call(tar_args)
     if res != 0:
-        raise RuntimeError("untar of archive failed")
+        raise RuntimeError("Error: untar of archive failed")
 
     print "  Done (%d seconds)" % (time.time() - start_time)
 
-def do_import(import_script, temp_dir, options):
+def do_import(temp_dir, options):
     print "Importing from directory..."
 
-    import_args = [import_script]
+    import_args = ["rethinkdb-import"]
     import_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
     import_args.extend(["--directory", temp_dir])
     import_args.extend(["--auth", options["auth_key"]])
@@ -134,24 +135,18 @@ def do_import(import_script, temp_dir, options):
 
     res = subprocess.call(import_args)
     if res != 0:
-        raise RuntimeError("rethinkdb import failed")
+        raise RuntimeError("Error: rethinkdb-import failed")
 
     # 'Done' message will be printed by the import script
 
 def run_rethinkdb_import(options):
-    # Find the import script
-    import_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb-import"))
-
-    if not os.path.exists(import_script):
-        raise RuntimeError("could not find import script")
-
     # Create a temporary directory to store the extracted data
     temp_dir = tempfile.mkdtemp()
     res = -1
 
     try:
         do_unzip(temp_dir, options)
-        do_import(import_script, temp_dir, options)
+        do_import(temp_dir, options)
     except KeyboardInterrupt:
         time.sleep(0.2)
         raise RuntimeError("Interrupted")
@@ -161,10 +156,16 @@ def run_rethinkdb_import(options):
 def main():
     try:
         options = parse_options()
+    except RuntimeError as ex:
+        print >> sys.stderr, "Usage:\n%s" % usage
+        print >> sys.stderr, ex
+        return 1
+
+    try:
         start_time = time.time()
         run_rethinkdb_import(options)
     except RuntimeError as ex:
-        print ex
+        print >> sys.stderr, ex
         return 1
     return 0
 
