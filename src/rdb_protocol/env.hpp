@@ -74,7 +74,6 @@ public:
         databases_semilattice_metadata;
     // TODO this should really just be the namespace metadata... but
     // constructing views is too hard :-/
-    // RSI: Constructing views isn't hard, construct a view.
     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
         semilattice_metadata;
     directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
@@ -154,18 +153,16 @@ private:
 
 class visibility_env_t {
 public:
-    // RSI: no default arg, use const reference or something
-    visibility_env_t(env_t *_env, var_visibility_t _visibility = var_visibility_t())
-        : env(_env), visibility(_visibility) { }
+    visibility_env_t(env_t *_env, var_visibility_t &&_visibility)
+        : env(_env), visibility(std::move(_visibility)) { }
     env_t *env;
     var_visibility_t visibility;
 };
 
 class scope_env_t {
 public:
-    // RSI: no default arg, use const reference or something
-    scope_env_t(env_t *_env, var_scope_t _scope = var_scope_t())
-        : env(_env), scope(_scope) { }
+    scope_env_t(env_t *_env, var_scope_t &&_scope)
+        : env(_env), scope(std::move(_scope)) { }
     env_t *env;
     var_scope_t scope;
 };
