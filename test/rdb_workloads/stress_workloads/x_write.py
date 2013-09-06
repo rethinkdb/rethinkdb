@@ -77,7 +77,7 @@ class Workload:
         row["datetime"] = r.now()
         row["nested"] = self.generate_nested(2)
         row["arr"] = [ random.randint(0, 100000) for i in xrange(86) ]
-        row["arr2"] = [ random.sample(string.letters + string.digits, 2) for i in xrange(86) ]
+        row["arr2"] = [ "".join(random.sample(string.letters + string.digits, 2)) for i in xrange(86) ]
         row["flat"] = "".join(random.choice(string.letters + string.digits) for i in xrange(463))
         return row
 
