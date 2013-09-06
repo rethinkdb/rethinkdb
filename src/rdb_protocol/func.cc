@@ -48,7 +48,7 @@ reql_func_t::~reql_func_t() { }
 
 counted_t<val_t> reql_func_t::call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const {
     try {
-        // RSI: This allow arg_names.size() to be 0.  Why do we allow this?  (Is the behavior subtly different in the new implementation?  Because in the old implementation, maybe some stuff saw random old argptrs values...)
+        // RSI: This allow arg_names.size() to be 0.  Why do we allow this?
         rcheck(arg_names.size() == args.size() || arg_names.size() == 0,
                base_exc_t::GENERIC,
                strprintf("Expected %zd argument(s) but found %zu.",
