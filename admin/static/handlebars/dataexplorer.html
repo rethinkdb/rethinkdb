@@ -209,10 +209,12 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         </div>
     </div>
     {{#if show_more_data}}
-    <div class="more_results more_valid_results"><p class="more_results_paragraph"><a href="#" class="more_results_link">More data &rarr;</a><p></div>
+    <div class="more_results more_valid_results">
+        <p class="more_results_paragraph">More data is available. <a href="#" class="more_results_link">Load the next batch &rarr;</a></p>
+    </div>
     {{else}}
         {{#if cursor_timed_out_template}}
-            <div class="more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}<p></div>
+            <div class="more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
         {{/if}}
     {{/if}}
 </script>
@@ -227,8 +229,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 
 <script id="dataexplorer-cursor_timed_out-template" type="text/x-handlebars-template">
-    No more data available, the cursor timed out.<br/>
-    Re-execute the query to retrieve more results.
+    No more data available, the cursor timed out. Re-execute the query to retrieve more results.
 </script>
 
 <!-- Keep </script> without space/new line before so the comma stick to the value of the object-->
