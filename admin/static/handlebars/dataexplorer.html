@@ -99,7 +99,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 <script id="dataexplorer-namespaces_suggestions-template" type="text/x-handlebars-template">
     <p>
     {{#if error}}
-        The database specified in db() was not found.
+        The database specified in db() was not found or no default database has been selected.
     {{else}}
         {{#if no_namespace}}
             {{#if database_name}}
@@ -133,6 +133,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         <div class="suggestion_description_arrow arrow"></div>
         <div class="suggestion_description_arrow_overlay arrow"></div>
         <textarea class="input_query" id="input_query"></textarea>
+        <div class="db_container"></div>
         <div class="button_container">
             <button class="btn button_query execute_query">Run</button>
             <button class="btn button_query clear_query">Clear</button>
@@ -141,6 +142,16 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     <div class="loading_query">
         <img src="images/ajax-loader.gif" class="loading_query_img"/>
     </div>
+</script>
+
+
+<script id="dataexplorer_select_db-template" type="text/x-handlebars-template">
+    <select class="default_db">
+        <option disabled="disabled" {{#if no_default_db}}selected="selected"{{/if}}>Select a default database</option>
+        {{#each databases}}
+        <option value="{{id}}" {{#if selected}}selected="selected"{{/if}}>{{name}}</option>
+        {{/each}}
+    </select>
 </script>
 
 <script id="dataexplorer_suggestion_name_li-template" type="text/x-handlebars-template">

@@ -36,6 +36,8 @@ commands:
     io:
       - - db
         - object 
+      - - r
+        - object 
 
     examples:
       - description: |
@@ -80,6 +82,8 @@ commands:
     io:
       - - db
         - object 
+      - - r
+        - object 
 
     examples:
       - description: Drop a table named 'dc_universe'.
@@ -106,6 +110,8 @@ commands:
 
     io:
       - - db
+        - array 
+      - - r
         - array 
 
     examples:

@@ -39,6 +39,8 @@ commands:
     io:
       - - db
         - table 
+      - - r
+        - table 
 
     examples:
       - description: Return all documents in the table 'marvel' of the default database.

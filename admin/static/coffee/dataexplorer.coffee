@@ -4,6 +4,7 @@ module 'DataExplorerView', ->
         id: 'dataexplorer'
         template: Handlebars.templates['dataexplorer_view-template']
         input_query_template: Handlebars.templates['dataexplorer_input_query-template']
+        select_db_template: Handlebars.templates['dataexplorer_select_db-template']
         description_template: Handlebars.templates['dataexplorer-description-template']
         template_suggestion_name: Handlebars.templates['dataexplorer_suggestion_name_li-template']
         description_with_example_template: Handlebars.templates['dataexplorer-description_with_example-template']
@@ -37,6 +38,7 @@ module 'DataExplorerView', ->
             'click .close_queries_link': 'toggle_history'
             'click .toggle_options_link': 'toggle_options'
             'mousedown .nano_border_bottom': 'start_resize_history'
+            'change .default_db': 'change_default_db'
 
         start_resize_history: (event) =>
             @history_view.start_resize event
@@ -368,6 +370,10 @@ module 'DataExplorerView', ->
             window.localStorage.rethinkdb_history = JSON.stringify @history
 
         initialize: (args) =>
+            @default_db = if window.localStorage?.default_db? then window.localStorage.default_db else null
+
+            databases.on 'all', @render_db
+
             @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
 
             # Load options from local storage
@@ -448,6 +454,7 @@ module 'DataExplorerView', ->
                 container: @
                 on_success: @success_on_connect
                 on_fail: @error_on_connect
+                default_db: @default_db
 
             # One callback to rule them all
             $(window).mousemove @handle_mousemove
@@ -464,9 +471,39 @@ module 'DataExplorerView', ->
             @results_view.handle_mouseup event
             @history_view.handle_mouseup event
 
+        # Change the default database
+        change_default_db: (event) =>
+            @default_db = @$('.default_db').val()
+            if window.localStorage?
+                window.localStorage.default_db = @default_db
+            @driver_handler.use @default_db
+
+        # Render the list of databases
+        render_db: =>
+            dbs = []
+            found_db = false
+            for db in databases.models
+                selected = @default_db is db.get('id')
+                if selected is true
+                    found_db = true
+                dbs.push
+                    selected: selected
+                    id: db.get('id')
+                    name: db.get('name')
+            dbs.sort (a,b) ->
+                if a.name>b.name
+                    1
+                else
+                    -1
+
+            @$('.db_container').html @select_db_template
+                databases: dbs
+                no_default_db: not found_db
+
         render: =>
             @$el.html @template()
             @$('.input_query_full_container').html @input_query_template()
+            @render_db()
             
             # Check if the browser supports the JavaScript driver
             # We do not support internet explorer (even IE 10) and old browsers.
@@ -2190,6 +2227,11 @@ module 'DataExplorerView', ->
                         no_database: true
                 else
                     databases_available = databases.models.map (database) -> return database.get('name')
+                    databases.sort (a, b) ->
+                        if a>b
+                            1
+                        else
+                            -1
                     data =
                         no_database: false
                         databases_available: databases_available
@@ -2205,8 +2247,13 @@ module 'DataExplorerView', ->
                         if database_used.db_found is false or namespace.get('database') is database_used.id
                             namespaces_available.push namespace.get('name')
                     data =
-                        namespaces_available: namespaces_available
+                        namespaces_available: namespaces_available.sort (a, b) ->
+                            if a>b
+                                1
+                            else
+                                -1
                         no_namespace: namespaces_available.length is 0
+                        database_name: database_used
 
                     if database_used.name?
                         data.database_name = database_used.name
@@ -2229,16 +2276,12 @@ module 'DataExplorerView', ->
             # We cannot have ".db(" in a db name
             last_db_position = query_before_cursor.lastIndexOf('.db(')
             if last_db_position is -1
-                for database in databases.models
-                    if database.get('name') is 'test'
-                        database_test_id = database.get('id')
-                        break
-                if database_test_id?
+                if databases.get(@default_db)?
                     return {
                         db_found: true
                         error: false
-                        id: database_test_id
-                        name: 'test'
+                        id: @default_db
+                        name: databases.get(@default_db).get('name')
                     }
                 else
                     return {
@@ -2328,6 +2371,10 @@ module 'DataExplorerView', ->
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
 
+                # If the user create a database, we update the list
+                if /dbCreate/.test(@raw_queries[@index])
+                    collect_server_data_once()
+
                 try
                     rdb_query = @evaluate(full_query)
                 catch err
@@ -2371,6 +2418,8 @@ module 'DataExplorerView', ->
                 if @id_execution is id_execution # We execute the query only if it is the last one
                     get_result_callback = @generate_get_result_callback id_execution
 
+                    # Testing if the query created a database
+                    @raw_queries[@index-1]
                     if error?
                         @.$('.loading_query_img').hide()
                         @results_view.render_error(@raw_queries[@index-1], error)
@@ -2667,6 +2716,8 @@ module 'DataExplorerView', ->
             $(window).off 'resize', @display_full
             $(document).unbind 'mousemove', @handle_mousemove
             $(document).unbind 'mouseup', @handle_mouseup
+
+            databases.off 'all', @render_db
 
             clearTimeout @timeout_driver_connect
             # We do not destroy the cursor, because the user might come back and use it.
@@ -3485,11 +3536,12 @@ module 'DataExplorerView', ->
                     port = 80
             else
                 port = parseInt window.location.port
-            @server =
+            @params =
                 host: window.location.hostname
                 port: port
                 protocol: if window.location.protocol is 'https:' then 'https' else 'http'
                 pathname: window.location.pathname
+                db: databases.get(args.default_db)?.get('name')
 
             @hack_driver()
             @connect()
@@ -3503,6 +3555,11 @@ module 'DataExplorerView', ->
                 TermBase.run = ->
                     throw that.query_error_template
                         found_run: true
+
+        # Change the default db
+        use: (db) =>
+            if databases.get(db)?.get('name')? and @connection?
+                @connection.use databases.get(db).get('name')
 
         connect: =>
             that = @
@@ -3519,7 +3576,7 @@ module 'DataExplorerView', ->
                     catch err
                         # Nothing bad here, let's just not pollute the console
             try
-                r.connect @server, (err, connection) ->
+                r.connect @params, (err, connection) ->
                     if err?
                         that.on_fail(err)
                     else
