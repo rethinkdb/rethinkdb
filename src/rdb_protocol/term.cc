@@ -214,7 +214,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            visibility_env_t visibility_env(env);
+            visibility_env_t visibility_env(env, var_visibility_t());
             root_term = compile_term(&visibility_env, q.make_child(t));
             // TODO: handle this properly
         } catch (const exc_t &e) {
@@ -238,7 +238,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         }
 
         try {
-            scope_env_t scope_env(env);
+            scope_env_t scope_env(env, var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
 
             if (!*response_needed_out) {
