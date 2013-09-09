@@ -352,7 +352,7 @@ private:
             }
         }
 
-        std::sort(data.begin(), data.end(), lt_cmp);
+        std::sort(data.begin(), data.end(), std::bind(lt_cmp, env, std::placeholders::_1, std::placeholders::_2));
     }
     T lt_cmp;
     counted_t<datum_stream_t> src;
