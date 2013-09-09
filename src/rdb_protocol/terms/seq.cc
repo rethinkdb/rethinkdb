@@ -67,7 +67,7 @@ private:
         counted_t<val_t> v1 = arg(env, 1, LITERAL_OK);
         counted_t<func_t> f = v1->as_func(env->env, CONSTANT_SHORTCUT);
         counted_t<func_t> default_filter_val = default_filter_term.has()
-            ? default_filter_term->eval_to_func(env)
+            ? default_filter_term->eval_to_func(env->scope)
             : counted_t<func_t>();
 
         if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {

@@ -199,12 +199,12 @@ void func_term_t::accumulate_captures(var_captures_t *captures) const {
 }
 
 counted_t<val_t> func_term_t::eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-    return new_val(eval_to_func(env));
+    return new_val(eval_to_func(env->scope));
 }
 
-counted_t<func_t> func_term_t::eval_to_func(scope_env_t *env) {
+counted_t<func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) {
     return make_counted<reql_func_t>(get_backtrace(get_src()),
-                                     env->scope.filtered_by_captures(external_captures),
+                                     env_scope.filtered_by_captures(external_captures),
                                      arg_names, body);
 }
 
@@ -327,8 +327,7 @@ counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
     compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
-    scope_env_t empty_scope_env(env, var_scope_t());
-    return func_term->eval_to_func(&empty_scope_env);
+    return func_term->eval_to_func(var_scope_t());
 }
 
 counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
@@ -343,8 +342,7 @@ counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
     compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
-    scope_env_t empty_scope_env(env, var_scope_t());
-    return func_term->eval_to_func(&empty_scope_env);
+    return func_term->eval_to_func(var_scope_t());
 }
 
 counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
@@ -359,8 +357,7 @@ counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
     compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
-    scope_env_t empty_scope_env(env, var_scope_t());
-    return func_term->eval_to_func(&empty_scope_env);
+    return func_term->eval_to_func(var_scope_t());
 }
 
 counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
@@ -375,8 +372,7 @@ counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> ob
     compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
-    scope_env_t empty_scope_env(env, var_scope_t());
-    return func_term->eval_to_func(&empty_scope_env);
+    return func_term->eval_to_func(var_scope_t());
 }
 
 counted_t<val_t> js_result_visitor_t::operator()(const std::string &err_val) const {

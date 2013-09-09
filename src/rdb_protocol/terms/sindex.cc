@@ -43,7 +43,7 @@ public:
             counted_t<func_term_t> func_term_term = make_counted<func_term_t>(&empty_compile_env,
                                                                               func_term);
 
-            index_func = func_term_term->eval_to_func(env);
+            index_func = func_term_term->eval_to_func(env->scope);
         }
         r_sanity_check(index_func.has());
 

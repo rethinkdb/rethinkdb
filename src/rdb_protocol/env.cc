@@ -35,8 +35,7 @@ bool global_optargs_t::add_optarg(env_t *env, const std::string &key, const Term
 
     compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env, arg);
-    scope_env_t empty_scope_env(env, var_scope_t());
-    counted_t<func_t> func = func_term->eval_to_func(&empty_scope_env);
+    counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
 
     // RSI: Store counted_t<func_t>'s in optargs instead of wire funcs.  (Hey, maybe do that everywhere!)
     optargs[key] = wire_func_t(func);
