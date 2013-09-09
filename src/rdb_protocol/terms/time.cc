@@ -71,7 +71,6 @@ private:
     counted_t<val_t> eval_impl(scope_env_t *, UNUSED eval_flags_t flags) {
         // This should never get called because we rewrite `now` calls to a
         // constant so that they're deterministic.
-        // RSI: this is a code smell, instead the deterministic value should be stored in env_t.
         r_sanity_check(false);
         unreachable();
     }
