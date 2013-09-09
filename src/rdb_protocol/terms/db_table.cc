@@ -31,36 +31,32 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
 // including the thread switching.
 class meta_op_t : public op_term_t {
 public:
-    meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec)
-        : op_term_t(env, term, argspec),
-          metadata_home_thread(env->env->cluster_env.semilattice_metadata->home_thread()) { }
-    meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
-        : op_term_t(env, term, argspec, optargspec),
-          metadata_home_thread(env->env->cluster_env.semilattice_metadata->home_thread()) { }
+    meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec,
+              optargspec_t optargspec = optargspec_t({}))
+        : op_term_t(env, term, argspec, optargspec) { }
 
-protected:
-    struct rethreading_metadata_accessor_t : public on_thread_t {
-        explicit rethreading_metadata_accessor_t(meta_op_t *parent, scope_env_t *env)
-            : on_thread_t(parent->metadata_home_thread),
-              metadata(env->env->cluster_env.semilattice_metadata->get()),
-              ns_change(&metadata.rdb_namespaces),
-              ns_searcher(&ns_change.get()->namespaces),
-              db_searcher(&metadata.databases.databases),
-              dc_searcher(&metadata.datacenters.datacenters)
-        { }
-        cluster_semilattice_metadata_t metadata;
-        cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
-            ns_change;
-        metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
-            ns_searcher;
-        metadata_searcher_t<database_semilattice_metadata_t> db_searcher;
-        metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
-    };
 private:
-    friend class meta_write_op_t;
     virtual bool is_deterministic_impl() const { return false; }
-    int metadata_home_thread;
 };
+
+struct rethreading_metadata_accessor_t : public on_thread_t {
+    explicit rethreading_metadata_accessor_t(scope_env_t *env)
+    : on_thread_t(env->env->cluster_env.semilattice_metadata->home_thread()),
+      metadata(env->env->cluster_env.semilattice_metadata->get()),
+      ns_change(&metadata.rdb_namespaces),
+      ns_searcher(&ns_change.get()->namespaces),
+      db_searcher(&metadata.databases.databases),
+      dc_searcher(&metadata.datacenters.datacenters)
+    { }
+    cluster_semilattice_metadata_t metadata;
+    cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
+    ns_change;
+    metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+    ns_searcher;
+    metadata_searcher_t<database_semilattice_metadata_t> db_searcher;
+    metadata_searcher_t<datacenter_semilattice_metadata_t> dc_searcher;
+};
+
 
 class meta_write_op_t : public meta_op_t {
 public:
@@ -73,13 +69,14 @@ public:
         : meta_op_t(env, term, argspec, optargspec) {
         init(env);
     }
+
 private:
     void init(visibility_env_t *env) {
-        on_thread_t rethreader(metadata_home_thread);
-        rcheck(env->env->cluster_env.directory_read_manager,
+        rcheck(env->env->cluster_env.directory_read_manager != NULL,
                base_exc_t::GENERIC,
                "Cannot nest meta operations inside queries.");
-        guarantee(env->env->cluster_env.directory_read_manager->home_thread() == metadata_home_thread);
+
+        on_thread_t rethreader(env->env->cluster_env.directory_read_manager->home_thread());
         directory_metadata = env->env->cluster_env.directory_read_manager->get_root_view();
     }
 
@@ -90,6 +87,7 @@ private:
         UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
         return new_val(res.to_counted());
     }
+
 protected:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
         directory_metadata;
@@ -103,7 +101,7 @@ private:
         name_string_t db_name = get_name(arg(env, 0), this);
         uuid_u uuid;
         {
-            rethreading_metadata_accessor_t meta(this, env);
+            rethreading_metadata_accessor_t meta(env);
             uuid = meta_get_uuid(&meta.db_searcher, db_name,
                                  strprintf("Database `%s` does not exist.",
                                            db_name.c_str()), this);
@@ -121,7 +119,7 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(env, 0), this);
 
-        rethreading_metadata_accessor_t meta(this, env);
+        rethreading_metadata_accessor_t meta(env);
 
         // Ensure database doesn't already exist.
         metadata_search_status_t status;
@@ -172,7 +170,7 @@ private:
         if (counted_t<val_t> v = optarg(env, "datacenter")) {
             name_string_t name = get_name(v, this);
             {
-                rethreading_metadata_accessor_t meta(this, env);
+                rethreading_metadata_accessor_t meta(env);
                 dc_id = meta_get_uuid(&meta.dc_searcher, name,
                                       strprintf("Datacenter `%s` does not exist.",
                                                 name.str().c_str()),
@@ -211,7 +209,7 @@ private:
         const uuid_u namespace_id = generate_uuid();
 
         {
-            rethreading_metadata_accessor_t meta(this, env);
+            rethreading_metadata_accessor_t meta(env);
             meta.ns_searcher.find_uniq(pred, &status);
             rcheck(status == METADATA_ERR_NONE,
                    base_exc_t::GENERIC,
@@ -266,7 +264,7 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(env, 0), this);
 
-        rethreading_metadata_accessor_t meta(this, env);
+        rethreading_metadata_accessor_t meta(env);
 
         // Get database metadata.
         metadata_search_status_t status;
@@ -321,7 +319,7 @@ private:
             tbl_name = get_name(arg(env, 1), this);
         }
 
-        rethreading_metadata_accessor_t meta(this, env);
+        rethreading_metadata_accessor_t meta(env);
 
         // Get table metadata.
         metadata_search_status_t status;
@@ -355,7 +353,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::string> dbs;
         {
-            rethreading_metadata_accessor_t meta(this, env);
+            rethreading_metadata_accessor_t meta(env);
             for (auto it = meta.db_searcher.find_next(meta.db_searcher.begin());
                  it != meta.db_searcher.end();
                  it = meta.db_searcher.find_next(++it)) {
@@ -393,7 +391,7 @@ private:
         std::vector<std::string> tables;
         namespace_predicate_t pred(&db_id);
         {
-            rethreading_metadata_accessor_t meta(this, env);
+            rethreading_metadata_accessor_t meta(env);
             for (auto it = meta.ns_searcher.find_next(meta.ns_searcher.begin(), pred);
                  it != meta.ns_searcher.end();
                  it = meta.ns_searcher.find_next(++it, pred)) {
