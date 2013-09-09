@@ -6,18 +6,39 @@
 
 namespace ql {
 
-class var_term_t : public op_term_t {
+class var_term_t : public term_t {
 public:
     var_term_t(visibility_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(1)) {
-        // RSI: This shouldn't call arg(&scope_env, 0), this should pull the number straight
-        // out of the protobuf.
-        scope_env_t empty_scope_env(env->env, var_scope_t());
-        sym_t var = sym_t(arg(&empty_scope_env, 0)->as_int());
+        : term_t(term) {
+        rcheck(term->args_size() == 1, base_exc_t::GENERIC,
+               "A variable term has the wrong number of arguments.");
+
+        const Term &arg0 = term->args(0);
+        rcheck(arg0.type() == Term::DATUM, base_exc_t::GENERIC,
+               "A variable term has a non-numeric argument.");
+        rcheck(arg0.has_datum(), base_exc_t::GENERIC,
+               "A datum term (in a variable term) is missing its datum field.");
+
+        const Datum &datum = arg0.datum();
+        rcheck(datum.type() == Datum::R_NUM, base_exc_t::GENERIC,
+               "A variable term has a non-numeric variable name argument.");
+        rcheck(datum.has_r_num(), base_exc_t::GENERIC,
+               "A variable term's datum term is missing its r_num field.");
+
+        const double number = datum.r_num();
+        const int64_t var_value = checked_convert_to_int(this, number);
+
+        sym_t var(var_value);
         rcheck(env->visibility.contains_var(var), base_exc_t::GENERIC,
                "Variable name not found.");
+
         varname = var;
     }
+
+    bool is_deterministic_impl() const {
+        return true;
+    }
+
 private:
     sym_t varname;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {

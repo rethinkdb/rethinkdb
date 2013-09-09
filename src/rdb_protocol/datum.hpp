@@ -212,6 +212,9 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
+// Converts a double to int, but throws if it's out of range.
+int64_t checked_convert_to_int(const rcheckable_t *target, double d);
+
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
 // basically a `scoped_ptr_t` that can access private methods on `datum_t` and
 // checks for pseudotype validity when you turn it into a `counted_t<const
