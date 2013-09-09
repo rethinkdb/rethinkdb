@@ -4,16 +4,16 @@ tests:
   - cd: r.db('test').table_create('sindex_api')
     def: tbl = r.table('sindex_api')
 
-  - def: rows = [{'id':0, 'a':0, 'b':0, 'c':0, 't':[1,2,3]},
-                 {'id':1, 'a':0, 'b':0, 'c':0, 't':[4,5,6]},
-                 {'id':2, 'a':0, 'b':0, 'c':1, 't':[7,8,9]},
-                 {'id':3, 'a':0, 'b':1, 'c':1, 't':[10,11,12]},
-                 {'id':4, 'a':4, 'b':4, 'c':4, 't':[14,15,16]}]
+  - def: rows = [{'id':0, 'a':0, 'b':0, 'c':0, 'm':[1,2,3]},
+                 {'id':1, 'a':0, 'b':0, 'c':0, 'm':[4,5,6]},
+                 {'id':2, 'a':0, 'b':0, 'c':1, 'm':[7,8,9]},
+                 {'id':3, 'a':0, 'b':1, 'c':1, 'm':[10,11,12]},
+                 {'id':4, 'a':4, 'b':4, 'c':4, 'm':[14,15,16]}]
 
-  - cd: tbl.insert([{'id':0, 'a':0, 'b':0, 'c':0, 't':[1,2,3]},
-                    {'id':1, 'a':0, 'b':0, 'c':0, 't':[4,5,6]},
-                    {'id':2, 'a':0, 'b':0, 'c':1, 't':[7,8,9]},
-                    {'id':3, 'a':0, 'b':1, 'c':1, 't':[10,11,12]}])
+  - cd: tbl.insert([{'id':0, 'a':0, 'b':0, 'c':0, 'm':[1,2,3]},
+                    {'id':1, 'a':0, 'b':0, 'c':0, 'm':[4,5,6]},
+                    {'id':2, 'a':0, 'b':0, 'c':1, 'm':[7,8,9]},
+                    {'id':3, 'a':0, 'b':1, 'c':1, 'm':[10,11,12]}])
     ot: ({'deleted':0,'inserted':4,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
 
   - rb: tbl.index_create('ai') {|row| row[:a]}
@@ -35,6 +35,10 @@ tests:
   - rb: tbl.index_create('idi') {|row| row[:id]}
     py: tbl.index_create('idi', r.row['id'])
     js: tbl.indexCreate('idi', r.row('id'))
+    ot: ({'created':1})
+  - rb: tbl.index_create('mi', :multi => True) {|row| row[:m]}
+    py: tbl.index_create('mi', r.row['m'], multi=True)
+    js: tbl.indexCreate('mi', r.row('m'), {"multi":true})
     ot: ({'created':1})
   - rb: tbl.index_create('brokeni') {|row| row[:broken]}
     py: tbl.index_create('brokeni', r.row['broken'])
@@ -294,8 +298,8 @@ tests:
       rb: 'err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got nu""ll of type NULL).", [])'
       js: 'err("RqlRuntimeError", "Secondary keys must be a number, string, bool, or array (got null of type NULL).", [])'
 
-  - rb: tbl.insert({:id => 4, :a => 4, :b => 4, :c => 4, :t => [14,15,16]})
-    cd: tbl.insert({'id':4, 'a':4, 'b':4, 'c':4, 't':[14,15,16]})
+  - rb: tbl.insert({:id => 4, :a => 4, :b => 4, :c => 4, :m => [14,15,16]})
+    cd: tbl.insert({'id':4, 'a':4, 'b':4, 'c':4, 'm':[14,15,16]})
     ot: ({'deleted':0,'inserted':1,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
 
   - def:
