@@ -54,8 +54,6 @@ public:
     counted_t<func_t> compile(env_t *env) const;
     protob_t<const Backtrace> get_bt() const;
 
-    std::string debug_str() const;
-
     RDB_DECLARE_ME_SERIALIZABLE;
 
 private:

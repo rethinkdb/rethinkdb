@@ -379,10 +379,6 @@ counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> ob
     return func_term->eval_to_func(&empty_scope_env);
 }
 
-void debug_print(printf_buffer_t *buf, const wire_func_t &func) {
-    debug_print(buf, func.debug_str());
-}
-
 counted_t<val_t> js_result_visitor_t::operator()(const std::string &err_val) const {
     rfail_target(parent, base_exc_t::GENERIC, "%s", err_val.c_str());
     unreachable();

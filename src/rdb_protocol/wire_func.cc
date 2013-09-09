@@ -78,16 +78,8 @@ struct wire_func_get_backtrace_visitor_t : public boost::static_visitor<protob_t
     }
 };
 
-// RSI: Rename this function.  And who uses it?
 protob_t<const Backtrace> wire_func_t::get_bt() const {
     return boost::apply_visitor(wire_func_get_backtrace_visitor_t(), func);
-}
-
-std::string wire_func_t::debug_str() const {
-    // RSI: Give this a reasonable implementation or remove it.
-    // Previously implemented as
-    //     return source->DebugString();
-    return "wire_func_t";
 }
 
 write_message_t &operator<<(write_message_t &msg, const wire_reql_func_t &func) {  // NOLINT(runtime/references)
