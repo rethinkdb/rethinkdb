@@ -67,10 +67,6 @@ public:
 protected:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
     directory_metadata(env_t *env) const {
-        // RSI: Previously, figuring out where we could nest meta operations happened at compile time.
-        //
-        // We could accomplish that somehow by saying they're not "visible".  This
-        // here is really only going to be NULL in a secondary index function.
         rcheck(env->cluster_env.directory_read_manager != NULL,
                base_exc_t::GENERIC,
                "Cannot nest meta operations inside queries.");
