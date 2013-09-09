@@ -74,7 +74,6 @@ private:
     friend class wire_func_construction_visitor_t;
     bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
 
-    // RSI: Capture just the part of the scope this function uses, not the _whole_ scope.
     var_scope_t captured_scope;
 
     std::vector<sym_t> arg_names;
