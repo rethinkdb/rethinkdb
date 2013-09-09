@@ -74,9 +74,13 @@ private:
     friend class wire_func_construction_visitor_t;
     bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
 
+    // Only contains the parts of the scope that `body` uses.
     var_scope_t captured_scope;
 
+    // The argument names, for the corresponding positional argument number.
     std::vector<sym_t> arg_names;
+
+    // The body of the function, which gets ->eval(...) called when call(...) is called.
     counted_t<term_t> body;
 
     DISABLE_COPYING(reql_func_t);
