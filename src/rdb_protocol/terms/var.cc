@@ -53,8 +53,8 @@ private:
 
 class implicit_var_term_t : public term_t {
 public:
-    implicit_var_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
-        term_t(term) {
+    implicit_var_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+        : term_t(term) {
         rcheck(term->args_size() == 0 && term->optargs_size() == 0, base_exc_t::GENERIC,
                "Expected no arguments or optional arguments on implicit variable term.");
 
