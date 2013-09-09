@@ -158,13 +158,13 @@ gmr_wire_func_t::gmr_wire_func_t(counted_t<func_t> _group,
                                  counted_t<func_t> _reduce)
     : group(_group), map(_map), reduce(_reduce) { }
 
-counted_t<func_t> gmr_wire_func_t::compile_group(env_t *env) {
+counted_t<func_t> gmr_wire_func_t::compile_group(env_t *env) const {
     return group.compile(env);
 }
-counted_t<func_t> gmr_wire_func_t::compile_map(env_t *env) {
+counted_t<func_t> gmr_wire_func_t::compile_map(env_t *env) const {
     return map.compile(env);
 }
-counted_t<func_t> gmr_wire_func_t::compile_reduce(env_t *env) {
+counted_t<func_t> gmr_wire_func_t::compile_reduce(env_t *env) const {
     return reduce.compile(env);
 }
 

@@ -96,21 +96,21 @@ public:
     gmr_wire_func_t(counted_t<func_t> _group,
                     counted_t<func_t> _map,
                     counted_t<func_t> _reduce);
-    counted_t<func_t> compile_group(env_t *env);
-    counted_t<func_t> compile_map(env_t *env);
-    counted_t<func_t> compile_reduce(env_t *env);
+    counted_t<func_t> compile_group(env_t *env) const;
+    counted_t<func_t> compile_map(env_t *env) const;
+    counted_t<func_t> compile_reduce(env_t *env) const;
 
     protob_t<const Backtrace> get_bt() const {
         // If this goes wrong at the toplevel, it goes wrong in reduce.
         return reduce.get_bt();
     }
 
+    RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
+
 private:
     map_wire_func_t group;
     map_wire_func_t map;
     reduce_wire_func_t reduce;
-public:
-    RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
 };
 
 }  // namespace ql
