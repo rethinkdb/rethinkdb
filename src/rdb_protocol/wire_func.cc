@@ -48,8 +48,6 @@ wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names
 }
 
 
-// RSI: Go through all code everywhere and look for non-temporary "env;" variables pointing to some env.
-
 struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func_t> > {
     explicit wire_func_compile_visitor_t(env_t *_env) : env(_env) { }
     env_t *env;
