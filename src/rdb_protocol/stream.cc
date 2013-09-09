@@ -11,17 +11,11 @@
 
 namespace query_language {
 
-boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace) {
-    rdb_protocol_details::transform_t transform;
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, backtrace));
-    return boost::make_shared<transform_stream_t>(shared_from_this(), ql_env, transform);
-}
-
 hinted_datum_t json_stream_t::sorting_hint_next() {
     return hinted_datum_t(CONTINUE, next());
 }
 
-rdb_protocol_t::rget_read_response_t::result_t json_stream_t::apply_terminal(
+rdb_protocol_t::rget_read_response_t::result_t transform_stream_t::apply_terminal(
     const rdb_protocol_details::terminal_variant_t &_t,
     ql::env_t *ql_env,
     const backtrace_t &backtrace) {

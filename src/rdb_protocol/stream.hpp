@@ -50,11 +50,12 @@ public:
 
     virtual hinted_datum_t sorting_hint_next();
 
-    virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace);
+    virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace) = 0;
+
     virtual rdb_protocol_t::rget_read_response_t::result_t
     apply_terminal(const rdb_protocol_details::terminal_variant_t &,
                    ql::env_t *ql_env,
-                   const backtrace_t &backtrace);
+                   const backtrace_t &backtrace) = 0;
 
     virtual ~json_stream_t() { }
 
@@ -70,6 +71,12 @@ public:
 
     counted_t<const ql::datum_t> next();
     boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace);
+
+    rdb_protocol_t::rget_read_response_t::result_t
+    apply_terminal(const rdb_protocol_details::terminal_variant_t &,
+                   ql::env_t *ql_env,
+                   const backtrace_t &backtrace);
+
 
 private:
     boost::shared_ptr<json_stream_t> stream;
