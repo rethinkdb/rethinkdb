@@ -32,7 +32,6 @@ struct wire_reql_func_t {
 
 RDB_DECLARE_SERIALIZABLE(wire_reql_func_t);
 
-// RSI: We shouldn't actually be sending js funcs over the wire, right?
 struct wire_js_func_t {
     std::string js_source;
     uint64_t js_timeout_ms;
