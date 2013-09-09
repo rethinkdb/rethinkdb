@@ -82,16 +82,16 @@ private:
                     continue;
                 }
                 if (!lval.has()) {
-                    return true ^ (it->first == DESC);
+                    return true != (it->first == DESC);
                 }
                 if (!rval.has()) {
-                    return false ^ (it->first == DESC);
+                    return false != (it->first == DESC);
                 }
                 // TODO: use datum_t::cmp instead to be faster
                 if (*lval == *rval) {
                     continue;
                 }
-                return (*lval < *rval) ^ (it->first == DESC);
+                return (*lval < *rval) != (it->first == DESC);
             }
 
             return false;
