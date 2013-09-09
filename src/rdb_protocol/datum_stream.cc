@@ -105,17 +105,14 @@ counted_t<const datum_t> eager_datum_stream_t::gmr(env_t *env,
     return wd_map.to_arr();
 }
 
-counted_t<datum_stream_t> eager_datum_stream_t::filter(UNUSED env_t *env,
-                                                       counted_t<func_t> f,
+counted_t<datum_stream_t> eager_datum_stream_t::filter(counted_t<func_t> f,
                                                        counted_t<func_t> default_filter_val) {
     return make_counted<filter_datum_stream_t>(f, default_filter_val, this->counted_from_this());
 }
-counted_t<datum_stream_t> eager_datum_stream_t::map(UNUSED env_t *env,
-                                                    counted_t<func_t> f) {
+counted_t<datum_stream_t> eager_datum_stream_t::map(counted_t<func_t> f) {
     return make_counted<map_datum_stream_t>(f, this->counted_from_this());
 }
-counted_t<datum_stream_t> eager_datum_stream_t::concatmap(UNUSED env_t *env,
-                                                          counted_t<func_t> f) {
+counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
     return make_counted<concatmap_datum_stream_t>(f, this->counted_from_this());
 }
 
@@ -180,24 +177,23 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
     : datum_stream_t(src->backtrace()), json_stream(src->json_stream) { }
 
-counted_t<datum_stream_t> lazy_datum_stream_t::map(env_t *env, counted_t<func_t> f) {
+counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(map_wire_func_t(f)),
-        env, query_language::backtrace_t());
+        query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
 
-counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(env_t *env, counted_t<func_t> f) {
+counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(f)),
-        env, query_language::backtrace_t());
+        query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
 counted_t<datum_stream_t>
-lazy_datum_stream_t::filter(env_t *env,
-                            counted_t<func_t> f,
+lazy_datum_stream_t::filter(counted_t<func_t> f,
                             counted_t<func_t> default_filter_val) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
@@ -206,7 +202,7 @@ lazy_datum_stream_t::filter(env_t *env,
             default_filter_val.has() ?
                 boost::make_optional(wire_func_t(default_filter_val)) :
                 boost::none)),
-        env, query_language::backtrace_t());
+        query_language::backtrace_t());
     return counted_t<datum_stream_t>(out.release());
 }
 
@@ -428,25 +424,22 @@ counted_t<const datum_t> zip_datum_stream_t::next_impl(env_t *env) {
 }
 
 // UNION_DATUM_STREAM_T
-counted_t<datum_stream_t> union_datum_stream_t::filter(env_t *env,
-                                                       counted_t<func_t> f,
+counted_t<datum_stream_t> union_datum_stream_t::filter(counted_t<func_t> f,
                                                        counted_t<func_t> default_filter_val) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->filter(env, f, default_filter_val);
+        *it = (*it)->filter(f, default_filter_val);
     }
     return counted_t<datum_stream_t>(this);
 }
-counted_t<datum_stream_t> union_datum_stream_t::map(env_t *env,
-                                                    counted_t<func_t> f) {
+counted_t<datum_stream_t> union_datum_stream_t::map(counted_t<func_t> f) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->map(env, f);
+        *it = (*it)->map(f);
     }
     return counted_t<datum_stream_t>(this);
 }
-counted_t<datum_stream_t> union_datum_stream_t::concatmap(env_t *env,
-                                                          counted_t<func_t> f) {
+counted_t<datum_stream_t> union_datum_stream_t::concatmap(counted_t<func_t> f) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
-        *it = (*it)->concatmap(env, f);
+        *it = (*it)->concatmap(f);
     }
     return counted_t<datum_stream_t>(this);
 }

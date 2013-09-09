@@ -208,7 +208,7 @@ counted_t<const ql::datum_t> batched_rget_stream_t::next(ql::env_t *env) {
     return sorting_hint_next(env).second;
 }
 
-boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *env, const backtrace_t &per_op_backtrace) {
+boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, const backtrace_t &per_op_backtrace) {
     guarantee(!started);
     transform.push_back(rdb_protocol_details::transform_atom_t(t, per_op_backtrace));
     return shared_from_this();

@@ -31,12 +31,10 @@ public:
     virtual ~datum_stream_t() { }
 
     // stream -> stream
-    virtual counted_t<datum_stream_t> filter(env_t *env,
-                                             counted_t<func_t> f,
+    virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val) = 0;
-    virtual counted_t<datum_stream_t> map(env_t *env, counted_t<func_t> f) = 0;
-    virtual counted_t<datum_stream_t> concatmap(env_t *env,
-                                                counted_t<func_t> f) = 0;
+    virtual counted_t<datum_stream_t> map(counted_t<func_t> f) = 0;
+    virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f) = 0;
 
     // stream -> atom
     virtual counted_t<const datum_t> count(env_t *env) = 0;
@@ -113,13 +111,10 @@ public:
     explicit eager_datum_stream_t(const protob_t<const Backtrace> &bt_src)
         : datum_stream_t(bt_src) { }
 
-    virtual counted_t<datum_stream_t> filter(env_t *env,
-                                             counted_t<func_t> f,
+    virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val);
-    virtual counted_t<datum_stream_t> map(env_t *env,
-                                          counted_t<func_t> f);
-    virtual counted_t<datum_stream_t> concatmap(env_t *env,
-                                                counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count(env_t *env);
     virtual counted_t<const datum_t> reduce(env_t *env,
@@ -216,13 +211,10 @@ public:
                         counted_t<const datum_t> right_bound, bool right_bound_open,
                         const std::string &sindex_id, sorting_t sorting,
                         const protob_t<const Backtrace> &bt_src);
-    virtual counted_t<datum_stream_t> filter(env_t *env,
-                                             counted_t<func_t> f,
+    virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val);
-    virtual counted_t<datum_stream_t> map(env_t *env,
-                                          counted_t<func_t> f);
-    virtual counted_t<datum_stream_t> concatmap(env_t *env,
-                                                counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     virtual counted_t<const datum_t> count(env_t *env);
     virtual counted_t<const datum_t> reduce(env_t *env,
@@ -377,13 +369,10 @@ public:
         : datum_stream_t(bt_src), streams(_streams), streams_index(0) { }
 
     // stream -> stream
-    virtual counted_t<datum_stream_t> filter(env_t *env,
-                                             counted_t<func_t> f,
+    virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val);
-    virtual counted_t<datum_stream_t> map(env_t *env,
-                                          counted_t<func_t> f);
-    virtual counted_t<datum_stream_t> concatmap(env_t *env,
-                                                counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
+    virtual counted_t<datum_stream_t> concatmap(counted_t<func_t> f);
 
     // stream -> atom
     virtual counted_t<const datum_t> count(env_t *env);
