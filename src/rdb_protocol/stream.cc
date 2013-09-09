@@ -11,10 +11,6 @@
 
 namespace query_language {
 
-hinted_datum_t json_stream_t::sorting_hint_next() {
-    return hinted_datum_t(CONTINUE, next());
-}
-
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
     signal_t *_interruptor,

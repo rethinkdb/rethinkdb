@@ -46,9 +46,8 @@ class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
 public:
     json_stream_t() { }
     // Returns a null value when end of stream is reached.
-    virtual counted_t<const ql::datum_t> next() = 0;  // MAY THROW
-
-    virtual hinted_datum_t sorting_hint_next();
+    virtual counted_t<const ql::datum_t> next() = 0;
+    virtual hinted_datum_t sorting_hint_next() = 0;
 
     virtual MUST_USE boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &, ql::env_t *ql_env, const backtrace_t &backtrace) = 0;
 
