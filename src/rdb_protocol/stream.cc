@@ -15,66 +15,6 @@ hinted_datum_t json_stream_t::sorting_hint_next() {
     return hinted_datum_t(CONTINUE, next());
 }
 
-rdb_protocol_t::rget_read_response_t::result_t transform_stream_t::apply_terminal(
-    const rdb_protocol_details::terminal_variant_t &_t,
-    ql::env_t *ql_env,
-    const backtrace_t &backtrace) {
-    rdb_protocol_details::terminal_variant_t t = _t;
-    rdb_protocol_t::rget_read_response_t::result_t res;
-
-    terminal_initialize(ql_env, backtrace, &t, &res);
-
-    counted_t<const ql::datum_t> json;
-    while ((json = next())) {
-        terminal_apply(ql_env, backtrace, lazy_json_t(json), &t, &res);
-    }
-    return res;
-}
-
-transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
-                                       ql::env_t *_ql_env,
-                                       const rdb_protocol_details::transform_t &tr) :
-    stream(_stream),
-    ql_env(_ql_env),
-    transform(tr) { }
-
-counted_t<const ql::datum_t> transform_stream_t::next() {
-    while (data.empty()) {
-        counted_t<const ql::datum_t> input = stream->next();
-        if (!input) {
-            // End of stream reached.
-            return counted_t<const ql::datum_t>();
-        }
-
-        std::list<counted_t<const ql::datum_t> > accumulator;
-        accumulator.push_back(input);
-
-        // Apply transforms to the data
-        typedef rdb_protocol_details::transform_t::iterator tit_t;
-        for (tit_t it  = transform.begin();
-                   it != transform.end();
-                   ++it) {
-            std::list<counted_t<const ql::datum_t> > tmp;
-            for (auto jt = accumulator.begin(); jt != accumulator.end(); ++jt) {
-                transform_apply(ql_env, it->backtrace, *jt, &it->variant, &tmp);
-            }
-
-            accumulator = std::move(tmp);
-        }
-
-        data = std::move(accumulator);
-    }
-
-    counted_t<const ql::datum_t> datum = data.front();
-    data.pop_front();
-    return datum;
-}
-
-boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &backtrace) {
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, backtrace));
-    return shared_from_this();
-}
-
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
     signal_t *_interruptor,
