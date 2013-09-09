@@ -1,3 +1,25 @@
+# Release 1.9.0 (Kagemusha)
+
+Released on 2013-09-09
+
+Bug fix update.
+
+* Server
+  * Fixed a potential crash caused by a coroutine switch in exception handlers (#153)
+  * No longer duplicate documents in the secondary indexes (#752)
+  * Removed unnecessary conversions between `datum_t` and `cJSON` (#1041)
+  * No longer load documents from disk for count queries (#1295)
+  * Changed extproc code to use `datum_t` instead of `cJSON_t` (#1326)
+* ReQL
+  * Use `Buffer` instead of `ArrayBuffer` in the JavaScript driver (#1244)
+  * `orderBy` on an index no longer destroys the preceding `between` (#1333)
+  * Fixed error in the python driver caused by multiple threads using lambdas (#1377)
+  * Fixed Unicode handling in the Python driver (#1378)
+* Web UI
+  * No longer truncate server names (#1313)
+* CLI
+  * `rethinkdb import` now works with Python 2.6 (#1349)
+
 # Release 1.8.1 (High Noon)
 
 Released on 2013-08-21
