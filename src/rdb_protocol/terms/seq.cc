@@ -118,16 +118,10 @@ private:
         }
 
         counted_t<val_t> sindex = optarg("index");
-        if (sindex.has()) {
-            std::string sid = sindex->as_str();
-            if (sid != tbl->get_pkey()) {
-                return new_val(tbl->get_sindex_rows(lb, left_open(), rb, right_open(),
-                                                    sid, backtrace()), tbl);
-            }
-        }
+        std::string sid = (sindex.has() ? sindex->as_str() : tbl->get_pkey());
 
-        return new_val(tbl->get_rows(lb, left_open(), rb, right_open(), backtrace()),
-                       tbl);
+        tbl->add_bounds(lb, left_open(), rb, right_open(), sid, this);
+        return new_val(tbl);
     }
     virtual const char *name() const { return "between"; }
 
