@@ -15,7 +15,7 @@
 
 namespace ql {
 
-counted_t<term_t> compile_term(visibility_env_t *env, protob_t<const Term> t) {
+counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     switch (t->type()) {
     case Term::DATUM:              return make_datum_term(t);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
@@ -214,8 +214,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            visibility_env_t visibility_env(env, var_visibility_t());
-            root_term = compile_term(&visibility_env, q.make_child(t));
+            compile_env_t compile_env(&env->symgen, var_visibility_t());
+            root_term = compile_term(&compile_env, q.make_child(t));
             // TODO: handle this properly
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());

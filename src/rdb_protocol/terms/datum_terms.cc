@@ -26,7 +26,7 @@ private:
 
 class constant_term_t : public op_term_t {
 public:
-    constant_term_t(visibility_env_t *env, protob_t<const Term> t,
+    constant_term_t(compile_env_t *env, protob_t<const Term> t,
                     double constant, const char *name)
         : op_term_t(env, t, argspec_t(0)), _constant(constant), _name(name) { }
 private:
@@ -40,7 +40,7 @@ private:
 
 class make_array_term_t : public op_term_t {
 public:
-    make_array_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    make_array_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -55,7 +55,7 @@ private:
 
 class make_obj_term_t : public op_term_t {
 public:
-    make_obj_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    make_obj_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0), optargspec_t::make_object()) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
@@ -75,14 +75,14 @@ private:
 counted_t<term_t> make_datum_term(const protob_t<const Term> &term) {
     return make_counted<datum_term_t>(term);
 }
-counted_t<term_t> make_constant_term(visibility_env_t *env, const protob_t<const Term> &term,
+counted_t<term_t> make_constant_term(compile_env_t *env, const protob_t<const Term> &term,
                                      double constant, const char *name) {
     return make_counted<constant_term_t>(env, term, constant, name);
 }
-counted_t<term_t> make_make_array_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_make_array_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_array_term_t>(env, term);
 }
-counted_t<term_t> make_make_obj_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_make_obj_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<make_obj_term_t>(env, term);
 }
 

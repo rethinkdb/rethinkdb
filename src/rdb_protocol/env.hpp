@@ -24,7 +24,7 @@ class extproc_pool_t;
 namespace ql {
 class datum_t;
 class term_t;
-class visibility_env_t;
+class compile_env_t;
 
 class global_optargs_t {
 public:
@@ -151,11 +151,11 @@ private:
     DISABLE_COPYING(env_t);
 };
 
-class visibility_env_t {
+class compile_env_t {
 public:
-    visibility_env_t(env_t *_env, var_visibility_t &&_visibility)
-        : env(_env), visibility(std::move(_visibility)) { }
-    env_t *env;
+    compile_env_t(gensym_t *_symgen, var_visibility_t &&_visibility)
+        : symgen(_symgen), visibility(std::move(_visibility)) { }
+    gensym_t *symgen;
     var_visibility_t visibility;
 };
 

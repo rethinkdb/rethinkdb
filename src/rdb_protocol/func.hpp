@@ -163,7 +163,7 @@ private:
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
-    func_term_t(visibility_env_t *env, const protob_t<const Term> &term);
+    func_term_t(compile_env_t *env, const protob_t<const Term> &term);
 
     counted_t<func_t> eval_to_func(scope_env_t *env);
 

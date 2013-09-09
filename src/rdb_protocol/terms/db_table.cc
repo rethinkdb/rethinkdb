@@ -31,7 +31,7 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
 // including the thread switching.
 class meta_op_t : public op_term_t {
 public:
-    meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec,
+    meta_op_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
               optargspec_t optargspec = optargspec_t({}))
         : op_term_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
 
@@ -60,7 +60,7 @@ struct rethreading_metadata_accessor_t : public on_thread_t {
 
 class meta_write_op_t : public meta_op_t {
 public:
-    meta_write_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec,
+    meta_write_op_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
                     optargspec_t optargspec = optargspec_t({}))
         : meta_op_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
 
@@ -87,7 +87,7 @@ private:
 
 class db_term_t : public meta_op_t {
 public:
-    db_term_t(visibility_env_t *env, const protob_t<const Term> &term) : meta_op_t(env, term, argspec_t(1)) { }
+    db_term_t(compile_env_t *env, const protob_t<const Term> &term) : meta_op_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(env, 0), this);
@@ -105,7 +105,7 @@ private:
 
 class db_create_term_t : public meta_write_op_t {
 public:
-    db_create_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    db_create_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -152,7 +152,7 @@ bool is_hard(durability_requirement_t requirement) {
 
 class table_create_term_t : public meta_write_op_t {
 public:
-    table_create_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    table_create_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1, 2),
                         optargspec_t({"datacenter", "primary_key",
                                     "cache_size", "durability"})) { }
@@ -250,7 +250,7 @@ private:
 
 class db_drop_term_t : public meta_write_op_t {
 public:
-    db_drop_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    db_drop_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -295,7 +295,7 @@ private:
 
 class table_drop_term_t : public meta_write_op_t {
 public:
-    table_drop_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    table_drop_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_write_op_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -339,7 +339,7 @@ private:
 
 class db_list_term_t : public meta_op_t {
 public:
-    db_list_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    db_list_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_t(env, term, argspec_t(0)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -368,7 +368,7 @@ private:
 
 class table_list_term_t : public meta_op_t {
 public:
-    table_list_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    table_list_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         meta_op_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -405,7 +405,7 @@ private:
 
 class table_term_t : public op_term_t {
 public:
-    table_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    table_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, 2), optargspec_t({ "use_outdated" })) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -431,7 +431,7 @@ private:
 
 class get_term_t : public op_term_t {
 public:
-    get_term_t(visibility_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
+    get_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
@@ -444,7 +444,7 @@ private:
 
 class get_all_term_t : public op_term_t {
 public:
-    get_all_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    get_all_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, -1), optargspec_t({ "index" })) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -478,43 +478,43 @@ private:
     virtual const char *name() const { return "get_all"; }
 };
 
-counted_t<term_t> make_db_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_db_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<db_term_t>(env, term);
 }
 
-counted_t<term_t> make_table_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_table_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_term_t>(env, term);
 }
 
-counted_t<term_t> make_get_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_term_t>(env, term);
 }
 
-counted_t<term_t> make_get_all_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_all_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_all_term_t>(env, term);
 }
 
-counted_t<term_t> make_db_create_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_db_create_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<db_create_term_t>(env, term);
 }
 
-counted_t<term_t> make_db_drop_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_db_drop_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<db_drop_term_t>(env, term);
 }
 
-counted_t<term_t> make_db_list_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_db_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<db_list_term_t>(env, term);
 }
 
-counted_t<term_t> make_table_create_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_table_create_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_create_term_t>(env, term);
 }
 
-counted_t<term_t> make_table_drop_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_table_drop_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_drop_term_t>(env, term);
 }
 
-counted_t<term_t> make_table_list_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_list_term_t>(env, term);
 }
 

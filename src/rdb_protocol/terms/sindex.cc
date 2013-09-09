@@ -17,7 +17,7 @@ namespace ql {
 // `op_term_t`.
 class sindex_create_term_t : public op_term_t {
 public:
-    sindex_create_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2, 3)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -39,8 +39,8 @@ public:
                 N2(GET_FIELD, NVAR(x), NDATUM(name_datum));
             }
             prop_bt(func_term.get());
-            visibility_env_t empty_visibility_env(env->env, var_visibility_t());
-            counted_t<func_term_t> func_term_term = make_counted<func_term_t>(&empty_visibility_env,
+            compile_env_t empty_compile_env(&env->env->symgen, var_visibility_t());
+            counted_t<func_term_t> func_term_term = make_counted<func_term_t>(&empty_compile_env,
                                                                               func_term);
 
             index_func = func_term_term->eval_to_func(env);
@@ -62,7 +62,7 @@ public:
 
 class sindex_drop_term_t : public op_term_t {
 public:
-    sindex_drop_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    sindex_drop_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -83,7 +83,7 @@ public:
 
 class sindex_list_term_t : public op_term_t {
 public:
-    sindex_list_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    sindex_list_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -95,13 +95,13 @@ public:
     virtual const char *name() const { return "sindex_list"; }
 };
 
-counted_t<term_t> make_sindex_create_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_create_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_create_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_drop_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_drop_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_drop_term_t>(env, term);
 }
-counted_t<term_t> make_sindex_list_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sindex_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_list_term_t>(env, term);
 }
 

@@ -9,7 +9,7 @@ namespace ql {
 
 class error_term_t : public op_term_t {
 public:
-    error_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    error_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -25,7 +25,7 @@ private:
 
 class default_term_t : public op_term_t {
 public:
-    default_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    default_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -83,10 +83,10 @@ private:
     virtual const char *name() const { return "error"; }
 };
 
-counted_t<term_t> make_error_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_error_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<error_term_t>(env, term);
 }
-counted_t<term_t> make_default_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_default_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<default_term_t>(env, term);
 }
 

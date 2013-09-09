@@ -125,7 +125,7 @@ void js_func_t::visit(func_visitor_t *visitor) const {
     visitor->on_js_func(this);
 }
 
-func_term_t::func_term_t(visibility_env_t *env, const protob_t<const Term> &t)
+func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
     : term_t(t) {
     r_sanity_check(t.has());
     r_sanity_check(t->type() == Term_TermType_FUNC);
@@ -172,7 +172,7 @@ func_term_t::func_term_t(visibility_env_t *env, const protob_t<const Term> &t)
 
     var_visibility_t varname_visibility = env->visibility.with_func_arg_name_list(args);
 
-    visibility_env_t body_env(env->env, std::move(varname_visibility));
+    compile_env_t body_env(env->symgen, std::move(varname_visibility));
 
     protob_t<const Term> body_source = t.make_child(&t->args(1));
     counted_t<term_t> compiled_body = compile_term(&body_env, body_source);
@@ -324,8 +324,8 @@ counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
     propagate_backtrace(twrap.get(), bt_src.get());
 
-    visibility_env_t empty_visibility_env(env, var_visibility_t());
-    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_visibility_env,
+    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
     scope_env_t empty_scope_env(env, var_scope_t());
     return func_term->eval_to_func(&empty_scope_env);
@@ -340,8 +340,8 @@ counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
     N2(GET_FIELD, NVAR(obj), NDATUM(key));
     propagate_backtrace(twrap.get(), bt_src.get());
 
-    visibility_env_t empty_visibility_env(env, var_visibility_t());
-    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_visibility_env,
+    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
     scope_env_t empty_scope_env(env, var_scope_t());
     return func_term->eval_to_func(&empty_scope_env);
@@ -356,8 +356,8 @@ counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
        N2(PLUCK, NVAR(var), NDATUM(obj)));
     propagate_backtrace(twrap.get(), bt_src.get());
 
-    visibility_env_t empty_visibility_env(env, var_visibility_t());
-    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_visibility_env,
+    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
     scope_env_t empty_scope_env(env, var_scope_t());
     return func_term->eval_to_func(&empty_scope_env);
@@ -372,8 +372,8 @@ counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> ob
        N2(EQ, NDATUM(obj), NVAR(var)));
     propagate_backtrace(twrap.get(), bt_src.get());
 
-    visibility_env_t empty_visibility_env(env, var_visibility_t());
-    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_visibility_env,
+    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
     scope_env_t empty_scope_env(env, var_scope_t());
     return func_term->eval_to_func(&empty_scope_env);

@@ -17,7 +17,7 @@ class scope_env_t;
 class table_t;
 class val_t;
 class var_captures_t;
-class visibility_env_t;
+class compile_env_t;
 
 enum eval_flags_t {
     NO_FLAGS = 0,
@@ -57,7 +57,7 @@ private:
     DISABLE_COPYING(term_t);
 };
 
-counted_t<term_t> compile_term(visibility_env_t *env, protob_t<const Term> t);
+counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t);
 
 } // namespace ql
 

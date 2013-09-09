@@ -15,7 +15,7 @@ namespace ql {
 
 class all_term_t : public op_term_t {
 public:
-    all_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    all_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -32,7 +32,7 @@ private:
 
 class any_term_t : public op_term_t {
 public:
-    any_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    any_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -49,7 +49,7 @@ private:
 
 class branch_term_t : public op_term_t {
 public:
-    branch_term_t(visibility_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(3)) { }
+    branch_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(3)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         bool b = arg(env, 0)->as_bool();
@@ -61,7 +61,7 @@ private:
 
 class funcall_term_t : public op_term_t {
 public:
-    funcall_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    funcall_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1),
           optargspec_t({"_SHORTCUT_", "_EVAL_FLAGS_"})) { }
 private:
@@ -99,16 +99,16 @@ private:
 };
 
 
-counted_t<term_t> make_all_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_all_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<all_term_t>(env, term);
 }
-counted_t<term_t> make_any_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_any_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<any_term_t>(env, term);
 }
-counted_t<term_t> make_branch_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_branch_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<branch_term_t>(env, term);
 }
-counted_t<term_t> make_funcall_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_funcall_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<funcall_term_t>(env, term);
 }
 

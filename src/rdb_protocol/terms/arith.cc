@@ -10,7 +10,7 @@ namespace ql {
 
 class arith_term_t : public op_term_t {
 public:
-    arith_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    arith_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1)), namestr(0), op(0) {
         int arithtype = term->type();
         switch (arithtype) {
@@ -114,7 +114,7 @@ private:
 
 class mod_term_t : public op_term_t {
 public:
-    mod_term_t(visibility_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
+    mod_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         int64_t i0 = arg(env, 0)->as_int();
@@ -129,11 +129,11 @@ private:
 };
 
 
-counted_t<term_t> make_arith_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_arith_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<arith_term_t>(env, term);
 }
 
-counted_t<term_t> make_mod_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_mod_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<mod_term_t>(env, term);
 }
 

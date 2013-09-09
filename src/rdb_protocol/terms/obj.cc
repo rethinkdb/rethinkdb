@@ -8,7 +8,7 @@ namespace ql {
 
 class keys_term_t : public op_term_t {
 public:
-    keys_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    keys_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -26,7 +26,7 @@ private:
     virtual const char *name() const { return "keys"; }
 };
 
-counted_t<term_t> make_keys_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<keys_term_t>(env, term);
 }
 

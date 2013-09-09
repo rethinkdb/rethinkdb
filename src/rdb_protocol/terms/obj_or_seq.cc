@@ -24,11 +24,11 @@ public:
         FILTER = 1,
         SKIP_MAP = 2
     };
-    obj_or_seq_op_term_t(visibility_env_t *env, protob_t<const Term> term,
+    obj_or_seq_op_term_t(compile_env_t *env, protob_t<const Term> term,
                          poly_type_t _poly_type, argspec_t argspec)
         : op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
           poly_type(_poly_type), func(make_counted_term()) {
-        const sym_t varnum = env->env->symgen.gensym();
+        const sym_t varnum = env->symgen->gensym();
         Term *arg = pb::set_func(func.get(), varnum);
         Term *body = NULL;
         switch (poly_type) {
@@ -87,8 +87,8 @@ private:
                        strprintf("Cannot perform %s on a sequence of sequences.", name()));
             }
 
-            visibility_env_t visibility_env(env->env, env->scope.compute_visibility());
-            counted_t<func_term_t> func_term = make_counted<func_term_t>(&visibility_env, func);
+            compile_env_t compile_env(&env->env->symgen, env->scope.compute_visibility());
+            counted_t<func_term_t> func_term = make_counted<func_term_t>(&compile_env, func);
 
             switch (poly_type) {
             case MAP:
@@ -115,7 +115,7 @@ private:
 
 class pluck_term_t : public obj_or_seq_op_term_t {
 public:
-    pluck_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    pluck_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
@@ -136,7 +136,7 @@ private:
 
 class without_term_t : public obj_or_seq_op_term_t {
 public:
-    without_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    without_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
@@ -157,7 +157,7 @@ private:
 
 class literal_term_t : public op_term_t {
 public:
-    literal_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    literal_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
@@ -181,7 +181,7 @@ private:
 
 class merge_term_t : public obj_or_seq_op_term_t {
 public:
-    merge_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
+    merge_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
@@ -196,7 +196,7 @@ private:
 
 class has_fields_term_t : public obj_or_seq_op_term_t {
 public:
-    has_fields_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    has_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
@@ -217,7 +217,7 @@ private:
 
 class get_field_term_t : public obj_or_seq_op_term_t {
 public:
-    get_field_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    get_field_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : obj_or_seq_op_term_t(env, term, SKIP_MAP, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
@@ -226,24 +226,24 @@ private:
     virtual const char *name() const { return "get_field"; }
 };
 
-counted_t<term_t> make_get_field_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<get_field_term_t>(env, term);
 }
 
-counted_t<term_t> make_has_fields_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_has_fields_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<has_fields_term_t>(env, term);
 }
 
-counted_t<term_t> make_pluck_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_pluck_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<pluck_term_t>(env, term);
 }
-counted_t<term_t> make_without_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_without_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<without_term_t>(env, term);
 }
-counted_t<term_t> make_literal_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_literal_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<literal_term_t>(env, term);
 }
-counted_t<term_t> make_merge_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_merge_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<merge_term_t>(env, term);
 }
 

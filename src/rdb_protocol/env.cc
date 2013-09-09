@@ -33,8 +33,8 @@ bool global_optargs_t::add_optarg(env_t *env, const std::string &key, const Term
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
 
-    visibility_env_t empty_visibility_env(env, var_visibility_t());
-    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_visibility_env, arg);
+    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env, arg);
     scope_env_t empty_scope_env(env, var_scope_t());
     counted_t<func_t> func = func_term->eval_to_func(&empty_scope_env);
 

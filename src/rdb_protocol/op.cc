@@ -54,7 +54,7 @@ optargspec_t optargspec_t::with(std::initializer_list<const char *> args) const 
     return ret;
 }
 
-op_term_t::op_term_t(visibility_env_t *env, protob_t<const Term> term,
+op_term_t::op_term_t(compile_env_t *env, protob_t<const Term> term,
                      argspec_t argspec, optargspec_t optargspec)
     : term_t(term) {
     for (int i = 0; i < term->args_size(); ++i) {
@@ -101,7 +101,7 @@ counted_t<val_t> op_term_t::optarg(scope_env_t *env, const std::string &key) {
     return env->env->global_optargs.get_optarg(env->env, key);
 }
 
-counted_t<func_term_t> op_term_t::lazy_literal_optarg(visibility_env_t *env, const std::string &key) {
+counted_t<func_term_t> op_term_t::lazy_literal_optarg(compile_env_t *env, const std::string &key) {
     std::map<std::string, counted_t<term_t> >::iterator it = optargs.find(key);
     if (it != optargs.end()) {
         protob_t<Term> func(make_counted_term());
@@ -137,7 +137,7 @@ bool op_term_t::is_deterministic_impl() const {
     return true;
 }
 
-bounded_op_term_t::bounded_op_term_t(visibility_env_t *env, protob_t<const Term> term,
+bounded_op_term_t::bounded_op_term_t(compile_env_t *env, protob_t<const Term> term,
                                      argspec_t argspec, optargspec_t optargspec)
     : op_term_t(env, term, argspec,
                 optargspec.with({"left_bound", "right_bound"})) { }

@@ -9,7 +9,7 @@ namespace ql {
 
 class sample_term_t : public op_term_t {
 public:
-    sample_term_t(visibility_env_t *env, const protob_t<const Term> &term)
+    sample_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
     counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -65,7 +65,7 @@ public:
     virtual const char *name() const { return "sample"; }
 };
 
-counted_t<term_t> make_sample_term(visibility_env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_sample_term(compile_env_t *env, const protob_t<const Term> &term) {
     return counted_t<sample_term_t>(new sample_term_t(env, term));
 }
 
