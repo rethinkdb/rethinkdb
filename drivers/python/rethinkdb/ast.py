@@ -815,7 +815,7 @@ class Table(RqlQuery):
 
     def index_create(self, name, fundef=(), multi=()):
         args = [self, name] + ([func_wrap(fundef)] if fundef else [])
-        kwargs = {"multi" : tags} if tags else {}
+        kwargs = {"multi" : multi} if multi else {}
         return IndexCreate(*args, **kwargs)
 
     def index_drop(self, name):
