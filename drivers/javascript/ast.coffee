@@ -216,7 +216,7 @@ class RDBVal extends TermBase
         if opts?
             new IndexCreate opts, @, name, funcWrap(defun_or_opts)
         else if defun_or_opts?
-            if (defun_or_opts instanceof Object) and not (defun_or_opts instanceof Function)
+            if (defun_or_opts instanceof Object) and not (defun_or_opts instanceof Function) and not (defun_or_opts instanceof TermBase)
                 new IndexCreate defun_or_opts, @, name
             else
                 new IndexCreate {}, @, name, funcWrap(defun_or_opts)
