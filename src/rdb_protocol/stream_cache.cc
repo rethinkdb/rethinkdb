@@ -33,10 +33,6 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         // the time we reach here, so we just reset it to a good one.
         entry->env->interruptor = interruptor;
 
-        // RSI: it seems clear (from the above hack) that we only really use the
-        // env's interruptor when traversing a stream, and nothing else (besides
-        // do_eval_callback).
-
         int chunk_size = 0;
         if (entry->next_datum.has()) {
             *res->add_response() = *entry->next_datum.get();

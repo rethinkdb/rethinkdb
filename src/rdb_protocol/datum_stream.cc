@@ -26,9 +26,6 @@ counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
     return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
 }
 
-// RSI: This argument could be stripped down to something smaller than an env_t (just
-// the do_eval_callback and interruptor), so that the stream cache doesn't have to do
-// its ugly thing.
 counted_t<const datum_t> datum_stream_t::next(env_t *env) {
     // This is a hook for unit tests to change things mid-query.
     DEBUG_ONLY_CODE(env->do_eval_callback());

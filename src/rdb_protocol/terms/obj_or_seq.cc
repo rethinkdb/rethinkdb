@@ -87,10 +87,6 @@ private:
                        strprintf("Cannot perform %s on a sequence of sequences.", name()));
             }
 
-            // RSI: This is a complete hack.  We lazily delay creation of this
-            // func_term_t because otherwise you'd have infinite recursion (or you'd
-            // try to, but you'll get a duplicate optarg error with _NO_RECURSE_).
-            // (This _does_ correspond to what the code did before the #1328 refactor.)
             visibility_env_t visibility_env(env->env, env->scope.compute_visibility());
             counted_t<func_term_t> func_term = make_counted<func_term_t>(&visibility_env, func);
 

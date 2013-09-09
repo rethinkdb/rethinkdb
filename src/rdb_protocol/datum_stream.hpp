@@ -20,9 +20,6 @@ typedef query_language::hinted_datum_t hinted_datum_t;
 
 class scope_env_t;
 
-// RSI: It's stupid for datum_stream_t to contain or use env_t at all -- we already
-// decided what datums to get, so why would an env_t play any role?  We use some
-// things inside of it: the interruptor, for exammple.
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
@@ -95,7 +92,6 @@ public:
      * of datum_stream_t always return CONTINUE this is because there data is
      * equivalent to data which has all compared equally and should all be
      * sorted together by sort_datum_stream_t. */
-    // RSI: sorting_hint_next implementations don't call env->do_eval_callback().  Should they?
     virtual hinted_datum_t sorting_hint_next(env_t *env);
 
 private:
