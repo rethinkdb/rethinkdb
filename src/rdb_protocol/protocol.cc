@@ -758,7 +758,7 @@ private:
                     } else {
                         if (lhs) {
                             counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile(&ql_env)->call(&ql_env, *lhs, *rhs)->as_datum();
+                                local_reduce_func.compile_wire_func(&ql_env)->call(&ql_env, *lhs, *rhs)->as_datum();
                             rg_response->result = reduced_val;
                         } else {
                             guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));

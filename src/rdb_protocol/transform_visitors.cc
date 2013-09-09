@@ -115,20 +115,20 @@ transform_visitor_t::transform_visitor_t(counted_t<const ql::datum_t> _arg,
 // are sometimes minor differences between the lazy and eager evaluations) and
 // it definitely isn't making it into 1.4.
 void transform_visitor_t::operator()(const ql::map_wire_func_t &func) const {
-    out->push_back(func.compile(ql_env)->call(ql_env, arg)->as_datum());
+    out->push_back(func.compile_wire_func(ql_env)->call(ql_env, arg)->as_datum());
 }
 
 void transform_visitor_t::operator()(const ql::concatmap_wire_func_t &func) const {
-    counted_t<ql::datum_stream_t> ds = func.compile(ql_env)->call(ql_env, arg)->as_seq(ql_env);
+    counted_t<ql::datum_stream_t> ds = func.compile_wire_func(ql_env)->call(ql_env, arg)->as_seq(ql_env);
     while (counted_t<const ql::datum_t> d = ds->next(ql_env)) {
         out->push_back(d);
     }
 }
 
 void transform_visitor_t::operator()(const filter_transform_t &transf) const {
-    counted_t<ql::func_t> f = transf.filter_func.compile(ql_env);
+    counted_t<ql::func_t> f = transf.filter_func.compile_wire_func(ql_env);
     counted_t<ql::func_t> default_filter_val = transf.default_filter_val ?
-        transf.default_filter_val->compile(ql_env) :
+        transf.default_filter_val->compile_wire_func(ql_env) :
         counted_t<ql::func_t>();
     if (f->filter_call(ql_env, arg, default_filter_val)) {
         out->push_back(arg);
@@ -141,7 +141,7 @@ void transform_visitor_t::operator()(const range_and_func_filter_transform_t &tr
         return;
     }
 
-    counted_t<ql::func_t> f = transf.mapping_func.compile(ql_env);
+    counted_t<ql::func_t> f = transf.mapping_func.compile_wire_func(ql_env);
     counted_t<const ql::datum_t> mapped_arg = f->call(ql_env, arg)->as_datum();
 
     if (transf.range_predicate.start.has()) {
@@ -229,7 +229,7 @@ void terminal_visitor_t::operator()(const ql::reduce_wire_func_t &func) const {
     counted_t<const ql::datum_t> *d = boost::get<counted_t<const ql::datum_t> >(out);
     counted_t<const ql::datum_t> rhs = json.get();
     if (d != NULL) {
-        *out = func.compile(ql_env)->call(ql_env, *d, rhs)->as_datum();
+        *out = func.compile_wire_func(ql_env)->call(ql_env, *d, rhs)->as_datum();
     } else {
         guarantee(boost::get<rget_read_response_t::empty_t>(out));
         *out = rhs;
@@ -268,7 +268,7 @@ public:
     }
 
     void operator()(const ql::reduce_wire_func_t &f) const {
-        counted_t<ql::func_t> reduce = f.compile(ql_env);
+        counted_t<ql::func_t> reduce = f.compile_wire_func(ql_env);
         guarantee(reduce.has());
         *out = rget_read_response_t::empty_t();
     }

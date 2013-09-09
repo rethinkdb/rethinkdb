@@ -50,7 +50,7 @@ public:
     wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names);
 
     // RSI: Audit callers of this, make sure nothing's relying on the cache (hint: some things are).
-    counted_t<func_t> compile(env_t *env) const;
+    counted_t<func_t> compile_wire_func(env_t *env) const;
     protob_t<const Backtrace> get_bt() const;
 
     RDB_DECLARE_ME_SERIALIZABLE;

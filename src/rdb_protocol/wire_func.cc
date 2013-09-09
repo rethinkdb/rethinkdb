@@ -67,7 +67,7 @@ struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func
     DISABLE_COPYING(wire_func_compile_visitor_t);
 };
 
-counted_t<func_t> wire_func_t::compile(env_t *env) const {
+counted_t<func_t> wire_func_t::compile_wire_func(env_t *env) const {
     return boost::apply_visitor(wire_func_compile_visitor_t(env), func);
 }
 
@@ -149,13 +149,13 @@ gmr_wire_func_t::gmr_wire_func_t(counted_t<func_t> _group,
     : group(_group), map(_map), reduce(_reduce) { }
 
 counted_t<func_t> gmr_wire_func_t::compile_group(env_t *env) const {
-    return group.compile(env);
+    return group.compile_wire_func(env);
 }
 counted_t<func_t> gmr_wire_func_t::compile_map(env_t *env) const {
-    return map.compile(env);
+    return map.compile_wire_func(env);
 }
 counted_t<func_t> gmr_wire_func_t::compile_reduce(env_t *env) const {
-    return reduce.compile(env);
+    return reduce.compile_wire_func(env);
 }
 
 
