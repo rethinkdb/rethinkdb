@@ -33,7 +33,7 @@ class meta_op_t : public op_term_t {
 public:
     meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec,
               optargspec_t optargspec = optargspec_t({}))
-        : op_term_t(env, term, argspec, optargspec) { }
+        : op_term_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
 
 private:
     virtual bool is_deterministic_impl() const { return false; }
@@ -60,25 +60,25 @@ struct rethreading_metadata_accessor_t : public on_thread_t {
 
 class meta_write_op_t : public meta_op_t {
 public:
-    meta_write_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec)
-        : meta_op_t(env, term, argspec) {
-        init(env);
-    }
-    meta_write_op_t(visibility_env_t *env, protob_t<const Term> term,
-                    argspec_t argspec, optargspec_t optargspec)
-        : meta_op_t(env, term, argspec, optargspec) {
-        init(env);
+    meta_write_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec,
+                    optargspec_t optargspec = optargspec_t({}))
+        : meta_op_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
+
+protected:
+    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
+    directory_metadata(env_t *env) const {
+        // RSI: Previously, figuring out where we could nest meta operations happened at compile time.
+        //
+        // We could accomplish that somehow by saying they're not "visible".  This
+        // here is really only going to be NULL in a secondary index function.
+        rcheck(env->cluster_env.directory_read_manager != NULL,
+               base_exc_t::GENERIC,
+               "Cannot nest meta operations inside queries.");
+        r_sanity_check(env->cluster_env.directory_read_manager->home_thread() == get_thread_id());
+        return env->cluster_env.directory_read_manager->get_root_view();
     }
 
 private:
-    void init(visibility_env_t *env) {
-        rcheck(env->env->cluster_env.directory_read_manager != NULL,
-               base_exc_t::GENERIC,
-               "Cannot nest meta operations inside queries.");
-
-        on_thread_t rethreader(env->env->cluster_env.directory_read_manager->home_thread());
-        directory_metadata = env->env->cluster_env.directory_read_manager->get_root_view();
-    }
 
     virtual std::string write_eval_impl(scope_env_t *env, eval_flags_t flags) = 0;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
@@ -87,10 +87,6 @@ private:
         UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
         return new_val(res.to_counted());
     }
-
-protected:
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
-        directory_metadata;
 };
 
 class db_term_t : public meta_op_t {
@@ -134,7 +130,7 @@ private:
         meta.metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
         try {
-            fill_in_blueprints(&meta.metadata, directory_metadata->get(),
+            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
                                env->env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -233,7 +229,7 @@ private:
             meta.ns_change.get()->namespaces.insert(
                                                     std::make_pair(namespace_id, make_deletable(ns)));
             try {
-                fill_in_blueprints(&meta.metadata, directory_metadata->get(),
+                fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
                                    env->env->this_machine, false);
             } catch (const missing_machine_exc_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -289,7 +285,7 @@ private:
 
         // Join
         try {
-            fill_in_blueprints(&meta.metadata, directory_metadata->get(),
+            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
                                env->env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -333,7 +329,7 @@ private:
         // Delete table and join.
         ns_metadata->second.mark_deleted();
         try {
-            fill_in_blueprints(&meta.metadata, directory_metadata->get(),
+            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
                                env->env->this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
