@@ -37,22 +37,6 @@ rdb_protocol_t::rget_read_response_t::result_t json_stream_t::apply_terminal(
     return res;
 }
 
-in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
-    while (counted_t<const ql::datum_t> json = stream->next()) {
-        data.push_back(json);
-    }
-}
-
-counted_t<const ql::datum_t> in_memory_stream_t::next() {
-    if (data.empty()) {
-        return counted_t<const ql::datum_t>();
-    } else {
-        counted_t<const ql::datum_t> ret = data.front();
-        data.pop_front();
-        return ret;
-    }
-}
-
 transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
                                        ql::env_t *_ql_env,
                                        const rdb_protocol_details::transform_t &tr) :
