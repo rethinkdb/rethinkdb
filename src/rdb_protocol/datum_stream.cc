@@ -133,7 +133,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     sorting_t sorting, const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor,
+                      *ns_access,
                       counted_t<datum_t>(), false, counted_t<const datum_t>(), false,
                       env->global_optargs.get_all_optargs(), use_outdated, sorting, this))
 { }
@@ -145,7 +145,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
         const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, sindex_id,
+                      *ns_access, sindex_id,
                       counted_t<datum_t>(), false, counted_t<datum_t>(), false,
                       env->global_optargs.get_all_optargs(), use_outdated,
                       sorting, this))
@@ -158,7 +158,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     sorting_t sorting, const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor,
+                      *ns_access,
                       left_bound, left_bound_open, right_bound, right_bound_open,
                       env->global_optargs.get_all_optargs(), use_outdated, sorting,
                       this))
@@ -172,7 +172,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, env->interruptor, sindex_id,
+                      *ns_access, sindex_id,
                       left_bound, left_bound_open, right_bound, right_bound_open,
                       env->global_optargs.get_all_optargs(), use_outdated, sorting, this))
 { }
@@ -276,12 +276,12 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
     }
 }
 
-hinted_datum_t lazy_datum_stream_t::sorting_hint_next(UNUSED env_t *env) {
-    return json_stream->sorting_hint_next();
+hinted_datum_t lazy_datum_stream_t::sorting_hint_next(env_t *env) {
+    return json_stream->sorting_hint_next(env);
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::next_impl(UNUSED env_t *env) {
-    return json_stream->next();
+counted_t<const datum_t> lazy_datum_stream_t::next_impl(env_t *env) {
+    return json_stream->next(env);
 }
 
 // ARRAY_DATUM_STREAM_T
