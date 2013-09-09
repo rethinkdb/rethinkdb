@@ -33,18 +33,12 @@ class meta_op_t : public op_term_t {
 public:
     meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec)
         : op_term_t(env, term, argspec),
-          original_thread(get_thread_id()),
           metadata_home_thread(env->env->cluster_env.semilattice_metadata->home_thread()) { }
     meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
         : op_term_t(env, term, argspec, optargspec),
-          original_thread(get_thread_id()),
           metadata_home_thread(env->env->cluster_env.semilattice_metadata->home_thread()) { }
 
 protected:
-    struct wait_rethreader_t : public on_thread_t {
-        explicit wait_rethreader_t(meta_op_t *parent)
-            : on_thread_t(parent->original_thread) { }
-    };
     struct rethreading_metadata_accessor_t : public on_thread_t {
         explicit rethreading_metadata_accessor_t(meta_op_t *parent, scope_env_t *env)
             : on_thread_t(parent->metadata_home_thread),
@@ -65,7 +59,6 @@ protected:
 private:
     friend class meta_write_op_t;
     virtual bool is_deterministic_impl() const { return false; }
-    int original_thread;
     int metadata_home_thread;
 };
 
@@ -215,44 +208,43 @@ private:
         metadata_search_status_t status;
         namespace_predicate_t pred(&tbl_name, &db_id);
 
-        rethreading_metadata_accessor_t meta(this, env);
-        meta.ns_searcher.find_uniq(pred, &status);
-        rcheck(status == METADATA_ERR_NONE,
-               base_exc_t::GENERIC,
-               strprintf("Table `%s` already exists.", tbl_name.c_str()));
+        const uuid_u namespace_id = generate_uuid();
 
-        // Create namespace (DB + table pair) and insert into metadata.
-        uuid_u namespace_id = generate_uuid();
-        // The port here is a legacy from the day when memcached ran on a different port.
-        namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-            new_namespace<rdb_protocol_t>(env->env->this_machine, db_id, dc_id, tbl_name,
-                                          primary_key, port_defaults::reql_port,
-                                          cache_size);
+        {
+            rethreading_metadata_accessor_t meta(this, env);
+            meta.ns_searcher.find_uniq(pred, &status);
+            rcheck(status == METADATA_ERR_NONE,
+                   base_exc_t::GENERIC,
+                   strprintf("Table `%s` already exists.", tbl_name.c_str()));
 
-        // Set Durability
-        std::map<datacenter_id_t, ack_expectation_t> *ack_map =
-            &ns.ack_expectations.get_mutable();
-        for (auto it = ack_map->begin(); it != ack_map->end(); ++it) {
-            it->second = ack_expectation_t(it->second.expectation(), hard_durability);
+            // Create namespace (DB + table pair) and insert into metadata.
+            // The port here is a legacy from the day when memcached ran on a different port.
+            namespace_semilattice_metadata_t<rdb_protocol_t> ns =
+                new_namespace<rdb_protocol_t>(env->env->this_machine, db_id, dc_id, tbl_name,
+                                              primary_key, port_defaults::reql_port,
+                                              cache_size);
+
+            // Set Durability
+            std::map<datacenter_id_t, ack_expectation_t> *ack_map =
+                &ns.ack_expectations.get_mutable();
+            for (auto it = ack_map->begin(); it != ack_map->end(); ++it) {
+                it->second = ack_expectation_t(it->second.expectation(), hard_durability);
+            }
+            ns.ack_expectations.upgrade_version(env->env->this_machine);
+
+            meta.ns_change.get()->namespaces.insert(
+                                                    std::make_pair(namespace_id, make_deletable(ns)));
+            try {
+                fill_in_blueprints(&meta.metadata, directory_metadata->get(),
+                                   env->env->this_machine, false);
+            } catch (const missing_machine_exc_t &e) {
+                rfail(base_exc_t::GENERIC, "%s", e.what());
+            }
+            env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
         }
-        ns.ack_expectations.upgrade_version(env->env->this_machine);
 
-        meta.ns_change.get()->namespaces.insert(
-            std::make_pair(namespace_id, make_deletable(ns)));
-        try {
-            fill_in_blueprints(&meta.metadata, directory_metadata->get(),
-                               env->env->this_machine, false);
-        } catch (const missing_machine_exc_t &e) {
-            rfail(base_exc_t::GENERIC, "%s", e.what());
-        }
-        env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
-
-        // RSI: Why don't we just destroy the rethreading_metadata_accessor_t?
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
-        // This *needs* to be performed on the client's thread so that we know
-        // subsequent writes will succeed.
-        wait_rethreader_t wait(this);
         try {
             wait_for_rdb_table_readiness(env->env->cluster_env.ns_repo, namespace_id,
                                          env->env->interruptor,
