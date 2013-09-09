@@ -247,6 +247,7 @@ private:
         }
         env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
+        // RSI: Why don't we just destroy the rethreading_metadata_accessor_t?
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
         // This *needs* to be performed on the client's thread so that we know
