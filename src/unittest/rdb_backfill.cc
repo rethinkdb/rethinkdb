@@ -258,7 +258,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         Term *arg = twrap.get();
         N2(GET_FIELD, NVAR(one), NDATUM("id"));
 
-        ql::map_wire_func_t m(twrap, make_vector(one));
+        ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
         rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
 

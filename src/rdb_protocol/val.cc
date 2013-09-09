@@ -131,9 +131,9 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 Term *const arg = twrap.get();
                 const sym_t x = env->symgen.gensym();
                 replacement->write_to_protobuf(pb::set_datum(arg));
-                propagate(arg);  // RSI: Oh?  Before we called propagate on a set_func'd term.
+                propagate(arg);
 
-                funcs[i] = map_wire_func_t(twrap, make_vector(x));
+                funcs[i] = map_wire_func_t(twrap, make_vector(x), backtrace());
                 pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
             } catch (const base_exc_t &exc) {
                 pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -168,8 +168,8 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                    N1(ERROR, NDATUM("Duplicate primary key.")));
             }
 
-            propagate(arg);  // RSI: Oh?  Before we called propagate on a set_func'd term.
-            funcs[i] = map_wire_func_t(twrap, make_vector(x));
+            propagate(arg);
+            funcs[i] = map_wire_func_t(twrap, make_vector(x), backtrace());
             pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
         } catch (const base_exc_t &exc) {
             pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -390,8 +390,8 @@ counted_t<const datum_t> table_t::do_replace(env_t *env,
            N1(ERROR, NDATUM("Duplicate primary key.")));
     }
 
-    propagate(arg);  // RSI: We used to call propagate on a set_func'd term.
-    return do_replace(env, orig, map_wire_func_t(twrap, make_vector(x)),
+    propagate(arg);
+    return do_replace(env, orig, map_wire_func_t(twrap, make_vector(x), backtrace()),
                       durability_requirement, return_vals);
 }
 

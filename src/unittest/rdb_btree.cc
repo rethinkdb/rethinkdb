@@ -92,7 +92,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     Term *arg = twrap.get();
     N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
-    ql::map_wire_func_t m(twrap, make_vector(one));
+    ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
     write_message_t wm;
     wm << m;

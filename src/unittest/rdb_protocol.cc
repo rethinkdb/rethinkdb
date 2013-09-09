@@ -174,7 +174,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
     const ql::sym_t one(1);
     N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
-    ql::map_wire_func_t m(twrap, make_vector(one));
+    ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
     rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
     rdb_protocol_t::write_response_t response;

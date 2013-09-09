@@ -45,9 +45,9 @@ public:
     wire_func_t();
     explicit wire_func_t(counted_t<func_t> f);
 
-    // Constructs a wire_func_t with a body and arglist, but no scope (and empty backtrace!)
-    // RSI: This is a dumb hack, no?
-    wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names);
+    // Constructs a wire_func_t with a body and arglist and backtrace, but no scope.  I
+    // hope you remembered to propagate the backtrace to body!
+    wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names, protob_t<const Backtrace> backtrace);
 
     // RSI: Audit callers of this, make sure nothing's relying on the cache (hint: some things are).
     counted_t<func_t> compile_wire_func(env_t *env) const;

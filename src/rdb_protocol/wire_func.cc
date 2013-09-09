@@ -39,12 +39,13 @@ wire_func_t::wire_func_t(counted_t<func_t> f) {
     f->visit(&v);
 }
 
-wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names) {
+wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
+                         protob_t<const Backtrace> backtrace) {
     func = wire_reql_func_t();
     wire_reql_func_t *p = boost::get<wire_reql_func_t>(&func);
     p->arg_names = std::move(arg_names);
     p->body = std::move(body);
-    p->backtrace = make_counted_backtrace();
+    p->backtrace = std::move(backtrace);
 }
 
 
