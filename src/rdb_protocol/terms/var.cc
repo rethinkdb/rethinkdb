@@ -35,11 +35,11 @@ public:
         varname = var;
     }
 
-    bool is_deterministic_impl() const {
+private:
+    virtual bool is_deterministic_impl() const {
         return true;
     }
 
-private:
     sym_t varname;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(env->scope.lookup_var(varname));
