@@ -24,14 +24,14 @@
 /* cJSON */
 /* JSON parser in C. */
 
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
+#include "http/json/cJSON.hpp"
+#include <ctype.h>
 #include <float.h>
 #include <limits.h>
-#include <ctype.h>
-#include "http/json/cJSON.hpp"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "errors.hpp"
 
 #ifdef __clang__
@@ -111,7 +111,9 @@ static const char *parse_number(cJSON *item, const char *num) {
         n = 0;
         offset = 1;
     } else {
-        sscanf(num, "%lg%n", &n, &offset);
+        char *end;
+        n = strtod(num, &end);
+        offset = end - num;
     }
     item->valuedouble = n;
     item->valueint = (int)n;
