@@ -2434,7 +2434,7 @@ module 'DataExplorerView', ->
             get_result_callback = (error, data) =>
                 if @id_execution is id_execution
                     if error?
-                        if @queries.lenth > 1
+                        if @queries.length > 1
                             @results_view.render_error(@query, error)
                         else
                             @results_view.render_error(null, error)
