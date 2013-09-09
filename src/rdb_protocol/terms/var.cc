@@ -51,10 +51,13 @@ private:
     virtual const char *name() const { return "var"; }
 };
 
-class implicit_var_term_t : public op_term_t {
+class implicit_var_term_t : public term_t {
 public:
     implicit_var_term_t(visibility_env_t *env, const protob_t<const Term> &term) :
-        op_term_t(env, term, argspec_t(0)) {
+        term_t(term) {
+        rcheck(term->args_size() == 0 && term->optargs_size() == 0, base_exc_t::GENERIC,
+               "Expected no arguments or optional arguments on implicit variable term.");
+
         rcheck(env->visibility.implicit_is_accessible(), base_exc_t::GENERIC,
                env->visibility.get_implicit_depth() == 0
                ? "r.row is not defined in this context."
@@ -63,6 +66,10 @@ public:
 private:
     virtual void accumulate_captures(var_captures_t *captures) const {
         captures->implicit_is_captured = true;
+    }
+
+    virtual bool is_deterministic_impl() const {
+        return true;
     }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
