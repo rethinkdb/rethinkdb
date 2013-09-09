@@ -29,29 +29,22 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
 // Meta operations (BUT NOT TABLE TERMS) should inherit from this.  It will
 // handle a lot of the nasty semilattice initialization stuff for them,
 // including the thread switching.
-// RSI: This should be called meta_op_term_t?
 class meta_op_t : public op_term_t {
 public:
     meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec)
         : op_term_t(env, term, argspec),
           original_thread(get_thread_id()),
-          // RSI: checking semilattice_metadata's home thread and assuming it applies for everything else is bad.
           metadata_home_thread(env->env->cluster_env.semilattice_metadata->home_thread()) { }
     meta_op_t(visibility_env_t *env, protob_t<const Term> term, argspec_t argspec, optargspec_t optargspec)
         : op_term_t(env, term, argspec, optargspec),
           original_thread(get_thread_id()),
-          // RSI: checking semilattice_metadata's home thread and assuming it applies for everything else is bad.
           metadata_home_thread(env->env->cluster_env.semilattice_metadata->home_thread()) { }
 
 protected:
-    // RSI: Holy cow, these types inherit from on_thread_t.  These aren't rethreaders either!  (That's the name of a type that changes something's home thread.)
     struct wait_rethreader_t : public on_thread_t {
         explicit wait_rethreader_t(meta_op_t *parent)
             : on_thread_t(parent->original_thread) { }
     };
-    // RSI: We're accessing env from a different thread (we access its cluster_env
-    // field).  Maybe env_t should be what makes it impossible to access cluster_env
-    // from the wrong thread.
     struct rethreading_metadata_accessor_t : public on_thread_t {
         explicit rethreading_metadata_accessor_t(meta_op_t *parent, scope_env_t *env)
             : on_thread_t(parent->metadata_home_thread),
@@ -202,7 +195,6 @@ private:
             primary_key = v->as_str();
         }
 
-        // RSI: Magic constant.
         int64_t cache_size = 1073741824;
         if (counted_t<val_t> v = optarg(env, "cache_size")) {
             cache_size = v->as_int<int64_t>();

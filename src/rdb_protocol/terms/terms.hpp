@@ -4,7 +4,6 @@
 
 #include "containers/counted.hpp"
 #include "rdb_protocol/counted_term.hpp"
-// RSI: Why this psuedo_time header?
 #include "rdb_protocol/pseudo_time.hpp"
 
 namespace ql {

@@ -1657,7 +1657,6 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
 }
 
 hash_region_t<key_range_t> sindex_range_t::to_region() const {
-    // RSI: This is possibly broken, shouldn't we ceil end->truncated_secondary or something?
     return hash_region_t<key_range_t>(rdb_protocol_t::sindex_key_range(
         start != NULL ? start->truncated_secondary() : store_key_t::min(),
         end != NULL ? end->truncated_secondary() : store_key_t::max()));

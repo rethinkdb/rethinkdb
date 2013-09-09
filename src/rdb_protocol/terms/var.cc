@@ -14,7 +14,6 @@ public:
         // out of the protobuf.
         scope_env_t empty_scope_env(env->env, var_scope_t());
         sym_t var = sym_t(arg(&empty_scope_env, 0)->as_int());
-        // RSI: Is this right?
         rcheck(env->visibility.contains_var(var), base_exc_t::GENERIC,
                "Variable name not found.");
         varname = var;
