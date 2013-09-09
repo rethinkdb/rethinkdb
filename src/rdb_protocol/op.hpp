@@ -70,6 +70,11 @@ protected:
     //   doesn't check global optargs).
     counted_t<func_term_t> lazy_literal_optarg(visibility_env_t *env, const std::string &key);
 
+    // Provides a default implementation, passing off a call to arg terms and optarg
+    // terms.  implicit_var_term_t overrides this.  (var_term_t does too, but it's not
+    // a subclass).  RSI: Maybe implicit_var_term_t could be a non-subclass.
+    virtual void accumulate_captures(var_captures_t *captures) const;
+
 private:
     // RSI: Maybe we should cache whether or not this is deterministic, we probably redundantly compute this.
     virtual bool is_deterministic_impl() const;

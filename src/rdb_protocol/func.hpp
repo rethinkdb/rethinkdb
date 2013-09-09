@@ -165,13 +165,17 @@ public:
     counted_t<func_t> eval_to_func(scope_env_t *env);
 
 private:
+    virtual void accumulate_captures(var_captures_t *captures) const;
     virtual bool is_deterministic_impl() const;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags);
     virtual const char *name() const { return "func"; }
 
     std::vector<sym_t> arg_names;
     counted_t<term_t> body;
+
+    var_captures_t external_captures;
 };
 
-} // namespace ql
+}  // namespace ql
+
 #endif // RDB_PROTOCOL_FUNC_HPP_

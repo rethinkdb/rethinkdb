@@ -87,7 +87,7 @@ op_term_t::~op_term_t() { }
 
 size_t op_term_t::num_args() const { return args.size(); }
 counted_t<val_t> op_term_t::arg(scope_env_t *env, size_t i, eval_flags_t flags) {
-    rcheck(i < num_args(), base_exc_t::NON_EXISTENCE,
+    rcheck(i < args.size(), base_exc_t::NON_EXISTENCE,
            strprintf("Index out of range: %zu", i));
     return args[i]->eval(env, flags);
 }
@@ -112,8 +112,19 @@ counted_t<func_term_t> op_term_t::lazy_literal_optarg(visibility_env_t *env, con
     return counted_t<func_term_t>();
 }
 
+void op_term_t::accumulate_captures(var_captures_t *captures) const {
+    for (auto it = args.begin(); it != args.end(); ++it) {
+        (*it)->accumulate_captures(captures);
+    }
+    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
+        it->second->accumulate_captures(captures);
+    }
+    return;
+}
+
+
 bool op_term_t::is_deterministic_impl() const {
-    for (size_t i = 0; i < num_args(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i) {
         if (!args[i]->is_deterministic()) {
             return false;
         }

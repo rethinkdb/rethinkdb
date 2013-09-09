@@ -36,6 +36,10 @@ public:
     }
 
 private:
+    virtual void accumulate_captures(var_captures_t *captures) const {
+        captures->vars_captured.insert(varname);
+    }
+
     virtual bool is_deterministic_impl() const {
         return true;
     }
@@ -57,6 +61,10 @@ public:
                : "Cannot use r.row in nested queries.  Use functions instead.");
     }
 private:
+    virtual void accumulate_captures(var_captures_t *captures) const {
+        captures->implicit_is_captured = true;
+    }
+
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         return new_val(env->scope.lookup_implicit());
     }

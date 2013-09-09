@@ -8,13 +8,18 @@
 
 namespace ql {
 
+bool arg_list_makes_for_implicit_variable(const std::vector<sym_t> &arg_names) {
+    return arg_names.size() == 1 && gensym_t::var_allows_implicit(arg_names[0]);
+}
+
 var_visibility_t::var_visibility_t() : implicit_depth(0) { }
 
-var_visibility_t var_visibility_t::with_func_arg_name_list(const std::vector<sym_t> &new_visibles) const {
+var_visibility_t var_visibility_t::with_func_arg_name_list(const std::vector<sym_t> &arg_names) const {
     var_visibility_t ret = *this;
-    // RSI: Maybe we should check for overlap and fail (because each function's symbol in the syntax tree should be different).
-    ret.visibles.insert(new_visibles.begin(), new_visibles.end());
-    if (new_visibles.size() == 1 && gensym_t::var_allows_implicit(new_visibles[0])) {
+    // RSI: Maybe we should check for overlap and fail (because each function's symbol
+    // in the syntax tree should be different).
+    ret.visibles.insert(arg_names.begin(), arg_names.end());
+    if (arg_list_makes_for_implicit_variable(arg_names)) {
         ++ret.implicit_depth;
     }
     return ret;
@@ -51,6 +56,21 @@ var_scope_t var_scope_t::with_func_arg_list(const std::vector<std::pair<sym_t, c
     return ret;
 }
 
+var_scope_t var_scope_t::filtered_by_captures(const var_captures_t &captures) const {
+    var_scope_t ret;
+    for (auto it = captures.vars_captured.begin(); it != captures.vars_captured.end(); ++it) {
+        auto vars_it = vars.find(*it);
+        r_sanity_check(vars_it != vars.end());
+        ret.vars.insert(*vars_it);
+    }
+    ret.implicit_depth = implicit_depth;
+    if (captures.implicit_is_captured) {
+        r_sanity_check(implicit_depth == 1);
+        ret.maybe_implicit = maybe_implicit;
+    }
+    return ret;
+}
+
 counted_t<const datum_t> var_scope_t::lookup_var(sym_t varname) const {
     auto it = vars.find(varname);
     // This is a sanity check because we should never have constructed an expression
@@ -70,8 +90,11 @@ std::string var_scope_t::print() const {
         ret += "(no implicit)";
     } else if (implicit_depth == 1) {
         ret += "implicit: ";
-        r_sanity_check(maybe_implicit.has());
-        ret += maybe_implicit->print();
+        if (maybe_implicit.has()) {
+            ret += maybe_implicit->print();
+        } else {
+            ret += "(not stored)";
+        }
     } else {
         ret += "(multiple implicits)";
     }
@@ -98,7 +121,11 @@ void var_scope_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime
     msg << vars;
     msg << implicit_depth;
     if (implicit_depth == 1) {
-        msg << maybe_implicit;
+        const bool has = maybe_implicit.has();
+        msg << has;
+        if (has) {
+            msg << maybe_implicit;
+        }
     }
 }
 
@@ -106,13 +133,21 @@ archive_result_t var_scope_t::rdb_deserialize(read_stream_t *s) {
     std::map<sym_t, counted_t<const datum_t> > local_vars;
     archive_result_t res = deserialize(s, &local_vars);
     if (res) { return res; }
+
     uint32_t local_implicit_depth;
     res = deserialize(s, &local_implicit_depth);
     if (res) { return res; }
+
     counted_t<const datum_t> local_maybe_implicit;
     if (local_implicit_depth == 1) {
-        res = deserialize(s, &local_maybe_implicit);
+        bool has;
+        res = deserialize(s, &has);
         if (res) { return res; }
+
+        if (has) {
+            res = deserialize(s, &local_maybe_implicit);
+            if (res) { return res; }
+        }
     }
 
     vars = std::move(local_vars);

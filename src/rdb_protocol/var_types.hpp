@@ -20,6 +20,8 @@ class datum_t;
 // various constructors and eval_impl functions needs to be keep in sync.  Maybe we can
 // avoid that requirement.
 
+bool arg_list_makes_for_implicit_variable(const std::vector<sym_t> &arg_names);
+
 // RSI: Make this efficient.
 class var_visibility_t {
 public:
@@ -44,12 +46,26 @@ private:
 
 void debug_print(printf_buffer_t *buf, const var_visibility_t &var_visibility);
 
+class var_captures_t {
+public:
+    var_captures_t() : implicit_is_captured(false) { }
+    var_captures_t(var_captures_t &&) = default;
+    var_captures_t &operator=(var_captures_t &&) = default;
+
+    std::set<sym_t> vars_captured;
+    bool implicit_is_captured;
+
+    DISABLE_COPYING(var_captures_t);
+};
+
 // RSI: Make this efficient.
 class var_scope_t {
 public:
     var_scope_t();
 
     var_scope_t with_func_arg_list(const std::vector<std::pair<sym_t, counted_t<const datum_t> > > &new_vars) const;
+
+    var_scope_t filtered_by_captures(const var_captures_t &captures) const;
 
     counted_t<const datum_t> lookup_var(sym_t varname) const;
     counted_t<const datum_t> lookup_implicit() const;
@@ -67,7 +83,9 @@ private:
     std::map<sym_t, counted_t<const datum_t> > vars;
 
     uint32_t implicit_depth;
-    // Is non-empty IFF implicits_depth == 1.
+
+    // If non-empty, implicit_depth == 1.  Might be empty (when implicit_depth == 1),
+    // if the value got filtered out (where the body of a func doesn't use it).
     counted_t<const datum_t> maybe_implicit;
 };
 

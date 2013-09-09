@@ -178,8 +178,24 @@ func_term_t::func_term_t(visibility_env_t *env, const protob_t<const Term> &t)
     counted_t<term_t> compiled_body = compile_term(&body_env, body_source);
     r_sanity_check(compiled_body.has());
 
+    var_captures_t captures;
+    compiled_body->accumulate_captures(&captures);
+    for (auto it = args.begin(); it != args.end(); ++it) {
+        captures.vars_captured.erase(*it);
+    }
+    if (arg_list_makes_for_implicit_variable(args)) {
+        captures.implicit_is_captured = false;
+    }
+
     arg_names = std::move(args);
     body = std::move(compiled_body);
+    external_captures = std::move(captures);
+}
+
+void func_term_t::accumulate_captures(var_captures_t *captures) const {
+    captures->vars_captured.insert(external_captures.vars_captured.begin(),
+                                   external_captures.vars_captured.end());
+    captures->implicit_is_captured |= external_captures.implicit_is_captured;
 }
 
 counted_t<val_t> func_term_t::eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
@@ -187,7 +203,9 @@ counted_t<val_t> func_term_t::eval_impl(scope_env_t *env, UNUSED eval_flags_t fl
 }
 
 counted_t<func_t> func_term_t::eval_to_func(scope_env_t *env) {
-    return make_counted<reql_func_t>(get_backtrace(get_src()), env->scope, arg_names, body);
+    return make_counted<reql_func_t>(get_backtrace(get_src()),
+                                     env->scope.filtered_by_captures(external_captures),
+                                     arg_names, body);
 }
 
 bool func_term_t::is_deterministic_impl() const {

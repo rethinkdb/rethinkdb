@@ -12,11 +12,12 @@ class datum_stream_t;
 class datum_t;
 class db_t;
 class env_t;
-class scope_env_t;
-class visibility_env_t;
 class func_t;
+class scope_env_t;
 class table_t;
 class val_t;
+class var_captures_t;
+class visibility_env_t;
 
 enum eval_flags_t {
     NO_FLAGS = 0,
@@ -45,6 +46,8 @@ public:
 
     protob_t<const Term> get_src() const;
     void prop_bt(Term *t) const;
+
+    virtual void accumulate_captures(var_captures_t *captures) const = 0;
 
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t) = 0;
