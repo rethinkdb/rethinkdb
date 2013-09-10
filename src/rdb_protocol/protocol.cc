@@ -1137,7 +1137,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             }
 
             guarantee(rget.sindex_range, "If an rget has a sindex specified "
-                      "it should also have a sindex_region.");
+                      "it should also have a sindex_range.");
             guarantee(rget.sindex_region, "If an rget has a sindex specified "
                       "it should also have a sindex_region.");
 
