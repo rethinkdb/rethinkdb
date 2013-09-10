@@ -20,6 +20,8 @@ Bug fix update.
 * CLI
   * `rethinkdb import` now works with Python 2.6 (#1349)
 
+--
+
 # Release 1.8.1 (High Noon)
 
 Released on 2013-08-21
