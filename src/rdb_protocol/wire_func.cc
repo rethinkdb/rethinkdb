@@ -1,90 +1,23 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/wire_func.hpp"
 
-#include "errors.hpp"
-#include <boost/variant.hpp>
-
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 namespace ql {
 
-struct wire_reql_func_t {
-    var_scope_t captured_scope;
-    std::vector<sym_t> arg_names;
-    protob_t<const Term> body;
-    protob_t<const Backtrace> backtrace;
-};
-
-RDB_DECLARE_SERIALIZABLE(wire_reql_func_t);
-
-struct wire_js_func_t {
-    std::string js_source;
-    uint64_t js_timeout_ms;
-    protob_t<const Backtrace> backtrace;
-};
-
-RDB_DECLARE_SERIALIZABLE(wire_js_func_t);
-
 wire_func_t::wire_func_t() { }
-
-class wire_func_construction_visitor_t : public func_visitor_t {
-public:
-    explicit wire_func_construction_visitor_t(boost::variant<wire_reql_func_t, wire_js_func_t> *_that) : that(_that) { }
-
-    void on_reql_func(const reql_func_t *reql_func) {
-        *that = wire_reql_func_t();
-        wire_reql_func_t *p = boost::get<wire_reql_func_t>(that);
-        p->captured_scope = reql_func->captured_scope;
-        p->arg_names = reql_func->arg_names;
-        p->body = reql_func->body->get_src();
-        p->backtrace = reql_func->backtrace();
-    }
-    void on_js_func(const js_func_t *js_func) {
-        *that = wire_js_func_t();
-        wire_js_func_t *p = boost::get<wire_js_func_t>(that);
-        p->js_source = js_func->js_source;
-        p->js_timeout_ms = js_func->js_timeout_ms;
-        p->backtrace = js_func->backtrace();
-    }
-
-private:
-    boost::variant<wire_reql_func_t, wire_js_func_t> *that;
-};
 
 wire_func_t::wire_func_t(counted_t<func_t> f) {
     r_sanity_check(f.has());
     cached_func = f;
 }
 
-struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func_t> > {
-    wire_func_compile_visitor_t() { }
-
-    counted_t<func_t> operator()(const wire_reql_func_t &func) const {
-        r_sanity_check(func.body.has() && func.backtrace.has());
-        compile_env_t compile_env(func.captured_scope.compute_visibility().with_func_arg_name_list(func.arg_names));
-        return make_counted<reql_func_t>(func.backtrace, func.captured_scope, func.arg_names,
-                                         compile_term(&compile_env, func.body));
-    }
-
-    counted_t<func_t> operator()(const wire_js_func_t &func) const {
-        r_sanity_check(func.backtrace.has());
-        return make_counted<js_func_t>(func.js_source, func.js_timeout_ms, func.backtrace);
-    }
-
-    DISABLE_COPYING(wire_func_compile_visitor_t);
-};
-
 wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
                          protob_t<const Backtrace> backtrace) {
-    boost::variant<wire_reql_func_t, wire_js_func_t> func = wire_reql_func_t();
-    wire_reql_func_t *p = boost::get<wire_reql_func_t>(&func);
-    p->arg_names = std::move(arg_names);
-    p->body = std::move(body);
-    p->backtrace = std::move(backtrace);
-
-    cached_func = boost::apply_visitor(wire_func_compile_visitor_t(), func);
+    compile_env_t env(var_visibility_t().with_func_arg_name_list(arg_names));
+    cached_func = make_counted<reql_func_t>(backtrace, var_scope_t(), arg_names, compile_term(&env, body));
 }
 
 wire_func_t::wire_func_t(const wire_func_t &copyee)
@@ -106,80 +39,91 @@ protob_t<const Backtrace> wire_func_t::get_bt() const {
     return cached_func->backtrace();
 }
 
-write_message_t &operator<<(write_message_t &msg, const wire_reql_func_t &func) {  // NOLINT(runtime/references)
-    guarantee(func.body.has() && func.backtrace.has());
-    msg << func.captured_scope;
-    msg << func.arg_names;
-    msg << *func.body;
-    msg << *func.backtrace;
-    return msg;
-}
+enum class wire_func_type_t { REQL, JS };
 
-archive_result_t deserialize(read_stream_t *s, wire_reql_func_t *func) {
-    var_scope_t captured_scope;
-    archive_result_t res = deserialize(s, &captured_scope);
-    if (res) { return res; }
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(wire_func_type_t, int8_t,
+                                      wire_func_type_t::REQL, wire_func_type_t::JS);
 
-    std::vector<sym_t> arg_names;
-    res = deserialize(s, &arg_names);
-    if (res) { return res; }
+class wire_func_serialization_visitor_t : public func_visitor_t {
+public:
+    wire_func_serialization_visitor_t(write_message_t *_msg) : msg(_msg) { }
 
-    protob_t<Term> body = make_counted_term();
-    res = deserialize(s, &*body);
-    if (res) { return res; }
+    void on_reql_func(const reql_func_t *reql_func) {
+        *msg << wire_func_type_t::REQL;
+        const var_scope_t &scope = reql_func->captured_scope;
+        *msg << scope;
+        const std::vector<sym_t> &arg_names = reql_func->arg_names;
+        *msg << arg_names;
+        const protob_t<const Term> &body = reql_func->body->get_src();
+        *msg << *body;
+        const protob_t<const Backtrace> &backtrace = reql_func->backtrace();
+        *msg << *backtrace;
+    }
 
-    protob_t<Backtrace> backtrace = make_counted_backtrace();
-    res = deserialize(s, &*backtrace);
-    if (res) { return res; }
+    void on_js_func(const js_func_t *js_func) {
+        *msg << wire_func_type_t::JS;
+        const std::string &js_source = js_func->js_source;
+        *msg << js_source;
+        const uint64_t &js_timeout_ms = js_func->js_timeout_ms;
+        *msg << js_timeout_ms;
+        const protob_t<const Backtrace> &backtrace = js_func->backtrace();
+        *msg << *backtrace;
+    }
 
-    func->captured_scope = std::move(captured_scope);
-    func->arg_names = std::move(arg_names);
-    func->body = std::move(body);
-    func->backtrace = std::move(backtrace);
-    return res;
-}
-
-write_message_t &operator<<(write_message_t &msg, const wire_js_func_t &func) {  // NOLINT(runtime/references)
-    guarantee(func.backtrace.has());
-    msg << func.js_source;
-    msg << func.js_timeout_ms;
-    msg << *func.backtrace;
-    return msg;
-}
-
-archive_result_t deserialize(read_stream_t *s, wire_js_func_t *func) {
-    wire_js_func_t tmp;
-
-    archive_result_t res = deserialize(s, &tmp.js_source);
-    if (res) { return res; }
-
-    res = deserialize(s, &tmp.js_timeout_ms);
-    if (res) { return res; }
-
-    protob_t<Backtrace> backtrace = make_counted_backtrace();
-    res = deserialize(s, &*backtrace);
-    if (res) { return res; }
-    tmp.backtrace = backtrace;
-
-    *func = std::move(tmp);
-    return res;
-}
+private:
+    write_message_t *msg;
+};
 
 void wire_func_t::rdb_serialize(write_message_t &msg) const {
-    boost::variant<wire_reql_func_t, wire_js_func_t> func;
-    wire_func_construction_visitor_t v(&func);
+    wire_func_serialization_visitor_t v(&msg);
     cached_func->visit(&v);
-
-    msg << func;
 }
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
-    boost::variant<wire_reql_func_t, wire_js_func_t> func;
-    archive_result_t res = deserialize(s, &func);
+    wire_func_type_t type;
+    archive_result_t res = deserialize(s, &type);
     if (res) { return res; }
+    switch (type) {
+    case wire_func_type_t::REQL: {
+        var_scope_t scope;
+        res = deserialize(s, &scope);
+        if (res) { return res; }
 
-    cached_func = boost::apply_visitor(wire_func_compile_visitor_t(), func);
-    return res;
+        std::vector<sym_t> arg_names;
+        res = deserialize(s, &arg_names);
+        if (res) { return res; }
+
+        protob_t<Term> body = make_counted_term();
+        res = deserialize(s, &*body);
+        if (res) { return res; }
+
+        protob_t<Backtrace> backtrace = make_counted_backtrace();
+        res = deserialize(s, &*backtrace);
+        if (res) { return res; }
+
+        compile_env_t env(scope.compute_visibility().with_func_arg_name_list(arg_names));
+        cached_func = make_counted<reql_func_t>(backtrace, scope, arg_names, compile_term(&env, body));
+        return res;
+    } break;
+    case wire_func_type_t::JS: {
+        std::string js_source;
+        res = deserialize(s, &js_source);
+        if (res) { return res; }
+
+        uint64_t js_timeout_ms;
+        res = deserialize(s, &js_timeout_ms);
+        if (res) { return res; }
+
+        protob_t<Backtrace> backtrace = make_counted_backtrace();
+        res = deserialize(s, &*backtrace);
+        if (res) { return res; }
+
+        cached_func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
+        return res;
+    } break;
+    default:
+        unreachable();
+    }
 }
 
 gmr_wire_func_t::gmr_wire_func_t(counted_t<func_t> _group,

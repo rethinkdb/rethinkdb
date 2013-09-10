@@ -71,7 +71,7 @@ public:
     void visit(func_visitor_t *visitor) const;
 
 private:
-    friend class wire_func_construction_visitor_t;
+    friend class wire_func_serialization_visitor_t;
     bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
 
     // Only contains the parts of the scope that `body` uses.
@@ -104,7 +104,7 @@ public:
     void visit(func_visitor_t *visitor) const;
 
 private:
-    friend class wire_func_construction_visitor_t;
+    friend class wire_func_serialization_visitor_t;
     bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
 
     std::string js_source;
