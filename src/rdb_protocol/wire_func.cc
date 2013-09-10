@@ -55,8 +55,7 @@ struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func
 
     counted_t<func_t> operator()(const wire_reql_func_t &func) const {
         r_sanity_check(func.body.has() && func.backtrace.has());
-        compile_env_t compile_env(&env->symgen,
-                                  func.captured_scope.compute_visibility().with_func_arg_name_list(func.arg_names));
+        compile_env_t compile_env(func.captured_scope.compute_visibility().with_func_arg_name_list(func.arg_names));
         return make_counted<reql_func_t>(func.backtrace, func.captured_scope, func.arg_names,
                                          compile_term(&compile_env, func.body));
     }

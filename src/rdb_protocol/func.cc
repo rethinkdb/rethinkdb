@@ -169,7 +169,7 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
 
     var_visibility_t varname_visibility = env->visibility.with_func_arg_name_list(args);
 
-    compile_env_t body_env(env->symgen, std::move(varname_visibility));
+    compile_env_t body_env(std::move(varname_visibility));
 
     protob_t<const Term> body_source = t.make_child(&t->args(1));
     counted_t<term_t> compiled_body = compile_term(&body_env, body_source);
@@ -313,59 +313,60 @@ bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<fun
     std::rethrow_exception(saved_exception);
 }
 
-counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
+// RSI: Remove these unused env parameters.
+counted_t<func_t> new_constant_func(UNUSED env_t *env, counted_t<const datum_t> obj,
                                     const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
     propagate_backtrace(twrap.get(), bt_src.get());
 
-    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> key,
+counted_t<func_t> new_get_field_func(UNUSED env_t *env, counted_t<const datum_t> key,
                                      const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *arg = twrap.get();
-    sym_t obj = env->symgen.gensym();
+    sym_t obj = GENSYM_A();
     arg = pb::set_func(arg, obj);
     N2(GET_FIELD, NVAR(obj), NDATUM(key));
     propagate_backtrace(twrap.get(), bt_src.get());
 
-    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_pluck_func(UNUSED env_t *env, counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
-    sym_t var = env->symgen.gensym();
+    sym_t var = GENSYM_A();
     N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(PLUCK, NVAR(var), NDATUM(obj)));
     propagate_backtrace(twrap.get(), bt_src.get());
 
-    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_eq_comparison_func(UNUSED env_t *env, counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
-    sym_t var = env->symgen.gensym();
+    sym_t var = GENSYM_A();
     N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
        N2(EQ, NDATUM(obj), NVAR(var)));
     propagate_backtrace(twrap.get(), bt_src.get());
 
-    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env,
                                                                  twrap);
     return func_term->eval_to_func(var_scope_t());

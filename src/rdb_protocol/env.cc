@@ -25,7 +25,8 @@ global_optargs_t::global_optargs_t() { }
 global_optargs_t::global_optargs_t(const std::map<std::string, wire_func_t> &_optargs)
     : optargs(_optargs) { }
 
-bool global_optargs_t::add_optarg(env_t *env, const std::string &key, const Term &val) {
+// RSI: Remove this unused parameter?
+bool global_optargs_t::add_optarg(UNUSED env_t *env, const std::string &key, const Term &val) {
     if (optargs.count(key)) {
         return true;
     }
@@ -33,7 +34,7 @@ bool global_optargs_t::add_optarg(env_t *env, const std::string &key, const Term
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
 
-    compile_env_t empty_compile_env(&env->symgen, var_visibility_t());
+    compile_env_t empty_compile_env((var_visibility_t()));
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env, arg);
     counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
 

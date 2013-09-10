@@ -214,7 +214,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            compile_env_t compile_env(&env->symgen, var_visibility_t());
+            compile_env_t compile_env((var_visibility_t()));
             root_term = compile_term(&compile_env, q.make_child(t));
             // TODO: handle this properly
         } catch (const exc_t &e) {

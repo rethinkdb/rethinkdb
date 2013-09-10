@@ -39,7 +39,7 @@ public:
                 N2(GET_FIELD, NVAR(x), NDATUM(name_datum));
             }
             prop_bt(func_term.get());
-            compile_env_t empty_compile_env(&env->env->symgen, var_visibility_t());
+            compile_env_t empty_compile_env((var_visibility_t()));
             counted_t<func_term_t> func_term_term = make_counted<func_term_t>(&empty_compile_env,
                                                                               func_term);
 

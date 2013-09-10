@@ -87,7 +87,7 @@ private:
                        strprintf("Cannot perform %s on a sequence of sequences.", name()));
             }
 
-            compile_env_t compile_env(&env->env->symgen, env->scope.compute_visibility());
+            compile_env_t compile_env(env->scope.compute_visibility());
             counted_t<func_term_t> func_term = make_counted<func_term_t>(&compile_env, func);
             counted_t<func_t> func = func_term->eval_to_func(env->scope);
 

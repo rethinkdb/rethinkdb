@@ -148,7 +148,7 @@ void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32
     count_callback_t callback(count_out);
     env_instance->get()->set_eval_callback(&callback);
 
-    ql::compile_env_t compile_env(&env_instance->get()->symgen, ql::var_visibility_t());
+    ql::compile_env_t compile_env((ql::var_visibility_t()));
     counted_t<ql::term_t> compiled_term = ql::compile_term(&compile_env, term);
 
     ql::scope_env_t scope_env(env_instance->get(), ql::var_scope_t());
@@ -167,7 +167,7 @@ void interrupt_test(test_rdb_env_t *test_env,
     interrupt_callback_t callback(interrupt_phase, env_instance.get());
     env_instance->get()->set_eval_callback(&callback);
 
-    ql::compile_env_t compile_env(&env_instance->get()->symgen, ql::var_visibility_t());
+    ql::compile_env_t compile_env((ql::var_visibility_t()));
     counted_t<ql::term_t> compiled_term = ql::compile_term(&compile_env, term);
 
     try {

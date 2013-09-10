@@ -9,7 +9,7 @@
 namespace ql {
 
 bool arg_list_makes_for_implicit_variable(const std::vector<sym_t> &arg_names) {
-    return arg_names.size() == 1 && symgen_t::var_allows_implicit(arg_names[0]);
+    return arg_names.size() == 1 && sym_t::var_allows_implicit(arg_names[0]);
 }
 
 var_visibility_t::var_visibility_t() : implicit_depth(0) { }

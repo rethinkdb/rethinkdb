@@ -16,7 +16,6 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/stream.hpp"
-#include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/val.hpp"
 
 class extproc_pool_t;
@@ -77,7 +76,6 @@ public:
 class env_t : public home_thread_mixin_t {
 public:
     global_optargs_t global_optargs;
-    symgen_t symgen;
 
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
@@ -140,11 +138,11 @@ private:
     DISABLE_COPYING(env_t);
 };
 
+// RSI: Perhaps remove this type entirely.
 class compile_env_t {
 public:
-    compile_env_t(symgen_t *_symgen, var_visibility_t &&_visibility)
-        : symgen(_symgen), visibility(std::move(_visibility)) { }
-    symgen_t *symgen;
+    explicit compile_env_t(var_visibility_t &&_visibility)
+        : visibility(std::move(_visibility)) { }
     var_visibility_t visibility;
 };
 
