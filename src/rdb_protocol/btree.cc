@@ -198,7 +198,7 @@ void rdb_replace_and_return_superblock(
         }
 
         counted_t<const ql::datum_t> new_val
-            = f->compile_wire_func(ql_env)->call(ql_env, old_val)->as_datum();
+            = f->compile_wire_func()->call(ql_env, old_val)->as_datum();
         if (return_vals == RETURN_VALS) {
             bool conflict = resp.add("new_val", new_val, ql::CLOBBER);
             guarantee(conflict); // We set it to `old_val` previously.
@@ -664,7 +664,7 @@ public:
         direction(_direction)
     {
         if (_sindex_function) {
-            sindex_function = _sindex_function->compile_wire_func(_ql_env);
+            sindex_function = _sindex_function->compile_wire_func();
         }
         init(range);
     }
@@ -683,7 +683,7 @@ public:
             }
 
             if (terminal) {
-                terminal_initialize(ql_env, terminal->backtrace,
+                terminal_initialize(terminal->backtrace,
                                     &terminal->variant,
                                     &response->result);
             }
@@ -1023,7 +1023,7 @@ void rdb_update_single_sindex(
                 counted_t<const ql::datum_t> deleted = modification->info.deleted.first;
 
                 counted_t<const ql::datum_t> index =
-                    mapping.compile_wire_func(&env)->call(&env, deleted)->as_datum();
+                    mapping.compile_wire_func()->call(&env, deleted)->as_datum();
 
                 store_key_t sindex_key(
                     index->print_secondary(modification->primary_key));
@@ -1054,7 +1054,7 @@ void rdb_update_single_sindex(
             counted_t<const ql::datum_t> added = modification->info.added.first;
 
             counted_t<const ql::datum_t> index
-                = mapping.compile_wire_func(&env)->call(&env, added)->as_datum();
+                = mapping.compile_wire_func()->call(&env, added)->as_datum();
 
             store_key_t sindex_key(index->print_secondary(modification->primary_key));
 

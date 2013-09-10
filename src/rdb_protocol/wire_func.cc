@@ -50,8 +50,7 @@ wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names
 
 
 struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func_t> > {
-    explicit wire_func_compile_visitor_t(env_t *_env) : env(_env) { }
-    env_t *env;
+    wire_func_compile_visitor_t() { }
 
     counted_t<func_t> operator()(const wire_reql_func_t &func) const {
         r_sanity_check(func.body.has() && func.backtrace.has());
@@ -68,8 +67,8 @@ struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func
     DISABLE_COPYING(wire_func_compile_visitor_t);
 };
 
-counted_t<func_t> wire_func_t::compile_wire_func(env_t *env) const {
-    return boost::apply_visitor(wire_func_compile_visitor_t(env), func);
+counted_t<func_t> wire_func_t::compile_wire_func() const {
+    return boost::apply_visitor(wire_func_compile_visitor_t(), func);
 }
 
 struct wire_func_get_backtrace_visitor_t : public boost::static_visitor<protob_t<const Backtrace> > {
@@ -149,14 +148,14 @@ gmr_wire_func_t::gmr_wire_func_t(counted_t<func_t> _group,
                                  counted_t<func_t> _reduce)
     : group(_group), map(_map), reduce(_reduce) { }
 
-counted_t<func_t> gmr_wire_func_t::compile_group(env_t *env) const {
-    return group.compile_wire_func(env);
+counted_t<func_t> gmr_wire_func_t::compile_group() const {
+    return group.compile_wire_func();
 }
-counted_t<func_t> gmr_wire_func_t::compile_map(env_t *env) const {
-    return map.compile_wire_func(env);
+counted_t<func_t> gmr_wire_func_t::compile_map() const {
+    return map.compile_wire_func();
 }
-counted_t<func_t> gmr_wire_func_t::compile_reduce(env_t *env) const {
-    return reduce.compile_wire_func(env);
+counted_t<func_t> gmr_wire_func_t::compile_reduce() const {
+    return reduce.compile_wire_func();
 }
 
 

@@ -217,7 +217,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 if (orig->get_type() == datum_t::R_NULL) {
                     // TODO: We copy this for some reason, possibly no reason.
                     map_wire_func_t mwf = *replacements[i].replacer;
-                    orig = mwf.compile_wire_func(env)->call(env, orig)->as_datum();
+                    orig = mwf.compile_wire_func()->call(env, orig)->as_datum();
                     if (orig->get_type() == datum_t::R_NULL) {
                         datum_ptr_t resp(datum_t::R_OBJECT);
                         counted_t<const datum_t> one(new datum_t(1.0));
@@ -335,7 +335,7 @@ counted_t<const datum_t> table_t::do_replace(
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
-        orig = mwf2.compile_wire_func(env)->call(env, orig)->as_datum();
+        orig = mwf2.compile_wire_func()->call(env, orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
             datum_ptr_t resp(datum_t::R_OBJECT);
             bool b = resp.add("skipped", make_counted<datum_t>(1.0));

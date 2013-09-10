@@ -32,7 +32,7 @@ public:
 
     // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
-    void init_optargs(env_t *env, const std::map<std::string, wire_func_t> &_optargs);
+    void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
     counted_t<val_t> get_optarg(env_t *env, const std::string &key); // returns NULL if no entry
     const std::map<std::string, wire_func_t> &get_all_optargs();
 private:

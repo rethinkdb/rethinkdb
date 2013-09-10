@@ -42,19 +42,15 @@ bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     return false;
 }
 
-void global_optargs_t::init_optargs(env_t *env, const std::map<std::string, wire_func_t> &_optargs) {
+void global_optargs_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
-    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        counted_t<func_t> force_compilation = it->second.compile_wire_func(env);
-        r_sanity_check(force_compilation.has());
-    }
 }
 counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
     if (!optargs.count(key)) {
         return counted_t<val_t>();
     }
-    return optargs[key].compile_wire_func(env)->call(env);
+    return optargs[key].compile_wire_func()->call(env);
 }
 const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;

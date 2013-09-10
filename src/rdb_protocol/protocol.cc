@@ -758,7 +758,7 @@ private:
                     } else {
                         if (lhs) {
                             counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile_wire_func(&ql_env)->call(&ql_env, *lhs, *rhs)->as_datum();
+                                local_reduce_func.compile_wire_func()->call(&ql_env, *lhs, *rhs)->as_datum();
                             rg_response->result = reduced_val;
                         } else {
                             guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
@@ -804,7 +804,7 @@ private:
                             map->set(key, val);
                         } else {
                             counted_t<ql::func_t> r
-                                = local_gmr_func.compile_reduce(&ql_env);
+                                = local_gmr_func.compile_reduce();
                             map->set(key, r->call(&ql_env, map->get(key), val)->as_datum());
                         }
                     }
@@ -1105,7 +1105,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (rget.transform.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
-        ql_env.global_optargs.init_optargs(&ql_env, rget.optargs);
+        ql_env.global_optargs.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
@@ -1263,7 +1263,7 @@ void store_t::protocol_read(const read_t &read,
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
         try {
-            ql_env.global_optargs.init_optargs(&ql_env, r.optargs);
+            ql_env.global_optargs.init_optargs(r.optargs);
         } catch (const interrupted_exc_t &) {
             // Clear the sindex_write_token because we didn't have a chance to use it
             token_pair->sindex_write_token.reset();

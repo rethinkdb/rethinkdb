@@ -50,7 +50,7 @@ public:
     wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names, protob_t<const Backtrace> backtrace);
 
     // RSI: Audit callers of this, make sure nothing's relying on the cache (hint: some things are).
-    counted_t<func_t> compile_wire_func(env_t *env) const;
+    counted_t<func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
 
     RDB_DECLARE_ME_SERIALIZABLE;
@@ -93,9 +93,9 @@ public:
     gmr_wire_func_t(counted_t<func_t> _group,
                     counted_t<func_t> _map,
                     counted_t<func_t> _reduce);
-    counted_t<func_t> compile_group(env_t *env) const;
-    counted_t<func_t> compile_map(env_t *env) const;
-    counted_t<func_t> compile_reduce(env_t *env) const;
+    counted_t<func_t> compile_group() const;
+    counted_t<func_t> compile_map() const;
+    counted_t<func_t> compile_reduce() const;
 
     protob_t<const Backtrace> get_bt() const {
         // If this goes wrong at the toplevel, it goes wrong in reduce.
