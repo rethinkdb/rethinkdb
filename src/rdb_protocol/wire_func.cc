@@ -37,7 +37,7 @@ wire_func_t::wire_func_t(counted_t<func_t> f) {
     r_sanity_check(f.has());
     wire_func_construction_visitor_t v(this);
     f->visit(&v);
-    reinitialize_cached_func();
+    cached_func = f;
 }
 
 wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
