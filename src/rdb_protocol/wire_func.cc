@@ -37,6 +37,7 @@ wire_func_t::wire_func_t(counted_t<func_t> f) {
     r_sanity_check(f.has());
     wire_func_construction_visitor_t v(this);
     f->visit(&v);
+    reinitialize_cached_func();
 }
 
 wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
@@ -46,7 +47,20 @@ wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names
     p->arg_names = std::move(arg_names);
     p->body = std::move(body);
     p->backtrace = std::move(backtrace);
+    reinitialize_cached_func();
 }
+
+wire_func_t::wire_func_t(const wire_func_t &copyee)
+    : func(copyee.func), cached_func(copyee.cached_func) { }
+
+wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
+    wire_func_t tmp(assignee);
+    std::swap(func, tmp.func);
+    std::swap(cached_func, tmp.cached_func);
+    return *this;
+}
+
+wire_func_t::~wire_func_t() { }
 
 
 struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func_t> > {
@@ -67,19 +81,16 @@ struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func
     DISABLE_COPYING(wire_func_compile_visitor_t);
 };
 
-counted_t<func_t> wire_func_t::compile_wire_func() const {
-    return boost::apply_visitor(wire_func_compile_visitor_t(), func);
+void wire_func_t::reinitialize_cached_func() {
+    cached_func = boost::apply_visitor(wire_func_compile_visitor_t(), func);
 }
 
-struct wire_func_get_backtrace_visitor_t : public boost::static_visitor<protob_t<const Backtrace> > {
-    template <class T>
-    protob_t<const Backtrace> operator()(const T &func) const {
-        return func.backtrace;
-    }
-};
+counted_t<func_t> wire_func_t::compile_wire_func() const {
+    return cached_func;
+}
 
 protob_t<const Backtrace> wire_func_t::get_bt() const {
-    return boost::apply_visitor(wire_func_get_backtrace_visitor_t(), func);
+    return cached_func->backtrace();
 }
 
 write_message_t &operator<<(write_message_t &msg, const wire_reql_func_t &func) {  // NOLINT(runtime/references)
@@ -141,7 +152,16 @@ archive_result_t deserialize(read_stream_t *s, wire_js_func_t *func) {
     return res;
 }
 
-RDB_IMPL_ME_SERIALIZABLE_1(wire_func_t, func);
+void wire_func_t::rdb_serialize(write_message_t &msg) const {
+    msg << func;
+}
+
+archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
+    archive_result_t res = deserialize(s, &func);
+    if (res) { return res; }
+    reinitialize_cached_func();
+    return res;
+}
 
 gmr_wire_func_t::gmr_wire_func_t(counted_t<func_t> _group,
                                  counted_t<func_t> _map,

@@ -44,6 +44,9 @@ class wire_func_t {
 public:
     wire_func_t();
     explicit wire_func_t(counted_t<func_t> f);
+    ~wire_func_t();
+    wire_func_t(const wire_func_t &copyee);
+    wire_func_t &operator=(const wire_func_t &assignee);
 
     // Constructs a wire_func_t with a body and arglist and backtrace, but no scope.  I
     // hope you remembered to propagate the backtrace to body!
@@ -53,11 +56,14 @@ public:
     counted_t<func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
+    void rdb_serialize(write_message_t &msg) const;
+    archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
+    void reinitialize_cached_func();
     friend class wire_func_construction_visitor_t;
     boost::variant<wire_reql_func_t, wire_js_func_t> func;
+    counted_t<func_t> cached_func;
 };
 
 
