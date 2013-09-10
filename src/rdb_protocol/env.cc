@@ -37,7 +37,6 @@ bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env, arg);
     counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
 
-    // RSI: Store counted_t<func_t>'s in optargs instead of wire funcs.  (Hey, maybe do that everywhere!)
     optargs[key] = wire_func_t(func);
     return false;
 }

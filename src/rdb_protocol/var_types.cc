@@ -16,8 +16,6 @@ var_visibility_t::var_visibility_t() : implicit_depth(0) { }
 
 var_visibility_t var_visibility_t::with_func_arg_name_list(const std::vector<sym_t> &arg_names) const {
     var_visibility_t ret = *this;
-    // RSI: Maybe we should check for overlap and fail (because each function's symbol
-    // in the syntax tree should be different).
     ret.visibles.insert(arg_names.begin(), arg_names.end());
     if (arg_list_makes_for_implicit_variable(arg_names)) {
         ++ret.implicit_depth;

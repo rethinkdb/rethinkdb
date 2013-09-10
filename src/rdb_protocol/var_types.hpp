@@ -16,10 +16,6 @@ namespace ql {
 
 class datum_t;
 
-// RSI: The construction and passing down of var_visibility_t and var_scope_t in
-// various constructors and eval_impl functions needs to be keep in sync.  Maybe we can
-// avoid that requirement.
-
 bool arg_list_makes_for_implicit_variable(const std::vector<sym_t> &arg_names);
 
 class var_visibility_t {
