@@ -134,7 +134,6 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
            base_exc_t::GENERIC,
            strprintf("Func takes exactly two arguments (got %d)", t->args_size()));
 
-    // RSI: Why are there two ways of specifying the args array???
     std::vector<sym_t> args;
     const Term *vars = &t->args(0);
     if (vars->type() == Term_TermType_DATUM) {
@@ -237,7 +236,6 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
 
 bool reql_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
     counted_t<const datum_t> d = call(env, make_vector(arg))->as_datum();
-    // RSI: This body->get_src() stuff is fragile shit.
     if (d->get_type() == datum_t::R_OBJECT &&
         (body->get_src()->type() == Term::MAKE_OBJ ||
          body->get_src()->type() == Term::DATUM)) {
