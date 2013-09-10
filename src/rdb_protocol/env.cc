@@ -147,7 +147,6 @@ env_t::env_t(
     interruptor(_interruptor),
     this_machine(_this_machine) { }
 
-// RSI: Do we really want people calling this constructor?
 env_t::env_t(signal_t *_interruptor)
   : extproc_pool(NULL),
     cluster_env(NULL,

@@ -129,8 +129,6 @@ private:
     eval_callback_t *eval_callback;
 
 public:
-    // RSI: This variable isn't const, thanks to stream_cache2.cc.  It should be
-    // const.
     signal_t *interruptor;
     const uuid_u this_machine;
 
