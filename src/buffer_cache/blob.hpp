@@ -187,6 +187,8 @@ public:
     // sure this portion of the blob exists
     void write_from_string(const std::string &val, transaction_t *txn, int64_t offset);
 
+    void write_from_string(const char *val, size_t size, transaction_t *txn, int64_t offset);
+
 private:
     bool traverse_to_dimensions(transaction_t *txn, int levels, int64_t old_offset, int64_t old_size, int64_t new_offset, int64_t new_size, blob::traverse_helper_t *helper);
     bool allocate_to_dimensions(transaction_t *txn, int levels, int64_t new_offset, int64_t new_size);

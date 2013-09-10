@@ -1,3 +1,6 @@
+#include <snappy.h>
+
+#include "compression/blob_adapter.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 
 rdb_blob_wrapper_t::rdb_blob_wrapper_t(block_size_t blk_size, char *ref, int maxreflen) 
@@ -15,8 +18,10 @@ rdb_blob_wrapper_t::rdb_blob_wrapper_t(
         rassert(*it == 0);
     }
 #endif
-    internal.append_region(txn, data.size());
-    internal.write_from_string(data, txn, 0);
+    snappy::ByteArraySource src(data.data(), data.size());
+    blob_sink_t sink(&internal, txn);
+
+    snappy::Compress(&src, &sink);
 }
 
 int rdb_blob_wrapper_t::refsize(block_size_t block_size) const {

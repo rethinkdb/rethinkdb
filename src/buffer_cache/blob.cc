@@ -504,12 +504,16 @@ void blob_t::clear(transaction_t *txn) {
 }
 
 void blob_t::write_from_string(const std::string &val, transaction_t *txn, int64_t offset) {
+    write_from_string(val.data(), val.size(), txn, offset);
+}
+
+void blob_t::write_from_string(const char *val, size_t size, transaction_t *txn, int64_t offset) {
     buffer_group_t dest;
     blob_acq_t acq;
-    expose_region(txn, rwi_write, offset, val.size(), &dest, &acq);
+    expose_region(txn, rwi_write, offset, size, &dest, &acq);
 
     buffer_group_t src;
-    src.add_buffer(val.size(), val.data());
+    src.add_buffer(size, val);
     buffer_group_copy_data(&dest, const_view(&src));
 }
 
