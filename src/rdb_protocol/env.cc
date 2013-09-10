@@ -25,8 +25,7 @@ global_optargs_t::global_optargs_t() { }
 global_optargs_t::global_optargs_t(const std::map<std::string, wire_func_t> &_optargs)
     : optargs(_optargs) { }
 
-// RSI: Remove this unused parameter?
-bool global_optargs_t::add_optarg(UNUSED env_t *env, const std::string &key, const Term &val) {
+bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) {
         return true;
     }

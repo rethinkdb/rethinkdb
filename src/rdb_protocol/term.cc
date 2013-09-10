@@ -184,7 +184,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             for (int i = 0; i < q->global_optargs_size(); ++i) {
                 const Query::AssocPair &ap = q->global_optargs(i);
                 if (ap.key() == "noreply") {
-                    bool conflict = env->global_optargs.add_optarg(env, ap.key(), ap.val());
+                    bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
                     r_sanity_check(!conflict);
                     counted_t<val_t> noreply = env->global_optargs.get_optarg(env, "noreply");
                     r_sanity_check(noreply.has());
@@ -197,7 +197,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             for (int i = 0; i < q->global_optargs_size(); ++i) {
                 const Query::AssocPair &ap = q->global_optargs(i);
                 if (ap.key() != "noreply") {
-                    bool conflict = env->global_optargs.add_optarg(env, ap.key(), ap.val());
+                    bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
                     rcheck_toplevel(
                         !conflict, base_exc_t::GENERIC,
                         strprintf("Duplicate global optarg: %s", ap.key().c_str()));
@@ -210,7 +210,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             N1(DB, NDATUM("test"));
 
             propagate_backtrace(arg, t_bt); // duplicate toplevel backtrace
-            UNUSED bool _b = env->global_optargs.add_optarg(env, "db", *arg);
+            UNUSED bool _b = env->global_optargs.add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
