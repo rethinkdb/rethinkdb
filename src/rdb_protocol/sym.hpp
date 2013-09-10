@@ -27,30 +27,25 @@ void debug_print(printf_buffer_t *buf, sym_t sym);
 
 class symgen_t {
 public:
-    symgen_t() : next_implicit_gensym_val(-1), next_non_implicit_gensym_val(-1) { }
+    symgen_t() : next_gensym_val(-1) { }
 
-    // Returns a globally unique variable.
+    // Returns a globally unique variable (with respect to the environment).
     sym_t gensym();
-    sym_t gensym_allowing_implicit();
 
     static bool var_allows_implicit(sym_t varnum);
 private:
-    sym_t do_gensym(int64_t *counter, int64_t offset);
-
     // All gensyms have to be inside [-2^53, 2^53], because we store them in doubles
     // in protobuf func objects.
 
-    // The minimum gensym value that is usable as an implicit variable (if it's the
-    // only one in its function's arg list).  This includes _positive_ symbol values!
-    static const int64_t MIN_IMPLICIT_GENSYM = -(1LL << 28);
-
     // We limit gensyms to a small proportion of the values, leaving plenty of room for
-    // backwards-compatible growth in the set of possible gensym types.
+    // backwards-compatible growth in the set of possible _different_ sym types.  Right
+    // now there are two types: those that can be referenced by an implicit variable
+    // (in appropriate situations), which are positive (and client-supplied), and those
+    // which cannot.
     static const int64_t MIN_RAW_GENSYM = -(1LL << 24);
 
-    // Both these are between -1 and MIN_RAW_GENSYM_VALUE.
-    int64_t next_implicit_gensym_val; // always negative
-    int64_t next_non_implicit_gensym_val;
+    // Both these are between -1 and MIN_RAW_GENSYM.
+    int64_t next_gensym_val;  // always negative
     DISABLE_COPYING(symgen_t);
 };
 
