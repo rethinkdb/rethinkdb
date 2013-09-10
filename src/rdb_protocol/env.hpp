@@ -138,7 +138,6 @@ private:
     DISABLE_COPYING(env_t);
 };
 
-// RSI: Perhaps remove this type entirely.
 class compile_env_t {
 public:
     explicit compile_env_t(var_visibility_t &&_visibility)
