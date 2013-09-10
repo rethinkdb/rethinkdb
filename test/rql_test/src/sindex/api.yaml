@@ -6,13 +6,13 @@ tests:
 
   - def: rows = [{'id':0, 'a':0, 'b':0, 'c':0, 'm':[1,2,3]},
                  {'id':1, 'a':0, 'b':0, 'c':0, 'm':[4,5,6]},
-                 {'id':2, 'a':0, 'b':0, 'c':1, 'm':[7,8,9]},
+                 {'id':2, 'a':0, 'b':0, 'c':1, 'm':7},
                  {'id':3, 'a':0, 'b':1, 'c':1, 'm':[10,11,12]},
                  {'id':4, 'a':4, 'b':4, 'c':4, 'm':[14,15,16]}]
 
   - cd: tbl.insert([{'id':0, 'a':0, 'b':0, 'c':0, 'm':[1,2,3]},
                     {'id':1, 'a':0, 'b':0, 'c':0, 'm':[4,5,6]},
-                    {'id':2, 'a':0, 'b':0, 'c':1, 'm':[7,8,9]},
+                    {'id':2, 'a':0, 'b':0, 'c':1, 'm':7},
                     {'id':3, 'a':0, 'b':1, 'c':1, 'm':[10,11,12]}])
     ot: ({'deleted':0,'inserted':4,'skipped':0,'errors':0,'replaced':0,'unchanged':0})
 
@@ -195,6 +195,26 @@ tests:
     js: tbl.getAll(1, {index:'brokeni'})
     ot: []
 
+  - rb: tbl.get_all(1, :index => :mi)
+    py: tbl.get_all(1, index='mi')
+    js: tbl.getAll(1, {index:'mi'})
+    ot: ([rows[0]])
+
+  - rb: tbl.get_all(2, :index => :mi)
+    py: tbl.get_all(2, index='mi')
+    js: tbl.getAll(2, {index:'mi'})
+    ot: ([rows[0]])
+
+  - rb: tbl.get_all(5, :index => :mi)
+    py: tbl.get_all(5, index='mi')
+    js: tbl.getAll(5, {index:'mi'})
+    ot: ([rows[1]])
+
+  - rb: tbl.get_all(7, :index => :mi)
+    py: tbl.get_all(7, index='mi')
+    js: tbl.getAll(7, {index:'mi'})
+    ot: ([rows[2]])
+
   - rb: tbl.eq_join(:id, tbl, :index => :fake)
     py: tbl.eq_join('id', tbl, index='fake')
     js: tbl.eqJoin('id', tbl, {index:'fake'})
@@ -203,6 +223,11 @@ tests:
     py: tbl.eq_join('id', tbl, index=False)
     js: tbl.eqJoin('id', tbl, {index:false})
     ot: 'err("RqlRuntimeError", "Expected type STRING but found BOOL.", [])'
+
+  - rb: tbl.filter({:id => 1}).eq_join(:id, tbl, :index => :mi)
+    py: tbl.filter({'id':1}).eq_join('id', tbl, index='mi')
+    js: tbl.filter({id:1}).eqJoin('id', tbl, {index:'mi'})
+    ot: ([{'left':rows[1],'right':rows[0]}])
 
   - rb: tbl.filter({:id => 0}).eq_join(:id, tbl)
     py: tbl.filter({'id':0}).eq_join('id', tbl)
@@ -1163,5 +1188,21 @@ tests:
     py: tbl.between([1, 1], None, index='cb', right_bound='closed').order_by('id').map(lambda x:x['id'])
     js: tbl.between([1, 1], null, {'index':'cb', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
     ot: [3, 4]
+
+  - rb: tbl.between(1, 3, :index => :mi, :right_bound => :closed).map{|x| x[:id]}
+    py: tbl.between(1, 3, index='mi', right_bound='closed').map(lambda x:x['id'])
+    js: tbl.between(1, 3, {'index':'mi', 'right_bound':'closed'}).map(function(x) { return x('id'); })
+    ot: ([0,0,0])
+
+  - rb: tbl.between(1, 16, :index => :mi, :right_bound => :closed).order_by(:id).map{|x| x[:id]}
+    py: tbl.between(1, 16, index='mi', right_bound='closed').order_by('id').map(lambda x:x['id'])
+    js: tbl.between(1, 16, {'index':'mi', 'right_bound':'closed'}).orderBy('id').map(function(x) { return x('id'); })
+    ot: ([0,0,0,1,1,1,2,3,3,3,4,4,4])
+
+  - rb: tbl.order_by(:index => :mi).map{|x| x[:id]}
+    py: tbl.order_by(index='mi').map(lambda x:x['id'])
+    js: tbl.orderBy({'index':'mi'}).map(function(x) { return x('id'); })
+    ot: ([0,0,0,1,1,1,2,3,3,3,4,4,4])
+
 
   - cd: r.db('test').table_drop('sindex_api')

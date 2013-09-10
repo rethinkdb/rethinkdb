@@ -733,11 +733,11 @@ public:
                 guarantee(sindex_range);
                 guarantee(sindex_multi);
 
-                if (sindex_multi == MULTI) {
-                    int tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
-                    guarantee(sindex_value->get_type() == ql::datum_t::R_ARRAY);
-                    guarantee(static_cast<int>(sindex_value->size()) > tag);
-                    sindex_value = sindex_value->get(tag);
+                if (sindex_multi == MULTI &&
+                    sindex_value->get_type() == ql::datum_t::R_ARRAY) {
+                        int tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
+                        guarantee(static_cast<int>(sindex_value->size()) > tag);
+                        sindex_value = sindex_value->get(tag);
                 }
                 if (!sindex_range->contains(sindex_value)) {
                     return true;
