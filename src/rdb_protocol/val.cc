@@ -129,7 +129,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
 
                 protob_t<Term> twrap = make_counted_term();
                 Term *const arg = twrap.get();
-                const sym_t x = env->symgen.gensym();
+                const sym_t x = GENSYM_A();
                 replacement->write_to_protobuf(pb::set_datum(arg));
                 propagate(arg);
 
@@ -158,7 +158,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
             protob_t<Term> twrap = make_counted_term();
             Term *const arg = twrap.get();
 
-            const sym_t x = env->symgen.gensym();
+            const sym_t x = GENSYM_A();
             if (upsert) {
                 replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
             } else {
@@ -380,7 +380,7 @@ counted_t<const datum_t> table_t::do_replace(env_t *env,
                                              bool return_vals) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
-    sym_t x = env->symgen.gensym();
+    sym_t x = GENSYM_A();
     if (upsert) {
         d->write_to_protobuf(pb::set_datum(arg));
     } else {

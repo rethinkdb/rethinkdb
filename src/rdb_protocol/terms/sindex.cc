@@ -33,8 +33,8 @@ public:
             index_func = arg(env, 2)->as_func(env->env);
         } else {
             protob_t<Term> func_term = make_counted_term();
-            sym_t x = env->env->symgen.gensym();
             {
+                sym_t x = GENSYM_A();
                 Term *arg = pb::set_func(func_term.get(), x);
                 N2(GET_FIELD, NVAR(x), NDATUM(name_datum));
             }
