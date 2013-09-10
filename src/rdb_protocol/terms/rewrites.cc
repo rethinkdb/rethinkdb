@@ -17,8 +17,7 @@ namespace ql {
 class rewrite_term_t : public term_t {
 public:
     rewrite_term_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
-                   protob_t<Term> (*rewrite)(compile_env_t *env,
-                                             protob_t<const Term> in,
+                   protob_t<Term> (*rewrite)(protob_t<const Term> in,
                                              protob_t<Term> out,
                                              const pb_rcheckable_t *bt_src))
         : term_t(term), in(term), out(make_counted_term()) {
@@ -27,7 +26,7 @@ public:
                base_exc_t::GENERIC,
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
-        protob_t<Term> optarg_inheritor = rewrite(env, in, out, this);
+        protob_t<Term> optarg_inheritor = rewrite(in, out, this);
         propagate(out.get()); // duplicates `in` backtrace (see `pb_rcheckable_t`)
         for (int i = 0; i < in->optargs_size(); ++i) {
             *optarg_inheritor->add_optargs() = in->optargs(i);
@@ -58,19 +57,19 @@ public:
     groupby_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(compile_env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   const pb_rcheckable_t *bt_src) {
         std::string dc;
         Term dc_arg;
         parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
         Term *arg = out.get();
-        arg = final_wrap(env, arg, dc, &dc_arg);
+        arg = final_wrap(arg, dc, &dc_arg);
         N4(GROUPED_MAP_REDUCE,
            *arg = in->args(0),
            *arg = in->args(1),
-           map_fn(env, arg, dc, &dc_arg),
-           reduce_fn(env, arg, dc, &dc_arg));
+           map_fn(arg, dc, &dc_arg),
+           reduce_fn(arg, dc, &dc_arg));
         return out;
     }
 
@@ -114,10 +113,10 @@ private:
         }
     }
 
-    static void map_fn(compile_env_t *env, Term *arg,
+    static void map_fn(Term *arg,
                        const std::string &dc, const Term *dc_arg) {
-        const sym_t obj = env->symgen->gensym();
-        const sym_t attr = env->symgen->gensym();
+        const sym_t obj = GENSYM_A();
+        const sym_t attr = GENSYM_B();
         arg = pb::set_func(arg, obj);
         if (dc == "COUNT") {
             NDATUM(1.0);
@@ -138,10 +137,10 @@ private:
         } else if (dc == "AVG") {
         } else { unreachable(); }
     }
-    static void reduce_fn(compile_env_t *env, Term *arg,
+    static void reduce_fn(Term *arg,
                           const std::string &dc, UNUSED const Term *dc_arg) {
-        const sym_t a = env->symgen->gensym();
-        const sym_t b = env->symgen->gensym();
+        const sym_t a = GENSYM_A();
+        const sym_t b = GENSYM_B();
         arg = pb::set_func(arg, a, b);
         if (dc == "COUNT" || dc == "SUM") {
             N2(ADD, NVAR(a), NVAR(b));
@@ -153,14 +152,14 @@ private:
                        N2(NTH, NVAR(b), NDATUM(1.0))));
         } else { unreachable(); }
     }
-    static Term *final_wrap(compile_env_t *env, Term *arg,
+    static Term *final_wrap(Term *arg,
                             const std::string &dc, UNUSED const Term *dc_arg) {
         if (dc == "COUNT" || dc == "SUM") {
             return arg;
         }
 
-        const sym_t val = env->symgen->gensym();
-        const sym_t obj = env->symgen->gensym();
+        const sym_t val = GENSYM_A();
+        const sym_t obj = GENSYM_B();
         Term *argout = 0;
         if (dc == "AVG") {
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
@@ -182,14 +181,14 @@ public:
     inner_join_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(compile_env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         const Term *const left = &in->args(0);
         const Term *const right = &in->args(1);
         const Term *const func = &in->args(2);
-        const sym_t n = env->symgen->gensym();
-        const sym_t m = env->symgen->gensym();
+        const sym_t n = GENSYM_A();
+        const sym_t m = GENSYM_B();
 
         Term *arg = out.get();
         // `left`.concatmap { |n|
@@ -215,15 +214,15 @@ public:
     outer_join_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(compile_env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         const Term *const left = &in->args(0);
         const Term *const right = &in->args(1);
         const Term *const func = &in->args(2);
-        const sym_t n = env->symgen->gensym();
-        const sym_t m = env->symgen->gensym();
-        const sym_t lst = env->symgen->gensym();
+        const sym_t n = GENSYM_A();
+        const sym_t m = GENSYM_B();
+        const sym_t lst = GENSYM_C();
 
         Term *arg = out.get();
 
@@ -265,14 +264,14 @@ public:
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
 
-    static protob_t<Term> rewrite(compile_env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         const Term *const left = &in->args(0);
         const Term *const left_attr = &in->args(1);
         const Term *const right = &in->args(2);
-        const sym_t row = env->symgen->gensym();
-        const sym_t v = env->symgen->gensym();
+        const sym_t row = GENSYM_A();
+        const sym_t v = GENSYM_B();
 
         Term *arg = out.get();
         Term *optarg_inheritor = NULL;
@@ -296,10 +295,10 @@ public:
         : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
 
-    static protob_t<Term> rewrite(compile_env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const sym_t x = env->symgen->gensym();
+        const sym_t x = GENSYM_A();
 
         Term *arg = out.get();
         N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
@@ -313,12 +312,11 @@ public:
     update_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(compile_env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        // The `false` values below mean that we don't bind the implicit variable.
-        const sym_t old_row = env->symgen->gensym();
-        const sym_t new_row = env->symgen->gensym();
+        const sym_t old_row = GENSYM_A();
+        const sym_t new_row = GENSYM_B();
 
         Term *arg = out.get();
         N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
@@ -345,7 +343,7 @@ public:
     skip_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(compile_env_t *, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         Term *arg = out.get();
@@ -361,10 +359,10 @@ public:
     difference_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(compile_env_t *env, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const sym_t row = env->symgen->gensym();
+        const sym_t row = GENSYM_A();
 
         Term *arg = out.get();
         N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, row);
@@ -381,7 +379,7 @@ public:
     with_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
 private:
-    static protob_t<Term> rewrite(compile_env_t *, protob_t<const Term> in,
+    static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         Term *arg = out.get();

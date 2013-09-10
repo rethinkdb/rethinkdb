@@ -25,9 +25,13 @@ RDB_DECLARE_SERIALIZABLE(sym_t);
 
 void debug_print(printf_buffer_t *buf, sym_t sym);
 
+inline sym_t GENSYM_A() { return sym_t(-1); }
+inline sym_t GENSYM_B() { return sym_t(-2); }
+inline sym_t GENSYM_C() { return sym_t(-3); }
+
 class symgen_t {
 public:
-    symgen_t() : next_gensym_val(-1) { }
+    symgen_t() : next_gensym_val(-4) { }
 
     // Returns a globally unique variable (with respect to the environment).
     sym_t gensym();
