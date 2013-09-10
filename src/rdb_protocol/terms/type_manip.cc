@@ -302,7 +302,7 @@ private:
         } break;
 
         case FUNC_TYPE: {
-            b |= info.add("source_code", make_counted<datum_t>(v->as_func(env->env)->print_source()));
+            b |= info.add("source_code", make_counted<datum_t>(v->as_func()->print_source()));
         } break;
 
         case R_NULL_TYPE:   // fallthru

@@ -407,9 +407,9 @@ private:
         counted_t<val_t> v = arg(env, 1);
         counted_t<func_t> fun;
         if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
-            fun = v->as_func(env->env);
+            fun = v->as_func();
         } else {
-            fun = new_eq_comparison_func(env->env, v->as_datum(), backtrace());
+            fun = new_eq_comparison_func(v->as_datum(), backtrace());
         }
         return new_val(env, arg(env, 0)->as_seq(env->env)->indexes_of(fun));
     }
@@ -428,7 +428,7 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             counted_t<val_t> v = arg(env, i);
             if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
-                required_funcs.push_back(v->as_func(env->env));
+                required_funcs.push_back(v->as_func());
             } else {
                 required_els.push_back(v->as_datum());
             }

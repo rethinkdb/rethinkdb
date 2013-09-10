@@ -313,8 +313,7 @@ bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<fun
     std::rethrow_exception(saved_exception);
 }
 
-// RSI: Remove these unused env parameters.
-counted_t<func_t> new_constant_func(UNUSED env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
                                     const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
@@ -327,7 +326,7 @@ counted_t<func_t> new_constant_func(UNUSED env_t *env, counted_t<const datum_t> 
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_get_field_func(UNUSED env_t *env, counted_t<const datum_t> key,
+counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
                                      const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *arg = twrap.get();
@@ -342,7 +341,7 @@ counted_t<func_t> new_get_field_func(UNUSED env_t *env, counted_t<const datum_t>
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_pluck_func(UNUSED env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
@@ -357,7 +356,7 @@ counted_t<func_t> new_pluck_func(UNUSED env_t *env, counted_t<const datum_t> obj
     return func_term->eval_to_func(var_scope_t());
 }
 
-counted_t<func_t> new_eq_comparison_func(UNUSED env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();

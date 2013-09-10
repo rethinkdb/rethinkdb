@@ -126,16 +126,16 @@ protected:
 // Some queries, like filter, can take a shortcut object instead of a
 // function as their argument.
 
-counted_t<func_t> new_constant_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
                                     const protob_t<const Backtrace> &root);
 
-counted_t<func_t> new_pluck_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src);
 
-counted_t<func_t> new_get_field_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_get_field_func(counted_t<const datum_t> obj,
                                      const protob_t<const Backtrace> &bt_src);
 
-counted_t<func_t> new_eq_comparison_func(env_t *env, counted_t<const datum_t> obj,
+counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src);
 
 

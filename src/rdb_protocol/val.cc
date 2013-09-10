@@ -649,7 +649,7 @@ std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_select
     return std::make_pair(table, datum());
 }
 
-counted_t<func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut) {
+counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
     if (get_type().is_convertible(type_t::FUNC)) {
         r_sanity_check(func().has());
         return func();
@@ -669,11 +669,11 @@ counted_t<func_t> val_t::as_func(env_t *env, function_shortcut_t shortcut) {
     // shortcut.
     switch (shortcut) {
     case CONSTANT_SHORTCUT:
-        return new_constant_func(env, as_datum(), backtrace());
+        return new_constant_func(as_datum(), backtrace());
     case GET_FIELD_SHORTCUT:
-        return new_get_field_func(env, as_datum(), backtrace());
+        return new_get_field_func(as_datum(), backtrace());
     case PLUCK_SHORTCUT:
-        return new_pluck_func(env, as_datum(), backtrace());
+        return new_pluck_func(as_datum(), backtrace());
     case NO_SHORTCUT:
         // fallthru
     default: unreachable();

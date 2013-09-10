@@ -106,10 +106,10 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(
-                        std::make_pair(DESC, arg(env, i)->as_func(env->env, GET_FIELD_SHORTCUT)));
+                        std::make_pair(DESC, arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
             } else {
                 comparisons.push_back(
-                        std::make_pair(ASC, arg(env, i)->as_func(env->env, GET_FIELD_SHORTCUT)));
+                        std::make_pair(ASC, arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
             }
         }
         lt_cmp_t lt_cmp(comparisons);
