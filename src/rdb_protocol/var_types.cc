@@ -41,18 +41,22 @@ void debug_print(printf_buffer_t *buf, const var_visibility_t &var_visibility) {
 
 var_scope_t::var_scope_t() : implicit_depth(0) { }
 
-var_scope_t var_scope_t::with_func_arg_list(const std::vector<std::pair<sym_t, counted_t<const datum_t> > > &new_vars) const {
+var_scope_t var_scope_t::with_func_arg_list(const std::vector<sym_t> &arg_names,
+                                            const std::vector<counted_t<const datum_t> > &arg_values) const {
+    r_sanity_check(arg_names.size() == arg_values.size());
     var_scope_t ret = *this;
-    if (new_vars.size() == 1 && gensym_t::var_allows_implicit(new_vars[0].first)) {
+    if (arg_list_makes_for_implicit_variable(arg_names)) {
         if (ret.implicit_depth == 0) {
-            ret.maybe_implicit = new_vars[0].second;
+            ret.maybe_implicit = arg_values[0];
         } else {
             ret.maybe_implicit.reset();
         }
         ++ret.implicit_depth;
     }
 
-    ret.vars.insert(new_vars.begin(), new_vars.end());
+    for (size_t i = 0; i < arg_names.size(); ++i) {
+        ret.vars.insert(std::make_pair(arg_names[i], arg_values[i]));
+    }
     return ret;
 }
 

@@ -22,7 +22,6 @@ class datum_t;
 
 bool arg_list_makes_for_implicit_variable(const std::vector<sym_t> &arg_names);
 
-// RSI: Make this efficient.
 class var_visibility_t {
 public:
     var_visibility_t();
@@ -58,12 +57,12 @@ public:
     DISABLE_COPYING(var_captures_t);
 };
 
-// RSI: Make this efficient.
 class var_scope_t {
 public:
     var_scope_t();
 
-    var_scope_t with_func_arg_list(const std::vector<std::pair<sym_t, counted_t<const datum_t> > > &new_vars) const;
+    var_scope_t with_func_arg_list(const std::vector<sym_t> &arg_names,
+                                   const std::vector<counted_t<const datum_t> > &arg_values) const;
 
     var_scope_t filtered_by_captures(const var_captures_t &captures) const;
 

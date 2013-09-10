@@ -57,11 +57,9 @@ counted_t<val_t> reql_func_t::call(env_t *env, const std::vector<counted_t<const
                strprintf("Expected %zd argument(s) but found %zu.",
                          arg_names.size(), args.size()));
 
-        std::vector<std::pair<sym_t, counted_t<const datum_t> > > new_vars;
-        for (size_t i = 0; i < arg_names.size(); ++i) {
-            new_vars.push_back(std::make_pair(arg_names[i], args[i]));
-        }
-        var_scope_t new_scope = captured_scope.with_func_arg_list(new_vars);
+        var_scope_t new_scope = arg_names.size() == 0
+            ? captured_scope
+            : captured_scope.with_func_arg_list(arg_names, args);
 
         scope_env_t scope_env(env, std::move(new_scope));
         return body->eval(&scope_env);
