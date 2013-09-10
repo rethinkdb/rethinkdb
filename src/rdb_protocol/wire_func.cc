@@ -13,13 +13,13 @@ class wire_func_construction_visitor_t : public func_visitor_t {
 public:
     explicit wire_func_construction_visitor_t(wire_func_t *_that) : that(_that) { }
 
-    void on_reql_func(const reql_func_t *good_func) {
+    void on_reql_func(const reql_func_t *reql_func) {
         that->func = wire_reql_func_t();
         wire_reql_func_t *p = boost::get<wire_reql_func_t>(&that->func);
-        p->captured_scope = good_func->captured_scope;
-        p->arg_names = good_func->arg_names;
-        p->body = good_func->body->get_src();
-        p->backtrace = good_func->backtrace();
+        p->captured_scope = reql_func->captured_scope;
+        p->arg_names = reql_func->arg_names;
+        p->body = reql_func->body->get_src();
+        p->backtrace = reql_func->backtrace();
     }
     void on_js_func(const js_func_t *js_func) {
         that->func = wire_js_func_t();
@@ -56,7 +56,7 @@ struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func
     counted_t<func_t> operator()(const wire_reql_func_t &func) const {
         r_sanity_check(func.body.has() && func.backtrace.has());
         compile_env_t compile_env(&env->symgen,
-                                     func.captured_scope.compute_visibility().with_func_arg_name_list(func.arg_names));
+                                  func.captured_scope.compute_visibility().with_func_arg_name_list(func.arg_names));
         return make_counted<reql_func_t>(func.backtrace, func.captured_scope, func.arg_names,
                                          compile_term(&compile_env, func.body));
     }

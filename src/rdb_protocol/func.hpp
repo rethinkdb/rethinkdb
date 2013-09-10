@@ -115,7 +115,7 @@ private:
 
 class func_visitor_t {
 public:
-    virtual void on_reql_func(const reql_func_t *good_func) = 0;
+    virtual void on_reql_func(const reql_func_t *reql_func) = 0;
     virtual void on_js_func(const js_func_t *js_func) = 0;
 protected:
     func_visitor_t() { }
