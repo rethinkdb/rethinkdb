@@ -317,8 +317,8 @@ private:
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
         // The `false` values below mean that we don't bind the implicit variable.
-        const sym_t old_row = env->symgen->gensym(false);
-        const sym_t new_row = env->symgen->gensym(false);
+        const sym_t old_row = env->symgen->gensym();
+        const sym_t new_row = env->symgen->gensym();
 
         Term *arg = out.get();
         N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
@@ -364,7 +364,7 @@ private:
     static protob_t<Term> rewrite(compile_env_t *env, protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const sym_t row = env->symgen->gensym(false);
+        const sym_t row = env->symgen->gensym();
 
         Term *arg = out.get();
         N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, row);

@@ -12,20 +12,19 @@ void debug_print(printf_buffer_t *buf, sym_t sym) {
     buf->appendf("var_%" PRIi64 "", sym.value);
 }
 
-sym_t symgen_t::gensym(bool allow_implicit) {
-    if (allow_implicit) {
-        r_sanity_check(0 > next_implicit_gensym_val
-                       && next_implicit_gensym_val >= MIN_RAW_GENSYM_VALUE);
-        const int64_t ret = next_implicit_gensym_val;
-        --next_implicit_gensym_val;
-        return sym_t(ret);
-    } else {
-        r_sanity_check(0 > next_non_implicit_gensym_val
-                       && next_non_implicit_gensym_val >= MIN_RAW_GENSYM_VALUE);
-        const int64_t ret = next_non_implicit_gensym_val + MIN_IMPLICIT_GENSYM;
-        --next_non_implicit_gensym_val;
-        return sym_t(ret);
-    }
+sym_t symgen_t::do_gensym(int64_t *next_value, int64_t offset) {
+    r_sanity_check(0 > *next_value && *next_value >= MIN_RAW_GENSYM);
+    const int64_t ret = *next_value + offset;
+    --*next_value;
+    return sym_t(ret);
+}
+
+sym_t symgen_t::gensym() {
+    return do_gensym(&next_non_implicit_gensym_val, MIN_IMPLICIT_GENSYM);
+}
+
+sym_t symgen_t::gensym_allowing_implicit() {
+    return do_gensym(&next_implicit_gensym_val, 0);
 }
 
 bool symgen_t::var_allows_implicit(sym_t varnum) {

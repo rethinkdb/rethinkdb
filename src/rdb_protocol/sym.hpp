@@ -30,10 +30,13 @@ public:
     symgen_t() : next_implicit_gensym_val(-1), next_non_implicit_gensym_val(-1) { }
 
     // Returns a globally unique variable.
-    sym_t gensym(bool allow_implicit = false);
+    sym_t gensym();
+    sym_t gensym_allowing_implicit();
 
     static bool var_allows_implicit(sym_t varnum);
 private:
+    sym_t do_gensym(int64_t *counter, int64_t offset);
+
     // All gensyms have to be inside [-2^53, 2^53], because we store them in doubles
     // in protobuf func objects.
 
@@ -43,7 +46,7 @@ private:
 
     // We limit gensyms to a small proportion of the values, leaving plenty of room for
     // backwards-compatible growth in the set of possible gensym types.
-    static const int64_t MIN_RAW_GENSYM_VALUE = -(1LL << 24);
+    static const int64_t MIN_RAW_GENSYM = -(1LL << 24);
 
     // Both these are between -1 and MIN_RAW_GENSYM_VALUE.
     int64_t next_implicit_gensym_val; // always negative
