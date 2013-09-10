@@ -60,21 +60,6 @@ const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;
 }
 
-static const int min_normal_gensym = -1000000;
-sym_t gensym_t::gensym(bool allow_implicit) {
-    r_sanity_check(0 > next_gensym_val && next_gensym_val >= min_normal_gensym);
-    int64_t ret = next_gensym_val--;
-    if (!allow_implicit) {
-        ret += min_normal_gensym;
-        r_sanity_check(ret < min_normal_gensym);
-    }
-    return sym_t(ret);
-}
-
-bool gensym_t::var_allows_implicit(sym_t varnum) {
-    return varnum.value >= min_normal_gensym;
-}
-
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
     eval_callback = callback;

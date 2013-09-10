@@ -40,17 +40,6 @@ private:
     std::map<std::string, wire_func_t> optargs;
 };
 
-class gensym_t {
-public:
-    gensym_t() : next_gensym_val(-2) { }
-    // Returns a globally unique variable.
-    sym_t gensym(bool allow_implicit = false);
-    static bool var_allows_implicit(sym_t varnum);
-private:
-    int64_t next_gensym_val; // always negative
-    DISABLE_COPYING(gensym_t);
-};
-
 class cluster_env_t {
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
@@ -88,7 +77,7 @@ public:
 class env_t : public home_thread_mixin_t {
 public:
     global_optargs_t global_optargs;
-    gensym_t symgen;
+    symgen_t symgen;
 
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
@@ -153,9 +142,9 @@ private:
 
 class compile_env_t {
 public:
-    compile_env_t(gensym_t *_symgen, var_visibility_t &&_visibility)
+    compile_env_t(symgen_t *_symgen, var_visibility_t &&_visibility)
         : symgen(_symgen), visibility(std::move(_visibility)) { }
-    gensym_t *symgen;
+    symgen_t *symgen;
     var_visibility_t visibility;
 };
 
