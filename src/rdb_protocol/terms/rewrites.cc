@@ -160,7 +160,7 @@ private:
 
         const sym_t val = GENSYM_A();
         const sym_t obj = GENSYM_B();
-        Term *argout = 0;
+        Term *argout = NULL;
         if (dc == "AVG") {
             N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
                OPT2(MAKE_OBJ,
@@ -170,6 +170,8 @@ private:
                        N2(DIV, N2(NTH, NVAR(val), NDATUM(0.0)),
                                N2(NTH, NVAR(val), NDATUM(1.0))),
                        N2(GET_FIELD, NVAR(obj), NDATUM("reduction")))));
+        } else {
+            unreachable();
         }
         return argout;
     }
