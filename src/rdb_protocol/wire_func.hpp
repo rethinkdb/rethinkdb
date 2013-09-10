@@ -6,9 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/variant.hpp>
-
 #include "containers/uuid.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/sym.hpp"
@@ -22,23 +19,6 @@ class Term;
 namespace ql {
 class func_t;
 class env_t;
-
-struct wire_reql_func_t {
-    var_scope_t captured_scope;
-    std::vector<sym_t> arg_names;
-    protob_t<const Term> body;
-    protob_t<const Backtrace> backtrace;
-};
-
-RDB_DECLARE_SERIALIZABLE(wire_reql_func_t);
-
-struct wire_js_func_t {
-    std::string js_source;
-    uint64_t js_timeout_ms;
-    protob_t<const Backtrace> backtrace;
-};
-
-RDB_DECLARE_SERIALIZABLE(wire_js_func_t);
 
 class wire_func_t {
 public:
@@ -62,7 +42,6 @@ public:
 private:
     void reinitialize_cached_func();
     friend class wire_func_construction_visitor_t;
-    boost::variant<wire_reql_func_t, wire_js_func_t> func;
     counted_t<func_t> cached_func;
 };
 

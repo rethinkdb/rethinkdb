@@ -1,67 +1,62 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/wire_func.hpp"
 
+#include "errors.hpp"
+#include <boost/variant.hpp>
+
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 namespace ql {
 
+struct wire_reql_func_t {
+    var_scope_t captured_scope;
+    std::vector<sym_t> arg_names;
+    protob_t<const Term> body;
+    protob_t<const Backtrace> backtrace;
+};
+
+RDB_DECLARE_SERIALIZABLE(wire_reql_func_t);
+
+struct wire_js_func_t {
+    std::string js_source;
+    uint64_t js_timeout_ms;
+    protob_t<const Backtrace> backtrace;
+};
+
+RDB_DECLARE_SERIALIZABLE(wire_js_func_t);
+
 wire_func_t::wire_func_t() { }
 
 class wire_func_construction_visitor_t : public func_visitor_t {
 public:
-    explicit wire_func_construction_visitor_t(wire_func_t *_that) : that(_that) { }
+    explicit wire_func_construction_visitor_t(boost::variant<wire_reql_func_t, wire_js_func_t> *_that) : that(_that) { }
 
     void on_reql_func(const reql_func_t *reql_func) {
-        that->func = wire_reql_func_t();
-        wire_reql_func_t *p = boost::get<wire_reql_func_t>(&that->func);
+        *that = wire_reql_func_t();
+        wire_reql_func_t *p = boost::get<wire_reql_func_t>(that);
         p->captured_scope = reql_func->captured_scope;
         p->arg_names = reql_func->arg_names;
         p->body = reql_func->body->get_src();
         p->backtrace = reql_func->backtrace();
     }
     void on_js_func(const js_func_t *js_func) {
-        that->func = wire_js_func_t();
-        wire_js_func_t *p = boost::get<wire_js_func_t>(&that->func);
+        *that = wire_js_func_t();
+        wire_js_func_t *p = boost::get<wire_js_func_t>(that);
         p->js_source = js_func->js_source;
         p->js_timeout_ms = js_func->js_timeout_ms;
         p->backtrace = js_func->backtrace();
     }
 
 private:
-    wire_func_t *that;
+    boost::variant<wire_reql_func_t, wire_js_func_t> *that;
 };
 
 wire_func_t::wire_func_t(counted_t<func_t> f) {
     r_sanity_check(f.has());
-    wire_func_construction_visitor_t v(this);
-    f->visit(&v);
     cached_func = f;
 }
-
-wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
-                         protob_t<const Backtrace> backtrace) {
-    func = wire_reql_func_t();
-    wire_reql_func_t *p = boost::get<wire_reql_func_t>(&func);
-    p->arg_names = std::move(arg_names);
-    p->body = std::move(body);
-    p->backtrace = std::move(backtrace);
-    reinitialize_cached_func();
-}
-
-wire_func_t::wire_func_t(const wire_func_t &copyee)
-    : func(copyee.func), cached_func(copyee.cached_func) { }
-
-wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
-    wire_func_t tmp(assignee);
-    std::swap(func, tmp.func);
-    std::swap(cached_func, tmp.cached_func);
-    return *this;
-}
-
-wire_func_t::~wire_func_t() { }
-
 
 struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func_t> > {
     wire_func_compile_visitor_t() { }
@@ -81,9 +76,27 @@ struct wire_func_compile_visitor_t : public boost::static_visitor<counted_t<func
     DISABLE_COPYING(wire_func_compile_visitor_t);
 };
 
-void wire_func_t::reinitialize_cached_func() {
+wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
+                         protob_t<const Backtrace> backtrace) {
+    boost::variant<wire_reql_func_t, wire_js_func_t> func = wire_reql_func_t();
+    wire_reql_func_t *p = boost::get<wire_reql_func_t>(&func);
+    p->arg_names = std::move(arg_names);
+    p->body = std::move(body);
+    p->backtrace = std::move(backtrace);
+
     cached_func = boost::apply_visitor(wire_func_compile_visitor_t(), func);
 }
+
+wire_func_t::wire_func_t(const wire_func_t &copyee)
+    : cached_func(copyee.cached_func) { }
+
+wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
+    cached_func = assignee.cached_func;
+    return *this;
+}
+
+wire_func_t::~wire_func_t() { }
+
 
 counted_t<func_t> wire_func_t::compile_wire_func() const {
     return cached_func;
@@ -153,13 +166,19 @@ archive_result_t deserialize(read_stream_t *s, wire_js_func_t *func) {
 }
 
 void wire_func_t::rdb_serialize(write_message_t &msg) const {
+    boost::variant<wire_reql_func_t, wire_js_func_t> func;
+    wire_func_construction_visitor_t v(&func);
+    cached_func->visit(&v);
+
     msg << func;
 }
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
+    boost::variant<wire_reql_func_t, wire_js_func_t> func;
     archive_result_t res = deserialize(s, &func);
     if (res) { return res; }
-    reinitialize_cached_func();
+
+    cached_func = boost::apply_visitor(wire_func_compile_visitor_t(), func);
     return res;
 }
 
