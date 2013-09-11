@@ -1,8 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
 #include <set>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/tokenizer.hpp>
 

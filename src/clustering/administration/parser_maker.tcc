@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 
@@ -6,6 +6,10 @@
 
 #include <set>
 #include <string>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
