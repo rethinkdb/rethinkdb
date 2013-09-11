@@ -5,6 +5,7 @@
 #include <set>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "rpc/semilattice/view.hpp"

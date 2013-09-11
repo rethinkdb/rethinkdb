@@ -1,10 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_GENERIC_REGISTRAR_HPP_
 #define CLUSTERING_GENERIC_REGISTRAR_HPP_
 
 #include <algorithm>
 #include <map>
 #include <utility>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/generic/resource.hpp"

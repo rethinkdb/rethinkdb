@@ -1,5 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/log_transfer.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
