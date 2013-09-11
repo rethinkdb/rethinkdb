@@ -2,9 +2,6 @@
 #ifndef CONCURRENCY_CROSS_THREAD_SEMAPHORE_HPP_
 #define CONCURRENCY_CROSS_THREAD_SEMAPHORE_HPP_
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "containers/scoped.hpp"
 #include "containers/intrusive_list.hpp"
 #include "concurrency/promise.hpp"
@@ -173,8 +170,8 @@ void cross_thread_semaphore_t<value_t>::unlock(value_t *value) {
         }
 
         if (request != NULL) {
-            coro_t::spawn_sometime(boost::bind(&cross_thread_semaphore_t<value_t>::pass_value_coroutine,
-                                               this, request, value));
+            coro_t::spawn_sometime(std::bind(&cross_thread_semaphore_t<value_t>::pass_value_coroutine,
+                                             this, request, value));
             return;
         }
     }
