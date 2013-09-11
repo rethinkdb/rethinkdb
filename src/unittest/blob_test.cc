@@ -6,6 +6,7 @@
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "compression/blob_adapter.hpp"
 
 namespace unittest {
 
@@ -164,6 +165,10 @@ public:
         return blob_.refsize(block_size);
     }
 
+    blob_t *get_blob() {
+        return &blob_;
+    }
+
 private:
     std::string expected_;
     scoped_array_t<char> buf_;
@@ -188,6 +193,7 @@ private:
         special_4080_prepend_4081_test(cache);
         special_4161600_prepend_12484801_test(cache);
         combinations_test(cache);
+        compression_test(cache);
     }
 
     void small_value_test(cache_t *cache) {
@@ -390,6 +396,20 @@ private:
                 }
             }
         }
+    }
+
+    void compression_test(cache_t *cache) {
+        debugf("Running test.\n");
+        order_source_t order_source;
+        transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
+                          order_source.check_in("general_journey_test"), WRITE_DURABILITY_SOFT);
+        blob_tracker_t tk(251);
+
+        compress_to_blob(tk.get_blob(), &txn, "foo");
+        std::vector<char> res;
+        decompress_from_blob(tk.get_blob(), &txn, &res);
+
+        ASSERT_EQ(std::string(res.begin(), res.end()), "foo");
     }
 
     DISABLE_COPYING(blob_tester_t);

@@ -14,7 +14,8 @@ void blob_sink_t::Append(const char *bytes, size_t n) {
 void compress_to_blob(blob_t *blob, transaction_t *txn, const std::string &data) {
     snappy::ByteArraySource src(data.data(), data.size());
     blob_sink_t sink(blob, txn);
-    snappy::Compress(&src, &sink);
+    size_t compressed_size = snappy::Compress(&src, &sink);
+    debugf("Compression ratio: %f\n", float(compressed_size) / float(data.size()));
 }
 
 blob_source_t::blob_source_t(blob_t *_internal, transaction_t *_txn) 
@@ -37,6 +38,9 @@ const char* blob_source_t::Peek(size_t* len) {
 }
 
 void blob_source_t::Skip(size_t n) {
+    guarantee(n <= size_remaining);
+    size_remaining -= n;
+
     guarantee(buf_num < buf_group.num_buffers());
     while ((buf_group.get_buffer(buf_num).size - buf_offset) < n) {
         buf_num++;
@@ -44,14 +48,19 @@ void blob_source_t::Skip(size_t n) {
         buf_offset = 0;
     }
 
-    buf_offset = n;
+    buf_offset += n;
 }
 
 void decompress_from_blob(blob_t *blob, transaction_t *txn, std::vector<char> *data_out) {
-    blob_source_t src(blob, txn);
-    uint32_t uncompressed_size;
-    bool res = snappy::GetUncompressedLength(&src, &uncompressed_size);
-    guarantee(res, "Decompression error (probably indicates disk corruption or programmer error).");
-    data_out->resize(uncompressed_size);
-    snappy::RawUncompress(&src, data_out->data());
+    {
+        blob_source_t src(blob, txn);
+        uint32_t uncompressed_size;
+        bool res = snappy::GetUncompressedLength(&src, &uncompressed_size);
+        guarantee(res, "Decompression error (probably indicates disk corruption or programmer error).");
+        data_out->resize(uncompressed_size);
+    }
+    {
+        blob_source_t src(blob, txn);
+        snappy::RawUncompress(&src, data_out->data());
+    }
 }
