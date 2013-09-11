@@ -113,6 +113,9 @@ static const char *parse_number(cJSON *item, const char *num) {
     } else {
         char *end;
         n = strtod(num, &end);
+        if (end == num) {
+            return 0;
+        }
         offset = end - num;
     }
     item->valuedouble = n;
