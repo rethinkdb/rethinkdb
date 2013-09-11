@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2013 RethinkDB, all rights reserved.
 import sys
 
 """This script is used to generate the mailbox templates in
@@ -114,7 +114,7 @@ def generate_async_message_template(nargs):
     print
 
 if __name__ == "__main__":
-    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
+    print "// Copyright 2010-2013 RethinkDB, all rights reserved."
     print "#ifndef RPC_MAILBOX_TYPED_HPP_"
     print "#define RPC_MAILBOX_TYPED_HPP_"
     print
@@ -124,7 +124,6 @@ if __name__ == "__main__":
     print
 
     print "#include \"errors.hpp\""
-    print "#include <boost/bind.hpp>"
     print "#include <boost/function.hpp>"
     print
     print "#include \"containers/archive/archive.hpp\""

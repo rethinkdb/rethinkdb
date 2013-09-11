@@ -4,6 +4,9 @@
 
 #include <map>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 

@@ -1,5 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/listener.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "clustering/generic/registrant.hpp"
 #include "clustering/generic/resource.hpp"

@@ -4,6 +4,9 @@
 
 #include <algorithm>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/timing.hpp"
 #include "clustering/generic/multi_throttling_metadata.hpp"
 #include "clustering/generic/registrar.hpp"

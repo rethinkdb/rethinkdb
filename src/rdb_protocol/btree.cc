@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
