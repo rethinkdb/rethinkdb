@@ -24,7 +24,7 @@ enum eval_flags_t {
     LITERAL_OK = 1,
 };
 
-class term_t : public single_threaded_countable_t<term_t>, public pb_rcheckable_t {
+class term_t : public slow_atomic_countable_t<term_t>, public pb_rcheckable_t {
 public:
     explicit term_t(protob_t<const Term> _src);
     virtual ~term_t();
