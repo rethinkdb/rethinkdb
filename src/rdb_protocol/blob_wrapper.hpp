@@ -23,10 +23,7 @@ public:
 
     int64_t valuesize() const;
 
-    const char* get_data(transaction_t *txn);
-    /* This function only works in read mode. */
-    void expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
-
+    std::vector<char> *get_data(transaction_t *txn);
 private:
     friend class rdb_value_deleter_t;
 

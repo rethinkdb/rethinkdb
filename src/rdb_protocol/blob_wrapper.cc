@@ -1,5 +1,3 @@
-#include <snappy.h>
-
 #include "compression/blob_adapter.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
 
@@ -18,10 +16,7 @@ rdb_blob_wrapper_t::rdb_blob_wrapper_t(
         rassert(*it == 0);
     }
 #endif
-    snappy::ByteArraySource src(data.data(), data.size());
-    blob_sink_t sink(&internal, txn);
-
-    snappy::Compress(&src, &sink);
+    compress_to_blob(&internal, txn, data);
 }
 
 int rdb_blob_wrapper_t::refsize(block_size_t block_size) const {
@@ -32,23 +27,9 @@ int64_t rdb_blob_wrapper_t::valuesize() const {
     return internal.valuesize();
 }
 
-const char* rdb_blob_wrapper_t::get_data(transaction_t *txn) {
-    blob_source_t src(&internal, txn);
-    uint32_t uncompressed_size;
-    bool res = snappy::GetUncompressedLength(&src, &uncompressed_size);
-    guarantee(res, "Decompression error (probably indicates disk corruption or programmer error).");
-    decompressed_data.reserve(uncompressed_size);
-    snappy::RawUncompress(&src, decompressed_data.data());
-    return decompressed_data.data();
-}
-
-void rdb_blob_wrapper_t::expose_all(
-        transaction_t *txn, access_t mode, 
-        buffer_group_t *buffer_group_out, 
-        blob_acq_t *acq_group_out) {
-    guarantee(mode == rwi_read,
-        "Other blocks might be referencing this blob, it's invalid to modify it in place.");
-    internal.expose_all(txn, mode, buffer_group_out, acq_group_out);
+std::vector<char> *rdb_blob_wrapper_t::get_data(transaction_t *txn) {
+    decompress_from_blob(&internal, txn, &decompressed_data);
+    return &decompressed_data;
 }
 
 void rdb_blob_wrapper_t::clear(transaction_t *txn) {

@@ -1,5 +1,7 @@
 #include "compression/blob_adapter.hpp"
 
+#include <snappy.h>
+
 blob_sink_t::blob_sink_t(blob_t *_internal, transaction_t *_txn)
     : internal(_internal), txn(_txn) { }
 
@@ -9,6 +11,11 @@ void blob_sink_t::Append(const char *bytes, size_t n) {
     internal->write_from_string(bytes, n, txn, offset);
 }
 
+void compress_to_blob(blob_t *blob, transaction_t *txn, const std::string &data) {
+    snappy::ByteArraySource src(data.data(), data.size());
+    blob_sink_t sink(blob, txn);
+    snappy::Compress(&src, &sink);
+}
 
 blob_source_t::blob_source_t(blob_t *_internal, transaction_t *_txn) 
     : internal(_internal), txn(_txn), buf_offset(0), buf_num(0) {
@@ -38,4 +45,13 @@ void blob_source_t::Skip(size_t n) {
     }
 
     buf_offset = n;
+}
+
+void decompress_from_blob(blob_t *blob, transaction_t *txn, std::vector<char> *data_out) {
+    blob_source_t src(blob, txn);
+    uint32_t uncompressed_size;
+    bool res = snappy::GetUncompressedLength(&src, &uncompressed_size);
+    guarantee(res, "Decompression error (probably indicates disk corruption or programmer error).");
+    data_out->reserve(uncompressed_size);
+    snappy::RawUncompress(&src, data_out->data());
 }

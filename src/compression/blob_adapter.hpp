@@ -15,6 +15,8 @@ private:
     transaction_t *txn;
 };
 
+void compress_to_blob(blob_t *blob, transaction_t *txn, const std::string &data);
+
 class blob_source_t : public snappy::Source {
 public:
     blob_source_t(blob_t *internal, transaction_t *txn);
@@ -32,5 +34,7 @@ private:
     blob_acq_t blob_acq;
     size_t size_remaining, buf_offset, buf_num;
 };
+
+void decompress_from_blob(blob_t *blob, transaction_t *txn, std::vector<char> *data_out);
 
 #endif
