@@ -24,7 +24,6 @@ namespace ql {
 
 class func_t : public single_threaded_countable_t<func_t>, public pb_rcheckable_t {
 public:
-    explicit func_t(const protob_t<const Term> &term);
     explicit func_t(const protob_t<const Backtrace> &bt_source);
 
     virtual ~func_t();

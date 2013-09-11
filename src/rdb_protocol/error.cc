@@ -126,6 +126,10 @@ backtrace_t::frame_t::frame_t(const Frame &f) {
     }
 }
 
+protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t) {
+    return t.make_child(&t->GetExtension(ql2::extension::backtrace));
+}
+
 void pb_rcheckable_t::propagate(Term *t) const {
     propagate_backtrace(t, bt_src.get());
 }
