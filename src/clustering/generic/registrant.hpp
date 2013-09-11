@@ -2,13 +2,11 @@
 #ifndef CLUSTERING_GENERIC_REGISTRANT_HPP_
 #define CLUSTERING_GENERIC_REGISTRANT_HPP_
 
+#include <functional>
 #include <algorithm>
 #include <map>
 #include <string>
 #include <utility>
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/generic/resource.hpp"
@@ -35,7 +33,7 @@ public:
         registration_id(generate_uuid())
     {
         /* This will make it so that we get deregistered in our destructor. */
-        deregisterer.fun = boost::bind(&registrant_t::send_deregister_message,
+        deregisterer.fun = std::bind(&registrant_t::send_deregister_message,
             mailbox_manager,
             registrar.access().delete_mailbox,
             registration_id);
@@ -69,7 +67,7 @@ private:
     /* We can't deregister in our destructor because then we wouldn't get
     deregistered if we died mid-constructor. Instead, the deregistration must be
     done by a separate subcomponent. `deregisterer` is that subcomponent. The
-    constructor sets `deregisterer.fun` to a `boost::bind()` of
+    constructor sets `deregisterer.fun` to a `std::bind()` of
     `send_deregister_message()`, and that deregisters things as necessary. */
     static void send_deregister_message(
             mailbox_manager_t *mailbox_manager,

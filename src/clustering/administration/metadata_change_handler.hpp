@@ -1,11 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_CHANGE_HANDLER_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_CHANGE_HANDLER_HPP_
 
 #include <set>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "rpc/semilattice/view.hpp"
@@ -24,7 +23,8 @@ public:
                               const boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > &_metadata) :
         mailbox_manager(_mailbox_manager),
         request_mailbox(mailbox_manager,
-                        boost::bind(&metadata_change_handler_t<metadata_t>::remote_change_request, this, _1)),
+                        std::bind(&metadata_change_handler_t<metadata_t>::remote_change_request, this,
+                                  std::placeholders::_1)),
         metadata_view(_metadata)
     { }
 
@@ -60,8 +60,8 @@ public:
         {
             cond_t done;
             ack_mailbox_t ack_mailbox(mailbox_manager,
-                                      boost::bind(&metadata_change_handler_t::metadata_change_request_t::handle_ack,
-                                                  this, &done, _1, _2));
+                                      std::bind(&metadata_change_handler_t::metadata_change_request_t::handle_ack,
+                                                this, &done, std::placeholders::_1, std::placeholders::_2));
 
             send(mailbox_manager, _request_mailbox, ack_mailbox.get_address());
             disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), _request_mailbox.get_peer());
@@ -87,8 +87,8 @@ public:
             interest_acquired = false;
             promise_t<bool> result_promise;
             result_mailbox_t result_mailbox(mailbox_manager,
-                                            boost::bind(&promise_t<bool>::pulse,
-                                                        &result_promise, _1));
+                                            std::bind(&promise_t<bool>::pulse,
+                                                      &result_promise, std::placeholders::_1));
 
             send(mailbox_manager, commit_mailbox_address, true, metadata, result_mailbox.get_address());
             disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), commit_mailbox_address.get_peer());
@@ -126,10 +126,10 @@ private:
 
     void remote_change_request(typename ack_mailbox_t::address_t ack_mailbox) {
         // Spawn a coroutine to wait for the metadata change
-        coro_t::spawn_sometime(boost::bind(&metadata_change_handler_t::remote_change_request_coro,
-                                           this,
-                                           ack_mailbox,
-                                           auto_drainer_t::lock_t(&drainer)));
+        coro_t::spawn_sometime(std::bind(&metadata_change_handler_t::remote_change_request_coro,
+                                         this,
+                                         ack_mailbox,
+                                         auto_drainer_t::lock_t(&drainer)));
     }
 
     void remote_change_request_coro(typename ack_mailbox_t::address_t ack_mailbox,
@@ -137,8 +137,10 @@ private:
         cond_t invalid_condition;
         cond_t commit_done;
         commit_mailbox_t commit_mailbox(mailbox_manager,
-                                        boost::bind(&metadata_change_handler_t<metadata_t>::handle_commit,
-                                                    this, &commit_done, &invalid_condition, _1, _2, _3));
+                                        std::bind(&metadata_change_handler_t<metadata_t>::handle_commit,
+                                                  this, &commit_done, &invalid_condition,
+                                                  std::placeholders::_1, std::placeholders::_2,
+                                                  std::placeholders::_3));
 
         coro_invalid_conditions.insert(&invalid_condition);
 
@@ -162,11 +164,11 @@ private:
             if (success) {
                 update(metadata);
             }
-            coro_t::spawn_sometime(boost::bind(&metadata_change_handler_t::send_result,
-                                               this,
-                                               success,
-                                               result_mailbox,
-                                               auto_drainer_t::lock_t(&drainer)));
+            coro_t::spawn_sometime(std::bind(&metadata_change_handler_t::send_result,
+                                             this,
+                                             success,
+                                             result_mailbox,
+                                             auto_drainer_t::lock_t(&drainer)));
         }
         done->pulse();
     }

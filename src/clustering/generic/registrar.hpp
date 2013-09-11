@@ -6,9 +6,6 @@
 #include <map>
 #include <utility>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/generic/resource.hpp"
 #include "rpc/mailbox/typed.hpp"
@@ -21,8 +18,11 @@ class registrar_t {
 public:
     registrar_t(mailbox_manager_t *mm, user_data_type co) :
         mailbox_manager(mm), controller(co),
-        create_mailbox(mailbox_manager, boost::bind(&registrar_t::on_create, this, _1, _2, _3, auto_drainer_t::lock_t(&drainer))),
-        delete_mailbox(mailbox_manager, boost::bind(&registrar_t::on_delete, this, _1, auto_drainer_t::lock_t(&drainer)))
+        create_mailbox(mailbox_manager, std::bind(&registrar_t::on_create, this,
+                                                  std::placeholders::_1, std::placeholders::_2,
+                                                  std::placeholders::_3, auto_drainer_t::lock_t(&drainer))),
+        delete_mailbox(mailbox_manager, std::bind(&registrar_t::on_delete, this,
+                                                  std::placeholders::_1, auto_drainer_t::lock_t(&drainer)))
         { }
 
     registrar_business_card_t<business_card_t> get_business_card() {
