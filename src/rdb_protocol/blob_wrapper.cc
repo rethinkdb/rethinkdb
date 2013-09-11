@@ -32,6 +32,16 @@ int64_t rdb_blob_wrapper_t::valuesize() const {
     return internal.valuesize();
 }
 
+const char* rdb_blob_wrapper_t::get_data(transaction_t *txn) {
+    blob_source_t src(&internal, txn);
+    uint32_t uncompressed_size;
+    bool res = snappy::GetUncompressedLength(&src, &uncompressed_size);
+    guarantee(res, "Decompression error (probably indicates disk corruption or programmer error).");
+    decompressed_data.reserve(uncompressed_size);
+    snappy::RawUncompress(&src, decompressed_data.data());
+    return decompressed_data.data();
+}
+
 void rdb_blob_wrapper_t::expose_all(
         transaction_t *txn, access_t mode, 
         buffer_group_t *buffer_group_out, 

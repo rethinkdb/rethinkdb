@@ -23,6 +23,7 @@ public:
 
     int64_t valuesize() const;
 
+    const char* get_data(transaction_t *txn);
     /* This function only works in read mode. */
     void expose_all(transaction_t *txn, access_t mode, buffer_group_t *buffer_group_out, blob_acq_t *acq_group_out);
 
@@ -36,6 +37,7 @@ private:
     void clear(transaction_t *txn);
 
     blob_t internal;
+    std::vector<char> decompressed_data;
 };
 
 #endif
