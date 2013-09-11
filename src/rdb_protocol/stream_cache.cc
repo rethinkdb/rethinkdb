@@ -31,6 +31,7 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         // This is a hack.  Some streams have an interruptor that is invalid by
         // the time we reach here, so we just reset it to a good one.
         entry->env->interruptor = interruptor;
+        entry->stream->reset_interruptor(interruptor);
 
         // RSI: it seems clear (from the above hack) that we only really use the
         // env's interruptor when traversing a stream, and nothing else (besides
