@@ -52,6 +52,6 @@ void decompress_from_blob(blob_t *blob, transaction_t *txn, std::vector<char> *d
     uint32_t uncompressed_size;
     bool res = snappy::GetUncompressedLength(&src, &uncompressed_size);
     guarantee(res, "Decompression error (probably indicates disk corruption or programmer error).");
-    data_out->reserve(uncompressed_size);
+    data_out->resize(uncompressed_size);
     snappy::RawUncompress(&src, data_out->data());
 }
