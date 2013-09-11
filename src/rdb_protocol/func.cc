@@ -12,7 +12,6 @@
 
 namespace ql {
 
-func_t::func_t(const protob_t<const Term> &term) : pb_rcheckable_t(term) { }
 func_t::func_t(const protob_t<const Backtrace> &bt_source) : pb_rcheckable_t(bt_source) { }
 func_t::~func_t() { }
 
