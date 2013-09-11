@@ -29,10 +29,11 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     entry_t *entry = it->second;
     entry->last_activity = time(0);
     try {
-        // This is a hack.  Some streams have an interruptor that is invalid by
-        // the time we reach here, so we just reset it to a good one.
+        // Reset the env_t's interruptor to a good one before we use it.  This may be a
+        // hack.  (I'd rather not have env_t be mutable this way -- could we construct
+        // a new env_t instead?  Why do we keep env_t's around anymore?)
+        // RSI: See if there's any reason to keep around env_t's.
         entry->env->interruptor = interruptor;
-        entry->stream->reset_interruptor(interruptor);
 
         int chunk_size = 0;
         if (entry->next_datum.has()) {
