@@ -7,6 +7,9 @@ administration.
 
 To get started, checkout www.rethinkdb.com!
 
+Or run with Cloudify:  
+[![Launch with Cloudify](http://rantav.github.io/cloudify-widget-pages/img/gh-button.png)](http://rantav.github.io/cloudify-widget-pages/rethinkdb.html)
+
 Quick start
 -----------
 
