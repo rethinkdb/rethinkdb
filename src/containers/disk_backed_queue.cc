@@ -5,15 +5,15 @@
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "serializer/config.hpp"
+#include "storage_ctx.hpp"
 
-internal_disk_backed_queue_t::internal_disk_backed_queue_t(global_page_repl_t *global_page_repl,
-                                                           io_backender_t *io_backender,
+internal_disk_backed_queue_t::internal_disk_backed_queue_t(storage_ctx_t *storage_ctx,
                                                            const serializer_filepath_t &filename,
                                                            perfmon_collection_t *stats_parent)
     : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID),
       perfmon_membership(stats_parent, &perfmon_collection, filename.permanent_path().c_str())
 {
-    filepath_file_opener_t file_opener(filename, io_backender);
+    filepath_file_opener_t file_opener(filename, &storage_ctx->io_backender);
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
 
@@ -32,7 +32,10 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(global_page_repl_t *g
     mirrored_cache_config_t cache_dynamic_config;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.init(new cache_t(global_page_repl, serializer.get(), cache_dynamic_config, &perfmon_collection));
+    cache.init(new cache_t(&storage_ctx->global_page_repl,
+                           serializer.get(),
+                           cache_dynamic_config,
+                           &perfmon_collection));
 }
 
 internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }

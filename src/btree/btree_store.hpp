@@ -26,7 +26,7 @@ struct rdb_protocol_t;
 template <class T> class btree_store_t;
 
 class btree_slice_t;
-class io_backender_t;
+class storage_ctx_t;
 class superblock_t;
 class real_superblock_t;
 
@@ -44,14 +44,13 @@ class btree_store_t : public store_view_t<protocol_t> {
 public:
     using home_thread_mixin_t::assert_thread;
 
-    btree_store_t(global_page_repl_t *global_page_repl,
-                  serializer_t *serializer,
+    btree_store_t(serializer_t *serializer,
                   const std::string &perfmon_name,
                   int64_t cache_target,
                   bool create,
                   perfmon_collection_t *parent_perfmon_collection,
                   typename protocol_t::context_t *,
-                  io_backender_t *io_backender,
+                  storage_ctx_t *storage_ctx,
                   const base_path_t &base_path);
     virtual ~btree_store_t();
 
@@ -417,8 +416,7 @@ public:
     perfmon_collection_t perfmon_collection;
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
-    global_page_repl_t *global_page_repl_;
-    io_backender_t *io_backender_;
+    storage_ctx_t *storage_ctx_;
     base_path_t base_path_;
     perfmon_membership_t perfmon_collection_membership;
 

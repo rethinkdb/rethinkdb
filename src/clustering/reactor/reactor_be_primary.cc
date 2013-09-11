@@ -441,7 +441,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
         cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());
 
         on_thread_t th3(svs->home_thread());
-        listener_t<protocol_t> listener(base_path, global_page_repl, io_backender, mailbox_manager, ct_broadcaster_business_card.get_watchable(), branch_history_manager, &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
+        listener_t<protocol_t> listener(base_path, storage_ctx, mailbox_manager, ct_broadcaster_business_card.get_watchable(), branch_history_manager, &broadcaster, &region_perfmon_collection, &ct_interruptor, &order_source);
         replier_t<protocol_t> replier(&listener, mailbox_manager, branch_history_manager);
         master_t<protocol_t> master(mailbox_manager, ack_checker, region, &broadcaster);
         direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);

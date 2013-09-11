@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/global_page_repl.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"

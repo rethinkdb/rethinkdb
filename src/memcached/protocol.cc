@@ -405,18 +405,17 @@ region_t memcached_protocol_t::cpu_sharding_subspace(int subregion_number, int n
     return region_t(beg, end, key_range_t::universe());
 }
 
-store_t::store_t(global_page_repl_t *global_page_repl,
-                 serializer_t *serializer,
+store_t::store_t(serializer_t *serializer,
                  const std::string &perfmon_name,
                  int64_t cache_size,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
                  context_t *ctx,
-                 io_backender_t *io,
+                 storage_ctx_t *storage_ctx,
                  const base_path_t &base_path)
     : btree_store_t<memcached_protocol_t>(
-            global_page_repl, serializer, perfmon_name, cache_size,
-            create, parent_perfmon_collection, ctx, io, base_path) { }
+            serializer, perfmon_name, cache_size,
+            create, parent_perfmon_collection, ctx, storage_ctx, base_path) { }
 
 store_t::~store_t() {
     assert_thread();

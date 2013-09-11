@@ -21,6 +21,7 @@
 class perfmon_collection_repo_t;
 class serializer_t;
 class serializer_multiplexer_t;
+class storage_ctx_t;
 
 template <class> class watchable_and_reactor_t;
 
@@ -74,8 +75,7 @@ template <class protocol_t>
 class reactor_driver_t {
 public:
     reactor_driver_t(const base_path_t &base_path,
-                     global_page_repl_t *global_page_repl,
-                     io_backender_t *io_backender,
+                     storage_ctx_t *storage_ctx,
                      mailbox_manager_t *mbox_manager,
                      const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &directory_view,
                      branch_history_manager_t<protocol_t> *branch_history_manager,
@@ -105,8 +105,7 @@ private:
     void on_change();
 
     const base_path_t base_path;
-    global_page_repl_t *const global_page_repl;
-    io_backender_t *const io_backender;
+    storage_ctx_t *const storage_ctx;
     mailbox_manager_t *const mbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
     branch_history_manager_t<protocol_t> *branch_history_manager;

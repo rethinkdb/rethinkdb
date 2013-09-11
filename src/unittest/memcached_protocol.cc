@@ -1,12 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
-
 #include "buffer_cache/buffer_cache.hpp"
 #include "containers/iterators.hpp"
 #include "memcached/protocol.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
+#include "storage_ctx.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 
@@ -23,11 +21,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     temp_file_t temp_file;
 
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    storage_ctx_t storage_ctx(file_direct_io_mode_t::buffered_desired);
 
     scoped_ptr_t<standard_serializer_t> serializer;
 
-    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
+    filepath_file_opener_t file_opener(temp_file.name(), &storage_ctx.io_backender);
     standard_serializer_t::create(&file_opener,
                                   standard_serializer_t::static_config_t());
 
@@ -43,16 +41,14 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     serializer_multiplexer_t::create(ptrs, shards.size());
     multiplexer.init(new serializer_multiplexer_t(ptrs));
 
-    global_page_repl_t global_page_repl;
-
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (size_t i = 0; i < shards.size(); ++i) {
         underlying_stores.push_back(
                 new memcached_protocol_t::store_t(
-                    &global_page_repl, multiplexer->proxies[i],
+                    multiplexer->proxies[i],
                     temp_file.name().permanent_path() + strprintf("_%zd", i),
                     GIGABYTE, true, &get_global_perfmon_collection(), NULL,
-                    &io_backender, base_path_t(".")));
+                    &storage_ctx, base_path_t(".")));
     }
 
     boost::ptr_vector<store_view_t<memcached_protocol_t> > stores;

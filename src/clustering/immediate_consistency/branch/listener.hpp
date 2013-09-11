@@ -22,6 +22,7 @@ template <class> class registrant_t;
 template <class> class replier_t;
 template <class> class semilattice_read_view_t;
 template <class> class semilattice_readwrite_view_t;
+class storage_ctx_t;
 template <class> class watchable_t;
 
 /* `listener_t` keeps a store-view in sync with a branch. Its constructor
@@ -66,8 +67,7 @@ public:
 
     listener_t(
             const base_path_t &base_path,
-            global_page_repl_t *global_page_repl,
-            io_backender_t *io_backender,
+            storage_ctx_t *storage_ctx,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             branch_history_manager_t<protocol_t> *branch_history_manager,
@@ -83,8 +83,7 @@ public:
     each `broadcaster_t`. */
     listener_t(
             const base_path_t &base_path,
-            global_page_repl_t *global_page_repl,
-            io_backender_t *io_backender,
+            storage_ctx_t *storage_ctx,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
             branch_history_manager_t<protocol_t> *branch_history_manager,

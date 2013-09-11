@@ -9,6 +9,8 @@
 #include "clustering/administration/persist.hpp"
 #include "arch/address.hpp"
 
+class storage_ctx_t;
+
 class invalid_port_exc_t : public std::exception {
 public:
     invalid_port_exc_t(const std::string& name, int port, int port_offset) {
@@ -83,8 +85,7 @@ struct service_address_ports_t {
 /* This has been factored out from `command_line.hpp` because it takes a very
 long time to compile. */
 
-bool serve(global_page_repl_t *global_page_repl,
-           io_backender_t *io_backender,
+bool serve(storage_ctx_t *storage_ctx,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,

@@ -43,6 +43,7 @@ template <class> class directory_read_manager_t;
 template <class> class namespace_repo_t;
 template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
+class storage_ctx_t;
 class traversal_progress_combiner_t;
 
 using query_language::backtrace_t;
@@ -713,14 +714,13 @@ struct rdb_protocol_t {
 
     class store_t : public btree_store_t<rdb_protocol_t> {
     public:
-        store_t(global_page_repl_t *global_page_repl,
-                serializer_t *serializer,
+        store_t(serializer_t *serializer,
                 const std::string &perfmon_name,
                 int64_t cache_target,
                 bool create,
                 perfmon_collection_t *parent_perfmon_collection,
                 context_t *ctx,
-                io_backender_t *io,
+                storage_ctx_t *storage_ctx,
                 const base_path_t &base_path);
         ~store_t();
 

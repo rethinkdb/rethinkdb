@@ -8,6 +8,7 @@
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "storage_ctx.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "unittest/gtest.hpp"
 
@@ -21,14 +22,11 @@ serializer_filepath_t dbq_serializer_path() {
 
 void run_many_ints_test() {
     static const int NUM_ELTS_IN_QUEUE = 1000;
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    storage_ctx_t storage_ctx(file_direct_io_mode_t::buffered_desired);
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    global_page_repl_t global_page_repl;
-
-    disk_backed_queue_t<int> queue(&global_page_repl,
-                                   &io_backender, serializer_path, &get_global_perfmon_collection());
+    disk_backed_queue_t<int> queue(&storage_ctx, serializer_path, &get_global_perfmon_collection());
     std::queue<int> ref_queue;
 
     for (int i = 0; i < NUM_ELTS_IN_QUEUE; ++i) {
@@ -51,14 +49,11 @@ TEST(DiskBackedQueue, ManyInts) {
 
 void run_big_values_test() {
     static const int NUM_BIG_ELTS_IN_QUEUE = 100;
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    storage_ctx_t storage_ctx(file_direct_io_mode_t::buffered_desired);
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    global_page_repl_t global_page_repl;
-
-    disk_backed_queue_t<std::string> queue(&global_page_repl,
-                                           &io_backender,
+    disk_backed_queue_t<std::string> queue(&storage_ctx,
                                            serializer_path,
                                            &get_global_perfmon_collection());
     std::queue<std::string> ref_queue;
@@ -88,14 +83,11 @@ static void randomly_delay(int, signal_t *) {
 }
 
 void run_concurrent_test() {
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    storage_ctx_t storage_ctx(file_direct_io_mode_t::buffered_desired);
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    global_page_repl_t global_page_repl;
-
-    disk_backed_queue_wrapper_t<int> queue(&global_page_repl,
-                                           &io_backender,
+    disk_backed_queue_wrapper_t<int> queue(&storage_ctx,
                                            serializer_path,
                                            &get_global_perfmon_collection());
     boost_function_callback_t<int> callback(&randomly_delay);

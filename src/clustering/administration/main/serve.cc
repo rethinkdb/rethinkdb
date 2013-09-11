@@ -62,8 +62,7 @@ bool service_address_ports_t::is_bind_all() const {
 }
 
 bool do_serve(
-        global_page_repl_t *global_page_repl,
-        io_backender_t *io_backender,
+        storage_ctx_t *storage_ctx,
         bool i_am_a_server,
         // NB. filepath & persistent_file are used iff i_am_a_server is true.
         const base_path_t &base_path,
@@ -256,11 +255,10 @@ bool do_serve(
 
             if (i_am_a_server) {
                 dummy_svs_source.init(new file_based_svs_by_namespace_t<mock::dummy_protocol_t>(
-                    global_page_repl, io_backender, base_path));
+                    storage_ctx, base_path));
                 dummy_reactor_driver.init(new reactor_driver_t<mock::dummy_protocol_t>(
                     base_path,
-                    global_page_repl,
-                    io_backender,
+                    storage_ctx,
                     &mailbox_manager,
                     directory_read_manager.get_root_view()->subview(
                         field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>,
@@ -290,11 +288,10 @@ bool do_serve(
 
             if (i_am_a_server) {
                 memcached_svs_source.init(new file_based_svs_by_namespace_t<memcached_protocol_t>(
-                    global_page_repl, io_backender, base_path));
+                    storage_ctx, base_path));
                 memcached_reactor_driver.init(new reactor_driver_t<memcached_protocol_t>(
                     base_path,
-                    global_page_repl,
-                    io_backender,
+                    storage_ctx,
                     &mailbox_manager,
                     directory_read_manager.get_root_view()->subview(
                         field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>,
@@ -324,11 +321,10 @@ bool do_serve(
 
             if (i_am_a_server) {
                 rdb_svs_source.init(new file_based_svs_by_namespace_t<rdb_protocol_t>(
-                    global_page_repl, io_backender, base_path));
+                    storage_ctx, base_path));
                 rdb_reactor_driver.init(new reactor_driver_t<rdb_protocol_t>(
                         base_path,
-                        global_page_repl,
-                        io_backender,
+                        storage_ctx,
                         &mailbox_manager,
                         directory_read_manager.get_root_view()->subview(
                             field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>,
@@ -456,8 +452,7 @@ bool do_serve(
     return true;
 }
 
-bool serve(global_page_repl_t *global_page_repl,
-           io_backender_t *io_backender,
+bool serve(storage_ctx_t *storage_ctx,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,
@@ -466,8 +461,7 @@ bool serve(global_page_repl_t *global_page_repl,
            std::string web_assets,
            signal_t *stop_cond,
            const boost::optional<std::string>& config_file) {
-    return do_serve(global_page_repl,
-                    io_backender,
+    return do_serve(storage_ctx,
                     true,
                     base_path,
                     cluster_persistent_file,
@@ -487,7 +481,6 @@ bool serve_proxy(const peer_address_set_t &joins,
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.
     return do_serve(NULL,
-                    NULL,
                     false,
                     base_path_t(""),
                     NULL,

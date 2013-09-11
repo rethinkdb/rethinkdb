@@ -5,6 +5,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
+#include "storage_ctx.hpp"
 #include "utils.hpp"
 
 /* This object serves mostly as a container for arguments to the
@@ -12,17 +13,17 @@
  * limit. */
 template <class protocol_t>
 struct store_args_t {
-    store_args_t(io_backender_t *_io_backender, const base_path_t &_base_path,
+    store_args_t(storage_ctx_t *_storage_ctx, const base_path_t &_base_path,
             namespace_id_t _namespace_id, int64_t _cache_size,
             perfmon_collection_t *_serializers_perfmon_collection, typename
             protocol_t::context_t *_ctx)
-        : io_backender(_io_backender), base_path(_base_path),
+        : storage_ctx(_storage_ctx), base_path(_base_path),
           namespace_id(_namespace_id), cache_size(_cache_size),
           serializers_perfmon_collection(_serializers_perfmon_collection),
           ctx(_ctx)
     { }
 
-    io_backender_t *io_backender;
+    storage_ctx_t *storage_ctx;
     base_path_t base_path;
     namespace_id_t namespace_id;
     int64_t cache_size;
@@ -36,7 +37,6 @@ std::string hash_shard_perfmon_name(int hash_shard_number) {
 
 template <class protocol_t>
 void do_construct_existing_store(int i,
-                                 global_page_repl_t *global_page_repl,
                                  store_args_t<protocol_t> store_args,
                                  serializer_multiplexer_t *multiplexer,
                                  int num_db_threads,
@@ -54,17 +54,21 @@ void do_construct_existing_store(int i,
     on_thread_t th(i % num_db_threads);
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(global_page_repl,
-                                                                           multiplexer->proxies[i], hash_shard_perfmon_name(i),
-                                                                           store_args.cache_size, false, store_args.serializers_perfmon_collection,
-                                                                           store_args.ctx, store_args.io_backender, store_args.base_path);
+    typename protocol_t::store_t *store
+        = new typename protocol_t::store_t(multiplexer->proxies[i],
+                                           hash_shard_perfmon_name(i),
+                                           store_args.cache_size,
+                                           false,
+                                           store_args.serializers_perfmon_collection,
+                                           store_args.ctx,
+                                           store_args.storage_ctx,
+                                           store_args.base_path);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }
 
 template <class protocol_t>
 void do_create_new_store(int i,
-                         global_page_repl_t *global_page_repl,
                          store_args_t<protocol_t> store_args,
                          serializer_multiplexer_t *multiplexer,
                          int num_db_threads,
@@ -73,10 +77,15 @@ void do_create_new_store(int i,
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
     on_thread_t th(i % num_db_threads);
 
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(global_page_repl,
-                                                                           multiplexer->proxies[i], hash_shard_perfmon_name(i),
-                                                                           store_args.cache_size, true, store_args.serializers_perfmon_collection,
-                                                                           store_args.ctx, store_args.io_backender, store_args.base_path);
+    typename protocol_t::store_t *store
+        = new typename protocol_t::store_t(multiplexer->proxies[i],
+                                           hash_shard_perfmon_name(i),
+                                           store_args.cache_size,
+                                           true,
+                                           store_args.serializers_perfmon_collection,
+                                           store_args.ctx,
+                                           store_args.storage_ctx,
+                                           store_args.base_path);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }
@@ -111,10 +120,10 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
 
     int res = access(serializer_filepath.permanent_path().c_str(), R_OK | W_OK);
-    store_args_t<protocol_t> store_args(io_backender_, base_path_,
+    store_args_t<protocol_t> store_args(storage_ctx_, base_path_,
             namespace_id, cache_size, serializers_perfmon_collection, ctx);
     if (res == 0) {
-        filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
+        filepath_file_opener_t file_opener(serializer_filepath, &storage_ctx_->io_backender);
 
         // TODO: Could we handle failure when loading the serializer?  Right now, we don't.
         serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
@@ -135,14 +144,14 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // them in the pmap?  No.
 
         pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
-                                     _1, global_page_repl_, store_args, multiplexer.get(),
+                                     _1, store_args, multiplexer.get(),
                                      num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
     } else {
         stores_out->stores()->init(num_stores);
 
-        filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
+        filepath_file_opener_t file_opener(serializer_filepath, &storage_ctx_->io_backender);
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
 
@@ -165,7 +174,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
         pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
-                                     _1, global_page_repl_, store_args, multiplexer.get(),
+                                     _1, store_args, multiplexer.get(),
                                      num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));

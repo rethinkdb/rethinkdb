@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/persist.hpp"
 
 #include <sys/stat.h>
@@ -9,6 +9,7 @@
 #include "containers/archive/buffer_group_stream.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "serializer/config.hpp"
+#include "storage_ctx.hpp"
 
 namespace metadata_persistence {
 
@@ -73,13 +74,12 @@ static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *val
 }
 
 template <class metadata_t>
-persistent_file_t<metadata_t>::persistent_file_t(global_page_repl_t *global_page_repl,
-                                                 io_backender_t *io_backender,
+persistent_file_t<metadata_t>::persistent_file_t(storage_ctx_t *storage_ctx,
                                                  const serializer_filepath_t &filename,
                                                  perfmon_collection_t *perfmon_parent,
                                                  bool create) {
-    filepath_file_opener_t file_opener(filename, io_backender);
-    construct_serializer_and_cache(create, global_page_repl, &file_opener, perfmon_parent);
+    filepath_file_opener_t file_opener(filename, &storage_ctx->io_backender);
+    construct_serializer_and_cache(create, &storage_ctx->global_page_repl, &file_opener, perfmon_parent);
 
     if (create) {
         file_opener.move_serializer_file_to_permanent_location();
@@ -149,20 +149,18 @@ void persistent_file_t<metadata_t>::get_read_transaction(object_buffer_t<transac
                     cache_order_source.check_in(info));
 }
 
-auth_persistent_file_t::auth_persistent_file_t(global_page_repl_t *global_page_repl,
-                                               io_backender_t *io_backender,
+auth_persistent_file_t::auth_persistent_file_t(storage_ctx_t *storage_ctx,
                                                const serializer_filepath_t &filename,
                                                perfmon_collection_t *perfmon_parent) :
-    persistent_file_t<auth_semilattice_metadata_t>(global_page_repl, io_backender, filename, perfmon_parent, false) {
+    persistent_file_t<auth_semilattice_metadata_t>(storage_ctx, filename, perfmon_parent, false) {
     // Do nothing
 }
 
-auth_persistent_file_t::auth_persistent_file_t(global_page_repl_t *global_page_repl,
-                                               io_backender_t *io_backender,
+auth_persistent_file_t::auth_persistent_file_t(storage_ctx_t *storage_ctx,
                                                const serializer_filepath_t &filename,
                                                perfmon_collection_t *perfmon_parent,
                                                const auth_semilattice_metadata_t &initial_metadata) :
-    persistent_file_t<auth_semilattice_metadata_t>(global_page_repl, io_backender, filename, perfmon_parent, true) {
+    persistent_file_t<auth_semilattice_metadata_t>(storage_ctx, filename, perfmon_parent, true) {
     object_buffer_t<transaction_t> txn;
     get_write_transaction(&txn, "initialization");
     buf_lock_t superblock(txn.get(), SUPERBLOCK_ID, rwi_write);
@@ -201,21 +199,19 @@ void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &
     write_blob(txn.get(), sb->metadata_blob, auth_metadata_superblock_t::METADATA_BLOB_MAXREFLEN, metadata);
 }
 
-cluster_persistent_file_t::cluster_persistent_file_t(global_page_repl_t *global_page_repl,
-                                                     io_backender_t *io_backender,
+cluster_persistent_file_t::cluster_persistent_file_t(storage_ctx_t *storage_ctx,
                                                      const serializer_filepath_t &filename,
                                                      perfmon_collection_t *perfmon_parent) :
-    persistent_file_t<cluster_semilattice_metadata_t>(global_page_repl, io_backender, filename, perfmon_parent, false) {
+    persistent_file_t<cluster_semilattice_metadata_t>(storage_ctx, filename, perfmon_parent, false) {
     construct_branch_history_managers(false);
 }
 
-cluster_persistent_file_t::cluster_persistent_file_t(global_page_repl_t *global_page_repl,
-                                                     io_backender_t *io_backender,
+cluster_persistent_file_t::cluster_persistent_file_t(storage_ctx_t *storage_ctx,
                                                      const serializer_filepath_t &filename,
                                                      perfmon_collection_t *perfmon_parent,
                                                      const machine_id_t &machine_id,
                                                      const cluster_semilattice_metadata_t &initial_metadata) :
-    persistent_file_t<cluster_semilattice_metadata_t>(global_page_repl, io_backender, filename, perfmon_parent, true) {
+    persistent_file_t<cluster_semilattice_metadata_t>(storage_ctx, filename, perfmon_parent, true) {
 
     object_buffer_t<transaction_t> txn;
     get_write_transaction(&txn, "initialization");

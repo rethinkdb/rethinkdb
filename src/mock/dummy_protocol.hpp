@@ -18,9 +18,9 @@
 #include "utils.hpp"
 
 class global_page_repl_t;
-class io_backender_t;
 class serializer_t;
 class signal_t;
+class storage_ctx_t;
 
 namespace mock {
 
@@ -105,11 +105,10 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(global_page_repl_t *global_page_repl,
-                serializer_t *serializer, const std::string &perfmon_name,
+        store_t(serializer_t *serializer, const std::string &perfmon_name,
                 UNUSED int64_t cache_size, bool create,
                 perfmon_collection_t *collection, context_t *ctx,
-                io_backender_t *io, const base_path_t &);
+                storage_ctx_t *storage_ctx, const base_path_t &);
         ~store_t();
 
         void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;

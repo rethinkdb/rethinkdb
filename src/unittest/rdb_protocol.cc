@@ -49,11 +49,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
         temp_files.push_back(new temp_file_t);
     }
 
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    storage_ctx_t storage_ctx(file_direct_io_mode_t::buffered_desired);
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
-        filepath_file_opener_t file_opener(temp_files[i].name(), &io_backender);
+        filepath_file_opener_t file_opener(temp_files[i].name(), &storage_ctx.io_backender);
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
         serializers[i].init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
@@ -61,7 +61,6 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
                                                       &get_global_perfmon_collection()));
     }
 
-    global_page_repl_t global_page_repl;
     boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
 
     /* Create some structures for the rdb_protocol_t::context_t, warning some
@@ -84,10 +83,10 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
                 new rdb_protocol_t::store_t(
-                    &global_page_repl, serializers[i].get(),
+                    serializers[i].get(),
                     temp_files[i].name().permanent_path(), GIGABYTE, true,
                     &get_global_perfmon_collection(), &ctx,
-                    &io_backender, base_path_t(".")));
+                    &storage_ctx, base_path_t(".")));
     }
 
     boost::ptr_vector<store_view_t<rdb_protocol_t> > stores;

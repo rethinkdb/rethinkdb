@@ -10,7 +10,7 @@ public:
                   int max_concurrent_io_requests = DEFAULT_MAX_CONCURRENT_IO_REQUESTS);
     ~storage_ctx_t();
 
-    io_backender_t backender;
+    io_backender_t io_backender;
     global_page_repl_t global_page_repl;
 };
 

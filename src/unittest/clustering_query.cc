@@ -7,9 +7,10 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/immediate_consistency/query/master_access.hpp"
+#include "mock/dummy_protocol.hpp"
+#include "storage_ctx.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
-#include "mock/dummy_protocol.hpp"
 #include "unittest/unittest_utils.hpp"
 
 using mock::dummy_protocol_t;
@@ -37,13 +38,10 @@ static void run_read_write_test() {
     /* Set up branch history tracker */
     in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
-
-    global_page_repl_t global_page_repl;
+    storage_ctx_t storage_ctx(file_direct_io_mode_t::buffered_desired);
 
     /* Set up a branch */
-    test_store_t<dummy_protocol_t> initial_store(&global_page_repl,
-                                                 &io_backender,
+    test_store_t<dummy_protocol_t> initial_store(&storage_ctx,
                                                  &order_source,
                                                  static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
@@ -59,8 +57,7 @@ static void run_read_write_test() {
 
     listener_t<dummy_protocol_t> initial_listener(
         base_path_t("."),
-        &global_page_repl,
-        &io_backender,
+        &storage_ctx,
         cluster.get_mailbox_manager(),
         broadcaster_metadata_controller.get_watchable()->subview(&wrap_in_optional),
         &branch_history_manager,
@@ -135,13 +132,10 @@ static void run_broadcaster_problem_test() {
     in_memory_branch_history_manager_t<dummy_protocol_t> branch_history_manager;
 
     // io backender.
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
-
-    global_page_repl_t global_page_repl;
+    storage_ctx_t storage_ctx(file_direct_io_mode_t::buffered_desired);
 
     /* Set up a branch */
-    test_store_t<dummy_protocol_t> initial_store(&global_page_repl,
-                                                 &io_backender,
+    test_store_t<dummy_protocol_t> initial_store(&storage_ctx,
                                                  &order_source,
                                                  static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
@@ -157,8 +151,7 @@ static void run_broadcaster_problem_test() {
 
     listener_t<dummy_protocol_t> initial_listener(
         base_path_t("."),
-        &global_page_repl,
-        &io_backender,
+        &storage_ctx,
         cluster.get_mailbox_manager(),
         broadcaster_metadata_controller.get_watchable(),
         &branch_history_manager,

@@ -18,6 +18,7 @@
 class global_page_repl_t;
 class io_backender_t;
 class perfmon_collection_t;
+class storage_ctx_t;
 
 //TODO there are extra copies all over the place mostly stemming from having a
 //vector<char> from the serialization code and strings from the blob code.
@@ -30,8 +31,7 @@ struct queue_block_t {
 
 class internal_disk_backed_queue_t {
 public:
-    internal_disk_backed_queue_t(global_page_repl_t *global_page_repl,
-                                 io_backender_t *io_backender,
+    internal_disk_backed_queue_t(storage_ctx_t *storage_ctx,
                                  const serializer_filepath_t& filename,
                                  perfmon_collection_t *stats_parent);
     ~internal_disk_backed_queue_t();
@@ -68,11 +68,10 @@ private:
 template <class T>
 class disk_backed_queue_t {
 public:
-    disk_backed_queue_t(global_page_repl_t *global_page_repl,
-                        io_backender_t *io_backender,
+    disk_backed_queue_t(storage_ctx_t *storage_ctx,
                         const serializer_filepath_t& filename,
                         perfmon_collection_t *stats_parent)
-        : internal_(global_page_repl, io_backender, filename, stats_parent) { }
+        : internal_(storage_ctx, filename, stats_parent) { }
 
     void push(const T &t) {
         // TODO: There's an unnecessary copying of data here (which would require a

@@ -10,6 +10,7 @@
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
+#include "storage_ctx.hpp"
 
 namespace unittest {
 
@@ -96,9 +97,9 @@ TEST(BTreeSindex, LowLevelOps) {
 void run_sindex_btree_store_api_test() {
     temp_file_t temp_file;
 
-    io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    storage_ctx_t storage_ctx(file_direct_io_mode_t::buffered_desired);
 
-    filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
+    filepath_file_opener_t file_opener(temp_file.name(), &storage_ctx.io_backender);
     standard_serializer_t::create(
         &file_opener,
         standard_serializer_t::static_config_t());
@@ -108,17 +109,14 @@ void run_sindex_btree_store_api_test() {
         &file_opener,
         &get_global_perfmon_collection());
 
-    global_page_repl_t global_page_repl;
-
     rdb_protocol_t::store_t store(
-            &global_page_repl,
             &serializer,
             "unit_test_store",
             GIGABYTE,
             true,
             &get_global_perfmon_collection(),
             NULL,
-            &io_backender,
+            &storage_ctx,
             base_path_t("."));
 
     cond_t dummy_interuptor;

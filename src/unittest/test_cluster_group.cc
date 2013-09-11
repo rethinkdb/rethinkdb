@@ -19,16 +19,17 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/cow_ptr_type.hpp"
 #include "concurrency/watchable.hpp"
-#include "unittest/branch_history_manager.hpp"
-#include "unittest/clustering_utils.hpp"
 #include "mock/dummy_protocol.hpp"
-#include "unittest/unittest_utils.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rpc/semilattice/semilattice_manager.hpp"
 #include "rdb_protocol/protocol.hpp"
-
+#include "rpc/connectivity/multiplexer.hpp"
 #include "rpc/directory/read_manager.tcc"
 #include "rpc/directory/write_manager.tcc"
+#include "rpc/semilattice/semilattice_manager.hpp"
+#include "storage_ctx.hpp"
+#include "unittest/branch_history_manager.hpp"
+#include "unittest/clustering_utils.hpp"
+#include "unittest/unittest_utils.hpp"
+
 
 namespace unittest {
 
@@ -88,7 +89,7 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
 template<class protocol_t>
 class test_reactor_t : private ack_checker_t {
 public:
-    test_reactor_t(const base_path_t &base_path, global_page_repl_t *global_page_repl, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs);
+    test_reactor_t(const base_path_t &base_path, storage_ctx_t *storage_ctx, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs);
     ~test_reactor_t();
     bool is_acceptable_ack_set(const std::set<peer_id_t> &acks);
     write_durability_t get_write_durability(const peer_id_t &) const {
@@ -148,9 +149,9 @@ peer_id_t reactor_test_cluster_t<protocol_t>::get_me() {
 }
 
 template <class protocol_t>
-test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, global_page_repl_t *global_page_repl, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
+test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, storage_ctx_t *storage_ctx, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
     blueprint_watchable(initial_blueprint),
-    reactor(base_path, global_page_repl, io_backender, &r->mailbox_manager, this,
+    reactor(base_path, storage_ctx, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
             &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), &ctx),
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
@@ -183,21 +184,19 @@ std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_b
 template <class protocol_t>
 test_cluster_group_t<protocol_t>::test_cluster_group_t(int n_machines)
     : base_path("/tmp"),
-      global_page_repl(new global_page_repl_t()),
-      io_backender(new io_backender_t(file_direct_io_mode_t::buffered_desired)) {
+      storage_ctx(new storage_ctx_t(file_direct_io_mode_t::buffered_desired)) {
     for (int i = 0; i < n_machines; i++) {
         files.push_back(new temp_file_t);
-        filepath_file_opener_t file_opener(files[i].name(), io_backender.get());
+        filepath_file_opener_t file_opener(files[i].name(), &storage_ctx->io_backender);
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
         serializers.push_back(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
                                                         &file_opener,
                                                         &get_global_perfmon_collection()));
         stores.push_back(
-                new typename protocol_t::store_t(
-                    global_page_repl.get(), &serializers[i],
+                new typename protocol_t::store_t(&serializers[i],
                     files[i].name().permanent_path(), GIGABYTE, true, NULL,
-                    &ctx, io_backender.get(), base_path_t(".")));
+                    &ctx, storage_ctx.get(), base_path_t(".")));
         store_view_t<protocol_t> *store_ptr = &stores[i];
         svses.push_back(new multistore_ptr_t<protocol_t>(&store_ptr, 1));
         stores.back().metainfo.set(mock::a_thru_z_region(), binary_blob_t(version_range_t(version_t::zero())));
@@ -215,7 +214,7 @@ test_cluster_group_t<protocol_t>::~test_cluster_group_t() { }
 template <class protocol_t>
 void test_cluster_group_t<protocol_t>::construct_all_reactors(const blueprint_t<protocol_t> &bp) {
     for (unsigned i = 0; i < test_clusters.size(); i++) {
-        test_reactors.push_back(new test_reactor_t<protocol_t>(base_path, global_page_repl.get(), io_backender.get(), &test_clusters[i], bp, &svses[i]));
+        test_reactors.push_back(new test_reactor_t<protocol_t>(base_path, storage_ctx.get(), &test_clusters[i], bp, &svses[i]));
     }
 }
 

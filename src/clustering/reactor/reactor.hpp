@@ -18,8 +18,7 @@
 // differing cpu sharding factors.
 const int CPU_SHARDING_FACTOR = 4;
 
-class io_backender_t;
-class global_page_repl_t;
+class storage_ctx_t;
 template <class> class multistore_ptr_t;
 
 template<class protocol_t>
@@ -27,8 +26,7 @@ class reactor_t : public home_thread_mixin_t {
 public:
     reactor_t(
             const base_path_t& base_path,
-            global_page_repl_t *global_page_repl,
-            io_backender_t *io_backender,
+            storage_ctx_t *storage_ctx,
             mailbox_manager_t *mailbox_manager,
             ack_checker_t *ack_checker,
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > reactor_directory,
@@ -162,8 +160,7 @@ private:
     perfmon_collection_t regions_perfmon_collection;
     perfmon_membership_t regions_perfmon_membership;
 
-    global_page_repl_t *const global_page_repl;
-    io_backender_t *const io_backender;
+    storage_ctx_t *const storage_ctx;
 
     mailbox_manager_t *mailbox_manager;
 

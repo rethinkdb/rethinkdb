@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "arch/types.hpp"
-#include "buffer_cache/global_page_repl.hpp"  // RSI: Predeclare instead.
 #include "buffer_cache/mirrored/writeback.hpp"
 #include "buffer_cache/mirrored/page_repl_random.hpp"
 #include "buffer_cache/mirrored/free_list.hpp"
@@ -26,7 +25,7 @@
 #include "buffer_cache/mirrored/stats.hpp"
 #include "repli_timestamp.hpp"
 
-
+class global_page_repl_t;
 class mc_cache_account_t;
 
 // evictable_t must go before array_map_t::local_buf_t, which

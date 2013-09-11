@@ -35,6 +35,7 @@
 #include "clustering/administration/persist.hpp"
 #include "logger.hpp"
 #include "mock/dummy_protocol.hpp"
+#include "storage_ctx.hpp"
 #include "utils.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
@@ -563,8 +564,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
     machine_semilattice_metadata.datacenter = vclock_t<datacenter_id_t>(nil_uuid(), our_machine_id);
     cluster_metadata.machines.machines.insert(std::make_pair(our_machine_id, make_deletable(machine_semilattice_metadata)));
 
-    global_page_repl_t global_page_repl;
-    io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
+    storage_ctx_t storage_ctx(direct_io_mode, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -573,14 +573,12 @@ void run_rethinkdb_create(const base_path_t &base_path,
     perfmon_membership_t auth_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "auth_metadata");
 
     try {
-        metadata_persistence::cluster_persistent_file_t cluster_metadata_file(&global_page_repl,
-                                                                              &io_backender,
+        metadata_persistence::cluster_persistent_file_t cluster_metadata_file(&storage_ctx,
                                                                               get_cluster_metadata_filename(base_path),
                                                                               &metadata_perfmon_collection,
                                                                               our_machine_id,
                                                                               cluster_metadata);
-        metadata_persistence::auth_persistent_file_t auth_metadata_file(&global_page_repl,
-                                                                        &io_backender,
+        metadata_persistence::auth_persistent_file_t auth_metadata_file(&storage_ctx,
                                                                         get_auth_metadata_filename(base_path),
                                                                         &auth_perfmon_collection,
                                                                         auth_semilattice_metadata_t());
@@ -668,8 +666,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
 
     logINF("Loading data from directory %s\n", base_path.path().c_str());
 
-    global_page_repl_t global_page_repl;
-    io_backender_t io_backender(direct_io_mode, max_concurrent_io_requests);
+    storage_ctx_t storage_ctx(direct_io_mode, max_concurrent_io_requests);
 
     perfmon_collection_t metadata_perfmon_collection;
     perfmon_membership_t metadata_perfmon_membership(&get_global_perfmon_collection(), &metadata_perfmon_collection, "metadata");
@@ -682,27 +679,23 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         scoped_ptr_t<metadata_persistence::auth_persistent_file_t> auth_metadata_file;
         if (our_machine_id && cluster_metadata) {
             cluster_metadata_file.init(
-                new metadata_persistence::cluster_persistent_file_t(&global_page_repl,
-                                                                    &io_backender,
+                new metadata_persistence::cluster_persistent_file_t(&storage_ctx,
                                                                     get_cluster_metadata_filename(base_path),
                                                                     &metadata_perfmon_collection,
                                                                     *our_machine_id,
                                                                     *cluster_metadata));
             auth_metadata_file.init(
-                new metadata_persistence::auth_persistent_file_t(&global_page_repl,
-                                                                 &io_backender,
+                new metadata_persistence::auth_persistent_file_t(&storage_ctx,
                                                                  get_auth_metadata_filename(base_path),
                                                                  &auth_perfmon_collection,
                                                                  auth_semilattice_metadata_t()));
         } else {
             cluster_metadata_file.init(
-                new metadata_persistence::cluster_persistent_file_t(&global_page_repl,
-                                                                    &io_backender,
+                new metadata_persistence::cluster_persistent_file_t(&storage_ctx,
                                                                     get_cluster_metadata_filename(base_path),
                                                                     &metadata_perfmon_collection));
             auth_metadata_file.init(
-                new metadata_persistence::auth_persistent_file_t(&global_page_repl,
-                                                                 &io_backender,
+                new metadata_persistence::auth_persistent_file_t(&storage_ctx,
                                                                  get_auth_metadata_filename(base_path),
                                                                  &auth_perfmon_collection));
         }
@@ -711,8 +704,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
         //  otherwise delete an uninitialized directory
         data_directory_lock->directory_initialized();
 
-        *result_out = serve(&global_page_repl,
-                            &io_backender,
+        *result_out = serve(&storage_ctx,
                             base_path,
                             cluster_metadata_file.get(),
                             auth_metadata_file.get(),

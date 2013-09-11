@@ -22,8 +22,7 @@ std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::
 template<class protocol_t>
 reactor_t<protocol_t>::reactor_t(
         const base_path_t& _base_path,
-        global_page_repl_t *_global_page_repl,
-        io_backender_t *_io_backender,
+        storage_ctx_t *_storage_ctx,
         mailbox_manager_t *mm,
         ack_checker_t *ack_checker_,
         clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > rd,
@@ -36,8 +35,7 @@ reactor_t<protocol_t>::reactor_t(
     parent_perfmon_collection(_parent_perfmon_collection),
     regions_perfmon_collection(),
     regions_perfmon_membership(parent_perfmon_collection, &regions_perfmon_collection, "regions"),
-    global_page_repl(_global_page_repl),
-    io_backender(_io_backender),
+    storage_ctx(_storage_ctx),
     mailbox_manager(mm),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t<protocol_t> >()),

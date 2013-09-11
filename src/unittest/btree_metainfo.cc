@@ -3,6 +3,7 @@
 
 #include "arch/io/disk.hpp"
 #include "btree/operations.hpp"
+#include "buffer_cache/global_page_repl.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
