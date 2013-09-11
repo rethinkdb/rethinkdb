@@ -32,7 +32,6 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         // Reset the env_t's interruptor to a good one before we use it.  This may be a
         // hack.  (I'd rather not have env_t be mutable this way -- could we construct
         // a new env_t instead?  Why do we keep env_t's around anymore?)
-        // RSI: See if there's any reason to keep around env_t's.
         entry->env->interruptor = interruptor;
 
         int chunk_size = 0;
