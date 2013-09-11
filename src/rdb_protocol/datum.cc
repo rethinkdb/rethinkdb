@@ -493,6 +493,8 @@ double datum_t::as_num() const {
 static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
 static const double min_dbl_int = max_dbl_int * -1;
 int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
+    static_assert(DBL_MANT_DIG == 53, "ERROR: Doubles are wrong size.");
+
     rcheck_target(target, base_exc_t::GENERIC, d <= max_dbl_int,
                   strprintf("Number not an integer (>2^53): " DBLPRI, d));
     rcheck_target(target, base_exc_t::GENERIC, d >= min_dbl_int,
@@ -504,7 +506,6 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
 }
 
 int64_t datum_t::as_int() const {
-    static_assert(DBL_MANT_DIG == 53, "ERROR: Doubles are wrong size.");
     return checked_convert_to_int(this, as_num());
 }
 
