@@ -131,17 +131,18 @@ void datum_t::init_json(cJSON *json) {
     } break;
     case cJSON_Array: {
         init_array();
-        for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            add(make_counted<datum_t>(cJSON_GetArrayItem(json, i)));
+        json_array_iterator_t it(json);
+        while (cJSON *item = it.next()) {
+            add(make_counted<datum_t>(item));
         }
     } break;
     case cJSON_Object: {
         init_object();
-        for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            cJSON *el = cJSON_GetArrayItem(json, i);
-            bool conflict = add(el->string, make_counted<datum_t>(el));
+        json_object_iterator_t it(json);
+        while (cJSON *item = it.next()) {
+            bool conflict = add(item->string, make_counted<datum_t>(item));
             rcheck(!conflict, base_exc_t::GENERIC,
-                   strprintf("Duplicate key `%s` in JSON.", el->string));
+                   strprintf("Duplicate key `%s` in JSON.", item->string));
         }
         maybe_sanitize_ptype();
     } break;
