@@ -30,7 +30,8 @@ public:
 
     // Constructs a wire_func_t with a body and arglist and backtrace, but no scope.  I
     // hope you remembered to propagate the backtrace to body!
-    wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names, protob_t<const Backtrace> backtrace);
+    wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
+                protob_t<const Backtrace> backtrace);
 
     counted_t<func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
@@ -39,9 +40,7 @@ public:
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
-    void reinitialize_cached_func();
-    friend class wire_func_construction_visitor_t;
-    counted_t<func_t> cached_func;
+    counted_t<func_t> func;
 };
 
 

@@ -9,22 +9,21 @@ namespace ql {
 
 wire_func_t::wire_func_t() { }
 
-wire_func_t::wire_func_t(counted_t<func_t> f) {
-    r_sanity_check(f.has());
-    cached_func = f;
+wire_func_t::wire_func_t(counted_t<func_t> f) : func(f) {
+    r_sanity_check(func.has());
 }
 
 wire_func_t::wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
                          protob_t<const Backtrace> backtrace) {
     compile_env_t env(var_visibility_t().with_func_arg_name_list(arg_names));
-    cached_func = make_counted<reql_func_t>(backtrace, var_scope_t(), arg_names, compile_term(&env, body));
+    func = make_counted<reql_func_t>(backtrace, var_scope_t(), arg_names, compile_term(&env, body));
 }
 
 wire_func_t::wire_func_t(const wire_func_t &copyee)
-    : cached_func(copyee.cached_func) { }
+    : func(copyee.func) { }
 
 wire_func_t &wire_func_t::operator=(const wire_func_t &assignee) {
-    cached_func = assignee.cached_func;
+    func = assignee.func;
     return *this;
 }
 
@@ -32,11 +31,11 @@ wire_func_t::~wire_func_t() { }
 
 
 counted_t<func_t> wire_func_t::compile_wire_func() const {
-    return cached_func;
+    return func;
 }
 
 protob_t<const Backtrace> wire_func_t::get_bt() const {
-    return cached_func->backtrace();
+    return func->backtrace();
 }
 
 enum class wire_func_type_t { REQL, JS };
@@ -76,7 +75,7 @@ private:
 
 void wire_func_t::rdb_serialize(write_message_t &msg) const {
     wire_func_serialization_visitor_t v(&msg);
-    cached_func->visit(&v);
+    func->visit(&v);
 }
 
 archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
@@ -102,7 +101,7 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
         if (res) { return res; }
 
         compile_env_t env(scope.compute_visibility().with_func_arg_name_list(arg_names));
-        cached_func = make_counted<reql_func_t>(backtrace, scope, arg_names, compile_term(&env, body));
+        func = make_counted<reql_func_t>(backtrace, scope, arg_names, compile_term(&env, body));
         return res;
     } break;
     case wire_func_type_t::JS: {
@@ -118,7 +117,7 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
         res = deserialize(s, &*backtrace);
         if (res) { return res; }
 
-        cached_func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
+        func = make_counted<js_func_t>(js_source, js_timeout_ms, backtrace);
         return res;
     } break;
     default:
