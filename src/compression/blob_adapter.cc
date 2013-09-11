@@ -14,8 +14,7 @@ void blob_sink_t::Append(const char *bytes, size_t n) {
 void compress_to_blob(blob_t *blob, transaction_t *txn, const std::string &data) {
     snappy::ByteArraySource src(data.data(), data.size());
     blob_sink_t sink(blob, txn);
-    size_t compressed_size = snappy::Compress(&src, &sink);
-    debugf("Compression ratio: %f\n", float(compressed_size) / float(data.size()));
+    UNUSED size_t compressed_size = snappy::Compress(&src, &sink);
 }
 
 blob_source_t::blob_source_t(blob_t *_internal, transaction_t *_txn) 
