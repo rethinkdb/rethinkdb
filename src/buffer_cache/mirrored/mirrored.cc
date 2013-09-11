@@ -1148,7 +1148,9 @@ void mc_cache_t::create(serializer_t *serializer) {
     serializer_index_write(serializer, op, DEFAULT_DISK_ACCOUNT);
 }
 
-mc_cache_t::mc_cache_t(serializer_t *_serializer,
+// RSI: Use global_page_repl.
+mc_cache_t::mc_cache_t(UNUSED global_page_repl_t *global_page_repl,
+                       serializer_t *_serializer,
                        const mirrored_cache_config_t &_dynamic_config,
                        perfmon_collection_t *perfmon_parent) :
     dynamic_config(_dynamic_config),

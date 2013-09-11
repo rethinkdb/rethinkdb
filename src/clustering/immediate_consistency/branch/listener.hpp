@@ -66,6 +66,7 @@ public:
 
     listener_t(
             const base_path_t &base_path,
+            global_page_repl_t *global_page_repl,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,
@@ -82,6 +83,7 @@ public:
     each `broadcaster_t`. */
     listener_t(
             const base_path_t &base_path,
+            global_page_repl_t *global_page_repl,
             io_backender_t *io_backender,
             mailbox_manager_t *mm,
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_metadata,

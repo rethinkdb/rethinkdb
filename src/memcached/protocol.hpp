@@ -166,7 +166,8 @@ public:
 
     class store_t : public btree_store_t<memcached_protocol_t> {
     public:
-        store_t(serializer_t *serializer,
+        store_t(global_page_repl_t *global_page_repl,
+                serializer_t *serializer,
                 const std::string &perfmon_name,
                 int64_t cache_quota,
                 bool create,

@@ -20,6 +20,7 @@
 
 template <class> class blueprint_t;
 template <class> class cluster_namespace_interface_t;
+class global_page_repl_t;
 class io_backender_t;
 template <class> class multistore_ptr_t;
 template <class> class reactor_business_card_t;
@@ -47,6 +48,7 @@ class test_cluster_group_t {
 public:
     const base_path_t base_path;
     boost::ptr_vector<temp_file_t> files;
+    scoped_ptr_t<global_page_repl_t> global_page_repl;
     scoped_ptr_t<io_backender_t> io_backender;
     boost::ptr_vector<serializer_t> serializers;
     boost::ptr_vector<typename protocol_t::store_t> stores;

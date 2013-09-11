@@ -6,7 +6,8 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "serializer/config.hpp"
 
-internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
+internal_disk_backed_queue_t::internal_disk_backed_queue_t(global_page_repl_t *global_page_repl,
+                                                           io_backender_t *io_backender,
                                                            const serializer_filepath_t &filename,
                                                            perfmon_collection_t *stats_parent)
     : queue_size(0), head_block_id(NULL_BLOCK_ID), tail_block_id(NULL_BLOCK_ID),
@@ -31,7 +32,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     mirrored_cache_config_t cache_dynamic_config;
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
-    cache.init(new cache_t(serializer.get(), cache_dynamic_config, &perfmon_collection));
+    cache.init(new cache_t(global_page_repl, serializer.get(), cache_dynamic_config, &perfmon_collection));
 }
 
 internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }

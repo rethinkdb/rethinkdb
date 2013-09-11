@@ -24,7 +24,8 @@ public:
 template <class metadata_t>
 class persistent_file_t {
 public:
-    persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
+    persistent_file_t(global_page_repl_t *global_page_repl,
+                      io_backender_t *io_backender, const serializer_filepath_t &filename,
                       perfmon_collection_t *perfmon_parent, bool create);
     virtual ~persistent_file_t();
 
@@ -41,8 +42,11 @@ protected:
     block_size_t get_cache_block_size() const;
 
 private:
+    // RSI: This isn't shared between constructors, there is only one constructor.
     /* Shared between constructors */
-    void construct_serializer_and_cache(bool create, serializer_file_opener_t *file_opener,
+    void construct_serializer_and_cache(bool create,
+                                        global_page_repl_t *global_page_repl,
+                                        serializer_file_opener_t *file_opener,
                                         perfmon_collection_t *perfmon_parent);
 
     order_source_t cache_order_source;  // order_token_t::ignore?
@@ -54,9 +58,11 @@ private:
 
 class auth_persistent_file_t : public persistent_file_t<auth_semilattice_metadata_t> {
 public:
-    auth_persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
+    auth_persistent_file_t(global_page_repl_t *global_page_repl,
+                           io_backender_t *io_backender, const serializer_filepath_t &filename,
                            perfmon_collection_t *perfmon_parent);
-    auth_persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
+    auth_persistent_file_t(global_page_repl_t *global_page_repl,
+                           io_backender_t *io_backender, const serializer_filepath_t &filename,
                            perfmon_collection_t *perfmon_parent,
                            const auth_semilattice_metadata_t &initial_metadata);
     ~auth_persistent_file_t();
@@ -67,9 +73,11 @@ public:
 
 class cluster_persistent_file_t : public persistent_file_t<cluster_semilattice_metadata_t> {
 public:
-    cluster_persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
+    cluster_persistent_file_t(global_page_repl_t *global_page_repl,
+                              io_backender_t *io_backender, const serializer_filepath_t &filename,
                               perfmon_collection_t *perfmon_parent);
-    cluster_persistent_file_t(io_backender_t *io_backender, const serializer_filepath_t &filename,
+    cluster_persistent_file_t(global_page_repl_t *global_page_repl,
+                              io_backender_t *io_backender, const serializer_filepath_t &filename,
                               perfmon_collection_t *perfmon_parent, const machine_id_t &machine_id,
                               const cluster_semilattice_metadata_t &initial_metadata);
     ~cluster_persistent_file_t();

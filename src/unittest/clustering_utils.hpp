@@ -48,10 +48,13 @@ inline standard_serializer_t *create_and_construct_serializer(temp_file_t *temp_
 template<class protocol_t>
 class test_store_t {
 public:
-    test_store_t(io_backender_t *io_backender, order_source_t *order_source, typename protocol_t::context_t *ctx) :
+    test_store_t(global_page_repl_t *global_page_repl,
+                 io_backender_t *io_backender,
+                 order_source_t *order_source,
+                 typename protocol_t::context_t *ctx) :
             serializer(create_and_construct_serializer(&temp_file, io_backender)),
-            store(serializer.get(), temp_file.name().permanent_path(), GIGABYTE,
-                    true, &get_global_perfmon_collection(), ctx, io_backender, base_path_t(".")) {
+            store(global_page_repl, serializer.get(), temp_file.name().permanent_path(), GIGABYTE,
+                  true, &get_global_perfmon_collection(), ctx, io_backender, base_path_t(".")) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> token;

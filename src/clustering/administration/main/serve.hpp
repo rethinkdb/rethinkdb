@@ -83,7 +83,8 @@ struct service_address_ports_t {
 /* This has been factored out from `command_line.hpp` because it takes a very
 long time to compile. */
 
-bool serve(io_backender_t *io_backender,
+bool serve(global_page_repl_t *global_page_repl,
+           io_backender_t *io_backender,
            const base_path_t &base_path,
            metadata_persistence::cluster_persistent_file_t *cluster_persistent_file,
            metadata_persistence::auth_persistent_file_t *auth_persistent_file,

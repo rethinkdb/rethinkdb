@@ -36,6 +36,7 @@ std::string hash_shard_perfmon_name(int hash_shard_number) {
 
 template <class protocol_t>
 void do_construct_existing_store(int i,
+                                 global_page_repl_t *global_page_repl,
                                  store_args_t<protocol_t> store_args,
                                  serializer_multiplexer_t *multiplexer,
                                  int num_db_threads,
@@ -53,7 +54,8 @@ void do_construct_existing_store(int i,
     on_thread_t th(i % num_db_threads);
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_perfmon_name(i),
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(global_page_repl,
+                                                                           multiplexer->proxies[i], hash_shard_perfmon_name(i),
                                                                            store_args.cache_size, false, store_args.serializers_perfmon_collection,
                                                                            store_args.ctx, store_args.io_backender, store_args.base_path);
     (*stores_out->stores())[i].init(store);
@@ -62,6 +64,7 @@ void do_construct_existing_store(int i,
 
 template <class protocol_t>
 void do_create_new_store(int i,
+                         global_page_repl_t *global_page_repl,
                          store_args_t<protocol_t> store_args,
                          serializer_multiplexer_t *multiplexer,
                          int num_db_threads,
@@ -70,7 +73,8 @@ void do_create_new_store(int i,
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
     on_thread_t th(i % num_db_threads);
 
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_perfmon_name(i),
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(global_page_repl,
+                                                                           multiplexer->proxies[i], hash_shard_perfmon_name(i),
                                                                            store_args.cache_size, true, store_args.serializers_perfmon_collection,
                                                                            store_args.ctx, store_args.io_backender, store_args.base_path);
     (*stores_out->stores())[i].init(store);
@@ -131,7 +135,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // them in the pmap?  No.
 
         pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
-                                     _1, store_args, multiplexer.get(),
+                                     _1, global_page_repl_, store_args, multiplexer.get(),
                                      num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
@@ -161,7 +165,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
         pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
-                                     _1,  store_args, multiplexer.get(),
+                                     _1, global_page_repl_, store_args, multiplexer.get(),
                                      num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));

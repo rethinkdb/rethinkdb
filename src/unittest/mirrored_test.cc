@@ -110,7 +110,8 @@ public:
         cache_cfg.flush_timer_ms = MILLION;
         cache_cfg.flush_dirty_size = BILLION;
         cache_cfg.max_size = GIGABYTE;
-        cache_t cache(multiplexer.proxies[0], cache_cfg, &get_global_perfmon_collection());
+        cache_t cache(&global_page_repl, multiplexer.proxies[0],
+                      cache_cfg, &get_global_perfmon_collection());
 
         transaction_t t0(&cache, rwi_read, order_token_t::ignore);
 
@@ -120,7 +121,9 @@ public:
     }
 
 private:
+    global_page_repl_t global_page_repl;
     block_id_t block_id;
+    // RSI: Rename this without the underscore?
     mock_file_opener_t snapshotted_file_opener_;
 };
 

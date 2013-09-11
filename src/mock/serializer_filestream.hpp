@@ -7,6 +7,7 @@
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 
+class global_page_repl_t;
 class serializer_t;
 
 namespace mock {
@@ -17,7 +18,8 @@ namespace mock {
 
 class serializer_file_read_stream_t : public read_stream_t {
 public:
-    explicit serializer_file_read_stream_t(serializer_t *serializer);
+    serializer_file_read_stream_t(global_page_repl_t *global_page_repl,
+                                  serializer_t *serializer);
     ~serializer_file_read_stream_t();
 
     MUST_USE int64_t read(void *p, int64_t n);
@@ -33,7 +35,8 @@ private:
 class serializer_file_write_stream_t : public write_stream_t {
 public:
     // Truncates the file upon opening.
-    explicit serializer_file_write_stream_t(serializer_t *serializer);
+    serializer_file_write_stream_t(global_page_repl_t *global_page_repl,
+                                   serializer_t *serializer);
     ~serializer_file_write_stream_t();
 
     MUST_USE int64_t write(const void *p, int64_t n);

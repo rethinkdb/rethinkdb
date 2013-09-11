@@ -61,6 +61,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
                                                       &get_global_perfmon_collection()));
     }
 
+    global_page_repl_t global_page_repl;
     boost::ptr_vector<rdb_protocol_t::store_t> underlying_stores;
 
     /* Create some structures for the rdb_protocol_t::context_t, warning some
@@ -82,7 +83,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
-                new rdb_protocol_t::store_t(serializers[i].get(),
+                new rdb_protocol_t::store_t(
+                    &global_page_repl, serializers[i].get(),
                     temp_files[i].name().permanent_path(), GIGABYTE, true,
                     &get_global_perfmon_collection(), &ctx,
                     &io_backender, base_path_t(".")));

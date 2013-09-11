@@ -55,8 +55,11 @@ void run_metainfo_test() {
 
     cache_t::create(&serializer);
 
+    global_page_repl_t global_page_repl;
+
     const mirrored_cache_config_t cache_dynamic_config;
-    cache_t cache(&serializer, cache_dynamic_config, &get_global_perfmon_collection());
+    cache_t cache(&global_page_repl, &serializer, cache_dynamic_config,
+                  &get_global_perfmon_collection());
 
     btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
     std::map<std::string, std::string> mirror;

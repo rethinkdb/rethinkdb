@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+#include <tuple>
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -22,8 +24,10 @@
 
 namespace unittest {
 
+
+// RSI: Use std::function in this file.
 void run_with_broadcaster(
-        boost::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
+        boost::function< void(std::tuple<global_page_repl_t *, io_backender_t *, simple_mailbox_cluster_t *>,
                               branch_history_manager_t<rdb_protocol_t> *,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
@@ -59,8 +63,10 @@ void run_with_broadcaster(
     rdb_protocol_t::context_t ctx(&extproc_pool, NULL, slm.get_root_view(),
                                   dummy_auth, &read_manager, generate_uuid());
 
+    global_page_repl_t global_page_repl;
+
     /* Set up a broadcaster and initial listener */
-    test_store_t<rdb_protocol_t> initial_store(&io_backender, &order_source, &ctx);
+    test_store_t<rdb_protocol_t> initial_store(&global_page_repl, &io_backender, &order_source, &ctx);
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<rdb_protocol_t> > broadcaster(
@@ -75,7 +81,8 @@ void run_with_broadcaster(
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(boost::optional<broadcaster_business_card_t<rdb_protocol_t> >(broadcaster->get_business_card())));
 
     scoped_ptr_t<listener_t<rdb_protocol_t> > initial_listener(
-        new listener_t<rdb_protocol_t>(base_path_t("."), //TODO is it bad that this isn't configurable?
+        new listener_t<rdb_protocol_t>(base_path_t("."),
+                                       &global_page_repl,
                                        &io_backender,
                                        cluster.get_mailbox_manager(),
                                        broadcaster_business_card_watchable_variable.get_watchable(),
@@ -85,7 +92,7 @@ void run_with_broadcaster(
                                        &interruptor,
                                        &order_source));
 
-    fun(std::make_pair(&io_backender, &cluster),
+    fun(std::make_tuple(&global_page_repl, &io_backender, &cluster),
         &branch_history_manager,
         broadcaster_business_card_watchable_variable.get_watchable(),
         &broadcaster,
@@ -96,7 +103,7 @@ void run_with_broadcaster(
 }
 
 void run_in_thread_pool_with_broadcaster(
-        boost::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
+        boost::function< void(std::tuple<global_page_repl_t *, io_backender_t *, simple_mailbox_cluster_t *>,
                               branch_history_manager_t<rdb_protocol_t> *,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
@@ -149,7 +156,7 @@ void write_to_broadcaster(size_t value_padding_length,
 }
 
 void run_backfill_test(size_t value_padding_length,
-                       std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
+                       std::tuple<global_page_repl_t *, io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
                        branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
                        scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
@@ -157,8 +164,9 @@ void run_backfill_test(size_t value_padding_length,
                        scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
                        rdb_protocol_t::context_t *ctx,
                        order_source_t *order_source) {
-    io_backender_t *const io_backender = io_backender_and_cluster.first;
-    simple_mailbox_cluster_t *const cluster = io_backender_and_cluster.second;
+    global_page_repl_t *const global_page_repl = std::get<0>(io_backender_and_cluster);
+    io_backender_t *const io_backender = std::get<1>(io_backender_and_cluster);
+    simple_mailbox_cluster_t *const cluster = std::get<2>(io_backender_and_cluster);
 
     recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
@@ -180,10 +188,11 @@ void run_backfill_test(size_t value_padding_length,
     nap(10000);
 
     /* Set up a second mirror */
-    test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    test_store_t<rdb_protocol_t> store2(global_page_repl, io_backender, order_source, ctx);
     cond_t interruptor;
     listener_t<rdb_protocol_t> listener2(
         base_path_t("."),
+        global_page_repl,
         io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view,
@@ -230,7 +239,7 @@ TEST(RDBProtocolBackfill, BackfillLargeValues) {
      run_in_thread_pool_with_broadcaster(boost::bind(&run_backfill_test, 300, _1, _2, _3, _4, _5, _6, _7, _8));
 }
 
-void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
+void run_sindex_backfill_test(std::tuple<global_page_repl_t *, io_backender_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
                               branch_history_manager_t<rdb_protocol_t> *branch_history_manager,
                               clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > > broadcaster_metadata_view,
                               scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *broadcaster,
@@ -238,8 +247,9 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
                               scoped_ptr_t<listener_t<rdb_protocol_t> > *initial_listener,
                               rdb_protocol_t::context_t *ctx,
                               order_source_t *order_source) {
-    io_backender_t *const io_backender = io_backender_and_cluster.first;
-    simple_mailbox_cluster_t *const cluster = io_backender_and_cluster.second;
+    global_page_repl_t *const global_page_repl = std::get<0>(io_backender_and_cluster);
+    io_backender_t *const io_backender = std::get<1>(io_backender_and_cluster);
+    simple_mailbox_cluster_t *const cluster = std::get<2>(io_backender_and_cluster);
 
     recreate_temporary_directory(base_path_t("."));
     /* Set up a replier so the broadcaster can handle operations */
@@ -290,10 +300,11 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     nap(10000);
 
     /* Set up a second mirror */
-    test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    test_store_t<rdb_protocol_t> store2(global_page_repl, io_backender, order_source, ctx);
     cond_t interruptor;
     listener_t<rdb_protocol_t> listener2(
         base_path_t("."),
+        global_page_repl,
         io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view,

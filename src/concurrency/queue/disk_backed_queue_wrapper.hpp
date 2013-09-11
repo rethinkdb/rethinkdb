@@ -29,12 +29,15 @@ class disk_backed_queue_wrapper_t : public passive_producer_t<T> {
 public:
     static const int memory_queue_capacity = 1000;
 
-    disk_backed_queue_wrapper_t(io_backender_t *_io_backender,
-            const serializer_filepath_t &_filename, perfmon_collection_t *_stats_parent) :
+    disk_backed_queue_wrapper_t(global_page_repl_t *_global_page_repl,
+                                io_backender_t *_io_backender,
+                                const serializer_filepath_t &_filename,
+                                perfmon_collection_t *_stats_parent) :
         passive_producer_t<T>(&available_control),
         memory_queue(memory_queue_capacity),
         notify_when_room_in_memory_queue(NULL),
         items_in_queue(0),
+        global_page_repl(_global_page_repl),
         io_backender(_io_backender),
         filename(_filename),
         stats_parent(_stats_parent),
@@ -56,7 +59,7 @@ public:
             }
         } else {
             if (memory_queue.full()) {
-                disk_queue.init(new disk_backed_queue_t<T>(io_backender, filename, stats_parent));
+                disk_queue.init(new disk_backed_queue_t<T>(global_page_repl, io_backender, filename, stats_parent));
                 disk_queue->push(value);
                 coro_t::spawn_sometime(boost::bind(
                     &disk_backed_queue_wrapper_t<T>::copy_from_disk_queue_to_memory_queue,
@@ -125,6 +128,7 @@ private:
     size_t items_in_queue;
     auto_drainer_t drainer;
 
+    global_page_repl_t *global_page_repl;
     io_backender_t *io_backender;
     const serializer_filepath_t filename;
     perfmon_collection_t *stats_parent;

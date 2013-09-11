@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+#include "buffer_cache/global_page_repl.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
@@ -31,7 +32,8 @@ boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > > wr
 
 // TODO: Make this's argument take the test_store_t.
 void run_with_broadcaster(
-        boost::function<void(io_backender_t *,
+        boost::function<void(global_page_repl_t *,
+                             io_backender_t *,
                              simple_mailbox_cluster_t *,
                              branch_history_manager_t<dummy_protocol_t> *,
                              clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
@@ -49,8 +51,13 @@ void run_with_broadcaster(
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
+    global_page_repl_t global_page_repl;
+
     /* Set up a broadcaster and initial listener */
-    test_store_t<dummy_protocol_t> initial_store(&io_backender, &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
+    test_store_t<dummy_protocol_t> initial_store(&global_page_repl,
+                                                 &io_backender,
+                                                 &order_source,
+                                                 static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<dummy_protocol_t> > broadcaster(
@@ -67,6 +74,7 @@ void run_with_broadcaster(
 
     scoped_ptr_t<listener_t<dummy_protocol_t> > initial_listener(
         new listener_t<dummy_protocol_t>(base_path_t("."),
+                                         &global_page_repl,
                                          &io_backender,
                                          cluster.get_mailbox_manager(),
                                          broadcaster_directory_controller.get_watchable()->subview(&wrap_broadcaster_in_optional),
@@ -76,7 +84,8 @@ void run_with_broadcaster(
                                          &interruptor,
                                          &order_source));
 
-    fun(&io_backender,
+    fun(&global_page_repl,
+        &io_backender,
         &cluster,
         &branch_history_manager,
         broadcaster_directory_controller.get_watchable(),
@@ -87,7 +96,8 @@ void run_with_broadcaster(
 }
 
 void run_in_thread_pool_with_broadcaster(
-        boost::function<void(io_backender_t *,
+        boost::function<void(global_page_repl_t *,
+                             io_backender_t *,
                              simple_mailbox_cluster_t *,
                              branch_history_manager_t<dummy_protocol_t> *,
                              clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > >,
@@ -104,7 +114,8 @@ void run_in_thread_pool_with_broadcaster(
 /* The `ReadWrite` test just sends some reads and writes via the broadcaster to a
 single mirror. */
 
-void run_read_write_test(UNUSED io_backender_t *io_backender,
+void run_read_write_test(UNUSED global_page_repl_t *global_page_repl,
+                         UNUSED io_backender_t *io_backender,
                          UNUSED simple_mailbox_cluster_t *cluster,
                          branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
                          UNUSED clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
@@ -186,7 +197,8 @@ static void write_to_broadcaster(broadcaster_t<dummy_protocol_t> *broadcaster, c
     write_callback.wait_lazily_unordered();
 }
 
-void run_backfill_test(io_backender_t *io_backender,
+void run_backfill_test(global_page_repl_t *global_page_repl,
+                       io_backender_t *io_backender,
                        simple_mailbox_cluster_t *cluster,
                        branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
                        clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
@@ -213,10 +225,14 @@ void run_backfill_test(io_backender_t *io_backender,
     nap(100);
 
     /* Set up a second mirror */
-    test_store_t<dummy_protocol_t> store2(io_backender, order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
+    test_store_t<dummy_protocol_t> store2(global_page_repl,
+                                          io_backender,
+                                          order_source,
+                                          static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         base_path_t("."),
+        global_page_repl,
         io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),
@@ -251,7 +267,8 @@ TEST(ClusteringBranch, Backfill) {
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-void run_partial_backfill_test(io_backender_t *io_backender,
+void run_partial_backfill_test(global_page_repl_t *global_page_repl,
+                               io_backender_t *io_backender,
                                simple_mailbox_cluster_t *cluster,
                                branch_history_manager_t<dummy_protocol_t> *branch_history_manager,
                                clone_ptr_t<watchable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_view,
@@ -278,11 +295,16 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     nap(100);
 
     /* Set up a second mirror */
-    test_store_t<dummy_protocol_t> store2(io_backender, order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
+    test_store_t<dummy_protocol_t> store2(global_page_repl,
+                                          io_backender,
+                                          order_source,
+                                          static_cast<dummy_protocol_t::context_t *>(NULL));
+
     dummy_protocol_t::region_t subregion('a', 'm');
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         base_path_t("."),
+        global_page_repl,
         io_backender,
         cluster->get_mailbox_manager(),
         broadcaster_metadata_view->subview(&wrap_broadcaster_in_optional),

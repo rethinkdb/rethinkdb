@@ -176,10 +176,11 @@ void scc_cache_t<inner_cache_t>::create(serializer_t *serializer) {
 }
 
 template<class inner_cache_t>
-scc_cache_t<inner_cache_t>::scc_cache_t(serializer_t *serializer,
+scc_cache_t<inner_cache_t>::scc_cache_t(global_page_repl_t *global_page_repl,
+                                        serializer_t *serializer,
                                         const mirrored_cache_config_t &dynamic_config,
                                         perfmon_collection_t *parent)
-    : inner_cache(serializer, dynamic_config, parent) { }
+    : inner_cache(global_page_repl, serializer, dynamic_config, parent) { }
 
 template<class inner_cache_t>
 block_size_t scc_cache_t<inner_cache_t>::get_block_size() {

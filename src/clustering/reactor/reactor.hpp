@@ -19,6 +19,7 @@
 const int CPU_SHARDING_FACTOR = 4;
 
 class io_backender_t;
+class global_page_repl_t;
 template <class> class multistore_ptr_t;
 
 template<class protocol_t>
@@ -26,6 +27,7 @@ class reactor_t : public home_thread_mixin_t {
 public:
     reactor_t(
             const base_path_t& base_path,
+            global_page_repl_t *global_page_repl,
             io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
             ack_checker_t *ack_checker,
@@ -160,7 +162,8 @@ private:
     perfmon_collection_t regions_perfmon_collection;
     perfmon_membership_t regions_perfmon_membership;
 
-    io_backender_t *io_backender;
+    global_page_repl_t *const global_page_repl;
+    io_backender_t *const io_backender;
 
     mailbox_manager_t *mailbox_manager;
 

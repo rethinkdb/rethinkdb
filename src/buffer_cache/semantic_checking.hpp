@@ -129,7 +129,8 @@ public:
     typedef typename inner_cache_t::cache_account_type cache_account_type;
 
     static void create(serializer_t *serializer);
-    scc_cache_t(serializer_t *serializer,
+    scc_cache_t(global_page_repl_t *global_page_repl,
+                serializer_t *serializer,
                 const mirrored_cache_config_t &dynamic_config,
                 perfmon_collection_t *parent);
 

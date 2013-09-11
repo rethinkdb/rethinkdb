@@ -124,6 +124,7 @@ void bring_sindexes_up_to_date(
 
     boost::shared_ptr<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
+                store->global_page_repl_,
                 store->io_backender_,
                 serializer_filepath_t(store->base_path_, "post_construction_" + uuid_to_str(post_construct_id)),
                 &store->perfmon_collection));
@@ -1037,16 +1038,20 @@ void write_t::unshard(const write_response_t *responses, size_t count, write_res
     boost::apply_visitor(visitor, write);
 }
 
-store_t::store_t(serializer_t *serializer,
+store_t::store_t(global_page_repl_t *global_page_repl,
+                 serializer_t *serializer,
                  const std::string &perfmon_name,
                  int64_t cache_target,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,
+                 // RSI: Look into what this context_t is, I'm curious.
                  context_t *_ctx,
                  io_backender_t *io,
                  const base_path_t &base_path) :
-    btree_store_t<rdb_protocol_t>(serializer, perfmon_name, cache_target,
-            create, parent_perfmon_collection, _ctx, io, base_path),
+    btree_store_t<rdb_protocol_t>(global_page_repl, serializer, perfmon_name,
+                                  cache_target,
+                                  create, parent_perfmon_collection, _ctx,
+                                  io, base_path),
     ctx(_ctx)
 {
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier

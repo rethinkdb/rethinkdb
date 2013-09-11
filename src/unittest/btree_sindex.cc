@@ -5,6 +5,7 @@
 #include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
+#include "buffer_cache/global_page_repl.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -29,8 +30,10 @@ void run_sindex_low_level_operations_test() {
 
     cache_t::create(&serializer);
 
+    global_page_repl_t global_page_repl;
     mirrored_cache_config_t cache_dynamic_config;
-    cache_t cache(&serializer, cache_dynamic_config, &get_global_perfmon_collection());
+    cache_t cache(&global_page_repl, &serializer, cache_dynamic_config,
+                  &get_global_perfmon_collection());
 
     //Passing in blank metainfo. We don't need metainfo for this unittest.
     btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
@@ -105,7 +108,10 @@ void run_sindex_btree_store_api_test() {
         &file_opener,
         &get_global_perfmon_collection());
 
+    global_page_repl_t global_page_repl;
+
     rdb_protocol_t::store_t store(
+            &global_page_repl,
             &serializer,
             "unit_test_store",
             GIGABYTE,

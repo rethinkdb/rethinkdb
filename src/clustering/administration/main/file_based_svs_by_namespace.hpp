@@ -6,10 +6,17 @@
 
 #include "clustering/administration/reactor_driver.hpp"
 
+class global_page_repl_t;
+
 template <class protocol_t>
 class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
 public:
-    file_based_svs_by_namespace_t(io_backender_t *io_backender, const base_path_t& base_path) : io_backender_(io_backender), base_path_(base_path) { }
+    file_based_svs_by_namespace_t(global_page_repl_t *global_page_repl,
+                                  io_backender_t *io_backender,
+                                  const base_path_t& base_path)
+        : global_page_repl_(global_page_repl),
+          io_backender_(io_backender),
+          base_path_(base_path) { }
 
     void get_svs(perfmon_collection_t *serializers_perfmon_collection, namespace_id_t namespace_id,
                  int64_t cache_size,
@@ -22,7 +29,7 @@ public:
     serializer_filepath_t file_name_for(namespace_id_t namespace_id);
 
 private:
-
+    global_page_repl_t *global_page_repl_;
     io_backender_t *io_backender_;
     const base_path_t base_path_;
 

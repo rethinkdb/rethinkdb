@@ -111,6 +111,7 @@ template <class protocol_t>
 class watchable_and_reactor_t : private ack_checker_t {
 public:
     watchable_and_reactor_t(const base_path_t &_base_path,
+                            global_page_repl_t *global_page_repl,
                             io_backender_t *io_backender,
                             reactor_driver_t<protocol_t> *parent,
                             namespace_id_t namespace_id,
@@ -126,7 +127,7 @@ public:
         svs_by_namespace_(svs_by_namespace),
         cache_size(_cache_size)
     {
-        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender));
+        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, global_page_repl, io_backender));
     }
 
     ~watchable_and_reactor_t() {
@@ -301,7 +302,7 @@ private:
         parent_->watchable_variable.set_value(directory);
     }
 
-    void initialize_reactor(io_backender_t *io_backender) {
+    void initialize_reactor(global_page_repl_t *global_page_repl, io_backender_t *io_backender) {
         perfmon_collection_repo_t::collections_t *perfmon_collections = parent_->perfmon_collection_repo->get_perfmon_collections_for_namespace(namespace_id_);
         perfmon_collection_t *namespace_collection = &perfmon_collections->namespace_collection;
         perfmon_collection_t *serializers_collection = &perfmon_collections->serializers_collection;
@@ -311,6 +312,7 @@ private:
 
         reactor_.init(new reactor_t<protocol_t>(
             base_path,
+            global_page_repl,
             io_backender,
             parent_->mbox_manager,
             this,
@@ -362,6 +364,7 @@ private:
 
 template <class protocol_t>
 reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
+                                               global_page_repl_t *_global_page_repl,
                                                io_backender_t *_io_backender,
                                                mailbox_manager_t *_mbox_manager,
                                                const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
@@ -373,6 +376,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
                                                perfmon_collection_repo_t *_perfmon_collection_repo,
                                                typename protocol_t::context_t *_ctx)
     : base_path(_base_path),
+      global_page_repl(_global_page_repl),
       io_backender(_io_backender),
       mbox_manager(_mbox_manager),
       directory_view(_directory_view),
@@ -472,7 +476,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                     }
 
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, global_page_repl, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
                 }

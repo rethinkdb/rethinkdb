@@ -280,7 +280,10 @@ void run_sindex_post_construction() {
         &file_opener,
         &get_global_perfmon_collection());
 
+    global_page_repl_t global_page_repl;
+
     rdb_protocol_t::store_t store(
+            &global_page_repl,
             &serializer,
             "unit_test_store",
             GIGABYTE,
@@ -324,7 +327,10 @@ void run_erase_range_test() {
         &file_opener,
         &get_global_perfmon_collection());
 
+    global_page_repl_t global_page_repl;
+
     rdb_protocol_t::store_t store(
+            &global_page_repl,
             &serializer,
             "unit_test_store",
             GIGABYTE,
@@ -394,7 +400,10 @@ void run_sindex_interruption_via_drop_test() {
         &file_opener,
         &get_global_perfmon_collection());
 
+    global_page_repl_t global_page_repl;
+
     rdb_protocol_t::store_t store(
+            &global_page_repl,
             &serializer,
             "unit_test_store",
             GIGABYTE,
@@ -438,17 +447,20 @@ void run_sindex_interruption_via_store_delete() {
         &file_opener,
         &get_global_perfmon_collection());
 
-    scoped_ptr_t<rdb_protocol_t::store_t> store(
-            new rdb_protocol_t::store_t(
-            &serializer,
-            "unit_test_store",
-            GIGABYTE,
-            true,
-            &get_global_perfmon_collection(),
-            NULL,
-            &io_backender,
-            base_path_t(".")));
+    global_page_repl_t global_page_repl;
 
+    scoped_ptr_t<rdb_protocol_t::store_t> store(
+            new rdb_protocol_t::store_t(&global_page_repl,
+                                        &serializer,
+                                        "unit_test_store",
+                                        GIGABYTE,
+                                        true,
+                                        &get_global_perfmon_collection(),
+                                        NULL,
+                                        &io_backender,
+                                        base_path_t(".")));
+
+    // RSI: Fix all uses of interuptor.
     cond_t dummy_interuptor;
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());

@@ -243,7 +243,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 perfmon_membership_t region_perfmon_membership(&regions_perfmon_collection, &region_perfmon_collection, region_name);
 
                 /* This causes backfilling to happen. Once this constructor returns we are up to date. */
-                listener_t<protocol_t> listener(base_path, io_backender, mailbox_manager, ct_broadcaster.get_watchable(), branch_history_manager, svs, ct_location_to_backfill_from.get_watchable(), backfill_session_id, &regions_perfmon_collection, &ct_interruptor, &order_source);
+                listener_t<protocol_t> listener(base_path, global_page_repl, io_backender, mailbox_manager, ct_broadcaster.get_watchable(), branch_history_manager, svs, ct_location_to_backfill_from.get_watchable(), backfill_session_id, &regions_perfmon_collection, &ct_interruptor, &order_source);
 
                 /* This gives others access to our services, in particular once
                  * this constructor returns people can send us queries and use

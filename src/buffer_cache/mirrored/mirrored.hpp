@@ -8,6 +8,11 @@
 #include <vector>
 
 #include "arch/types.hpp"
+#include "buffer_cache/global_page_repl.hpp"  // RSI: Predeclare instead.
+#include "buffer_cache/mirrored/writeback.hpp"
+#include "buffer_cache/mirrored/page_repl_random.hpp"
+#include "buffer_cache/mirrored/free_list.hpp"
+#include "buffer_cache/mirrored/page_map.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/access.hpp"
 #include "concurrency/coro_fifo.hpp"
@@ -20,14 +25,6 @@
 #include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/mirrored/stats.hpp"
 #include "repli_timestamp.hpp"
-
-#include "buffer_cache/mirrored/writeback.hpp"
-
-#include "buffer_cache/mirrored/page_repl_random.hpp"
-
-#include "buffer_cache/mirrored/free_list.hpp"
-
-#include "buffer_cache/mirrored/page_map.hpp"
 
 
 class mc_cache_account_t;
@@ -324,7 +321,10 @@ public:
     typedef mc_cache_account_t cache_account_type;
 
     static void create(serializer_t *serializer);
-    mc_cache_t(serializer_t *serializer, const mirrored_cache_config_t &dynamic_config, perfmon_collection_t *);
+    mc_cache_t(global_page_repl_t *global_page_repl,
+               serializer_t *serializer,
+               const mirrored_cache_config_t &dynamic_config,
+               perfmon_collection_t *collection);
     ~mc_cache_t();
 
     block_size_t get_block_size() const;

@@ -3,6 +3,7 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
+#include "buffer_cache/global_page_repl.hpp"
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/disk_backed_queue_wrapper.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -24,7 +25,10 @@ void run_many_ints_test() {
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    disk_backed_queue_t<int> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
+    global_page_repl_t global_page_repl;
+
+    disk_backed_queue_t<int> queue(&global_page_repl,
+                                   &io_backender, serializer_path, &get_global_perfmon_collection());
     std::queue<int> ref_queue;
 
     for (int i = 0; i < NUM_ELTS_IN_QUEUE; ++i) {
@@ -51,7 +55,12 @@ void run_big_values_test() {
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    disk_backed_queue_t<std::string> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
+    global_page_repl_t global_page_repl;
+
+    disk_backed_queue_t<std::string> queue(&global_page_repl,
+                                           &io_backender,
+                                           serializer_path,
+                                           &get_global_perfmon_collection());
     std::queue<std::string> ref_queue;
 
     std::string val;
@@ -83,7 +92,12 @@ void run_concurrent_test() {
 
     const serializer_filepath_t serializer_path = dbq_serializer_path();
 
-    disk_backed_queue_wrapper_t<int> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
+    global_page_repl_t global_page_repl;
+
+    disk_backed_queue_wrapper_t<int> queue(&global_page_repl,
+                                           &io_backender,
+                                           serializer_path,
+                                           &get_global_perfmon_collection());
     boost_function_callback_t<int> callback(&randomly_delay);
     coro_pool_t<int> coro_pool(10, &queue, &callback);
     for (int i = 0; i < 1000; i++) {

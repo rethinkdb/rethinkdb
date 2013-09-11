@@ -8,10 +8,13 @@ namespace mock {
 
 // Maybe we should have just used a blob for this.
 
-serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *serializer)
+serializer_file_read_stream_t::serializer_file_read_stream_t(
+        global_page_repl_t *global_page_repl,
+        serializer_t *serializer)
     : known_size_(-1), position_(0) {
     mirrored_cache_config_t config;
-    cache_.init(new cache_t(serializer, config, &get_global_perfmon_collection()));
+    cache_.init(new cache_t(global_page_repl, serializer, config,
+                            &get_global_perfmon_collection()));
     if (cache_->contains_block(0)) {
         transaction_t txn(cache_.get(), rwi_read, order_token_t::ignore);
         buf_lock_t bufzero(&txn, 0, rwi_read);
@@ -52,10 +55,14 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
     return num_copied;
 }
 
-serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *serializer) : size_(0) {
+serializer_file_write_stream_t::serializer_file_write_stream_t(
+        global_page_repl_t *global_page_repl,
+        serializer_t *serializer)
+    : size_(0) {
     cache_t::create(serializer);
     mirrored_cache_config_t config;
-    cache_.init(new cache_t(serializer, config, &get_global_perfmon_collection()));
+    cache_.init(new cache_t(global_page_repl, serializer, config,
+                            &get_global_perfmon_collection()));
 
     transaction_t txn(cache_.get(),
                       rwi_write,

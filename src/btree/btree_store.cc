@@ -21,7 +21,8 @@ const char* sindex_not_post_constructed_exc_t::what() const throw() {
 sindex_not_post_constructed_exc_t::~sindex_not_post_constructed_exc_t() throw() { }
 
 template <class protocol_t>
-btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
+btree_store_t<protocol_t>::btree_store_t(global_page_repl_t *global_page_repl,
+                                         serializer_t *serializer,
                                          const std::string &perfmon_name,
                                          int64_t cache_target,
                                          bool create,
@@ -31,7 +32,9 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
                                          const base_path_t &base_path)
     : store_view_t<protocol_t>(protocol_t::region_t::universe()),
       perfmon_collection(),
-      io_backender_(io_backender), base_path_(base_path),
+      global_page_repl_(global_page_repl),
+      io_backender_(io_backender),
+      base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
 {
     if (create) {
@@ -41,7 +44,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     // TODO: Don't specify cache dynamic config here.
     cache_dynamic_config.max_size = cache_target;
     cache_dynamic_config.max_dirty_size = cache_target / 2;
-    cache.init(new cache_t(serializer, cache_dynamic_config, &perfmon_collection));
+    cache.init(new cache_t(global_page_repl, serializer, cache_dynamic_config, &perfmon_collection));
 
     if (create) {
         vector_stream_t key;
