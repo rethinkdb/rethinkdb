@@ -1,7 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/global_page_repl.hpp"
@@ -131,7 +129,7 @@ private:
 TEST(MirroredTest, Durability) {
     durability_tester_t tester;
     tester.run();
-    unittest::run_in_thread_pool(boost::bind(&durability_tester_t::check_snapshotted_file_contents, &tester));
+    unittest::run_in_thread_pool(std::bind(&durability_tester_t::check_snapshotted_file_contents, &tester));
 }
 
 }  // namespace unittest

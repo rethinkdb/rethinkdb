@@ -4,6 +4,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <functional>
+
 #include "arch/runtime/thread_pool.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
@@ -402,9 +404,9 @@ semilattice_watching_persister_t<metadata_t>::semilattice_watching_persister_t(
         boost::shared_ptr<semilattice_read_view_t<metadata_t> > v) :
     persistent_file(persistent_file_), view(v),
     flush_again(new cond_t),
-    subs(boost::bind(&semilattice_watching_persister_t::on_change, this), v)
+    subs(std::bind(&semilattice_watching_persister_t::on_change, this), v)
 {
-    coro_t::spawn_sometime(boost::bind(&semilattice_watching_persister_t::dump_loop, this, auto_drainer_t::lock_t(&drainer)));
+    coro_t::spawn_sometime(std::bind(&semilattice_watching_persister_t::dump_loop, this, auto_drainer_t::lock_t(&drainer)));
 }
 
 template <class metadata_t>

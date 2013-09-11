@@ -1,8 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/server_test_helper.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
@@ -27,7 +26,7 @@ server_test_helper_t::server_test_helper_t()
 server_test_helper_t::~server_test_helper_t() { }
 
 void server_test_helper_t::run() {
-    unittest::run_in_thread_pool(boost::bind(&server_test_helper_t::setup_server_and_run_tests, this));
+    unittest::run_in_thread_pool(std::bind(&server_test_helper_t::setup_server_and_run_tests, this));
 }
 
 void server_test_helper_t::setup_server_and_run_tests() {
@@ -83,7 +82,7 @@ uint32_t server_test_helper_t::get_value(buf_lock_t *buf) {
 bool server_test_helper_t::acq_check_if_blocks_until_buf_released(buf_lock_t *newly_acquired_block, transaction_t *txn, buf_lock_t *already_acquired_block, access_t acquire_mode, bool do_release) {
     acquiring_coro_t acq_coro(newly_acquired_block, txn, already_acquired_block->get_block_id(), acquire_mode);
 
-    coro_t::spawn(boost::bind(&acquiring_coro_t::run, &acq_coro));
+    coro_t::spawn(std::bind(&acquiring_coro_t::run, &acq_coro));
     nap(500);
     bool result = !acq_coro.signaled;
 

@@ -43,7 +43,7 @@ reactor_t<protocol_t>::reactor_t(
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
-    blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
+    blueprint_subscription(std::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
     ctx(_ctx)
 {
     {
@@ -168,8 +168,8 @@ void reactor_t<protocol_t>::try_spawn_roles() THROWS_NOTHING {
             //This state will be cleaned up in run_role
             current_role_t *role = new current_role_t(it->second, blueprint);
             current_roles.insert(std::make_pair(it->first, role));
-            coro_t::spawn_sometime(boost::bind(&reactor_t<protocol_t>::run_role, this, it->first,
-                                               role, auto_drainer_t::lock_t(&drainer)));
+            coro_t::spawn_sometime(std::bind(&reactor_t<protocol_t>::run_role, this, it->first,
+                                             role, auto_drainer_t::lock_t(&drainer)));
         }
     }
 }
@@ -234,10 +234,10 @@ void reactor_t<protocol_t>::run_role(
              * correct assumption. The below line waits until the bcard shows
              * up in the directory thus make sure that the bcard is in the
              * directory before the be_role functions get called. */
-            directory_echo_mirror.get_internal()->run_until_satisfied(boost::bind(&we_see_our_bcard<protocol_t>, _1, get_me()), &wait_any);
+            directory_echo_mirror.get_internal()->run_until_satisfied(std::bind(&we_see_our_bcard<protocol_t>, std::placeholders::_1, get_me()), &wait_any);
             // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
 
-            pmap(svs_subview.num_stores(), boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any, &role->abort_roles));
+            pmap(svs_subview.num_stores(), std::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, std::placeholders::_1, role, region, &svs_subview, &wait_any, &role->abort_roles));
         } catch (const interrupted_exc_t &) {
         }
     }
@@ -280,7 +280,7 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
         cond_t blueprint_changed;
         blueprint_t<protocol_t> bp;
         typename watchable_t<blueprint_t<protocol_t> >::subscription_t subscription(
-            boost::bind(&cond_t::pulse_if_not_already_pulsed, &blueprint_changed));
+            std::bind(&cond_t::pulse_if_not_already_pulsed, &blueprint_changed));
         {
             typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
             bp = blueprint_watchable->get();

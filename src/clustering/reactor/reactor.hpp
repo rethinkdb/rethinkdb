@@ -2,6 +2,7 @@
 #ifndef CLUSTERING_REACTOR_REACTOR_HPP_
 #define CLUSTERING_REACTOR_REACTOR_HPP_
 
+#include <functional>
 #include <map>
 #include <vector>
 
@@ -207,7 +208,7 @@ boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcar
 template <class protocol_t>
 template <class activity_t>
 clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t<protocol_t>::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    return directory_echo_mirror.get_internal()->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, p_id, ra_id));
+    return directory_echo_mirror.get_internal()->subview(std::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, std::placeholders::_1, p_id, ra_id));
 }
 
 
