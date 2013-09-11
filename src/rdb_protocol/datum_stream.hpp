@@ -90,6 +90,8 @@ public:
      * sorted together by sort_datum_stream_t. */
     virtual hinted_datum_t sorting_hint_next();
 
+    virtual void reset_interruptor(signal_t *new_interruptor) = 0;
+
 protected:
     env_t *env;
 
@@ -132,6 +134,10 @@ public:
             ? eager_datum_stream_t::as_array()
             : counted_t<const datum_t>();
     }
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        source->reset_interruptor(new_interruptor);
+    }
 protected:
     const counted_t<datum_stream_t> source;
 };
@@ -140,6 +146,9 @@ class map_datum_stream_t : public eager_datum_stream_t {
 public:
     map_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        source->reset_interruptor(new_interruptor);
+    }
 private:
     counted_t<const datum_t> next_impl();
 
@@ -150,6 +159,11 @@ private:
 class indexes_of_datum_stream_t : public eager_datum_stream_t {
 public:
     indexes_of_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source);
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        source->reset_interruptor(new_interruptor);
+    }
+
 private:
     counted_t<const datum_t> next_impl();
 
@@ -162,6 +176,10 @@ private:
 class filter_datum_stream_t : public eager_datum_stream_t {
 public:
     filter_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source);
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        source->reset_interruptor(new_interruptor);
+    }
 private:
     counted_t<const datum_t> next_impl();
 
@@ -172,6 +190,11 @@ private:
 class concatmap_datum_stream_t : public eager_datum_stream_t {
 public:
     concatmap_datum_stream_t(env_t *env, counted_t<func_t> _f, counted_t<datum_stream_t> _source);
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        source->reset_interruptor(new_interruptor);
+        subsource->reset_interruptor(new_interruptor);
+    }
 private:
     counted_t<const datum_t> next_impl();
 
@@ -215,6 +238,11 @@ public:
     virtual counted_t<const datum_t> as_array() {
         return counted_t<const datum_t>();  // Cannot be converted implicitly.
     }
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        json_stream->reset_interruptor(new_interruptor);
+    }
+
 protected:
     virtual hinted_datum_t sorting_hint_next();
 
@@ -234,6 +262,7 @@ public:
     array_datum_stream_t(env_t *env, counted_t<const datum_t> _arr,
                          const protob_t<const Backtrace> &bt_src);
 
+    virtual void reset_interruptor(UNUSED signal_t *new_interruptor) { }
 private:
     counted_t<const datum_t> next_impl();
 
@@ -283,6 +312,11 @@ public:
         data.pop_front();
         return res;
     }
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        src->reset_interruptor(new_interruptor);
+    }
+
 private:
     counted_t<const datum_t> as_array() {
         return is_arr() ? eager_datum_stream_t::as_array() : counted_t<const datum_t>();
@@ -365,6 +399,13 @@ public:
                                          counted_t<func_t> r);
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array();
+
+    virtual void reset_interruptor(signal_t *new_interruptor) {
+        for (auto it = streams.begin(); it != streams.end(); ++it) {
+            (*it)->reset_interruptor(new_interruptor);
+        }
+    }
+
 private:
     counted_t<const datum_t> next_impl();
 
