@@ -343,10 +343,9 @@ counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
 counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
-    Term *const arg = twrap.get();
-    sym_t var = GENSYM_A();
-    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
-       N2(PLUCK, NVAR(var), NDATUM(obj)));
+    sym_t var;
+    Term *const arg = pb::set_func(twrap.get(), pb::dummy_var_t::A, &var);
+    N2(PLUCK, NVAR(var), NDATUM(obj));
     propagate_backtrace(twrap.get(), bt_src.get());
 
     compile_env_t empty_compile_env((var_visibility_t()));
@@ -358,10 +357,9 @@ counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
 counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
-    Term *const arg = twrap.get();
-    sym_t var = GENSYM_A();
-    N2(FUNC, N1(MAKE_ARRAY, NDATUM(static_cast<double>(var.value))),
-       N2(EQ, NDATUM(obj), NVAR(var)));
+    sym_t var;
+    Term *const arg = pb::set_func(twrap.get(), pb::dummy_var_t::A, &var);
+    N2(EQ, NDATUM(obj), NVAR(var));
     propagate_backtrace(twrap.get(), bt_src.get());
 
     compile_env_t empty_compile_env((var_visibility_t()));
