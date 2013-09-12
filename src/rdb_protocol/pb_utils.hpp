@@ -13,9 +13,16 @@ namespace pb {
 
 enum class dummy_var_t { A, B, C };
 
+// Returns the sym_t corresponding to a dummy_var_t.  Don't use this gratuitously --
+// set_func below and map_wire_func_t::make_safely call this function, and they're
+// both relatively safe ways to construct reql functions.
+sym_t dummy_var_to_sym(dummy_var_t dummy_var);
+
 // Set `d` to be a datum term, return a pointer to its datum member.
 Datum *set_datum(Term *d);
-// Set `f` to be a function of `varnum`, return a pointer to its body.
+// Set `f` to be a function of one variable, whose name is specified by dummy_var,
+// return a pointer to its body (and output the sym_t name of the variable to use
+// when constructing the body).
 Term *set_func(Term *f, dummy_var_t dummy_var, sym_t *varnum_out);
 // As above but with two variables.
 Term *set_func(Term *f,

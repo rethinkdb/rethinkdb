@@ -2,12 +2,14 @@
 #ifndef RDB_PROTOCOL_WIRE_FUNC_HPP_
 #define RDB_PROTOCOL_WIRE_FUNC_HPP_
 
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
 
 #include "containers/uuid.hpp"
 #include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/var_types.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -43,11 +45,16 @@ private:
     counted_t<func_t> func;
 };
 
-
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
+
+    // Safely constructs a map wire func, that couldn't possibly capture any surprise
+    // variables.
+    static map_wire_func_t make_safely(pb::dummy_var_t dummy_var,
+                                       const std::function<protob_t<Term>(sym_t argname)> &body_generator,
+                                       protob_t<const Backtrace> backtrace);
 };
 
 class reduce_wire_func_t : public wire_func_t {

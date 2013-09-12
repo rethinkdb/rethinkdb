@@ -98,6 +98,12 @@ counted_t<const datum_t> table_t::replace(env_t *env,
     }
 }
 
+protob_t<Term> make_replacement_body(counted_t<const datum_t> replacement, UNUSED sym_t x) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    replacement->write_to_protobuf(pb::set_datum(arg));
+    return twrap;
+}
 
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
         env_t *env,
@@ -127,13 +133,11 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 counted_t<const datum_t> replacement =
                     replacement_generator->call(env, original_values[i])->as_datum();
 
-                protob_t<Term> twrap = make_counted_term();
-                Term *const arg = twrap.get();
-                const sym_t x = GENSYM_A();
-                replacement->write_to_protobuf(pb::set_datum(arg));
-                propagate(arg);
-
-                funcs[i] = map_wire_func_t(twrap, make_vector(x), backtrace());
+                funcs[i] = map_wire_func_t::make_safely(pb::dummy_var_t::A,
+                                                        std::bind(make_replacement_body,
+                                                                  replacement,
+                                                                  std::placeholders::_1),
+                                                        backtrace());
                 pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
             } catch (const base_exc_t &exc) {
                 pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -142,6 +146,20 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
 
         return batch_replace(env, pairs, durability_requirement);
     }
+}
+
+protob_t<Term> make_upsert_replace_body(bool upsert, counted_t<const datum_t> d, sym_t x) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    if (upsert) {
+        d->write_to_protobuf(pb::set_datum(arg));
+    } else {
+        N3(BRANCH,
+           N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
+           NDATUM(d),
+           N1(ERROR, NDATUM("Duplicate primary key.")));
+    }
+    return twrap;
 }
 
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
@@ -155,21 +173,12 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     std::vector<datum_func_pair_t> pairs(original_values.size());
     for (size_t i = 0; i < original_values.size(); ++i) {
         try {
-            protob_t<Term> twrap = make_counted_term();
-            Term *const arg = twrap.get();
-
-            const sym_t x = GENSYM_A();
-            if (upsert) {
-                replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
-            } else {
-                N3(BRANCH,
-                   N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
-                   NDATUM(replacement_values[i]),
-                   N1(ERROR, NDATUM("Duplicate primary key.")));
-            }
-
-            propagate(arg);
-            funcs[i] = map_wire_func_t(twrap, make_vector(x), backtrace());
+            funcs[i] = map_wire_func_t::make_safely(pb::dummy_var_t::A,
+                                                    std::bind(make_upsert_replace_body,
+                                                              upsert,
+                                                              replacement_values[i],
+                                                              std::placeholders::_1),
+                                                    backtrace());
             pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
         } catch (const base_exc_t &exc) {
             pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -378,20 +387,12 @@ counted_t<const datum_t> table_t::do_replace(env_t *env,
                                              bool upsert,
                                              durability_requirement_t durability_requirement,
                                              bool return_vals) {
-    protob_t<Term> twrap = make_counted_term();
-    Term *const arg = twrap.get();
-    sym_t x = GENSYM_A();
-    if (upsert) {
-        d->write_to_protobuf(pb::set_datum(arg));
-    } else {
-        N3(BRANCH,
-           N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
-           NDATUM(d),
-           N1(ERROR, NDATUM("Duplicate primary key.")));
-    }
-
-    propagate(arg);
-    return do_replace(env, orig, map_wire_func_t(twrap, make_vector(x), backtrace()),
+    map_wire_func_t func = map_wire_func_t::make_safely(pb::dummy_var_t::A,
+                                                        std::bind(make_upsert_replace_body,
+                                                                  upsert, d,
+                                                                  std::placeholders::_1),
+                                                        backtrace());
+    return do_replace(env, orig, func,
                       durability_requirement, return_vals);
 }
 
