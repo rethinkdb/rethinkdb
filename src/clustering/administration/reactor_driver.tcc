@@ -8,6 +8,9 @@
 #include <set>
 #include <utility>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
