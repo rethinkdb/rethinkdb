@@ -435,6 +435,11 @@ void parse_secondary(const std::string &key, components_t *components) {
     size_t tag_primary_sep = key.rfind('\0');
     size_t primary_secondary_sep = key.rfind('\0', tag_primary_sep - 1);
 
+    guarantee(tag_primary_sep != std::string::npos &&
+              primary_secondary_sep != std::string::npos,
+              "If this fails it means someone most likely called this function "
+              "on something that isn't a sindex key. (Most likely a primary key.)");
+
     components->secondary = key.substr(0, primary_secondary_sep);
     components->primary = key.substr(primary_secondary_sep + 1, tag_primary_sep);
     const char *str = key.substr(tag_primary_sep + 1, std::string::npos).c_str(), *end;

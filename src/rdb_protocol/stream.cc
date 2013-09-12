@@ -229,6 +229,11 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
                 break;
             }
 
+            if (!sindex_id) {
+                pop();
+                return hinted_datum_t(START, item->data);
+            }
+
             std::string key = key_to_unescaped_str(item->key);
             std::string skey = ql::datum_t::extract_secondary(key);
 
