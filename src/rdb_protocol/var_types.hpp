@@ -16,8 +16,6 @@ namespace ql {
 
 class datum_t;
 
-bool arg_list_makes_for_implicit_variable(const std::vector<sym_t> &arg_names);
-
 class var_visibility_t {
 public:
     var_visibility_t();

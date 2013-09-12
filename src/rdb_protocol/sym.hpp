@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+#include <vector>
+
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
@@ -15,11 +17,9 @@ public:
 
     sym_t() : value(valgrind_undefined<int64_t>(0)) { }
     explicit sym_t(int64_t _value) : value(_value) { }
-
-    // Returns true if the varnum was non-negative, unlike dummy variables used by
-    // internally generated reql functions.
-    static bool var_allows_implicit(sym_t varnum);
 };
+
+bool function_emits_implicit_variable(const std::vector<sym_t> &arg_names);
 
 inline bool operator<(sym_t x, sym_t y) {
     return x.value < y.value;

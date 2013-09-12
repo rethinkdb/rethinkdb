@@ -8,16 +8,12 @@
 
 namespace ql {
 
-bool arg_list_makes_for_implicit_variable(const std::vector<sym_t> &arg_names) {
-    return arg_names.size() == 1 && sym_t::var_allows_implicit(arg_names[0]);
-}
-
 var_visibility_t::var_visibility_t() : implicit_depth(0) { }
 
 var_visibility_t var_visibility_t::with_func_arg_name_list(const std::vector<sym_t> &arg_names) const {
     var_visibility_t ret = *this;
     ret.visibles.insert(arg_names.begin(), arg_names.end());
-    if (arg_list_makes_for_implicit_variable(arg_names)) {
+    if (function_emits_implicit_variable(arg_names)) {
         ++ret.implicit_depth;
     }
     return ret;
@@ -43,7 +39,7 @@ var_scope_t var_scope_t::with_func_arg_list(const std::vector<sym_t> &arg_names,
                                             const std::vector<counted_t<const datum_t> > &arg_values) const {
     r_sanity_check(arg_names.size() == arg_values.size());
     var_scope_t ret = *this;
-    if (arg_list_makes_for_implicit_variable(arg_names)) {
+    if (function_emits_implicit_variable(arg_names)) {
         if (ret.implicit_depth == 0) {
             ret.maybe_implicit = arg_values[0];
         } else {

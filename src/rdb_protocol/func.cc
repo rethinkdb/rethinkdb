@@ -179,7 +179,7 @@ func_term_t::func_term_t(compile_env_t *env, const protob_t<const Term> &t)
     for (auto it = args.begin(); it != args.end(); ++it) {
         captures.vars_captured.erase(*it);
     }
-    if (arg_list_makes_for_implicit_variable(args)) {
+    if (function_emits_implicit_variable(args)) {
         captures.implicit_is_captured = false;
     }
 
