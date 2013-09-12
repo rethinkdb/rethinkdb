@@ -90,7 +90,7 @@ public:
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string unprint_secondary(const std::string &secondary_and_primary);
     static std::string extract_secondary(const std::string &secondary_and_primary);
-    static int extract_tag(const std::string &secondary_and_primary);
+    static size_t extract_tag(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;

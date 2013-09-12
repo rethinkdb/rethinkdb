@@ -428,7 +428,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key, int tag_num
 struct components_t {
     std::string secondary;
     std::string primary;
-    int tag_num;
+    size_t tag_num;
 };
 
 void parse_secondary(const std::string &key, components_t *components) {
@@ -437,25 +437,25 @@ void parse_secondary(const std::string &key, components_t *components) {
 
     components->secondary = key.substr(0, primary_secondary_sep);
     components->primary = key.substr(primary_secondary_sep + 1, tag_primary_sep);
-    components->tag_num = atoi(key.substr(tag_primary_sep + 1, std::string::npos).c_str());
+    const char *str = key.substr(tag_primary_sep + 1, std::string::npos).c_str(), *end;
+    components->tag_num =
+        strtou64_strict(str, &end, 10);
+    guarantee(end != str);
 }
 
-std::string datum_t::unprint_secondary(
-        const std::string &secondary) {
+std::string datum_t::unprint_secondary(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
     return components.primary;
 }
 
-std::string datum_t::extract_secondary(
-        const std::string &secondary) {
+std::string datum_t::extract_secondary(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
     return components.secondary;
 }
 
-int datum_t::extract_tag(
-        const std::string &secondary) {
+size_t datum_t::extract_tag(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
     return components.tag_num;
