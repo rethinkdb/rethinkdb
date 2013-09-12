@@ -34,8 +34,8 @@ public:
         } else {
             protob_t<Term> func_term = make_counted_term();
             {
-                sym_t x = GENSYM_A();
-                Term *arg = pb::set_func(func_term.get(), x);
+                sym_t x;
+                Term *arg = pb::set_func(func_term.get(), pb::dummy_var_t::A, &x);
                 N2(GET_FIELD, NVAR(x), NDATUM(name_datum));
             }
             prop_bt(func_term.get());

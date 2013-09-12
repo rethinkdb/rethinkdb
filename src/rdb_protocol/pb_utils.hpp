@@ -11,12 +11,16 @@
 namespace ql {
 namespace pb {
 
+enum class dummy_var_t { A, B, C };
+
 // Set `d` to be a datum term, return a pointer to its datum member.
 Datum *set_datum(Term *d);
 // Set `f` to be a function of `varnum`, return a pointer to its body.
-Term *set_func(Term *f, sym_t varnum);
+Term *set_func(Term *f, dummy_var_t dummy_var, sym_t *varnum_out);
 // As above but with two variables.
-Term *set_func(Term *f, sym_t varnum1, sym_t varnum2);
+Term *set_func(Term *f,
+               dummy_var_t dummy_var1, sym_t *varnum1_out,
+               dummy_var_t dummy_var2, sym_t *varnum2_out);
 // Set `v` to be the variable `varnum`.
 void set_var(Term *v, sym_t varnum);
 

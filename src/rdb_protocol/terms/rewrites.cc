@@ -115,20 +115,21 @@ private:
 
     static void map_fn(Term *arg,
                        const std::string &dc, const Term *dc_arg) {
-        const sym_t obj = GENSYM_A();
-        const sym_t attr = GENSYM_B();
-        arg = pb::set_func(arg, obj);
+        sym_t obj;
+        arg = pb::set_func(arg, pb::dummy_var_t::A, &obj);
         if (dc == "COUNT") {
             NDATUM(1.0);
         } else if (dc == "SUM") {
-            N2(FUNCALL, arg = pb::set_func(arg, attr);
+            sym_t attr;
+            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &attr);
                N3(BRANCH,
                   N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
                   N2(GET_FIELD, NVAR(obj), NVAR(attr)),
                   NDATUM(0.0)),
                *arg = *dc_arg);
         } else if (dc == "AVG") {
-            N2(FUNCALL, arg = pb::set_func(arg, attr);
+            sym_t attr;
+            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &attr);
                N3(BRANCH,
                   N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
                   N2(MAKE_ARRAY, N2(GET_FIELD, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
@@ -139,9 +140,9 @@ private:
     }
     static void reduce_fn(Term *arg,
                           const std::string &dc, UNUSED const Term *dc_arg) {
-        const sym_t a = GENSYM_A();
-        const sym_t b = GENSYM_B();
-        arg = pb::set_func(arg, a, b);
+        sym_t a;
+        sym_t b;
+        arg = pb::set_func(arg, pb::dummy_var_t::A, &a, pb::dummy_var_t::B, &b);
         if (dc == "COUNT" || dc == "SUM") {
             N2(ADD, NVAR(a), NVAR(b));
         } else if (dc == "AVG") {
@@ -158,15 +159,15 @@ private:
             return arg;
         }
 
-        const sym_t val = GENSYM_A();
-        const sym_t obj = GENSYM_B();
         Term *argout = NULL;
         if (dc == "AVG") {
-            N2(MAP, argout = arg, arg = pb::set_func(arg, obj);
+            sym_t obj;
+            sym_t val;
+            N2(MAP, argout = arg, arg = pb::set_func(arg, pb::dummy_var_t::A, &obj);
                OPT2(MAKE_OBJ,
                     "group", N2(GET_FIELD, NVAR(obj), NDATUM("group")),
                     "reduction",
-                    N2(FUNCALL, arg = pb::set_func(arg, val);
+                    N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &val);
                        N2(DIV, N2(NTH, NVAR(val), NDATUM(0.0)),
                                N2(NTH, NVAR(val), NDATUM(1.0))),
                        N2(GET_FIELD, NVAR(obj), NDATUM("reduction")))));
@@ -189,14 +190,14 @@ public:
         const Term *const left = &in->args(0);
         const Term *const right = &in->args(1);
         const Term *const func = &in->args(2);
-        const sym_t n = GENSYM_A();
-        const sym_t m = GENSYM_B();
+        sym_t n;
+        sym_t m;
 
         Term *arg = out.get();
         // `left`.concatmap { |n|
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, n);
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::A, &n);
            // `right`.concatmap { |m|
-           N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, m);
+           N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, pb::dummy_var_t::B, &m);
               // r.branch(
               N3(BRANCH,
                  // r.funcall(`func`, n, m),
@@ -222,16 +223,16 @@ public:
         const Term *const left = &in->args(0);
         const Term *const right = &in->args(1);
         const Term *const func = &in->args(2);
-        const sym_t n = GENSYM_A();
-        const sym_t m = GENSYM_B();
-        const sym_t lst = GENSYM_C();
+        sym_t n;
+        sym_t m;
+        sym_t lst;
 
         Term *arg = out.get();
 
         // `left`.concatmap { |n|
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, n);
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::A, &n);
            // r.funcall(lambda { |lst
-           N2(FUNCALL, arg = pb::set_func(arg, lst);
+           N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &lst);
               // r.branch(
               N3(BRANCH,
                  // r.gt(r.count(lst), 0),
@@ -243,7 +244,7 @@ public:
               // r.coerce_to(
               N2(COERCE_TO,
                  // `right`.concatmap { |m|
-                 N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, m);
+                 N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, pb::dummy_var_t::C, &m);
                     // r.branch(
                     N3(BRANCH,
                        // r.funcall(`func`, n, m),
@@ -272,18 +273,19 @@ private:
         const Term *const left = &in->args(0);
         const Term *const left_attr = &in->args(1);
         const Term *const right = &in->args(2);
-        const sym_t row = GENSYM_A();
-        const sym_t v = GENSYM_B();
+
+        sym_t row;
+        sym_t v;
 
         Term *arg = out.get();
         Term *optarg_inheritor = NULL;
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, row);
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::A, &row);
            N2(MAP,
               optarg_inheritor = arg;
               N2(GET_ALL, *arg = *right, N2(FUNCALL, *arg = *left_attr, NVAR(row));
                   OPT1(FUNCALL, "_SHORTCUT_", NDATUM(static_cast<double>(GET_FIELD_SHORTCUT)))),
 
-              arg = pb::set_func(arg, v);
+              arg = pb::set_func(arg, pb::dummy_var_t::B, &v);
               OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));
         r_sanity_check(optarg_inheritor != NULL);
         return out.make_child(optarg_inheritor);
@@ -300,10 +302,10 @@ private:
     static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const sym_t x = GENSYM_A();
+        sym_t x;
 
         Term *arg = out.get();
-        N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, x)));
+        N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, pb::dummy_var_t::A, &x)));
         return out;
      }
      virtual const char *name() const { return "delete"; }
@@ -317,15 +319,15 @@ private:
     static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const sym_t old_row = GENSYM_A();
-        const sym_t new_row = GENSYM_B();
+        sym_t old_row;
+        sym_t new_row;
 
         Term *arg = out.get();
-        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, old_row);
+        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, pb::dummy_var_t::A, &old_row);
            N3(BRANCH,
               N2(EQ, NVAR(old_row), NDATUM(datum_t::R_NULL)),
               NDATUM(datum_t::R_NULL),
-              N2(FUNCALL, arg = pb::set_func(arg, new_row);
+              N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &new_row);
                  N3(BRANCH,
                     N2(EQ, NVAR(new_row), NDATUM(datum_t::R_NULL)),
                     NVAR(old_row),
@@ -364,10 +366,10 @@ private:
     static protob_t<Term> rewrite(protob_t<const Term> in,
                                   const protob_t<Term> out,
                                   UNUSED const pb_rcheckable_t *bt_src) {
-        const sym_t row = GENSYM_A();
+        sym_t row;
 
         Term *arg = out.get();
-        N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, row);
+        N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, pb::dummy_var_t::A, &row);
            N1(NOT, N2(CONTAINS, *arg = in->args(1), NVAR(row))));
 
         return out;
