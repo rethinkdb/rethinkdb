@@ -29,15 +29,6 @@ RDB_DECLARE_SERIALIZABLE(sym_t);
 
 void debug_print(printf_buffer_t *buf, sym_t sym);
 
-// We don't actually generate fresh symbols.  It's hard to do when sending functions
-// across a cluster.  Instead of doing that, we support variable shadowing.  As long as
-// no function you construct captures an external GENSYM_* value, you're in good shape.
-
-// These negative values are _not_ allowed to be used as implicit variables.
-inline sym_t GENSYM_A() { return sym_t(-1); }
-inline sym_t GENSYM_B() { return sym_t(-2); }
-inline sym_t GENSYM_C() { return sym_t(-3); }
-
 }  // namespace ql
 
 

@@ -11,11 +11,14 @@
 namespace ql {
 namespace pb {
 
+// Dummy variables are used to identify the variables we use when constructing
+// home-made reql functions.  set_func and map_wire_func_t::make_safely both make it
+// difficult to create a reql function referencing an external dummy variable -- they
+// generate a sym_t for you to use inside the function body (and nowhere else!).
 enum class dummy_var_t { A, B, C };
 
-// Returns the sym_t corresponding to a dummy_var_t.  Don't use this gratuitously --
-// set_func below and map_wire_func_t::make_safely call this function, and they're
-// both relatively safe ways to construct reql functions.
+// Don't use this!  set_func and map_wire_func_t::make_safely use this.  Returns the
+// sym_t corresponding to a dummy_var_t.
 sym_t dummy_var_to_sym(dummy_var_t dummy_var);
 
 // Set `d` to be a datum term, return a pointer to its datum member.
