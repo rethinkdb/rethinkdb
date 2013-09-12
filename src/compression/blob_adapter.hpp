@@ -3,7 +3,6 @@
 
 #include <snappy-sinksource.h>
 #include "buffer_cache/blob.hpp"
-#include "containers/buffer_group.hpp"
 
 class blob_sink_t : public snappy::Sink {
 public:

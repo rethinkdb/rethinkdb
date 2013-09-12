@@ -133,11 +133,6 @@ private:
     raw_mailbox_t::id_t register_mailbox(raw_mailbox_t *mb);
     void unregister_mailbox(raw_mailbox_t::id_t id);
 
-    static void write_mailbox_message(write_stream_t *stream,
-                                      int dest_thread,
-                                      raw_mailbox_t::id_t dest_mailbox_id,
-                                      mailbox_write_callback_t *callback);
-
     void on_message(peer_id_t, string_read_stream_t *stream);
 
     void mailbox_read_coroutine(int dest_thread,
