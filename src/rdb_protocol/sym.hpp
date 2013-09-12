@@ -16,8 +16,8 @@ public:
     sym_t() : value(valgrind_undefined<int64_t>(0)) { }
     explicit sym_t(int64_t _value) : value(_value) { }
 
-    // Returns true if the varnum was non-negative, unlike the GENSYM_* functions
-    // below.
+    // Returns true if the varnum was non-negative, unlike dummy variables used by
+    // internally generated reql functions.
     static bool var_allows_implicit(sym_t varnum);
 };
 
