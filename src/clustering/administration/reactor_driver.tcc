@@ -129,7 +129,7 @@ public:
         svs_by_namespace_(svs_by_namespace),
         cache_size(_cache_size)
     {
-        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender));
+        coro_t::spawn_sometime(std::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender));
     }
 
     ~watchable_and_reactor_t() {
@@ -317,7 +317,7 @@ private:
             io_backender,
             parent_->mbox_manager,
             this,
-            parent_->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
+            parent_->directory_view->subview(std::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, std::placeholders::_1)),
             parent_->branch_history_manager,
             watchable.get_watchable(),
             svs_.get(), namespace_collection, ctx));
@@ -326,7 +326,7 @@ private:
             typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::freeze_t reactor_directory_freeze(reactor_->get_reactor_directory());
             reactor_directory_subscription_.init(
                 new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t(
-                    boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
+                    std::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
             DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
             namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
@@ -387,8 +387,8 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
       svs_by_namespace(_svs_by_namespace),
       ack_info(new ack_info_t<protocol_t>(machine_id_translation_table, machines_view, namespaces_view)),
       watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
-      semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
-      translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
+      semilattice_subscription(std::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
+      translation_table_subscription(std::bind(&reactor_driver_t<protocol_t>::on_change, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
 {
     watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
@@ -428,7 +428,7 @@ void reactor_driver_t<protocol_t>::on_change() {
              * map but the destructor hasn't been called... then this needs
              * to be heap allocated so that it can be safely passed to a
              * coroutine for destruction. */
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &reactor_driver_t<protocol_t>::delete_reactor_data,
                 this,
                 auto_drainer_t::lock_t(&drainer),
@@ -483,7 +483,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 /* The blueprint does not mentions us so we destroy the
                  * reactor. */
                 if (std_contains(reactor_data, it->first)) {
-                    coro_t::spawn_sometime(boost::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
+                    coro_t::spawn_sometime(std::bind(&reactor_driver_t<protocol_t>::delete_reactor_data, this, auto_drainer_t::lock_t(&drainer), new typename reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))), it->first));
                 }
             }
         }
