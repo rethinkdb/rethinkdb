@@ -26,7 +26,7 @@ table_t::table_t(env_t *env,
            strprintf("Table name `%s` invalid (%s).",
                      name.c_str(), name_string_t::valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >
-        namespaces_metadata = env->cluster_env.namespaces_semilattice_metadata->get();
+        namespaces_metadata = env->cluster_access.namespaces_semilattice_metadata->get();
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
         namespaces_metadata_change(&namespaces_metadata);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
@@ -38,7 +38,7 @@ table_t::table_t(env_t *env,
                                         table_name.c_str()), this);
 
     access.init(new namespace_repo_t<rdb_protocol_t>::access_t(
-                    env->cluster_env.ns_repo, id, env->interruptor));
+                    env->cluster_access.ns_repo, id, env->interruptor));
 
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator

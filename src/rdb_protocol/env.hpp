@@ -39,10 +39,10 @@ private:
     std::map<std::string, wire_func_t> optargs;
 };
 
-class cluster_env_t {
+class cluster_access_t {
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
-    cluster_env_t(
+    cluster_access_t(
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -52,7 +52,8 @@ public:
              _databases_semilattice_metadata,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager);
+        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+        uuid_u _this_machine);
 
     base_namespace_repo_t<rdb_protocol_t> *ns_repo;
 
@@ -71,12 +72,13 @@ public:
             const cluster_semilattice_metadata_t &metadata_to_join,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+
+
+    const uuid_u this_machine;
 };
 
+// The env_t.
 class env_t : public home_thread_mixin_t {
-public:
-    global_optargs_t global_optargs;
-
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
     // This is copied basically verbatim from old code.
@@ -99,18 +101,11 @@ public:
     explicit env_t(signal_t *);
 
     ~env_t();
-
-    extproc_pool_t *extproc_pool;      // for running external JS jobs
-
-    cluster_env_t cluster_env;
-
     void throw_if_interruptor_pulsed() THROWS_ONLY(interrupted_exc_t) {
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
     }
-private:
-    js_runner_t js_runner;
 
-public:
+
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
     js_runner_t *get_js_runner();
@@ -125,17 +120,31 @@ public:
     void set_eval_callback(eval_callback_t *callback);
     void do_eval_callback();
 
+    // The global optargs values passed to .run(...) in the Python, Ruby, and JS
+    // drivers.
+    global_optargs_t global_optargs;
+
+
+    // A pool used for running external JS jobs.  Inexplicably this isn't inside of
+    // js_runner_t.
+    extproc_pool_t *extproc_pool;
+
+    // Access to the cluster, for talking over the cluster or about the cluster.
+    cluster_access_t cluster_access;
+
+    // The interruptor signal while a query evaluates.  This can get overwritten!
+    signal_t *interruptor;
+
 private:
+    js_runner_t js_runner;
+
     eval_callback_t *eval_callback;
 
-public:
-    signal_t *interruptor;
-    const uuid_u this_machine;
-
-private:
     DISABLE_COPYING(env_t);
 };
 
+// An environment in which expressions are compiled.  Since compilation doesn't
+// evaluate anything, it doesn't need an env_t *.
 class compile_env_t {
 public:
     explicit compile_env_t(var_visibility_t &&_visibility)
@@ -143,6 +152,8 @@ public:
     var_visibility_t visibility;
 };
 
+// This is an environment for evaluating things that use variables in scope.  It
+// supplies the variables along with the "global" evaluation environment.
 class scope_env_t {
 public:
     scope_env_t(env_t *_env, var_scope_t &&_scope)

@@ -66,7 +66,7 @@ void env_t::do_eval_callback() {
     }
 }
 
-cluster_env_t::cluster_env_t(
+cluster_access_t::cluster_access_t(
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 
         clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
@@ -76,14 +76,16 @@ cluster_env_t::cluster_env_t(
              _databases_semilattice_metadata,
         boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
             _semilattice_metadata,
-        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager)
+        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+        uuid_u _this_machine)
     : ns_repo(_ns_repo),
       namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
       databases_semilattice_metadata(_databases_semilattice_metadata),
       semilattice_metadata(_semilattice_metadata),
-      directory_read_manager(_directory_read_manager) { }
+      directory_read_manager(_directory_read_manager),
+      this_machine(_this_machine) { }
 
-void cluster_env_t::join_and_wait_to_propagate(
+void cluster_access_t::join_and_wait_to_propagate(
         const cluster_semilattice_metadata_t &metadata_to_join,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
@@ -138,24 +140,25 @@ env_t::env_t(
     const std::map<std::string, wire_func_t> &_optargs)
   : global_optargs(_optargs),
     extproc_pool(_extproc_pool),
-    cluster_env(_ns_repo,
-                _namespaces_semilattice_metadata,
-                _databases_semilattice_metadata,
-                _semilattice_metadata,
-                _directory_read_manager),
-    DEBUG_ONLY(eval_callback(NULL), )
+    cluster_access(_ns_repo,
+                   _namespaces_semilattice_metadata,
+                   _databases_semilattice_metadata,
+                   _semilattice_metadata,
+                   _directory_read_manager,
+                   _this_machine),
     interruptor(_interruptor),
-    this_machine(_this_machine) { }
+    eval_callback(NULL) { }
 
 env_t::env_t(signal_t *_interruptor)
   : extproc_pool(NULL),
-    cluster_env(NULL,
-                clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
-                clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
-                boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
-                NULL),
-    DEBUG_ONLY(eval_callback(NULL), )
-    interruptor(_interruptor) { }
+    cluster_access(NULL,
+                   clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
+                   clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
+                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+                   NULL,
+                   uuid_u()),
+    interruptor(_interruptor),
+    eval_callback(NULL) { }
 
 env_t::~env_t() { }
 

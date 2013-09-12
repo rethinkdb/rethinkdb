@@ -41,8 +41,8 @@ private:
 
 struct rethreading_metadata_accessor_t : public on_thread_t {
     explicit rethreading_metadata_accessor_t(scope_env_t *env)
-    : on_thread_t(env->env->cluster_env.semilattice_metadata->home_thread()),
-      metadata(env->env->cluster_env.semilattice_metadata->get()),
+    : on_thread_t(env->env->cluster_access.semilattice_metadata->home_thread()),
+      metadata(env->env->cluster_access.semilattice_metadata->get()),
       ns_change(&metadata.rdb_namespaces),
       ns_searcher(&ns_change.get()->namespaces),
       db_searcher(&metadata.databases.databases),
@@ -67,11 +67,11 @@ public:
 protected:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
     directory_metadata(env_t *env) const {
-        rcheck(env->cluster_env.directory_read_manager != NULL,
+        rcheck(env->cluster_access.directory_read_manager != NULL,
                base_exc_t::GENERIC,
                "Cannot nest meta operations inside queries.");
-        r_sanity_check(env->cluster_env.directory_read_manager->home_thread() == get_thread_id());
-        return env->cluster_env.directory_read_manager->get_root_view();
+        r_sanity_check(env->cluster_access.directory_read_manager->home_thread() == get_thread_id());
+        return env->cluster_access.directory_read_manager->get_root_view();
     }
 
 private:
@@ -122,16 +122,16 @@ private:
 
         // Create database, insert into metadata, then join into real metadata.
         database_semilattice_metadata_t db;
-        db.name = vclock_t<name_string_t>(db_name, env->env->this_machine);
+        db.name = vclock_t<name_string_t>(db_name, env->env->cluster_access.this_machine);
         meta.metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
         try {
             fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
-                               env->env->this_machine, false);
+                               env->env->cluster_access.this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "created";
     }
@@ -210,7 +210,7 @@ private:
             // Create namespace (DB + table pair) and insert into metadata.
             // The port here is a legacy from the day when memcached ran on a different port.
             namespace_semilattice_metadata_t<rdb_protocol_t> ns =
-                new_namespace<rdb_protocol_t>(env->env->this_machine, db_id, dc_id, tbl_name,
+                new_namespace<rdb_protocol_t>(env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
                                               primary_key, port_defaults::reql_port,
                                               cache_size);
 
@@ -220,25 +220,25 @@ private:
             for (auto it = ack_map->begin(); it != ack_map->end(); ++it) {
                 it->second = ack_expectation_t(it->second.expectation(), hard_durability);
             }
-            ns.ack_expectations.upgrade_version(env->env->this_machine);
+            ns.ack_expectations.upgrade_version(env->env->cluster_access.this_machine);
 
             meta.ns_change.get()->namespaces.insert(
                                                     std::make_pair(namespace_id, make_deletable(ns)));
             try {
                 fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
-                                   env->env->this_machine, false);
+                                   env->env->cluster_access.this_machine, false);
             } catch (const missing_machine_exc_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
             }
-            env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+            env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
         }
 
         // UGLY HACK BELOW (see wait_for_rdb_table_readiness)
 
         try {
-            wait_for_rdb_table_readiness(env->env->cluster_env.ns_repo, namespace_id,
+            wait_for_rdb_table_readiness(env->env->cluster_access.ns_repo, namespace_id,
                                          env->env->interruptor,
-                                         env->env->cluster_env.semilattice_metadata);
+                                         env->env->cluster_access.semilattice_metadata);
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC, "Query interrupted, probably by user.");
         }
@@ -282,11 +282,11 @@ private:
         // Join
         try {
             fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
-                               env->env->this_machine, false);
+                               env->env->cluster_access.this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "dropped";
     }
@@ -326,11 +326,11 @@ private:
         ns_metadata->second.mark_deleted();
         try {
             fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
-                               env->env->this_machine, false);
+                               env->env->cluster_access.this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
-        env->env->cluster_env.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
+        env->env->cluster_access.join_and_wait_to_propagate(meta.metadata, env->env->interruptor);
 
         return "dropped";
     }
