@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/auto_reconnect.hpp"
 
-#include <functional>
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
 #include "concurrency/wait_any.hpp"
@@ -15,7 +16,7 @@ auto_reconnector_t::auto_reconnector_t(
     connectivity_cluster_run(connectivity_cluster_run_),
     machine_id_translation_table(machine_id_translation_table_),
     machine_metadata(machine_metadata_),
-    machine_id_translation_table_subs(std::bind(&auto_reconnector_t::on_connect_or_disconnect, this))
+    machine_id_translation_table_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this))
 {
     watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
     machine_id_translation_table_subs.reset(machine_id_translation_table, &freeze);
@@ -37,7 +38,7 @@ void auto_reconnector_t::on_connect_or_disconnect() {
         if (map.find(it->first) == map.end()) {
             auto jt = it;
             ++jt;
-            coro_t::spawn_sometime(std::bind(
+            coro_t::spawn_sometime(boost::bind(
                 &auto_reconnector_t::try_reconnect, this,
                 it->second.first, it->second.second, auto_drainer_t::lock_t(&drainer)));
             connected_peers.erase(it);
@@ -58,11 +59,11 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine,
 
     cond_t cond;
     semilattice_read_view_t<machines_semilattice_metadata_t>::subscription_t subs(
-        std::bind(&auto_reconnector_t::pulse_if_machine_declared_dead, this, machine, &cond),
+        boost::bind(&auto_reconnector_t::pulse_if_machine_declared_dead, this, machine, &cond),
         machine_metadata);
     pulse_if_machine_declared_dead(machine, &cond);
     watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t subs2(
-        std::bind(&auto_reconnector_t::pulse_if_machine_reconnected, this, machine, &cond));
+        boost::bind(&auto_reconnector_t::pulse_if_machine_reconnected, this, machine, &cond));
     {
         watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
         subs2.reset(machine_id_translation_table, &freeze);
