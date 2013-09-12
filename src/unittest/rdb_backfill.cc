@@ -1,6 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
