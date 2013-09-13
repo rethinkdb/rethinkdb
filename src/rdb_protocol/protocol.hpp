@@ -155,9 +155,9 @@ struct rget_item_t {
 
 } // namespace rdb_protocol_details
 
-enum sindex_multi_bool_t { MULTI = 0, SINGLE = 1};
+enum sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t, MULTI, SINGLE);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t, SINGLE, MULTI);
 
 class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
