@@ -6,15 +6,10 @@ import socket
 import struct
 from os import environ
 
-
-import os
-os.write(2, "YAY!\n")
-os.write(2, repr(environ))
-
 if 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION' in environ:
     protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
     if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
-       from . import rethinkdb_pbcpp
+       import rethinkdb_pbcpp
 else:
     try:
         # Set an environment variable telling the protobuf library
