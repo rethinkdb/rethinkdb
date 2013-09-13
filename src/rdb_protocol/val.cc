@@ -162,6 +162,15 @@ protob_t<Term> make_upsert_replace_body(bool upsert, counted_t<const datum_t> d,
     return twrap;
 }
 
+map_wire_func_t upsert_replacement_func(bool upsert, counted_t<const datum_t> d,
+                                        protob_t<const Backtrace> backtrace) {
+    return map_wire_func_t::make_safely(pb::dummy_var_t::A,
+                                        std::bind(make_upsert_replace_body,
+                                                  upsert, d,
+                                                  std::placeholders::_1),
+                                        backtrace);
+}
+
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
         env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
@@ -173,12 +182,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     std::vector<datum_func_pair_t> pairs(original_values.size());
     for (size_t i = 0; i < original_values.size(); ++i) {
         try {
-            funcs[i] = map_wire_func_t::make_safely(pb::dummy_var_t::A,
-                                                    std::bind(make_upsert_replace_body,
-                                                              upsert,
-                                                              replacement_values[i],
-                                                              std::placeholders::_1),
-                                                    backtrace());
+            funcs[i] = upsert_replacement_func(upsert, replacement_values[i], backtrace());
             pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
         } catch (const base_exc_t &exc) {
             pairs[i] = datum_func_pair_t(make_error_datum(exc));
@@ -387,11 +391,8 @@ counted_t<const datum_t> table_t::do_replace(env_t *env,
                                              bool upsert,
                                              durability_requirement_t durability_requirement,
                                              bool return_vals) {
-    map_wire_func_t func = map_wire_func_t::make_safely(pb::dummy_var_t::A,
-                                                        std::bind(make_upsert_replace_body,
-                                                                  upsert, d,
-                                                                  std::placeholders::_1),
-                                                        backtrace());
+    map_wire_func_t func = upsert_replacement_func(upsert, d, backtrace());
+
     return do_replace(env, orig, func,
                       durability_requirement, return_vals);
 }
