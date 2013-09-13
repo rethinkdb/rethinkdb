@@ -12,6 +12,4 @@ private:
     write_stream_t *internal;
 };
 
-class read_stream_source_t
-
 #endif
