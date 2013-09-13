@@ -564,14 +564,14 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
     guarantee(datum().has());
 }
 
-val_t::val_t(scope_env_t *env, counted_t<datum_stream_t> _sequence,
+val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
       type(type_t::SEQUENCE),
       u(_sequence) {
     guarantee(sequence().has());
     // Some streams are really arrays in disguise.
-    counted_t<const datum_t> arr = sequence()->as_array(env->env);
+    counted_t<const datum_t> arr = sequence()->as_array(env);
     if (arr.has()) {
         type = type_t::DATUM;
         u = arr;

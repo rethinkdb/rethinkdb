@@ -93,12 +93,12 @@ private:
 
             switch (poly_type) {
             case MAP:
-                return new_val(env, v0->as_seq(env->env)->map(func));
+                return new_val(env->env, v0->as_seq(env->env)->map(func));
             case FILTER:
-                return new_val(env,
+                return new_val(env->env,
                                v0->as_seq(env->env)->filter(func, counted_t<func_t>()));
             case SKIP_MAP:
-                return new_val(env, v0->as_seq(env->env)->concatmap(func));
+                return new_val(env->env, v0->as_seq(env->env)->concatmap(func));
             default: unreachable();
             }
         }

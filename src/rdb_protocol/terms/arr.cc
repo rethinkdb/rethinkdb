@@ -179,7 +179,7 @@ private:
                 real_r += 1;  // This is safe because it was an int32_t before.
             }
             counted_t<datum_stream_t> new_ds = seq->slice(real_l, real_r);
-            return t.has() ? new_val(new_ds, t) : new_val(env, new_ds);
+            return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
         }
         rcheck_typed_target(v, false, "Cannot slice non-sequences.");
         unreachable();
@@ -203,7 +203,7 @@ private:
         rcheck(r >= 0, base_exc_t::GENERIC,
                strprintf("LIMIT takes a non-negative argument (got %d)", r));
         counted_t<datum_stream_t> new_ds = ds->slice(0, r);
-        return t.has() ? new_val(new_ds, t) : new_val(env, new_ds);
+        return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
     }
     virtual const char *name() const { return "limit"; }
 };
@@ -411,7 +411,7 @@ private:
         } else {
             fun = new_eq_comparison_func(v->as_datum(), backtrace());
         }
-        return new_val(env, arg(env, 0)->as_seq(env->env)->indexes_of(fun));
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->indexes_of(fun));
     }
     virtual const char *name() const { return "indexes_of"; }
 };

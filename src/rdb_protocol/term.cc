@@ -358,7 +358,7 @@ counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> 
     return make_counted<val_t>(d, t, backtrace());
 }
 
-counted_t<val_t> term_t::new_val(scope_env_t *env, counted_t<datum_stream_t> s) {
+counted_t<val_t> term_t::new_val(env_t *env, counted_t<datum_stream_t> s) {
     return make_counted<val_t>(env, s, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
