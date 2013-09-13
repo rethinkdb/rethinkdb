@@ -1,7 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
+
+#include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
+#include "buffer_cache/serialize_to_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "protocol_api.hpp"
 
@@ -35,18 +37,7 @@ void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block
     blob_t sindex_blob(txn->get_cache()->get_block_size(),
                        data->sindex_blob,
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
-    sindex_blob.clear(txn);
-
-    write_message_t wm;
-    wm << sindexes;
-
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0);
-
-    sindex_blob.append_region(txn, stream.vector().size());
-    std::string sered_data(stream.vector().begin(), stream.vector().end());
-    sindex_blob.write_from_string(sered_data, txn, 0);
+    serialize_onto_blob(txn, &sindex_blob, sindexes);
 }
 
 void initialize_secondary_indexes(transaction_t *txn, buf_lock_t *sindex_block) {

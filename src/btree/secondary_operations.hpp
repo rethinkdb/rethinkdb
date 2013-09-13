@@ -6,8 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "buffer_cache/mirrored/writeback.hpp"
+#include "buffer_cache/types.hpp"
 #include "containers/archive/archive.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "serializer/types.hpp"
 
