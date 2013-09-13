@@ -136,10 +136,10 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
-    virtual void runtime_check(base_exc_t::type_t exc_type,
-                               const char *test, const char *file, int line,
-                               bool pred, std::string msg) const {
-        ql::runtime_check(exc_type, test, file, line, pred, msg);
+    virtual void runtime_fail(base_exc_t::type_t exc_type,
+                              const char *test, const char *file, int line,
+                              std::string msg) const {
+        ql::runtime_fail(exc_type, test, file, line, msg);
     }
 
     static size_t max_trunc_size();

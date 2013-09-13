@@ -36,12 +36,12 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.
-void runtime_check(base_exc_t::type_t type,
-                   const char *test, const char *file, int line,
-                   bool pred, std::string msg, const Backtrace *bt_src);
-void runtime_check(base_exc_t::type_t type,
-                   const char *test, const char *file, int line,
-                   bool pred, std::string msg);
+void runtime_fail(base_exc_t::type_t type,
+                  const char *test, const char *file, int line,
+                  std::string msg, const Backtrace *bt_src) __attribute__((__noreturn__));
+void runtime_fail(base_exc_t::type_t type,
+                  const char *test, const char *file, int line,
+                  std::string msg) __attribute__((__noreturn__));
 void runtime_sanity_check(bool test);
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
@@ -50,9 +50,9 @@ void runtime_sanity_check(bool test);
 class rcheckable_t {
 public:
     virtual ~rcheckable_t() { }
-    virtual void runtime_check(base_exc_t::type_t type,
-                               const char *test, const char *file, int line,
-                               bool pred, std::string msg) const = 0;
+    virtual void runtime_fail(base_exc_t::type_t type,
+                              const char *test, const char *file, int line,
+                              std::string msg) const = 0;
 };
 
 protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t);
@@ -70,10 +70,10 @@ public:
     explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
         : bt_src(_bt_src) { }
 
-    virtual void runtime_check(base_exc_t::type_t type,
-                               const char *test, const char *file, int line,
-                               bool pred, std::string msg) const {
-        ql::runtime_check(type, test, file, line, pred, msg, bt_src.get());
+    virtual void runtime_fail(base_exc_t::type_t type,
+                              const char *test, const char *file, int line,
+                              std::string msg) const {
+        ql::runtime_fail(type, test, file, line, msg, bt_src.get());
     }
 
     // Propagate the associated backtrace through the rewrite term.
@@ -89,26 +89,26 @@ private:
 #define rcheck_target(target, type, pred, msg) do {                  \
         (pred)                                                       \
         ? (void)0                                                    \
-        : (target)->runtime_check(type, stringify(pred),             \
-                                  __FILE__, __LINE__, false, (msg)); \
+        : (target)->runtime_fail(type, stringify(pred),              \
+                                 __FILE__, __LINE__, (msg));         \
     } while (0)
 #define rcheck_typed_target(target, pred, msg) do {                     \
         (pred)                                                          \
         ? (void)0                                                       \
-        : (target)->runtime_check(exc_type(target), stringify(pred),    \
-                                  __FILE__, __LINE__, false, (msg));    \
+        : (target)->runtime_fail(exc_type(target), stringify(pred),     \
+                                 __FILE__, __LINE__, (msg));            \
     } while (0)
 #define rcheck_src(src, type, pred, msg) do {                         \
         (pred)                                                        \
         ? (void)0                                                     \
-        : ql::runtime_check(type, stringify(pred),                    \
-                            __FILE__, __LINE__, false, (msg), (src)); \
+        : ql::runtime_fail(type, stringify(pred),                     \
+                           __FILE__, __LINE__, (msg), (src));         \
     } while (0)
 #define rcheck_datum(pred, type, msg) do {                            \
         (pred)                                                        \
         ? (void)0                                                     \
-        : ql::runtime_check(type, stringify(pred),                    \
-                            __FILE__, __LINE__, false, (msg)); \
+        : ql::runtime_fail(type, stringify(pred),                     \
+                           __FILE__, __LINE__, (msg));                \
     } while (0)
 
 #define rcheck(pred, type, msg) rcheck_target(this, type, pred, msg)
