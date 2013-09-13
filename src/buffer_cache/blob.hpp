@@ -126,7 +126,6 @@ int64_t ref_value_offset(const char *ref, int maxreflen);
 extern block_magic_t internal_node_magic;
 extern block_magic_t leaf_node_magic;
 
-bool deep_fsck(block_getter_t *getter, block_size_t bs, const char *ref, int maxreflen, std::string *msg_out);
 }  // namespace blob
 
 class blob_t {

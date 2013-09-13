@@ -24,14 +24,6 @@ public:
         return length_available > 0 && size(value) <= length_available;
     }
 
-    bool deep_fsck(UNUSED block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
-        if (!fits(value, length_available)) {
-            *msg_out = strprintf("value does not fit within %d", length_available);
-            return false;
-        }
-        return true;
-    }
-
     int max_possible_size() const {
         return 256;
     }

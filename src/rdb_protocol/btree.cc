@@ -36,15 +36,6 @@ bool value_sizer_t<rdb_value_t>::fits(const void *value, int length_available) c
     return btree_value_fits(block_size_, length_available, as_rdb(value));
 }
 
-bool value_sizer_t<rdb_value_t>::deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const {
-    if (!fits(value, length_available)) {
-        *msg_out = "value does not fit in length_available";
-        return false;
-    }
-
-    return blob::deep_fsck(getter, block_size_, as_rdb(value)->value_ref(), blob::btree_maxreflen, msg_out);
-}
-
 int value_sizer_t<rdb_value_t>::max_possible_size() const {
     return blob::btree_maxreflen;
 }

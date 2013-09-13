@@ -62,7 +62,6 @@ public:
 
     bool fits(const void *value, int length_available) const;
 
-    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const;
     int max_possible_size() const;
 
     static block_magic_t leaf_magic();
