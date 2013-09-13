@@ -27,9 +27,6 @@ public:
     /* Blocking call. */
     ~serializer_multiplexer_t();
 
-    /* Used internally and used by fsck & friends */
-    static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
-
     creation_timestamp_t creation_timestamp;
 };
 

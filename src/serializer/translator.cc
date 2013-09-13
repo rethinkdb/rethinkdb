@@ -20,6 +20,12 @@
 
 const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c', 'f', 'g', '_' } };
 
+int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
+    /* If we have 'n_files', and we distribute 'n_slices' over those 'n_files' such that slice 'n'
+    is on file 'n % n_files', then how many slices will be on file 'file_number'? */
+    return n_slices / n_files + (n_slices % n_files > file_number);
+}
+
 void prep_serializer(
         const std::vector<standard_serializer_t *>& serializers,
         creation_timestamp_t creation_timestamp,
@@ -100,8 +106,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
     different order than they were specified to 'rethinkdb create') */
     int j = c->this_serializer;
 
-    int num_on_this_serializer = serializer_multiplexer_t::compute_mod_count(
-        j, underlying.size(), c->n_proxies);
+    int num_on_this_serializer = compute_mod_count(j, underlying.size(), c->n_proxies);
 
     /* This is a slightly weird way of phrasing this; it's done this way so I can be sure it's
     equivalent to the old way of doing things */
@@ -157,12 +162,6 @@ void destroy_proxy(std::vector<translator_serializer_t *> *proxies, int i) {
 
 serializer_multiplexer_t::~serializer_multiplexer_t() {
     pmap(proxies.size(), boost::bind(&destroy_proxy, &proxies, _1));
-}
-
-int serializer_multiplexer_t::compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
-    /* If we have 'n_files', and we distribute 'n_slices' over those 'n_files' such that slice 'n'
-    is on file 'n % n_files', then how many slices will be on file 'file_number'? */
-    return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
 /* translator_serializer_t */
