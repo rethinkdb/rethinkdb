@@ -8,9 +8,8 @@ from os import environ
 
 
 import os
-os.write(2, "YAY!")
-for k, v in environ:
-    os.write(2, k + ": " + v)
+os.write(2, "YAY!\n")
+os.write(2, repr(environ))
 
 if 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION' in environ:
     protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
