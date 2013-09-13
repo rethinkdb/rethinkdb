@@ -118,6 +118,7 @@ write_message_t &operator<<(write_message_t& msg, const T &x) {
     return msg;
 }
 
+// Returns 0 upon success, -1 upon failure.
 MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
 
 template <class T>
