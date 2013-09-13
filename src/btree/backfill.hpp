@@ -1,11 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_BACKFILL_HPP_
 #define BTREE_BACKFILL_HPP_
 
 #include <map>
 #include <string>
 
-#include "btree/btree_store.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/uuid.hpp"
