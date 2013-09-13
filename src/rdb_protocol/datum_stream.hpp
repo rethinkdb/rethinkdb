@@ -23,8 +23,6 @@ class scope_env_t;
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
-    explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
-        : pb_rcheckable_t(bt_src) { }
     virtual ~datum_stream_t() { }
 
     // stream -> stream
@@ -94,8 +92,11 @@ public:
      * sorted together by sort_datum_stream_t. */
     virtual hinted_datum_t sorting_hint_next(env_t *env);
 
-private:
+protected:
+    explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
+        : pb_rcheckable_t(bt_src) { }
 
+private:
     static const size_t MAX_BATCH_SIZE = 100;
 
     // Returns NULL upon end of stream.
@@ -103,7 +104,7 @@ private:
 };
 
 class eager_datum_stream_t : public datum_stream_t {
-public:
+protected:
     explicit eager_datum_stream_t(const protob_t<const Backtrace> &bt_src)
         : datum_stream_t(bt_src) { }
 
