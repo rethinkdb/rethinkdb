@@ -29,9 +29,9 @@ name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
 // Meta operations (BUT NOT TABLE TERMS) should inherit from this.  It will
 // handle a lot of the nasty semilattice initialization stuff for them,
 // including the thread switching.
-class meta_op_t : public op_term_t {
+class meta_op_term_t : public op_term_t {
 public:
-    meta_op_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
+    meta_op_term_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
               optargspec_t optargspec = optargspec_t({}))
         : op_term_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
 
@@ -58,11 +58,11 @@ struct rethreading_metadata_accessor_t : public on_thread_t {
 };
 
 
-class meta_write_op_t : public meta_op_t {
+class meta_write_op_t : public meta_op_term_t {
 public:
     meta_write_op_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
                     optargspec_t optargspec = optargspec_t({}))
-        : meta_op_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
+        : meta_op_term_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
 
 protected:
     clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
@@ -85,9 +85,9 @@ private:
     }
 };
 
-class db_term_t : public meta_op_t {
+class db_term_t : public meta_op_term_t {
 public:
-    db_term_t(compile_env_t *env, const protob_t<const Term> &term) : meta_op_t(env, term, argspec_t(1)) { }
+    db_term_t(compile_env_t *env, const protob_t<const Term> &term) : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         name_string_t db_name = get_name(arg(env, 0), this);
@@ -337,10 +337,10 @@ private:
     virtual const char *name() const { return "table_drop"; }
 };
 
-class db_list_term_t : public meta_op_t {
+class db_list_term_t : public meta_op_term_t {
 public:
     db_list_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_t(env, term, argspec_t(0)) { }
+        meta_op_term_t(env, term, argspec_t(0)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::string> dbs;
@@ -366,10 +366,10 @@ private:
     virtual const char *name() const { return "db_list"; }
 };
 
-class table_list_term_t : public meta_op_t {
+class table_list_term_t : public meta_op_term_t {
 public:
     table_list_term_t(compile_env_t *env, const protob_t<const Term> &term) :
-        meta_op_t(env, term, argspec_t(0, 1)) { }
+        meta_op_term_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         uuid_u db_id;
