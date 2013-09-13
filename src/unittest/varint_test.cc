@@ -27,20 +27,6 @@ archive_result_t run_serialization(uint64_t value,
     return deserialize_varint_uint64(&read_stream, output_value_out);
 }
 
-size_t expected_serialized_size(uint64_t value) {
-    size_t count = 0;
-
-    ++count;
-    value /= 128;
-
-    while (value > 0) {
-        value /= 128;
-        ++count;
-    }
-
-    return count;
-}
-
 TEST(VarintTest, Success64) {
     uint64_t vals[] = { 0, 1, 2, 127, 128, 129, 130, 256, 127 * 128, 127 * 128 + 127, 128 * 128,
                         UINT32_MAX, static_cast<uint64_t>(UINT32_MAX) + 1,
@@ -52,7 +38,7 @@ TEST(VarintTest, Success64) {
         uint64_t output_value;
         size_t serialized_size;
         archive_result_t res = run_serialization(value, &output_value, &serialized_size);
-        EXPECT_EQ(expected_serialized_size(value), serialized_size);
+        EXPECT_EQ(varint_serialized_size(value), serialized_size);
 
         EXPECT_EQ(ARCHIVE_SUCCESS, res);
         EXPECT_EQ(value, output_value);

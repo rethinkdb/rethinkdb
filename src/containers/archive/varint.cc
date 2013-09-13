@@ -1,6 +1,20 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/archive/varint.hpp"
 
+size_t varint_serialized_size(uint64_t value) {
+    size_t count = 0;
+
+    ++count;
+    value /= 128;
+
+    while (value > 0) {
+        value /= 128;
+        ++count;
+    }
+
+    return count;
+}
+
 void serialize_varint_uint64(write_message_t *msg, const uint64_t value) {
     // buf needs to be 10 or more -- ceil(64/7) is 10.
     uint8_t buf[16];
