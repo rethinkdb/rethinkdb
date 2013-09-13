@@ -9,7 +9,6 @@
 
 namespace unittest {
 
-// TODO: this is rather duplicative of fsck::check_subtree_internal_node.
 void verify(block_size_t block_size, const internal_node_t *buf) {
     EXPECT_TRUE(buf->magic == internal_node_t::expected_magic);
 
