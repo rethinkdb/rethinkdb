@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_STL_TYPES_HPP_
 #define CONTAINERS_ARCHIVE_STL_TYPES_HPP_
 
@@ -7,6 +7,7 @@
 #endif  // __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
+#include <limits>
 #include <list>  // ugh
 #include <map>
 #include <set>
@@ -74,6 +75,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
 
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return ARCHIVE_RANGE_ERROR;
+    }
+
     // Using position should make this function take linear time, not
     // sz*log(sz) time.
     typename std::map<K, V, C>::iterator position = m->begin();
@@ -105,6 +110,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
     uint64_t sz;
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
+
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return ARCHIVE_RANGE_ERROR;
+    }
 
     typename std::set<T>::iterator position = out->begin();
 
@@ -154,6 +163,10 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
     archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
 
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return ARCHIVE_RANGE_ERROR;
+    }
+
     v->resize(sz);
     for (uint64_t i = 0; i < sz; ++i) {
         res = deserialize(s, &(*v)[i]);
@@ -166,8 +179,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
 // TODO: Stop using std::list! What are you thinking?
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const std::list<T> &v) {
-    uint64_t sz = v.size();
-    msg << sz;
+    serialize_varint_uint64(&msg, v.size());
     for (typename std::list<T>::const_iterator it = v.begin(), e = v.end(); it != e; ++it) {
         msg << *it;
     }
@@ -180,8 +192,12 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::list<T> *v) {
     // Omit assertions because it's not a shame if a std::list gets corrupted.
 
     uint64_t sz;
-    archive_result_t res = deserialize(s, &sz);
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
+
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return ARCHIVE_RANGE_ERROR;
+    }
 
     for (uint64_t i = 0; i < sz; ++i) {
         // We avoid copying a non-empty value.
