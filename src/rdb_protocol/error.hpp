@@ -255,10 +255,8 @@ public:
         backtrace_.delete_frames(dummy_frames);
     }
     exc_t(base_exc_t::type_t type, const std::string &exc_msg,
-          const backtrace_t &backtrace, int dummy_frames = 0)
-        : base_exc_t(type), backtrace_(backtrace), exc_msg_(exc_msg) {
-        backtrace_.delete_frames(dummy_frames);
-    }
+          const backtrace_t &backtrace)
+        : base_exc_t(type), backtrace_(backtrace), exc_msg_(exc_msg) { }
     virtual ~exc_t() throw () { }
 
     const char *what() const throw () { return exc_msg_.c_str(); }
