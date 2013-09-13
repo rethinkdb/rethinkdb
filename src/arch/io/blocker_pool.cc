@@ -70,9 +70,26 @@ blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *_queue)
 {
     // Start the worker threads
     for (size_t i = 0; i < threads.size(); ++i) {
-        int res = pthread_create(&threads[i], NULL,
+        pthread_attr_t attr;
+        int res = pthread_attr_init(&attr);
+        guarantee_xerr(res == 0, res, "pthread_attr_init failed.");
+
+        // The coroutine stack size should be enough for blocker pool stacks.  Right
+        // now that's 128 KB.
+        static_assert(COROUTINE_STACK_SIZE == 131072,
+                      "Expecting COROUTINE_STACK_SIZE to be 131072.  If you changed "
+                      "it, please double-check whether the value is appropriate for "
+                      "blocker pool threads.");
+        // Disregard failure -- we'll just use the default stack size if this somehow
+        // fails.
+        UNUSED int ignored_res = pthread_attr_setstacksize(&attr, COROUTINE_STACK_SIZE);
+
+        res = pthread_create(&threads[i], NULL,
             &blocker_pool_t::event_loop, reinterpret_cast<void*>(this));
         guarantee_xerr(res == 0, res, "Could not create blocker-pool thread.");
+
+        res = pthread_attr_destroy(&attr);
+        guarantee_xerr(res == 0, res, "pthread_attr_destroy failed.");
     }
 
     // Register with event queue so we get the completion events
