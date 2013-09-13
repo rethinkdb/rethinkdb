@@ -127,7 +127,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out);
 // Keep in sync with operator<<.
 template <class T>
 size_t serialized_size(const std::vector<T> &v) {
-    size_t ret = serialized_size_t<uint64_t>::value;
+    size_t ret = varint_uint64_serialized_size(v.size());
     for (auto it = v.begin(), e = v.end(); it != e; ++it) {
         ret += serialized_size(*it);
     }
@@ -138,9 +138,7 @@ size_t serialized_size(const std::vector<T> &v) {
 // Keep in sync with serialized_size.
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const std::vector<T> &v) {
-    uint64_t sz = v.size();
-
-    msg << sz;
+    serialize_varint_uint64(&msg, v.size());
     for (auto it = v.begin(), e = v.end(); it != e; ++it) {
         msg << *it;
     }
@@ -153,7 +151,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
     v->clear();
 
     uint64_t sz;
-    archive_result_t res = deserialize(s, &sz);
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
 
     v->resize(sz);
