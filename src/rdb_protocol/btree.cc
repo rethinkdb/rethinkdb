@@ -481,7 +481,7 @@ public:
         : key_range_(key_range) { }
 
     bool key_should_be_erased(const btree_key_t *key) {
-        std::string pk = ql::datum_t::unprint_secondary(
+        std::string pk = ql::datum_t::extract_primary(
             key_to_unescaped_str(store_key_t(key)));
 
         return key_range_.contains_key(store_key_t(pk));
@@ -710,7 +710,7 @@ public:
             return false;
         }
         if (primary_key_range) {
-            std::string pk = ql::datum_t::unprint_secondary(
+            std::string pk = ql::datum_t::extract_primary(
                     key_to_unescaped_str(store_key));
             if (!primary_key_range->contains_key(store_key_t(pk))) {
                 return true;
@@ -735,9 +735,10 @@ public:
 
                 if (sindex_multi == MULTI &&
                     sindex_value->get_type() == ql::datum_t::R_ARRAY) {
-                        int tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
-                        guarantee(static_cast<int>(sindex_value->size()) > tag);
-                        sindex_value = sindex_value->get(tag);
+                        boost::optional<size_t> tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
+                        guarantee(tag);
+                        guarantee(sindex_value->size() > tag);
+                        sindex_value = sindex_value->get(*tag);
                 }
                 if (!sindex_range->contains(sindex_value)) {
                     return true;
@@ -1016,6 +1017,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
                 store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
         }
     } else {
+        debugf("Key: %s\n", index->print_secondary(primary_key).c_str());
         keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
     }
 }

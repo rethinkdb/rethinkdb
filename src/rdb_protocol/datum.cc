@@ -4,6 +4,7 @@
 
 #include <float.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <algorithm>
@@ -385,8 +386,23 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
-std::string datum_t::print_secondary(const store_key_t &primary_key, int tag_num) const {
-    std::string s;
+std::string datum_t::mangle_secondary(const std::string &secondary, const std::string &primary,
+        const std::string &tag) {
+    guarantee(secondary.size() < UINT8_MAX);
+    guarantee(secondary.size() + primary.size() < UINT8_MAX);
+
+    uint8_t pk_offset = static_cast<uint8_t>(secondary.size()),
+            tag_offset = static_cast<uint8_t>(primary.size()) + pk_offset;
+
+    std::string res = secondary + primary + tag +
+           std::string(1, pk_offset) + std::string(1, tag_offset);
+    guarantee(res.size() <= MAX_KEY_SIZE);
+    return res;
+}
+
+std::string datum_t::print_secondary(const store_key_t &primary_key,
+        boost::optional<size_t> tag_num) const {
+    std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
     if (primary_key_string.length() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
@@ -397,15 +413,15 @@ std::string datum_t::print_secondary(const store_key_t &primary_key, int tag_num
     }
 
     if (type == R_NUM) {
-        num_to_str_key(&s);
+        num_to_str_key(&secondary_key_string);
     } else if (type == R_STR) {
-        str_to_str_key(&s);
+        str_to_str_key(&secondary_key_string);
     } else if (type == R_BOOL) {
-        bool_to_str_key(&s);
+        bool_to_str_key(&secondary_key_string);
     } else if (type == R_ARRAY) {
-        array_to_str_key(&s);
+        array_to_str_key(&secondary_key_string);
     } else if (type == R_OBJECT && is_ptype()) {
-        pt_to_str_key(&s);
+        pt_to_str_key(&secondary_key_string);
     } else {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, pseudotype, or array "
@@ -413,42 +429,43 @@ std::string datum_t::print_secondary(const store_key_t &primary_key, int tag_num
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    std::string tag_str;
-    if (tag_num != -1) {
-        tag_str = strprintf("%d", tag_num);
+    std::string tag_string;
+    if (tag_num) {
+        tag_string = strprintf("%zu", *tag_num);
     }
 
-    s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - tag_str.length() - 2) +
-        std::string(1, '\0') + primary_key_string +
-        std::string(1, '\0') + tag_str;
+    secondary_key_string =
+        secondary_key_string.substr(0,
+                MAX_KEY_SIZE - primary_key_string.length() - tag_string.length() - 2);
 
-    return s;
+    return mangle_secondary(secondary_key_string, primary_key_string, tag_string);
 }
 
 struct components_t {
     std::string secondary;
     std::string primary;
-    size_t tag_num;
+    boost::optional<size_t> tag_num;
 };
 
 void parse_secondary(const std::string &key, components_t *components) {
-    size_t tag_primary_sep = key.rfind('\0');
-    size_t primary_secondary_sep = key.rfind('\0', tag_primary_sep - 1);
+    uint8_t start_of_tag = key[key.size() - 1],
+            start_of_primary = key[key.size() - 2];
 
-    guarantee(tag_primary_sep != std::string::npos &&
-              primary_secondary_sep != std::string::npos,
-              "If this fails it means someone most likely called this function "
-              "on something that isn't a sindex key. (Most likely a primary key.)");
+    guarantee(start_of_primary < start_of_tag);
 
-    components->secondary = key.substr(0, primary_secondary_sep);
-    components->primary = key.substr(primary_secondary_sep + 1, tag_primary_sep);
-    const char *str = key.substr(tag_primary_sep + 1, std::string::npos).c_str(), *end;
-    components->tag_num =
-        strtou64_strict(str, &end, 10);
-    guarantee(end != str);
+    components->secondary = key.substr(0, start_of_primary);
+    components->primary = key.substr(start_of_primary, start_of_tag - start_of_primary);
+
+    std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
+    if (tag_str.size() != 0) {
+        const char *str = tag_str.c_str(), *end;
+        components->tag_num =
+            strtou64_strict(str, &end, 10);
+        guarantee(str != end);
+    }
 }
 
-std::string datum_t::unprint_secondary(const std::string &secondary) {
+std::string datum_t::extract_primary(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
     return components.primary;
@@ -460,7 +477,7 @@ std::string datum_t::extract_secondary(const std::string &secondary) {
     return components.secondary;
 }
 
-size_t datum_t::extract_tag(const std::string &secondary) {
+boost::optional<size_t> datum_t::extract_tag(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
     return components.tag_num;
@@ -489,11 +506,8 @@ store_key_t datum_t::truncated_secondary() const {
             print().c_str(), get_type_name().c_str()));
     }
 
-    // If the key does not need truncation, add a null byte at the end to filter out more
-    //  potential results
-    if (s.length() < max_trunc_size()) {
-        s += std::string(1, '\0');
-    } else {
+    // Truncate the key if necessary
+    if (s.length() >= max_trunc_size()) {
         s.erase(max_trunc_size());
     }
 
