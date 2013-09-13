@@ -166,7 +166,9 @@ public:
     explicit backtrace_t(const Backtrace *bt) {
         if (!bt) return;
         for (int i = 0; i < bt->frames_size(); ++i) {
-            push_back(frame_t(bt->frames(i)));
+            frame_t f(bt->frames(i));
+            r_sanity_check(f.is_valid());
+            frames.push_back(f);
         }
     }
     backtrace_t() { }
@@ -225,13 +227,8 @@ public:
             }
         }
     }
-private:
-    // Push a frame onto the back of the backtrace.
-    void push_back(frame_t f) {
-        r_sanity_check(f.is_valid());
-        frames.push_back(f);
-    }
 
+private:
     std::list<frame_t> frames;
 };
 
