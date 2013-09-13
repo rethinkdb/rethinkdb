@@ -11,7 +11,7 @@ namespace ql {
 #ifdef RQL_ERROR_BT
 #define RQL_ERROR_VAR
 #else
-#define RQL_ERROR_VAR __attribute__((unused))
+#define RQL_ERROR_VAR UNUSED
 #endif
 
 void runtime_fail(base_exc_t::type_t type,
