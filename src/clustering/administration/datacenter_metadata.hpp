@@ -17,8 +17,6 @@
 #include "rpc/serialize_macros.hpp"
 
 
-typedef uuid_u datacenter_id_t;
-
 class datacenter_semilattice_metadata_t {
 public:
     vclock_t<name_string_t> name;

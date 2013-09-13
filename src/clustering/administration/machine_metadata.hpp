@@ -14,8 +14,6 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
-typedef uuid_u machine_id_t;
-
 class machine_semilattice_metadata_t {
 public:
     vclock_t<datacenter_id_t> datacenter;

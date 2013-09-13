@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
@@ -13,6 +14,7 @@
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
