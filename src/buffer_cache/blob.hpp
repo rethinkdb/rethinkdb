@@ -52,7 +52,6 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 
 
 class buffer_group_t;
-class block_getter_t;
 
 // Represents an acquisition of buffers owned by the blob.
 class blob_acq_t {
