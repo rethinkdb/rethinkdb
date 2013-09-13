@@ -913,14 +913,16 @@ enum class datum_serialized_type_t {
     R_ARRAY = 1,
     R_BOOL = 2,
     R_NULL = 3,
-    R_NUM = 4,
+    DOUBLE = 4,
     R_OBJECT = 5,
     R_STR = 6,
+    INT_NEGATIVE = 7,
+    INT_POSITIVE = 8,
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
-                                      datum_serialized_type_t::R_STR);
+                                      datum_serialized_type_t::INT_POSITIVE);
 
 
 // This must be kept in sync with operator<<(write_message_t &, const counted_t<const
@@ -935,8 +937,15 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
         return typesize + serialized_size_t<bool>::value;
     case datum_t::R_NULL:
         return typesize;
-    case datum_t::R_NUM:
-        return typesize + serialized_size_t<double>::value;
+    case datum_t::R_NUM: {
+        double d = datum->as_num();
+        int64_t i;
+        if (number_as_integer(d, &i)) {
+            return typesize + varint_uint64_serialized_size(abs(i));
+        } else {
+            return typesize + serialized_size_t<double>::value;
+        }
+    } break;
     case datum_t::R_OBJECT:
         return typesize + serialized_size(datum->as_object());
     case datum_t::R_STR:
@@ -964,9 +973,21 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
         wm << datum_serialized_type_t::R_NULL;
     } break;
     case datum_t::R_NUM: {
-        wm << datum_serialized_type_t::R_NUM;
         double value = datum->as_num();
-        wm << value;
+        int64_t i;
+        if (number_as_integer(value, &i)) {
+            // We serialize the signed-zero double, -0.0, with INT_NEGATIVE.
+            if (std::signbit(value)) {
+                wm << datum_serialized_type_t::INT_NEGATIVE;
+                serialize_varint_uint64(&wm, -i);
+            } else {
+                wm << datum_serialized_type_t::INT_POSITIVE;
+                serialize_varint_uint64(&wm, i);
+            }
+        } else {
+            wm << datum_serialized_type_t::DOUBLE;
+            wm << value;
+        }
     } break;
     case datum_t::R_OBJECT: {
         wm << datum_serialized_type_t::R_OBJECT;
@@ -1020,11 +1041,35 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
     case datum_serialized_type_t::R_NULL: {
         datum->reset(new datum_t(datum_t::R_NULL));
     } break;
-    case datum_serialized_type_t::R_NUM: {
+    case datum_serialized_type_t::DOUBLE: {
         double value;
         res = deserialize(s, &value);
         if (res) {
             return res;
+        }
+        try {
+            datum->reset(new datum_t(value));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::INT_NEGATIVE:  // fall through
+    case datum_serialized_type_t::INT_POSITIVE: {
+        uint64_t unsigned_value;
+        res = deserialize_varint_uint64(s, &unsigned_value);
+        if (res) {
+            return res;
+        }
+        if (unsigned_value > max_dbl_int) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+        const double d = unsigned_value;
+        double value;
+        if (type == datum_serialized_type_t::INT_NEGATIVE) {
+            // This might deserialize the signed-zero double, -0.0.
+            value = -d;
+        } else {
+            value = d;
         }
         try {
             datum->reset(new datum_t(value));

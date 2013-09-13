@@ -212,6 +212,9 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
+// Converts a double to an int, unless it has a non-integral value or is 
+bool number_as_integer(double d, int64_t *i_out);
+
 // Converts a double to int, but throws if it's out of range.
 int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 
