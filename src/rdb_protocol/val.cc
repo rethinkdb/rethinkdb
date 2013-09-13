@@ -133,7 +133,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 counted_t<const datum_t> replacement =
                     replacement_generator->call(env, original_values[i])->as_datum();
 
-                funcs[i] = map_wire_func_t::make_safely(pb::dummy_var_t::A,
+                funcs[i] = map_wire_func_t::make_safely(pb::dummy_var_t::IGNORED,
                                                         std::bind(make_replacement_body,
                                                                   replacement,
                                                                   std::placeholders::_1),
@@ -164,7 +164,7 @@ protob_t<Term> make_upsert_replace_body(bool upsert, counted_t<const datum_t> d,
 
 map_wire_func_t upsert_replacement_func(bool upsert, counted_t<const datum_t> d,
                                         protob_t<const Backtrace> backtrace) {
-    return map_wire_func_t::make_safely(pb::dummy_var_t::A,
+    return map_wire_func_t::make_safely(pb::dummy_var_t::VAL_UPSERT_REPLACEMENT,
                                         std::bind(make_upsert_replace_body,
                                                   upsert, d,
                                                   std::placeholders::_1),

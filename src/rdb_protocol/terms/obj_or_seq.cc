@@ -29,7 +29,7 @@ public:
         : op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
           poly_type(_poly_type), func(make_counted_term()) {
         sym_t varnum;
-        Term *arg = pb::set_func(func.get(), pb::dummy_var_t::A, &varnum);
+        Term *arg = pb::set_func(func.get(), pb::dummy_var_t::OBJORSEQ_VARNUM, &varnum);
         Term *body = NULL;
         switch (poly_type) {
         case MAP: {

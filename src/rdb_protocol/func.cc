@@ -330,7 +330,7 @@ counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
     protob_t<Term> twrap = make_counted_term();
     Term *arg = twrap.get();
     sym_t obj;
-    arg = pb::set_func(arg, pb::dummy_var_t::A, &obj);
+    arg = pb::set_func(arg, pb::dummy_var_t::FUNC_GETFIELD, &obj);
     N2(GET_FIELD, NVAR(obj), NDATUM(key));
     propagate_backtrace(twrap.get(), bt_src.get());
 
@@ -344,7 +344,7 @@ counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     sym_t var;
-    Term *const arg = pb::set_func(twrap.get(), pb::dummy_var_t::A, &var);
+    Term *const arg = pb::set_func(twrap.get(), pb::dummy_var_t::FUNC_PLUCK, &var);
     N2(PLUCK, NVAR(var), NDATUM(obj));
     propagate_backtrace(twrap.get(), bt_src.get());
 
@@ -358,7 +358,7 @@ counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src) {
     protob_t<Term> twrap = make_counted_term();
     sym_t var;
-    Term *const arg = pb::set_func(twrap.get(), pb::dummy_var_t::A, &var);
+    Term *const arg = pb::set_func(twrap.get(), pb::dummy_var_t::FUNC_EQCOMPARISON, &var);
     N2(EQ, NDATUM(obj), NVAR(var));
     propagate_backtrace(twrap.get(), bt_src.get());
 

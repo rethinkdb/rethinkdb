@@ -116,12 +116,12 @@ private:
     static void map_fn(Term *arg,
                        const std::string &dc, const Term *dc_arg) {
         sym_t obj;
-        arg = pb::set_func(arg, pb::dummy_var_t::A, &obj);
+        arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_OBJ, &obj);
         if (dc == "COUNT") {
             NDATUM(1.0);
         } else if (dc == "SUM") {
             sym_t attr;
-            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &attr);
+            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_ATTR, &attr);
                N3(BRANCH,
                   N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
                   N2(GET_FIELD, NVAR(obj), NVAR(attr)),
@@ -129,7 +129,7 @@ private:
                *arg = *dc_arg);
         } else if (dc == "AVG") {
             sym_t attr;
-            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &attr);
+            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_ATTR, &attr);
                N3(BRANCH,
                   N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
                   N2(MAKE_ARRAY, N2(GET_FIELD, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
@@ -142,7 +142,9 @@ private:
                           const std::string &dc, UNUSED const Term *dc_arg) {
         sym_t a;
         sym_t b;
-        arg = pb::set_func(arg, pb::dummy_var_t::A, &a, pb::dummy_var_t::B, &b);
+        arg = pb::set_func(arg,
+                           pb::dummy_var_t::GROUPBY_REDUCE_A, &a,
+                           pb::dummy_var_t::GROUPBY_REDUCE_B, &b);
         if (dc == "COUNT" || dc == "SUM") {
             N2(ADD, NVAR(a), NVAR(b));
         } else if (dc == "AVG") {
@@ -163,11 +165,11 @@ private:
         if (dc == "AVG") {
             sym_t obj;
             sym_t val;
-            N2(MAP, argout = arg, arg = pb::set_func(arg, pb::dummy_var_t::A, &obj);
+            N2(MAP, argout = arg, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_FINAL_OBJ, &obj);
                OPT2(MAKE_OBJ,
                     "group", N2(GET_FIELD, NVAR(obj), NDATUM("group")),
                     "reduction",
-                    N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &val);
+                    N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_FINAL_VAL, &val);
                        N2(DIV, N2(NTH, NVAR(val), NDATUM(0.0)),
                                N2(NTH, NVAR(val), NDATUM(1.0))),
                        N2(GET_FIELD, NVAR(obj), NDATUM("reduction")))));
@@ -195,9 +197,9 @@ public:
 
         Term *arg = out.get();
         // `left`.concatmap { |n|
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::A, &n);
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::INNERJOIN_N, &n);
            // `right`.concatmap { |m|
-           N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, pb::dummy_var_t::B, &m);
+           N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, pb::dummy_var_t::INNERJOIN_M, &m);
               // r.branch(
               N3(BRANCH,
                  // r.funcall(`func`, n, m),
@@ -230,9 +232,9 @@ public:
         Term *arg = out.get();
 
         // `left`.concatmap { |n|
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::A, &n);
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::OUTERJOIN_N, &n);
            // r.funcall(lambda { |lst
-           N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &lst);
+           N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::OUTERJOIN_M, &lst);
               // r.branch(
               N3(BRANCH,
                  // r.gt(r.count(lst), 0),
@@ -244,7 +246,7 @@ public:
               // r.coerce_to(
               N2(COERCE_TO,
                  // `right`.concatmap { |m|
-                 N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, pb::dummy_var_t::C, &m);
+                 N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, pb::dummy_var_t::OUTERJOIN_LST, &m);
                     // r.branch(
                     N3(BRANCH,
                        // r.funcall(`func`, n, m),
@@ -279,13 +281,13 @@ private:
 
         Term *arg = out.get();
         Term *optarg_inheritor = NULL;
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::A, &row);
+        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::EQJOIN_ROW, &row);
            N2(MAP,
               optarg_inheritor = arg;
               N2(GET_ALL, *arg = *right, N2(FUNCALL, *arg = *left_attr, NVAR(row));
                   OPT1(FUNCALL, "_SHORTCUT_", NDATUM(static_cast<double>(GET_FIELD_SHORTCUT)))),
 
-              arg = pb::set_func(arg, pb::dummy_var_t::B, &v);
+              arg = pb::set_func(arg, pb::dummy_var_t::EQJOIN_V, &v);
               OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));
         r_sanity_check(optarg_inheritor != NULL);
         return out.make_child(optarg_inheritor);
@@ -305,7 +307,7 @@ private:
         sym_t x;
 
         Term *arg = out.get();
-        N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, pb::dummy_var_t::A, &x)));
+        N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, pb::dummy_var_t::IGNORED, &x)));
         return out;
      }
      virtual const char *name() const { return "delete"; }
@@ -323,11 +325,11 @@ private:
         sym_t new_row;
 
         Term *arg = out.get();
-        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, pb::dummy_var_t::A, &old_row);
+        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, pb::dummy_var_t::UPDATE_OLDROW, &old_row);
            N3(BRANCH,
               N2(EQ, NVAR(old_row), NDATUM(datum_t::R_NULL)),
               NDATUM(datum_t::R_NULL),
-              N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::B, &new_row);
+              N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::UPDATE_NEWROW, &new_row);
                  N3(BRANCH,
                     N2(EQ, NVAR(new_row), NDATUM(datum_t::R_NULL)),
                     NVAR(old_row),
@@ -369,7 +371,7 @@ private:
         sym_t row;
 
         Term *arg = out.get();
-        N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, pb::dummy_var_t::A, &row);
+        N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, pb::dummy_var_t::DIFFERENCE_ROW, &row);
            N1(NOT, N2(CONTAINS, *arg = in->args(1), NVAR(row))));
 
         return out;
