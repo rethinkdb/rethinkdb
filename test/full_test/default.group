@@ -1,3 +1,4 @@
 # By default, run all the unit tests and query language tests
-unit-* ql-*
-!disabled
+#unit-* ql-*
+#!disabled
+ql-py-cursor
