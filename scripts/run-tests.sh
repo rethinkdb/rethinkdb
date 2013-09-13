@@ -35,7 +35,6 @@ usage () {
     echo "   -r <repeats>    Repeat each test"
     echo "   -d <run_dir>    Run the tests in a different folder (eg: /dev/shm)"
     echo "   -w <file>       Write report to file (- for stdout)"
-    echo "   -W <file>       Write html report to file (- for stdout)"
     echo "   -b <build>      RethinkDB build directory (default: build/debug)"
     echo "   -u <url>        Post the test results to the url"
     echo "   -c              Disable color"
@@ -59,7 +58,7 @@ usage () {
 }
 
 # Parse the command line options
-while getopts ":lo:hvs:j:r:d:w:W:b:u:ct:" opt; do
+while getopts ":lo:hvs:j:r:d:w:b:u:ct:" opt; do
     case $opt in
         l) list_only=true ;;
         o) dir=$OPTARG ;;
@@ -70,7 +69,6 @@ while getopts ":lo:hvs:j:r:d:w:W:b:u:ct:" opt; do
         r) repeats=$OPTARG ;;
         d) run_dir=$OPTARG ; run_elsewhere=true ;;
         w) report_out=$OPTARG ;;
-        W) report_html_out=$OPTARG ;;
         b) build_dir=$OPTARG ;;
         u) dashboard_url=$OPTARG ;;
         c) colorful=false ;;
@@ -321,6 +319,8 @@ if test -z "${timeout_cmd:-}"; then
     exit 1
 fi
 
+echo "$(eval echo $test_filter)" > "$dir/filter"
+
 # Run the tests
 run_dir_msg=
 $run_elsewhere && run_dir_msg=", run dir: $run_dir"
@@ -371,50 +371,8 @@ gen_report () {
 }
 
 gen_html_report () {
-    directory=$1
-    out=$2
-    echo "Writing HTML report to '$out'"
-    ( echo '<html><head><title>Test Report</title>'
-      echo '<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>'
-      echo '<style>td {border:1px solid grey}</style>'
-      echo '</head><body>'
-      echo "<h1>Rethinkdb `./scripts/gen-version.sh`</h1>"
-      echo "<p>Passed $passed of $total tests (filter: $(eval echo $test_filter))</p>"
-      echo "<table style='width:100%'>"
-      cd "$directory"
-      for test in *; do
-          for retcof in "$test"/return-code-*; do
-              rep=${retcof##*-}
-              echo "<tr><td>$test</td><td>$rep</td>"
-              retco=$(cat "$retcof")
-              if [[ "$retco" = 0 ]]; then
-                  color=green
-                  word=PASS
-              else
-                  color=red
-                  word=FAILED
-              fi
-              trid=$test-$rep
-              echo "<td style='background:$color'><a href='#$trid' onclick='\$(\"#$trid\").toggle()'>$word</a></td>"
-              echo "<td width='100%'></td></tr>"
-              echo "<tr id='$trid' style='display:none'><td colspan='4'>"
-              for file in `find "$test"/*-$rep -type f`; do
-                  echo "<ul><li>$file</ul>"
-                  if file -i "$file" | grep -q text/; then
-                      echo "<div style='border: 1px solid black'><pre>"
-                      perl -pe 's/&/&amp;/g;s/</&lt;/g' "$file"
-                      echo "</pre></div>"
-                  fi
-              done
-              echo "</td></tr>"
-          done
-      done
-      echo "</table></body></html>"
-    ) | if [[ "$out" = - ]]; then
-        cat
-    else
-        cat > "$out"
-    fi
+    echo "Generating HTML report in $1/test_results.html ..."
+    python "`dirname $0`"/gen-test-report.py "$1"
 }
 
 # Collect the results
@@ -431,7 +389,7 @@ duration=$((end_time - start_time))
 duration_str=$((duration/60))'m'$((duration%60))'s'
 
 test -n "$report_out" && gen_report "$dir" "$report_out"
-test -n "$report_html_out" && gen_html_report "$dir" "$report_html_out"
+gen_html_report "$dir"
 
 if [[ $passed = $total ]]; then
     echo "${green}Passed all $total tests in $duration_str.${plain}"

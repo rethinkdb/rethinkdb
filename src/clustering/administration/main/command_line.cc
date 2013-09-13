@@ -1421,106 +1421,17 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
     return true;
 }
 
-#if defined(__linux__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    char buffer[PATH_MAX + 1];
-    ssize_t len = readlink("/proc/self/exe", buffer, PATH_MAX);
-
-    if (len == -1) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    buffer[len] = '\0';
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#elif defined(__MACH__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    uint32_t buffer_size = PATH_MAX;
-    char buffer[PATH_MAX + 1];
-
-    if (_NSGetExecutablePath(buffer, &buffer_size) == -1) {
-        buffer[0] = 0;
-
-        if (_NSGetExecutablePath(buffer, &buffer_size) == -1) {
-            fprintf(stderr, "Error when determining rethinkdb directory\n");
-            return false;
-        }
-    }
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#elif defined(__FreeBSD_version)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    // Taken from http://stackoverflow.com/questions/799679, completely untested
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    char buf[2048];
-    size_t cb = sizeof(buf);
-    int res = sysctl(mib, 4, buf, &cb, NULL, 0);
-
-    if (res != 0) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(res).c_str());
-        return false;
-    }
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#else
-#error "no implementation for 'get_rethinkdb_exe_directory()' available for this operating system"
-#endif
-
 void run_backup_script(const std::string& script_name, char * const arguments[]) {
-    std::string exe_dir;
-
-    if (!get_rethinkdb_exe_directory(&exe_dir)) {
-        return;
-    }
-
-    // First attempt to launch the script from the same directory as us
-    std::string local_script = exe_dir + "/" + script_name;
-    int res = execvp(local_script.c_str(), arguments);
-
-    fprintf(stderr, "Warning: error when running %s: %s\n",
-            local_script.c_str(), errno_string(errno).c_str());
-    fprintf(stderr, "  attempting to run using PATH\n");
-
-    // If that fails, try to run it from the system path
-    res = execvp(script_name.c_str(), arguments);
+    int res = execvp(script_name.c_str(), arguments);
     if (res == -1) {
-        fprintf(stderr, "Error when launching %s: %s\n",
+        fprintf(stderr,
+                "Error when launching %s: %s\n"
+                "The %s command depends on the python driver, which much be installed.\n"
+                "Instructions for installing the python driver are available here:\n"
+                "http://www.rethinkdb.com/docs/install-drivers/python/\n",
                 script_name.c_str(),
-                errno_string(errno).c_str());
+                errno_string(errno).c_str(),
+                script_name.c_str());
     }
 }
 

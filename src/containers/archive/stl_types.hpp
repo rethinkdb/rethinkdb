@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_ARCHIVE_STL_TYPES_HPP_
 #define CONTAINERS_ARCHIVE_STL_TYPES_HPP_
 
@@ -7,6 +7,7 @@
 #endif  // __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
+#include <limits>
 #include <list>  // ugh
 #include <map>
 #include <set>
@@ -15,6 +16,7 @@
 #include <utility>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/varint.hpp"
 
 namespace std {
 
@@ -44,7 +46,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::pair<T, U> *p) {
 // Keep in sync with operator<<.
 template <class K, class V, class C>
 size_t serialized_size(const std::map<K, V, C> &m) {
-    size_t ret = serialized_size_t<uint64_t>::value;
+    size_t ret = varint_uint64_serialized_size(m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         ret += serialized_size(*it);
     }
@@ -57,9 +59,7 @@ write_message_t &operator<<(write_message_t &msg, const std::map<K, V, C> &m) {
     // Extreme platform paranoia: It could become important that we
     // use something consistent like uint64_t for the size, not some
     // platform-specific size type such as std::map<K, V>::size_type.
-    uint64_t sz = m.size();
-
-    msg << sz;
+    serialize_varint_uint64(&msg, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         msg << *it;
     }
@@ -72,8 +72,12 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
     m->clear();
 
     uint64_t sz;
-    archive_result_t res = deserialize(s, &sz);
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
+
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return ARCHIVE_RANGE_ERROR;
+    }
 
     // Using position should make this function take linear time, not
     // sz*log(sz) time.
@@ -91,9 +95,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
 
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const std::set<T> &s) {
-    uint64_t sz = s.size();
-
-    msg << sz;
+    serialize_varint_uint64(&msg, s.size());
     for (typename std::set<T>::const_iterator it = s.begin(), e = s.end(); it != e; ++it) {
         msg << *it;
     }
@@ -106,8 +108,12 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
     out->clear();
 
     uint64_t sz;
-    archive_result_t res = deserialize(s, &sz);
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
+
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return ARCHIVE_RANGE_ERROR;
+    }
 
     typename std::set<T>::iterator position = out->begin();
 
@@ -130,7 +136,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::string *out);
 // Keep in sync with operator<<.
 template <class T>
 size_t serialized_size(const std::vector<T> &v) {
-    size_t ret = serialized_size_t<uint64_t>::value;
+    size_t ret = varint_uint64_serialized_size(v.size());
     for (auto it = v.begin(), e = v.end(); it != e; ++it) {
         ret += serialized_size(*it);
     }
@@ -141,9 +147,7 @@ size_t serialized_size(const std::vector<T> &v) {
 // Keep in sync with serialized_size.
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const std::vector<T> &v) {
-    uint64_t sz = v.size();
-
-    msg << sz;
+    serialize_varint_uint64(&msg, v.size());
     for (auto it = v.begin(), e = v.end(); it != e; ++it) {
         msg << *it;
     }
@@ -156,8 +160,12 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
     v->clear();
 
     uint64_t sz;
-    archive_result_t res = deserialize(s, &sz);
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
+
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return ARCHIVE_RANGE_ERROR;
+    }
 
     v->resize(sz);
     for (uint64_t i = 0; i < sz; ++i) {
@@ -171,8 +179,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::vector<T> *v) {
 // TODO: Stop using std::list! What are you thinking?
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const std::list<T> &v) {
-    uint64_t sz = v.size();
-    msg << sz;
+    serialize_varint_uint64(&msg, v.size());
     for (typename std::list<T>::const_iterator it = v.begin(), e = v.end(); it != e; ++it) {
         msg << *it;
     }
@@ -185,8 +192,12 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::list<T> *v) {
     // Omit assertions because it's not a shame if a std::list gets corrupted.
 
     uint64_t sz;
-    archive_result_t res = deserialize(s, &sz);
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
+
+    if (sz > std::numeric_limits<size_t>::max()) {
+        return ARCHIVE_RANGE_ERROR;
+    }
 
     for (uint64_t i = 0; i < sz; ++i) {
         // We avoid copying a non-empty value.

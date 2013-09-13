@@ -12,9 +12,9 @@ class env_t;
 
 // Runs a query!  This is all outside code should ever need to call.  See
 // term.cc for definition.
-void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
+void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
          Response *res, stream_cache2_t *stream_cache2,
          bool *response_needed_out);
-} // namespace ql
+}  // namespace ql
 
 #endif // RDB_PROTOCOL_QL2_HPP_

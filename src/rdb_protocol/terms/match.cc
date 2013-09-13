@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <re2/re2.h>
@@ -9,12 +10,12 @@ namespace ql {
 
 class match_term_t : public op_term_t {
 public:
-    match_term_t(env_t *env, const protob_t<const Term> &term)
+    match_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        std::string str = arg(0)->as_str();
-        RE2 regexp(arg(1)->as_str());
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        std::string str = arg(env, 0)->as_str();
+        RE2 regexp(arg(env, 1)->as_str());
         if (!regexp.ok()) {
             rfail(base_exc_t::GENERIC,
                   "Error in regexp `%s` (portion `%s`): %s",
@@ -65,7 +66,7 @@ private:
     virtual const char *name() const { return "match"; }
 };
 
-counted_t<term_t> make_match_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_match_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<match_term_t>(env, term);
 }
 

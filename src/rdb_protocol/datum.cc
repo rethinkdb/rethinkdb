@@ -1,5 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-
 #include "rdb_protocol/datum.hpp"
 
 #include <float.h>
@@ -132,17 +131,18 @@ void datum_t::init_json(cJSON *json) {
     } break;
     case cJSON_Array: {
         init_array();
-        for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            add(make_counted<datum_t>(cJSON_GetArrayItem(json, i)));
+        json_array_iterator_t it(json);
+        while (cJSON *item = it.next()) {
+            add(make_counted<datum_t>(item));
         }
     } break;
     case cJSON_Object: {
         init_object();
-        for (int i = 0; i < cJSON_GetArraySize(json); ++i) {
-            cJSON *el = cJSON_GetArrayItem(json, i);
-            bool conflict = add(el->string, make_counted<datum_t>(el));
+        json_object_iterator_t it(json);
+        while (cJSON *item = it.next()) {
+            bool conflict = add(item->string, make_counted<datum_t>(item));
             rcheck(!conflict, base_exc_t::GENERIC,
-                   strprintf("Duplicate key `%s` in JSON.", el->string));
+                   strprintf("Duplicate key `%s` in JSON.", item->string));
         }
         maybe_sanitize_ptype();
     } break;
@@ -492,17 +492,21 @@ double datum_t::as_num() const {
 
 static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
 static const double min_dbl_int = max_dbl_int * -1;
-int64_t datum_t::as_int() const {
+int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
     static_assert(DBL_MANT_DIG == 53, "ERROR: Doubles are wrong size.");
-    double d = as_num();
-    rcheck(d <= max_dbl_int, base_exc_t::GENERIC,
-           strprintf("Number not an integer (>2^53): " DBLPRI, d));
-    rcheck(d >= min_dbl_int, base_exc_t::GENERIC,
-           strprintf("Number not an integer (<-2^53): " DBLPRI, d));
+
+    rcheck_target(target, base_exc_t::GENERIC, d <= max_dbl_int,
+                  strprintf("Number not an integer (>2^53): " DBLPRI, d));
+    rcheck_target(target, base_exc_t::GENERIC, d >= min_dbl_int,
+                  strprintf("Number not an integer (<-2^53): " DBLPRI, d));
     int64_t i = d;
-    rcheck(static_cast<double>(i) == d, base_exc_t::GENERIC,
-           strprintf("Number not an integer: " DBLPRI, d));
+    rcheck_target(target, base_exc_t::GENERIC, static_cast<double>(i) == d,
+                  strprintf("Number not an integer: " DBLPRI, d));
     return i;
+}
+
+int64_t datum_t::as_int() const {
+    return checked_convert_to_int(this, as_num());
 }
 
 const std::string &datum_t::as_str() const {
@@ -633,8 +637,7 @@ scoped_cJSON_t datum_t::as_json() const {
 
 // TODO: make STR and OBJECT convertible to sequence?
 counted_t<datum_stream_t>
-datum_t::as_datum_stream(env_t *env,
-                         const protob_t<const Backtrace> &backtrace) const {
+datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     switch (get_type()) {
     case R_NULL: // fallthru
     case R_BOOL: // fallthru
@@ -644,8 +647,7 @@ datum_t::as_datum_stream(env_t *env,
         type_error(strprintf("Cannot convert %s to SEQUENCE",
                              get_type_name().c_str()));
     case R_ARRAY:
-        return make_counted<array_datum_stream_t>(env,
-                                                  this->counted_from_this(),
+        return make_counted<array_datum_stream_t>(this->counted_from_this(),
                                                   backtrace);
     case UNINITIALIZED: // fallthru
     default: unreachable();

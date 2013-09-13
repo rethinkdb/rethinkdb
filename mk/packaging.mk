@@ -63,10 +63,7 @@ install-deb: install
 	  gzip -c9 | \
 	  install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
-DSC_CUSTOM_MK_LINES := 'CONFIGURE_FLAGS += --disable-drivers'
-DSC_CUSTOM_MK_LINES += 'CONFIGURE_FLAGS += --prefix=/usr'
-DSC_CUSTOM_MK_LINES += 'CONFIGURE_FLAGS += --sysconfdir=/etc'
-DSC_CUSTOM_MK_LINES += 'CONFIGURE_FLAGS += --localstatedir=/var'
+DSC_CONFIGURE_DEFAULT += --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
 ifeq ($(BUILD_PORTABLE),1)
   DIST_SUPPORT := $(V8_SRC_DIR) $(PROTOC_SRC_DIR) $(GPERFTOOLS_SRC_DIR) $(LIBUNWIND_SRC_DIR)
@@ -76,9 +73,7 @@ ifeq ($(BUILD_PORTABLE),1)
     DIST_CUSTOM_LINES = $(error Portable packages need to be built from '$(TOP)')
   endif
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
-  DIST_CUSTOM_MK_LINES += 'CONFIGURE_FLAGS += --fetch v8'
-  DIST_CUSTOM_MK_LINES += 'CONFIGURE_FLAGS += --fetch protoc'
-  DIST_CUSTOM_MK_LINES += 'CONFIGURE_FLAGS += --fetch tcmalloc_minimal'
+  DIST_CONFIGURE_DEFAULT += --fetch v8 --fetch protoc --fetch tcmalloc_minimal
 else
   DIST_SUPPORT :=
   DIST_CUSTOM_MK_LINES :=
@@ -94,9 +89,7 @@ deb-src-dir: dist-dir
 	$P MV $(DIST_DIR) $(DSC_PACKAGE_DIR)
 	rm -rf $(DSC_PACKAGE_DIR)
 	mv $(DIST_DIR) $(DSC_PACKAGE_DIR)
-	for line in $(DSC_CUSTOM_MK_LINES); do \
-	  echo "$$line" >> $(DSC_PACKAGE_DIR)/custom.mk ; \
-	done
+	echo $(DSC_CONFIGURE_DEFAULT) >> $(DSC_PACKAGE_DIR)/configure.default
 
 .PHONY: build-deb-src-control
 build-deb-src-control: | deb-src-dir
@@ -182,15 +175,6 @@ build-deb: all prepare_deb_package_dirs install-deb
 	$P DPKG-DEB $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 	fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
 
-.PHONY: deb
-deb: prepare_deb_package_dirs
-	$P MAKE WAY=deb
-	$(MAKE) WAY=deb
-	for deb_name in $(PACKAGES_DIR)/*.deb; do \
-	  if [ $(LINTIAN) = 1]; then \
-	    lintian --color auto --suppress-tags "no-copyright-file,$(subst $(space),$(comma),$(SUPPRESSED_LINTIAN_TAGS))" $${deb_name} || true ; \
-	  fi \
-	done
 .PHONY: install-osx
 install-osx: install-binaries install-web
 
@@ -206,10 +190,6 @@ build-osx: install-osx
 	chmod +x $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
 	cp $(TOP)/NOTES $(OSX_PACKAGE_DIR)/dmg/
 	hdiutil create -volname RethinkDB -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
-
-.PHONY: osx
-osx:
-	$(MAKE) WAY=osx
 
 ##### Source distribution
 
@@ -228,6 +208,10 @@ $(DIST_DIR)/custom.mk: FORCE | reset-dist-dir
 	  echo "$$line" >> $(DIST_DIR)/custom.mk ; \
 	done
 
+$(DIST_DIR)/configure.default: FORCE | reset-dist-dir
+	$P ECHO "> $@"
+	echo $(DIST_CONFIGURE_DEFAULT) >> $(DIST_DIR)/configure.default
+
 $(DIST_DIR)/precompiled/web: web-assets | reset-dist-dir
 	$P CP $(WEB_ASSETS_BUILD_DIR) $@
 	mkdir -p $(DIST_DIR)/precompiled
@@ -239,7 +223,8 @@ $(DIST_DIR)/VERSION.OVERRIDE: FORCE | reset-dist-dir
 	echo -n $(RETHINKDB_CODE_VERSION) > $@
 
 .PHONY: dist-dir
-dist-dir: reset-dist-dir $(DIST_DIR)/custom.mk $(DIST_DIR)/precompiled/web $(DIST_DIR)/VERSION.OVERRIDE $(DIST_SUPPORT)
+dist-dir: reset-dist-dir $(DIST_DIR)/custom.mk $(DIST_DIR)/precompiled/web
+dist-dir: $(DIST_DIR)/VERSION.OVERRIDE $(DIST_SUPPORT) $(DIST_DIR)/configure.default
 	$P CP $(DIST_SUPPORT) "->" $(DIST_DIR)
 	$(foreach path,$(DIST_SUPPORT), \
 	  $(foreach dir,$(DIST_DIR)/support/$(patsubst $(SUPPORT_DIR)/%,%,$(dir $(path))), \

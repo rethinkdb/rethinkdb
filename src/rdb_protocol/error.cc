@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/error.hpp"
 
 #include "backtrace.hpp"
@@ -55,7 +56,7 @@ base_exc_t::type_t exc_type(const counted_t<const datum_t> &d) {
     r_sanity_check(d.has());
     return exc_type(d.get());
 }
-base_exc_t::type_t exc_type(val_t *v) {
+base_exc_t::type_t exc_type(const val_t *v) {
     r_sanity_check(v);
     if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
         return exc_type(v->as_datum());
@@ -124,6 +125,10 @@ backtrace_t::frame_t::frame_t(const Frame &f) {
     } break;
     default: unreachable();
     }
+}
+
+protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t) {
+    return t.make_child(&t->GetExtension(ql2::extension::backtrace));
 }
 
 void pb_rcheckable_t::propagate(Term *t) const {
