@@ -28,6 +28,8 @@ public:
 
     virtual MUST_USE int64_t read(void *p, int64_t n);
 
+    bool entire_stream_consumed() const;
+
 private:
     int64_t pos_;
     const std::vector<char> *vec_;

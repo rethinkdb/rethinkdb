@@ -3,7 +3,7 @@
 
 #include "btree/operations.hpp"
 #include "buffer_cache/blob.hpp"
-#include "buffer_cache/serialize_to_blob.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "protocol_api.hpp"
 
