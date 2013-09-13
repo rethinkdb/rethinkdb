@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/disk_backed_queue.hpp"
 
 #include "arch/io/disk.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "serializer/config.hpp"
 
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
@@ -54,17 +55,12 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     scoped_ptr_t<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
     queue_block_t *head = reinterpret_cast<queue_block_t *>(_head->get_data_write());
 
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0);
-
     char buffer[MAX_REF_SIZE];
-    bzero(buffer, MAX_REF_SIZE);
+    memset(buffer, 0, MAX_REF_SIZE);
 
     blob_t blob(txn.get_cache()->get_block_size(), buffer, MAX_REF_SIZE);
-    blob.append_region(&txn, stream.vector().size());
-    std::string sered_data(stream.vector().begin(), stream.vector().end());
-    blob.write_from_string(sered_data, &txn, 0);
+
+    write_onto_blob(&txn, &blob, wm);
 
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
         // The data won't fit in our current head block, so it's time to make a new one.
@@ -104,6 +100,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
 
     blob_t blob(txn.get_cache()->get_block_size(), buffer, MAX_REF_SIZE);
     {
+        // RSI: Reduce copying here.  (We copy into buf_out, then deserialize.)
         blob_acq_t acq_group;
         buffer_group_t blob_group;
         blob.expose_all(&txn, rwi_read, &blob_group, &acq_group);
