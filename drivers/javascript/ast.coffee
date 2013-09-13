@@ -901,7 +901,7 @@ rethinkdb.exprJSON = varar 1, 2, (val, nestingDepth=20) ->
 # Is this JS value representable as JSON?
 isJSON = (val, nestingDepth=20) ->
     if nestingDepth <= 0
-        throw new RqlDriverError "Nesting depth limit exceeded"
+        throw new err.RqlDriverError "Nesting depth limit exceeded"
 
     if (val instanceof TermBase)
         false
