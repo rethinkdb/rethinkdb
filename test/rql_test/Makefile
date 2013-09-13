@@ -87,6 +87,7 @@ js_cursor:
 
 .PHONY: py_cursor
 py_cursor:
+	set
 	python connections/cursor_test.py $(BUILD_DIR) py
 
 .PHONY: connect
