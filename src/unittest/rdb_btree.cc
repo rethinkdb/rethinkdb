@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/io/disk.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
 #include "buffer_cache/mirrored/config.hpp"

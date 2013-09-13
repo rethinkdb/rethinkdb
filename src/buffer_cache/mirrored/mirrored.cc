@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
 #include "protocol_api.hpp"
