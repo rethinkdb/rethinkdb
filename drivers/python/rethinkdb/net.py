@@ -23,7 +23,7 @@ else:
         # The cpp_message module could change between versions of the
         # protobuf module
         from google.protobuf.internal import cpp_message
-        import rethinkdb_pbcpp
+        from . import rethinkdb_pbcpp
         protobuf_implementation = 'cpp'
     except ImportError as e:
         # Default to using the python implementation of protobuf
