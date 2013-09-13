@@ -17,14 +17,13 @@ namespace ql {
 void runtime_check(base_exc_t::type_t type,
                    RQL_ERROR_VAR const char *test, RQL_ERROR_VAR const char *file,
                    RQL_ERROR_VAR int line, bool pred,
-                   std::string msg, const Backtrace *bt_src,
-                   int dummy_frames) {
+                   std::string msg, const Backtrace *bt_src) {
     if (pred) return;
 #ifdef RQL_ERROR_BT
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
-    throw exc_t(type, msg, bt_src, dummy_frames);
+    throw exc_t(type, msg, bt_src);
 }
 void runtime_check(base_exc_t::type_t type,
                    RQL_ERROR_VAR const char *test, RQL_ERROR_VAR const char *file,

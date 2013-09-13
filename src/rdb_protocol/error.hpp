@@ -38,8 +38,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 // directly.
 void runtime_check(base_exc_t::type_t type,
                    const char *test, const char *file, int line,
-                   bool pred, std::string msg, const Backtrace *bt_src,
-                   int dummy_frames = 0);
+                   bool pred, std::string msg, const Backtrace *bt_src);
 void runtime_check(base_exc_t::type_t type,
                    const char *test, const char *file, int line,
                    bool pred, std::string msg);
@@ -240,12 +239,11 @@ public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg_("UNINITIALIZED") { }
     exc_t(base_exc_t::type_t type, const std::string &exc_msg,
-          const Backtrace *bt_src, int dummy_frames = 0)
+          const Backtrace *bt_src)
         : base_exc_t(type), exc_msg_(exc_msg) {
         if (bt_src != NULL) {
             backtrace_ = backtrace_t(bt_src);
         }
-        backtrace_.delete_frames(dummy_frames);
     }
     exc_t(const base_exc_t &e, const Backtrace *bt_src, int dummy_frames = 0)
         : base_exc_t(e.get_type()), exc_msg_(e.what()) {
