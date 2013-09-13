@@ -5,7 +5,6 @@
 #include <set>
 
 #include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 #include "http/http.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "protocol_api.hpp"
@@ -28,9 +27,9 @@ public:
     dummy_protocol_parser_t(const std::set<ip_address_t> &local_addresses,
                             int port,
                             namespace_repo_t<dummy_protocol_t> *ns_repo,
-                            const namespace_id_t &ns_id,
+                            const uuid_u &namespace_id,
                             perfmon_collection_t *) :
-        ns_access(ns_repo, ns_id, &interruptor),
+        ns_access(ns_repo, namespace_id, &interruptor),
         query_app(ns_access.get_namespace_if()),
         server(local_addresses, port, &query_app)
     {
