@@ -69,7 +69,6 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                  "Durability option `%s` unrecognized "
                  "(options are \"hard\" and \"soft\").",
                  str.c_str());
-    unreachable();
 }
 
 

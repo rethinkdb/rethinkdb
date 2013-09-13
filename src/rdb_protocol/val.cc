@@ -529,7 +529,6 @@ bool raw_type_is_convertible(val_t::type_t::raw_type_t _t1,
     case FUNC: return t2 == FUNC;
     default: unreachable();
     }
-    unreachable();
 }
 bool val_t::type_t::is_convertible(type_t rhs) const {
     return raw_type_is_convertible(raw_type, rhs.raw_type);
@@ -546,7 +545,6 @@ const char *val_t::type_t::name() const {
     case FUNC: return "FUNCTION";
     default: unreachable();
     }
-    unreachable();
 }
 
 val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace)
@@ -680,7 +678,6 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
         // fallthru
     default: unreachable();
     }
-    unreachable();
 }
 
 counted_t<const db_t> val_t::as_db() const {
@@ -706,7 +703,6 @@ bool val_t::as_bool() {
         return d->as_bool();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
-        unreachable();
     }
 }
 double val_t::as_num() {
@@ -716,7 +712,6 @@ double val_t::as_num() {
         return d->as_num();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
-        unreachable();
     }
 }
 int64_t val_t::as_int() {
@@ -726,7 +721,6 @@ int64_t val_t::as_int() {
         return d->as_int();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
-        unreachable();
     }
 }
 const std::string &val_t::as_str() {
@@ -736,7 +730,6 @@ const std::string &val_t::as_str() {
         return d->as_str();
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
-        unreachable();
     }
 }
 

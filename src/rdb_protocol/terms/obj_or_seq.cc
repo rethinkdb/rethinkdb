@@ -101,13 +101,11 @@ private:
                 return new_val(env, v0->as_seq(env->env)->concatmap(func));
             default: unreachable();
             }
-            unreachable();
         }
 
         rfail_typed_target(
             v0, "Cannot perform %s on a non-object non-sequence `%s`.",
             name(), v0->trunc_print().c_str());
-        unreachable();
     }
 
     poly_type_t poly_type;
