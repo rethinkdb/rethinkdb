@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <string>
@@ -24,29 +25,29 @@ namespace ql {
 
 class asc_term_t : public op_term_t {
 public:
-    asc_term_t(env_t *env, const protob_t<const Term> &term)
+    asc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return arg(0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        return arg(env, 0);
     }
     virtual const char *name() const { return "asc"; }
 };
 
 class desc_term_t : public op_term_t {
 public:
-    desc_term_t(env_t *env, const protob_t<const Term> &term)
+    desc_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return arg(0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        return arg(env, 0);
     }
     virtual const char *name() const { return "desc"; }
 };
 
 class orderby_term_t : public op_term_t {
 public:
-    orderby_term_t(env_t *env, const protob_t<const Term> &term)
+    orderby_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1, -1),
           optargspec_t({"index"})), src_term(term) { }
 private:
@@ -54,13 +55,14 @@ private:
     class lt_cmp_t {
     public:
         explicit lt_cmp_t(std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
-            : comparisons(_comparisons) { }
-        bool operator()(counted_t<const datum_t> l, counted_t<const datum_t> r) {
+            : comparisons(std::move(_comparisons)) { }
+
+        bool operator()(env_t *env, counted_t<const datum_t> l, counted_t<const datum_t> r) {
             for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
                 counted_t<const datum_t> lval;
                 counted_t<const datum_t> rval;
                 try {
-                     lval = it->second->call(l)->as_datum();
+                    lval = it->second->call(env, l)->as_datum();
                 } catch (const base_exc_t &e) {
                     if (e.get_type() != base_exc_t::NON_EXISTENCE) {
                         throw;
@@ -68,7 +70,7 @@ private:
                 }
 
                 try {
-                     rval = it->second->call(r)->as_datum();
+                    rval = it->second->call(env, r)->as_datum();
                 } catch (const base_exc_t &e) {
                     if (e.get_type() != base_exc_t::NON_EXISTENCE) {
                         throw;
@@ -79,33 +81,35 @@ private:
                     continue;
                 }
                 if (!lval.has()) {
-                    return true ^ (it->first == DESC);
+                    return true != (it->first == DESC);
                 }
                 if (!rval.has()) {
-                    return false ^ (it->first == DESC);
+                    return false != (it->first == DESC);
                 }
                 // TODO: use datum_t::cmp instead to be faster
                 if (*lval == *rval) {
                     continue;
                 }
-                return (*lval < *rval) ^ (it->first == DESC);
+                return (*lval < *rval) != (it->first == DESC);
             }
+
             return false;
         }
+
     private:
-        std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
+        const std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
     };
 
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         std::vector<std::pair<order_direction_t, counted_t<func_t> > > comparisons;
         scoped_ptr_t<datum_t> arr(new datum_t(datum_t::R_ARRAY));
         for (size_t i = 1; i < num_args(); ++i) {
             if (get_src()->args(i).type() == Term::DESC) {
                 comparisons.push_back(
-                        std::make_pair(DESC, arg(i)->as_func(GET_FIELD_SHORTCUT)));
+                        std::make_pair(DESC, arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
             } else {
                 comparisons.push_back(
-                        std::make_pair(ASC, arg(i)->as_func(GET_FIELD_SHORTCUT)));
+                        std::make_pair(ASC, arg(env, i)->as_func(GET_FIELD_SHORTCUT)));
             }
         }
         lt_cmp_t lt_cmp(comparisons);
@@ -113,20 +117,20 @@ private:
 
         counted_t<table_t> tbl;
         counted_t<datum_stream_t> seq;
-        counted_t<val_t> v0 = arg(0);
+        counted_t<val_t> v0 = arg(env, 0);
         if (v0->get_type().is_convertible(val_t::type_t::TABLE)) {
             tbl = v0->as_table();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > ts
-                = v0->as_selection();
+                = v0->as_selection(env->env);
             tbl = ts.first;
             seq = ts.second;
         } else {
-            seq = v0->as_seq();
+            seq = v0->as_seq(env->env);
         }
 
         /* Add a sorting to the table if we're doing indexed sorting. */
-        if (counted_t<val_t> index = optarg("index")) {
+        if (counted_t<val_t> index = optarg(env, "index")) {
             rcheck(tbl.has(), base_exc_t::GENERIC,
                    "Indexed order_by can only be performed on a TABLE.");
             rcheck(!seq.has(), base_exc_t::GENERIC,
@@ -148,14 +152,14 @@ private:
         /* Compute the seq if we haven't already (if we were passed a table).
          * */
         if (!seq.has()) {
-            seq = tbl->as_datum_stream(backtrace());
+            seq = tbl->as_datum_stream(env->env, backtrace());
         }
 
         if (!comparisons.empty()) {
-            seq = make_counted<sort_datum_stream_t<lt_cmp_t> >(env, lt_cmp, seq, backtrace());
+            seq = make_counted<sort_datum_stream_t<lt_cmp_t> >(env->env, lt_cmp, seq, backtrace());
         }
 
-        return tbl.has() ? new_val(seq, tbl) : new_val(seq);
+        return tbl.has() ? new_val(seq, tbl) : new_val(env, seq);
     }
 
     virtual const char *name() const { return "orderby"; }
@@ -166,18 +170,19 @@ private:
 
 class distinct_term_t : public op_term_t {
 public:
-    distinct_term_t(env_t *env, const protob_t<const Term> &term)
+    distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    static bool lt_cmp(counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    static bool lt_cmp(env_t *, counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         scoped_ptr_t<datum_stream_t> s(
-            new sort_datum_stream_t< bool (*)(
-                counted_t<const datum_t>,
-                counted_t<const datum_t>)>(env, lt_cmp, arg(0)->as_seq(), backtrace()));
+            new sort_datum_stream_t<
+                bool (*)(env_t *,
+                         counted_t<const datum_t>,
+                         counted_t<const datum_t>) >(env->env, lt_cmp, arg(env, 0)->as_seq(env->env), backtrace()));
         datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
-        while (counted_t<const datum_t> d = s->next()) {
+        while (counted_t<const datum_t> d = s->next(env->env)) {
             if (last.has() && *last == *d) {
                 continue;
             }
@@ -185,22 +190,22 @@ private:
             arr.add(last);
         }
         counted_t<datum_stream_t> out =
-            make_counted<array_datum_stream_t>(env, arr.to_counted(), backtrace());
-        return new_val(out);
+            make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());
+        return new_val(env, out);
     }
     virtual const char *name() const { return "distinct"; }
 };
 
-counted_t<term_t> make_orderby_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_orderby_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<orderby_term_t>(env, term);
 }
-counted_t<term_t> make_distinct_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_distinct_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<distinct_term_t>(env, term);
 }
-counted_t<term_t> make_asc_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_asc_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<asc_term_t>(env, term);
 }
-counted_t<term_t> make_desc_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_desc_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<desc_term_t>(env, term);
 }
 

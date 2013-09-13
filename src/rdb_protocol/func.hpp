@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_FUNC_HPP_
 #define RDB_PROTOCOL_FUNC_HPP_
 
@@ -7,13 +8,13 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/optional.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/env.hpp"
+#include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rpc/serialize_macros.hpp"
 
@@ -21,79 +22,128 @@ class js_runner_t;
 
 namespace ql {
 
-class func_t : public single_threaded_countable_t<func_t>, public pb_rcheckable_t {
+class func_visitor_t;
+
+class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
 public:
-    func_t(env_t *env,
-           const std::string &_js_source,
-           uint64_t timeout_ms,
-           counted_t<term_t> parent);
-    func_t(env_t *env, protob_t<const Term> _source);
-    // Some queries, like filter, can take a shortcut object instead of a
-    // function as their argument.
-    static counted_t<func_t> new_constant_func(
-        env_t *env, counted_t<const datum_t> obj,
-        const protob_t<const Backtrace> &root);
+    explicit func_t(const protob_t<const Backtrace> &bt_source);
 
-    static counted_t<func_t> new_pluck_func(
-        env_t *env, counted_t<const datum_t> obj,
-        const protob_t<const Backtrace> &bt_src);
+    virtual ~func_t();
 
-    static counted_t<func_t> new_get_field_func(
-        env_t *env, counted_t<const datum_t> obj,
-        const protob_t<const Backtrace> &bt_src);
+    virtual counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const = 0;
 
-    static counted_t<func_t> new_eq_comparison_func(
-        env_t *env, counted_t<const datum_t> obj,
-        const protob_t<const Backtrace> &bt_src);
+    virtual bool is_deterministic() const = 0;
 
-    counted_t<val_t> call(const std::vector<counted_t<const datum_t> > &args);
+    // Used by info_term_t.
+    virtual std::string print_source() const = 0;
 
-    // Prefer these versions of call.
-    counted_t<val_t> call();
-    counted_t<val_t> call(counted_t<const datum_t> arg);
-    counted_t<val_t> call(counted_t<const datum_t> arg1, counted_t<const datum_t> arg2);
-    bool filter_call(counted_t<const datum_t> arg);
+    virtual void visit(func_visitor_t *visitor) const = 0;
 
-    void dump_scope(std::map<int64_t, Datum> *out) const;
-    bool is_deterministic() const;
     void assert_deterministic(const char *extra_msg) const;
 
-    std::string print_src() const;
-    void set_default_filter_val(counted_t<func_t> func);
-    protob_t<const Term> get_source();
+    bool filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const;
+
+    // These are simple, they call the vector version of call.
+    counted_t<val_t> call(env_t *env) const;
+    counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg) const;
+    counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
+
 private:
-    // Pointers to this function's arguments.
-    scoped_array_t<counted_t<const datum_t> > argptrs;
-    counted_t<term_t> body; // body to evaluate with functions bound
+    virtual bool filter_helper(env_t *env, counted_t<const datum_t> arg) const = 0;
 
-    // This is what's serialized over the wire.
-    friend class wire_func_t;
-    protob_t<const Term> source;
-    // This is set by `filter_term_t` and used by `filter_call`.
-    // `filter_term_t` will set this if the user provides the `default` optarg,
-    // in which case it will be used to handle the case where a non-existence
-    // error is produced while filtering a stream.
-    counted_t<func_t> default_filter_val;
+    DISABLE_COPYING(func_t);
+};
 
-    // TODO: make this smarter (it's sort of slow and shitty as-is)
-    std::map<int64_t, counted_t<const datum_t> *> scope;
+class reql_func_t : public func_t {
+public:
+    reql_func_t(const protob_t<const Backtrace> backtrace,  // for pb_rcheckable_t
+                const var_scope_t &captured_scope,
+                std::vector<sym_t> arg_names,
+                counted_t<term_t> body);
+    ~reql_func_t();
 
-    counted_t<term_t> js_parent;
-    env_t *js_env;
-    boost::shared_ptr<js_runner_t> js_runner;
+    counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
+    bool is_deterministic() const;
+
+    std::string print_source() const;
+
+    void visit(func_visitor_t *visitor) const;
+
+private:
+    friend class wire_func_serialization_visitor_t;
+    bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
+
+    // Only contains the parts of the scope that `body` uses.
+    var_scope_t captured_scope;
+
+    // The argument names, for the corresponding positional argument number.
+    std::vector<sym_t> arg_names;
+
+    // The body of the function, which gets ->eval(...) called when call(...) is called.
+    counted_t<term_t> body;
+
+    DISABLE_COPYING(reql_func_t);
+};
+
+class js_func_t : public func_t {
+public:
+    js_func_t(const std::string &_js_source,
+              uint64_t timeout_ms,
+              protob_t<const Backtrace> backtrace);
+    ~js_func_t();
+
+    // Some queries, like filter, can take a shortcut object instead of a
+    // function as their argument.
+    counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
+
+    bool is_deterministic() const;
+
+    std::string print_source() const;
+
+    void visit(func_visitor_t *visitor) const;
+
+private:
+    friend class wire_func_serialization_visitor_t;
+    bool filter_helper(env_t *env, counted_t<const datum_t> arg) const;
+
     std::string js_source;
     uint64_t js_timeout_ms;
+
+    DISABLE_COPYING(js_func_t);
 };
+
+class func_visitor_t {
+public:
+    virtual void on_reql_func(const reql_func_t *reql_func) = 0;
+    virtual void on_js_func(const js_func_t *js_func) = 0;
+protected:
+    func_visitor_t() { }
+    virtual ~func_visitor_t() { }
+    DISABLE_COPYING(func_visitor_t);
+};
+
+// Some queries, like filter, can take a shortcut object instead of a
+// function as their argument.
+
+counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
+                                    const protob_t<const Backtrace> &root);
+
+counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
+                                 const protob_t<const Backtrace> &bt_src);
+
+counted_t<func_t> new_get_field_func(counted_t<const datum_t> obj,
+                                     const protob_t<const Backtrace> &bt_src);
+
+counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
+                                         const protob_t<const Backtrace> &bt_src);
 
 
 class js_result_visitor_t : public boost::static_visitor<counted_t<val_t> > {
 public:
-    js_result_visitor_t(env_t *_env,
-                        const std::string &_code,
+    js_result_visitor_t(const std::string &_code,
                         uint64_t _timeout_ms,
-                        counted_t<term_t> _parent)
-        : env(_env),
-          code(_code),
+                        const pb_rcheckable_t *_parent)
+        : code(_code),
           timeout_ms(_timeout_ms),
           parent(_parent) { }
     // This JS evaluation resulted in an error
@@ -102,23 +152,34 @@ public:
     counted_t<val_t> operator()(const counted_t<const datum_t> &json_val) const;
     // This JS evaluation resulted in an id for a js function
     counted_t<val_t> operator()(const id_t id_val) const;
+
 private:
-    env_t *env;
     std::string code;
     uint64_t timeout_ms;
-    counted_t<term_t> parent;
+    const pb_rcheckable_t *parent;
 };
 
 // Evaluating this returns a `func_t` wrapped in a `val_t`.
 class func_term_t : public term_t {
 public:
-    func_term_t(env_t *env, const protob_t<const Term> &term);
+    func_term_t(compile_env_t *env, const protob_t<const Term> &term);
+
+    // eval(scope_env_t *env) is a dumb wrapper for this.  Evaluates the func_t without
+    // going by way of val_t, and without requiring a full-blown env.
+    counted_t<func_t> eval_to_func(const var_scope_t &env_scope);
+
 private:
+    virtual void accumulate_captures(var_captures_t *captures) const;
     virtual bool is_deterministic_impl() const;
-    virtual counted_t<val_t> eval_impl(eval_flags_t flags);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags);
     virtual const char *name() const { return "func"; }
-    counted_t<func_t> func;
+
+    std::vector<sym_t> arg_names;
+    counted_t<term_t> body;
+
+    var_captures_t external_captures;
 };
 
-} // namespace ql
+}  // namespace ql
+
 #endif // RDB_PROTOCOL_FUNC_HPP_

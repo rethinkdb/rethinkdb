@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
 #include "rdb_protocol/validate.hpp"

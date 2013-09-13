@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/counted_term.hpp"
 
 #include "rdb_protocol/ql2.pb.h"
@@ -17,5 +18,12 @@ protob_t<Query> make_counted_query() {
     protob_query_t *query = new protob_query_t();
     return protob_t<Query>(query, &query->query);
 }
+
+protob_t<Backtrace> make_counted_backtrace() {
+    protob_backtrace_t *pointee = new protob_backtrace_t();
+    return protob_t<Backtrace>(pointee, &pointee->backtrace);
+}
+
+
 
 }  // namespace ql

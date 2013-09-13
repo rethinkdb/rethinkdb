@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pathspec.hpp"
 
 #include "rdb_protocol/term.hpp"

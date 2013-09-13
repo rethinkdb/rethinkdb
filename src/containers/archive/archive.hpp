@@ -185,7 +185,7 @@ struct serialized_size_t;
             typ2 v;                                                     \
             char buf[sizeof(typ2)];                                     \
         } u;                                                            \
-        u.v = x;                                                        \
+        u.v = static_cast<typ2>(x);                                     \
         msg.append(u.buf, sizeof(typ2));                                \
         return msg;                                                     \
     }

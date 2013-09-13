@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/blob_wrapper.hpp"
 
 rdb_blob_wrapper_t::rdb_blob_wrapper_t(block_size_t blk_size, char *ref, int maxreflen) 
