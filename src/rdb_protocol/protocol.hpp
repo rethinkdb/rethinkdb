@@ -20,8 +20,6 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
-#include "containers/archive/boost_types.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
@@ -192,10 +190,11 @@ struct rget_item_t {
                 counted_t<const ql::datum_t> _data)
         : key(_key), sindex_key(_sindex_key), data(_data) { }
 
+    RDB_DECLARE_ME_SERIALIZABLE;
+
     store_key_t key;
     boost::optional<counted_t<const ql::datum_t> > sindex_key;
     counted_t<const ql::datum_t> data;
-    RDB_MAKE_ME_SERIALIZABLE_3(key, sindex_key, data);
 };
 
 } // namespace rdb_protocol_details

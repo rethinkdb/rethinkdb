@@ -5,7 +5,6 @@
 #include <map>
 #include <string>
 
-#include "btree/secondary_operations.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/uuid.hpp"
 #include "utils.hpp"
@@ -17,6 +16,7 @@ class parallel_traversal_progress_t;
 class superblock_t;
 template <class> class value_sizer_t;
 class repli_timestamp_t;
+struct secondary_index_t;
 class signal_t;
 
 

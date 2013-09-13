@@ -43,7 +43,7 @@ struct secondary_index_t {
     uuid_u id;
 
     /* Used in unit tests. */
-    bool operator==(const secondary_index_t & other) const {
+    bool operator==(const secondary_index_t &other) const {
         return superblock == other.superblock &&
                opaque_definition == other.opaque_definition;
     }

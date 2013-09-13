@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/backfill.hpp"
 
 #include <algorithm>
@@ -11,6 +11,7 @@
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "btree/secondary_operations.hpp"
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "protocol_api.hpp"
