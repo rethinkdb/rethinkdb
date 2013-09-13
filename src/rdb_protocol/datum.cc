@@ -711,7 +711,8 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
     return d.to_counted();
 }
 
-counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs, merge_res_f f) const {
+counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
+                                        merge_resoluter_t f) const {
     datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {

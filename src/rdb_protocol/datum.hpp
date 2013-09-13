@@ -112,10 +112,11 @@ public:
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
     // RSI: Rename this typedef.
-    typedef counted_t<const datum_t> (*merge_res_f)(const std::string &key,
-                                                    counted_t<const datum_t> l,
-                                                    counted_t<const datum_t> r);
-    counted_t<const datum_t> merge(counted_t<const datum_t> rhs, merge_res_f f) const;
+    typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
+                                                          counted_t<const datum_t> l,
+                                                          counted_t<const datum_t> r);
+    counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
+                                   merge_resoluter_t f) const;
 
     cJSON *as_json_raw() const;
     scoped_cJSON_t as_json() const;
