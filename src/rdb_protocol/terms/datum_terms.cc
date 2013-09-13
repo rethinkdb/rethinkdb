@@ -10,11 +10,7 @@ namespace ql {
 class datum_term_t : public term_t {
 public:
     explicit datum_term_t(protob_t<const Term> t)
-        : term_t(t) {
-        rcheck(t->has_datum(), base_exc_t::GENERIC,
-               "A datum term is missing its datum field.");
-        raw_val = new_val(make_counted<const datum_t>(&t->datum()));
-    }
+        : term_t(t), raw_val(new_val(make_counted<const datum_t>(&t->datum()))) { }
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual bool is_deterministic() const { return true; }
