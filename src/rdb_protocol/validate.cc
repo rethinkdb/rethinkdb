@@ -5,27 +5,30 @@
 #include "rdb_protocol/error.hpp"
 
 #define check_has(pb, has_field, field) do {                            \
+        decltype((pb)) check_has_tmp = (pb);                            \
         rcheck_toplevel(                                                \
-            (pb).has_field(),                                           \
+            check_has_tmp.has_field(),                                  \
             ql::base_exc_t::GENERIC,                                    \
             strprintf("MALFORMED PROTOBUF (missing field `%s`):\n%s",   \
-                      field, (pb).DebugString().c_str()));              \
+                      field, check_has_tmp.DebugString().c_str()));     \
     } while (0)
 
 #define check_not_has(pb, has_field, field) do {                        \
+        decltype((pb)) check_not_has_tmp = (pb);                        \
         rcheck_toplevel(                                                \
-            !(pb).has_field(),                                          \
+            !check_not_has_tmp.has_field(),                             \
             ql::base_exc_t::GENERIC,                                    \
             strprintf("MALFORMED PROTOBUF (spurious field `%s`):\n%s",  \
-                      field, (pb).DebugString().c_str()));              \
+                      field, check_not_has_tmp.DebugString().c_str())); \
     } while (0)
 
 #define check_empty(pb, field_size, field) do {                         \
+        decltype((pb)) check_empty_tmp = (pb);                          \
         rcheck_toplevel(                                                \
-            (pb).field_size() == 0,                                     \
+            check_empty_tmp.field_size() == 0,                          \
             ql::base_exc_t::GENERIC,                                    \
             strprintf("MALFORMED PROTOBUF (non-empty field `%s`):\n%s", \
-                      field, (pb).DebugString().c_str()));              \
+                      field, check_empty_tmp.DebugString().c_str()));   \
     } while (0)
 
 void validate_pb(const Query &q) {
