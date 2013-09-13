@@ -296,7 +296,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
 }
 
 term_t::term_t(protob_t<const Term> _src)
-    : pb_rcheckable_t(_src), src(_src) { }
+    : pb_rcheckable_t(get_backtrace(_src)), src(_src) { }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where

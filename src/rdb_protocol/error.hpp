@@ -60,16 +60,10 @@ protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t);
 // This is a particular type of rcheckable.  A `pb_rcheckable_t` corresponds to
 // a part of the protobuf source tree, and can be used to produce a useful
 // backtrace.  (By contrast, a normal rcheckable might produce an error with no
-// backtrace, e.g. if we some constratint that doesn't involve the user's code
+// backtrace, e.g. if we some constraint that doesn't involve the user's code
 // is violated.)
 class pb_rcheckable_t : public rcheckable_t {
 public:
-    explicit pb_rcheckable_t(const protob_t<const Term> &t)
-        : bt_src(get_backtrace(t)) { }
-
-    explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
-        : bt_src(_bt_src) { }
-
     virtual void runtime_fail(base_exc_t::type_t type,
                               const char *test, const char *file, int line,
                               std::string msg) const {
@@ -80,6 +74,10 @@ public:
     void propagate(Term *t) const;
 
     protob_t<const Backtrace> backtrace() const { return bt_src; }
+
+protected:
+    explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
+        : bt_src(_bt_src) { }
 
 private:
     protob_t<const Backtrace> bt_src;
