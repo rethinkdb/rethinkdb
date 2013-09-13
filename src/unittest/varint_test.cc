@@ -38,7 +38,7 @@ TEST(VarintTest, Success64) {
         uint64_t output_value;
         size_t serialized_size;
         archive_result_t res = run_serialization(value, &output_value, &serialized_size);
-        EXPECT_EQ(varint_serialized_size(value), serialized_size);
+        EXPECT_EQ(varint_uint64_serialized_size(value), serialized_size);
 
         EXPECT_EQ(ARCHIVE_SUCCESS, res);
         EXPECT_EQ(value, output_value);

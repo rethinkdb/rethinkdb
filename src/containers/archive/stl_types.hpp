@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/varint.hpp"
 
 namespace std {
 
@@ -44,7 +45,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::pair<T, U> *p) {
 // Keep in sync with operator<<.
 template <class K, class V, class C>
 size_t serialized_size(const std::map<K, V, C> &m) {
-    size_t ret = serialized_size_t<uint64_t>::value;
+    size_t ret = varint_uint64_serialized_size(m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         ret += serialized_size(*it);
     }
@@ -57,9 +58,7 @@ write_message_t &operator<<(write_message_t &msg, const std::map<K, V, C> &m) {
     // Extreme platform paranoia: It could become important that we
     // use something consistent like uint64_t for the size, not some
     // platform-specific size type such as std::map<K, V>::size_type.
-    uint64_t sz = m.size();
-
-    msg << sz;
+    serialize_varint_uint64(&msg, m.size());
     for (auto it = m.begin(), e = m.end(); it != e; ++it) {
         msg << *it;
     }
@@ -72,7 +71,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
     m->clear();
 
     uint64_t sz;
-    archive_result_t res = deserialize(s, &sz);
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
 
     // Using position should make this function take linear time, not

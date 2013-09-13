@@ -1,7 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/archive/varint.hpp"
 
-size_t varint_serialized_size(uint64_t value) {
+size_t varint_uint64_serialized_size(uint64_t value) {
     size_t count = 0;
 
     ++count;
