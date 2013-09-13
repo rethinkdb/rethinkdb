@@ -34,13 +34,11 @@ void runtime_fail(base_exc_t::type_t type,
     throw datum_exc_t(type, msg);
 }
 
-void runtime_sanity_check(bool test) {
-    if (!test) {
-        lazy_backtrace_t bt;
-        throw exc_t(base_exc_t::GENERIC,
-                    "SANITY CHECK FAILED (server is buggy).  Backtrace:\n" + bt.addrs(),
-                    backtrace_t());
-    }
+void runtime_sanity_check_failed() {
+    lazy_backtrace_t bt;
+    throw exc_t(base_exc_t::GENERIC,
+                "SANITY CHECK FAILED (server is buggy).  Backtrace:\n" + bt.addrs(),
+                backtrace_t());
 }
 
 base_exc_t::type_t exc_type(const datum_t *d) {

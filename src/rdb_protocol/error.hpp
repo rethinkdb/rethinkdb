@@ -38,11 +38,11 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 // directly.
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
-                  std::string msg, const Backtrace *bt_src) __attribute__((__noreturn__));
+                  std::string msg, const Backtrace *bt_src) NORETURN;
 void runtime_fail(base_exc_t::type_t type,
                   const char *test, const char *file, int line,
-                  std::string msg) __attribute__((__noreturn__));
-void runtime_sanity_check(bool test);
+                  std::string msg) NORETURN;
+void runtime_sanity_check_failed() NORETURN;
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a
@@ -127,7 +127,7 @@ private:
     } while (0)
 #define rfail_typed_target(target, args...) do {                  \
         rcheck_typed_target(target, false, strprintf(args));      \
-        unreachable();                                                  \
+        unreachable();                                            \
     } while (0)
 #define rfail(type, args...) do {                                       \
         rcheck(false, type, strprintf(args));                           \
@@ -156,7 +156,10 @@ base_exc_t::type_t exc_type(const counted_t<val_t> &v);
 #ifndef NDEBUG
 #define r_sanity_check(test) guarantee(test)
 #else
-#define r_sanity_check(test) do { ::ql::runtime_sanity_check(test); } while (0)
+#define r_sanity_check(test) do {               \
+    if (!(test)) {                              \
+        ::ql::runtime_sanity_check_failed();    \
+    } while (0)
 #endif // NDEBUG
 
 // A backtrace we return to the user.  Pretty self-explanatory.
