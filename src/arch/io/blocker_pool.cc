@@ -84,7 +84,7 @@ blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *_queue)
         // fails.
         UNUSED int ignored_res = pthread_attr_setstacksize(&attr, COROUTINE_STACK_SIZE);
 
-        res = pthread_create(&threads[i], NULL,
+        res = pthread_create(&threads[i], &attr,
             &blocker_pool_t::event_loop, reinterpret_cast<void*>(this));
         guarantee_xerr(res == 0, res, "Could not create blocker-pool thread.");
 
