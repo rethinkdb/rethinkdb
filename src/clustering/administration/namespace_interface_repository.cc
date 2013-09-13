@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/namespace_interface_repository.hpp"
 
 #include "errors.hpp"
@@ -7,6 +7,7 @@
 
 #include "arch/timing.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
