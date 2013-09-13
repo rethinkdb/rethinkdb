@@ -505,8 +505,17 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
     return i;
 }
 
+struct plain_rcheckable_t : public rcheckable_t {
+    void runtime_fail(base_exc_t::type_t type,
+                      const char *test, const char *file, int line,
+                      std::string msg) const {
+        ql::runtime_fail(type, test, file, line, msg);
+    }
+};
+
 int64_t datum_t::as_int() const {
-    return checked_convert_to_int(this, as_num());
+    plain_rcheckable_t target;
+    return checked_convert_to_int(&target, as_num());
 }
 
 const std::string &datum_t::as_str() const {
@@ -707,7 +716,7 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs, merge_res_
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            bool b = d.add(it->first, f(it->first, left, it->second, this), CLOBBER);
+            bool b = d.add(it->first, f(it->first, left, it->second), CLOBBER);
             r_sanity_check(b);
         } else {
             bool b = d.add(it->first, it->second);
