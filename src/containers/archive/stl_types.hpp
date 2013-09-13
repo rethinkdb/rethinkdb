@@ -90,9 +90,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::map<K, V, C> *m) {
 
 template <class T>
 write_message_t &operator<<(write_message_t &msg, const std::set<T> &s) {
-    uint64_t sz = s.size();
-
-    msg << sz;
+    serialize_varint_uint64(&msg, s.size());
     for (typename std::set<T>::const_iterator it = s.begin(), e = s.end(); it != e; ++it) {
         msg << *it;
     }
@@ -105,7 +103,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, std::set<T> *out) {
     out->clear();
 
     uint64_t sz;
-    archive_result_t res = deserialize(s, &sz);
+    archive_result_t res = deserialize_varint_uint64(s, &sz);
     if (res) { return res; }
 
     typename std::set<T>::iterator position = out->begin();
