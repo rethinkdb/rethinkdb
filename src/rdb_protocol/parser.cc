@@ -1,10 +1,15 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/parser.hpp"
 
 #include <stdexcept>
 
-#include "utils.hpp"
-#include <boost/make_shared.hpp>
+#include "errors.hpp"
+#include <boost/shared_ptr.hpp>
+
+#include "clustering/administration/metadata.hpp"
+#include "clustering/administration/namespace_interface_repository.hpp"
+// #include "clustering/administration/namespace_metadata.hpp"
+#include "rpc/semilattice/view.hpp"
 
 namespace rdb_protocol {
 

@@ -10,6 +10,7 @@
 #include <boost/function.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
@@ -17,6 +18,10 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/archive/archive.hpp"
 #include "http/http.hpp"
+
+class auth_key_t;
+class auth_semilattice_metadata_t;
+template <class> class semilattice_readwrite_view_t;
 
 enum protob_server_callback_mode_t {
     INLINE, //protobs that arrive will be called inline
