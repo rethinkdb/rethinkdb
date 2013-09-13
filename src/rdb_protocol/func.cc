@@ -204,7 +204,7 @@ counted_t<func_t> func_term_t::eval_to_func(const var_scope_t &env_scope) {
                                      arg_names, body);
 }
 
-bool func_term_t::is_deterministic_impl() const {
+bool func_term_t::is_deterministic() const {
     return body->is_deterministic();
 }
 

@@ -318,12 +318,6 @@ __thread int DBG_depth = 0;
 #define DEC_DEPTH
 #endif // INSTRUMENT
 
-bool term_t::is_deterministic() const {
-    bool b = is_deterministic_impl();
-    // DBG("%s det: %d\n", name(), b);
-    return b;
-}
-
 protob_t<const Term> term_t::get_src() const {
     return src;
 }

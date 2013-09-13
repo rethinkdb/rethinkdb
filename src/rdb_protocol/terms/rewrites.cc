@@ -38,7 +38,7 @@ private:
     virtual void accumulate_captures(var_captures_t *captures) const {
         return real->accumulate_captures(captures);
     }
-    virtual bool is_deterministic_impl() const {
+    virtual bool is_deterministic() const {
         return real->is_deterministic();
     }
 

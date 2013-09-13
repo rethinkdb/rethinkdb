@@ -36,7 +36,7 @@ public:
         : op_term_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
 
 private:
-    virtual bool is_deterministic_impl() const { return false; }
+    virtual bool is_deterministic() const { return false; }
 };
 
 struct rethreading_metadata_accessor_t : public on_thread_t {
@@ -425,7 +425,7 @@ private:
         }
         return new_val(make_counted<table_t>(env->env, db, name, use_outdated, backtrace()));
     }
-    virtual bool is_deterministic_impl() const { return false; }
+    virtual bool is_deterministic() const { return false; }
     virtual const char *name() const { return "table"; }
 };
 

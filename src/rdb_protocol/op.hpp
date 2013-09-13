@@ -76,7 +76,7 @@ protected:
     virtual void accumulate_captures(var_captures_t *captures) const;
 
 private:
-    virtual bool is_deterministic_impl() const;
+    virtual bool is_deterministic() const;
     std::vector<counted_t<term_t> > args;
 
     friend class make_obj_term_t; // needs special access to optargs

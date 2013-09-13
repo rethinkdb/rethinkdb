@@ -58,7 +58,7 @@ public:
         return t.has() ? new_val(new_ds, t) : new_val(env, new_ds);
     }
 
-    bool is_deterministic_impl() const {
+    bool is_deterministic() const {
         return false;
     }
 

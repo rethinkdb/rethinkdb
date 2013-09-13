@@ -40,7 +40,7 @@ private:
         captures->vars_captured.insert(varname);
     }
 
-    virtual bool is_deterministic_impl() const {
+    virtual bool is_deterministic() const {
         return true;
     }
 
@@ -68,7 +68,7 @@ private:
         captures->implicit_is_captured = true;
     }
 
-    virtual bool is_deterministic_impl() const {
+    virtual bool is_deterministic() const {
         return true;
     }
 
