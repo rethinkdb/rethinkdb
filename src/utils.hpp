@@ -248,7 +248,7 @@ public:
 protected:
     explicit home_thread_mixin_t(int specified_home_thread);
     home_thread_mixin_t();
-    virtual ~home_thread_mixin_t() { }
+    ~home_thread_mixin_t() { }
 
     int real_home_thread;
 
