@@ -183,13 +183,13 @@ commands:
     examples:
       - description: Get all active users aged 30.
         code:
-          js: "r.table('users').filter({active: true, {profile: {age: 30}}).run(conn, callback)"
-          py: "r.table('users').filter({'active': True, {profile: {'age': 30}}).run(conn)"
+          js: "r.table('users').filter({active: true, profile: {age: 30}}).run(conn, callback)"
+          py: "r.table('users').filter({'active': True, 'profile': {'age': 30}}).run(conn)"
           rb: r.table('users').filter('active' => true, 'profile' => {'age' => 30}).run(conn)
       - description: Filter supports the <code>r.literal</code> syntax if you want to get an exact match.
         code:
-          js: "r.table('users').filter({active: true, {profile: r.literal({age: 30})}).run(conn, callback)"
-          py: "r.table('users').filter({'active': True, {profile: r.literal({'age': 30})}).run(conn)"
+          js: "r.table('users').filter({active: true, profile: r.literal({age: 30})}).run(conn, callback)"
+          py: "r.table('users').filter({'active': True, 'profile': r.literal({'age': 30})}).run(conn)"
           rb: r.table('users').filter('active' => true, 'profile' => r.literal({'age' => 30})).run(conn)
       - description: Select all documents where the 'magazines' field is greater than 5.
         code:
