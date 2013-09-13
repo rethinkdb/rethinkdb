@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef PROTOCOL_API_HPP_
 #define PROTOCOL_API_HPP_
 
@@ -13,6 +13,7 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/rwi_lock.hpp"
 #include "concurrency/signal.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "containers/binary_blob.hpp"
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"

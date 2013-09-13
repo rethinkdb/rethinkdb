@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "containers/archive/stl_types.hpp"
 #include "rpc/serialize_macros.hpp"
 
 namespace query_language {

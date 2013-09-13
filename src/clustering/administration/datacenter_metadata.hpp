@@ -1,10 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_DATACENTER_METADATA_HPP_
 
 #include <map>
 #include <string>
 
+#include "containers/archive/stl_types.hpp"
 #include "containers/name_string.hpp"
 #include "containers/uuid.hpp"
 #include "http/json.hpp"

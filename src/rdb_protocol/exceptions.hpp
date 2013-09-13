@@ -1,12 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_EXCEPTIONS_HPP_
 #define RDB_PROTOCOL_EXCEPTIONS_HPP_
 
 #include <string>
 
-#include "utils.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "rdb_protocol/bt.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "utils.hpp"
 
 namespace query_language {
 

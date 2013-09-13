@@ -5,6 +5,9 @@
 #include "containers/archive/vector_stream.hpp"
 #include "protocol_api.hpp"
 
+RDB_IMPL_ME_SERIALIZABLE_4(secondary_index_t, superblock, opaque_definition,
+                           post_construction_complete, id);
+
 void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, std::map<std::string, secondary_index_t> *sindexes_out) {
     const btree_sindex_block_t *data = static_cast<const btree_sindex_block_t *>(sindex_block->get_data_read());
 
