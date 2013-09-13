@@ -6,8 +6,11 @@ import socket
 import struct
 from os import environ
 
+
+import os
+os.write(2, "YAY!")
 for k, v in environ:
-    print k, "=", v
+    os.write(2, k + ": " + v)
 
 if 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION' in environ:
     protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
