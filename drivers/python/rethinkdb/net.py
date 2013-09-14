@@ -9,7 +9,7 @@ from os import environ
 if 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION' in environ:
     protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
     if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
-       from . import rethinkdb_pbcpp
+        import rethinkdb_pbcpp
 else:
     try:
         # Set an environment variable telling the protobuf library
