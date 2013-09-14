@@ -5,7 +5,7 @@
 #include "rdb_protocol/error.hpp"
 
 #define check_has(pb, has_field, field) do {                            \
-        decltype((pb)) check_has_tmp = (pb);                            \
+        auto const &check_has_tmp = (pb);                               \
         rcheck_toplevel(                                                \
             check_has_tmp.has_field(),                                  \
             ql::base_exc_t::GENERIC,                                    \
@@ -14,7 +14,7 @@
     } while (0)
 
 #define check_not_has(pb, has_field, field) do {                        \
-        decltype((pb)) check_not_has_tmp = (pb);                        \
+        auto const &check_not_has_tmp = (pb);                           \
         rcheck_toplevel(                                                \
             !check_not_has_tmp.has_field(),                             \
             ql::base_exc_t::GENERIC,                                    \
@@ -23,7 +23,7 @@
     } while (0)
 
 #define check_empty(pb, field_size, field) do {                         \
-        decltype((pb)) check_empty_tmp = (pb);                          \
+        auto const &check_empty_tmp = (pb);                             \
         rcheck_toplevel(                                                \
             check_empty_tmp.field_size() == 0,                          \
             ql::base_exc_t::GENERIC,                                    \
