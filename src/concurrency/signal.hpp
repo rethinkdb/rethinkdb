@@ -40,6 +40,8 @@ public:
     class subscription_t : public home_thread_mixin_t {
     public:
         subscription_t() : subs(this) { }
+        virtual ~subscription_t() { }
+
         void reset(signal_t *s = NULL) {
             if (s) {
                 mutex_assertion_t::acq_t acq(&s->lock);

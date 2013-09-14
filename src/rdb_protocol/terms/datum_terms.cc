@@ -10,13 +10,10 @@ namespace ql {
 class datum_term_t : public term_t {
 public:
     explicit datum_term_t(protob_t<const Term> t)
-        : term_t(t),
-          raw_val(new_val(make_counted<const datum_t>(&t->datum()))) {
-        guarantee(raw_val.has());
-    }
+        : term_t(t), raw_val(new_val(make_counted<const datum_t>(&t->datum()))) { }
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
-    virtual bool is_deterministic_impl() const { return true; }
+    virtual bool is_deterministic() const { return true; }
     virtual counted_t<val_t> eval_impl(scope_env_t *, UNUSED eval_flags_t flags) {
         return raw_val;
     }

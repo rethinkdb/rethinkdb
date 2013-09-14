@@ -296,7 +296,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
 }
 
 term_t::term_t(protob_t<const Term> _src)
-    : pb_rcheckable_t(_src), src(_src) { }
+    : pb_rcheckable_t(get_backtrace(_src)), src(_src) { }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
@@ -317,12 +317,6 @@ __thread int DBG_depth = 0;
 #define INC_DEPTH
 #define DEC_DEPTH
 #endif // INSTRUMENT
-
-bool term_t::is_deterministic() const {
-    bool b = is_deterministic_impl();
-    // DBG("%s det: %d\n", name(), b);
-    return b;
-}
 
 protob_t<const Term> term_t::get_src() const {
     return src;
@@ -364,7 +358,7 @@ counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> 
     return make_counted<val_t>(d, t, backtrace());
 }
 
-counted_t<val_t> term_t::new_val(scope_env_t *env, counted_t<datum_stream_t> s) {
+counted_t<val_t> term_t::new_val(env_t *env, counted_t<datum_stream_t> s) {
     return make_counted<val_t>(env, s, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {

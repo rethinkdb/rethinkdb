@@ -26,8 +26,6 @@ class func_visitor_t;
 
 class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
 public:
-    explicit func_t(const protob_t<const Backtrace> &bt_source);
-
     virtual ~func_t();
 
     virtual counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const = 0;
@@ -47,6 +45,9 @@ public:
     counted_t<val_t> call(env_t *env) const;
     counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg) const;
     counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
+
+protected:
+    explicit func_t(const protob_t<const Backtrace> &bt_source);
 
 private:
     virtual bool filter_helper(env_t *env, counted_t<const datum_t> arg) const = 0;
@@ -170,7 +171,7 @@ public:
 
 private:
     virtual void accumulate_captures(var_captures_t *captures) const;
-    virtual bool is_deterministic_impl() const;
+    virtual bool is_deterministic() const;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags);
     virtual const char *name() const { return "func"; }
 

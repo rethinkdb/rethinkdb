@@ -39,7 +39,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env, arg(env, 0)->as_seq(env->env)->map(arg(env, 1)->as_func()));
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->map(arg(env, 1)->as_func()));
     }
     virtual const char *name() const { return "map"; }
 };
@@ -50,7 +50,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env, arg(env, 0)->as_seq(env->env)->concatmap(arg(env, 1)->as_func()));
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->concatmap(arg(env, 1)->as_func()));
     }
     virtual const char *name() const { return "concatmap"; }
 };
@@ -75,7 +75,7 @@ private:
                 = v0->as_selection(env->env);
             return new_val(ts.second->filter(f, default_filter_val), ts.first);
         } else {
-            return new_val(env, v0->as_seq(env->env)->filter(f, default_filter_val));
+            return new_val(env->env, v0->as_seq(env->env)->filter(f, default_filter_val));
         }
     }
 
@@ -146,7 +146,7 @@ private:
         }
         counted_t<datum_stream_t> union_stream
             = make_counted<union_datum_stream_t>(streams, backtrace());
-        return new_val(env, union_stream);
+        return new_val(env->env, union_stream);
     }
     virtual const char *name() const { return "union"; }
 };
@@ -157,7 +157,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        return new_val(env, arg(env, 0)->as_seq(env->env)->zip());
+        return new_val(env->env, arg(env, 0)->as_seq(env->env)->zip());
     }
     virtual const char *name() const { return "zip"; }
 };

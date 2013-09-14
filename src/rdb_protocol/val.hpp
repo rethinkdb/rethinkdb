@@ -185,7 +185,7 @@ public:
 
     val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
     val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
-    val_t(scope_env_t *env, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(env_t *env, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
     val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
     val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
     val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
