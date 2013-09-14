@@ -21,6 +21,7 @@ build_dir=
 dashboard_url=
 colorful=true
 timeout=5m
+flaky_filter=flaky
 
 # Print usage
 usage () {
@@ -39,6 +40,7 @@ usage () {
     echo "   -u <url>        Post the test results to the url"
     echo "   -c              Disable color"
     echo "   -t <timeout>    Kill tests that last longer (default: $timeout)"
+    echo "   -F <filter>     Mark these tests as flaky (default: $flaky_filter)"
     echo "   -s <name> -- <command>  For internal use only"
     echo "Output Directory Format:"
     echo "   A folder is created for each test. Files in the folder contain the command"
@@ -73,6 +75,7 @@ while getopts ":lo:hvs:j:r:d:w:b:u:ct:" opt; do
         u) dashboard_url=$OPTARG ;;
         c) colorful=false ;;
         t) timeout=$OPTARG ;;
+        F) flaky_filter=$OPTARG ;;
         *) echo Error: -$OPTARG ; usage; exit 1 ;;
     esac
 done
@@ -266,8 +269,18 @@ selected_tests=$(filter_tests 0 "$test_filter" "" false)
 positive_tests=$(filter_tests 0 "$test_filter" "" true)
 num_skipped_tests=$(( $(echo "$positive_tests" | wc -l) - $(echo "$selected_tests" | wc -l) ))
 
+flaky_filter=$(echo $flaky_filter | sed 's/\([!*]\)/\\\1/g')
+flaky_tests=$(filter_tests 0 "$flaky_filter" "" false)
+
+is_flaky () {
+    echo "$flaky_tests" | grep -q "^$1$"
+}
+
 # Number of tests to run
 total=0
+
+# Number of flaky tests
+flaky_total=0
 
 # List of tests to run
 list=()
@@ -290,7 +303,11 @@ for name in $selected_tests; do
     cmd=`cat $path | sed -n 's/^TEST_COMMAND=//p'`
     if $list_only; then
         if $verbose; then
-            echo $name "("$(list_groups "$name")")": $cmd
+            flaky_tag=
+            if is_flaky "$name"; then
+                flaky_tag="[F] "
+            fi
+            echo $name "$flaky_tag("$(list_groups "$name")")": $cmd
         else
             echo $name
         fi
@@ -299,6 +316,10 @@ for name in $selected_tests; do
     total=$(( total + 1 ))
     mkdir "$dir/$name"
     echo "$cmd" > "$dir/$name/command-line"
+    if is_flaky "$name"; then
+        flaky_total=$(( flaky_total + 1 ))
+        echo "This test is unreliable" > "$dir/$name/flaky"
+    fi
     list+=("$name^$cmd")
 done
 
@@ -377,9 +398,14 @@ gen_html_report () {
 
 # Collect the results
 passed=0
+flaky_failed=0
 for test_dir in "$dir/"*/; do
     ls "$test_dir"return-code-* 2>/dev/null >/dev/null || continue
-    if ! grep -v -q '^0$' "$test_dir"return-code-*; then
+    if grep -v -q '^0$' "$test_dir"return-code-*; then
+         if test -e "$test_dir/flaky"; then
+             flaky_failed=$((flaky_failed + 1))
+         fi
+    else
         passed=$((passed + 1))
     fi
 done
@@ -396,7 +422,14 @@ if [[ $passed = $total ]]; then
     exit_code=0
 else
     echo "${red}Failed $(( total - passed )) of $total tests in $duration_str.${plain}"
-    exit_code=1
+    if [[ $flaky_failed != 0 ]]; then
+        echo "${yellow}$flaky_failed of failed tests are flaky${plain}"
+    fi
+    if [[ $total = $(( passed + flaky_failed )) ]]; then
+        exit_code=0
+    else
+        exit_code=1
+    fi
 fi
 
 if [[ $num_skipped_tests != 0 ]]; then
