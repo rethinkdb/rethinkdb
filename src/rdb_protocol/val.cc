@@ -11,13 +11,12 @@
 
 namespace ql {
 
-// Most of this logic is copy-pasted from the old query language.
-table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_name,
+table_t::table_t(env_t *env,
+                 counted_t<const db_t> _db, const std::string &_name,
                  bool _use_outdated, const protob_t<const Backtrace> &backtrace)
     : pb_rcheckable_t(backtrace),
       db(_db),
       name(_name),
-      env(_env),
       use_outdated(_use_outdated),
       sorting(UNORDERED) {
     uuid_u db_id = db->id;
@@ -27,7 +26,7 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
            strprintf("Table name `%s` invalid (%s).",
                      name.c_str(), name_string_t::valid_char_msg));
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >
-        namespaces_metadata = env->namespaces_semilattice_metadata->get();
+        namespaces_metadata = env->cluster_access.namespaces_semilattice_metadata->get();
     cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
         namespaces_metadata_change(&namespaces_metadata);
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
@@ -39,7 +38,7 @@ table_t::table_t(env_t *_env, counted_t<const db_t> _db, const std::string &_nam
                                         table_name.c_str()), this);
 
     access.init(new namespace_repo_t<rdb_protocol_t>::access_t(
-                    env->ns_repo, id, env->interruptor));
+                    env->cluster_access.ns_repo, id, env->interruptor));
 
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
@@ -71,41 +70,50 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
     return d.to_counted();
 }
 
-counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
+counted_t<const datum_t> table_t::replace(env_t *env,
+                                          counted_t<const datum_t> original,
                                           counted_t<func_t> replacement_generator,
                                           bool nondet_ok,
                                           durability_requirement_t durability_requirement,
                                           bool return_vals) {
     try {
-        return do_replace(original, replacement_generator, nondet_ok,
+        return do_replace(env, original, replacement_generator, nondet_ok,
                           durability_requirement, return_vals);
     } catch (const base_exc_t &exc) {
         return make_error_datum(exc);
     }
 }
 
-counted_t<const datum_t> table_t::replace(counted_t<const datum_t> original,
+counted_t<const datum_t> table_t::replace(env_t *env,
+                                          counted_t<const datum_t> original,
                                           counted_t<const datum_t> replacement,
                                           bool upsert,
                                           durability_requirement_t durability_requirement,
                                           bool return_vals) {
     try {
-        return do_replace(original, replacement, upsert,
+        return do_replace(env, original, replacement, upsert,
                           durability_requirement, return_vals);
     } catch (const base_exc_t &exc) {
         return make_error_datum(exc);
     }
 }
 
+protob_t<Term> make_replacement_body(counted_t<const datum_t> replacement, UNUSED sym_t x) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    replacement->write_to_protobuf(pb::set_datum(arg));
+    return twrap;
+}
 
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
-    const std::vector<counted_t<const datum_t> > &original_values,
-    counted_t<func_t> replacement_generator,
-    const bool nondeterministic_replacements_ok,
-    const durability_requirement_t durability_requirement) {
+        env_t *env,
+        const std::vector<counted_t<const datum_t> > &original_values,
+        counted_t<func_t> replacement_generator,
+        const bool nondeterministic_replacements_ok,
+        const durability_requirement_t durability_requirement) {
     if (replacement_generator->is_deterministic()) {
         std::vector<datum_func_pair_t> pairs(original_values.size());
-        map_wire_func_t wire_func = map_wire_func_t(env, replacement_generator);
+        map_wire_func_t wire_func = map_wire_func_t(replacement_generator);
         for (size_t i = 0; i < original_values.size(); ++i) {
             try {
                 pairs[i] = datum_func_pair_t(original_values[i], &wire_func);
@@ -114,7 +122,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
             }
         }
 
-        return batch_replace(pairs, durability_requirement);
+        return batch_replace(env, pairs, durability_requirement);
     } else {
         r_sanity_check(nondeterministic_replacements_ok);
 
@@ -123,56 +131,65 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         for (size_t i = 0; i < original_values.size(); ++i) {
             try {
                 counted_t<const datum_t> replacement =
-                    replacement_generator->call(original_values[i])->as_datum();
+                    replacement_generator->call(env, original_values[i])->as_datum();
 
-                Term t;
-                const int x = env->gensym();
-                Term *const arg = pb::set_func(&t, x);
-                replacement->write_to_protobuf(pb::set_datum(arg));
-                propagate(&t);
-
-                funcs[i] = map_wire_func_t(t, std::map<int64_t, Datum>());
+                funcs[i] = map_wire_func_t::make_safely(pb::dummy_var_t::IGNORED,
+                                                        std::bind(make_replacement_body,
+                                                                  replacement,
+                                                                  std::placeholders::_1),
+                                                        backtrace());
                 pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
             } catch (const base_exc_t &exc) {
                 pairs[i] = datum_func_pair_t(make_error_datum(exc));
             }
         }
 
-        return batch_replace(pairs, durability_requirement);
+        return batch_replace(env, pairs, durability_requirement);
     }
 }
 
+protob_t<Term> make_upsert_replace_body(bool upsert, counted_t<const datum_t> d, sym_t x) {
+    protob_t<Term> twrap = make_counted_term();
+    Term *const arg = twrap.get();
+    if (upsert) {
+        d->write_to_protobuf(pb::set_datum(arg));
+    } else {
+        N3(BRANCH,
+           N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
+           NDATUM(d),
+           N1(ERROR, NDATUM("Duplicate primary key.")));
+    }
+    return twrap;
+}
+
+map_wire_func_t upsert_replacement_func(bool upsert, counted_t<const datum_t> d,
+                                        protob_t<const Backtrace> backtrace) {
+    return map_wire_func_t::make_safely(pb::dummy_var_t::VAL_UPSERT_REPLACEMENT,
+                                        std::bind(make_upsert_replace_body,
+                                                  upsert, d,
+                                                  std::placeholders::_1),
+                                        backtrace);
+}
+
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
-    const std::vector<counted_t<const datum_t> > &original_values,
-    const std::vector<counted_t<const datum_t> > &replacement_values,
-    const bool upsert,
-    const durability_requirement_t durability_requirement) {
+        env_t *env,
+        const std::vector<counted_t<const datum_t> > &original_values,
+        const std::vector<counted_t<const datum_t> > &replacement_values,
+        const bool upsert,
+        const durability_requirement_t durability_requirement) {
     r_sanity_check(original_values.size() == replacement_values.size());
     scoped_array_t<map_wire_func_t> funcs(original_values.size());
     std::vector<datum_func_pair_t> pairs(original_values.size());
     for (size_t i = 0; i < original_values.size(); ++i) {
         try {
-            Term t;
-            const int x = env->gensym();
-            Term *const arg = pb::set_func(&t, x);
-            if (upsert) {
-                replacement_values[i]->write_to_protobuf(pb::set_datum(arg));
-            } else {
-                N3(BRANCH,
-                   N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
-                   NDATUM(replacement_values[i]),
-                   N1(ERROR, NDATUM("Duplicate primary key.")));
-            }
-
-            propagate(&t);
-            funcs[i] = map_wire_func_t(t, std::map<int64_t, Datum>());
+            funcs[i] = upsert_replacement_func(upsert, replacement_values[i], backtrace());
             pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
         } catch (const base_exc_t &exc) {
             pairs[i] = datum_func_pair_t(make_error_datum(exc));
         }
     }
 
-    return batch_replace(pairs, durability_requirement);
+    return batch_replace(env, pairs, durability_requirement);
 }
 
 bool is_sorted_by_first(const std::vector<std::pair<int64_t, Datum> > &v) {
@@ -194,8 +211,9 @@ bool is_sorted_by_first(const std::vector<std::pair<int64_t, Datum> > &v) {
 
 
 std::vector<counted_t<const datum_t> > table_t::batch_replace(
-    const std::vector<datum_func_pair_t> &replacements,
-    const durability_requirement_t durability_requirement) {
+        env_t *env,
+        const std::vector<datum_func_pair_t> &replacements,
+        const durability_requirement_t durability_requirement) {
     std::vector<counted_t<const datum_t> > ret(replacements.size());
 
     std::vector<std::pair<int64_t, rdb_protocol_t::point_replace_t> > point_replaces;
@@ -212,7 +230,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 if (orig->get_type() == datum_t::R_NULL) {
                     // TODO: We copy this for some reason, possibly no reason.
                     map_wire_func_t mwf = *replacements[i].replacer;
-                    orig = mwf.compile(env)->call(orig)->as_datum();
+                    orig = mwf.compile_wire_func()->call(env, orig)->as_datum();
                     if (orig->get_type() == datum_t::R_NULL) {
                         datum_ptr_t resp(datum_t::R_OBJECT);
                         counted_t<const datum_t> one(new datum_t(1.0));
@@ -230,7 +248,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                                    rdb_protocol_t::point_replace_t(
                                        pk, store_key,
                                        *replacements[i].replacer,
-                                       env->get_all_optargs(),
+                                       env->global_optargs.get_all_optargs(),
                                        false)));
             }
         } catch (const base_exc_t& exc) {
@@ -264,10 +282,11 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     return ret;
 }
 
-MUST_USE bool table_t::sindex_create(const std::string &id,
+MUST_USE bool table_t::sindex_create(env_t *env,
+                                     const std::string &id,
                                      counted_t<func_t> index_func) {
     index_func->assert_deterministic("Index functions must be deterministic.");
-    map_wire_func_t wire_func(env, index_func);
+    map_wire_func_t wire_func(index_func);
     rdb_protocol_t::write_t write(
             rdb_protocol_t::sindex_create_t(id, wire_func));
 
@@ -281,7 +300,7 @@ MUST_USE bool table_t::sindex_create(const std::string &id,
     return response->success;
 }
 
-MUST_USE bool table_t::sindex_drop(const std::string &id) {
+MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
     rdb_protocol_t::write_t write((
             rdb_protocol_t::sindex_drop_t(id)));
 
@@ -295,7 +314,7 @@ MUST_USE bool table_t::sindex_drop(const std::string &id) {
     return response->success;
 }
 
-counted_t<const datum_t> table_t::sindex_list() {
+counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     rdb_protocol_t::sindex_list_t sindex_list;
     rdb_protocol_t::read_t read(sindex_list);
     try {
@@ -321,6 +340,7 @@ counted_t<const datum_t> table_t::sindex_list() {
 }
 
 counted_t<const datum_t> table_t::do_replace(
+    env_t *env,
     counted_t<const datum_t> orig,
     const map_wire_func_t &mwf,
     durability_requirement_t durability_requirement,
@@ -328,7 +348,7 @@ counted_t<const datum_t> table_t::do_replace(
     const std::string &pk = get_pkey();
     if (orig->get_type() == datum_t::R_NULL) {
         map_wire_func_t mwf2 = mwf;
-        orig = mwf2.compile(env)->call(orig)->as_datum();
+        orig = mwf2.compile_wire_func()->call(env, orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
             datum_ptr_t resp(datum_t::R_OBJECT);
             bool b = resp.add("skipped", make_counted<datum_t>(1.0));
@@ -339,7 +359,7 @@ counted_t<const datum_t> table_t::do_replace(
     store_key_t store_key(orig->get(pk)->print_primary());
     rdb_protocol_t::write_t write(
         rdb_protocol_t::point_replace_t(
-            pk, store_key, mwf, env->get_all_optargs(), return_vals),
+            pk, store_key, mwf, env->global_optargs.get_all_optargs(), return_vals),
         durability_requirement);
 
     rdb_protocol_t::write_response_t response;
@@ -349,46 +369,37 @@ counted_t<const datum_t> table_t::do_replace(
     return make_counted<datum_t>(d);
 }
 
-counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
+counted_t<const datum_t> table_t::do_replace(env_t *env,
+                                             counted_t<const datum_t> orig,
                                              counted_t<func_t> f,
                                              bool nondet_ok,
                                              durability_requirement_t durability_requirement,
                                              bool return_vals) {
     if (f->is_deterministic()) {
-        return do_replace(orig, map_wire_func_t(env, f),
+        return do_replace(env, orig, map_wire_func_t(f),
                           durability_requirement, return_vals);
     } else {
         r_sanity_check(nondet_ok);
-        return do_replace(orig, f->call(orig)->as_datum(), true,
+        return do_replace(env, orig, f->call(env, orig)->as_datum(), true,
                           durability_requirement, return_vals);
     }
 }
 
-counted_t<const datum_t> table_t::do_replace(counted_t<const datum_t> orig,
+counted_t<const datum_t> table_t::do_replace(env_t *env,
+                                             counted_t<const datum_t> orig,
                                              counted_t<const datum_t> d,
                                              bool upsert,
                                              durability_requirement_t durability_requirement,
                                              bool return_vals) {
-    Term t;
-    int x = env->gensym();
-    Term *arg = pb::set_func(&t, x);
-    if (upsert) {
-        d->write_to_protobuf(pb::set_datum(arg));
-    } else {
-        N3(BRANCH,
-           N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),
-           NDATUM(d),
-           N1(ERROR, NDATUM("Duplicate primary key.")));
-    }
+    map_wire_func_t func = upsert_replacement_func(upsert, d, backtrace());
 
-    propagate(&t);
-    return do_replace(orig, map_wire_func_t(t, std::map<int64_t, Datum>()),
+    return do_replace(env, orig, func,
                       durability_requirement, return_vals);
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
 
-counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
+counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> pval) {
     std::string pks = pval->print_primary();
     rdb_protocol_t::read_t read((rdb_protocol_t::point_read_t(store_key_t(pks))));
     rdb_protocol_t::read_response_t res;
@@ -405,6 +416,7 @@ counted_t<const datum_t> table_t::get_row(counted_t<const datum_t> pval) {
 }
 
 counted_t<datum_stream_t> table_t::get_all(
+        env_t *env,
         counted_t<const datum_t> value,
         const std::string &get_all_sindex_id,
         const protob_t<const Backtrace> &bt) {
@@ -464,7 +476,8 @@ void table_t::add_bounds(
             bound_t(right_bound, right_bound_open));
 }
 
-counted_t<datum_stream_t> table_t::as_datum_stream(const protob_t<const Backtrace> &bt) {
+counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
+                                                   const protob_t<const Backtrace> &bt) {
     if (!sindex_id || *sindex_id == get_pkey()) {
         if (bounds) {
             return make_counted<lazy_datum_stream_t>(
@@ -536,18 +549,16 @@ const char *val_t::type_t::name() const {
     unreachable();
 }
 
-val_t::val_t(counted_t<const datum_t> _datum, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
-      env(parent->val_t_get_env()),
+val_t::val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::DATUM),
       u(_datum) {
     guarantee(datum().has());
 }
 
 val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
-             const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
-      env(parent->val_t_get_env()),
+             protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::SINGLE_SELECTION),
       table(_table),
       u(_datum) {
@@ -555,24 +566,24 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
     guarantee(datum().has());
 }
 
-val_t::val_t(counted_t<datum_stream_t> _sequence, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
-      env(parent->val_t_get_env()),
+val_t::val_t(scope_env_t *env, counted_t<datum_stream_t> _sequence,
+             protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::SEQUENCE),
       u(_sequence) {
     guarantee(sequence().has());
     // Some streams are really arrays in disguise.
-    counted_t<const datum_t> arr = sequence()->as_array();
+    counted_t<const datum_t> arr = sequence()->as_array(env->env);
     if (arr.has()) {
         type = type_t::DATUM;
         u = arr;
     }
 }
 
-val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
-             const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
-      env(parent->val_t_get_env()),
+val_t::val_t(counted_t<table_t> _table,
+             counted_t<datum_stream_t> _sequence,
+             protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::SELECTION),
       table(_table),
       u(_sequence) {
@@ -580,23 +591,20 @@ val_t::val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
     guarantee(sequence().has());
 }
 
-val_t::val_t(counted_t<table_t> _table, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
-      env(parent->val_t_get_env()),
+val_t::val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::TABLE),
       table(_table) {
     guarantee(table.has());
 }
-val_t::val_t(counted_t<const db_t> _db, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
-      env(parent->val_t_get_env()),
+val_t::val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::DB),
       u(_db) {
     guarantee(db().has());
 }
-val_t::val_t(counted_t<func_t> _func, const term_t *parent)
-    : pb_rcheckable_t(parent->backtrace()),
-      env(parent->val_t_get_env()),
+val_t::val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
       type(type_t::FUNC),
       u(_func) {
     guarantee(func().has());
@@ -607,7 +615,7 @@ val_t::~val_t() { }
 val_t::type_t val_t::get_type() const { return type; }
 const char * val_t::get_type_name() const { return get_type().name(); }
 
-counted_t<const datum_t> val_t::as_datum() {
+counted_t<const datum_t> val_t::as_datum() const {
     if (type.raw_type != type_t::DATUM && type.raw_type != type_t::SINGLE_SELECTION) {
         rcheck_literal_type(type_t::DATUM);
     }
@@ -619,23 +627,23 @@ counted_t<table_t> val_t::as_table() {
     return table;
 }
 
-counted_t<datum_stream_t> val_t::as_seq() {
+counted_t<datum_stream_t> val_t::as_seq(env_t *env) {
     if (type.raw_type == type_t::SEQUENCE || type.raw_type == type_t::SELECTION) {
         return sequence();
     } else if (type.raw_type == type_t::TABLE) {
-        return table->as_datum_stream(backtrace());
+        return table->as_datum_stream(env, backtrace());
     } else if (type.raw_type == type_t::DATUM) {
-        return datum()->as_datum_stream(env, backtrace());
+        return datum()->as_datum_stream(backtrace());
     }
     rcheck_literal_type(type_t::SEQUENCE);
     unreachable();
 }
 
-std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection() {
+std::pair<counted_t<table_t>, counted_t<datum_stream_t> > val_t::as_selection(env_t *env) {
     if (type.raw_type != type_t::TABLE && type.raw_type != type_t::SELECTION) {
         rcheck_literal_type(type_t::SELECTION);
     }
-    return std::make_pair(table, as_seq());
+    return std::make_pair(table, as_seq(env));
 }
 
 std::pair<counted_t<table_t>, counted_t<const datum_t> > val_t::as_single_selection() {
@@ -661,13 +669,13 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
 
     // We use a switch here so that people have to update it if they add another
     // shortcut.
-    switch(shortcut) {
+    switch (shortcut) {
     case CONSTANT_SHORTCUT:
-        return func_t::new_constant_func(env, as_datum(), backtrace());
+        return new_constant_func(as_datum(), backtrace());
     case GET_FIELD_SHORTCUT:
-        return func_t::new_get_field_func(env, as_datum(), backtrace());
+        return new_get_field_func(as_datum(), backtrace());
     case PLUCK_SHORTCUT:
-        return func_t::new_pluck_func(env, as_datum(), backtrace());
+        return new_pluck_func(as_datum(), backtrace());
     case NO_SHORTCUT:
         // fallthru
     default: unreachable();
@@ -675,7 +683,7 @@ counted_t<func_t> val_t::as_func(function_shortcut_t shortcut) {
     unreachable();
 }
 
-counted_t<const db_t> val_t::as_db() {
+counted_t<const db_t> val_t::as_db() const {
     rcheck_literal_type(type_t::DB);
     return db();
 }
@@ -732,11 +740,41 @@ const std::string &val_t::as_str() {
     }
 }
 
-void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) {
+void val_t::rcheck_literal_type(type_t::raw_type_t expected_raw_type) const {
     rcheck_typed_target(
         this, type.raw_type == expected_raw_type,
         strprintf("Expected type %s but found %s:\n%s",
                   type_t(expected_raw_type).name(), type.name(), print().c_str()));
 }
+
+std::string val_t::print() const {
+    if (get_type().is_convertible(type_t::DATUM)) {
+        return as_datum()->print();
+    } else if (get_type().is_convertible(type_t::DB)) {
+        return strprintf("db(\"%s\")", as_db()->name.c_str());
+    } else if (get_type().is_convertible(type_t::TABLE)) {
+        return strprintf("table(\"%s\")", table->name.c_str());
+    } else if (get_type().is_convertible(type_t::SELECTION)) {
+        return strprintf("OPAQUE SELECTION ON table(%s)",
+                         table->name.c_str());
+    } else {
+        // TODO: Do something smarter here?
+        return strprintf("OPAQUE VALUE %s", get_type().name());
+    }
+}
+
+std::string val_t::trunc_print() const {
+    if (get_type().is_convertible(type_t::DATUM)) {
+        return as_datum()->trunc_print();
+    } else {
+        std::string s = print();
+        if (s.size() > datum_t::trunc_len) {
+            s.erase(s.begin() + (datum_t::trunc_len - 3), s.end());
+            s += "...";
+        }
+        return s;
+    }
+}
+
 
 } // namespace ql

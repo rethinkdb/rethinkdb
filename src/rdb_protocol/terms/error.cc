@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/error.hpp"
@@ -8,14 +9,14 @@ namespace ql {
 
 class error_term_t : public op_term_t {
 public:
-    error_term_t(env_t *env, const protob_t<const Term> &term)
+    error_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         if (num_args() == 0) {
             rfail(base_exc_t::EMPTY_USER, "Empty ERROR term outside a default block.");
         } else {
-            rfail(base_exc_t::GENERIC, "%s", arg(0)->as_str().c_str());
+            rfail(base_exc_t::GENERIC, "%s", arg(env, 0)->as_str().c_str());
         }
         unreachable();
     }
@@ -24,15 +25,15 @@ private:
 
 class default_term_t : public op_term_t {
 public:
-    default_term_t(env_t *env, const protob_t<const Term> &term)
+    default_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<const datum_t> func_arg;
         scoped_ptr_t<exc_t> err;
         counted_t<val_t> v;
         try {
-            v = arg(0);
+            v = arg(env, 0);
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 func_arg = v->as_datum();
                 if (func_arg->get_type() != datum_t::R_NULL) {
@@ -60,9 +61,9 @@ private:
         r_sanity_check(func_arg->get_type() == datum_t::R_NULL
                        || func_arg->get_type() == datum_t::R_STR);
         try {
-            counted_t<val_t> def = arg(1);
+            counted_t<val_t> def = arg(env, 1);
             if (def->get_type().is_convertible(val_t::type_t::FUNC)) {
-                return def->as_func()->call(func_arg);
+                return def->as_func()->call(env->env, func_arg);
             } else {
                 return def;
             }
@@ -82,10 +83,10 @@ private:
     virtual const char *name() const { return "error"; }
 };
 
-counted_t<term_t> make_error_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_error_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<error_term_t>(env, term);
 }
-counted_t<term_t> make_default_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_default_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<default_term_t>(env, term);
 }
 

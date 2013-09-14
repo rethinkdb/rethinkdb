@@ -37,4 +37,4 @@ private:
     std::vector<char> decompressed_data;
 };
 
-#endif
+#endif  // RDB_PROTOCOL_BLOB_WRAPPER_HPP_

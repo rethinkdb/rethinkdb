@@ -27,13 +27,11 @@ TEST(WriteMessageTest, Variant) {
     std::string s;
     dump_to_string(&msg, &s);
 
-    std::vector<char> u(s.begin(), s.end());
-
-    ASSERT_EQ(2, u[0]);
-    ASSERT_EQ(13u, *reinterpret_cast<uint64_t *>(u.data() + 1));
-    ASSERT_EQ('H', u[9]);
-    ASSERT_EQ('!', u[21]);
-    ASSERT_EQ(22u, u.size());
+    ASSERT_EQ(2, s[0]);
+    ASSERT_EQ(13, s[1]);  // The varint-encoded string length.
+    ASSERT_EQ('H', s[2]);
+    ASSERT_EQ('!', s[14]);
+    ASSERT_EQ(15u, s.size());
 }
 
 

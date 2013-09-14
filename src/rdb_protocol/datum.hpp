@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_DATUM_HPP_
 #define RDB_PROTOCOL_DATUM_HPP_
 
@@ -120,7 +121,7 @@ public:
     cJSON *as_json_raw() const;
     scoped_cJSON_t as_json() const;
     counted_t<datum_stream_t> as_datum_stream(
-        env_t *env, const protob_t<const Backtrace> &backtrace) const;
+            const protob_t<const Backtrace> &backtrace) const;
 
     // These behave as expected and defined in RQL.  Theoretically, two data of
     // the same type should compare the same way their printed representations
@@ -210,6 +211,9 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 
 write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
+
+// Converts a double to int, but throws if it's out of range.
+int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
 // basically a `scoped_ptr_t` that can access private methods on `datum_t` and
