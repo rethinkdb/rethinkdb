@@ -519,16 +519,18 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
     }
 }
 
+struct datum_rcheckable_t : public rcheckable_t {
+    datum_rcheckable_t(const datum_t *_datum) : datum(_datum) { }
+    void runtime_fail(base_exc_t::type_t type,
+                      const char *test, const char *file, int line,
+                      std::string msg) const {
+        datum->runtime_fail(type, test, file, line, msg);
+    }
+    const datum_t *datum;
+};
 
 int64_t datum_t::as_int() const {
-    struct : public rcheckable_t {
-        void runtime_fail(base_exc_t::type_t t,
-                          const char *test, const char *file, int line,
-                          std::string msg) const {
-            ql::runtime_fail(t, test, file, line, msg);
-        }
-    } target;
-
+    datum_rcheckable_t target(this);
     return checked_convert_to_int(&target, as_num());
 }
 
@@ -817,6 +819,12 @@ bool datum_t::operator<  (const datum_t &rhs) const { return cmp(rhs) == -1; }
 bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
 bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
+
+void datum_t::runtime_fail(base_exc_t::type_t exc_type,
+                           const char *test, const char *file, int line,
+                           std::string msg) const {
+    ql::runtime_fail(exc_type, test, file, line, msg);
+}
 
 datum_t::datum_t() : type(UNINITIALIZED) { }
 

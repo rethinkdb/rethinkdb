@@ -138,9 +138,7 @@ public:
 
     void runtime_fail(base_exc_t::type_t exc_type,
                       const char *test, const char *file, int line,
-                      std::string msg) const NORETURN {
-        ql::runtime_fail(exc_type, test, file, line, msg);
-    }
+                      std::string msg) const NORETURN;
 
     static size_t max_trunc_size();
     /* Note key_is_truncated returns true if the key is of max size. This gives
