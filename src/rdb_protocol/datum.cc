@@ -773,7 +773,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         for (i = 0; i < arr.size(); ++i) {
             if (i >= rhs_arr.size()) return 1;
             int cmpval = arr[i]->cmp(*rhs_arr[i]);
-            if (cmpval) return cmpval;
+            if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs.as_array().size());
         return i == rhs.as_array().size() ? 0 : -1;
@@ -792,11 +792,11 @@ int datum_t::cmp(const datum_t &rhs) const {
             auto it2 = rhs_obj.begin();
             while (it != obj.end() && it2 != rhs_obj.end()) {
                 int key_cmpval = it->first.compare(it2->first);
-                if (key_cmpval) {
+                if (key_cmpval != 0) {
                     return key_cmpval;
                 }
                 int val_cmpval = it->second->cmp(*it2->second);
-                if (val_cmpval) {
+                if (val_cmpval != 0) {
                     return val_cmpval;
                 }
                 ++it;
