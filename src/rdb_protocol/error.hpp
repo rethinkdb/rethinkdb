@@ -36,14 +36,13 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.
-void runtime_check(base_exc_t::type_t type,
-                   const char *test, const char *file, int line,
-                   bool pred, std::string msg, const Backtrace *bt_src,
-                   int dummy_frames = 0);
-void runtime_check(base_exc_t::type_t type,
-                   const char *test, const char *file, int line,
-                   bool pred, std::string msg);
-void runtime_sanity_check(bool test);
+void runtime_fail(base_exc_t::type_t type,
+                  const char *test, const char *file, int line,
+                  std::string msg, const Backtrace *bt_src) NORETURN;
+void runtime_fail(base_exc_t::type_t type,
+                  const char *test, const char *file, int line,
+                  std::string msg) NORETURN;
+void runtime_sanity_check_failed() NORETURN;
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a
@@ -51,9 +50,9 @@ void runtime_sanity_check(bool test);
 class rcheckable_t {
 public:
     virtual ~rcheckable_t() { }
-    virtual void runtime_check(base_exc_t::type_t type,
-                               const char *test, const char *file, int line,
-                               bool pred, std::string msg) const = 0;
+    virtual void runtime_fail(base_exc_t::type_t type,
+                              const char *test, const char *file, int line,
+                              std::string msg) const = 0;
 };
 
 protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t);
@@ -61,26 +60,24 @@ protob_t<const Backtrace> get_backtrace(const protob_t<const Term> &t);
 // This is a particular type of rcheckable.  A `pb_rcheckable_t` corresponds to
 // a part of the protobuf source tree, and can be used to produce a useful
 // backtrace.  (By contrast, a normal rcheckable might produce an error with no
-// backtrace, e.g. if we some constratint that doesn't involve the user's code
+// backtrace, e.g. if we some constraint that doesn't involve the user's code
 // is violated.)
 class pb_rcheckable_t : public rcheckable_t {
 public:
-    explicit pb_rcheckable_t(const protob_t<const Term> &t)
-        : bt_src(get_backtrace(t)) { }
-
-    explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
-        : bt_src(_bt_src) { }
-
-    virtual void runtime_check(base_exc_t::type_t type,
-                               const char *test, const char *file, int line,
-                               bool pred, std::string msg) const {
-        ql::runtime_check(type, test, file, line, pred, msg, bt_src.get());
+    virtual void runtime_fail(base_exc_t::type_t type,
+                              const char *test, const char *file, int line,
+                              std::string msg) const {
+        ql::runtime_fail(type, test, file, line, msg, bt_src.get());
     }
 
     // Propagate the associated backtrace through the rewrite term.
     void propagate(Term *t) const;
 
     protob_t<const Backtrace> backtrace() const { return bt_src; }
+
+protected:
+    explicit pb_rcheckable_t(const protob_t<const Backtrace> &_bt_src)
+        : bt_src(_bt_src) { }
 
 private:
     protob_t<const Backtrace> bt_src;
@@ -90,26 +87,26 @@ private:
 #define rcheck_target(target, type, pred, msg) do {                  \
         (pred)                                                       \
         ? (void)0                                                    \
-        : (target)->runtime_check(type, stringify(pred),             \
-                                  __FILE__, __LINE__, false, (msg)); \
+        : (target)->runtime_fail(type, stringify(pred),              \
+                                 __FILE__, __LINE__, (msg));         \
     } while (0)
 #define rcheck_typed_target(target, pred, msg) do {                     \
         (pred)                                                          \
         ? (void)0                                                       \
-        : (target)->runtime_check(exc_type(target), stringify(pred),    \
-                                  __FILE__, __LINE__, false, (msg));    \
+        : (target)->runtime_fail(exc_type(target), stringify(pred),     \
+                                 __FILE__, __LINE__, (msg));            \
     } while (0)
 #define rcheck_src(src, type, pred, msg) do {                         \
         (pred)                                                        \
         ? (void)0                                                     \
-        : ql::runtime_check(type, stringify(pred),                    \
-                            __FILE__, __LINE__, false, (msg), (src)); \
+        : ql::runtime_fail(type, stringify(pred),                     \
+                           __FILE__, __LINE__, (msg), (src));         \
     } while (0)
 #define rcheck_datum(pred, type, msg) do {                            \
         (pred)                                                        \
         ? (void)0                                                     \
-        : ql::runtime_check(type, stringify(pred),                    \
-                            __FILE__, __LINE__, false, (msg)); \
+        : ql::runtime_fail(type, stringify(pred),                     \
+                           __FILE__, __LINE__, (msg));                \
     } while (0)
 
 #define rcheck(pred, type, msg) rcheck_target(this, type, pred, msg)
@@ -128,7 +125,7 @@ private:
     } while (0)
 #define rfail_typed_target(target, args...) do {                  \
         rcheck_typed_target(target, false, strprintf(args));      \
-        unreachable();                                                  \
+        unreachable();                                            \
     } while (0)
 #define rfail(type, args...) do {                                       \
         rcheck(false, type, strprintf(args));                           \
@@ -157,7 +154,10 @@ base_exc_t::type_t exc_type(const counted_t<val_t> &v);
 #ifndef NDEBUG
 #define r_sanity_check(test) guarantee(test)
 #else
-#define r_sanity_check(test) do { ::ql::runtime_sanity_check(test); } while (0)
+#define r_sanity_check(test) do {               \
+    if (!(test)) {                              \
+        ::ql::runtime_sanity_check_failed();    \
+    } while (0)
 #endif // NDEBUG
 
 // A backtrace we return to the user.  Pretty self-explanatory.
@@ -166,7 +166,9 @@ public:
     explicit backtrace_t(const Backtrace *bt) {
         if (!bt) return;
         for (int i = 0; i < bt->frames_size(); ++i) {
-            push_back(frame_t(bt->frames(i)));
+            frame_t f(bt->frames(i));
+            r_sanity_check(f.is_valid());
+            frames.push_back(f);
         }
     }
     backtrace_t() { }
@@ -225,13 +227,8 @@ public:
             }
         }
     }
-private:
-    // Push a frame onto the back of the backtrace.
-    void push_back(frame_t f) {
-        r_sanity_check(f.is_valid());
-        frames.push_back(f);
-    }
 
+private:
     std::list<frame_t> frames;
 };
 
@@ -243,12 +240,11 @@ public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg_("UNINITIALIZED") { }
     exc_t(base_exc_t::type_t type, const std::string &exc_msg,
-          const Backtrace *bt_src, int dummy_frames = 0)
+          const Backtrace *bt_src)
         : base_exc_t(type), exc_msg_(exc_msg) {
         if (bt_src != NULL) {
             backtrace_ = backtrace_t(bt_src);
         }
-        backtrace_.delete_frames(dummy_frames);
     }
     exc_t(const base_exc_t &e, const Backtrace *bt_src, int dummy_frames = 0)
         : base_exc_t(e.get_type()), exc_msg_(e.what()) {
@@ -258,10 +254,8 @@ public:
         backtrace_.delete_frames(dummy_frames);
     }
     exc_t(base_exc_t::type_t type, const std::string &exc_msg,
-          const backtrace_t &backtrace, int dummy_frames = 0)
-        : base_exc_t(type), backtrace_(backtrace), exc_msg_(exc_msg) {
-        backtrace_.delete_frames(dummy_frames);
-    }
+          const backtrace_t &backtrace)
+        : base_exc_t(type), backtrace_(backtrace), exc_msg_(exc_msg) { }
     virtual ~exc_t() throw () { }
 
     const char *what() const throw () { return exc_msg_.c_str(); }

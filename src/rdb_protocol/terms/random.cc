@@ -55,10 +55,10 @@ public:
             new array_datum_stream_t(make_counted<const datum_t>(std::move(result)),
                                      backtrace()));
 
-        return t.has() ? new_val(new_ds, t) : new_val(env, new_ds);
+        return t.has() ? new_val(new_ds, t) : new_val(env->env, new_ds);
     }
 
-    bool is_deterministic_impl() const {
+    bool is_deterministic() const {
         return false;
     }
 

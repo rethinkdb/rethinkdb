@@ -18,7 +18,7 @@ public:
         case Term_TermType_SUB: namestr = "SUB"; op = &arith_term_t::sub; break;
         case Term_TermType_MUL: namestr = "MUL"; op = &arith_term_t::mul; break;
         case Term_TermType_DIV: namestr = "DIV"; op = &arith_term_t::div; break;
-        default:unreachable();
+        default: unreachable();
         }
         guarantee(namestr && op);
     }

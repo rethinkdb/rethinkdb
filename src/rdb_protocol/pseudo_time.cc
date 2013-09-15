@@ -629,7 +629,7 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
             // We use the ISO 8601 convention which counts from 1 and starts with Monday.
             int d = ptime.date().day_of_week();
             return d == 0 ? 7 : d;
-        } unreachable();
+        } break;
         case DAY_OF_YEAR: return ptime.date().day_of_year();
         case HOURS: return ptime.time_of_day().hours();
         case MINUTES: return ptime.time_of_day().minutes();
@@ -637,10 +637,9 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
             double frac = modf(time->get(epoch_time_key)->as_num(), &frac);
             frac = round(frac * 1000) / 1000;
             return ptime.time_of_day().seconds() + frac;
-        } unreachable();
+        } break;
         default: unreachable();
         }
-        unreachable();
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 
