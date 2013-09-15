@@ -46,7 +46,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     if (create) {
         vector_stream_t key;
         write_message_t msg;
-        typename protocol_t::region_t kr = protocol_t::region_t::universe();   // `operator<<` needs a non-const reference  // TODO <- what
+        typename protocol_t::region_t kr = protocol_t::region_t::universe();
         msg << kr;
         int res = send_write_message(&key, &msg);
         guarantee(!res);
