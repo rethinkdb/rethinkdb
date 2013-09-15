@@ -189,7 +189,6 @@ private:
                         rfail(base_exc_t::GENERIC, "Could not coerce `%s` to NUMBER.",
                               s.c_str());
                     }
-                    unreachable();
                 }
             }
             // TODO: Object to sequence?
@@ -205,7 +204,6 @@ private:
                 rfail(base_exc_t::GENERIC,
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
-                unreachable();
             }
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {

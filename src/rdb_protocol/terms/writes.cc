@@ -14,8 +14,7 @@ namespace ql {
 // operations.
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
-                                     counted_t<const datum_t> r,
-                                     const rcheckable_t *caller) {
+                                     counted_t<const datum_t> r) {
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
@@ -30,9 +29,9 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     }
 
     // Merging a string is left-preferential, which is just a no-op.
-    rcheck_target(
-        caller, base_exc_t::GENERIC,
+    rcheck_datum(
         l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        base_exc_t::GENERIC,
         strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
                   l->trunc_print().c_str(), l->get_type_name().c_str(),
                   r->trunc_print().c_str(), r->get_type_name().c_str()));
@@ -42,8 +41,7 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
 // Use this merge if it should theoretically never be called.
 counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
                                     UNUSED counted_t<const datum_t> l,
-                                    UNUSED counted_t<const datum_t> r,
-                                    UNUSED const rcheckable_t *caller) {
+                                    UNUSED counted_t<const datum_t> r) {
     r_sanity_check(false);
     return counted_t<const datum_t>();
 }
@@ -69,7 +67,6 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                  "Durability option `%s` unrecognized "
                  "(options are \"hard\" and \"soft\").",
                  str.c_str());
-    unreachable();
 }
 
 

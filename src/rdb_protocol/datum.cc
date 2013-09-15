@@ -492,21 +492,46 @@ double datum_t::as_num() const {
 
 static const double max_dbl_int = 0x1LL << DBL_MANT_DIG;
 static const double min_dbl_int = max_dbl_int * -1;
-int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
-    static_assert(DBL_MANT_DIG == 53, "ERROR: Doubles are wrong size.");
 
-    rcheck_target(target, base_exc_t::GENERIC, d <= max_dbl_int,
-                  strprintf("Number not an integer (>2^53): " DBLPRI, d));
-    rcheck_target(target, base_exc_t::GENERIC, d >= min_dbl_int,
-                  strprintf("Number not an integer (<-2^53): " DBLPRI, d));
-    int64_t i = d;
-    rcheck_target(target, base_exc_t::GENERIC, static_cast<double>(i) == d,
-                  strprintf("Number not an integer: " DBLPRI, d));
-    return i;
+bool number_as_integer(double d, int64_t *i_out) {
+    static_assert(DBL_MANT_DIG == 53, "Doubles are wrong size.");
+
+    if (min_dbl_int <= d && d <= max_dbl_int) {
+        int64_t i = d;
+        if (static_cast<double>(i) == d) {
+            *i_out = i;
+            return true;
+        }
+    }
+    return false;
 }
 
+int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
+    int64_t i;
+    if (number_as_integer(d, &i)) {
+        return i;
+    } else {
+        rfail_target(target, base_exc_t::GENERIC,
+                     "Number not an integer%s: " DBLPRI,
+                     d < min_dbl_int ? " (<-2^53)" :
+                         d > max_dbl_int ? " (>2^53)" : "",
+                     d);
+    }
+}
+
+struct datum_rcheckable_t : public rcheckable_t {
+    datum_rcheckable_t(const datum_t *_datum) : datum(_datum) { }
+    void runtime_fail(base_exc_t::type_t type,
+                      const char *test, const char *file, int line,
+                      std::string msg) const {
+        datum->runtime_fail(type, test, file, line, msg);
+    }
+    const datum_t *datum;
+};
+
 int64_t datum_t::as_int() const {
-    return checked_convert_to_int(this, as_num());
+    datum_rcheckable_t target(this);
+    return checked_convert_to_int(&target, as_num());
 }
 
 const std::string &datum_t::as_str() const {
@@ -702,12 +727,13 @@ counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs) const {
     return d.to_counted();
 }
 
-counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs, merge_res_f f) const {
+counted_t<const datum_t> datum_t::merge(counted_t<const datum_t> rhs,
+                                        merge_resoluter_t f) const {
     datum_ptr_t d(as_object());
     const std::map<std::string, counted_t<const datum_t> > &rhs_obj = rhs->as_object();
     for (auto it = rhs_obj.begin(); it != rhs_obj.end(); ++it) {
         if (counted_t<const datum_t> left = get(it->first, NOTHROW)) {
-            bool b = d.add(it->first, f(it->first, left, it->second, this), CLOBBER);
+            bool b = d.add(it->first, f(it->first, left, it->second), CLOBBER);
             r_sanity_check(b);
         } else {
             bool b = d.add(it->first, it->second);
@@ -723,6 +749,8 @@ int derived_cmp(T a, T b) {
     return a < b ? -1 : 1;
 }
 
+
+
 int datum_t::cmp(const datum_t &rhs) const {
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
@@ -737,7 +765,7 @@ int datum_t::cmp(const datum_t &rhs) const {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
-    case R_STR: return derived_cmp(as_str(), rhs.as_str());
+    case R_STR: return as_str().compare(rhs.as_str());
     case R_ARRAY: {
         const std::vector<counted_t<const datum_t> >
             &arr = as_array(),
@@ -746,7 +774,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         for (i = 0; i < arr.size(); ++i) {
             if (i >= rhs_arr.size()) return 1;
             int cmpval = arr[i]->cmp(*rhs_arr[i]);
-            if (cmpval) return cmpval;
+            if (cmpval != 0) return cmpval;
         }
         guarantee(i <= rhs.as_array().size());
         return i == rhs.as_array().size() ? 0 : -1;
@@ -764,12 +792,12 @@ int datum_t::cmp(const datum_t &rhs) const {
             auto it = obj.begin();
             auto it2 = rhs_obj.begin();
             while (it != obj.end() && it2 != rhs_obj.end()) {
-                int key_cmpval = derived_cmp(it->first, it2->first);
-                if (key_cmpval) {
+                int key_cmpval = it->first.compare(it2->first);
+                if (key_cmpval != 0) {
                     return key_cmpval;
                 }
                 int val_cmpval = it->second->cmp(*it2->second);
-                if (val_cmpval) {
+                if (val_cmpval != 0) {
                     return val_cmpval;
                 }
                 ++it;
@@ -791,6 +819,12 @@ bool datum_t::operator<  (const datum_t &rhs) const { return cmp(rhs) == -1; }
 bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
 bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
 bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
+
+void datum_t::runtime_fail(base_exc_t::type_t exc_type,
+                           const char *test, const char *file, int line,
+                           std::string msg) const {
+    ql::runtime_fail(exc_type, test, file, line, msg);
+}
 
 datum_t::datum_t() : type(UNINITIALIZED) { }
 
@@ -895,6 +929,20 @@ void datum_t::write_to_protobuf(Datum *d) const {
     }
 }
 
+enum class datum_serialized_type_t {
+    R_ARRAY = 1,
+    R_BOOL = 2,
+    R_NULL = 3,
+    DOUBLE = 4,
+    R_OBJECT = 5,
+    R_STR = 6,
+    INT_NEGATIVE = 7,
+    INT_POSITIVE = 8,
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
+                                      datum_serialized_type_t::R_ARRAY,
+                                      datum_serialized_type_t::INT_POSITIVE);
 
 
 // This must be kept in sync with operator<<(write_message_t &, const counted_t<const
@@ -909,8 +957,15 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
         return typesize + serialized_size_t<bool>::value;
     case datum_t::R_NULL:
         return typesize;
-    case datum_t::R_NUM:
-        return typesize + serialized_size_t<double>::value;
+    case datum_t::R_NUM: {
+        double d = datum->as_num();
+        int64_t i;
+        if (number_as_integer(d, &i)) {
+            return typesize + varint_uint64_serialized_size(abs(i));
+        } else {
+            return typesize + serialized_size_t<double>::value;
+        }
+    } break;
     case datum_t::R_OBJECT:
         return typesize + serialized_size(datum->as_object());
     case datum_t::R_STR:
@@ -923,33 +978,44 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
 
 write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
-    int8_t type = datum->get_type();
-    switch (type) {
+    switch (datum->get_type()) {
     case datum_t::R_ARRAY: {
-        wm << type;
+        wm << datum_serialized_type_t::R_ARRAY;
         const std::vector<counted_t<const datum_t> > &value = datum->as_array();
         wm << value;
     } break;
     case datum_t::R_BOOL: {
-        wm << type;
+        wm << datum_serialized_type_t::R_BOOL;
         bool value = datum->as_bool();
         wm << value;
     } break;
     case datum_t::R_NULL: {
-        wm << type;
+        wm << datum_serialized_type_t::R_NULL;
     } break;
     case datum_t::R_NUM: {
-        wm << type;
         double value = datum->as_num();
-        wm << value;
+        int64_t i;
+        if (number_as_integer(value, &i)) {
+            // We serialize the signed-zero double, -0.0, with INT_NEGATIVE.
+            if (std::signbit(value)) {
+                wm << datum_serialized_type_t::INT_NEGATIVE;
+                serialize_varint_uint64(&wm, -i);
+            } else {
+                wm << datum_serialized_type_t::INT_POSITIVE;
+                serialize_varint_uint64(&wm, i);
+            }
+        } else {
+            wm << datum_serialized_type_t::DOUBLE;
+            wm << value;
+        }
     } break;
     case datum_t::R_OBJECT: {
-        wm << type;
+        wm << datum_serialized_type_t::R_OBJECT;
         const std::map<std::string, counted_t<const datum_t> > &value = datum->as_object();
         wm << value;
     } break;
     case datum_t::R_STR: {
-        wm << type;
+        wm << datum_serialized_type_t::R_STR;
         const std::string &value = datum->as_str();
         wm << value;
     } break;
@@ -961,14 +1027,14 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
 }
 
 archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) {
-    int8_t type;
+    datum_serialized_type_t type;
     archive_result_t res = deserialize(s, &type);
     if (res) {
         return res;
     }
 
     switch (type) {
-    case datum_t::R_ARRAY: {
+    case datum_serialized_type_t::R_ARRAY: {
         std::vector<counted_t<const datum_t> > value;
         res = deserialize(s, &value);
         if (res) {
@@ -980,7 +1046,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
             return ARCHIVE_RANGE_ERROR;
         }
     } break;
-    case datum_t::R_BOOL: {
+    case datum_serialized_type_t::R_BOOL: {
         bool value;
         res = deserialize(s, &value);
         if (res) {
@@ -992,10 +1058,10 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
             return ARCHIVE_RANGE_ERROR;
         }
     } break;
-    case datum_t::R_NULL: {
+    case datum_serialized_type_t::R_NULL: {
         datum->reset(new datum_t(datum_t::R_NULL));
     } break;
-    case datum_t::R_NUM: {
+    case datum_serialized_type_t::DOUBLE: {
         double value;
         res = deserialize(s, &value);
         if (res) {
@@ -1007,7 +1073,31 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
             return ARCHIVE_RANGE_ERROR;
         }
     } break;
-    case datum_t::R_OBJECT: {
+    case datum_serialized_type_t::INT_NEGATIVE:  // fall through
+    case datum_serialized_type_t::INT_POSITIVE: {
+        uint64_t unsigned_value;
+        res = deserialize_varint_uint64(s, &unsigned_value);
+        if (res) {
+            return res;
+        }
+        if (unsigned_value > max_dbl_int) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+        const double d = unsigned_value;
+        double value;
+        if (type == datum_serialized_type_t::INT_NEGATIVE) {
+            // This might deserialize the signed-zero double, -0.0.
+            value = -d;
+        } else {
+            value = d;
+        }
+        try {
+            datum->reset(new datum_t(value));
+        } catch (const base_exc_t &) {
+            return ARCHIVE_RANGE_ERROR;
+        }
+    } break;
+    case datum_serialized_type_t::R_OBJECT: {
         std::map<std::string, counted_t<const datum_t> > value;
         res = deserialize(s, &value);
         if (res) {
@@ -1019,7 +1109,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
             return ARCHIVE_RANGE_ERROR;
         }
     } break;
-    case datum_t::R_STR: {
+    case datum_serialized_type_t::R_STR: {
         std::string value;
         res = deserialize(s, &value);
         if (res) {
@@ -1031,7 +1121,6 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
             return ARCHIVE_RANGE_ERROR;
         }
     } break;
-    case datum_t::UNINITIALIZED:  // fall through
     default:
         return ARCHIVE_RANGE_ERROR;
     }

@@ -123,7 +123,7 @@ void op_term_t::accumulate_captures(var_captures_t *captures) const {
 }
 
 
-bool op_term_t::is_deterministic_impl() const {
+bool op_term_t::is_deterministic() const {
     for (size_t i = 0; i < args.size(); ++i) {
         if (!args[i]->is_deterministic()) {
             return false;

@@ -44,8 +44,7 @@ enum throw_bool_t { NOTHROW = 0, THROW = 1};
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 
 // A `datum_t` is basically a JSON value, although we may extend it later.
-// TODO: When we optimize for memory, this needs to stop inheriting from `rcheckable_t`
-class datum_t : public slow_atomic_countable_t<datum_t>, public rcheckable_t {
+class datum_t : public slow_atomic_countable_t<datum_t> {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
@@ -112,11 +111,12 @@ public:
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
-    typedef counted_t<const datum_t> (*merge_res_f)(const std::string &key,
-                                                    counted_t<const datum_t> l,
-                                                    counted_t<const datum_t> r,
-                                                    const rcheckable_t *caller);
-    counted_t<const datum_t> merge(counted_t<const datum_t> rhs, merge_res_f f) const;
+    // RSI: Rename this typedef.
+    typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
+                                                          counted_t<const datum_t> l,
+                                                          counted_t<const datum_t> r);
+    counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
+                                   merge_resoluter_t f) const;
 
     cJSON *as_json_raw() const;
     scoped_cJSON_t as_json() const;
@@ -136,11 +136,9 @@ public:
     bool operator>(const datum_t &rhs) const;
     bool operator>=(const datum_t &rhs) const;
 
-    virtual void runtime_check(base_exc_t::type_t exc_type,
-                               const char *test, const char *file, int line,
-                               bool pred, std::string msg) const {
-        ql::runtime_check(exc_type, test, file, line, pred, msg);
-    }
+    void runtime_fail(base_exc_t::type_t exc_type,
+                      const char *test, const char *file, int line,
+                      std::string msg) const NORETURN;
 
     static size_t max_trunc_size();
     /* Note key_is_truncated returns true if the key is of max size. This gives

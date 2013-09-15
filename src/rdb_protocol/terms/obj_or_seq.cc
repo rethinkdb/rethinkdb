@@ -93,21 +93,19 @@ private:
 
             switch (poly_type) {
             case MAP:
-                return new_val(env, v0->as_seq(env->env)->map(func));
+                return new_val(env->env, v0->as_seq(env->env)->map(func));
             case FILTER:
-                return new_val(env,
+                return new_val(env->env,
                                v0->as_seq(env->env)->filter(func, counted_t<func_t>()));
             case SKIP_MAP:
-                return new_val(env, v0->as_seq(env->env)->concatmap(func));
+                return new_val(env->env, v0->as_seq(env->env)->concatmap(func));
             default: unreachable();
             }
-            unreachable();
         }
 
         rfail_typed_target(
             v0, "Cannot perform %s on a non-object non-sequence `%s`.",
             name(), v0->trunc_print().c_str());
-        unreachable();
     }
 
     poly_type_t poly_type;
