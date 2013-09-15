@@ -14,21 +14,7 @@ void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block
                        const_cast<char *>(data->sindex_blob),
                        btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
-    buffer_group_t group;
-    blob_acq_t acq;
-    sindex_blob.expose_all(txn, rwi_read, &group, &acq);
-
-    int64_t group_size = group.get_size();
-    std::vector<char> sindex(group_size);
-
-    buffer_group_t group_cpy;
-    group_cpy.add_buffer(group_size, sindex.data());
-
-    buffer_group_copy_data(&group_cpy, const_view(&group));
-
-    vector_read_stream_t read_stream(&sindex);
-    int res = deserialize(&read_stream, sindexes_out);
-    guarantee_err(res == 0, "corrupted secondary index.");
+    deserialize_from_blob(txn, &sindex_blob, sindexes_out);
 }
 
 void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, const std::map<std::string, secondary_index_t> &sindexes) {
