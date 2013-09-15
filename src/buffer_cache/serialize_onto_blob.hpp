@@ -3,22 +3,32 @@
 
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/archive.hpp"
-#include "containers/archive/vector_stream.hpp"
+#include "containers/archive/buffer_group_stream.hpp"
 
 inline void write_onto_blob(transaction_t *txn, blob_t *blob, const write_message_t &wm) {
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0);
-
     blob->clear(txn);
-    blob->append_region(txn, stream.vector().size());
-    std::string sered_data(stream.vector().begin(), stream.vector().end());
-    blob->write_from_string(sered_data, txn, 0);
+    blob->append_region(txn, wm.size());
+
+    blob_acq_t acq;
+    buffer_group_t group;
+    blob->expose_all(txn, rwi_write, &group, &acq);
+
+    buffer_group_write_stream_t stream(&group);
+    int res = send_write_message(&stream, &wm);
+    guarantee(res == 0,
+              "Failed to put write_message_t into buffer group.  "
+              "(Was the blob made too small?).");
+    guarantee(stream.entire_stream_filled(),
+              "Blob not filled by write_message_t (Was it made too big?)");
 }
 
 template <class T>
 void serialize_onto_blob(transaction_t *txn, blob_t *blob, const T &value) {
-    // RSI: This is the inefficient implementation.  Make the efficient one.
+    // We still make an unnecessary copy: serializing to a write_message_t instead of
+    // directly onto the stream.  (However, don't be so sure it would be more efficient
+    // to serialize onto an abstract stream type -- you've got a whole bunch of virtual
+    // function calls that way.  But we do _deserialize_ off an abstract stream type
+    // already, so what's the big deal?)
     write_message_t wm;
     wm << value;
     write_onto_blob(txn, blob, wm);
@@ -26,24 +36,15 @@ void serialize_onto_blob(transaction_t *txn, blob_t *blob, const T &value) {
 
 template <class T>
 void deserialize_from_blob(transaction_t *txn, blob_t *blob, T *value_out) {
-    // RSI: This is the inefficient implementation.  Make the efficient one.
-
     buffer_group_t group;
     blob_acq_t acq;
     blob->expose_all(txn, rwi_read, &group, &acq);
 
-    const int64_t group_size(group.get_size());
-    std::vector<char> vec(group_size);
-
-    buffer_group_t group_cpy;
-    group_cpy.add_buffer(group_size, vec.data());
-    buffer_group_copy_data(&group_cpy, const_view(&group));
-
-    vector_read_stream_t read_stream(&vec);
-    archive_result_t res = deserialize(&read_stream, value_out);
-    guarantee(res == 0, "Corrupted value in storage.");
-
-    guarantee(read_stream.entire_stream_consumed());
+    buffer_group_read_stream_t stream(const_view(&group));
+    archive_result_t res = deserialize(&stream, value_out);
+    guarantee(res == 0, "Corrupted value in storage (couldn't deserialize).");
+    guarantee(stream.entire_stream_consumed(),
+              "Corrupted value in storage (deserialization terminated early).");
 }
 
 

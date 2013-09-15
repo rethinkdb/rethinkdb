@@ -29,6 +29,10 @@ int64_t buffer_group_read_stream_t::read(void *p, int64_t n) {
     return original_n - n;
 }
 
+bool buffer_group_read_stream_t::entire_stream_consumed() const {
+    return bufnum_ == group_->num_buffers();
+}
+
 buffer_group_write_stream_t::buffer_group_write_stream_t(const buffer_group_t *group)
     : group_(group), bufnum_(0), bufpos_(0) { }
 
@@ -55,5 +59,6 @@ int64_t buffer_group_write_stream_t::write(const void *p, int64_t n) {
     return n == 0 ? original_n : -1;
 }
 
-
-
+bool buffer_group_write_stream_t::entire_stream_filled() const {
+    return bufnum_ == group_->num_buffers();
+}

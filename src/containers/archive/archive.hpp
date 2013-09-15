@@ -97,6 +97,8 @@ public:
 
     void append(const void *p, int64_t n);
 
+    size_t size() const;
+
     intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
 
     template <class T>

@@ -54,6 +54,14 @@ void write_message_t::append(const void *p, int64_t n) {
     }
 }
 
+size_t write_message_t::size() const {
+    size_t ret = 0;
+    for (write_buffer_t *h = buffers_.head(); h != NULL; h = buffers_.next(h)) {
+        ret += h->size;
+    }
+    return ret;
+}
+
 int send_write_message(write_stream_t *s, const write_message_t *msg) {
     intrusive_list_t<write_buffer_t> *list = const_cast<write_message_t *>(msg)->unsafe_expose_buffers();
     for (write_buffer_t *p = list->head(); p; p = list->next(p)) {

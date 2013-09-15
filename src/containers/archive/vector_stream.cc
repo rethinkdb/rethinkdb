@@ -27,7 +27,3 @@ int64_t vector_read_stream_t::read(void *p, int64_t n) {
 
     return num_to_read;
 }
-
-bool vector_read_stream_t::entire_stream_consumed() const {
-    return pos_ == static_cast<int64_t>(vec_->size());
-}
