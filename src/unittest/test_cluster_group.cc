@@ -6,6 +6,7 @@
 #include <set>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/tokenizer.hpp>
 
 #include "arch/io/io_utils.hpp"

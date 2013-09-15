@@ -1,4 +1,8 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/generic/multi_throttling_client.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "clustering/generic/registrant.hpp"
 #include "containers/archive/boost_types.hpp"

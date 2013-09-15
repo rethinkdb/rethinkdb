@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "clustering/administration/http/json_adapters.hpp"

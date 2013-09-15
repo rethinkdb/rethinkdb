@@ -1,5 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "protocol_api.hpp"
 #include "btree/btree_store.hpp"

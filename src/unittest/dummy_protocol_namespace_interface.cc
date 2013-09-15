@@ -1,5 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/dummy_namespace_interface.hpp"
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "unittest/gtest.hpp"
 #include "mock/dummy_protocol.hpp"
 

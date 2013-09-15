@@ -1,7 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 
-#include "utils.hpp"
+#include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
 #include "concurrency/coro_fifo.hpp"

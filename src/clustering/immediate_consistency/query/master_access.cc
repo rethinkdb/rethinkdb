@@ -1,7 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/query/master_access.hpp"
 
 #include <math.h>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "arch/timing.hpp"
 #include "concurrency/promise.hpp"

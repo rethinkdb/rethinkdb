@@ -1,8 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/persist.hpp"
 
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include "errors.hpp"
+#include <boost/bind.hpp>
 
 #include "arch/runtime/thread_pool.hpp"
 #include "buffer_cache/blob.hpp"

@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #include "arch/timing.hpp"
