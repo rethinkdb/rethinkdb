@@ -240,15 +240,12 @@ void post_construct_and_drain_queue(
 
             while (mod_queue->size() >= previous_size &&
                    mod_queue->size() > 0) {
-                std::vector<char> data_vec;
-                mod_queue->pop(&data_vec);
-                vector_read_stream_t read_stream(&data_vec);
-
                 rdb_sindex_change_t sindex_change;
-                int ser_res = deserialize(&read_stream, &sindex_change);
-                guarantee_err(ser_res == 0, "corruption in disk-backed queue");
-
-                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
+                deserializing_viewer_t<rdb_sindex_change_t> viewer(&sindex_change);
+                mod_queue->pop(&viewer);
+                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes,
+                                                                   queue_txn.get(),
+                                                                   lock.get_drain_signal()),
                                      sindex_change);
             }
 

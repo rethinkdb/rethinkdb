@@ -20,16 +20,20 @@ void serialize_onto_blob(transaction_t *txn, blob_t *blob, const T &value) {
 }
 
 template <class T>
-void deserialize_from_blob(transaction_t *txn, blob_t *blob, T *value_out) {
-    buffer_group_t group;
-    blob_acq_t acq;
-    blob->expose_all(txn, rwi_read, &group, &acq);
-
-    buffer_group_read_stream_t stream(const_view(&group));
+void deserialize_from_group(const const_buffer_group_t *group, T *value_out) {
+    buffer_group_read_stream_t stream(group);
     archive_result_t res = deserialize(&stream, value_out);
     guarantee(res == 0, "Corrupted value in storage (couldn't deserialize).");
     guarantee(stream.entire_stream_consumed(),
               "Corrupted value in storage (deserialization terminated early).");
+};
+
+template <class T>
+void deserialize_from_blob(transaction_t *txn, blob_t *blob, T *value_out) {
+    buffer_group_t group;
+    blob_acq_t acq;
+    blob->expose_all(txn, rwi_read, &group, &acq);
+    deserialize_from_group(const_view(&group), value_out);
 }
 
 
