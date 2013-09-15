@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/blocker_pool.hpp"
 
+#include "config/args.hpp"
+
 #include <string.h>
 
 __thread int thread_is_blocker_pool_thread = 0;
