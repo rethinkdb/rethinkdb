@@ -749,8 +749,6 @@ int derived_cmp(T a, T b) {
     return a < b ? -1 : 1;
 }
 
-
-
 int datum_t::cmp(const datum_t &rhs) const {
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
@@ -765,7 +763,7 @@ int datum_t::cmp(const datum_t &rhs) const {
     case R_NULL: return 0;
     case R_BOOL: return derived_cmp(as_bool(), rhs.as_bool());
     case R_NUM: return derived_cmp(as_num(), rhs.as_num());
-    case R_STR: return as_str().compare(rhs.as_str());
+    case R_STR: return derived_cmp(as_str(), rhs.as_str());
     case R_ARRAY: {
         const std::vector<counted_t<const datum_t> >
             &arr = as_array(),
@@ -774,7 +772,7 @@ int datum_t::cmp(const datum_t &rhs) const {
         for (i = 0; i < arr.size(); ++i) {
             if (i >= rhs_arr.size()) return 1;
             int cmpval = arr[i]->cmp(*rhs_arr[i]);
-            if (cmpval != 0) return cmpval;
+            if (cmpval) return cmpval;
         }
         guarantee(i <= rhs.as_array().size());
         return i == rhs.as_array().size() ? 0 : -1;
@@ -792,12 +790,12 @@ int datum_t::cmp(const datum_t &rhs) const {
             auto it = obj.begin();
             auto it2 = rhs_obj.begin();
             while (it != obj.end() && it2 != rhs_obj.end()) {
-                int key_cmpval = it->first.compare(it2->first);
-                if (key_cmpval != 0) {
+                int key_cmpval = derived_cmp(it->first, it2->first);
+                if (key_cmpval) {
                     return key_cmpval;
                 }
                 int val_cmpval = it->second->cmp(*it2->second);
-                if (val_cmpval != 0) {
+                if (val_cmpval) {
                     return val_cmpval;
                 }
                 ++it;
