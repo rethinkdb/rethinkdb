@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_OP_HPP_
 #define RDB_PROTOCOL_OP_HPP_
 
@@ -14,6 +15,8 @@
 #include "rdb_protocol/val.hpp"
 
 namespace ql {
+
+class func_term_t;
 
 // Specifies the range of normal arguments a function can take.
 class argspec_t {
@@ -50,24 +53,30 @@ private:
 // access their arguments.
 class op_term_t : public term_t {
 public:
-    op_term_t(env_t *env, protob_t<const Term> term,
+    op_term_t(compile_env_t *env, protob_t<const Term> term,
               argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
     virtual ~op_term_t();
 protected:
     size_t num_args() const; // number of arguments
-    counted_t<val_t> arg(size_t i, eval_flags_t flags = NO_FLAGS); // returns argument `i`
+    counted_t<val_t> arg(scope_env_t *env, size_t i, eval_flags_t flags = NO_FLAGS); // returns argument `i`
     // Tries to get an optional argument, returns `counted_t<val_t>()` if not
     // found.
-    counted_t<val_t> optarg(const std::string &key);
-    // This returns an optarg which is:
+    counted_t<val_t> optarg(scope_env_t *env, const std::string &key);
+    // This reeturns an optarg which is:
     // * lazy -- it's wrapped in a function, so you don't get the value until
     //   you call that function.
     // * literal -- it checks whether this operation has the literal key you
     //   provided and doesn't look anywhere else for optargs (in particular, it
     //   doesn't check global optargs).
-    counted_t<func_t> lazy_literal_optarg(const std::string &key);
+    counted_t<func_term_t> lazy_literal_optarg(compile_env_t *env, const std::string &key);
+
+    // Provides a default implementation, passing off a call to arg terms and optarg
+    // terms.  implicit_var_term_t overrides this.  (var_term_t does too, but it's not
+    // a subclass).
+    virtual void accumulate_captures(var_captures_t *captures) const;
+
 private:
-    virtual bool is_deterministic_impl() const;
+    virtual bool is_deterministic() const;
     std::vector<counted_t<term_t> > args;
 
     friend class make_obj_term_t; // needs special access to optargs
@@ -76,34 +85,17 @@ private:
 
 class bounded_op_term_t : public op_term_t {
 public:
-    bounded_op_term_t(env_t *env, protob_t<const Term> term,
-                      argspec_t argspec, optargspec_t optargspec = optargspec_t({}))
-        : op_term_t(env, term, argspec,
-                    optargspec.with({"left_bound", "right_bound"})),
-          left_open_(false), right_open_(true) {
-        left_open_ = open_bool("left_bound", false);
-        right_open_ = open_bool("right_bound", true);
-    }
+    bounded_op_term_t(compile_env_t *env, protob_t<const Term> term,
+                      argspec_t argspec, optargspec_t optargspec = optargspec_t({}));
+
     virtual ~bounded_op_term_t() { }
+
 protected:
-    bool left_open() { return left_open_; }
-    bool right_open() { return right_open_; }
+    bool left_open(scope_env_t *env);
+    bool right_open(scope_env_t *env);
+
 private:
-    bool open_bool(const std::string &key, bool def/*ault*/) {
-        counted_t<val_t> v = optarg(key);
-        if (!v.has()) return def;
-        const std::string &s = v->as_str();
-        if (s == "open") {
-            return true;
-        } else if (s == "closed") {
-            return false;
-        } else {
-            rfail(base_exc_t::GENERIC,
-                  "Expected `open` or `closed` for optarg `%s` (got `%s`).",
-                  key.c_str(), v->trunc_print().c_str());
-        }
-    }
-    bool left_open_, right_open_;
+    bool open_bool(scope_env_t *env, const std::string &key, bool def/*ault*/);
 };
 
 }  // namespace ql

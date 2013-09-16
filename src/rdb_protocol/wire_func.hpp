@@ -2,14 +2,16 @@
 #ifndef RDB_PROTOCOL_WIRE_FUNC_HPP_
 #define RDB_PROTOCOL_WIRE_FUNC_HPP_
 
+#include <functional>
 #include <map>
 #include <string>
-
-#include "errors.hpp"
-#include <boost/optional.hpp>
+#include <vector>
 
 #include "containers/uuid.hpp"
 #include "rdb_protocol/counted_term.hpp"
+#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/sym.hpp"
+#include "rdb_protocol/var_types.hpp"
 #include "rpc/serialize_macros.hpp"
 
 template <class> class counted_t;
@@ -20,50 +22,39 @@ namespace ql {
 class func_t;
 class env_t;
 
-// Used to serialize a function (or gmr) over the wire.
 class wire_func_t {
 public:
     wire_func_t();
-    wire_func_t(env_t *env, counted_t<func_t> _func);
-    wire_func_t(const Term &_source, const std::map<int64_t, Datum> &_scope);
+    explicit wire_func_t(counted_t<func_t> f);
+    ~wire_func_t();
+    wire_func_t(const wire_func_t &copyee);
+    wire_func_t &operator=(const wire_func_t &assignee);
 
-    counted_t<func_t> compile(env_t *env);
+    // Constructs a wire_func_t with a body and arglist and backtrace, but no scope.  I
+    // hope you remembered to propagate the backtrace to body!
+    wire_func_t(protob_t<const Term> body, std::vector<sym_t> arg_names,
+                protob_t<const Backtrace> backtrace);
 
+    counted_t<func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
 
-    const Term &get_term() const {
-        return *source;
-    }
-
-    std::string debug_str() const;
-
-    // They're manually implemented because source is now a protob_t<Term>.
-    void rdb_serialize(write_message_t &msg) const;  // NOLINT(runtime/references)
-    archive_result_t rdb_deserialize(read_stream_t *stream);
+    void rdb_serialize(write_message_t &msg) const;
+    archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:
-    friend class env_t;
-    // source is never null, even when wire_func_t is default-constructed.
-    protob_t<Term> source;
-    boost::optional<Term> default_filter_val;
-    std::map<int64_t, Datum> scope;
-    // This uuid is used for the func cache in `env_t`.
-    uuid_u uuid;
+    counted_t<func_t> func;
 };
-
-void debug_print(printf_buffer_t *buf, const wire_func_t &func);
-
 
 class map_wire_func_t : public wire_func_t {
 public:
     template <class... Args>
     explicit map_wire_func_t(Args... args) : wire_func_t(args...) { }
-};
 
-class filter_wire_func_t : public wire_func_t {
-public:
-    template <class... Args>
-    explicit filter_wire_func_t(Args... args) : wire_func_t(args...) { }
+    // Safely constructs a map wire func, that couldn't possibly capture any surprise
+    // variables.
+    static map_wire_func_t make_safely(pb::dummy_var_t dummy_var,
+                                       const std::function<protob_t<Term>(sym_t argname)> &body_generator,
+                                       protob_t<const Backtrace> backtrace);
 };
 
 class reduce_wire_func_t : public wire_func_t {
@@ -89,24 +80,24 @@ public:
 class gmr_wire_func_t {
 public:
     gmr_wire_func_t() { }
-    gmr_wire_func_t(env_t *env, counted_t<func_t> _group,
+    gmr_wire_func_t(counted_t<func_t> _group,
                     counted_t<func_t> _map,
                     counted_t<func_t> _reduce);
-    counted_t<func_t> compile_group(env_t *env);
-    counted_t<func_t> compile_map(env_t *env);
-    counted_t<func_t> compile_reduce(env_t *env);
+    counted_t<func_t> compile_group() const;
+    counted_t<func_t> compile_map() const;
+    counted_t<func_t> compile_reduce() const;
 
     protob_t<const Backtrace> get_bt() const {
         // If this goes wrong at the toplevel, it goes wrong in reduce.
         return reduce.get_bt();
     }
 
+    RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
+
 private:
     map_wire_func_t group;
     map_wire_func_t map;
     reduce_wire_func_t reduce;
-public:
-    RDB_MAKE_ME_SERIALIZABLE_3(group, map, reduce);
 };
 
 }  // namespace ql

@@ -118,6 +118,7 @@ write_message_t &operator<<(write_message_t& msg, const T &x) {
     return msg;
 }
 
+// Returns 0 upon success, -1 upon failure.
 MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
 
 template <class T>
@@ -184,7 +185,7 @@ struct serialized_size_t;
             typ2 v;                                                     \
             char buf[sizeof(typ2)];                                     \
         } u;                                                            \
-        u.v = x;                                                        \
+        u.v = static_cast<typ2>(x);                                     \
         msg.append(u.buf, sizeof(typ2));                                \
         return msg;                                                     \
     }
