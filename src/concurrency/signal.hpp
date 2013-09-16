@@ -76,7 +76,7 @@ public:
         wait_lazily_ordered();
     }
 
-    void rethread(int new_thread) {
+    void rethread(threadnum_t new_thread) {
         real_home_thread = new_thread;
         publisher_controller.rethread(new_thread);
         lock.rethread(new_thread);

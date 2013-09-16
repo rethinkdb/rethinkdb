@@ -38,8 +38,6 @@
 #include "containers/archive/file_stream.hpp"
 #include "containers/printf_buffer.hpp"
 #include "logger.hpp"
-#include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/ql2_extensions.pb.h"
 #include "thread_local.hpp"
 
 void run_generic_global_startup_behavior() {
@@ -201,7 +199,7 @@ void home_thread_mixin_debug_only_t::assert_thread() const {
 }
 #endif
 
-home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR int specified_home_thread)
+home_thread_mixin_debug_only_t::home_thread_mixin_debug_only_t(DEBUG_VAR threadnum_t specified_home_thread)
 #ifndef NDEBUG
     : real_home_thread(specified_home_thread)
 #endif
@@ -219,7 +217,7 @@ void home_thread_mixin_t::assert_thread() const {
 }
 #endif
 
-home_thread_mixin_t::home_thread_mixin_t(int specified_home_thread)
+home_thread_mixin_t::home_thread_mixin_t(threadnum_t specified_home_thread)
     : real_home_thread(specified_home_thread) {
     assert_good_thread_id(specified_home_thread);
 }
@@ -227,7 +225,7 @@ home_thread_mixin_t::home_thread_mixin_t()
     : real_home_thread(get_thread_id()) { }
 
 
-on_thread_t::on_thread_t(int thread) {
+on_thread_t::on_thread_t(threadnum_t thread) {
     coro_t::move_to_thread(thread);
 }
 on_thread_t::~on_thread_t() {
@@ -299,7 +297,7 @@ void debugf_prefix_buf(printf_buffer_t *buf) {
 
     format_time(t, buf);
 
-    buf->appendf(" Thread %d: ", get_thread_id());
+    buf->appendf(" Thread %" PRIi32 ": ", get_thread_id().threadnum);
 }
 
 void debugf_dump_buf(printf_buffer_t *buf) {
@@ -796,6 +794,3 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 // (the correct case is something like RETHINKDB_VERSION="1.2")
 UNUSED static const char _assert_RETHINKDB_VERSION_nonempty = 1/(!!strlen(RETHINKDB_VERSION));
 
-void pb_print(DEBUG_VAR Term *t) {
-    debugf("%s\n", t->DebugString().c_str());
-}

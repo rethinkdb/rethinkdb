@@ -33,7 +33,8 @@ private:
 };
 
 template<class T>
-cross_thread_watchable_variable_t<T> cross_thread_watchable_from_semilattice(boost::shared_ptr<semilattice_read_view_t<T> > view, int dest_thread) {
+cross_thread_watchable_variable_t<T> cross_thread_watchable_from_semilattice(boost::shared_ptr<semilattice_read_view_t<T> > view,
+                                                                             threadnum_t dest_thread) {
     return cross_thread_watchable_variable_t<T>(new semilattice_watchable_t<T>(view), dest_thread);
 }
 

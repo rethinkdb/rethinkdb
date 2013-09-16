@@ -11,13 +11,13 @@ continue_on_thread() is. */
 template <class callable_t>
 struct thread_doer_t : public thread_message_t, public home_thread_mixin_t {
     const callable_t callable;
-    int thread;
+    threadnum_t thread;
     enum state_t {
         state_go_to_core,
         state_go_home
     } state;
 
-    thread_doer_t(callable_t &&_callable, int _thread)
+    thread_doer_t(callable_t &&_callable, threadnum_t _thread)
         : callable(std::forward<callable_t>(_callable)),
           thread(_thread),
           state(state_go_to_core) {
@@ -66,7 +66,7 @@ from thread_message_t. Call do_on_thread() with an object and a method for that 
 The method will be called on the other thread. */
 
 template <class callable_t>
-void do_on_thread(int thread, callable_t &&callable) {
+void do_on_thread(threadnum_t thread, callable_t &&callable) {
     assert_good_thread_id(thread);
 
     if (thread == get_thread_id()) {
