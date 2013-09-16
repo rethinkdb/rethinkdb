@@ -42,8 +42,8 @@ void debug_print(printf_buffer_t *buf, const var_visibility_t &var_visibility);
 class var_captures_t {
 public:
     var_captures_t() : implicit_is_captured(false) { }
-    var_captures_t(var_captures_t &&) = default;
-    var_captures_t &operator=(var_captures_t &&) = default;
+    var_captures_t(var_captures_t &&);
+    var_captures_t &operator=(var_captures_t &&);
 
     std::set<sym_t> vars_captured;
     bool implicit_is_captured;

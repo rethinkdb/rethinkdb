@@ -33,6 +33,21 @@ void debug_print(printf_buffer_t *buf, const var_visibility_t &var_visibility) {
     buf->appendf("}");
 }
 
+var_captures_t::var_captures_t(var_captures_t &&movee)
+    : vars_captured(std::move(movee.vars_captured)),
+      implicit_is_captured(std::move(movee.implicit_is_captured)) {
+    // Just to leave things in a clean state...
+    movee.implicit_is_captured = false;
+}
+
+var_captures_t &var_captures_t::operator=(var_captures_t &&movee) {
+    var_captures_t tmp(std::move(movee));
+    vars_captured.swap(tmp.vars_captured);
+    implicit_is_captured = tmp.implicit_is_captured;
+    return *this;
+}
+
+
 var_scope_t::var_scope_t() : implicit_depth(0) { }
 
 var_scope_t var_scope_t::with_func_arg_list(const std::vector<sym_t> &arg_names,

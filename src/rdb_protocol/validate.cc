@@ -6,7 +6,7 @@
 
 
 #define check_has(pb, has_field, field) do {                            \
-        decltype((pb)) check_has_tmp = (pb);                            \
+        auto const &check_has_tmp = (pb);                               \
         rcheck_toplevel(                                                \
             check_has_tmp.has_field(),                                  \
             ql::base_exc_t::GENERIC,                                    \
@@ -15,7 +15,7 @@
     } while (0)
 
 #define check_not_has(pb, has_field, field) do {                        \
-        decltype((pb)) check_not_has_tmp = (pb);                        \
+        auto const &check_not_has_tmp = (pb);                           \
         rcheck_toplevel(                                                \
             !check_not_has_tmp.has_field(),                             \
             ql::base_exc_t::GENERIC,                                    \
@@ -25,8 +25,8 @@
     } while (0)
 
 #define check_size(expected_size, pb, field_size, field) do {           \
-        decltype((pb)) check_size_tmp = (pb);                           \
-        int check_size_expected = (expected_size);                      \
+        auto const &check_size_tmp = (pb);                              \
+        const int check_size_expected = (expected);                     \
         rcheck_toplevel(                                                \
             check_size_tmp.field_size() == check_size_expected,         \
             ql::base_exc_t::GENERIC,                                    \
