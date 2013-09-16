@@ -296,7 +296,7 @@ private:
 namespace pseudo {
 class datum_cmp_t {
 public:
-    virtual int operator()(const datum_t& x, const datum_t& y) const = 0;
+    virtual int operator()(const datum_t &x, const datum_t &y) const = 0;
     virtual ~datum_cmp_t() { }
 };
 } // namespace pseudo

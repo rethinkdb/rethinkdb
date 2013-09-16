@@ -750,7 +750,6 @@ int derived_cmp(T a, T b) {
 }
 
 
-
 int datum_t::cmp(const datum_t &rhs) const {
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
@@ -813,12 +812,12 @@ int datum_t::cmp(const datum_t &rhs) const {
     }
 }
 
-bool datum_t::operator== (const datum_t &rhs) const { return cmp(rhs) == 0;  }
-bool datum_t::operator!= (const datum_t &rhs) const { return cmp(rhs) != 0;  }
-bool datum_t::operator<  (const datum_t &rhs) const { return cmp(rhs) == -1; }
-bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
-bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
-bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
+bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
+bool datum_t::operator!=(const datum_t &rhs) const { return cmp(rhs) != 0; }
+bool datum_t::operator<(const datum_t &rhs) const { return cmp(rhs) < 0; }
+bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
+bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
+bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,
