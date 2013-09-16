@@ -210,7 +210,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
-// Converts a double to int, but returns false if it's not an integer orout of range.
+// Converts a double to int, but returns false if it's not an integer or out of range.
 bool number_as_integer(double d, int64_t *i_out);
 
 // Converts a double to int, calling number_as_integer and throwing if it fails.
