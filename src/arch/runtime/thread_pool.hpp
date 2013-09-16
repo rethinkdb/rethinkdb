@@ -80,7 +80,6 @@ private:
     static const int GENERIC_BLOCKER_THREAD_COUNT = 2;
     blocker_pool_t* generic_blocker_pool;
 
-    // RSI: Make this private FFS.
 public:
     pthread_t pthreads[MAX_THREADS];
     linux_thread_t *threads[MAX_THREADS];

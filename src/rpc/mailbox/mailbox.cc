@@ -115,7 +115,6 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, string_read_str
         if (res) { throw fake_archive_exc_t(); }
     }
 
-    // RSI: Does anybody use ANY_THREAD?
     if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
         // TODO: this will just run the callback on the current thread, maybe do some load balancing, instead
         dest_thread = get_thread_id().threadnum;
