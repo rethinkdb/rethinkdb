@@ -33,7 +33,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
 
     for (int i = 0; i < get_num_threads(); ++i) {
         cross_thread_signal_t *s =
-            new cross_thread_signal_t(&main_shutting_down_cond, i);
+            new cross_thread_signal_t(&main_shutting_down_cond, threadnum_t(i));
         shutting_down_conds.push_back(s);
         rassert(s == &shutting_down_conds[i]);
     }
@@ -95,7 +95,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
     // This must be read here because of home threads and stuff
     const vclock_t<auth_key_t> auth_vclock = auth_metadata->get().auth_key;
 
-    int chosen_thread = (next_thread++) % get_num_db_threads();
+    threadnum_t chosen_thread = threadnum_t((next_thread++) % get_num_db_threads());
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
 

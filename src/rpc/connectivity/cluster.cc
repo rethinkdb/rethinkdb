@@ -690,7 +690,7 @@ void connectivity_cluster_t::run_t::handle(
 
     // We could pick a better way to pick a better thread, our choice
     // now is hopefully a performance non-problem.
-    int chosen_thread = rng.randint(get_num_threads());
+    threadnum_t chosen_thread = threadnum_t(rng.randint(get_num_threads()));
 
     cross_thread_signal_t connection_thread_drain_signal(drainer_lock.get_drain_signal(), chosen_thread);
 
