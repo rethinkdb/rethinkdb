@@ -25,6 +25,9 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
+class Term;
+void pb_print(Term *t);
+
 // A thread number as used by the thread pool.
 class threadnum_t {
 public:
