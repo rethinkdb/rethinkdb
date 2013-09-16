@@ -51,7 +51,7 @@ public:
     per_thread_ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                           const semilattice_watchable_t<machines_semilattice_metadata_t> &machines_view,
                           const semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > &namespaces_view,
-                          int dest_thread)
+                          threadnum_t dest_thread)
         : machine_id_translation_table_(machine_id_translation_table, dest_thread),
           machines_view_(clone_ptr_t<watchable_t<machines_semilattice_metadata_t> >(machines_view.clone()), dest_thread),
           namespaces_view_(clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > >(namespaces_view.clone()), dest_thread) { }
@@ -87,12 +87,12 @@ public:
           namespaces_view_(namespaces_view),
           per_thread_info_(get_num_db_threads()) {
         for (size_t i = 0; i < per_thread_info_.size(); ++i) {
-            per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, i));
+            per_thread_info_[i].init(new per_thread_ack_info_t<protocol_t>(machine_id_translation_table_, machines_view_, namespaces_view_, threadnum_t(i)));
         }
     }
 
     per_thread_ack_info_t<protocol_t> *per_thread_ack_info() {
-        return per_thread_info_[get_thread_id()].get();
+        return per_thread_info_[get_thread_id().threadnum].get();
     }
 
 private:

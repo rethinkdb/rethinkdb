@@ -76,8 +76,8 @@ public:
         peer_id_t peer;
 
         /* The thread on `peer` that the mailbox lives on */
-        static const int ANY_THREAD;
-        int thread;
+        static const int32_t ANY_THREAD;
+        int32_t thread;
 
         /* The ID of the mailbox */
         id_t mailbox_id;
@@ -134,13 +134,13 @@ private:
     void unregister_mailbox(raw_mailbox_t::id_t id);
 
     static void write_mailbox_message(write_stream_t *stream,
-                                      int dest_thread,
+                                      threadnum_t dest_thread,
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
 
     void on_message(peer_id_t, string_read_stream_t *stream);
 
-    void mailbox_read_coroutine(int dest_thread,
+    void mailbox_read_coroutine(threadnum_t dest_thread,
                                 raw_mailbox_t::id_t dest_mailbox_id,
                                 string_read_stream_t *stream);
 };

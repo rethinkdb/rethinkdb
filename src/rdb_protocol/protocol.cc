@@ -352,14 +352,14 @@ rdb_protocol_t::context_t::context_t(
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
                                                     clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
                                                         (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
-                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), threadnum_t(thread)));
 
         cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
                                                     clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
                                                         (new semilattice_watchable_t<databases_semilattice_metadata_t>(
-                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), threadnum_t(thread)));
 
-        signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
+        signals[thread].init(new cross_thread_signal_t(&interruptor, threadnum_t(thread)));
     }
 }
 
@@ -525,9 +525,9 @@ public:
         : responses(_responses), count(_count), response_out(_response_out),
           ql_env(ctx->extproc_pool,
                  ctx->ns_repo,
-                 ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                 ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                      ->get_watchable(),
-                 ctx->cross_thread_database_watchables[get_thread_id()].get()
+                 ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                      ->get_watchable(),
                  ctx->cluster_metadata,
                  NULL,
@@ -1222,12 +1222,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         txn(_txn),
         superblock(_superblock),
         token_pair(_token_pair),
-        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
+        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
-               ctx->cross_thread_database_watchables[get_thread_id()].get()
+               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
                ctx->cluster_metadata,
                NULL,
@@ -1375,13 +1375,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         token_pair(_token_pair),
         timestamp(_timestamp),
-        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
+        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[
-                   get_thread_id()].get()->get_watchable(),
-               ctx->cross_thread_database_watchables[
-                   get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
+               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cluster_metadata,
                0,
                &interruptor,

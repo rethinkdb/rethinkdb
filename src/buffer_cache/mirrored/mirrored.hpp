@@ -298,8 +298,8 @@ public:
 private:
     friend class mc_cache_t;
     friend class mc_transaction_t;
-    mc_cache_account_t(int thread, file_account_t *io_account);
-    int thread_;
+    mc_cache_account_t(threadnum_t thread, file_account_t *io_account);
+    threadnum_t thread_;
     file_account_t *io_account_;
     DISABLE_COPYING(mc_cache_account_t);
 };

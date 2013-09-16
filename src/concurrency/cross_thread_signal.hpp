@@ -31,14 +31,15 @@ class cross_thread_signal_t :
     public signal_t
 {
 public:
-    cross_thread_signal_t(signal_t *source, int dest_thread);
+    cross_thread_signal_t(signal_t *source, threadnum_t dest_thread);
 
 private:
     friend class cross_thread_signal_subscription_t;
     void on_signal_pulsed(auto_drainer_t::lock_t);
     void deliver(auto_drainer_t::lock_t);
 
-    int source_thread, dest_thread;
+    threadnum_t source_thread;
+    threadnum_t dest_thread;
 
     /* This object's constructor rethreads our internal `signal_t` to our other
     thread, and then reverses it in the destructor. It must be a separate object
@@ -46,17 +47,17 @@ private:
     be run after `drainer`'s destructor. */
     class rethreader_t {
     public:
-        rethreader_t(signal_t *s, int d) :
+        rethreader_t(signal_t *s, threadnum_t dest) :
             signal(s), original(signal->home_thread())
         {
-            signal->rethread(d);
+            signal->rethread(dest);
         }
         ~rethreader_t() {
             signal->rethread(original);
         }
     private:
-        signal_t *signal;
-        int original;
+        signal_t *const signal;
+        const threadnum_t original;
     } rethreader;
 
     /* `drainer` makes sure we don't shut down with a signal still in flight */
