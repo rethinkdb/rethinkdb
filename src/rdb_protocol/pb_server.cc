@@ -1,8 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pb_server.hpp"
-
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
 
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
@@ -59,7 +56,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 interruptor, ctx->machine_id,
                 std::map<std::string, ql::wire_func_t>()));
         // `ql::run` will set the status code
-        ql::run(q, &env, response_out, stream_cache2, &response_needed);
+        ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");

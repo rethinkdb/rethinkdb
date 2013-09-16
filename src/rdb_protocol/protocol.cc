@@ -90,7 +90,11 @@ const std::string rdb_protocol_t::protocol_name("rdb");
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
+RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
+
+RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
+RDB_IMPL_SERIALIZABLE_2(range_and_func_filter_transform_t, range_predicate, mapping_func);
 
 namespace rdb_protocol_details {
 
@@ -754,7 +758,7 @@ private:
                     } else {
                         if (lhs) {
                             counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile(&ql_env)->call(*lhs, *rhs)->as_datum();
+                                local_reduce_func.compile_wire_func()->call(&ql_env, *lhs, *rhs)->as_datum();
                             rg_response->result = reduced_val;
                         } else {
                             guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
@@ -800,8 +804,8 @@ private:
                             map->set(key, val);
                         } else {
                             counted_t<ql::func_t> r
-                                = local_gmr_func.compile_reduce(&ql_env);
-                            map->set(key, r->call(map->get(key), val)->as_datum());
+                                = local_gmr_func.compile_reduce();
+                            map->set(key, r->call(&ql_env, map->get(key), val)->as_datum());
                         }
                     }
                 }
@@ -1101,7 +1105,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (rget.transform.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
-        ql_env.init_optargs(rget.optargs);
+        ql_env.global_optargs.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
@@ -1136,8 +1140,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 return;
             }
 
-            guarantee(rget.sindex_region, "If an rget has a sindex specified "
-                      "it should also have a sindex_region.");
+            guarantee(rget.sindex_region, "If an rget has an sindex specified, "
+                      "it should also have an sindex_region.");
+            guarantee(rget.sindex_range, "If an rget has an sindex specified, "
+                      "it shoud also have an sindex_range.");
 
             // This chunk of code puts together a filter so we can exclude any items
             //  that don't fall in the specified range.  Because the secondary index
@@ -1149,13 +1155,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-            Term filter_term;
-            rget.sindex_range->write_filter_func(
-                &ql_env, &filter_term, sindex_mapping.get_term());
-            Backtrace dummy_backtrace;
-            ql::propagate_backtrace(&filter_term, &dummy_backtrace);
-            ql::filter_wire_func_t sindex_filter(
-                filter_term, std::map<int64_t, Datum>());
+            range_and_func_filter_transform_t sindex_filter(*rget.sindex_range, sindex_mapping);
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
@@ -1263,7 +1263,7 @@ void store_t::protocol_read(const read_t &read,
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
         try {
-            ql_env.init_optargs(r.optargs);
+            ql_env.global_optargs.init_optargs(r.optargs);
         } catch (const interrupted_exc_t &) {
             // Clear the sindex_write_token because we didn't have a chance to use it
             token_pair->sindex_write_token.reset();
@@ -1656,42 +1656,8 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
-
-void rdb_protocol_t::sindex_range_t::write_filter_func(
-    ql::env_t *env, Term *filter, const Term &sindex_mapping) const {
-    int arg1 = env->gensym();
-    int sindex_val = env->gensym();
-    Term *arg = ql::pb::set_func(filter, arg1);
-    if (!start.has() && !end.has()) {
-        NDATUM_BOOL(true);
-        return;
-    }
-
-    N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
-       N2(ALL,
-          if (start.has()) {
-              if (start_open) {
-                  N2(GT, NVAR(sindex_val), NDATUM(start));
-              } else {
-                  N2(GE, NVAR(sindex_val), NDATUM(start));
-              }
-          } else {
-              NDATUM_BOOL(true);
-          },
-          if (end.has()) {
-              if (end_open) {
-                  N2(LT, NVAR(sindex_val), NDATUM(end));
-              } else {
-                  N2(LE, NVAR(sindex_val), NDATUM(end));
-              }
-          } else {
-              NDATUM_BOOL(true);
-          }),
-       N2(FUNCALL, *arg = sindex_mapping, NVAR(arg1)));
-}
-
-region_t rdb_protocol_t::sindex_range_t::to_region() const {
-    return region_t(rdb_protocol_t::sindex_key_range(
+hash_region_t<key_range_t> sindex_range_t::to_region() const {
+    return hash_region_t<key_range_t>(rdb_protocol_t::sindex_key_range(
         start != NULL ? start->truncated_secondary() : store_key_t::min(),
         end != NULL ? end->truncated_secondary() : store_key_t::max()));
 }
@@ -1709,7 +1675,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_range_t,
+RDB_IMPL_ME_SERIALIZABLE_4(sindex_range_t,
                            empty_ok(start), empty_ok(end), start_open, end_open);
 RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_range,

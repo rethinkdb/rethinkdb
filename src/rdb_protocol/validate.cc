@@ -1,53 +1,62 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
 #include "rdb_protocol/validate.hpp"
 #include "rdb_protocol/error.hpp"
 
-#define check_has(pb, field)                                            \
-    rcheck_toplevel(                                                    \
-        (pb).has_##field(),                                             \
-        ql::base_exc_t::GENERIC,                                \
-        strprintf("MALFORMED PROTOBUF (missing field `%s`):\n%s",       \
-                  #field, (pb).DebugString().c_str()))
-#define check_not_has(pb, field)                                        \
-    rcheck_toplevel(                                                    \
-        !(pb).has_##field(),                                            \
-        ql::base_exc_t::GENERIC,                                \
-        strprintf("MALFORMED PROTOBUF (spurious field `%s`):\n%s",      \
-                  #field, (pb).DebugString().c_str()))
-#define check_empty(pb, field)                                          \
-    rcheck_toplevel(                                                    \
-        (pb).field##_size() == 0,                                       \
-        ql::base_exc_t::GENERIC,                                \
-        strprintf("MALFORMED PROTOBUF (non-empty field `%s`):\n%s",     \
-                  #field, (pb).DebugString().c_str()))
+#define check_has(pb, has_field, field) do {                            \
+        auto const &check_has_tmp = (pb);                               \
+        rcheck_toplevel(                                                \
+            check_has_tmp.has_field(),                                  \
+            ql::base_exc_t::GENERIC,                                    \
+            strprintf("MALFORMED PROTOBUF (missing field `%s`):\n%s",   \
+                      field, check_has_tmp.DebugString().c_str()));     \
+    } while (0)
+
+#define check_not_has(pb, has_field, field) do {                        \
+        auto const &check_not_has_tmp = (pb);                           \
+        rcheck_toplevel(                                                \
+            !check_not_has_tmp.has_field(),                             \
+            ql::base_exc_t::GENERIC,                                    \
+            strprintf("MALFORMED PROTOBUF (spurious field `%s`):\n%s",  \
+                      field, check_not_has_tmp.DebugString().c_str())); \
+    } while (0)
+
+#define check_empty(pb, field_size, field) do {                         \
+        auto const &check_empty_tmp = (pb);                             \
+        rcheck_toplevel(                                                \
+            check_empty_tmp.field_size() == 0,                          \
+            ql::base_exc_t::GENERIC,                                    \
+            strprintf("MALFORMED PROTOBUF (non-empty field `%s`):\n%s", \
+                      field, check_empty_tmp.DebugString().c_str()));   \
+    } while (0)
 
 void validate_pb(const Query &q) {
-    check_has(q, type);
+    check_has(q, has_type, "type");
     if (q.type() == Query::START) {
-        check_has(q, query);
+        check_has(q, has_query, "query");
         validate_pb(q.query());
     } else {
-        check_not_has(q, query);
+        check_not_has(q, has_query, "query");
     }
-    check_has(q, token);
+    check_has(q, has_token, "token");
     for (int i = 0; i < q.global_optargs_size(); ++i) {
         validate_pb(q.global_optargs(i).val());
     }
 }
 
 void validate_pb(const Query::AssocPair &ap) {
-    check_has(ap, key);
-    check_has(ap, val);
+    check_has(ap, has_key, "key");
+    check_has(ap, has_val, "val");
     validate_pb(ap.val());
 }
 
 void validate_pb(const Frame &f) {
-    check_has(f, type);
+    check_has(f, has_type, "type");
     if (f.type() == Frame::POS) {
-        check_has(f, pos);
+        check_has(f, has_pos, "pos");
     } else {
-        check_has(f, opt);
+        check_has(f, has_opt, "opt");
     }
 }
 
@@ -58,65 +67,65 @@ void validate_pb(const Backtrace &bt) {
 }
 
 void validate_pb(const Response &r) {
-    check_has(r, type);
+    check_has(r, has_type, "type");
     if (r.type() == Response::SUCCESS_ATOM
         || r.type() == Response::SUCCESS_SEQUENCE
         || r.type() == Response::SUCCESS_PARTIAL) {
-        check_not_has(r, backtrace);
+        check_not_has(r, has_backtrace, "backtrace");
     } else {
-        check_has(r, backtrace);
+        check_has(r, has_backtrace, "backtrace");
     }
-    check_has(r, token);
+    check_has(r, has_token, "token");
     for (int i = 0; i < r.response_size(); ++i) {
         validate_pb(r.response(i));
     }
 }
 
 void validate_pb(const Datum &d) {
-    check_has(d, type);
+    check_has(d, has_type, "type");
     if (d.type() == Datum::R_BOOL) {
-        check_has(d, r_bool);
+        check_has(d, has_r_bool, "r_bool");
     } else {
-        check_not_has(d, r_bool);
+        check_not_has(d, has_r_bool, "r_bool");
     }
     if (d.type() == Datum::R_NUM) {
-        check_has(d, r_num);
+        check_has(d, has_r_num, "r_num");
     } else {
-        check_not_has(d, r_num);
+        check_not_has(d, has_r_num, "r_num");
     }
     if (d.type() == Datum::R_STR) {
-        check_has(d, r_str);
+        check_has(d, has_r_str, "r_str");
     } else {
-        check_not_has(d, r_str);
+        check_not_has(d, has_r_str, "r_str");
     }
     if (d.type() == Datum::R_ARRAY) {
         for (int i = 0; i < d.r_array_size(); ++i) {
             validate_pb(d.r_array(i));
         }
     } else {
-        check_empty(d, r_array);
+        check_empty(d, r_array_size, "r_array");
     }
     if (d.type() == Datum::R_OBJECT) {
         for (int i = 0; i < d.r_object_size(); ++i) {
             validate_pb(d.r_object(i));
         }
     } else {
-        check_empty(d, r_object);
+        check_empty(d, r_object_size, "r_object");
     }
 }
 
 void validate_pb(const Datum::AssocPair &ap) {
-    check_has(ap, key);
-    check_has(ap, val);
+    check_has(ap, has_key, "key");
+    check_has(ap, has_val, "val");
     validate_pb(ap.val());
 }
 
 void validate_pb(const Term &t) {
-    check_has(t, type);
+    check_has(t, has_type, "type");
     if (t.type() == Term::DATUM) {
-        check_has(t, datum);
+        check_has(t, has_datum, "datum");
     } else {
-        check_not_has(t, datum);
+        check_not_has(t, has_datum, "datum");
     }
     for (int i = 0; i < t.args_size(); ++i) {
         validate_pb(t.args(i));
@@ -127,7 +136,7 @@ void validate_pb(const Term &t) {
 }
 
 void validate_pb(const Term::AssocPair &ap) {
-    check_has(ap, key);
-    check_has(ap, val);
+    check_has(ap, has_key, "key");
+    check_has(ap, has_val, "val");
     validate_pb(ap.val());
 }
