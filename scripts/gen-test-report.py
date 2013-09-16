@@ -26,6 +26,8 @@ def list_tests(path):
       else:
         status = 'fail'
 
+      flaky = os.path.exists(os.path.join(path, name, 'flaky'))
+
       file_infos = []
       for root, _, files in os.walk(os.path.join(path, name)):
         for file_ in (file_ for file_ in files if file_.split('-')[-1] == str(n)):
@@ -41,8 +43,9 @@ def list_tests(path):
         'repeat': n,
         'status': status,
         'files': file_infos,
+        'flaky': flaky,
       })
-  return tests
+  return sorted(tests, key = lambda t: t['name'])
 
 def file_reader(path):
   f = open(path, "rb")
