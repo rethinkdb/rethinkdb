@@ -171,7 +171,7 @@ private:
     void init_object();
     void init_json(cJSON *json);
 
-    void check_str_validity(const std::string &str);
+    static void check_str_validity(const std::string &str);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;

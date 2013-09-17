@@ -156,12 +156,12 @@ void datum_t::init_json(cJSON *json) {
 
 void datum_t::check_str_validity(const std::string &str) {
     size_t null_offset = str.find('\0');
-    rcheck(null_offset == std::string::npos,
-           base_exc_t::GENERIC,
-           // We truncate because lots of other places can call `c_str` on the
-           // error message.
-           strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
-                     str.c_str(), null_offset));
+    rcheck_datum(null_offset == std::string::npos,
+                 base_exc_t::GENERIC,
+                 // We truncate because lots of other places can call `c_str` on the
+                 // error message.
+                 strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
+                           str.c_str(), null_offset));
 }
 
 datum_t::datum_t(cJSON *json) {
