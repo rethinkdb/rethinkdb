@@ -19,22 +19,22 @@ void runCrossThreadWatchabletest() {
     boost::scoped_ptr<watchable_variable_t<int> > watchable;
     boost::scoped_ptr<cross_thread_watchable_variable_t<int> > ctw;
     {
-        on_thread_t thread_switcher(0);
+        on_thread_t thread_switcher(threadnum_t(0));
         watchable.reset(new watchable_variable_t<int>(0));
 
-        ctw.reset(new cross_thread_watchable_variable_t<int>(watchable->get_watchable(), 1));
+        ctw.reset(new cross_thread_watchable_variable_t<int>(watchable->get_watchable(), threadnum_t(1)));
     }
 
     int i, expected_value = 0;
     try {
         for (i = 1; i < 100; ++i) {
             {
-                on_thread_t switcher(0);
+                on_thread_t switcher(threadnum_t(0));
                 watchable->set_value(i);
                 expected_value = i;
             }
             {
-                on_thread_t switcher(1);
+                on_thread_t switcher(threadnum_t(1));
                 signal_timer_t timer;
                 timer.start(5000);
                 ctw->get_watchable()->run_until_satisfied(boost::bind(&equals, expected_value, _1), &timer);
@@ -43,7 +43,7 @@ void runCrossThreadWatchabletest() {
 
         for (; i < 1000; ++i) {
             {
-                on_thread_t switcher(0);
+                on_thread_t switcher(threadnum_t(0));
                 int step = i + 25;
                 for (; i < step; ++i) {
                     watchable->set_value(i);
@@ -51,7 +51,7 @@ void runCrossThreadWatchabletest() {
                 }
             }
             {
-                on_thread_t switcher(1);
+                on_thread_t switcher(threadnum_t(1));
                 signal_timer_t timer;
                 timer.start(5000);
                 ctw->get_watchable()->run_until_satisfied(boost::bind(&equals, expected_value, _1), &timer);

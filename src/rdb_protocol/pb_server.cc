@@ -48,13 +48,13 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
 
     bool response_needed = true;
     try {
-        int thread = get_thread_id();
+        threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
                 ctx->extproc_pool, ctx->ns_repo,
-                ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
-                ctx->cross_thread_database_watchables[thread]->get_watchable(),
+                ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
+                ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
                 interruptor, ctx->machine_id,
                 std::map<std::string, ql::wire_func_t>()));

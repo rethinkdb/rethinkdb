@@ -111,7 +111,6 @@ public:
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
-    // RSI: Rename this typedef.
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
                                                           counted_t<const datum_t> r);
@@ -210,7 +209,10 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
-// Converts a double to int, but throws if it's out of range.
+// Converts a double to int, but returns false if it's not an integer or out of range.
+bool number_as_integer(double d, int64_t *i_out);
+
+// Converts a double to int, calling number_as_integer and throwing if it fails.
 int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
@@ -296,7 +298,7 @@ private:
 namespace pseudo {
 class datum_cmp_t {
 public:
-    virtual int operator()(const datum_t& x, const datum_t& y) const = 0;
+    virtual int operator()(const datum_t &x, const datum_t &y) const = 0;
     virtual ~datum_cmp_t() { }
 };
 } // namespace pseudo

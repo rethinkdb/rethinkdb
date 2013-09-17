@@ -102,6 +102,8 @@ fifo_enforcer_sink_t::exit_write_t::exit_write_t(fifo_enforcer_sink_t *p, fifo_e
 }
 
 void fifo_enforcer_sink_t::exit_write_t::begin(fifo_enforcer_sink_t *p, fifo_enforcer_write_token_t t) THROWS_NOTHING {
+    ASSERT_FINITE_CORO_WAITING;
+
     rassert(parent == NULL);
     rassert(p != NULL);
     parent = p;

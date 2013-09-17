@@ -2,20 +2,19 @@
 #ifndef ARCH_RUNTIME_RUNTIME_HPP_
 #define ARCH_RUNTIME_RUNTIME_HPP_
 
-#include "errors.hpp"
+#include "utils.hpp"
 
 class linux_thread_message_t;
-
 typedef linux_thread_message_t thread_message_t;
 
-int get_thread_id();
+threadnum_t get_thread_id();
 
 int get_num_threads();
 
 #ifndef NDEBUG
-void assert_good_thread_id(int thread);
+void assert_good_thread_id(threadnum_t thread);
 #else
-inline void assert_good_thread_id(UNUSED int thread) { }
+inline void assert_good_thread_id(UNUSED threadnum_t thread) { }
 #endif
 
 // TODO: continue_on_thread() and call_later_on_this_thread are mostly obsolete because of
@@ -25,7 +24,7 @@ inline void assert_good_thread_id(UNUSED int thread) { }
 // thread that we are already on, then it returns 'true'; otherwise, it will cause the other
 // thread's event loop to call msg->on_thread_switch().
 
-bool continue_on_thread(int thread, linux_thread_message_t *msg);
+bool continue_on_thread(threadnum_t thread, linux_thread_message_t *msg);
 
 // call_later_on_this_thread() will cause msg->on_thread_switch() to be called from the main event loop
 // of the thread we are currently on. It's a bit of a hack.

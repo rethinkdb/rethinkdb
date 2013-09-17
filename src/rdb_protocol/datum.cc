@@ -750,7 +750,6 @@ int derived_cmp(T a, T b) {
 }
 
 
-
 int datum_t::cmp(const datum_t &rhs) const {
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
@@ -813,12 +812,12 @@ int datum_t::cmp(const datum_t &rhs) const {
     }
 }
 
-bool datum_t::operator== (const datum_t &rhs) const { return cmp(rhs) == 0;  }
-bool datum_t::operator!= (const datum_t &rhs) const { return cmp(rhs) != 0;  }
-bool datum_t::operator<  (const datum_t &rhs) const { return cmp(rhs) == -1; }
-bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
-bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
-bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
+bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
+bool datum_t::operator!=(const datum_t &rhs) const { return cmp(rhs) != 0; }
+bool datum_t::operator<(const datum_t &rhs) const { return cmp(rhs) < 0; }
+bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
+bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
+bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,
@@ -997,7 +996,10 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
         int64_t i;
         if (number_as_integer(value, &i)) {
             // We serialize the signed-zero double, -0.0, with INT_NEGATIVE.
-            if (std::signbit(value)) {
+
+            // so we can use `signbit` in a GCC 4.4.3-compatible way
+            using namespace std;  // NOLINT(build/namespaces)
+            if (signbit(value)) {
                 wm << datum_serialized_type_t::INT_NEGATIVE;
                 serialize_varint_uint64(&wm, -i);
             } else {

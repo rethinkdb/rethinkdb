@@ -113,7 +113,7 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
 
     try {
         {
-            const int dest_thread = store_views_[i]->home_thread();
+            const threadnum_t dest_thread = store_views_[i]->home_thread();
             cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
             on_thread_t th(dest_thread);
@@ -188,7 +188,7 @@ void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
 
     try {
 
-        const int dest_thread = store_views_[i]->home_thread();
+        const threadnum_t dest_thread = store_views_[i]->home_thread();
         cross_thread_signal_t ct_interruptor(interruptor, dest_thread);
 
         on_thread_t th(dest_thread);

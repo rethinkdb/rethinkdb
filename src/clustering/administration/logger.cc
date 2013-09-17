@@ -410,14 +410,14 @@ std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct 
 }
 
 void thread_pool_log_writer_t::install_on_thread(int i) {
-    on_thread_t thread_switcher(i);
+    on_thread_t thread_switcher((threadnum_t(i)));
     guarantee(TLS_get_global_log_writer() == NULL);
     TLS_set_global_log_drainer(new auto_drainer_t);
     TLS_set_global_log_writer(this);
 }
 
 void thread_pool_log_writer_t::uninstall_on_thread(int i) {
-    on_thread_t thread_switcher(i);
+    on_thread_t thread_switcher((threadnum_t(i)));
     guarantee(TLS_get_global_log_writer() == this);
     TLS_set_global_log_writer(NULL);
     delete TLS_get_global_log_drainer();

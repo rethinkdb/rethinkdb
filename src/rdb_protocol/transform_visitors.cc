@@ -87,7 +87,7 @@ namespace query_language {
 class transform_visitor_t : public boost::static_visitor<void> {
 public:
     transform_visitor_t(counted_t<const ql::datum_t> _arg,
-                        std::list<counted_t<const ql::datum_t> > *_out,
+                        std::vector<counted_t<const ql::datum_t> > *_out,
                         ql::env_t *_ql_env,
                         const backtrace_t &_backtrace);
 
@@ -98,13 +98,13 @@ public:
 
 private:
     counted_t<const ql::datum_t> arg;
-    std::list<counted_t<const ql::datum_t> > *out;
+    std::vector<counted_t<const ql::datum_t> > *out;
     ql::env_t *ql_env;
     backtrace_t backtrace;
 };
 
 transform_visitor_t::transform_visitor_t(counted_t<const ql::datum_t> _arg,
-                                         std::list<counted_t<const ql::datum_t> > *_out,
+                                         std::vector<counted_t<const ql::datum_t> > *_out,
                                          ql::env_t *_ql_env,
                                          const backtrace_t &_backtrace)
     : arg(_arg), out(_out), ql_env(_ql_env),
@@ -168,7 +168,7 @@ void transform_apply(ql::env_t *ql_env,
                      const backtrace_t &backtrace,
                      counted_t<const ql::datum_t> json,
                      const rdb_protocol_details::transform_variant_t *t,
-                     std::list<counted_t<const ql::datum_t> > *out) {
+                     std::vector<counted_t<const ql::datum_t> > *out) {
     boost::apply_visitor(transform_visitor_t(json, out, ql_env, backtrace),
                          *t);
 }

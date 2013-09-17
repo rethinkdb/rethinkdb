@@ -53,7 +53,7 @@ void do_construct_existing_store(int i,
     // multiple namespaces?  We need a global
     // thread-distributor that evenly distributes stores about
     // threads.
-    on_thread_t th(i % num_db_threads);
+    on_thread_t th(threadnum_t(i % num_db_threads));
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
     typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_perfmon_name(i),
@@ -71,7 +71,7 @@ void do_create_new_store(int i,
                          stores_lifetimer_t<protocol_t> *stores_out,
                          store_view_t<protocol_t> **store_views) {
     // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
-    on_thread_t th(i % num_db_threads);
+    on_thread_t th(threadnum_t(i % num_db_threads));
 
     typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_perfmon_name(i),
                                                                            store_args.cache_size, true, store_args.serializers_perfmon_collection,

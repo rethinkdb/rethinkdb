@@ -154,9 +154,10 @@ base_exc_t::type_t exc_type(const counted_t<val_t> &v);
 #ifndef NDEBUG
 #define r_sanity_check(test) guarantee(test)
 #else
-#define r_sanity_check(test) do {               \
-    if (!(test)) {                              \
-        ::ql::runtime_sanity_check_failed();    \
+#define r_sanity_check(test) do {                       \
+        if (!(test)) {                                  \
+            ::ql::runtime_sanity_check_failed();        \
+        }                                               \
     } while (0)
 #endif // NDEBUG
 
