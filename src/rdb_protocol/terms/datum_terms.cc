@@ -41,11 +41,11 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        datum_ptr_t acc(datum_t::R_ARRAY);
+        std::vector<counted_t<const datum_t> > acc;
         for (size_t i = 0; i < num_args(); ++i) {
-            acc.add(arg(env, i)->as_datum());
+            acc.push_back(arg(env, i)->as_datum());
         }
-        return new_val(acc.to_counted());
+        return new_val(make_counted<const datum_t>(std::move(acc)));
     }
     virtual const char *name() const { return "make_array"; }
 };
