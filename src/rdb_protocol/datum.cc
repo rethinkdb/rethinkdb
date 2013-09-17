@@ -842,13 +842,15 @@ void datum_t::init_from_pb(const Datum *d) {
         r_bool = d->r_bool();
     } break;
     case Datum::R_NUM: {
-        type = R_NUM;
-        r_num = d->r_num();
+        double number = d->r_num();
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
         using namespace std;  // NOLINT(build/namespaces)
-        rcheck(isfinite(r_num),
+        rcheck(isfinite(number),
                base_exc_t::GENERIC,
                strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
+
+        type = R_NUM;
+        r_num = number;
     } break;
     case Datum::R_STR: {
         init_str();
