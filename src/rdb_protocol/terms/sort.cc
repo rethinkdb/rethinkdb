@@ -180,17 +180,19 @@ private:
                 bool (*)(env_t *,
                          counted_t<const datum_t>,
                          counted_t<const datum_t>) >(env->env, lt_cmp, arg(env, 0)->as_seq(env->env), backtrace()));
-        datum_ptr_t arr(datum_t::R_ARRAY);
+
+        std::vector<counted_t<const datum_t> > arr;
         counted_t<const datum_t> last;
         while (counted_t<const datum_t> d = s->next(env->env)) {
             if (last.has() && *last == *d) {
                 continue;
             }
             last = d;
-            arr.add(last);
+            arr.push_back(last);
         }
         counted_t<datum_stream_t> out =
-            make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());
+            make_counted<array_datum_stream_t>(make_counted<datum_t>(std::move(arr)),
+                                               backtrace());
         return new_val(env->env, out);
     }
     virtual const char *name() const { return "distinct"; }
