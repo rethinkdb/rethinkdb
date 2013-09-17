@@ -104,11 +104,12 @@ void pathspec_t::init_from(const pathspec_t &other) {
 counted_t<const datum_t> project(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        datum_ptr_t res(datum_t::R_ARRAY);
+        std::vector<counted_t<const datum_t> > res;
+        res.reserve(datum->size());
         for (size_t i = 0; i < datum->size(); ++i) {
-            res.add(project(datum->get(i), pathspec, DONT_RECURSE));
+            res.push_back(project(datum->get(i), pathspec, DONT_RECURSE));
         }
-        return res.to_counted();
+        return make_counted<datum_t>(std::move(res));
     } else {
         datum_ptr_t res(datum_t::R_OBJECT);
         if (const std::string *str = pathspec.as_str()) {
