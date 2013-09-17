@@ -38,11 +38,13 @@ private:
                                static_cast<double>(groups[0].begin() - str.data())));
             b |= match.add("end", make_counted<const datum_t>(
                                static_cast<double>(groups[0].end() - str.data())));
-            datum_ptr_t match_groups(datum_t::R_ARRAY);
+
+            std::vector<counted_t<const datum_t> > match_groups;
+            match_groups.reserve(ngroups - 1);
             for (int i = 1; i < ngroups; ++i) {
                 const re2::StringPiece &group = groups[i];
                 if (group.data() == NULL) {
-                    match_groups.add(datum_t::null());
+                    match_groups.push_back(datum_t::null());
                 } else {
                     datum_ptr_t match_group(datum_t::R_OBJECT);
                     b |= match_group.add(
@@ -53,10 +55,10 @@ private:
                     b |= match_group.add(
                         "end", make_counted<const datum_t>(
                             static_cast<double>(group.end() - str.data())));
-                    match_groups.add(match_group.to_counted());
+                    match_groups.push_back(match_group.to_counted());
                 }
             }
-            b |= match.add("groups", match_groups.to_counted());
+            b |= match.add("groups", make_counted<datum_t>(std::move(match_groups)));
             r_sanity_check(!b);
             return new_val(match.to_counted());
         } else {
