@@ -47,14 +47,15 @@ private:
             return make_counted<datum_t>(lhs->as_str() + rhs->as_str());
         } else if (lhs->get_type() == datum_t::R_ARRAY) {
             rhs->check_type(datum_t::R_ARRAY);
-            datum_ptr_t out(datum_t::R_ARRAY);
+            std::vector<counted_t<const datum_t> > out;
+            out.reserve(lhs->size() + rhs->size());
             for (size_t i = 0; i < lhs->size(); ++i) {
-                out.add(lhs->get(i));
+                out.push_back(lhs->get(i));
             }
             for (size_t i = 0; i < rhs->size(); ++i) {
-                out.add(rhs->get(i));
+                out.push_back(rhs->get(i));
             }
-            return out.to_counted();
+            return make_counted<datum_t>(std::move(out));
         }
 
         // If we get here lhs is neither number nor string
@@ -83,17 +84,17 @@ private:
             counted_t<const datum_t> num =
                 (lhs->get_type() == datum_t::R_ARRAY ? rhs : lhs);
 
-            datum_ptr_t out(datum_t::R_ARRAY);
-            int64_t num_copies = num->as_int();
+            const int64_t num_copies = num->as_int();
             rcheck(num_copies >= 0, base_exc_t::GENERIC,
                    "Cannot multiply an ARRAY by a negative number.");
 
-            while (--num_copies >= 0) {
+            std::vector<counted_t<const datum_t> > out;
+            for (int64_t j = 0; j < num_copies; ++j) {
                 for (size_t i = 0; i < array->size(); ++i) {
-                    out.add(array->get(i));
+                    out.push_back(array->get(i));
                 }
             }
-            return out.to_counted();
+            return make_counted<datum_t>(std::move(out));
         }
         lhs->check_type(datum_t::R_NUM);
         rhs->check_type(datum_t::R_NUM);
