@@ -269,12 +269,15 @@ private:
 // README.md for more info.
 class wire_datum_map_t {
 public:
-    wire_datum_map_t() : state(COMPILED) { }
+    wire_datum_map_t() { }
     bool has(counted_t<const datum_t> key);
     counted_t<const datum_t> get(counted_t<const datum_t> key);
     void set(counted_t<const datum_t> key, counted_t<const datum_t> val);
 
     counted_t<const datum_t> to_arr() const;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+
 private:
     struct datum_value_compare_t {
         bool operator()(counted_t<const datum_t> a, counted_t<const datum_t> b) const {
@@ -285,16 +288,6 @@ private:
     std::map<counted_t<const datum_t>,
              counted_t<const datum_t>,
              datum_value_compare_t> map;
-    std::vector<std::pair<Datum, Datum> > map_pb;
-
-public:
-    friend class write_message_t;
-    void rdb_serialize(write_message_t &msg /* NOLINT */) const;
-    friend class archive_deserializer_t;
-    archive_result_t rdb_deserialize(read_stream_t *s);
-
-private:
-    enum { SERIALIZABLE, COMPILED } state;
 };
 
 namespace pseudo {

@@ -1195,12 +1195,6 @@ counted_t<const datum_t> wire_datum_map_t::to_arr() const {
     return make_counted<datum_t>(std::move(arr));
 }
 
-void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
-    msg << map;
-}
-
-archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
-    return deserialize(s, &map);
-}
+RDB_IMPL_ME_SERIALIZABLE_1(wire_datum_map_t, map);
 
 } // namespace ql
