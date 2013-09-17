@@ -252,7 +252,6 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
             env, query_language::backtrace_t());
     wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
     r_sanity_check(dm);
-    dm->compile();
     counted_t<const datum_t> dm_arr = dm->to_arr();
     if (!base.has()) {
         return dm_arr;

@@ -274,9 +274,6 @@ public:
     counted_t<const datum_t> get(counted_t<const datum_t> key);
     void set(counted_t<const datum_t> key, counted_t<const datum_t> val);
 
-    void compile();
-    void finalize();
-
     counted_t<const datum_t> to_arr() const;
 private:
     struct datum_value_compare_t {

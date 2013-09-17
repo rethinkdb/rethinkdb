@@ -1169,44 +1169,20 @@ archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const da
 
 
 bool wire_datum_map_t::has(counted_t<const datum_t> key) {
-    r_sanity_check(state == COMPILED);
-    return map.count(key) > 0;
+    return map.find(key) != map.end();
 }
 
 counted_t<const datum_t> wire_datum_map_t::get(counted_t<const datum_t> key) {
-    r_sanity_check(state == COMPILED);
-    r_sanity_check(has(key));
-    return map[key];
+    auto it = map.find(key);
+    r_sanity_check(it != map.end());
+    return it->second;
 }
 
 void wire_datum_map_t::set(counted_t<const datum_t> key, counted_t<const datum_t> val) {
-    r_sanity_check(state == COMPILED);
     map[key] = val;
 }
 
-void wire_datum_map_t::compile() {
-    if (state == COMPILED) return;
-    while (!map_pb.empty()) {
-        map[make_counted<datum_t>(&map_pb.back().first)] =
-            make_counted<datum_t>(&map_pb.back().second);
-        map_pb.pop_back();
-    }
-    state = COMPILED;
-}
-void wire_datum_map_t::finalize() {
-    if (state == SERIALIZABLE) return;
-    r_sanity_check(state == COMPILED);
-    while (!map.empty()) {
-        map_pb.push_back(std::make_pair(Datum(), Datum()));
-        map.begin()->first->write_to_protobuf(&map_pb.back().first);
-        map.begin()->second->write_to_protobuf(&map_pb.back().second);
-        map.erase(map.begin());
-    }
-    state = SERIALIZABLE;
-}
-
 counted_t<const datum_t> wire_datum_map_t::to_arr() const {
-    r_sanity_check(state == COMPILED);
     std::vector<counted_t<const datum_t> > arr;
     arr.reserve(map.size());
     for (auto it = map.begin(); it != map.end(); ++it) {
@@ -1220,15 +1196,11 @@ counted_t<const datum_t> wire_datum_map_t::to_arr() const {
 }
 
 void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
-    r_sanity_check(state == SERIALIZABLE);
-    msg << map_pb;
+    msg << map;
 }
 
 archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
-    archive_result_t res = deserialize(s, &map_pb);
-    if (res) return res;
-    state = SERIALIZABLE;
-    return ARCHIVE_SUCCESS;
+    return deserialize(s, &map);
 }
 
 } // namespace ql

@@ -792,7 +792,6 @@ private:
                         boost::get<ql::wire_datum_map_t>(&(_rr->result));
                     r_sanity_check(rhs);
                     ql::wire_datum_map_t local_rhs = *rhs;
-                    local_rhs.compile();
 
                     counted_t<const ql::datum_t> rhs_arr = local_rhs.to_arr();
                     for (size_t f = 0; f < rhs_arr->size(); ++f) {
@@ -809,7 +808,6 @@ private:
                         }
                     }
                 }
-                boost::get<ql::wire_datum_map_t>(rg_response->result).finalize();
             } else {
                 unreachable();
             }
