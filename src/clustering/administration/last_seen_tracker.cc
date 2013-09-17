@@ -1,15 +1,14 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/last_seen_tracker.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+using namespace std::placeholders;
 
 last_seen_tracker_t::last_seen_tracker_t(
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &mv,
         const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &mim) :
     machines_view(mv), machine_id_map(mim),
-    machines_view_subs(boost::bind(&last_seen_tracker_t::on_machines_view_change, this)),
-    machine_id_map_subs(boost::bind(&last_seen_tracker_t::on_machine_id_map_change, this)) {
+    machines_view_subs(std::bind(&last_seen_tracker_t::on_machines_view_change, this)),
+    machine_id_map_subs(std::bind(&last_seen_tracker_t::on_machine_id_map_change, this)) {
 
     /* We would freeze `machines_view` as well here if we could */
     watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t machine_id_map_freeze(machine_id_map);

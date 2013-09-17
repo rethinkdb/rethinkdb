@@ -2,7 +2,6 @@
 #include "clustering/administration/http/progress_app.hpp"
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/optional.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/variant/apply_visitor.hpp>
@@ -17,7 +16,9 @@
 #include "http/json/json_adapter.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 
-static const char * PROGRESS_REQ_TIMEOUT_PARAM = "timeout";
+using namespace std::placeholders;
+
+static const char *PROGRESS_REQ_TIMEOUT_PARAM = "timeout";
 static const uint64_t DEFAULT_PROGRESS_REQ_TIMEOUT_MS = 2000;
 static const uint64_t MAX_PROGRESS_REQ_TIMEOUT_MS = 60*1000;
 
@@ -151,7 +152,7 @@ void send_backfill_requests_t::handle_request_internal(const reactor_business_ca
         promise_t<std::pair<int, int> > *value = new promise_t<std::pair<int, int> >;
         mailbox_t<void(std::pair<int, int>)> *resp_mbox = new mailbox_t<void(std::pair<int, int>)>(
             mbox_manager,
-            boost::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
+            std::bind(&promise_t<std::pair<int, int> >::pulse, value, _1));
 
         send(mbox_manager, backfiller->request_progress_mailbox, loc.backfill_session_id, resp_mbox->get_address());
 

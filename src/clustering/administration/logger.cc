@@ -8,15 +8,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/disk/filestat.hpp"
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
+
+using namespace std::placeholders;
 
 RDB_IMPL_SERIALIZABLE_2(struct timespec, tv_sec, tv_nsec);
 
@@ -373,11 +372,11 @@ TLS_with_init(auto_drainer_t *, global_log_drainer, NULL);
 TLS_with_init(int, log_writer_block, 0);
 
 thread_pool_log_writer_t::thread_pool_log_writer_t(local_issue_tracker_t *it) : issue_tracker(it) {
-    pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
+    pmap(get_num_threads(), std::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
 }
 
 thread_pool_log_writer_t::~thread_pool_log_writer_t() {
-    pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::uninstall_on_thread, this, _1));
+    pmap(get_num_threads(), std::bind(&thread_pool_log_writer_t::uninstall_on_thread, this, _1));
 }
 
 std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct timespec min_timestamp, struct timespec max_timestamp, signal_t *interruptor) THROWS_ONLY(std::runtime_error, interrupted_exc_t) {
@@ -397,7 +396,7 @@ std::vector<log_message_t> thread_pool_log_writer_t::tail(int max_lines, struct 
 
 
     bool ok;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message, &ok));
+    thread_pool_t::run_in_blocker_pool(std::bind(&thread_pool_log_writer_t::tail_blocking, this, max_lines, min_timestamp, max_timestamp, &cancel, &log_messages, &error_message, &ok));
     if (ok) {
         if (cancel) {
             throw interrupted_exc_t();
@@ -428,7 +427,7 @@ void thread_pool_log_writer_t::write(const log_message_t &lm) {
     mutex_t::acq_t write_mutex_acq(&write_mutex);
     std::string error_message;
     bool ok;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::write_blocking, this, lm, &error_message, &ok));
+    thread_pool_t::run_in_blocker_pool(std::bind(&thread_pool_log_writer_t::write_blocking, this, lm, &error_message, &ok));
     if (ok) {
         issue.reset();
     } else {
@@ -505,7 +504,7 @@ void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
         std::string message = vstrprintf(format, args);
-        coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
+        coro_t::spawn_sometime(std::bind(&log_coro, writer, level, message, lock));
 
     } else {
         std::string message = vstrprintf(format, args);
