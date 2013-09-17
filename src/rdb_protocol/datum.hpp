@@ -50,7 +50,9 @@ public:
     // disparate type.  It should be alphabetical.
     enum type_t { UNINITIALIZED = 0, R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
+
     explicit datum_t(type_t _type);
+    static counted_t<const datum_t> null();
 
     // These allow you to construct a datum from the type of value it
     // represents.  We have some gotchya-constructors to scare away implicit

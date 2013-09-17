@@ -529,7 +529,7 @@ counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
     if (counted_t<const datum_t> tz = time->get(timezone_key, NOTHROW)) {
         return tz;
     } else {
-        return make_counted<const datum_t>(datum_t::R_NULL);
+        return datum_t::null();
     }
 }
 

@@ -51,6 +51,10 @@ datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
     maybe_sanitize_ptype();
 }
 
+counted_t<const datum_t> datum_t::null() {
+    return make_counted<datum_t>(datum_t::R_NULL);
+}
+
 datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     r_sanity_check(type == R_ARRAY || type == R_OBJECT || type == R_NULL);
     switch (type) {
@@ -1064,7 +1068,7 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum) 
         }
     } break;
     case datum_serialized_type_t::R_NULL: {
-        datum->reset(new datum_t(datum_t::R_NULL));
+        *datum = datum_t::null();
     } break;
     case datum_serialized_type_t::DOUBLE: {
         double value;

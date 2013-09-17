@@ -93,7 +93,7 @@ void mock_namespace_interface_t::read_visitor_t::operator()(const rdb_protocol_t
     if (data->find(get.key) != data->end()) {
         res.data = make_counted<ql::datum_t>(scoped_cJSON_t(data->at(get.key)->DeepCopy()));
     } else {
-        res.data = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+        res.data = ql::datum_t::null();
     }
 }
 
@@ -127,7 +127,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     if (data->find(r.key) != data->end()) {
         old_val = make_counted<ql::datum_t>(data->at(r.key)->get());
     } else {
-        old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+        old_val = ql::datum_t::null();
     }
 
     counted_t<const ql::datum_t> new_val = f->compile_wire_func()->call(env, old_val)->as_datum();

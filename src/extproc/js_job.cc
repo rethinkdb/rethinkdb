@@ -450,7 +450,7 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
     } else if (value->IsBoolean()) {
         result = make_counted<const ql::datum_t>(ql::datum_t::R_BOOL, value->BooleanValue());
     } else if (value->IsNull()) {
-        result = make_counted<const ql::datum_t>(ql::datum_t::R_NULL);
+        result = ql::datum_t::null();
     } else {
         errmsg->assign(value->IsUndefined() ?
                        "Cannot convert javascript `undefined` to ql::datum_t." :

@@ -69,7 +69,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
 
     if (!kv_location.value.has()) {
-        response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
+        response->data = ql::datum_t::null();
     } else {
         response->data = get_data(kv_location.value.get(), txn);
     }
@@ -183,7 +183,7 @@ void rdb_replace_and_return_superblock(
         if (!kv_location.value.has()) {
             // If there's no entry with this key, pass NULL to the function.
             started_empty = true;
-            old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+            old_val = ql::datum_t::null();
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
