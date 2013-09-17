@@ -116,9 +116,11 @@ void run_in_thread_pool_with_broadcaster(
 counted_t<const ql::datum_t> generate_document(size_t value_padding_length, const std::string &value) {
     // This is a kind of hacky way to add an object to a map but I'm not sure
     // anyone really cares.
-    return make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
-                                                                          value.c_str(),
-                                                                          std::string(value_padding_length, 'a').c_str()).c_str())));
+    std::string json_str = strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
+                                     value.c_str(),
+                                     std::string(value_padding_length, 'a').c_str());
+
+    return ql::datum_from_json(scoped_cJSON_t(cJSON_Parse(json_str.c_str())));
 }
 
 void write_to_broadcaster(size_t value_padding_length,
@@ -324,7 +326,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
-        auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
+        auto sindex_key_literal = ql::datum_from_json(sindex_key_json);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
             sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)));
         fake_fifo_enforcement_t enforce;

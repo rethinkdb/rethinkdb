@@ -15,7 +15,7 @@ public:
         rcheck(cjson.get() != NULL, base_exc_t::GENERIC,
                strprintf("Failed to parse \"%s\" as JSON.",
                  (data.size() > 40 ? (data.substr(0, 37) + "...").c_str() : data.c_str())));
-        return new_val(make_counted<const datum_t>(cjson.get()));
+        return new_val(datum_from_json(cjson.get()));
     }
 
     virtual const char *name() const { return "json"; }

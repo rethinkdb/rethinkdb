@@ -72,8 +72,6 @@ public:
     datum_t();
     explicit datum_t(const Datum *d);
     void init_from_pb(const Datum *d);
-    explicit datum_t(cJSON *json);
-    explicit datum_t(const scoped_cJSON_t &json);
 
     ~datum_t();
 
@@ -174,7 +172,6 @@ private:
     void init_str();
     void init_array();
     void init_object();
-    void init_json(cJSON *json);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
@@ -203,6 +200,9 @@ public:
 private:
     DISABLE_COPYING(datum_t);
 };
+
+counted_t<const datum_t> datum_from_json(cJSON *json);
+counted_t<const datum_t> datum_from_json(const scoped_cJSON_t &json);
 
 size_t serialized_size(const counted_t<const datum_t> &datum);
 

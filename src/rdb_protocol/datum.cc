@@ -112,50 +112,47 @@ void datum_t::init_object() {
     r_object = new std::map<std::string, counted_t<const datum_t> >();
 }
 
-void datum_t::init_json(cJSON *json) {
+counted_t<const datum_t> datum_from_json(cJSON *json) {
     switch (json->type) {
     case cJSON_False: {
-        type = R_BOOL;
-        r_bool = false;
+        return make_counted<datum_t>(datum_t::R_BOOL, false);
     } break;
     case cJSON_True: {
-        type = R_BOOL;
-        r_bool = true;
+        return make_counted<datum_t>(datum_t::R_BOOL, true);
     } break;
     case cJSON_NULL: {
-        type = R_NULL;
+        return datum_t::null();
     } break;
     case cJSON_Number: {
-        type = R_NUM;
-        r_num = json->valuedouble;
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        rcheck(isfinite(r_num), base_exc_t::GENERIC,
-               strprintf("Non-finite value `%lf` in JSON.", r_num));
+        return make_counted<datum_t>(json->valuedouble);
     } break;
     case cJSON_String: {
-        init_str();
-        *r_str = json->valuestring;
+        return make_counted<datum_t>(json->valuestring);
     } break;
     case cJSON_Array: {
-        init_array();
+        std::vector<counted_t<const datum_t> > arr;
         json_array_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            add(make_counted<datum_t>(item));
+            arr.push_back(datum_from_json(item));
         }
+        return make_counted<datum_t>(std::move(arr));
     } break;
     case cJSON_Object: {
-        init_object();
+        std::map<std::string, counted_t<const datum_t> > map;
         json_object_iterator_t it(json);
         while (cJSON *item = it.next()) {
-            bool conflict = add(item->string, make_counted<datum_t>(item));
-            rcheck(!conflict, base_exc_t::GENERIC,
-                   strprintf("Duplicate key `%s` in JSON.", item->string));
+            auto res = map.insert(std::make_pair(item->string, datum_from_json(item)));
+            rcheck_datum(res.second, base_exc_t::GENERIC,
+                         strprintf("Duplicate key `%s` in JSON.", item->string));
         }
-        maybe_sanitize_ptype();
+        return make_counted<datum_t>(std::move(map));
     } break;
     default: unreachable();
     }
+}
+
+counted_t<const datum_t> datum_from_json(const scoped_cJSON_t &json) {
+    return datum_from_json(json.get());
 }
 
 void datum_t::check_str_validity(const std::string &str) {
@@ -166,13 +163,6 @@ void datum_t::check_str_validity(const std::string &str) {
                  // error message.
                  strprintf("String `%.20s` (truncated) contains NULL byte at offset %zu.",
                            str.c_str(), null_offset));
-}
-
-datum_t::datum_t(cJSON *json) {
-    init_json(json);
-}
-datum_t::datum_t(const scoped_cJSON_t &json) {
-    init_json(json.get());
 }
 
 datum_t::type_t datum_t::get_type() const { return type; }
