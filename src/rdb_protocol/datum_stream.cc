@@ -114,11 +114,11 @@ counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
 }
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    std::vector<counted_t<const datum_t> > arr;
     while (counted_t<const datum_t> d = next(env)) {
-        arr.add(d);
+        arr.push_back(d);
     }
-    return arr.to_counted();
+    return make_counted<datum_t>(std::move(arr));
 }
 
 // LAZY_DATUM_STREAM_T
@@ -515,11 +515,11 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     if (!is_array()) {
         return counted_t<const datum_t>();
     }
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    std::vector<counted_t<const datum_t> > arr;
     while (counted_t<const datum_t> d = next(env)) {
-        arr.add(d);
+        arr.push_back(d);
     }
-    return arr.to_counted();
+    return make_counted<datum_t>(std::move(arr));
 }
 
 counted_t<const datum_t> union_datum_stream_t::next_impl(env_t *env) {
