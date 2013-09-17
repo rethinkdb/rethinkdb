@@ -1,15 +1,14 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pb_server.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
+
+using namespace std::placeholders;
 
 Response on_unparsable_query2(ql::protob_t<Query> q, std::string msg) {
     Response res;
@@ -23,7 +22,7 @@ query2_server_t::query2_server_t(const std::set<ip_address_t> &local_addresses,
                                  rdb_protocol_t::context_t *_ctx) :
     server(local_addresses,
            port,
-           boost::bind(&query2_server_t::handle, this, _1, _2, _3),
+           std::bind(&query2_server_t::handle, this, _1, _2, _3),
            &on_unparsable_query2,
            _ctx->auth_metadata,
            INLINE),
