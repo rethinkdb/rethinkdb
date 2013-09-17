@@ -26,7 +26,7 @@
 
 #define check_size(expected_size, pb, field_size, field) do {           \
         auto const &check_size_tmp = (pb);                              \
-        const int check_size_expected = (expected);                     \
+        const int check_size_expected = (expected_size);                \
         rcheck_toplevel(                                                \
             check_size_tmp.field_size() == check_size_expected,         \
             ql::base_exc_t::GENERIC,                                    \
