@@ -1,8 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/runtime/runtime.hpp"
-
-#include "utils.hpp"
-#include <boost/bind.hpp>
 
 #include "arch/runtime/starter.hpp"
 #include "arch/runtime/thread_pool.hpp"
@@ -46,7 +43,7 @@ struct starter_t : public thread_message_t {
     linux_thread_pool_t *tp;
     boost::function<void()> run;
 
-    starter_t(linux_thread_pool_t *_tp, const boost::function<void()>& _fun) : tp(_tp), run(boost::bind(&starter_t::run_wrapper, this, _fun)) { }
+    starter_t(linux_thread_pool_t *_tp, const boost::function<void()>& _fun) : tp(_tp), run(std::bind(&starter_t::run_wrapper, this, _fun)) { }
     void on_thread_switch() {
         rassert(get_thread_id().threadnum == 0);
         coro_t::spawn_sometime(run);
