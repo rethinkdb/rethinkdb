@@ -1,11 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/replier.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "rpc/semilattice/view.hpp"
+
+using namespace std::placeholders;
 
 template <class protocol_t>
 replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li,
@@ -15,11 +14,11 @@ replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li,
     listener_(li),
 
     synchronize_mailbox_(mailbox_manager_,
-                         boost::bind(&replier_t<protocol_t>::on_synchronize,
-                                    this,
-                                    _1,
-                                    _2,
-                                    auto_drainer_t::lock_t(&drainer_))),
+                         std::bind(&replier_t<protocol_t>::on_synchronize,
+                                   this,
+                                   _1,
+                                   _2,
+                                   auto_drainer_t::lock_t(&drainer_))),
 
     /* Start serving backfills */
     backfiller_(mailbox_manager_,

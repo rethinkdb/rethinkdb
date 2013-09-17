@@ -3,9 +3,6 @@
 
 #include <math.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/timing.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
@@ -52,7 +49,7 @@ void master_access_t<protocol_t>::read(
     promise_t<boost::variant<typename protocol_t::read_response_t, std::string> > result_or_failure;
     mailbox_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)> result_or_failure_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<boost::variant<typename protocol_t::read_response_t, std::string> >::pulse, &result_or_failure, _1));
+        std::bind(&promise_t<boost::variant<typename protocol_t::read_response_t, std::string> >::pulse, &result_or_failure, ph::_1));
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
@@ -105,7 +102,7 @@ void master_access_t<protocol_t>::write(
     promise_t<boost::variant<typename protocol_t::write_response_t, std::string> > result_or_failure;
     mailbox_t<void(boost::variant<typename protocol_t::write_response_t, std::string>)> result_or_failure_mailbox(
         mailbox_manager,
-        boost::bind(&promise_t<boost::variant<typename protocol_t::write_response_t, std::string> >::pulse, &result_or_failure, _1));
+        std::bind(&promise_t<boost::variant<typename protocol_t::write_response_t, std::string> >::pulse, &result_or_failure, ph::_1));
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();
