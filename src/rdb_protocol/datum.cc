@@ -21,9 +21,7 @@ NORETURN void datum_runtime_fail(base_exc_t::type_t exc_type,
     ql::runtime_fail(exc_type, test, file, line, std::move(msg));
 }
 
-const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
-
-const char* const datum_t::reql_type_string = "$reql_type$";
+const char *const datum_t::reql_type_string = "$reql_type$";
 
 datum_t::datum_t(type_t _type, bool _bool) : type(_type), r_bool(_bool) {
     r_sanity_check(_type == R_BOOL);
