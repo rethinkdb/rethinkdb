@@ -728,7 +728,7 @@ public:
                 response->last_considered_key = store_key;
             }
 
-            std::list<lazy_json_t> data;
+            std::vector<lazy_json_t> data;
             data.push_back(first_value);
 
             counted_t<const ql::datum_t> sindex_value;
@@ -744,7 +744,7 @@ public:
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        std::list<counted_t<const ql::datum_t> > tmp;
+                        std::vector<counted_t<const ql::datum_t> > tmp;
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
