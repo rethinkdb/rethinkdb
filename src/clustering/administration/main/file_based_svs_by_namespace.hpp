@@ -11,7 +11,8 @@ class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
 public:
     file_based_svs_by_namespace_t(io_backender_t *io_backender,
                                   const base_path_t& base_path)
-        : io_backender_(io_backender), base_path_(base_path), next_thread(0) { }
+        // Start on thread 1, thread 0 has enough to worry about.
+        : io_backender_(io_backender), base_path_(base_path), next_thread(1) { }
 
     void get_svs(perfmon_collection_t *serializers_perfmon_collection,
                  namespace_id_t namespace_id,
