@@ -697,8 +697,11 @@ MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
     check_type(R_OBJECT);
     check_str_validity(key);
     r_sanity_check(val.has());
+
     bool key_in_obj = r_object->count(key) > 0;
-    if (!key_in_obj || (clobber_bool == CLOBBER)) (*r_object)[key] = val;
+    if (!key_in_obj || (clobber_bool == CLOBBER)) {
+        (*r_object)[key] = val;
+    }
     return key_in_obj;
 }
 

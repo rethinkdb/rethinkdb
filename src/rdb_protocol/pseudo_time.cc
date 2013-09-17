@@ -536,16 +536,15 @@ counted_t<const datum_t> time_tz(counted_t<const datum_t> time) {
 counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
                                     counted_t<const datum_t> tz) {
     r_sanity_check(t->is_ptype(time_string));
-    datum_ptr_t t2(t->as_object());
+    std::map<std::string, counted_t<const datum_t > > t2 = t->as_object();
     std::string raw_new_tzs = tz->as_str();
     std::string new_tzs = sanitize::tz(raw_new_tzs);
     if (raw_new_tzs == new_tzs) {
-        UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);
+        t2[timezone_key] = tz;
     } else {
-        UNUSED bool b =
-            t2.add(timezone_key, make_counted<const datum_t>(std::move(new_tzs)), CLOBBER);
+        t2[timezone_key] = make_counted<const datum_t>(std::move(new_tzs));
     }
-    return t2.to_counted();
+    return make_counted<const datum_t>(std::move(t2));
 }
 
 counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
