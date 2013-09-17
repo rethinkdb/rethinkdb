@@ -156,7 +156,6 @@ public:
 
     friend class datum_ptr_t;
     friend void pseudo::sanitize_time(datum_t *time);
-    void add(counted_t<const datum_t> val); // add to an array
     // change an element of an array
     void change(size_t index, counted_t<const datum_t> val);
     void insert(size_t index, counted_t<const datum_t> val); // insert into an array

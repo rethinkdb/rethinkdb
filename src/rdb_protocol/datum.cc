@@ -652,12 +652,6 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     unreachable();
 };
 
-void datum_t::add(counted_t<const datum_t> val) {
-    check_type(R_ARRAY);
-    r_sanity_check(val.has());
-    r_array->push_back(val);
-}
-
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
                            clobber_bool_t clobber_bool) {
     check_type(R_OBJECT);
