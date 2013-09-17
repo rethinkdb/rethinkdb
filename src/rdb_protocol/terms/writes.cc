@@ -18,14 +18,15 @@ counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
     if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
         return make_counted<datum_t>(l->as_num() + r->as_num());
     } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_ptr_t arr(datum_t::R_ARRAY);
+        std::vector<counted_t<const datum_t> > arr;
+        arr.reserve(l->size() + r->size());
         for (size_t i = 0; i < l->size(); ++i) {
-            arr.add(l->get(i));
+            arr.push_back(l->get(i));
         }
         for (size_t i = 0; i < r->size(); ++i) {
-            arr.add(r->get(i));
+            arr.push_back(r->get(i));
         }
-        return arr.to_counted();
+        return make_counted<datum_t>(std::move(arr));
     }
 
     // Merging a string is left-preferential, which is just a no-op.
