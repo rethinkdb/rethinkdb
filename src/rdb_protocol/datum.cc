@@ -849,40 +849,39 @@ bool datum_t::key_is_truncated(const store_key_t &key) {
     return key.size() == MAX_KEY_SIZE;
 }
 
-void datum_t::write_to_protobuf(Datum *d) const {
-    switch (get_type()) {
-    case R_NULL: {
+void write_to_protobuf(const datum_t &datum, Datum *d) {
+    switch (datum.get_type()) {
+    case datum_t::R_NULL: {
         d->set_type(Datum::R_NULL);
     } break;
-    case R_BOOL: {
+    case datum_t::R_BOOL: {
         d->set_type(Datum::R_BOOL);
-        d->set_r_bool(r_bool);
+        d->set_r_bool(datum.as_bool());
     } break;
-    case R_NUM: {
+    case datum_t::R_NUM: {
         d->set_type(Datum::R_NUM);
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        r_sanity_check(isfinite(r_num));
-        d->set_r_num(r_num);
+        d->set_r_num(datum.as_num());
     } break;
-    case R_STR: {
+    case datum_t::R_STR: {
         d->set_type(Datum::R_STR);
-        d->set_r_str(*r_str);
+        d->set_r_str(datum.as_str());
     } break;
-    case R_ARRAY: {
+    case datum_t::R_ARRAY: {
         d->set_type(Datum::R_ARRAY);
-        for (size_t i = 0; i < r_array->size(); ++i) {
-            (*r_array)[i]->write_to_protobuf(d->add_r_array());
+        const std::vector<counted_t<const datum_t> > &arr = datum.as_array();
+        for (size_t i = 0; i < arr.size(); ++i) {
+            Datum *d_element = d->add_r_array();
+            write_to_protobuf(*arr[i], d_element);
         }
     } break;
-    case R_OBJECT: {
+    case datum_t::R_OBJECT: {
         d->set_type(Datum::R_OBJECT);
+        const std::map<std::string, counted_t<const datum_t> > &obj = datum.as_object();
         // We use rbegin and rend so that things print the way we expect.
-        for (std::map<std::string, counted_t<const datum_t> >::const_reverse_iterator
-                 it = r_object->rbegin(); it != r_object->rend(); ++it) {
+        for (auto it = obj.rbegin(); it != obj.rend(); ++it) {
             Datum_AssocPair *ap = d->add_r_object();
             ap->set_key(it->first);
-            it->second->write_to_protobuf(ap->mutable_val());
+            write_to_protobuf(*it->second, ap->mutable_val());
         }
     } break;
     default: unreachable();

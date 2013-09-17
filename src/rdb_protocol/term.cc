@@ -252,7 +252,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
-                d->write_to_protobuf(res->add_response());
+                write_to_protobuf(*d, res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
                 bool b = stream_cache2->serve(token, res, env->interruptor);

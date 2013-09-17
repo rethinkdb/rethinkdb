@@ -155,7 +155,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
             "value being inserted is neither an object nor an empty value");
     }
 
-    ql::datum_t(std::move(resp)).write_to_protobuf(res);
+    ql::write_to_protobuf(ql::datum_t(std::move(resp)), res);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::batched_replaces_t &) {

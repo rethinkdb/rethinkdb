@@ -131,7 +131,7 @@ namespace ndatum_impl {
 
 template<class U>
 void run(const datum_t &d, U arg) {
-    d.write_to_protobuf(ql::pb::set_datum(arg));
+    write_to_protobuf(d, ql::pb::set_datum(arg));
 }
 
 template<class U>

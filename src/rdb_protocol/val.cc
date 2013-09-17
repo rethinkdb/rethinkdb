@@ -101,7 +101,7 @@ counted_t<const datum_t> table_t::replace(env_t *env,
 protob_t<Term> make_replacement_body(counted_t<const datum_t> replacement, UNUSED sym_t x) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
-    replacement->write_to_protobuf(pb::set_datum(arg));
+    write_to_protobuf(*replacement, pb::set_datum(arg));
     return twrap;
 }
 
@@ -152,7 +152,7 @@ protob_t<Term> make_upsert_replace_body(bool upsert, counted_t<const datum_t> d,
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     if (upsert) {
-        d->write_to_protobuf(pb::set_datum(arg));
+        write_to_protobuf(*d, pb::set_datum(arg));
     } else {
         N3(BRANCH,
            N2(EQ, NVAR(x), NDATUM(datum_t::R_NULL)),

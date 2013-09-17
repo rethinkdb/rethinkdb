@@ -8,6 +8,7 @@
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "extproc/js_runner.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "unittest/gtest.hpp"
 

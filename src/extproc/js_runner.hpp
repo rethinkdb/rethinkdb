@@ -7,12 +7,10 @@
 #include <set>
 
 #include "errors.hpp"
-#include <boost/make_shared.hpp>
 #include <boost/variant.hpp>
 
 #include "containers/scoped.hpp"
 #include "containers/counted.hpp"
-#include "rdb_protocol/datum.hpp"
 #include "concurrency/wait_any.hpp"
 #include "arch/timing.hpp"
 #include "http/json.hpp"
@@ -20,6 +18,10 @@
 // Unique ids used to refer to objects on the JS side.
 typedef uint64_t js_id_t;
 const js_id_t INVALID_ID = 0;
+
+namespace ql {
+class datum_t;
+}
 
 // JS calls result either in a DATUM return value, a function id (which we can
 // use to call the function later), or an error string

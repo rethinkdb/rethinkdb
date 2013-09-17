@@ -76,8 +76,6 @@ public:
 
     ~datum_t();
 
-    void write_to_protobuf(Datum *out) const;
-
     type_t get_type() const;
     bool is_ptype() const;
     bool is_ptype(const std::string &reql_type) const;
@@ -195,6 +193,8 @@ public:
 private:
     DISABLE_COPYING(datum_t);
 };
+
+void write_to_protobuf(const datum_t &d, Datum *d_out);
 
 counted_t<const datum_t> datum_from_json(cJSON *json);
 counted_t<const datum_t> datum_from_json(const scoped_cJSON_t &json);

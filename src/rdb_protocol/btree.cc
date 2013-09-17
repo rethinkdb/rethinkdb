@@ -288,7 +288,7 @@ void rdb_replace_and_return_superblock(
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
     }
-    resp->write_to_protobuf(response_out);
+    write_to_protobuf(*resp.to_counted(), response_out);
 }
 
 void rdb_replace(btree_slice_t *slice,
