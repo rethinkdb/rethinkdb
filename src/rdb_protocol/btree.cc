@@ -8,7 +8,7 @@
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
-#include "btree/depth_first_traversal.hpp"
+#include "btree/concurrent_traversal.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
@@ -613,7 +613,7 @@ size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
     return serialized_size(datum);
 }
 
-class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
+class rdb_rget_depth_first_traversal_callback_t : public concurrent_traversal_callback_t {
 public:
     /* This constructor does a traversal on the primary btree, it's not to be
      * used with sindexes. The constructor below is for use with sindexes. */
@@ -702,8 +702,9 @@ public:
         }
     }
 
-    bool handle_pair(const btree_key_t* key, const void *value) {
-        store_key_t store_key(key);
+    bool handle_pair(scoped_key_value_t &&keyvalue,
+                     concurrent_traversal_fifo_enforcer_signal_t waiter) THROWS_ONLY(interrupted_exc_t) {
+        store_key_t store_key(keyvalue.key());
         if (bad_init) {
             return false;
         }
@@ -715,12 +716,17 @@ public:
             }
         }
         try {
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()), transaction);
+            first_value.get();  // RSI: We don't support efficient count anymore.
+
+            keyvalue.reset();
+
+            waiter.wait_interruptible();
+
             if ((response->last_considered_key < store_key && direction == FORWARD) ||
                 (response->last_considered_key > store_key && direction == BACKWARD)) {
                 response->last_considered_key = store_key;
             }
-
-            lazy_json_t first_value(static_cast<const rdb_value_t *>(value), transaction);
 
             std::list<lazy_json_t> data;
             data.push_back(first_value);
@@ -846,7 +852,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     direction_t direction,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
+    btree_concurrent_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -868,7 +874,7 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
             range, pk_range, direction, map_wire_func, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
+    btree_concurrent_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
