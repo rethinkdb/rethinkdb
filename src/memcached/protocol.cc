@@ -3,7 +3,6 @@
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
-#include <boost/bind.hpp>
 
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -619,8 +618,9 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
         // because adjacent regions often have the same value. On the other hand
         // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
-        pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
-                                         btree, regions, &callback, txn, &refcount_wrapper, sindex_block, progress, interruptor));
+        pmap(regions.size(), std::bind(&call_memcached_backfill, ph::_1,
+                                       btree, regions, &callback, txn, &refcount_wrapper,
+                                       sindex_block, progress, interruptor));
 
         /* if interruptor was pulsed in `call_memcached_backfill()`, it returned
         normally anyway. So now we have to check manually. */
