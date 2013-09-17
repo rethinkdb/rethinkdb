@@ -15,6 +15,12 @@
 
 namespace ql {
 
+NORETURN void datum_runtime_fail(base_exc_t::type_t exc_type,
+                                 const char *test, const char *file, int line,
+                                 std::string msg) {
+    ql::runtime_fail(exc_type, test, file, line, std::move(msg));
+}
+
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
 const char* const datum_t::reql_type_string = "$reql_type$";
@@ -520,17 +526,15 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
 }
 
 struct datum_rcheckable_t : public rcheckable_t {
-    datum_rcheckable_t(const datum_t *_datum) : datum(_datum) { }
     void runtime_fail(base_exc_t::type_t type,
                       const char *test, const char *file, int line,
                       std::string msg) const {
-        datum->runtime_fail(type, test, file, line, msg);
+        datum_runtime_fail(type, test, file, line, msg);
     }
-    const datum_t *datum;
 };
 
 int64_t datum_t::as_int() const {
-    datum_rcheckable_t target(this);
+    datum_rcheckable_t target;
     return checked_convert_to_int(&target, as_num());
 }
 
@@ -819,10 +823,11 @@ bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
 bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
 bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
 
+
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,
                            std::string msg) const {
-    ql::runtime_fail(exc_type, test, file, line, msg);
+    datum_runtime_fail(exc_type, test, file, line, msg);
 }
 
 datum_t::datum_t() : type(UNINITIALIZED) { }

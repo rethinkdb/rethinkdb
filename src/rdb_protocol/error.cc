@@ -22,7 +22,7 @@ void runtime_fail(base_exc_t::type_t type,
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
-    throw exc_t(type, msg, bt_src);
+    throw exc_t(type, std::move(msg), bt_src);
 }
 void runtime_fail(base_exc_t::type_t type,
                   RQL_ERROR_VAR const char *test, RQL_ERROR_VAR const char *file,
@@ -31,7 +31,7 @@ void runtime_fail(base_exc_t::type_t type,
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
-    throw datum_exc_t(type, msg);
+    throw datum_exc_t(type, std::move(msg));
 }
 
 void runtime_sanity_check_failed() {

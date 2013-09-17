@@ -67,7 +67,7 @@ public:
     virtual void runtime_fail(base_exc_t::type_t type,
                               const char *test, const char *file, int line,
                               std::string msg) const {
-        ql::runtime_fail(type, test, file, line, msg, bt_src.get());
+        ql::runtime_fail(type, test, file, line, std::move(msg), bt_src.get());
     }
 
     // Propagate the associated backtrace through the rewrite term.
@@ -240,9 +240,9 @@ class exc_t : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg_("UNINITIALIZED") { }
-    exc_t(base_exc_t::type_t type, const std::string &exc_msg,
+    exc_t(base_exc_t::type_t type, std::string exc_msg,
           const Backtrace *bt_src)
-        : base_exc_t(type), exc_msg_(exc_msg) {
+        : base_exc_t(type), exc_msg_(std::move(exc_msg)) {
         if (bt_src != NULL) {
             backtrace_ = backtrace_t(bt_src);
         }
@@ -275,8 +275,8 @@ private:
 class datum_exc_t : public base_exc_t {
 public:
     datum_exc_t() : base_exc_t(base_exc_t::GENERIC), exc_msg("UNINITIALIZED") { }
-    explicit datum_exc_t(base_exc_t::type_t type, const std::string &_exc_msg)
-        : base_exc_t(type), exc_msg(_exc_msg) { }
+    explicit datum_exc_t(base_exc_t::type_t type, std::string _exc_msg)
+        : base_exc_t(type), exc_msg(std::move(_exc_msg)) { }
     virtual ~datum_exc_t() throw () { }
     const char *what() const throw () { return exc_msg.c_str(); }
 
