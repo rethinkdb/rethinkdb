@@ -17,9 +17,6 @@ public:
         return new_val(make_counted<const datum_t>(cjson.get()));
     }
 
-    bool is_deterministic_impl() const {
-        return true;
-    }
     virtual const char *name() const { return "json"; }
 };
 
