@@ -207,11 +207,11 @@ private:
             }
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
-                datum_ptr_t arr(datum_t::R_ARRAY);
+                std::vector<counted_t<const datum_t> > arr;
                 while (counted_t<const datum_t> el = ds->next(env->env)) {
-                    arr.add(el);
+                    arr.push_back(el);
                 }
-                return new_val(arr.to_counted());
+                return new_val(make_counted<const datum_t>(std::move(arr)));
             }
 
             // SEQUENCE -> OBJECT
