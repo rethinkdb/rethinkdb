@@ -548,7 +548,7 @@ counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
 }
 
 counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
-    datum_ptr_t res(datum_t::R_OBJECT);
+    datum_ptr_t res;
     bool clobber = res.add(datum_t::reql_type_string,
                            make_counted<const datum_t>(time_string));
     clobber |= res.add(epoch_time_key, make_counted<const datum_t>(epoch_time));

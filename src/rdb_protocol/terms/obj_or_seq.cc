@@ -163,7 +163,7 @@ private:
         rcheck(flags & LITERAL_OK, base_exc_t::GENERIC,
                "Stray literal keyword found, literal can only be present inside merge "
                "and cannot nest inside other literals.");
-        datum_ptr_t res(datum_t::R_OBJECT);
+        datum_ptr_t res;
         bool clobber = res.add(datum_t::reql_type_string,
                                make_counted<const datum_t>(pseudo::literal_string));
         if (num_args() == 1) {

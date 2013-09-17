@@ -217,7 +217,7 @@ private:
             // SEQUENCE -> OBJECT
             if (end_type == R_OBJECT_TYPE) {
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
-                    datum_ptr_t obj(datum_t::R_OBJECT);
+                    datum_ptr_t obj;
                     while (counted_t<const datum_t> pair = ds->next(env->env)) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
@@ -274,7 +274,7 @@ private:
     }
 
     counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) {
-        datum_ptr_t info(datum_t::R_OBJECT);
+        datum_ptr_t info;
         int type = val_type(v);
         bool b = info.add("type", make_counted<datum_t>(get_name(type)));
 

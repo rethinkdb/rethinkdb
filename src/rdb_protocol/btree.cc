@@ -171,7 +171,7 @@ void rdb_replace_and_return_superblock(
     promise_t<superblock_t *> *superblock_promise_or_null,
     Datum *response_out,
     rdb_modification_info_t *mod_info) THROWS_NOTHING {
-    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
+    ql::datum_ptr_t resp;
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(

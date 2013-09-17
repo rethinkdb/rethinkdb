@@ -79,7 +79,7 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env, eval_flags_t flags) = 0;
     virtual counted_t<val_t> eval_impl(scope_env_t *env, eval_flags_t flags) {
         std::string op = write_eval_impl(env, flags);
-        datum_ptr_t res(datum_t::R_OBJECT);
+        datum_ptr_t res;
         UNUSED bool b = res.add(op, make_counted<datum_t>(1.0));
         return new_val(res.to_counted());
     }

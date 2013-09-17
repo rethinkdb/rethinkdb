@@ -48,7 +48,7 @@ counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
 }
 
 counted_t<const datum_t> new_stats_object() {
-    datum_ptr_t stats(datum_t::R_OBJECT);
+    datum_ptr_t stats;
     const char *const keys[] =
         {"inserted", "deleted", "skipped", "replaced", "unchanged", "errors"};
     for (size_t i = 0; i < sizeof(keys)/sizeof(*keys); ++i) {
@@ -84,7 +84,7 @@ private:
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
             counted_t<const datum_t> keyd(new datum_t(std::string(key)));
-            datum_ptr_t d(datum_t::R_OBJECT);
+            datum_ptr_t d;
             bool conflict = d.add(tbl->get_pkey(), keyd);
             r_sanity_check(!conflict);
             *datum_out = (*datum_out)->merge(d.to_counted(), pure_merge);
@@ -157,7 +157,7 @@ private:
             for (size_t i = 0; i < generated_keys.size(); ++i) {
                 genkeys.push_back(make_counted<datum_t>(std::move(generated_keys[i])));
             }
-            datum_ptr_t d(datum_t::R_OBJECT);
+            datum_ptr_t d;
             UNUSED bool b = d.add("generated_keys", make_counted<datum_t>(std::move(genkeys)));
             stats = stats->merge(d.to_counted(), pure_merge);
         }

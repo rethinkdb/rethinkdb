@@ -226,10 +226,8 @@ class datum_ptr_t {
 public:
     explicit datum_ptr_t(std::map<std::string, counted_t<const datum_t> > obj)
         : ptr_(new datum_t(std::move(obj))) { }
-    explicit datum_ptr_t(datum_t::type_t type)
-        : ptr_(new datum_t(type)) {
-        r_sanity_check(type == datum_t::R_OBJECT);
-    }
+    datum_ptr_t()
+        : ptr_(new datum_t(datum_t::R_OBJECT)) { }
 
     counted_t<const datum_t> to_counted(
             const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {

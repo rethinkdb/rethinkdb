@@ -49,7 +49,7 @@ public:
 
         bool success = table->sindex_create(env->env, name, index_func);
         if (success) {
-            datum_ptr_t res(datum_t::R_OBJECT);
+            datum_ptr_t res;
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));
             return new_val(res.to_counted());
         } else {
@@ -70,7 +70,7 @@ public:
         std::string name = arg(env, 1)->as_datum()->as_str();
         bool success = table->sindex_drop(env->env, name);
         if (success) {
-            datum_ptr_t res(datum_t::R_OBJECT);
+            datum_ptr_t res;
             UNUSED bool b = res.add("dropped", make_counted<datum_t>(1.0));
             return new_val(res.to_counted());
         } else {

@@ -27,7 +27,7 @@ private:
         int ngroups = regexp.NumberOfCapturingGroups() + 1;
         scoped_array_t<re2::StringPiece> groups(ngroups);
         if (regexp.Match(str, 0, str.size(), RE2::UNANCHORED, groups.data(), ngroups)) {
-            datum_ptr_t match(datum_t::R_OBJECT);
+            datum_ptr_t match;
             // We use `b` to store whether or not we got a conflict when writing
             // to an object.  This should never happen here because we aren't
             // using user-generated keys, but the result of `add` is marked
@@ -46,7 +46,7 @@ private:
                 if (group.data() == NULL) {
                     match_groups.push_back(datum_t::null());
                 } else {
-                    datum_ptr_t match_group(datum_t::R_OBJECT);
+                    datum_ptr_t match_group;
                     b |= match_group.add(
                         "str", make_counted<const datum_t>(group.as_string()));
                     b |= match_group.add(

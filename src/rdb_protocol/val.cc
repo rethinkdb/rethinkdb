@@ -52,7 +52,7 @@ table_t::table_t(env_t *env,
 }
 
 counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) {
-    datum_ptr_t d(datum_t::R_OBJECT);
+    datum_ptr_t d;
     std::string err = exception.what();
 
     // The bool is true if there's a conflict when inserting the
@@ -232,7 +232,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                     map_wire_func_t mwf = *replacements[i].replacer;
                     orig = mwf.compile_wire_func()->call(env, orig)->as_datum();
                     if (orig->get_type() == datum_t::R_NULL) {
-                        datum_ptr_t resp(datum_t::R_OBJECT);
+                        datum_ptr_t resp;
                         counted_t<const datum_t> one(new datum_t(1.0));
                         const bool b = resp.add("skipped", one);
                         r_sanity_check(!b);
@@ -350,7 +350,7 @@ counted_t<const datum_t> table_t::do_replace(
         map_wire_func_t mwf2 = mwf;
         orig = mwf2.compile_wire_func()->call(env, orig)->as_datum();
         if (orig->get_type() == datum_t::R_NULL) {
-            datum_ptr_t resp(datum_t::R_OBJECT);
+            datum_ptr_t resp;
             bool b = resp.add("skipped", make_counted<datum_t>(1.0));
             r_sanity_check(!b);
             return resp.to_counted();
