@@ -129,7 +129,7 @@ public:
 
 public:
 
-    void rethread(int);
+    void rethread(threadnum_t thread);
 
     int getsockname(ip_address_t *addr);
     int getpeername(ip_address_t *addr);

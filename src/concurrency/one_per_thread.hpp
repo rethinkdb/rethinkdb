@@ -14,7 +14,7 @@ public:
         one_per_thread_t *parent_;
         explicit construct_0_t(one_per_thread_t *p) : parent_(p) { }
         void operator()(int thread) const {
-            on_thread_t th(thread);
+            on_thread_t th((threadnum_t(thread)));
             parent_->array[thread].create();
         }
     };
@@ -30,7 +30,7 @@ public:
         construct_1_t(one_per_thread_t *p, const arg1_t &arg1) : parent_(p), arg1_(arg1) { }
 
         void operator()(int thread) const {
-            on_thread_t th(thread);
+            on_thread_t th((threadnum_t(thread)));
             parent_->array[thread].create(arg1_);
         }
     };
@@ -49,7 +49,7 @@ public:
         construct_2_t(one_per_thread_t *p, const arg1_t &arg1, const arg2_t &arg2) : parent_(p), arg1_(arg1), arg2_(arg2) { }
 
         void operator()(int thread) const {
-            on_thread_t th(thread);
+            on_thread_t th((threadnum_t(thread)));
             parent_->array[thread].create(arg1_, arg2_);
         }
     };
@@ -64,7 +64,7 @@ public:
         one_per_thread_t *parent_;
         explicit destruct_t(one_per_thread_t *p) : parent_(p) { }
         void operator()(int thread) const {
-            on_thread_t th(thread);
+            on_thread_t th((threadnum_t(thread)));
             parent_->array[thread].reset();
         }
     };
@@ -74,7 +74,7 @@ public:
     }
 
     inner_t *get() {
-        return array[get_thread_id()].get();
+        return array[get_thread_id().threadnum].get();
     }
 
 private:

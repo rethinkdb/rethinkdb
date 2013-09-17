@@ -57,7 +57,7 @@ private:
         explicit lt_cmp_t(std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
             : comparisons(std::move(_comparisons)) { }
 
-        bool operator()(env_t *env, counted_t<const datum_t> l, counted_t<const datum_t> r) {
+        bool operator()(env_t *env, counted_t<const datum_t> l, counted_t<const datum_t> r) const {
             for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
                 counted_t<const datum_t> lval;
                 counted_t<const datum_t> rval;
@@ -159,7 +159,7 @@ private:
             seq = make_counted<sort_datum_stream_t<lt_cmp_t> >(env->env, lt_cmp, seq, backtrace());
         }
 
-        return tbl.has() ? new_val(seq, tbl) : new_val(env, seq);
+        return tbl.has() ? new_val(seq, tbl) : new_val(env->env, seq);
     }
 
     virtual const char *name() const { return "orderby"; }
@@ -191,7 +191,7 @@ private:
         }
         counted_t<datum_stream_t> out =
             make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());
-        return new_val(env, out);
+        return new_val(env->env, out);
     }
     virtual const char *name() const { return "distinct"; }
 };

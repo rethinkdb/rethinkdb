@@ -18,7 +18,6 @@ private:
         } else {
             rfail(base_exc_t::GENERIC, "%s", arg(env, 0)->as_str().c_str());
         }
-        unreachable();
     }
     virtual const char *name() const { return "error"; }
 };
