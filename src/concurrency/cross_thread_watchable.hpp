@@ -18,13 +18,14 @@ template <class value_t>
 class cross_thread_watchable_variable_t
 {
 public:
-    cross_thread_watchable_variable_t(const clone_ptr_t<watchable_t<value_t> > &watchable, int _dest_thread);
+    cross_thread_watchable_variable_t(const clone_ptr_t<watchable_t<value_t> > &watchable,
+                                      threadnum_t _dest_thread);
 
     clone_ptr_t<watchable_t<value_t> > get_watchable() {
         return clone_ptr_t<watchable_t<value_t> >(watchable.clone());
     }
 
-    int home_thread() { return watchable_thread; }
+    threadnum_t home_thread() { return watchable_thread; }
 
 private:
     friend class cross_thread_watcher_subscription_t;
@@ -51,7 +52,7 @@ private:
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
             return &parent->rwi_lock_assertion;
         }
-        void rethread(int thread) {
+        void rethread(threadnum_t thread) {
             home_thread_mixin_t::real_home_thread = thread;
         }
         cross_thread_watchable_variable_t<value_t> *parent;
@@ -63,7 +64,8 @@ private:
     value_t value;
     w_t watchable;
 
-    int watchable_thread, dest_thread;
+    threadnum_t watchable_thread;
+    threadnum_t dest_thread;
 
     /* This object's constructor rethreads our internal components to our other
     thread, and then reverses it in the destructor. It must be a separate object

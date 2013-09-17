@@ -63,6 +63,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MI
 
 RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
+RDB_DECLARE_SERIALIZABLE(Backtrace);
 
 enum sorting_t {
     UNORDERED,
@@ -80,6 +81,48 @@ inline bool backward(sorting_t sorting) {
     return !forward(sorting);
 }
 
+class sindex_range_t {
+public:
+    sindex_range_t() { }
+    // These counted_t<const ql::datum_t>'s may be empty, indicating +/- infinity.
+    sindex_range_t(counted_t<const ql::datum_t> _start, bool _start_open,
+                   counted_t<const ql::datum_t> _end, bool _end_open)
+        : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
+    // Constructs some kind of region out of truncated_secondary values.
+    hash_region_t<key_range_t> to_region() const;
+
+    counted_t<const ql::datum_t> start, end;
+    bool start_open, end_open;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct filter_transform_t {
+    filter_transform_t() { }
+    filter_transform_t(const ql::wire_func_t &_filter_func,
+                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+        : filter_func(_filter_func),
+          default_filter_val(_default_filter_val) { }
+
+    ql::wire_func_t filter_func;
+    boost::optional<ql::wire_func_t> default_filter_val;
+};
+
+RDB_DECLARE_SERIALIZABLE(filter_transform_t);
+
+struct range_and_func_filter_transform_t {
+    range_and_func_filter_transform_t() { }
+    range_and_func_filter_transform_t(const sindex_range_t &_range_predicate,
+                                      const ql::wire_func_t &_mapping_func)
+        : range_predicate(_range_predicate), mapping_func(_mapping_func) { }
+
+    // A filter transform that applies mapping_func before checking if the mapped value
+    // is in the range.
+    sindex_range_t range_predicate;
+    ql::wire_func_t mapping_func;
+};
+
+RDB_DECLARE_SERIALIZABLE(range_and_func_filter_transform_t);
 
 namespace rdb_protocol_details {
 
@@ -99,8 +142,10 @@ struct backfill_atom_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
+
 typedef boost::variant<ql::map_wire_func_t,
-                       ql::filter_wire_func_t,
+                       filter_transform_t,
+                       range_and_func_filter_transform_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
 
 struct transform_atom_t {
@@ -303,22 +348,6 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-
-    class sindex_range_t {
-    public:
-        sindex_range_t() { }
-        // These counted_t<const ql::datum_t>'s may be empty, indicating +/- infinity.
-        sindex_range_t(counted_t<const ql::datum_t> _start, bool _start_open,
-                       counted_t<const ql::datum_t> _end, bool _end_open)
-            : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
-        void write_filter_func(ql::env_t *env, Term *filter,
-                               const Term &sindex_mapping) const;
-        region_t to_region() const;
-        RDB_DECLARE_ME_SERIALIZABLE;
-    private:
-        counted_t<const ql::datum_t> start, end;
-        bool start_open, end_open;
-      };
 
     class rget_read_t {
     public:

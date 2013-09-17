@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_VAL_HPP_
 #define RDB_PROTOCOL_VAL_HPP_
 
@@ -13,10 +14,11 @@
 namespace ql {
 class datum_t;
 class env_t;
-class val_t;
-class term_t;
-class stream_cache2_t;
 template <class> class protob_t;
+class scope_env_t;
+class stream_cache2_t;
+class term_t;
+class val_t;
 
 class db_t : public single_threaded_countable_t<db_t> {
 public:
@@ -27,12 +29,15 @@ public:
 
 class table_t : public single_threaded_countable_t<table_t>, public pb_rcheckable_t {
 public:
-    table_t(env_t *_env, counted_t<const db_t> db, const std::string &name,
+    table_t(env_t *env,
+            counted_t<const db_t> db, const std::string &name,
             bool use_outdated, const protob_t<const Backtrace> &src);
-    counted_t<datum_stream_t> as_datum_stream(const protob_t<const Backtrace> &bt);
+    counted_t<datum_stream_t> as_datum_stream(env_t *env,
+                                              const protob_t<const Backtrace> &bt);
     const std::string &get_pkey();
-    counted_t<const datum_t> get_row(counted_t<const datum_t> pval);
+    counted_t<const datum_t> get_row(env_t *env, counted_t<const datum_t> pval);
     counted_t<datum_stream_t> get_all(
+            env_t *env,
             counted_t<const datum_t> value,
             const std::string &sindex_id,
             const protob_t<const Backtrace> &bt);
@@ -47,32 +52,36 @@ public:
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
 
-    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> replace(env_t *env,
+                                     counted_t<const datum_t> orig,
                                      counted_t<func_t> f,
                                      bool nondet_ok,
                                      durability_requirement_t durability_requirement,
                                      bool return_vals);
-    counted_t<const datum_t> replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> replace(env_t *env,
+                                     counted_t<const datum_t> orig,
                                      counted_t<const datum_t> d,
                                      bool upsert,
                                      durability_requirement_t durability_requirement,
                                      bool return_vals);
 
     std::vector<counted_t<const datum_t> > batch_replace(
+        env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
         counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement);
 
     std::vector<counted_t<const datum_t> > batch_replace(
+        env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
         const std::vector<counted_t<const datum_t> > &replacement_values,
         bool upsert,
         durability_requirement_t durability_requirement);
 
-    MUST_USE bool sindex_create(const std::string &name, counted_t<func_t> index_func);
-    MUST_USE bool sindex_drop(const std::string &name);
-    counted_t<const datum_t> sindex_list();
+    MUST_USE bool sindex_create(env_t *env, const std::string &name, counted_t<func_t> index_func);
+    MUST_USE bool sindex_drop(env_t *env, const std::string &name);
+    counted_t<const datum_t> sindex_list(env_t *env);
 
     counted_t<const db_t> db;
     const std::string name;
@@ -93,25 +102,25 @@ private:
     };
 
     std::vector<counted_t<const datum_t> > batch_replace(
+        env_t *env,
         const std::vector<datum_func_pair_t> &replacements,
         durability_requirement_t durability_requirement);
 
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
                                         const map_wire_func_t &mwf,
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
                                         counted_t<func_t> f,
                                         bool nondet_ok,
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
-    counted_t<const datum_t> do_replace(counted_t<const datum_t> orig,
+    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
                                         counted_t<const datum_t> d,
                                         bool upsert,
                                         durability_requirement_t durability_requirement,
                                         bool return_vals);
 
-    env_t *env;
     bool use_outdated;
     std::string pkey;
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
@@ -119,7 +128,7 @@ private:
     boost::optional<std::string> sindex_id;
     sorting_t sorting;
 
-    struct bound_t { 
+    struct bound_t {
         bound_t(counted_t<const datum_t> _value, bool _bound_open)
             : value(_value), bound_open(_bound_open) { }
         counted_t<const datum_t> value;
@@ -174,24 +183,24 @@ public:
     type_t get_type() const;
     const char *get_type_name() const;
 
-    val_t(counted_t<const datum_t> _datum, const term_t *parent);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, const term_t *parent);
-    val_t(counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(counted_t<table_t> _table, const term_t *parent);
-    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, const term_t *parent);
-    val_t(counted_t<const db_t> _db, const term_t *parent);
-    val_t(counted_t<func_t> _func, const term_t *parent);
+    val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
+    val_t(env_t *env, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
     ~val_t();
 
-    counted_t<const db_t> as_db();
+    counted_t<const db_t> as_db() const;
     counted_t<table_t> as_table();
-    std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection();
-    counted_t<datum_stream_t> as_seq();
+    std::pair<counted_t<table_t> , counted_t<datum_stream_t> > as_selection(env_t *env);
+    counted_t<datum_stream_t> as_seq(env_t *env);
     std::pair<counted_t<table_t> , counted_t<const datum_t> > as_single_selection();
     // See func.hpp for an explanation of shortcut functions.
     counted_t<func_t> as_func(function_shortcut_t shortcut = NO_SHORTCUT);
 
-    counted_t<const datum_t> as_datum(); // prefer the 4 below
+    counted_t<const datum_t> as_datum() const; // prefer the 4 below
     counted_t<const datum_t> as_ptype(const std::string s = "");
     bool as_bool();
     double as_num();
@@ -207,39 +216,11 @@ public:
     int64_t as_int();
     const std::string &as_str();
 
-    std::string print() {
-        if (get_type().is_convertible(type_t::DATUM)) {
-            return as_datum()->print();
-        } else if (get_type().is_convertible(type_t::DB)) {
-            return strprintf("db(\"%s\")", as_db()->name.c_str());
-        } else if (get_type().is_convertible(type_t::TABLE)) {
-            return strprintf("table(\"%s\")", as_table()->name.c_str());
-        } else if (get_type().is_convertible(type_t::SELECTION)) {
-            return strprintf("OPAQUE SELECTION ON table(%s)",
-                             as_selection().first->name.c_str());
-        } else {
-            // TODO: Do something smarter here?
-            return strprintf("OPAQUE VALUE %s", get_type().name());
-        }
-    }
-
-    std::string trunc_print() {
-        if (get_type().is_convertible(type_t::DATUM)) {
-            return as_datum()->trunc_print();
-        } else {
-            std::string s = print();
-            if (s.size() > datum_t::trunc_len) {
-                s.erase(s.begin() + (datum_t::trunc_len - 3), s.end());
-                s += "...";
-            }
-            return s;
-        }
-    }
+    std::string print() const;
+    std::string trunc_print() const;
 
 private:
-    void rcheck_literal_type(type_t::raw_type_t expected_raw_type);
-
-    env_t *env;
+    void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;
     counted_t<table_t> table;
@@ -252,13 +233,16 @@ private:
                    counted_t<const datum_t>,
                    counted_t<func_t> > u;
 
-    counted_t<const db_t> db() {
+    const counted_t<const db_t> &db() const {
         return boost::get<counted_t<const db_t> >(u);
     }
     counted_t<datum_stream_t> &sequence() {
         return boost::get<counted_t<datum_stream_t> >(u);
     }
     counted_t<const datum_t> &datum() {
+        return boost::get<counted_t<const datum_t> >(u);
+    }
+    const counted_t<const datum_t> &datum() const {
         return boost::get<counted_t<const datum_t> >(u);
     }
     counted_t<func_t> &func() { return boost::get<counted_t<func_t> >(u); }

@@ -67,7 +67,7 @@ public:
         DISABLE_COPYING(subscription_t);
     };
 
-    void rethread(int new_thread) {
+    void rethread(threadnum_t new_thread) {
         real_home_thread = new_thread;
         mutex.rethread(new_thread);
     }
@@ -117,7 +117,7 @@ public:
         }
     }
 
-    void rethread(int new_thread) {
+    void rethread(threadnum_t new_thread) {
         rassert(publisher.subscriptions.empty(),
                 "Cannot rethread a `publisher_t` that has subscribers.");
         publisher.rethread(new_thread);

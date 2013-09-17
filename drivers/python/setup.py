@@ -33,7 +33,7 @@ class build_ext_nofail(build_ext):
             sys.stderr.write("*** WARNING: Defaulting to the python implementation\n")
 
 setup(name="rethinkdb"
-     ,version="1.8.0-0"
+     ,version="1.9.0-0"
      ,description="This package provides the Python driver library for the RethinkDB database server."
      ,url="http://rethinkdb.com"
      ,maintainer="RethinkDB Inc."
@@ -43,4 +43,9 @@ setup(name="rethinkdb"
      ,ext_modules=[Extension('rethinkdb_pbcpp', sources=['./rethinkdb/pbcpp.cpp', './rethinkdb/ql2.pb.cc'],
                              include_dirs=['./rethinkdb'], libraries=['protobuf'])]
      ,cmdclass={"build_ext":build_ext_nofail}
+     ,entry_points={'console_scripts': [
+            'rethinkdb-import = rethinkdb._import:main',
+            'rethinkdb-dump = rethinkdb._dump:main',
+            'rethinkdb-export = rethinkdb._export:main',
+            'rethinkdb-restore = rethinkdb._restore:main']}
 )

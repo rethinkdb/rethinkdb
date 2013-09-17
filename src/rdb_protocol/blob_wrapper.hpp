@@ -38,4 +38,4 @@ private:
     blob_t internal;
 };
 
-#endif
+#endif  // RDB_PROTOCOL_BLOB_WRAPPER_HPP_

@@ -1,8 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pb_server.hpp"
-
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
 
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
@@ -48,18 +45,18 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
 
     bool response_needed = true;
     try {
-        int thread = get_thread_id();
+        threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
                 ctx->extproc_pool, ctx->ns_repo,
-                ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
-                ctx->cross_thread_database_watchables[thread]->get_watchable(),
+                ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
+                ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
                 interruptor, ctx->machine_id,
                 std::map<std::string, ql::wire_func_t>()));
         // `ql::run` will set the status code
-        ql::run(q, &env, response_out, stream_cache2, &response_needed);
+        ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");

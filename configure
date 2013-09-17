@@ -4,9 +4,6 @@
 # This script detects the build settings local to the local build
 # environment and saves them in the config.mk file.
 #
-# It is called automatically by make but can also be run manually
-# with extra arguments to change some of the settings.
-#
 # See ./configure --help for more information.
 
 set -u
@@ -144,7 +141,13 @@ configure () {
 main () {
     init
 
-    read_args "$@"
+    if test -e configure.default; then
+        echo "* Reading arguments from 'configure.default'"
+        default_args=$(cat configure.default)
+        echo "* Prepending the following arguments:" $default_args
+    fi
+
+    read_args ${default_args:-} "$@"
 
     echo "* Detecting system configuration"
 
@@ -154,7 +157,7 @@ main () {
     write "# Command line: $@" 3>> "$config"
     write "CONFIGURE_STATUS := started" 3>> "$config"
     write "CONFIGURE_ERROR := " 3>> "$config"
-    write "CONFIGURE_COMMAND_LINE := $@" 3>> "$config"
+    write "CONFIGURE_COMMAND_LINE := $(echo ${default_args:-}) $@" 3>> "$config"
     configure 3>> "$config"
 
     trap - EXIT
@@ -369,7 +372,7 @@ die () {
 # Generate a not found error
 not_found () {
     if $required; then
-	if contains "$support_deps" "$1"; then
+	if contains "$support_deps" "`lc $1`"; then
             error "missing $1. Install it, specify the full path with $(uc $1)= or run ./configure with --allow-fetch"
 	else
             error "missing $1. Install it or specify the full path with $(uc $1)="
@@ -836,7 +839,7 @@ test_protobuf () {
             "$CXX" "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "`dirname $0`" $PROTOBUF_LIBS $PTHREAD_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
     then
         error_details="$out"
-        error "Unable to compile sample protobuf file"
+        error "Unable to compile sample protobuf file. Try running ./configure with the --fetch protoc option"
         return
     fi
     show ok
