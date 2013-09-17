@@ -1,6 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
@@ -106,7 +105,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<rdb_protocol_t> *, order_source_t*)> fun, bool oversharded) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun, oversharded));
+    unittest::run_in_thread_pool(std::bind(&run_with_namespace_interface, fun, oversharded));
 }
 
 }   /* anonymous namespace */
