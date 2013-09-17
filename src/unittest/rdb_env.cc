@@ -121,7 +121,6 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
 
     counted_t<const ql::datum_t> num_records = make_counted<ql::datum_t>(1.0);
-    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
 
     counted_t<const ql::datum_t> old_val;
     if (data->find(r.key) != data->end()) {
@@ -133,31 +132,30 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
     counted_t<const ql::datum_t> new_val = f->compile_wire_func()->call(env, old_val)->as_datum();
     data->erase(r.key);
 
-    bool not_added;
+    std::map<std::string, counted_t<const ql::datum_t> > resp;
     if (new_val->get_type() == ql::datum_t::R_OBJECT) {
         data->insert(std::make_pair(r.key, new scoped_cJSON_t(new_val->as_json())));
         if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp.add("inserted", num_records);
+            resp["inserted"] = num_records;
         } else {
             if (*old_val == *new_val) {
-                not_added = resp.add("unchanged", num_records);
+                resp["unchanged"] = num_records;
             } else {
-                not_added = resp.add("replaced", num_records);
+                resp["replaced"] = num_records;
             }
         }
     } else if (new_val->get_type() == ql::datum_t::R_NULL) {
         if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp.add("skipped", num_records);
+            resp["skipped"] = num_records;
         } else {
-            not_added = resp.add("deleted", num_records);
+            resp["deleted"] = num_records;
         }
     } else {
         throw cannot_perform_query_exc_t(
             "value being inserted is neither an object nor an empty value");
     }
 
-    guarantee(!not_added);
-    resp->write_to_protobuf(res);
+    ql::datum_t(std::move(resp)).write_to_protobuf(res);
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::batched_replaces_t &) {
