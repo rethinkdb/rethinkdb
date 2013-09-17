@@ -462,16 +462,18 @@ private:
                 = make_counted<union_datum_stream_t>(streams, backtrace());
             return new_val(stream, table);
         } else {
-            datum_ptr_t arr(datum_t::R_ARRAY);
+            std::vector<counted_t<const datum_t> > arr;
+            arr.reserve(num_args());
             for (size_t i = 1; i < num_args(); ++i) {
                 counted_t<const datum_t> key = arg(env, i)->as_datum();
                 counted_t<const datum_t> row = table->get_row(env->env, key);
                 if (row->get_type() != datum_t::R_NULL) {
-                    arr.add(row);
+                    arr.push_back(row);
                 }
             }
+            auto datum = make_counted<const datum_t>(std::move(arr));
             counted_t<datum_stream_t> stream
-                = make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());
+                = make_counted<array_datum_stream_t>(datum, backtrace());
             return new_val(stream, table);
         }
     }
