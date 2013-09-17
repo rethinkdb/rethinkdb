@@ -1,13 +1,11 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/reactor/reactor.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
+using namespace std::placeholders;
 
 /* Returns true if every peer listed as a primary for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has
@@ -117,7 +115,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             run_until_satisfied_2(
                 directory_echo_mirror.get_internal(),
                 blueprint,
-                boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing, this, _1, _2, region),
+                std::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing, this, _1, _2, region),
                 interruptor);
         }
 

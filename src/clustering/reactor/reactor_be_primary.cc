@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "clustering/administration/http/json_adapters.hpp"
@@ -16,6 +15,8 @@
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+
+using namespace std::placeholders;
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
@@ -327,7 +328,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
         bool i_should_merge_branch_history = false;
         run_until_satisfied_2(directory_echo_mirror.get_internal(),
                               blueprint,
-                              boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers, &branch_history_to_merge, &i_should_merge_branch_history),
+                              std::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers, &branch_history_to_merge, &i_should_merge_branch_history),
                               interruptor);
         if (i_should_merge_branch_history) {
             branch_history_manager->import_branch_history(branch_history_to_merge, interruptor);
@@ -352,15 +353,15 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
             backfill_session_id_t backfill_session_id = generate_uuid();
             promise_t<bool> *p = new promise_t<bool>;
             promises.push_back(p);
-            coro_t::spawn_sometime(boost::bind(&do_backfill<protocol_t>,
-                                               mailbox_manager,
-                                               branch_history_manager,
-                                               svs,
-                                               it->first,
-                                               it->second.places_to_get_this_version[0].backfiller,
-                                               backfill_session_id,
-                                               p,
-                                               interruptor));
+            coro_t::spawn_sometime(std::bind(&do_backfill<protocol_t>,
+                                             mailbox_manager,
+                                             branch_history_manager,
+                                             svs,
+                                             it->first,
+                                             it->second.places_to_get_this_version[0].backfiller,
+                                             backfill_session_id,
+                                             p,
+                                             interruptor));
             reactor_business_card_details::backfill_location_t backfill_location(backfill_session_id,
                                                                                  it->second.places_to_get_this_version[0].peer_id,
                                                                                  it->second.places_to_get_this_version[0].activity_id);
