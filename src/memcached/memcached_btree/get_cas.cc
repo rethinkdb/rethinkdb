@@ -1,8 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/get_cas.hpp"
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/promise.hpp"
@@ -65,7 +62,7 @@ void co_memcached_get_cas(const store_key_t &key, cas_t proposed_cas, exptime_t 
 
 get_result_t memcached_get_cas(const store_key_t &key, btree_slice_t *slice, cas_t proposed_cas, exptime_t effective_time, repli_timestamp_t timestamp, transaction_t *txn, superblock_t *superblock) {
     promise_t<get_result_t> res;
-    coro_t::spawn_now_dangerously(std::bind(co_memcached_get_cas, boost::ref(key), proposed_cas, effective_time, timestamp, slice, &res, txn, boost::ref(superblock)));
+    coro_t::spawn_now_dangerously(std::bind(co_memcached_get_cas, std::ref(key), proposed_cas, effective_time, timestamp, slice, &res, txn, std::ref(superblock)));
     return res.wait();
 }
 
