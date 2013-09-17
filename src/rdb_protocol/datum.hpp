@@ -231,14 +231,6 @@ public:
         return counted_t<const datum_t>(ptr_.release());
     }
     const datum_t *operator->() const { return const_ptr(); }
-    void add(counted_t<const datum_t> val) { ptr()->add(val); }
-    void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
-    void insert(size_t i, counted_t<const datum_t> val) { ptr()->insert(i, val); }
-    void erase(size_t i) { ptr()->erase(i); }
-    void erase_range(size_t start, size_t end) { ptr()->erase_range(start, end); }
-    void splice(size_t index, counted_t<const datum_t> values) {
-        ptr()->splice(index, values);
-    }
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER) {
         return ptr()->add(key, val, clobber_bool);
