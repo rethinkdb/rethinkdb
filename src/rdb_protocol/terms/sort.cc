@@ -57,7 +57,7 @@ private:
         explicit lt_cmp_t(std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
             : comparisons(std::move(_comparisons)) { }
 
-        bool operator()(env_t *env, counted_t<const datum_t> l, counted_t<const datum_t> r) {
+        bool operator()(env_t *env, counted_t<const datum_t> l, counted_t<const datum_t> r) const {
             for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
                 counted_t<const datum_t> lval;
                 counted_t<const datum_t> rval;
