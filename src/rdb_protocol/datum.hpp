@@ -154,7 +154,6 @@ public:
 
     static void check_str_validity(const std::string &str);
 
-private:
     friend class datum_ptr_t;
     friend void pseudo::sanitize_time(datum_t *time);
     void add(counted_t<const datum_t> val); // add to an array
@@ -164,6 +163,7 @@ private:
     void erase(size_t index); // erase from an array
     void erase_range(size_t start, size_t end); // erase a range from an array
     void splice(size_t index, counted_t<const datum_t> values);
+private:
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
     // Returns true if key was in object.
