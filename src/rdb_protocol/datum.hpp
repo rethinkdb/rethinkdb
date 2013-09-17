@@ -109,6 +109,7 @@ public:
     // Use of `get` is preferred to `as_object` when possible.
     const std::map<std::string, counted_t<const datum_t> > &as_object() const;
 
+
     // Access an element of an object.
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
@@ -223,18 +224,26 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 // datum_t>`).
 class datum_ptr_t {
 public:
-    template<class... Args>
-    explicit datum_ptr_t(Args... args) : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
+    explicit datum_ptr_t(std::map<std::string, counted_t<const datum_t> > obj)
+        : ptr_(new datum_t(std::move(obj))) { }
+    explicit datum_ptr_t(datum_t::type_t type)
+        : ptr_(new datum_t(type)) {
+        r_sanity_check(type == datum_t::R_OBJECT);
+    }
+
     counted_t<const datum_t> to_counted(
             const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
         ptr()->maybe_sanitize_ptype(allowed_ptypes);
         return counted_t<const datum_t>(ptr_.release());
     }
+
     const datum_t *operator->() const { return const_ptr(); }
+
     MUST_USE bool add(const std::string &key, counted_t<const datum_t> val,
                       clobber_bool_t clobber_bool = NOCLOBBER) {
         return ptr()->add(key, val, clobber_bool);
     }
+
     MUST_USE bool delete_field(const std::string &key) {
         return ptr()->delete_field(key);
     }
