@@ -717,7 +717,7 @@ public:
         }
         try {
             lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()), transaction);
-            first_value.get();  // RSI: We don't support efficient count anymore.
+            first_value.get();
 
             keyvalue.reset();
 

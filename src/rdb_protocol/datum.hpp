@@ -111,7 +111,6 @@ public:
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
-    // RSI: Rename this typedef.
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
                                                           counted_t<const datum_t> r);
