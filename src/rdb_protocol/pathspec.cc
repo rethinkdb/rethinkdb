@@ -176,11 +176,12 @@ void unproject_helper(datum_ptr_t *datum,
 counted_t<const datum_t> unproject(counted_t<const datum_t> datum,
         const pathspec_t &pathspec, recurse_flag_t recurse) {
     if (datum->get_type() == datum_t::R_ARRAY && recurse == RECURSE) {
-        datum_ptr_t res(datum_t::R_ARRAY);
+        std::vector<counted_t<const datum_t> > res;
+        res.reserve(datum->size());
         for (size_t i = 0; i < datum->size(); ++i) {
-            res.add(unproject(datum->get(i), pathspec, DONT_RECURSE));
+            res.push_back(unproject(datum->get(i), pathspec, DONT_RECURSE));
         }
-        return res.to_counted();
+        return make_counted<datum_t>(std::move(res));
     } else {
         datum_ptr_t res(datum->as_object());
         unproject_helper(&res, pathspec, recurse);
