@@ -35,7 +35,8 @@ std::string hash_shard_perfmon_name(int hash_shard_number) {
 }
 
 template <class protocol_t>
-void do_construct_existing_store(int i,
+void do_construct_existing_store(int start_thread,
+                                 int thread_offset,
                                  store_args_t<protocol_t> store_args,
                                  serializer_multiplexer_t *multiplexer,
                                  int num_db_threads,
@@ -45,11 +46,7 @@ void do_construct_existing_store(int i,
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
 
-    // TODO: A problem with this is that all the stores get
-    // created on low-number threads.  What if there are
-    // multiple namespaces?  We need a global
-    // thread-distributor that evenly distributes stores about
-    // threads.
+    const int i = start_thread + thread_offset;
     on_thread_t th(threadnum_t(i % num_db_threads));
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
@@ -61,18 +58,20 @@ void do_construct_existing_store(int i,
 }
 
 template <class protocol_t>
-void do_create_new_store(int i,
+void do_create_new_store(int start_thread,
+                         int thread_offset,
                          store_args_t<protocol_t> store_args,
                          serializer_multiplexer_t *multiplexer,
                          int num_db_threads,
                          stores_lifetimer_t<protocol_t> *stores_out,
                          store_view_t<protocol_t> **store_views) {
-    // TODO: See the todo about thread distribution in do_construct_existing_store.  It is applicable here, too.
+    const int i = start_thread + thread_offset;
     on_thread_t th(threadnum_t(i % num_db_threads));
 
-    typename protocol_t::store_t *store = new typename protocol_t::store_t(multiplexer->proxies[i], hash_shard_perfmon_name(i),
-                                                                           store_args.cache_size, true, store_args.serializers_perfmon_collection,
-                                                                           store_args.ctx, store_args.io_backender, store_args.base_path);
+    typename protocol_t::store_t *store = new typename protocol_t::store_t(
+        multiplexer->proxies[i], hash_shard_perfmon_name(i),
+        store_args.cache_size, true, store_args.serializers_perfmon_collection,
+        store_args.ctx, store_args.io_backender, store_args.base_path);
     (*stores_out->stores())[i].init(store);
     store_views[i] = store;
 }
@@ -100,6 +99,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     // on N serializers.
 
     const int num_stores = CPU_SHARDING_FACTOR;
+    const int start_thread = next_thread;
+    next_thread = (next_thread + num_stores) % num_db_threads;
 
     const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
 
@@ -112,10 +113,12 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     if (res == 0) {
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
 
-        // TODO: Could we handle failure when loading the serializer?  Right now, we don't.
-        serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                  &file_opener,
-                                                  serializers_perfmon_collection));
+        // TODO: Could we handle failure when loading the serializer?  Right
+        // now, we don't.
+        serializer.init(new standard_serializer_t(
+                            standard_serializer_t::dynamic_config_t(),
+                            &file_opener,
+                            serializers_perfmon_collection));
 
         std::vector<standard_serializer_t *> ptrs;
         ptrs.push_back(serializer.get());
@@ -131,7 +134,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // them in the pmap?  No.
 
         pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
-                                     _1, store_args, multiplexer.get(),
+                                     start_thread, _1, store_args, multiplexer.get(),
                                      num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
@@ -142,9 +145,10 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
 
-        serializer.init(new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                  &file_opener,
-                                                  serializers_perfmon_collection));
+        serializer.init(new standard_serializer_t(
+                            standard_serializer_t::dynamic_config_t(),
+                            &file_opener,
+                            serializers_perfmon_collection));
 
         std::vector<standard_serializer_t *> ptrs;
         ptrs.push_back(serializer.get());
@@ -154,14 +158,15 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
         // TODO: How do we specify what the stores' regions are?
 
-        // TODO: Exceptions?  Can exceptions happen, and then store_views' values would leak.
+        // TODO: Exceptions?  Can exceptions happen, and then store_views'
+        // values would leak.
 
         // The files do not exist, create them.
         // TODO: This should use pmap.
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
         pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
-                                     _1,  store_args, multiplexer.get(),
+                                     start_thread, _1,  store_args, multiplexer.get(),
                                      num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
@@ -175,11 +180,13 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         order_source_t order_source;  // TODO: order_token_t::ignore.  Use the svs.
 
         guarantee((*svs_out)->get_region() == protocol_t::region_t::universe());
-        (*svs_out)->set_metainfo(region_map_t<protocol_t, binary_blob_t>((*svs_out)->get_region(),
-                                                                         binary_blob_t(version_range_t(version_t::zero()))),
-                                 order_source.check_in("file_based_svs_by_namespace_t"),
-                                 &write_token,
-                                 &dummy_interruptor);
+        (*svs_out)->set_metainfo(
+            region_map_t<protocol_t, binary_blob_t>(
+                (*svs_out)->get_region(),
+                binary_blob_t(version_range_t(version_t::zero()))),
+            order_source.check_in("file_based_svs_by_namespace_t"),
+            &write_token,
+            &dummy_interruptor);
 
         // Finally, the store is created.
         file_opener.move_serializer_file_to_permanent_location();
