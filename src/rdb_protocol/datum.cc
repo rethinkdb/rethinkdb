@@ -1207,15 +1207,16 @@ void wire_datum_map_t::finalize() {
 
 counted_t<const datum_t> wire_datum_map_t::to_arr() const {
     r_sanity_check(state == COMPILED);
-    datum_ptr_t arr(datum_t::R_ARRAY);
+    std::vector<counted_t<const datum_t> > arr;
+    arr.reserve(map.size());
     for (auto it = map.begin(); it != map.end(); ++it) {
         datum_ptr_t obj(datum_t::R_OBJECT);
         bool b1 = obj.add("group", it->first);
         bool b2 = obj.add("reduction", it->second);
         r_sanity_check(!b1 && !b2);
-        arr.add(obj.to_counted());
+        arr.push_back(obj.to_counted());
     }
-    return arr.to_counted();
+    return make_counted<datum_t>(std::move(arr));
 }
 
 void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
