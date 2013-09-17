@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_AUTO_DRAINER_HPP_
 #define CONCURRENCY_AUTO_DRAINER_HPP_
 
@@ -67,10 +67,10 @@ private:
     public:
         toy_tcp_server_t(int port) :
             listener(port,
-                boost::bind(&toy_tcp_server_t::serve,
+                std::bind(&toy_tcp_server_t::serve,
                     this,
                     auto_drainer_t::lock_t(&drainer),
-                    _1
+                    ph::_1
                     )
                 )
             { }
@@ -89,7 +89,7 @@ private:
         tcp_listener_t listener;
     };
 
-When a TCP connection comes in, the functor created by `boost::bind()` is
+When a TCP connection comes in, the functor created by `std::bind()` is
 called, and it makes a copy of the `auto_drainer_t::lock_t` and passes it to
 `serve()`. When the `toy_tcp_server_t` is destroyed, first the `tcp_listener_t`
 destructor is run (so no new connections are accepted) and then the

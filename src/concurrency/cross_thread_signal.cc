@@ -1,9 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/cross_thread_signal.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 
 void cross_thread_signal_subscription_t::run() {
@@ -21,7 +18,7 @@ cross_thread_signal_t::cross_thread_signal_t(signal_t *source, threadnum_t dest)
 void cross_thread_signal_t::on_signal_pulsed(auto_drainer_t::lock_t keepalive) {
     /* We can't do anything that blocks when we're in a signal callback, so we
     have to spawn a new coroutine to do the thread switching. */
-    coro_t::spawn_sometime(boost::bind(&cross_thread_signal_t::deliver, this, keepalive));
+    coro_t::spawn_sometime(std::bind(&cross_thread_signal_t::deliver, this, keepalive));
 }
 
 void cross_thread_signal_t::deliver(UNUSED auto_drainer_t::lock_t keepalive) {
