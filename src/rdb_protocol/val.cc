@@ -272,7 +272,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         for (size_t i = 0; i < ret.size(); ++i) {
             if (!ret[i].has()) {
                 r_sanity_check(j < datums->size());
-                ret[i] = make_counted<datum_t>(&(*datums)[j].second);
+                ret[i] = datum_from_pb(&(*datums)[j].second);
                 ++j;
             }
         }
@@ -366,7 +366,7 @@ counted_t<const datum_t> table_t::do_replace(
     access->get_namespace_if()->write(
         write, &response, order_token_t::ignore, env->interruptor);
     Datum *d = boost::get<Datum>(&response.response);
-    return make_counted<datum_t>(d);
+    return datum_from_pb(d);
 }
 
 counted_t<const datum_t> table_t::do_replace(env_t *env,

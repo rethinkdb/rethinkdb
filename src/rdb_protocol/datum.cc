@@ -827,59 +827,52 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
 
 datum_t::datum_t() : type(UNINITIALIZED) { }
 
-datum_t::datum_t(const Datum *d) : type(UNINITIALIZED) {
-    init_from_pb(d);
-}
-
-void datum_t::init_from_pb(const Datum *d) {
-    r_sanity_check(type == UNINITIALIZED);
+counted_t<const datum_t> datum_from_pb(const Datum *d) {
     switch (d->type()) {
     case Datum::R_NULL: {
-        type = R_NULL;
+        return datum_t::null();
     } break;
     case Datum::R_BOOL: {
-        type = R_BOOL;
-        r_bool = d->r_bool();
+        return make_counted<datum_t>(datum_t::R_BOOL, d->r_bool());
     } break;
     case Datum::R_NUM: {
         double number = d->r_num();
         // so we can use `isfinite` in a GCC 4.4.3-compatible way
         using namespace std;  // NOLINT(build/namespaces)
-        rcheck(isfinite(number),
-               base_exc_t::GENERIC,
-               strprintf("Illegal non-finite number `" DBLPRI "`.", r_num));
+        rcheck_datum(isfinite(number),
+                     base_exc_t::GENERIC,
+                     strprintf("Illegal non-finite number `" DBLPRI "`.", number));
 
-        type = R_NUM;
-        r_num = number;
+        return make_counted<datum_t>(number);
     } break;
     case Datum::R_STR: {
-        init_str();
-        *r_str = d->r_str();
-        check_str_validity(*r_str);
+        return make_counted<datum_t>(std::string(d->r_str()));
     } break;
     case Datum::R_ARRAY: {
-        init_array();
+        std::vector<counted_t<const datum_t> > arr;
+        arr.reserve(d->r_array_size());
         for (int i = 0; i < d->r_array_size(); ++i) {
-            r_array->push_back(make_counted<datum_t>(&d->r_array(i)));
+            arr.push_back(datum_from_pb(&d->r_array(i)));
         }
+        return make_counted<datum_t>(std::move(arr));
     } break;
     case Datum::R_OBJECT: {
-        init_object();
+        datum_ptr_t ptr;
         for (int i = 0; i < d->r_object_size(); ++i) {
             const Datum_AssocPair *ap = &d->r_object(i);
             const std::string &key = ap->key();
-            check_str_validity(key);
-            rcheck(r_object->count(key) == 0,
-                   base_exc_t::GENERIC,
-                   strprintf("Duplicate key %s in object.", key.c_str()));
-            (*r_object)[key] = make_counted<datum_t>(&ap->val());
+            bool clobber = ptr.add(key, datum_from_pb(&ap->val()));
+            rcheck_datum(!clobber,
+                         base_exc_t::GENERIC,
+                         strprintf("Duplicate key %s in object.", key.c_str()));
         }
         std::set<std::string> allowed_ptypes = { pseudo::literal_string };
-        maybe_sanitize_ptype(allowed_ptypes);
+        return ptr.to_counted(allowed_ptypes);
     } break;
     default: unreachable();
     }
 }
+
 
 size_t datum_t::max_trunc_size() {
     return MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;

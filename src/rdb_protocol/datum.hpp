@@ -68,10 +68,8 @@ public:
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
 
-    // These construct a datum from an equivalent representation.
+    // RSI: Remove this.
     datum_t();
-    explicit datum_t(const Datum *d);
-    void init_from_pb(const Datum *d);
 
     ~datum_t();
 
@@ -203,6 +201,8 @@ private:
 
 counted_t<const datum_t> datum_from_json(cJSON *json);
 counted_t<const datum_t> datum_from_json(const scoped_cJSON_t &json);
+
+counted_t<const datum_t> datum_from_pb(const Datum *d);
 
 size_t serialized_size(const counted_t<const datum_t> &datum);
 
