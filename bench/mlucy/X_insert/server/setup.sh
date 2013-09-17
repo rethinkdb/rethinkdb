@@ -47,6 +47,13 @@ tbl = r.table('bench')
 EOF
 }
 
+function shard_table() {
+    `dirname $0`/rethinkdb admin --join $poc:$((29015+$poc_offset)) \
+        >>setup.log 2>>setup.log <<EOF
+split shard bench 'S4000' 'S8000' 'Sc000'
+EOF
+}
+
 function create_table() {
         ruby <<EOF
 dbs = r.db_list.run
@@ -57,3 +64,4 @@ EOF
 }
 
 create_table
+shard_table
