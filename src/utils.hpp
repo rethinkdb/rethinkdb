@@ -17,6 +17,7 @@
 #include <valgrind/memcheck.h>
 #endif  // VALGRIND
 
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -24,6 +25,8 @@
 #include "containers/printf_buffer.hpp"
 #include "errors.hpp"
 #include "config/args.hpp"
+
+namespace ph = std::placeholders;
 
 class Term;
 void pb_print(Term *t);
