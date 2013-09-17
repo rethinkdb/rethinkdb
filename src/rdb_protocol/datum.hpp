@@ -229,8 +229,12 @@ public:
     datum_ptr_t()
         : ptr_(new datum_t(datum_t::R_OBJECT)) { }
 
-    counted_t<const datum_t> to_counted(
-            const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
+    counted_t<const datum_t> to_counted() {
+        ptr()->maybe_sanitize_ptype();
+        return counted_t<const datum_t>(ptr_.release());
+    }
+
+    counted_t<const datum_t> to_counted(const std::set<std::string> &allowed_ptypes) {
         ptr()->maybe_sanitize_ptype(allowed_ptypes);
         return counted_t<const datum_t>(ptr_.release());
     }
