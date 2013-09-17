@@ -176,7 +176,7 @@ public:
 
     class frame_t {
     public:
-        explicit frame_t() : type(OPT), opt("UNITIALIZED") { }
+        explicit frame_t() : type(OPT), opt("UNINITIALIZED") { }
         explicit frame_t(int32_t _pos) : type(POS), pos(_pos) { }
         explicit frame_t(const std::string &_opt) : type(OPT), opt(_opt) { }
         explicit frame_t(const char *_opt) : type(OPT), opt(_opt) { }

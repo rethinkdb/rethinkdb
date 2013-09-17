@@ -512,7 +512,6 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
         return obj;
     }
 
-    case ql::datum_t::type_t::UNINITIALIZED:
     default:
         crash("bad datum value in js extproc");
     }

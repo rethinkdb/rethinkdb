@@ -70,7 +70,6 @@ datum_t::datum_t(datum_t::type_t _type) : type(_type) {
     case R_OBJECT: {
         r_object = new std::map<std::string, counted_t<const datum_t> >();
     } break;
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -92,24 +91,8 @@ datum_t::~datum_t() {
         r_sanity_check(r_object != NULL);
         delete r_object;
     } break;
-    case UNINITIALIZED: break;
     default: unreachable();
     }
-}
-
-void datum_t::init_str() {
-    type = R_STR;
-    r_str = new std::string();
-}
-
-void datum_t::init_array() {
-    type = R_ARRAY;
-    r_array = new std::vector<counted_t<const datum_t> >();
-}
-
-void datum_t::init_object() {
-    type = R_OBJECT;
-    r_object = new std::map<std::string, counted_t<const datum_t> >();
 }
 
 counted_t<const datum_t> datum_from_json(cJSON *json) {
@@ -197,7 +180,6 @@ std::string raw_type_name(datum_t::type_t type) {
     case datum_t::R_STR:    return "STRING";
     case datum_t::R_ARRAY:  return "ARRAY";
     case datum_t::R_OBJECT: return "OBJECT";
-    case datum_t::UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -306,7 +288,6 @@ void datum_t::array_to_str_key(std::string *str_out) const {
                           "(got %s of type %s).", item->print().c_str(),
                           item->get_type_name().c_str()));
             break;
-        case UNINITIALIZED: // fallthru
         default:
             unreachable();
         }
@@ -369,7 +350,6 @@ std::string datum_t::print_primary() const {
             "(got type %s):\n%s",
             get_type_name().c_str(), trunc_print().c_str()));
         break;
-    case UNINITIALIZED: // fallthru
     default:
         unreachable();
     }
@@ -517,13 +497,11 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
     }
 }
 
-struct datum_rcheckable_t : public rcheckable_t {
-    void runtime_fail(base_exc_t::type_t type,
-                      const char *test, const char *file, int line,
-                      std::string msg) const {
-        datum_runtime_fail(type, test, file, line, msg);
-    }
-};
+void datum_rcheckable_t::runtime_fail(base_exc_t::type_t type,
+                                      const char *test, const char *file, int line,
+                                      std::string msg) const {
+    datum_runtime_fail(type, test, file, line, msg);
+}
 
 int64_t datum_t::as_int() const {
     datum_rcheckable_t target;
@@ -646,7 +624,6 @@ cJSON *datum_t::as_json_raw() const {
         }
         return obj.release();
     } break;
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -670,7 +647,6 @@ datum_t::as_datum_stream(const protob_t<const Backtrace> &backtrace) const {
     case R_ARRAY:
         return make_counted<array_datum_stream_t>(this->counted_from_this(),
                                                   backtrace);
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
     unreachable();
@@ -806,7 +782,6 @@ int datum_t::cmp(const datum_t &rhs) const {
             return 0;
         }
     } unreachable();
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -824,8 +799,6 @@ void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            std::string msg) const {
     datum_runtime_fail(exc_type, test, file, line, msg);
 }
-
-datum_t::datum_t() : type(UNINITIALIZED) { }
 
 counted_t<const datum_t> datum_from_pb(const Datum *d) {
     switch (d->type()) {
@@ -918,7 +891,6 @@ void datum_t::write_to_protobuf(Datum *d) const {
             it->second->write_to_protobuf(ap->mutable_val());
         }
     } break;
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -964,7 +936,6 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
         return typesize + serialized_size(datum->as_object());
     case datum_t::R_STR:
         return typesize + serialized_size(datum->as_str());
-    case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
     }
@@ -1016,7 +987,6 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
         const std::string &value = datum->as_str();
         wm << value;
     } break;
-    case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
     }

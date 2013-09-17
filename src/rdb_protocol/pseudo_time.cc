@@ -100,11 +100,7 @@ const boost::local_time::local_date_time epoch(raw_epoch, utc);
     } catch (const std::ios_base::failure &e) {                         \
         rfail_target(TARGET, base_exc_t::GENERIC,                       \
                      "Error in time logic: %s.", e.what());             \
-    }                                                                   \
-
-// Produces a datum_exc_t instead
-const datum_t dummy_datum;
-#define HANDLE_BOOST_ERRORS_NO_TARGET HANDLE_BOOST_ERRORS(&dummy_datum)
+    }
 
 enum date_format_t { UNSET, MONTH_DAY, WEEKCOUNT, DAYCOUNT };
 
@@ -410,7 +406,9 @@ const std::locale tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F%Q"));
 const std::locale no_tz_format =
     std::locale(std::locale::classic(), new output_timefmt_t("%Y-%m-%dT%H:%M:%S%F"));
+
 std::string time_to_iso8601(counted_t<const datum_t> d) {
+    datum_rcheckable_t target;
     try {
         time_t t = time_to_boost(d);
         int year = t.date().year();
@@ -431,7 +429,7 @@ std::string time_to_iso8601(counted_t<const datum_t> d) {
         size_t dot_off = s.find('.');
         return (dot_off == std::string::npos) ? s :
             s.substr(0, dot_off + 4) + s.substr(dot_off + 7, std::string::npos);
-    } HANDLE_BOOST_ERRORS_NO_TARGET;
+    } HANDLE_BOOST_ERRORS(&target);
 }
 
 double time_to_epoch_time(counted_t<const datum_t> d) {
@@ -439,10 +437,11 @@ double time_to_epoch_time(counted_t<const datum_t> d) {
 }
 
 counted_t<const datum_t> time_now() {
+    datum_rcheckable_t target;
     try {
         ptime_t t = boost::posix_time::microsec_clock::universal_time();
         return make_time((t - raw_epoch).total_microseconds() / 1000000.0, "+00:00");
-    } HANDLE_BOOST_ERRORS_NO_TARGET;
+    } HANDLE_BOOST_ERRORS(&target);
 }
 
 int time_cmp(const datum_t &x, const datum_t &y) {
@@ -618,6 +617,7 @@ counted_t<const datum_t> time_sub(counted_t<const datum_t> time,
 }
 
 double time_portion(counted_t<const datum_t> time, time_component_t c) {
+    datum_rcheckable_t target;
     try {
         ptime_t ptime = time_to_boost(time).local_time();
         switch (c) {
@@ -639,7 +639,7 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
         } break;
         default: unreachable();
         }
-    } HANDLE_BOOST_ERRORS_NO_TARGET;
+    } HANDLE_BOOST_ERRORS(&target);
 }
 
 time_t boost_date(time_t boost_time) {
@@ -656,13 +656,14 @@ counted_t<const datum_t> time_date(counted_t<const datum_t> time,
 }
 
 counted_t<const datum_t> time_of_day(counted_t<const datum_t> time) {
+    datum_rcheckable_t target;
     try {
         time_t boost_time = time_to_boost(time);
         double sec =
             (boost_time - boost_date(boost_time)).total_microseconds() / 1000000.0;
         sec = round(sec * 1000) / 1000;
         return make_counted<const datum_t>(sec);
-    } HANDLE_BOOST_ERRORS_NO_TARGET;
+    } HANDLE_BOOST_ERRORS(&target);
 }
 
 void time_to_str_key(const datum_t &d, std::string *str_out) {

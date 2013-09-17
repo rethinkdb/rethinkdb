@@ -43,12 +43,18 @@ enum throw_bool_t { NOTHROW = 0, THROW = 1};
 // CLOBBER: Overwrite existing values.
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 
+struct datum_rcheckable_t : public rcheckable_t {
+    void runtime_fail(base_exc_t::type_t type,
+                      const char *test, const char *file, int line,
+                      std::string msg) const;
+};
+
 // A `datum_t` is basically a JSON value, although we may extend it later.
 class datum_t : public slow_atomic_countable_t<datum_t> {
 public:
     // This ordering is important, because we use it to sort objects of
     // disparate type.  It should be alphabetical.
-    enum type_t { UNINITIALIZED = 0, R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
+    enum type_t { R_ARRAY = 1, R_BOOL = 2, R_NULL = 3,
                   R_NUM = 4, R_OBJECT = 5, R_STR = 6 };
 
     explicit datum_t(type_t _type);
@@ -67,9 +73,6 @@ public:
     explicit datum_t(const char *cstr);
     explicit datum_t(std::vector<counted_t<const datum_t> > &&_array);
     explicit datum_t(std::map<std::string, counted_t<const datum_t> > &&object);
-
-    // RSI: Remove this.
-    datum_t();
 
     ~datum_t();
 
@@ -165,11 +168,6 @@ private:
                       clobber_bool_t clobber_bool = NOCLOBBER); // add to an object
     // Returns true if key was in object.
     MUST_USE bool delete_field(const std::string &key);
-
-    void init_empty();
-    void init_str();
-    void init_array();
-    void init_object();
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;
