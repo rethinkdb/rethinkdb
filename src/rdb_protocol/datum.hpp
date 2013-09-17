@@ -152,6 +152,8 @@ public:
 
     void rcheck_is_ptype(const std::string s = "") const;
 
+    static void check_str_validity(const std::string &str);
+
 private:
     friend class datum_ptr_t;
     friend void pseudo::sanitize_time(datum_t *time);
@@ -172,8 +174,6 @@ private:
     void init_array();
     void init_object();
     void init_json(cJSON *json);
-
-    static void check_str_validity(const std::string &str);
 
     friend void pseudo::time_to_str_key(const datum_t &d, std::string *str_out);
     void pt_to_str_key(std::string *str_out) const;

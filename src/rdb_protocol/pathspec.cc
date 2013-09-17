@@ -111,19 +111,18 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         }
         return make_counted<datum_t>(std::move(res));
     } else {
-        datum_ptr_t res(datum_t::R_OBJECT);
+        std::map<std::string, counted_t<const datum_t> > res;
         if (const std::string *str = pathspec.as_str()) {
             if (counted_t<const datum_t> val = datum->get(*str, NOTHROW)) {
-                // This bool indicates if things were clobbered. We're fine
-                // with things being clobbered so we ignore it.
-                UNUSED bool b = res.add(*str, val, CLOBBER);
+                datum_t::check_str_validity(*str);
+                res[*str] = val;
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
             for (auto it = vec->begin(); it != vec->end(); ++it) {
                 counted_t<const datum_t> sub_result = project(datum, *it, recurse);
-                for (auto jt = sub_result->as_object().begin();
-                     jt != sub_result->as_object().end(); ++jt) {
-                    UNUSED bool b = res.add(jt->first, jt->second, CLOBBER);
+                auto const &obj = sub_result->as_object();
+                for (auto jt = obj.begin(); jt != obj.end(); ++jt) {
+                    res[jt->first] = jt->second;
                 }
             }
         } else if (const std::map<std::string, pathspec_t> *map = pathspec.as_map()) {
@@ -132,8 +131,8 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
                     try {
                         counted_t<const datum_t> sub_result =
                             project(val, it->second, RECURSE);
-                        // We know we're clobbering, that's the point.
-                        UNUSED bool b = res.add(it->first, sub_result, CLOBBER);
+                        datum_t::check_str_validity(it->first);
+                        res[it->first] = sub_result;
                     } catch (const datum_exc_t &e) {
                         // do nothing
                     }
@@ -142,7 +141,7 @@ counted_t<const datum_t> project(counted_t<const datum_t> datum,
         } else {
             unreachable();
         }
-        return res.to_counted();
+        return make_counted<datum_t>(std::move(res));
     }
 }
 
