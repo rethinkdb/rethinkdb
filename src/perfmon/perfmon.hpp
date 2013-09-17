@@ -20,7 +20,7 @@
 
 // Some arch/runtime declarations.
 int get_num_threads();
-int get_thread_id();
+threadnum_t get_thread_id();
 
 /* When `global_full_perfmon` is true, some perfmons will perform more
  * elaborate stat calculations, which might take longer but will produce more
@@ -38,7 +38,7 @@ struct perfmon_perthread_t : public perfmon_t {
         return new thread_stat_t[get_num_threads()];
     }
     void visit_stats(void *data) {
-        get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id()]);
+        get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id().threadnum]);
     }
     scoped_ptr_t<perfmon_result_t> end_stats(void *v_data) {
         std::unique_ptr<thread_stat_t[]> data(static_cast<thread_stat_t *>(v_data));

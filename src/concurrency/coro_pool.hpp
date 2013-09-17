@@ -53,7 +53,7 @@ public:
         source->available->unset_callback();
     }
 
-    void rethread(int new_thread) {
+    void rethread(threadnum_t new_thread) {
         /* Can't rethread while there are active operations */
         rassert(active_worker_count == 0);
         rassert(!source->available->get());

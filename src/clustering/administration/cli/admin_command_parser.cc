@@ -670,6 +670,9 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(touch_command, touch_command, touch_usage, &admin_cluster_link_t::do_admin_touch, &commands);
 
     info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
+    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "unset", "ls", "create", "rm", "resolve", "help", "pin", "touch", NULLPTR);
+    info->add_positional("subcommand", 1, false);
+
     info = add_command(dashed_help_command, dashed_help_command, help_usage, NULL, &commands); // Also allow --help to work for consistency with other rethinkdb subcommands
     info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", "pin", "touch", NULLPTR);
     info->add_positional("subcommand", 1, false);
@@ -707,7 +710,7 @@ admin_cluster_link_t *admin_command_parser_t::get_cluster() {
 
 admin_command_parser_t::command_info_t *
 admin_command_parser_t::find_command(const std::map<std::string,
-                                     admin_command_parser_t::command_info_t *>& cmd_map,
+                                                    admin_command_parser_t::command_info_t *>& cmd_map,
                                      const std::vector<std::string>& line,
                                      size_t& index) {
     std::map<std::string, command_info_t *>::const_iterator i = cmd_map.find(line[0]);

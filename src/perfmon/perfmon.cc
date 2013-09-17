@@ -37,8 +37,8 @@ perfmon_counter_t::~perfmon_counter_t() {
 }
 
 int64_t &perfmon_counter_t::get() {
-    rassert(get_thread_id() >= 0);
-    return thread_data[get_thread_id()].value;
+    rassert(get_thread_id().threadnum >= 0);
+    return thread_data[get_thread_id().threadnum].value;
 }
 
 void perfmon_counter_t::get_thread_stat(padded_int64_t *stat) {
@@ -73,8 +73,8 @@ perfmon_sampler_t::~perfmon_sampler_t() {
 
 void perfmon_sampler_t::update(ticks_t now) {
     int interval = now / length;
-    rassert(get_thread_id() >= 0);
-    thread_info_t *thread = &thread_data[get_thread_id()];
+    rassert(get_thread_id().threadnum >= 0);
+    thread_info_t *thread = &thread_data[get_thread_id().threadnum];
 
     if (thread->current_interval == interval) {
         /* We're up to date; nothing to do */
@@ -93,8 +93,8 @@ void perfmon_sampler_t::update(ticks_t now) {
 void perfmon_sampler_t::record(double v) {
     ticks_t now = get_ticks();
     update(now);
-    rassert(get_thread_id() >= 0);
-    thread_info_t *thread = &thread_data[get_thread_id()];
+    rassert(get_thread_id().threadnum >= 0);
+    thread_info_t *thread = &thread_data[get_thread_id().threadnum];
     thread->current_stats.record(v);
 }
 
@@ -103,8 +103,8 @@ void perfmon_sampler_t::get_thread_stat(stats_t *stat) {
     /* Return last_stats instead of current_stats so that we can give a complete interval's
     worth of stats. We might be halfway through an interval, in which case current_stats will
     only have half an interval worth. */
-    rassert(get_thread_id() >= 0);
-    *stat = thread_data[get_thread_id()].last_stats;
+    rassert(get_thread_id().threadnum >= 0);
+    *stat = thread_data[get_thread_id().threadnum].last_stats;
 }
 
 perfmon_sampler_t::stats_t perfmon_sampler_t::combine_stats(const stats_t *stats) {
@@ -199,8 +199,8 @@ stddev_t stddev_t::combine(size_t nelts, const stddev_t *data) {
 perfmon_stddev_t::perfmon_stddev_t() : perfmon_perthread_t<stddev_t>() { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
-    rassert(get_thread_id() >= 0);
-    *stat = thread_data[get_thread_id()];
+    rassert(get_thread_id().threadnum >= 0);
+    *stat = thread_data[get_thread_id().threadnum];
 }
 
 stddev_t perfmon_stddev_t::combine_stats(const stddev_t *stats) {
@@ -223,8 +223,8 @@ scoped_ptr_t<perfmon_result_t> perfmon_stddev_t::output_stat(const stddev_t &sta
 }
 
 void perfmon_stddev_t::record(double value) {
-    rassert(get_thread_id() >= 0);
-    thread_data[get_thread_id()].add(value);
+    rassert(get_thread_id().threadnum >= 0);
+    thread_data[get_thread_id().threadnum].add(value);
 }
 
 /* perfmon_rate_monitor_t */
@@ -239,8 +239,8 @@ perfmon_rate_monitor_t::perfmon_rate_monitor_t(ticks_t _length)
 
 void perfmon_rate_monitor_t::update(ticks_t now) {
     int interval = now / length;
-    rassert(get_thread_id() >= 0);
-    thread_info_t &thread = thread_data[get_thread_id()];
+    rassert(get_thread_id().threadnum >= 0);
+    thread_info_t &thread = thread_data[get_thread_id().threadnum];
 
     if (thread.current_interval == interval) {
         /* We're up to date; nothing to do */
@@ -259,8 +259,8 @@ void perfmon_rate_monitor_t::update(ticks_t now) {
 void perfmon_rate_monitor_t::record(double count) {
     ticks_t now = get_ticks();
     update(now);
-    rassert(get_thread_id() >= 0);
-    thread_info_t &thread = thread_data[get_thread_id()];
+    rassert(get_thread_id().threadnum >= 0);
+    thread_info_t &thread = thread_data[get_thread_id().threadnum];
     thread.current_count += count;
 }
 
@@ -269,8 +269,8 @@ void perfmon_rate_monitor_t::get_thread_stat(double *stat) {
     /* Return last_count instead of current_stats so that we can give a complete interval's
     worth of stats. We might be halfway through an interval, in which case current_count will
     only have half an interval worth. */
-    rassert(get_thread_id() >= 0);
-    *stat = thread_data[get_thread_id()].last_count;
+    rassert(get_thread_id().threadnum >= 0);
+    *stat = thread_data[get_thread_id().threadnum].last_count;
 }
 
 double perfmon_rate_monitor_t::combine_stats(const double *stats) {

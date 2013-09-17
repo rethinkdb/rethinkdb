@@ -27,10 +27,10 @@ extproc_pool_t::ct_interruptors_t::ct_interruptors_t(signal_t *shutdown_signal) 
     ct_signals(get_num_threads())
 {
     for (int i = 0; i < get_num_threads(); ++i) {
-        ct_signals[i].init(new cross_thread_signal_t(shutdown_signal, i));
+        ct_signals[i].init(new cross_thread_signal_t(shutdown_signal, threadnum_t(i)));
     }
 }
 
 signal_t *extproc_pool_t::ct_interruptors_t::get() {
-    return ct_signals[get_thread_id()].get();
+    return ct_signals[get_thread_id().threadnum].get();
 }

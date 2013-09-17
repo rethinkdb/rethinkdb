@@ -13,7 +13,7 @@
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
-int get_thread_id();
+threadnum_t get_thread_id();
 struct coro_globals_t;
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
@@ -114,7 +114,7 @@ private:
     the given thread and then suspends the coroutine until that other thread
     picks it up again. Do not call this directly; use `on_thread_t` instead. */
     friend class on_thread_t;
-    static void move_to_thread(int thread);
+    static void move_to_thread(threadnum_t thread);
 
     // Contructor sets up the stack, get_and_init_coro will load a function to be run
     //  at which point the coroutine can be notified
@@ -144,7 +144,7 @@ private:
 
     artificial_stack_t stack;
 
-    int current_thread_;
+    threadnum_t current_thread_;
 
     // Sanity check variables
     bool notified_;
