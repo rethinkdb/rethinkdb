@@ -6,9 +6,6 @@
 #include <inttypes.h>
 #include <sys/uio.h>
 
-#include "utils.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/mutex.hpp"
@@ -863,7 +860,7 @@ void data_block_manager_t::start_gc() {
 data_block_manager_t::gc_writer_t::gc_writer_t(gc_write_t *writes, size_t num_writes, data_block_manager_t *_parent)
     : done(num_writes == 0), parent(_parent) {
     if (!done) {
-        coro_t::spawn(boost::bind(&data_block_manager_t::gc_writer_t::write_gcs, this, writes, num_writes));
+        coro_t::spawn(std::bind(&data_block_manager_t::gc_writer_t::write_gcs, this, writes, num_writes));
     }
 }
 
