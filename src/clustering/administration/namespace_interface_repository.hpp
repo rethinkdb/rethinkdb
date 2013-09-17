@@ -47,7 +47,7 @@ public:
         };
         namespace_cache_entry_t *cache_entry;
         ref_handler_t ref_handler;
-        int thread;
+        threadnum_t thread;
     };
 
 protected:

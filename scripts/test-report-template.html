@@ -5,7 +5,9 @@
     <style>
 td {border:1px solid grey}
 .test { background: red }
+.test.flaky { background: yellow }
 .test.pass { background: green }
+.test.pass.flaky { background: green }
     </style>
   </head>
   <body>
@@ -23,7 +25,7 @@ td {border:1px solid grey}
       <tr>
         <td>{{ test.name }}</td>
         <td>{{ test.repeat }}</td>
-        <td class="test {{ test.status }}">
+        <td class="test {{ test.status }} {% if test.flaky %}flaky{% endif %}">
           <a href='#{{ test.name }}_{{ test.repeat }}'
              onclick='$("#{{ test.name }}_{{ test.repeat }}").toggle()'>
             {{ test.status }}

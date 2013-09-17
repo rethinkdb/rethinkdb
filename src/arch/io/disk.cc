@@ -35,7 +35,9 @@ void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t o
 class linux_disk_manager_t : public home_thread_mixin_t {
 public:
     struct action_t : public stats_diskmgr_t::action_t {
-        int cb_thread;
+        action_t(threadnum_t _cb_thread, linux_iocallback_t *_cb)
+            : cb_thread(_cb_thread), cb(_cb) { }
+        threadnum_t cb_thread;
         linux_iocallback_t *cb;
     };
 
@@ -95,13 +97,11 @@ public:
     void submit_write(fd_t fd, const void *buf, size_t count, int64_t offset,
                       void *account, linux_iocallback_t *cb,
                       bool wrap_in_datasyncs) {
-        int calling_thread = get_thread_id();
+        threadnum_t calling_thread = get_thread_id();
 
-        action_t *a = new action_t;
+        action_t *a = new action_t(calling_thread, cb);
         a->make_write(fd, buf, count, offset, wrap_in_datasyncs);
         a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
-        a->cb = cb;
-        a->cb_thread = calling_thread;
 
         do_on_thread(home_thread(),
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
@@ -113,13 +113,11 @@ public:
 #elif USE_WRITEV
     void submit_writev(fd_t fd, scoped_array_t<iovec> &&bufs, size_t count,
                        int64_t offset, void *account, linux_iocallback_t *cb) {
-        int calling_thread = get_thread_id();
+        threadnum_t calling_thread = get_thread_id();
 
-        action_t *a = new action_t;
+        action_t *a = new action_t(calling_thread, cb);
         a->make_writev(fd, std::move(bufs), count, offset);
         a->account = static_cast<accounting_diskmgr_t::account_t *>(account);
-        a->cb = cb;
-        a->cb_thread = calling_thread;
 
         do_on_thread(home_thread(),
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,
@@ -128,13 +126,11 @@ public:
 #endif  // USE_WRITEV
 
     void submit_read(fd_t fd, void *buf, size_t count, int64_t offset, void *account, linux_iocallback_t *cb) {
-        int calling_thread = get_thread_id();
+        threadnum_t calling_thread = get_thread_id();
 
-        action_t *a = new action_t;
+        action_t *a = new action_t(calling_thread, cb);
         a->make_read(fd, buf, count, offset);
         a->account = static_cast<accounting_diskmgr_t::account_t*>(account);
-        a->cb = cb;
-        a->cb_thread = calling_thread;
 
         do_on_thread(home_thread(),
                      std::bind(&linux_disk_manager_t::submit_action_to_stack_stats, this,

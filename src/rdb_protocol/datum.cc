@@ -996,7 +996,10 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
         int64_t i;
         if (number_as_integer(value, &i)) {
             // We serialize the signed-zero double, -0.0, with INT_NEGATIVE.
-            if (std::signbit(value)) {
+
+            // so we can use `signbit` in a GCC 4.4.3-compatible way
+            using namespace std;  // NOLINT(build/namespaces)
+            if (signbit(value)) {
                 wm << datum_serialized_type_t::INT_NEGATIVE;
                 serialize_varint_uint64(&wm, -i);
             } else {
