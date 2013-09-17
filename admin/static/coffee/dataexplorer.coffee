@@ -490,11 +490,7 @@ module 'DataExplorerView', ->
                     selected: selected
                     id: db.get('id')
                     name: db.get('name')
-            dbs.sort (a,b) ->
-                if a.name>b.name
-                    1
-                else
-                    -1
+            _.sortBy dbs, (db) -> db.name
 
             @$('.db_container').html @select_db_template
                 databases: dbs
@@ -2227,11 +2223,8 @@ module 'DataExplorerView', ->
                         no_database: true
                 else
                     databases_available = databases.models.map (database) -> return database.get('name')
-                    databases.sort (a, b) ->
-                        if a>b
-                            1
-                        else
-                            -1
+                    databases_available.sort()
+
                     data =
                         no_database: false
                         databases_available: databases_available
@@ -2247,11 +2240,7 @@ module 'DataExplorerView', ->
                         if database_used.db_found is false or namespace.get('database') is database_used.id
                             namespaces_available.push namespace.get('name')
                     data =
-                        namespaces_available: namespaces_available.sort (a, b) ->
-                            if a>b
-                                1
-                            else
-                                -1
+                        namespaces_available: namespaces_available.sort()
                         no_namespace: namespaces_available.length is 0
                         database_name: database_used
 
