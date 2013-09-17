@@ -618,7 +618,7 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
         // because adjacent regions often have the same value. On the other hand
         // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
-        pmap(regions.size(), std::bind(&call_memcached_backfill, ph::_1,
+        pmap(regions.size(), std::bind(&call_memcached_backfill, _1,
                                        btree, regions, &callback, txn, &refcount_wrapper,
                                        sindex_block, progress, interruptor));
 

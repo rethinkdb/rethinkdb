@@ -10,7 +10,6 @@
 #include "unittest/unittest_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
 
-using namespace std::placeholders;
 
 namespace unittest {
 

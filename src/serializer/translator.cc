@@ -56,7 +56,7 @@ void serializer_multiplexer_t::create(const std::vector<standard_serializer_t *>
 
     /* Write a configuration block for each one */
     pmap(underlying.size(), std::bind(&prep_serializer,
-        underlying, creation_timestamp, n_proxies, ph::_1));
+        underlying, creation_timestamp, n_proxies, _1));
 }
 
 void create_proxies(const std::vector<standard_serializer_t *>& underlying,
@@ -142,7 +142,7 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_se
     (because we already visited it to get the creation magic and stuff) but that's OK. Also, create
     proxies for the serializers (populate the 'proxies' vector) */
     pmap(underlying.size(), std::bind(&create_proxies,
-        underlying, creation_timestamp, &proxies, ph::_1));
+        underlying, creation_timestamp, &proxies, _1));
 
     for (int i = 0; i < static_cast<int>(proxies.size()); ++i) rassert(proxies[i]);
 }
@@ -153,7 +153,7 @@ void destroy_proxy(std::vector<translator_serializer_t *> *proxies, int i) {
 }
 
 serializer_multiplexer_t::~serializer_multiplexer_t() {
-    pmap(proxies.size(), std::bind(&destroy_proxy, &proxies, ph::_1));
+    pmap(proxies.size(), std::bind(&destroy_proxy, &proxies, _1));
 }
 
 int serializer_multiplexer_t::compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {

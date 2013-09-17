@@ -4,7 +4,6 @@
 #include "clustering/generic/registrant.hpp"
 #include "containers/archive/boost_types.hpp"
 
-using namespace std::placeholders;
 
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket_acq_t::ticket_acq_t(multi_throttling_client_t *p) : parent(p) {

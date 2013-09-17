@@ -108,7 +108,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 
     listener(new tcp_listener_t(cluster_listener_socket.get(),
                                 std::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                                          this, ph::_1, auto_drainer_t::lock_t(&drainer))))
+                                          this, _1, auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
@@ -180,7 +180,7 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::entry_i
                                                            std::make_pair(that_, auto_drainer_t::lock_t(&drainer_))));
         guarantee(res.second, "Map entry was not present.");
 
-        ti->publisher.publish(std::bind(&ping_connection_watcher, that_->peer, ph::_1));
+        ti->publisher.publish(std::bind(&ping_connection_watcher, that_->peer, _1));
     }
 }
 
@@ -194,7 +194,7 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
             = ti->connection_map.find(that_->peer);
         guarantee(entry != ti->connection_map.end() && entry->second.first == that_);
         ti->connection_map.erase(that_->peer);
-        ti->publisher.publish(std::bind(&ping_disconnection_watcher, that_->peer, ph::_1));
+        ti->publisher.publish(std::bind(&ping_disconnection_watcher, that_->peer, _1));
     }
 }
 
@@ -280,7 +280,7 @@ void connectivity_cluster_t::run_t::join_blocking(
          std::bind(&connectivity_cluster_t::run_t::connect_to_peer,
                    this,
                    &peer,
-                   ph::_1,
+                   _1,
                    expected_id,
                    drainer_lock,
                    &successful_join,

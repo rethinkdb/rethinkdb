@@ -42,9 +42,9 @@ struct test_driver_t {
         linux_thread_pool_t::thread_id = 0;
 
         conflict_resolver.submit_fun = std::bind(
-            &test_driver_t::submit_from_conflict_resolving_diskmgr, this, ph::_1);
+            &test_driver_t::submit_from_conflict_resolving_diskmgr, this, _1);
         conflict_resolver.done_fun = std::bind(
-            &test_driver_t::done_from_conflict_resolving_diskmgr, this, ph::_1);
+            &test_driver_t::done_from_conflict_resolving_diskmgr, this, _1);
     }
     ~test_driver_t() {
         linux_thread_pool_t::thread_id = old_thread_id;

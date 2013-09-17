@@ -8,7 +8,6 @@
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-using namespace std::placeholders;
 
 Response on_unparsable_query2(ql::protob_t<Query> q, std::string msg) {
     Response res;

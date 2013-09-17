@@ -4,7 +4,6 @@
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "rpc/semilattice/view.hpp"
 
-using namespace std::placeholders;
 
 template <class protocol_t>
 replier_t<protocol_t>::replier_t(listener_t<protocol_t> *li,

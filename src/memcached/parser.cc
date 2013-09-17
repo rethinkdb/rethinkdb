@@ -334,7 +334,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     block_pm_duration get_timer(&rh->stats->pm_cmd_get);
 
     /* Now that we're sure they're all valid, send off the requests */
-    pmap(gets.size(), std::bind(&do_one_get, rh, with_cas, gets.data(), ph::_1, token));
+    pmap(gets.size(), std::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
 
     if (rh->interruptor->is_pulsed()) {
         pipeliner_acq.begin_write();

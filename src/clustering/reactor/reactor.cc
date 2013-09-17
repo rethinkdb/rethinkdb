@@ -8,7 +8,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
-using namespace std::placeholders;
 
 template<class key_t, class value_t>
 std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {

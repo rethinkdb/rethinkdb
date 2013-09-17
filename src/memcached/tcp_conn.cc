@@ -8,7 +8,6 @@
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
 
-using namespace std::placeholders;
 
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_debug_only_t {

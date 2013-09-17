@@ -10,7 +10,6 @@
 #include "protocol_api.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 
-using namespace std::placeholders;
 
 template <class protocol_t>
 struct multistore_ptr_t<protocol_t>::switch_read_token_t {

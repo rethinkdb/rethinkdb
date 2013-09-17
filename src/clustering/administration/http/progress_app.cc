@@ -16,7 +16,6 @@
 #include "http/json/json_adapter.hpp"
 #include "memcached/protocol_json_adapter.hpp"
 
-using namespace std::placeholders;
 
 static const char *PROGRESS_REQ_TIMEOUT_PARAM = "timeout";
 static const uint64_t DEFAULT_PROGRESS_REQ_TIMEOUT_MS = 2000;

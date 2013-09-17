@@ -1,7 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/last_seen_tracker.hpp"
 
-using namespace std::placeholders;
 
 last_seen_tracker_t::last_seen_tracker_t(
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &mv,

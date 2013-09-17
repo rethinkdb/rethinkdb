@@ -7,7 +7,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
-using namespace std::placeholders;
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_broadcaster_in_directory(

@@ -9,7 +9,6 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
-using namespace std::placeholders;
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
 when draining the write queue after completing a backfill. */

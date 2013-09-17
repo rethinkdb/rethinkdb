@@ -9,7 +9,6 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
 
-using namespace std::placeholders;
 
 #define ALLOCATION_CHUNK 50
 

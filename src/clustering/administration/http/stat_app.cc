@@ -15,7 +15,6 @@
 #include "perfmon/archive.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 
-using namespace std::placeholders;
 
 static const char * STAT_REQ_TIMEOUT_PARAM = "timeout";
 static const uint64_t DEFAULT_STAT_REQ_TIMEOUT_MS = 1000;

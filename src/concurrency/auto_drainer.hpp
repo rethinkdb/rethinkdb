@@ -70,7 +70,7 @@ private:
                 std::bind(&toy_tcp_server_t::serve,
                     this,
                     auto_drainer_t::lock_t(&drainer),
-                    ph::_1
+                    _1
                     )
                 )
             { }

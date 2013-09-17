@@ -1516,7 +1516,7 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
     rdb_backfill_callback_impl_t callback(chunk_fun_cb);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
-    pmap(regions.size(), std::bind(&call_rdb_backfill, ph::_1,
+    pmap(regions.size(), std::bind(&call_rdb_backfill, _1,
         btree, regions, &callback, txn, &refcount_wrapper, sindex_block, progress, interruptor));
 
     /* If interruptor was pulsed, `call_rdb_backfill()` exited silently, so we

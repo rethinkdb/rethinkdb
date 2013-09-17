@@ -27,7 +27,6 @@
 #include "perfmon/perfmon.hpp"
 #include "perfmon/archive.hpp"
 
-using namespace std::placeholders;
 
 const std::vector<std::string>& guarantee_param_vec(const std::map<std::string, std::vector<std::string> >& params, const std::string& name) {
     std::map<std::string, std::vector<std::string> >::const_iterator it = params.find(name);

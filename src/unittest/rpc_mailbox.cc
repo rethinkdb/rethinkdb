@@ -180,7 +180,7 @@ void run_typed_mailbox_test() {
     connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m, std::bind(&string_push_back, &inbox, ph::_1));
+    mailbox_t<void(std::string)> mbox(&m, std::bind(&string_push_back, &inbox, _1));
 
     mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 

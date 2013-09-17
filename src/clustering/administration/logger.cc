@@ -15,7 +15,6 @@
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
 
-using namespace std::placeholders;
 
 RDB_IMPL_SERIALIZABLE_2(struct timespec, tv_sec, tv_nsec);
 

@@ -5,7 +5,6 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
-using namespace std::placeholders;
 
 /* Returns true if every peer listed as a primary for this shard in the
  * blueprint has activity primary_t and every peer listed as a secondary has

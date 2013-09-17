@@ -21,7 +21,6 @@
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
-using namespace std::placeholders;
 
 namespace unittest {
 

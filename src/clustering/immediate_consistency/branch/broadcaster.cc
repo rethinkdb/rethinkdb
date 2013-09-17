@@ -17,7 +17,6 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
 
-using namespace std::placeholders;
 
 template <class protocol_t>
 const int broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES =

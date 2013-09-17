@@ -4,7 +4,6 @@
 #include "protocol_api.hpp"
 #include "btree/btree_store.hpp"
 
-using namespace std::placeholders;
 
 template <class protocol_t>
 direct_reader_t<protocol_t>::direct_reader_t(

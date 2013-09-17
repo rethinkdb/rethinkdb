@@ -5,7 +5,6 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
 
-using namespace std::placeholders;
 
 template <class protocol_t>
 cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(

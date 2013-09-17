@@ -9,7 +9,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
-using namespace std::placeholders;
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 

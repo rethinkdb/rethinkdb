@@ -98,7 +98,7 @@ void cluster_access_t::join_and_wait_to_propagate(
 
     boost::function<bool (const cow_ptr_t<ns_metadata_t> s)> p
         = std::bind(&is_joined<cow_ptr_t<ns_metadata_t > >,
-                    ph::_1,
+                    _1,
                     sl_metadata.rdb_namespaces);
 
     {
@@ -107,7 +107,7 @@ void cluster_access_t::join_and_wait_to_propagate(
                                                              interruptor);
         databases_semilattice_metadata->run_until_satisfied(
             std::bind(&is_joined<databases_semilattice_metadata_t>,
-                      ph::_1,
+                      _1,
                       sl_metadata.databases),
             interruptor);
     }

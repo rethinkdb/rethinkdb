@@ -8,7 +8,6 @@
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
 
-using namespace std::placeholders;
 
 #define MAX_CHUNKS_OUT 5000
 

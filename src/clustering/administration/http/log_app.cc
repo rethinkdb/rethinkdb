@@ -5,7 +5,6 @@
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "utils.hpp"
 
-using namespace std::placeholders;
 
 cJSON *render_as_json(log_message_t *message) {
     std::string timestamp_buffer = strprintf("%ld.%09ld", message->timestamp.tv_sec, message->timestamp.tv_nsec);

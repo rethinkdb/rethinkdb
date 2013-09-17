@@ -14,7 +14,6 @@
 #include "unittest/unittest_utils.hpp"
 
 using mock::dummy_protocol_t;
-using namespace std::placeholders;
 
 namespace unittest {
 

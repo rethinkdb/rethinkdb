@@ -4,7 +4,6 @@
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
 
-using namespace std::placeholders;
 
 RDB_IMPL_SERIALIZABLE_1(log_server_business_card_t, address);
 

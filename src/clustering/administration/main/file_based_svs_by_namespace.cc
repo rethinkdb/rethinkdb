@@ -7,7 +7,6 @@
 #include "serializer/translator.hpp"
 #include "utils.hpp"
 
-using namespace std::placeholders;
 
 /* This object serves mostly as a container for arguments to the
  * do_construct_existing_store function because we hit the std::bind argument

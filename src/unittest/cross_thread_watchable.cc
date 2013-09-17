@@ -33,7 +33,7 @@ void runCrossThreadWatchabletest() {
                 on_thread_t switcher(threadnum_t(1));
                 signal_timer_t timer;
                 timer.start(5000);
-                ctw->get_watchable()->run_until_satisfied(std::bind(&equals, expected_value, ph::_1), &timer);
+                ctw->get_watchable()->run_until_satisfied(std::bind(&equals, expected_value, _1), &timer);
             }
         }
 
@@ -50,7 +50,7 @@ void runCrossThreadWatchabletest() {
                 on_thread_t switcher(threadnum_t(1));
                 signal_timer_t timer;
                 timer.start(5000);
-                ctw->get_watchable()->run_until_satisfied(std::bind(&equals, expected_value, ph::_1), &timer);
+                ctw->get_watchable()->run_until_satisfied(std::bind(&equals, expected_value, _1), &timer);
             }
         }
     } catch (const interrupted_exc_t &) {
