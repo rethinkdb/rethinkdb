@@ -1,9 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/timing.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/mailbox/mailbox.hpp"
@@ -183,7 +180,7 @@ void run_typed_mailbox_test() {
     connectivity_cluster_t::run_t r(&c, get_unittest_addresses(), peer_address_t(), ANY_PORT, &m, 0, NULL);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m, boost::bind(&string_push_back, &inbox, _1));
+    mailbox_t<void(std::string)> mbox(&m, std::bind(&string_push_back, &inbox, ph::_1));
 
     mailbox_addr_t<void(std::string)> addr = mbox.get_address();
 

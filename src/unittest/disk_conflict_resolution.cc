@@ -2,7 +2,6 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "arch/io/disk/conflict_resolving.hpp"
@@ -42,10 +41,10 @@ struct test_driver_t {
         old_thread_id = linux_thread_pool_t::thread_id;
         linux_thread_pool_t::thread_id = 0;
 
-        conflict_resolver.submit_fun = boost::bind(
-            &test_driver_t::submit_from_conflict_resolving_diskmgr, this, _1);
-        conflict_resolver.done_fun = boost::bind(
-            &test_driver_t::done_from_conflict_resolving_diskmgr, this, _1);
+        conflict_resolver.submit_fun = std::bind(
+            &test_driver_t::submit_from_conflict_resolving_diskmgr, this, ph::_1);
+        conflict_resolver.done_fun = std::bind(
+            &test_driver_t::done_from_conflict_resolving_diskmgr, this, ph::_1);
     }
     ~test_driver_t() {
         linux_thread_pool_t::thread_id = old_thread_id;
