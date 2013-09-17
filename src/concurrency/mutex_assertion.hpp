@@ -179,7 +179,7 @@ struct mutex_assertion_t {
     };
     explicit mutex_assertion_t(int) { }
     mutex_assertion_t() { }
-    void rethread(int) { }
+    void rethread(threadnum_t) { }
 private:
     DISABLE_COPYING(mutex_assertion_t);
 };
@@ -206,7 +206,7 @@ struct rwi_lock_assertion_t {
     };
     explicit rwi_lock_assertion_t(int) { }
     rwi_lock_assertion_t() { }
-    void rethread(int) { }
+    void rethread(threadnum_t) { }
 private:
     friend struct read_acq_t;
     friend struct write_acq_t;
