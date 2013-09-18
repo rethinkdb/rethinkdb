@@ -2,7 +2,7 @@
 
 class thread_page_repl_t {
 public:
-    thread_page_repl_t(global_page_repl_t *parent) : parent_(parent) {
+    explicit thread_page_repl_t(global_page_repl_t *parent) : parent_(parent) {
         (void)parent_;
     }
 
