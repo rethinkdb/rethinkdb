@@ -8,7 +8,6 @@
 
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "stl_utils.hpp"

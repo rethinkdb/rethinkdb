@@ -28,7 +28,6 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/wire_func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
@@ -45,9 +44,7 @@ template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
 
-using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
-using query_language::runtime_exc_t;
 
 enum point_write_result_t {
     STORED,
@@ -147,34 +144,12 @@ typedef boost::variant<ql::map_wire_func_t,
                        filter_transform_t,
                        range_and_func_filter_transform_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
-
-struct transform_atom_t {
-    transform_atom_t() { }
-    transform_atom_t(const transform_variant_t &tv, const backtrace_t &b) :
-        variant(tv), backtrace(b) { }
-
-    transform_variant_t variant;
-    backtrace_t backtrace;
-};
-
-RDB_DECLARE_SERIALIZABLE(transform_atom_t);
-
-typedef std::list<transform_atom_t> transform_t;
+typedef std::list<transform_variant_t> transform_t;
 
 typedef boost::variant<ql::gmr_wire_func_t,
                        ql::count_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
-
-struct terminal_t {
-    terminal_t() { }
-    terminal_t(const terminal_variant_t &tv, const backtrace_t &b) :
-        variant(tv), backtrace(b) { }
-
-    terminal_variant_t variant;
-    backtrace_t backtrace;
-};
-
-RDB_DECLARE_SERIALIZABLE(terminal_t);
+typedef terminal_variant_t terminal_t;
 
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
@@ -275,7 +250,6 @@ struct rdb_protocol_t {
         typedef boost::variant<
             stream_t,
             groups_t,
-            query_language::runtime_exc_t,
             ql::exc_t,
             ql::datum_exc_t,
             counted_t<const ql::datum_t>,

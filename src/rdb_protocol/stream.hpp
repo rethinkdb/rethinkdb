@@ -19,8 +19,6 @@
 #include <boost/variant/get.hpp>
 
 #include "clustering/administration/namespace_interface_repository.hpp"
-#include "rdb_protocol/exceptions.hpp"
-#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
@@ -50,13 +48,11 @@ public:
     virtual hinted_datum_t sorting_hint_next(ql::env_t *env) = 0;
 
     virtual MUST_USE boost::shared_ptr<json_stream_t>
-    add_transformation(const rdb_protocol_details::transform_variant_t &,
-                       const backtrace_t &backtrace) = 0;
+    add_transformation(const rdb_protocol_details::transform_variant_t &) = 0;
 
     virtual rdb_protocol_t::rget_read_response_t::result_t
     apply_terminal(const rdb_protocol_details::terminal_variant_t &,
-                   ql::env_t *env,
-                   const backtrace_t &backtrace) = 0;
+                   ql::env_t *env) = 0;
 
     virtual ~json_stream_t() { }
 
@@ -86,12 +82,12 @@ public:
 
     hinted_datum_t sorting_hint_next(ql::env_t *env);
 
-    boost::shared_ptr<json_stream_t> add_transformation(const rdb_protocol_details::transform_variant_t &t,
-                                                        const backtrace_t &backtrace);
+    boost::shared_ptr<json_stream_t> add_transformation(
+        const rdb_protocol_details::transform_variant_t &t);
+
     rdb_protocol_t::rget_read_response_t::result_t
     apply_terminal(const rdb_protocol_details::terminal_variant_t &t,
-                   ql::env_t *env,
-                   const backtrace_t &backtrace);
+                   ql::env_t *env);
 
 private:
     boost::optional<rget_item_t> head(ql::env_t *env);
@@ -125,8 +121,6 @@ private:
 
     sindex_range_t sindex_range;
     key_range_t range;
-
-    boost::optional<backtrace_t> table_scan_backtrace;
 
     sorting_t sorting;
 

@@ -683,21 +683,15 @@ public:
             }
 
             if (terminal) {
-                terminal_initialize(terminal->backtrace,
-                                    &terminal->variant,
-                                    &response->result);
+                terminal_initialize(&*terminal, &response->result);
             }
-        } catch (const query_language::runtime_exc_t &e) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            response->result = e;
-            bad_init = true;
         } catch (const ql::exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e2;
             bad_init = true;
         } catch (const ql::datum_exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
-            terminal_exception(e2, terminal->variant, &response->result);
+            terminal_exception(e2, *terminal, &response->result);
             bad_init = true;
         }
     }
@@ -747,9 +741,8 @@ public:
                         std::vector<counted_t<const ql::datum_t> > tmp;
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                            transform_apply(ql_env, it->backtrace,
-                                            jt->get(), &it->variant,
-                                            &tmp);
+                            query_language::transform_apply(
+                                ql_env, jt->get(), &*it, &tmp);
                         }
                         data.clear();
                         for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
@@ -758,7 +751,7 @@ public:
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
                            more requests. */
-                        transform_exception(e2, it->variant, &response->result);
+                        transform_exception(e2, *it, &response->result);
                         return false;
                     }
                 }
@@ -786,22 +779,16 @@ public:
             } else {
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        terminal_apply(ql_env, terminal->backtrace,
-                                       *jt,
-                                       &terminal->variant, &response->result);
+                        terminal_apply(ql_env, *jt, &*terminal, &response->result);
                     }
                     return true;
                 } catch (const ql::datum_exc_t &e2) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    terminal_exception(e2, terminal->variant, &response->result);
+                    terminal_exception(e2, *terminal, &response->result);
                     return false;
                 }
             }
-        } catch (const query_language::runtime_exc_t &e) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            response->result = e;
-            return false;
         } catch (const ql::exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e2;
@@ -828,7 +815,6 @@ class result_finalizer_visitor_t : public boost::static_visitor<void> {
 public:
     void operator()(const rget_read_response_t::stream_t &) const { }
     void operator()(const rget_read_response_t::groups_t &) const { }
-    void operator()(const query_language::runtime_exc_t &) const { }
     void operator()(const ql::exc_t &) const { }
     void operator()(const ql::datum_exc_t &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
@@ -848,7 +834,8 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     direction_t direction,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
+    rdb_rget_depth_first_traversal_callback_t callback(
+        txn, ql_env, transform, terminal, range, direction, response);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback, direction);
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
