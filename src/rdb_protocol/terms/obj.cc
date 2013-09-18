@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/op.hpp"
@@ -7,11 +8,11 @@ namespace ql {
 
 class keys_term_t : public op_term_t {
 public:
-    keys_term_t(env_t *env, const protob_t<const Term> &term)
+    keys_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<const datum_t> d = arg(0)->as_datum();
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<const datum_t> d = arg(env, 0)->as_datum();
         const std::map<std::string, counted_t<const datum_t> > &obj = d->as_object();
 
         std::vector<counted_t<const datum_t> > arr;
@@ -25,7 +26,7 @@ private:
     virtual const char *name() const { return "keys"; }
 };
 
-counted_t<term_t> make_keys_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<keys_term_t>(env, term);
 }
 

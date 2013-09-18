@@ -141,7 +141,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING{
     keepalive.assert_is_holding(&cache->drainer);
-    int thread = get_thread_id();
+    threadnum_t thread = get_thread_id();
 
     typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
     guarantee(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());

@@ -90,7 +90,10 @@ const std::string rdb_protocol_t::protocol_name("rdb");
 
 RDB_IMPL_PROTOB_SERIALIZABLE(Term);
 RDB_IMPL_PROTOB_SERIALIZABLE(Datum);
+RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
+
+RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
 
 namespace rdb_protocol_details {
 
@@ -351,14 +354,14 @@ rdb_protocol_t::context_t::context_t(
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
                                                     clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
                                                         (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
-                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), threadnum_t(thread)));
 
         cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
                                                     clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
                                                         (new semilattice_watchable_t<databases_semilattice_metadata_t>(
-                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), threadnum_t(thread)));
 
-        signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
+        signals[thread].init(new cross_thread_signal_t(&interruptor, threadnum_t(thread)));
     }
 }
 
@@ -524,9 +527,9 @@ public:
         : responses(_responses), count(_count), response_out(_response_out),
           ql_env(ctx->extproc_pool,
                  ctx->ns_repo,
-                 ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                 ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                      ->get_watchable(),
-                 ctx->cross_thread_database_watchables[get_thread_id()].get()
+                 ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                      ->get_watchable(),
                  ctx->cluster_metadata,
                  NULL,
@@ -754,7 +757,7 @@ private:
                     } else {
                         if (lhs) {
                             counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile(&ql_env)->call(*lhs, *rhs)->as_datum();
+                                local_reduce_func.compile_wire_func()->call(&ql_env, *lhs, *rhs)->as_datum();
                             rg_response->result = reduced_val;
                         } else {
                             guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
@@ -800,8 +803,8 @@ private:
                             map->set(key, val);
                         } else {
                             counted_t<ql::func_t> r
-                                = local_gmr_func.compile_reduce(&ql_env);
-                            map->set(key, r->call(map->get(key), val)->as_datum());
+                                = local_gmr_func.compile_reduce();
+                            map->set(key, r->call(&ql_env, map->get(key), val)->as_datum());
                         }
                     }
                 }
@@ -1101,7 +1104,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (rget.transform.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
-        ql_env.init_optargs(rget.optargs);
+        ql_env.global_optargs.init_optargs(rget.optargs);
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
@@ -1212,12 +1215,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         txn(_txn),
         superblock(_superblock),
         token_pair(_token_pair),
-        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
+        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
-               ctx->cross_thread_database_watchables[get_thread_id()].get()
+               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
                ctx->cluster_metadata,
                NULL,
@@ -1252,7 +1255,7 @@ void store_t::protocol_read(const read_t &read,
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_replace_t &r) {
         try {
-            ql_env.init_optargs(r.optargs);
+            ql_env.global_optargs.init_optargs(r.optargs);
         } catch (const interrupted_exc_t &) {
             // Clear the sindex_write_token because we didn't have a chance to use it
             token_pair->sindex_write_token.reset();
@@ -1366,13 +1369,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         token_pair(_token_pair),
         timestamp(_timestamp),
-        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
+        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[
-                   get_thread_id()].get()->get_watchable(),
-               ctx->cross_thread_database_watchables[
-                   get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
+               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cluster_metadata,
                0,
                &interruptor,
@@ -1646,47 +1647,13 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
-
-void rdb_protocol_t::sindex_range_t::write_filter_func(
-    ql::env_t *env, Term *filter, const Term &sindex_mapping) const {
-    int arg1 = env->gensym();
-    int sindex_val = env->gensym();
-    Term *arg = ql::pb::set_func(filter, arg1);
-    if (!start.has() && !end.has()) {
-        NDATUM_BOOL(true);
-        return;
-    }
-
-    N2(FUNCALL, arg = ql::pb::set_func(arg, sindex_val);
-       N2(ALL,
-          if (start.has()) {
-              if (start_open) {
-                  N2(GT, NVAR(sindex_val), NDATUM(start));
-              } else {
-                  N2(GE, NVAR(sindex_val), NDATUM(start));
-              }
-          } else {
-              NDATUM_BOOL(true);
-          },
-          if (end.has()) {
-              if (end_open) {
-                  N2(LT, NVAR(sindex_val), NDATUM(end));
-              } else {
-                  N2(LE, NVAR(sindex_val), NDATUM(end));
-              }
-          } else {
-              NDATUM_BOOL(true);
-          }),
-       N2(FUNCALL, *arg = sindex_mapping, NVAR(arg1)));
-}
-
-region_t rdb_protocol_t::sindex_range_t::to_region() const {
-    return region_t(rdb_protocol_t::sindex_key_range(
+hash_region_t<key_range_t> sindex_range_t::to_region() const {
+    return hash_region_t<key_range_t>(rdb_protocol_t::sindex_key_range(
         start != NULL ? start->truncated_secondary() : store_key_t::min(),
         end != NULL ? end->truncated_secondary() : store_key_t::max()));
 }
 
-bool rdb_protocol_t::sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
+bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
     return (!start || (*start < *value || (*start == *value && !start_open))) &&
            (!end   || (*value < *end   || (*value == *end && !end_open)));
 }
@@ -1704,7 +1671,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_range_t,
+RDB_IMPL_ME_SERIALIZABLE_4(sindex_range_t,
                            empty_ok(start), empty_ok(end), start_open, end_open);
 RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_range,

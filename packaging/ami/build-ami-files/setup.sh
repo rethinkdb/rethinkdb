@@ -2,10 +2,14 @@ set -ex
 
 # install applications and libraries
 add-apt-repository -y ppa:rethinkdb/ppa
-sudo add-apt-repository ppa:chris-lea/node.js
+add-apt-repository -y ppa:chris-lea/node.js
 aptitude -y update
-aptitude install -y rethinkdb nginx-light apache2-utils python-twisted rubygems python-pip npm nodejs
-aptitude -y safe-upgrade
+aptitude install -y rethinkdb nginx-light apache2-utils python-twisted \
+    rubygems python-pip npm nodejs ruby1.9.1 rubygems1.9.1 python-dev ruby1.9.1-dev \
+    build-essential
+update-alternatives --set ruby /usr/bin/ruby1.9.1
+update-alternatives --set gem /usr/bin/gem1.9.1
+# aptitude -y safe-upgrade
 npm install -g rethinkdb
 pip install rethinkdb
 gem install rethinkdb

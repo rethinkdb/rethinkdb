@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
@@ -27,6 +27,16 @@
 
 class Term;
 void pb_print(Term *t);
+
+// A thread number as used by the thread pool.
+class threadnum_t {
+public:
+    explicit threadnum_t(int32_t _threadnum) : threadnum(_threadnum) { }
+
+    bool operator==(threadnum_t other) const { return threadnum == other.threadnum; }
+
+    int32_t threadnum;
+};
 
 class startup_shutdown_t {
 public:
@@ -216,7 +226,7 @@ on a single thread. Its thread ID is exposed as the `home_thread()`
 method. Some subclasses of `home_thread_mixin_debug_only_t` can move themselves to
 another thread, modifying the field real_home_thread. */
 
-#define INVALID_THREAD (-1)
+#define INVALID_THREAD (threadnum_t(-1))
 
 class home_thread_mixin_debug_only_t {
 public:
@@ -227,18 +237,18 @@ public:
 #endif
 
 protected:
-    explicit home_thread_mixin_debug_only_t(int specified_home_thread);
+    explicit home_thread_mixin_debug_only_t(threadnum_t specified_home_thread);
     home_thread_mixin_debug_only_t();
     ~home_thread_mixin_debug_only_t() { }
 
 #ifndef NDEBUG
-    int real_home_thread;
+    threadnum_t real_home_thread;
 #endif
 };
 
 class home_thread_mixin_t {
 public:
-    int home_thread() const { return real_home_thread; }
+    threadnum_t home_thread() const { return real_home_thread; }
 #ifndef NDEBUG
     void assert_thread() const;
 #else
@@ -246,11 +256,11 @@ public:
 #endif
 
 protected:
-    explicit home_thread_mixin_t(int specified_home_thread);
+    explicit home_thread_mixin_t(threadnum_t specified_home_thread);
     home_thread_mixin_t();
-    virtual ~home_thread_mixin_t() { }
+    ~home_thread_mixin_t() { }
 
-    int real_home_thread;
+    threadnum_t real_home_thread;
 
 private:
     // Things with home threads should not be copyable, since we don't
@@ -272,7 +282,7 @@ back in its destructor. For example:
 
 class on_thread_t : public home_thread_mixin_t {
 public:
-    explicit on_thread_t(int thread);
+    explicit on_thread_t(threadnum_t thread);
     ~on_thread_t();
 };
 
@@ -417,8 +427,7 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 
 
 
-#define STR(x) #x
-#define MSTR(x) STR(x) // Stringify a macro
+#define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__
 #define COMPILER "CLANG " __clang_version__
 #elif defined __GNUC__

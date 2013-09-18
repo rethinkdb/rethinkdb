@@ -18,7 +18,7 @@ commands:
       <li><code>durability</code>(string): if set to <code>'soft'</code>, this enables <strong>soft durability</strong>
        on this table: writes will be acknowledged by the server immediately and flushed to disk in the background.
        Default is <code>'hard'</code> (acknowledgement of writes happens after data has been written to disk);</li>
-      <li><code>cache_size</code>(number): set the cache size (in MB) to be used by the table. Default is 1024MB;</li>
+      <li><code>cache_size</code>(number): set the cache size (in bytes) to be used by the table. The default is 1073741824 (1024MB);</li>
       <li><code>datacenter</code>(string): the name of the datacenter this table should be assigned to.</li>
       </ul>
       <br /><br />In Javascript, these options can use either the underscore or camelcase form (e.g. primaryKey, cacheSize).

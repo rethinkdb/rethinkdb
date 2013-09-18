@@ -2595,15 +2595,27 @@ module 'DataExplorerView', ->
             @driver_connected = 'connected'
 
         # Called if the driver could not connect
-        error_on_connect: =>
-            @results_view.cursor_timed_out()
-            # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
-            # So if the user fails to reconnect after a failure, the alert will still flash
-            @.$('#user-alert-space').hide()
-            @.$('#user-alert-space').html @alert_connection_fail_template({})
-            @.$('#user-alert-space').slideDown 'fast'
-            @reconnecting = false
-            @driver_connected = 'error'
+        error_on_connect: (error) =>
+            if /^(Unexpected token)/.test(error.message)
+                # Unexpected token, the server couldn't parse the protobuf message
+                # The truth is we don't know which query failed (unexpected token), but it seems safe to suppose in 99% that the last one failed.
+                @.$('.loading_query_img').hide()
+                @results_view.render_error(null, error)
+
+                # We save the query since the callback will never be called.
+                @save_query
+                    query: @raw_query
+                    broken_query: true
+
+            else
+                @results_view.cursor_timed_out()
+                # We fail to connect, so we display a message except if we were already disconnected and we are not trying to manually reconnect
+                # So if the user fails to reconnect after a failure, the alert will still flash
+                @$('#user-alert-space').hide()
+                @$('#user-alert-space').html @alert_connection_fail_template({})
+                @$('#user-alert-space').slideDown 'fast'
+                @reconnecting = false
+                @driver_connected = 'error'
 
         # Reconnect, function triggered if the user click on reconnect
         reconnect: (event) =>
@@ -3368,6 +3380,7 @@ module 'DataExplorerView', ->
 
         events:
             'click .load_query': 'load_query'
+            'click .delete_query': 'delete_query'
 
         start_resize: (event) =>
             @start_y = event.pageY
@@ -3414,6 +3427,23 @@ module 'DataExplorerView', ->
             # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)].query
             @container.saved_data.current_query = @history[parseInt(id)].query
+
+        delete_query: (event) =>
+            that = @
+
+            # Remove the query and overwrite localStorage.rethinkdb_history
+            id = parseInt(@$(event.target).data().id)
+            @history.splice(id, 1)
+            window.localStorage.rethinkdb_history = JSON.stringify @history
+
+            # Animate the deletion
+            is_at_bottom = @$('.history_list').height() is $('.nano > .content').scrollTop()+$('.nano').height()
+            @$('#query_history_'+id).slideUp 'fast', =>
+                that.$(this).remove()
+                that.render()
+                that.container.adjust_collapsible_panel_height
+                    is_at_bottom: is_at_bottom
+
 
         add_query: (args) =>
             query = args.query
@@ -3509,16 +3539,18 @@ module 'DataExplorerView', ->
             try
                 r.connect @server, (err, connection) ->
                     if err?
-                        that.on_fail()
+                        that.on_fail(err)
                     else
                         that.connection = connection
                         that.on_success(connection)
+                        connection.removeAllListeners 'error'
+                        connection.on 'error', that.on_fail
                 if @container?
                     @container.results_view.cursor_timed_out()
                 unless @dont_timeout_connection
                     @timeout = setTimeout @connect, 5*60*1000
             catch err
-                @on_fail()
+                @on_fail(err)
     
         postpone_reconnection: =>
             clearTimeout @timeout

@@ -6,7 +6,7 @@ import socket
 import struct
 from os import environ
 
-if environ.has_key('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'):
+if 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION' in environ:
     protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
     if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
         import rethinkdb_pbcpp
@@ -22,16 +22,16 @@ else:
         from google.protobuf.internal import cpp_message
         import rethinkdb_pbcpp
         protobuf_implementation = 'cpp'
-    except ImportError, e:
+    except ImportError as e:
         # Default to using the python implementation of protobuf
         environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
         protobuf_implementation = 'python'
 
-import ql2_pb2 as p
+from . import ql2_pb2 as p
 
-import repl # For the repl connection
-from errors import *
-from ast import Datum, DB, expr
+from . import repl # For the repl connection
+from .errors import *
+from .ast import Datum, DB, expr
 
 class Cursor(object):
     def __init__(self, conn, opts, query, term, chunk, complete):
@@ -98,17 +98,17 @@ class Connection(object):
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
         self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
-        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + self.auth_key)
+        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
 
         # Read out the response from the server, which will be a null-terminated string
-        response = ""
+        response = b""
         while True:
             char = self.socket.recv(1)
-            if char == "\0":
+            if char == b"\0":
                 break
             response += char
 
-        if response != "SUCCESS":
+        if response != b"SUCCESS":
             self.socket.close()
             raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
 
@@ -149,7 +149,7 @@ class Connection(object):
             if self.db:
                global_opt_args['db'] = DB(self.db)
 
-        for k,v in global_opt_args.iteritems():
+        for k,v in global_opt_args.items():
             pair = query.global_optargs.add()
             pair.key = k
             expr(v).build(pair.val)
@@ -181,13 +181,13 @@ class Connection(object):
         query_header = struct.pack("<L", len(query_protobuf))
         self.socket.sendall(query_header + query_protobuf)
 
-        if opts.has_key('noreply') and opts['noreply']:
+        if 'noreply' in opts and opts['noreply']:
             return None
 
         # Get response
-        response_buf = ''
+        response_buf = b''
         try:
-            response_header = ''
+            response_header = b''
             while len(response_header) < 4:
                 chunk = self.socket.recv(4)
                 if len(chunk) == 0:
@@ -199,7 +199,7 @@ class Connection(object):
 
             while len(response_buf) < response_len:
                 chunk = self.socket.recv(response_len - len(response_buf))
-                if chunk == '':
+                if len(chunk) == 0:
                     raise RqlDriverError("Connection is broken.")
                 response_buf += chunk
         except KeyboardInterrupt as err:
@@ -218,7 +218,7 @@ class Connection(object):
             raise RqlDriverError("Unexpected response received.")
 
         time_format = 'native'
-        if opts.has_key('time_format'):
+        if 'time_format' in opts:
             time_format = opts['time_format']
 
         # Error responses

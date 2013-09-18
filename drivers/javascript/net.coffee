@@ -50,11 +50,9 @@ deconstructDatum = (datum, opts) ->
                             obj
                         else
                             throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
-                when undefined
-                    # Regular object
-                    obj
                 else
-                    throw new err.RqlDriverError "Unknown psudo-type #{obj['$reql_type$']}."
+                    # Regular object or unknown pseudo type
+                    obj
         },
             => throw new err.RqlDriverError "Unknown Datum type"
         )

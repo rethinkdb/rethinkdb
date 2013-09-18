@@ -8,7 +8,7 @@
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
-#include "btree/depth_first_traversal.hpp"
+#include "btree/concurrent_traversal.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
@@ -198,7 +198,7 @@ void rdb_replace_and_return_superblock(
         }
 
         counted_t<const ql::datum_t> new_val
-            = f->compile(ql_env)->call(old_val)->as_datum();
+            = f->compile_wire_func()->call(ql_env, old_val)->as_datum();
         if (return_vals == RETURN_VALS) {
             bool conflict = resp.add("new_val", new_val, ql::CLOBBER);
             guarantee(conflict); // We set it to `old_val` previously.
@@ -613,7 +613,7 @@ size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
     return serialized_size(datum);
 }
 
-class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
+class rdb_rget_depth_first_traversal_callback_t : public concurrent_traversal_callback_t {
 public:
     /* This constructor does a traversal on the primary btree, it's not to be
      * used with sindexes. The constructor below is for use with sindexes. */
@@ -667,7 +667,7 @@ public:
         sindex_range(_sindex_range),
         sindex_multi(_sindex_multi)
     {
-        sindex_function = _sindex_function.compile(_ql_env);
+        sindex_function = _sindex_function.compile_wire_func();
         init(range);
     }
 
@@ -685,7 +685,7 @@ public:
             }
 
             if (terminal) {
-                terminal_initialize(ql_env, terminal->backtrace,
+                terminal_initialize(terminal->backtrace,
                                     &terminal->variant,
                                     &response->result);
             }
@@ -704,8 +704,9 @@ public:
         }
     }
 
-    bool handle_pair(const btree_key_t* key, const void *value) {
-        store_key_t store_key(key);
+    bool handle_pair(scoped_key_value_t &&keyvalue,
+                     concurrent_traversal_fifo_enforcer_signal_t waiter) THROWS_ONLY(interrupted_exc_t) {
+        store_key_t store_key(keyvalue.key());
         if (bad_init) {
             return false;
         }
@@ -717,19 +718,24 @@ public:
             }
         }
         try {
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()), transaction);
+            first_value.get();
+
+            keyvalue.reset();
+
+            waiter.wait_interruptible();
+
             if ((response->last_considered_key < store_key && forward(sorting)) ||
                 (response->last_considered_key > store_key && backward(sorting))) {
                 response->last_considered_key = store_key;
             }
 
-            lazy_json_t first_value(static_cast<const rdb_value_t *>(value), transaction);
-
-            std::list<lazy_json_t> data;
+            std::vector<lazy_json_t> data;
             data.push_back(first_value);
 
             counted_t<const ql::datum_t> sindex_value;
             if (sindex_function) {
-                sindex_value = sindex_function->call(first_value.get())->as_datum();
+                sindex_value = sindex_function->call(ql_env, first_value.get())->as_datum();
                 guarantee(sindex_range);
                 guarantee(sindex_multi);
 
@@ -750,7 +756,7 @@ public:
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        std::list<counted_t<const ql::datum_t> > tmp;
+                        std::vector<counted_t<const ql::datum_t> > tmp;
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
                             transform_apply(ql_env, it->backtrace,
@@ -859,7 +865,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     sorting_t sorting,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, sorting, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, (forward(sorting) ? FORWARD : BACKWARD));
+    btree_concurrent_traversal(slice, txn, superblock, range, &callback, (forward(sorting) ? FORWARD : BACKWARD));
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -883,7 +889,7 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex
             sindex_range.to_region().inner, pk_range,
             sorting, sindex_func, sindex_multi, sindex_range, response);
 
-    btree_depth_first_traversal(slice, txn, superblock, sindex_range.to_region().inner,
+    btree_concurrent_traversal(slice, txn, superblock, sindex_range.to_region().inner,
             &callback, (forward(sorting) ? FORWARD : BACKWARD));
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
@@ -1009,7 +1015,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
                   std::vector<store_key_t> *keys_out) {
     guarantee(keys_out->empty());
     counted_t<const ql::datum_t> index =
-        mapping->compile(env)->call(doc)->as_datum();
+        mapping->compile_wire_func()->call(env, doc)->as_datum();
 
     if (multi == MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
         for (size_t i = 0; i < index->size(); ++i) {

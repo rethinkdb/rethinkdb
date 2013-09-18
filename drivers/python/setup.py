@@ -24,16 +24,16 @@ class build_ext_nofail(build_ext):
             try:
                 import google.protobuf.internal.cpp_message
             except ImportError:
-                print >> sys.stderr, "*** WARNING: The installed protobuf library does not seem to include the C++ extension"
-                print >> sys.stderr, "*** WARNING: The RethinkDB driver will fallback to using the pure python implementation"
+                sys.stderr.write("*** WARNING: The installed protobuf library does not seem to include the C++ extension\n")
+                sys.stderr.write("*** WARNING: The RethinkDB driver will fallback to using the pure python implementation\n")
 
     def _failed(self, e):
-            print >> sys.stderr, "*** WARNING: Unable to compile the C++ extension"
-            print >> sys.stderr, e
-            print >> sys.stderr, "*** WARNING: Defaulting to the python implementation"
+            sys.stderr.write("*** WARNING: Unable to compile the C++ extension\n")
+            sys.stderr.write(str(e) + "\n")
+            sys.stderr.write("*** WARNING: Defaulting to the python implementation\n")
 
 setup(name="rethinkdb"
-     ,version="1.8.0-0"
+     ,version="1.9.0-0"
      ,description="This package provides the Python driver library for the RethinkDB database server."
      ,url="http://rethinkdb.com"
      ,maintainer="RethinkDB Inc."
@@ -43,4 +43,9 @@ setup(name="rethinkdb"
      ,ext_modules=[Extension('rethinkdb_pbcpp', sources=['./rethinkdb/pbcpp.cpp', './rethinkdb/ql2.pb.cc'],
                              include_dirs=['./rethinkdb'], libraries=['protobuf'])]
      ,cmdclass={"build_ext":build_ext_nofail}
+     ,entry_points={'console_scripts': [
+            'rethinkdb-import = rethinkdb._import:main',
+            'rethinkdb-dump = rethinkdb._dump:main',
+            'rethinkdb-export = rethinkdb._export:main',
+            'rethinkdb-restore = rethinkdb._restore:main']}
 )

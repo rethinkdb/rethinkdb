@@ -98,10 +98,34 @@ public:
 
     void set_capacity(int new_capacity);
 
+    int get_capacity() const { return capacity; }
+
 private:
     bool try_lock(int count);
 
     void pump();
+};
+
+
+class adjustable_semaphore_acq_t {
+public:
+    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree) : acquiree(_acquiree) {
+        acquiree->co_lock();
+    }
+
+    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
+        movee.acquiree = NULL;
+    }
+
+    ~adjustable_semaphore_acq_t() {
+        if (acquiree) {
+            acquiree->unlock();
+        }
+    }
+
+private:
+    adjustable_semaphore_t *acquiree;
+    DISABLE_COPYING(adjustable_semaphore_acq_t);
 };
 
 #endif /* CONCURRENCY_SEMAPHORE_HPP_ */

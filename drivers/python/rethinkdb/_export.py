@@ -10,32 +10,6 @@ from optparse import OptionParser
 
 try:
     import rethinkdb as r
-
-    # Check that the version of the driver is up-to-date
-    version_ok = True
-    try:
-        import pkg_resources
-        version_info = pkg_resources.get_distribution('rethinkdb').version
-
-        match = re.match("([0-9]+)\.([0-9]+)\.([0-9]+)", version_info);
-        if match is None:
-            print "Could not determine rethinkdb python client version, unrecognized format: '%s'" % version_info
-            exit(1)
-
-        minimum_version = [1, 8, 0]
-        installed_version = [int(match.group(1)), int(match.group(2)), int(match.group(3))]
-
-        if installed_version < minimum_version:
-            version_ok = False
-    except ImportError:
-        print "Could not import pkg_resources, please install the python setuptools package."
-        exit(1)
-
-    if not version_ok:
-        print "Incompatible version of rethinkdb python client installed."
-        print "Update it via `pip install --upgrade rethinkdb`"
-        exit(1)
-
 except ImportError:
     print "The RethinkDB python driver is required to use this command."
     print "Please install the driver via `pip install rethinkdb`."
@@ -218,7 +192,7 @@ def csv_writer(filename, fields, task_queue, error_queue):
     try:
         with open(filename, "w") as out:
             out_writer = csv.writer(out)
-            out_writer.writerow(fields)
+            out_writer.writerow([s.encode('utf-8') for s in fields])
 
             while True:
                 item = task_queue.get()
@@ -230,8 +204,10 @@ def csv_writer(filename, fields, task_queue, error_queue):
                 for field in fields:
                     if field not in row:
                         info.append(None)
-                    elif isinstance(row[field], (int, long, float, complex, str, unicode)):
-                        info.append(str(row[field]))
+                    elif isinstance(row[field], (int, long, float, complex)):
+                        info.append(str(row[field]).encode('utf-8'))
+                    elif isinstance(row[field], (str, unicode)):
+                        info.append(row[field].encode('utf-8'))
                     else:
                         info.append(json.dumps(row[field]))
                 out_writer.writerow(info)

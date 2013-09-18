@@ -12,6 +12,7 @@
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/sym.hpp"
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
@@ -86,10 +87,12 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
     Term mapping;
-    Term *arg = ql::pb::set_func(&mapping, 1);
-    N2(GET_FIELD, NVAR(1), NDATUM("sid"));
+    const ql::sym_t one(1);
+    ql::protob_t<Term> twrap = ql::make_counted_term();
+    Term *arg = twrap.get();
+    N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
-    ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
+    ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
     write_message_t wm;
     wm << m;
