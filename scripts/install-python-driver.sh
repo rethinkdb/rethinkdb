@@ -9,49 +9,55 @@ main () {
     log "See http://www.rethinkdb.com/docs/install-drivers/python/ for more information"
     log "Logging to $log_file"
 
-    each "apt brew portage source pip" list_methods
-    each "apt brew portage source pip" info
-    return
-
     log "Inspecting the environment..."
     inspect_environment
+
     log "Checking for dependencies..."
     check dependencies
+
     if any missing; then
         if can install missing; then
             log
             log "The following will be installed:"
             info missing
+
             if user id != 0 && any missing requires sudo; then
                 log "Superuser access is required to complete the installation."
                 log "Re-run this script using sudo to complete the installation."
                 exit 1
             fi
+
             confirm "Do you want to proceed with the installation? [yn] "
             install missing
+
             log "Installation complete!"
+
         else
             log
             log "The following dependencies are missing and cannot be installed automatically:"
+
             for dep in $(missing); do
                 if cannot install $dep; then
                     info $dep
                 fi
             done
+
             log "Install the missing dependencies and run this script again."
         fi
     fi
-    cleanup
+
+    $debug || cleanup
 }
 
 init () {
-    dependencies=TODO
+    debug=false
+    dependencies="python pip libprotobuf protoc pyprotobuf"
     missing=
     package_manager=
     tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/rethinkdb-python-install.XXXXXXXX")
     log_file=$tmp_dir/install.log
     this=
-    stack=root
+    stack=main
 }
 
 cleanup () {
@@ -86,7 +92,7 @@ inspect_environment () {
             fi
             ;;
     esac
-    log "Package Manager: $(info pkg)"
+    log "Package Manager: $($package_manager info)"
 }
 
 pkg () { either "$package_manager pip source" "$@" ; }
@@ -106,18 +112,23 @@ detect_distro () {
 package_manager () {
     $class package_manager
 
-    method info "$@" || {
-        error "$this has no info method"
-    }
+    virtual info "$@"
 
     nomethod "$@"
+}
+
+virtual () {
+    method "$@" || {
+        error "the $1 method is missing in $this"
+    }
 }
 
 apt () {
     $class apt
 
     method info "$@" || {
-        echo "APT package manager"
+        echo "APT"
+        return
     }
 
     inherit package_manager "$@"
@@ -125,21 +136,45 @@ apt () {
 
 portage () {
     $class portage
+
+    method info "$@" || {
+        echo "Portage"
+        return
+    }
+
     inherit package_manager
 }
 
 brew () {
     $class brew
+
+    method info "$@" || {
+        echo "Homebrew"
+        return
+    }
+
     inherit package_manager
 }
 
 source () {
     $class source
+
+    method info "$@" || {
+        echo "Build from source"
+        return
+    }
+
     inherit package_manager
 }
 
 pip () {
     $class pip
+
+    method info "$@" || {
+        echo "PIP"
+        return
+    }
+
     inherit package_manager
 }
 
@@ -158,8 +193,10 @@ cannot () { not $2 can "$1" ; }
 not () { ! "$@" ; }
 
 each () {
-    local list=$1
-    shift 1
+    $class each "$1"
+
+    local list="$1"
+    shift
 
     method "" "$@" || {
         echo "$list"
@@ -173,8 +210,7 @@ each () {
         return 1
     }
 
-    method "*" "$@" || {
-        shift
+    {
         for object in $list; do
             $object "$@"
         done
@@ -183,31 +219,38 @@ each () {
 }
 
 method () {
-    local name=$1
+    local name="$1"
     case "${2:-}" in
         list_methods) echo "$name" ;;
-        $name) return 1 ;;
-        *) stack="$stack $name"; return ;;
+        $name) push_stack "$name"; return 1 ;;
+        *) return ;;
     esac
 }
 
+push_stack () {
+    stack="$stack $1"
+    stack_trace=$stack
+}
+
 nomethod () {
-    error "No such method $1 for $this"
+    error "No such method ${1:-''} for $this"
 }
 
 error () {
-    last_error"$*"
+    last_error="$*"
+    last_error_stack=$stack
     return 1
 }
 
-class='eval local this; local stack=$stack; _class'
+class='eval local this; local stack="$stack"; debug_args="$*"; _class'
 _class () {
-    if [ "${this#inherit *}" = "" ]; then
+    $debug && echo "TRACE: $1 $debug_args"
+    if [ "${this##inherit *}" = "" ] && [ -n "$this" ]; then
         set -- $this
         this=$2
     else
         this=$*
-        stack="$stack | $this"
+        push_stack "| $this"
     fi
 }
 
@@ -217,16 +260,15 @@ inherit () {
 }
 
 either () {
-    local list=$1
-    shift 1
+    local list="$1"
+    shift
 
     method "" "$@" || {
         echo "$list"
         return
     }
 
-    method "*" "$@" || {
-        shift
+    {
         for object in $list; do
             $object "$@" && return || true
         done
@@ -235,7 +277,8 @@ either () {
 }
 
 main "$@" 3>&1 || {
-    log "ERROR: $last_error"
+    log "ERROR: ${last_error:-unknown error}"
+    log "ERROR: in ${last_error_stack:-}"
     log "Aborting installation"
     exit 1
-}
+} 3>&1
