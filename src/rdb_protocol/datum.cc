@@ -942,36 +942,49 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::INT_POSITIVE);
 
+size_t real_serialized_size(const counted_t<const datum_t> &datum) {
+    write_message_t wm;
+    wm << datum;
+    string_stream_t ss;
+    UNUSED int res = send_write_message(&ss, &wm);
+    return ss.str().size();
+}
 
 // This must be kept in sync with operator<<(write_message_t &, const counted_t<const
 // datum_T> &).
 size_t serialized_size(const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
-    const size_t typesize = 1;  // 1 byte for the type.
+    size_t sz = 1; // 1 byte for the type
     switch (datum->get_type()) {
-    case datum_t::R_ARRAY:
-        return typesize + serialized_size(datum->as_array());
-    case datum_t::R_BOOL:
-        return typesize + serialized_size_t<bool>::value;
-    case datum_t::R_NULL:
-        return typesize;
+    case datum_t::R_ARRAY: {
+        sz += serialized_size(datum->as_array());
+    } break;
+    case datum_t::R_BOOL: {
+        sz += serialized_size_t<bool>::value;
+    } break;
+    case datum_t::R_NULL: break;
     case datum_t::R_NUM: {
         double d = datum->as_num();
         int64_t i;
         if (number_as_integer(d, &i)) {
-            return typesize + varint_uint64_serialized_size(abs(i));
+            sz += varint_uint64_serialized_size(abs(i));
         } else {
-            return typesize + serialized_size_t<double>::value;
+            sz += serialized_size_t<double>::value;
         }
     } break;
-    case datum_t::R_OBJECT:
-        return typesize + serialized_size(datum->as_object());
-    case datum_t::R_STR:
-        return typesize + serialized_size(datum->as_str());
+    case datum_t::R_OBJECT: {
+        sz += serialized_size(datum->as_object());
+        break;
+    }
+    case datum_t::R_STR: {
+        sz += serialized_size(datum->as_str());
+        break;
+    }
     case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
     }
+    return sz;
 }
 
 write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {

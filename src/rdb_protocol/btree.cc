@@ -767,17 +767,15 @@ public:
                 for (auto it = data.begin(); it != data.end(); ++it) {
                     counted_t<const ql::datum_t> datum = it->get();
                     if (sindex_value) {
-                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                                                            sindex_value,
-                                                                            datum));
+                        stream->push_back(rdb_protocol_details::rget_item_t(
+                                              store_key, sindex_value, datum));
                     } else {
-                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                                                            datum));
+                        stream->push_back(rdb_protocol_details::rget_item_t(
+                                              store_key, datum));
                     }
 
                     cumulative_size += estimate_rget_response_size(datum);
                 }
-
                 return cumulative_size < rget_max_chunk_size;
             } else {
                 try {
