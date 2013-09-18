@@ -1,6 +1,9 @@
 #ifndef BUFFER_CACHE_GLOBAL_PAGE_REPL_HPP_
 #define BUFFER_CACHE_GLOBAL_PAGE_REPL_HPP_
 
+#include <stdint.h>
+
+#include "concurrency/one_per_thread.hpp"
 #include "errors.hpp"
 
 // global_page_repl_t is responsible for fair page replacement across the entire
@@ -45,13 +48,20 @@
 // that can.  Individual global_page_repl_t threads can operate independently if they
 // run out of "reserve".
 
+class thread_page_repl_t;
 
 class global_page_repl_t {
 public:
-    global_page_repl_t();
+    // RSI: Do something about this default value.
+    global_page_repl_t(uint64_t memory_limit = (1 << 28));
     ~global_page_repl_t();
 
+    // Changes the memory limt.
+    void change_memory_limit(uint64_t new_memory_limit);
+
 private:
+    uint64_t memory_limit_;
+    one_per_thread_t<thread_page_repl_t> thread_page_repl_;
     DISABLE_COPYING(global_page_repl_t);
 };
 
