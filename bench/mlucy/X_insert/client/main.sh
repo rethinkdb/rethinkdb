@@ -127,7 +127,7 @@ EOF
 }
 
 echo "Populating table..." >&2
-num_clients=16
+num_clients=8
 for i in `seq $num_clients`; do
     start=$(((num_insert*(i-1))/num_clients))
     end=$(((num_insert*i)/num_clients))
