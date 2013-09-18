@@ -262,7 +262,9 @@ struct rdb_protocol_t {
         bool truncated;
         store_key_t last_considered_key;
 
-        rget_read_response_t() : truncated(false) { }
+        // Code seems to depend on a default-initialized rget_read_response_t
+        // having a `stream_t` in this variant.  TODO: wtf?
+        rget_read_response_t() : result(stream_t()), truncated(false) { }
         rget_read_response_t(
             const key_range_t &_key_range, const result_t _result,
             bool _truncated, const store_key_t &_last_considered_key)
