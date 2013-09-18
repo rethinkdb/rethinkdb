@@ -80,9 +80,6 @@ typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
 typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
 typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
-typedef rdb_protocol_t::rget_read_response_t::atom_t atom_t;
-typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
-typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
@@ -1660,9 +1657,6 @@ hash_region_t<key_range_t> sindex_range_t::to_region() const {
         end != NULL ? end->truncated_secondary() : store_key_t::max()));
 }
 
-
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, inserted);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_response_t,
