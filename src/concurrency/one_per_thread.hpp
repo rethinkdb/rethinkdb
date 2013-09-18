@@ -10,18 +10,18 @@ template <class T>
 class one_per_thread_t {
 public:
     one_per_thread_t() : array(get_num_threads()) {
-        pmap(get_num_threads(), std::bind(&one_per_thread_t::construct_0, this, _1));
+        pmap(get_num_threads(), std::bind(&one_per_thread_t::construct<>, this, _1));
     }
 
     template <class arg1_t>
     explicit one_per_thread_t(const arg1_t &arg1) : array(get_num_threads()) {
-        pmap(get_num_threads(), std::bind(&one_per_thread_t::construct_1<arg1_t>,
+        pmap(get_num_threads(), std::bind(&one_per_thread_t::construct<arg1_t>,
                                           this, _1, std::ref(arg1)));
     }
 
     template<class arg1_t, class arg2_t>
     one_per_thread_t(const arg1_t &arg1, const arg2_t &arg2) : array(get_num_threads()) {
-        pmap(get_num_threads(), std::bind(&one_per_thread_t::construct_2<arg1_t, arg2_t>,
+        pmap(get_num_threads(), std::bind(&one_per_thread_t::construct<arg1_t, arg2_t>,
                                           this, _1, std::ref(arg1), std::ref(arg2)));
     }
 
@@ -34,21 +34,10 @@ public:
     }
 
 private:
-    void construct_0(int thread) {
+    template <class... Args>
+    void construct(int thread, const Args &... args) {
         on_thread_t th((threadnum_t(thread)));
-        array[thread].init(new T());
-    }
-
-    template <class arg1_t>
-    void construct_1(int thread, const arg1_t &arg1) {
-        on_thread_t th((threadnum_t(thread)));
-        array[thread].init(new T(arg1));
-    }
-
-    template <class arg1_t, class arg2_t>
-    void construct_2(int thread, const arg1_t &arg1, const arg2_t &arg2) {
-        on_thread_t th((threadnum_t(thread)));
-        array[thread].init(new T(arg1, arg2));
+        array[thread].init(new T(args...));
     }
 
     void destruct(int thread) {
