@@ -4,8 +4,6 @@
 
 #include <string>
 
-#include "utils.hpp"
-
 #include "clustering/administration/reactor_driver.hpp"
 
 template <class protocol_t>
