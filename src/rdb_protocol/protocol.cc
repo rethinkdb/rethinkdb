@@ -547,30 +547,25 @@ public:
         rg_response->key_range = read_t(rg).get_region().inner;
         rg_response->last_considered_key = read_t(rg).get_region().inner.left;
 
-        try {
-            /* First check to see if any of the responses we're unsharding threw. */
-            for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
-                const rget_read_response_t *rr
-                    = boost::get<rget_read_response_t>(&responses[i].response);
-                guarantee(rr != NULL);
+        /* First check to see if any of the responses we're unsharding threw. */
+        for (size_t i = 0; i < count; ++i) {
+            // TODO: we're ignoring the limit when recombining.
+            auto rr = boost::get<rget_read_response_t>(&responses[i].response);
+            guarantee(rr != NULL);
 
-                if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&rr->result)) {
-                    throw *e2;
-                } else if (const ql::datum_exc_t *e3 = boost::get<ql::datum_exc_t>(&rr->result)) {
-                    throw *e3;
-                }
+            if (auto e = boost::get<ql::exc_t>(&rr->result)) {
+                rg_response->result = *e;
+                return;
+            } else if (auto e = boost::get<ql::datum_exc_t>(&rr->result)) {
+                rg_response->result = *e;
+                return;
             }
+        }
 
-            if (!rg.terminal) {
-                unshard_range_get(rg);
-            } else {
-                unshard_reduce(rg);
-            }
-        } catch (const ql::exc_t &e) {
-            rg_response->result = e;
-        } catch (const ql::datum_exc_t &e) {
-            rg_response->result = e;
+        if (!rg.terminal) {
+            unshard_range_get(rg);
+        } else {
+            unshard_reduce(rg);
         }
     }
 
@@ -647,7 +642,6 @@ private:
     size_t count;
     read_response_t *response_out;
     ql::env_t ql_env;
-
 
     void unshard_range_get(const rget_read_t &rg) {
         rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
@@ -730,7 +724,8 @@ private:
     }
 
     void unshard_reduce(const rget_read_t &rg) {
-        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
+        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(
+            &response_out->response);
         try {
             if (const ql::reduce_wire_func_t *reduce_func =
                     boost::get<ql::reduce_wire_func_t>(&*rg.terminal)) {
@@ -745,15 +740,18 @@ private:
                     const counted_t<const ql::datum_t> *rhs =
                         boost::get<counted_t<const ql::datum_t> >(&(_rr->result));
                     if (!rhs) {
-                        guarantee(boost::get<rget_read_response_t::empty_t>(&(_rr->result)));
+                        guarantee(boost::get<rget_read_response_t::empty_t>(
+                                      &(_rr->result)));
                         continue;
                     } else {
                         if (lhs) {
                             counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile_wire_func()->call(&ql_env, *lhs, *rhs)->as_datum();
+                                local_reduce_func.compile_wire_func()->call(
+                                    &ql_env, *lhs, *rhs)->as_datum();
                             rg_response->result = reduced_val;
                         } else {
-                            guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
+                            guarantee(boost::get<rget_read_response_t::empty_t>(
+                                          &rg_response->result));
                             rg_response->result = _rr->result;
                         }
                     }
@@ -816,8 +814,9 @@ private:
     }
 };
 
-void read_t::unshard(read_response_t *responses, size_t count, read_response_t
-        *response, context_t *ctx, signal_t *interruptor) const
+void read_t::unshard(read_response_t *responses, size_t count,
+                     read_response_t *response, context_t *ctx,
+                     signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
     rdb_r_unshard_visitor_t v(responses, count, response, ctx, interruptor);
     boost::apply_visitor(v, read);
@@ -1031,7 +1030,9 @@ private:
     write_response_t *const response_out;
 };
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response_out, context_t *, signal_t *) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, size_t count,
+                      write_response_t *response_out, context_t *, signal_t *)
+    const THROWS_NOTHING {
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
     boost::apply_visitor(visitor, write);
 }
@@ -1377,7 +1378,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cluster_metadata,
-               0,
+               NULL,
                &interruptor,
                ctx->machine_id,
                std::map<std::string, ql::wire_func_t>()),

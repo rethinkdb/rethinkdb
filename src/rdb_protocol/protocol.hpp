@@ -249,9 +249,9 @@ struct rdb_protocol_t {
             ql::datum_exc_t,
 
             // Result of a terminal.
-            empty_t, // for `reduce`
             counted_t<const ql::datum_t>,
-            ql::wire_datum_map_t,
+            empty_t, // for `reduce`, sometimes
+            ql::wire_datum_map_t, // for `gmr`, always
 
             // Streaming Result.
             stream_t
@@ -442,8 +442,9 @@ struct rdb_protocol_t {
         bool shard(const region_t &region,
                    read_t *read_out) const THROWS_NOTHING;
 
-        void unshard(read_response_t *responses, size_t count, read_response_t *response,
-                context_t *ctx, signal_t *interruptor) const
+        void unshard(read_response_t *responses, size_t count,
+                     read_response_t *response, context_t *ctx,
+                     signal_t *interruptor) const
             THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
@@ -620,7 +621,9 @@ struct rdb_protocol_t {
         // non-empty write was written to write_out.
         bool shard(const region_t &region,
                    write_t *write_out) const THROWS_NOTHING;
-        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache, signal_t *) const THROWS_NOTHING;
+        void unshard(const write_response_t *responses, size_t count,
+                     write_response_t *response, context_t *cache, signal_t *)
+            const THROWS_NOTHING;
 
         durability_requirement_t durability() const { return durability_requirement; }
 
