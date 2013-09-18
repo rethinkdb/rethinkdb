@@ -4,6 +4,7 @@
 #include <exception>
 
 #include "utils.hpp"
+#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "arch/io/network.hpp"
@@ -183,7 +184,7 @@ http_server_t::http_server_t(const std::set<ip_address_t> &local_addresses,
                              http_app_t *_application) :
     application(_application) {
     try {
-        tcp_listener.init(new tcp_listener_t(local_addresses, port, std::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
+        tcp_listener.init(new tcp_listener_t(local_addresses, port, boost::bind(&http_server_t::handle_conn, this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
         throw address_in_use_exc_t(strprintf("Could not bind to http port: %s", ex.what()));
     }

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 
 #include "btree/parallel_traversal.hpp"
@@ -7,7 +7,6 @@
 #include "concurrency/semaphore.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "stl_utils.hpp"
-
 
 #define MAX_CHUNKS_OUT 5000
 
@@ -22,11 +21,11 @@ backfiller_t<protocol_t>::backfiller_t(mailbox_manager_t *mm,
     : mailbox_manager(mm), branch_history_manager(bhm),
       svs(_svs),
       backfill_mailbox(mailbox_manager,
-                       std::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, _6, _7, auto_drainer_t::lock_t(&drainer))),
+                       boost::bind(&backfiller_t::on_backfill, this, _1, _2, _3, _4, _5, _6, _7, auto_drainer_t::lock_t(&drainer))),
       cancel_backfill_mailbox(mailbox_manager,
-                              std::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
+                              boost::bind(&backfiller_t::on_cancel_backfill, this, _1, auto_drainer_t::lock_t(&drainer))),
       request_progress_mailbox(mailbox_manager,
-                               std::bind(&backfiller_t::request_backfill_progress, this, _1, _2, auto_drainer_t::lock_t(&drainer))) { }
+                               boost::bind(&backfiller_t::request_backfill_progress, this, _1, _2, auto_drainer_t::lock_t(&drainer))) { }
 
 template <class protocol_t>
 backfiller_business_card_t<protocol_t> backfiller_t<protocol_t>::get_business_card() {
@@ -162,7 +161,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
     wait_any_t interrupted(&local_interruptor, keepalive.get_drain_signal());
 
     semaphore_t chunk_semaphore(MAX_CHUNKS_OUT);
-    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, std::bind(&semaphore_t::unlock, &chunk_semaphore, _1));
+    mailbox_t<void(int)> receive_allocations_mbox(mailbox_manager, boost::bind(&semaphore_t::unlock, &chunk_semaphore, _1));
     send(mailbox_manager, allocation_registration_box, receive_allocations_mbox.get_address());
 
     try {

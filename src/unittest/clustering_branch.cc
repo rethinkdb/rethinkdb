@@ -96,7 +96,7 @@ void run_in_thread_pool_with_broadcaster(
                              scoped_ptr_t<listener_t<dummy_protocol_t> > *,
                              order_source_t *)> fun)
 {
-    unittest::run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
+    unittest::run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
 }
 
 }   /* anonymous namespace */
@@ -204,7 +204,7 @@ void run_backfill_test(io_backender_t *io_backender,
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
+        boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
         &dummy_key_gen,
         order_source,
@@ -269,7 +269,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
+        boost::bind(&write_to_broadcaster, broadcaster->get(), _1, _2, _3, _4),
         NULL,
         &dummy_key_gen,
         order_source,

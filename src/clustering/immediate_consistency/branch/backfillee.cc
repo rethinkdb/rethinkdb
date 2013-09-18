@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/backfillee.hpp"
 
 #include "clustering/immediate_consistency/branch/history.hpp"
@@ -8,7 +8,6 @@
 #include "concurrency/promise.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "containers/death_runner.hpp"
-
 
 #define ALLOCATION_CHUNK 50
 
@@ -182,7 +181,7 @@ void backfillee(
     promise_t<std::pair<region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t> > > end_point_cond;
     mailbox_t<void(region_map_t<protocol_t, version_range_t>, branch_history_t<protocol_t>)> end_point_mailbox(
         mailbox_manager,
-        std::bind(&receive_end_point_message<protocol_t>, &end_point_cond, _1, _2));
+        boost::bind(&receive_end_point_message<protocol_t>, &end_point_cond, _1, _2));
 
     {
         typedef typename protocol_t::backfill_chunk_t backfill_chunk_t;
@@ -197,18 +196,18 @@ void backfillee(
         and the version described in `end_point_mailbox` has been achieved. */
         mailbox_t<void(fifo_enforcer_write_token_t)> done_mailbox(
             mailbox_manager,
-            std::bind(&push_finish_on_queue<protocol_t>, &chunk_queue, _1));
+            boost::bind(&push_finish_on_queue<protocol_t>, &chunk_queue, _1));
 
         /* The backfiller will send individual chunks of the backfill to
         `chunk_mailbox`. */
         mailbox_t<void(backfill_chunk_t, fifo_enforcer_write_token_t)> chunk_mailbox(
-            mailbox_manager, std::bind(&push_chunk_on_queue<protocol_t>, &chunk_queue, _1, _2));
+            mailbox_manager, boost::bind(&push_chunk_on_queue<protocol_t>, &chunk_queue, _1, _2));
 
         /* The backfiller will register for allocations on the allocation
          * registration box. */
         promise_t<mailbox_addr_t<void(int)> > alloc_mailbox_promise;
         mailbox_t<void(mailbox_addr_t<void(int)>)>  alloc_registration_mbox(
-                mailbox_manager, std::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, _1));
+                mailbox_manager, boost::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, _1));
 
         /* Send off the backfill request */
         send(mailbox_manager,
@@ -227,13 +226,13 @@ void backfillee(
         death_runner_t backfiller_notifier;
         {
             /* We have to cast `send()` to the correct type before we pass
-            it to `std::bind()`, or else C++ can't figure out which
+            it to `boost::bind()`, or else C++ can't figure out which
             overload to use. */
             void (*send_cast_to_correct_type)(
                 mailbox_manager_t *,
                 typename backfiller_business_card_t<protocol_t>::cancel_backfill_mailbox_t::address_t,
                 const backfill_session_id_t &) = &send;
-            backfiller_notifier.fun = std::bind(
+            backfiller_notifier.fun = boost::bind(
                 send_cast_to_correct_type, mailbox_manager,
                 backfiller.access().cancel_backfill_mailbox,
                 backfill_session_id);

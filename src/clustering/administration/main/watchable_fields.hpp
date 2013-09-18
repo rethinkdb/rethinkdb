@@ -1,8 +1,7 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_MAIN_WATCHABLE_FIELDS_HPP_
 #define CLUSTERING_ADMINISTRATION_MAIN_WATCHABLE_FIELDS_HPP_
 
-#include <functional>
 #include <map>
 
 #include "concurrency/watchable.hpp"
@@ -13,7 +12,7 @@ class field_copier_t {
 public:
     field_copier_t(inner_t outer_t::*_field, const clone_ptr_t<watchable_t<inner_t> > &_inner, watchable_variable_t<outer_t> *_outer) :
         field(_field), inner(_inner), outer(_outer),
-        subscription(std::bind(&field_copier_t<inner_t, outer_t>::on_change, this)) {
+        subscription(boost::bind(&field_copier_t<inner_t, outer_t>::on_change, this)) {
         typename watchable_t<inner_t>::freeze_t freeze(inner);
         subscription.reset(inner, &freeze);
         on_change();

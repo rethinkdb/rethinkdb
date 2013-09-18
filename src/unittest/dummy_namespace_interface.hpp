@@ -4,7 +4,8 @@
 
 #include <vector>
 
-#include "errors.hpp"
+#include "utils.hpp"
+#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "concurrency/pmap.hpp"

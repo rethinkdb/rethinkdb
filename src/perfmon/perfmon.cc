@@ -5,6 +5,9 @@
 #include <math.h>
 #include <map>
 
+#include "utils.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
 

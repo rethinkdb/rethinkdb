@@ -3,6 +3,9 @@
 
 #include <stdlib.h>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
 #include "unittest/gtest.hpp"

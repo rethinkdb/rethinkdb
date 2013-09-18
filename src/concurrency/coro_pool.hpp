@@ -1,8 +1,9 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_CORO_POOL_HPP_
 #define CONCURRENCY_CORO_POOL_HPP_
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/function.hpp>
 
 #include "concurrency/auto_drainer.hpp"
@@ -82,7 +83,7 @@ private:
         assert_thread();
         while (source->available->get() && active_worker_count < max_worker_count) {
             ++active_worker_count;
-            coro_t::spawn_sometime(std::bind(
+            coro_t::spawn_sometime(boost::bind(
                 &coro_pool_t::worker_run, this,
                 source->pop(), auto_drainer_t::lock_t(&coro_drain_semaphore)));
         }

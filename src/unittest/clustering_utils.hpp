@@ -2,7 +2,6 @@
 #ifndef UNITTEST_CLUSTERING_UTILS_HPP_
 #define UNITTEST_CLUSTERING_UTILS_HPP_
 
-#include <functional>
 #include <map>
 #include <set>
 #include <string>
@@ -113,40 +112,34 @@ public:
                     order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state), drainer(new auto_drainer_t), wfun(_wfun), rfun(_rfun), key_gen_fun(_key_gen_fun), osource(_osource)
     {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
+        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
     test_inserter_t(namespace_interface_t<protocol_t> *namespace_if, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
-          wfun(std::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if,
-                         std::placeholders::_1, std::placeholders::_2,
-                         std::placeholders::_3, std::placeholders::_4)),
-          rfun(std::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if,
-                         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)),
+          wfun(boost::bind(&test_inserter_t::write_namespace_if<protocol_t>, namespace_if, _1, _2, _3, _4)),
+          rfun(boost::bind(&test_inserter_t::read_namespace_if<protocol_t>, namespace_if, _1, _2, _3)),
           key_gen_fun(_key_gen_fun),
           osource(_osource)
     {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
+        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     template <class protocol_t>
     test_inserter_t(master_access_t<protocol_t> *master_access, boost::function<std::string()> _key_gen_fun, order_source_t *_osource, const std::string& tag, state_t *state)
         : values_inserted(state),
           drainer(new auto_drainer_t),
-          wfun(std::bind(&test_inserter_t::write_master_access<protocol_t>, master_access,
-                         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-                         std::placeholders::_4)),
-          rfun(std::bind(&test_inserter_t::read_master_access<protocol_t>, master_access,
-                         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)),
+          wfun(boost::bind(&test_inserter_t::write_master_access<protocol_t>, master_access, _1, _2, _3, _4)),
+          rfun(boost::bind(&test_inserter_t::read_master_access<protocol_t>, master_access, _1, _2, _3)),
           key_gen_fun(_key_gen_fun),
           osource(_osource)
     {
-        coro_t::spawn_sometime(std::bind(&test_inserter_t::insert_forever,
-                                         this, tag, auto_drainer_t::lock_t(drainer.get())));
+        coro_t::spawn_sometime(boost::bind(&test_inserter_t::insert_forever,
+                                           this, tag, auto_drainer_t::lock_t(drainer.get())));
     }
 
     void stop() {

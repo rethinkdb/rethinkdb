@@ -2,6 +2,7 @@
 #include <stdarg.h>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/tokenizer.hpp>
 
 #include "arch/runtime/coroutines.hpp"

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/circular_buffer.hpp>
 
 #include "concurrency/auto_drainer.hpp"
@@ -49,7 +50,7 @@ public:
             // Check if we need to restart the copy coroutine that may have exited while we pushed
             if (restart_copy_coro) {
                 restart_copy_coro = false;
-                coro_t::spawn_sometime(std::bind(
+                coro_t::spawn_sometime(boost::bind(
                     &disk_backed_queue_wrapper_t<T>::copy_from_disk_queue_to_memory_queue,
                     this, auto_drainer_t::lock_t(&drainer)));
             }
@@ -57,7 +58,7 @@ public:
             if (memory_queue.full()) {
                 disk_queue.init(new disk_backed_queue_t<T>(io_backender, filename, stats_parent));
                 disk_queue->push(value);
-                coro_t::spawn_sometime(std::bind(
+                coro_t::spawn_sometime(boost::bind(
                     &disk_backed_queue_wrapper_t<T>::copy_from_disk_queue_to_memory_queue,
                     this, auto_drainer_t::lock_t(&drainer)));
             } else {

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/persist.hpp"
 
 #include <sys/stat.h>
@@ -398,9 +398,9 @@ semilattice_watching_persister_t<metadata_t>::semilattice_watching_persister_t(
         boost::shared_ptr<semilattice_read_view_t<metadata_t> > v) :
     persistent_file(persistent_file_), view(v),
     flush_again(new cond_t),
-    subs(std::bind(&semilattice_watching_persister_t::on_change, this), v)
+    subs(boost::bind(&semilattice_watching_persister_t::on_change, this), v)
 {
-    coro_t::spawn_sometime(std::bind(&semilattice_watching_persister_t::dump_loop, this, auto_drainer_t::lock_t(&drainer)));
+    coro_t::spawn_sometime(boost::bind(&semilattice_watching_persister_t::dump_loop, this, auto_drainer_t::lock_t(&drainer)));
 }
 
 template <class metadata_t>

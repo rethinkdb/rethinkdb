@@ -42,7 +42,7 @@ public:
             clone_ptr_t<watchable_t<boost::optional<boost::optional<business_card_t> > > > v)
             THROWS_ONLY(resource_lost_exc_t) :
         metadata_view(v),
-        change_subscription(std::bind(&resource_access_t::on_change, this))
+        change_subscription(boost::bind(&resource_access_t::on_change, this))
     {
         watchable_freeze_t<boost::optional<boost::optional<business_card_t> > > freeze(metadata_view);
         if (!metadata_view->get() || !metadata_view->get().get()) {

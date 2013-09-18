@@ -1,9 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_
 #define CLUSTERING_GENERIC_MULTI_THROTTLING_SERVER_HPP_
 
 #include <algorithm>
-#include <functional>
 
 #include "arch/timing.hpp"
 #include "clustering/generic/multi_throttling_metadata.hpp"
@@ -42,7 +41,7 @@ private:
             private repeating_timer_callback_t {
     public:
         client_t(multi_throttling_server_t *p,
-                 const client_business_card_t &client_bc) :
+                const client_business_card_t &client_bc) :
             parent(p),
             target_tickets(0), held_tickets(0), in_use_tickets(0),
 
@@ -59,9 +58,9 @@ private:
             drainer(new auto_drainer_t),
 
             request_mailbox(new mailbox_t<void(request_type)>(parent->mailbox_manager,
-                std::bind(&client_t::on_request, this, std::placeholders::_1))),
+                boost::bind(&client_t::on_request, this, _1))),
             relinquish_tickets_mailbox(new mailbox_t<void(int)>(parent->mailbox_manager,
-                std::bind(&client_t::on_relinquish_tickets, this, std::placeholders::_1)))
+                boost::bind(&client_t::on_relinquish_tickets, this, _1)))
         {
             send(parent->mailbox_manager, client_bc.intro_addr,
                  server_business_card_t(request_mailbox->get_address(),
@@ -83,7 +82,7 @@ private:
         void give_tickets(int tickets) {
             ASSERT_FINITE_CORO_WAITING;
             held_tickets += tickets;
-            coro_t::spawn_sometime(std::bind(
+            coro_t::spawn_sometime(boost::bind(
                 &client_t::give_tickets_blocking, this,
                 tickets,
                 auto_drainer_t::lock_t(drainer.get())));
@@ -91,7 +90,7 @@ private:
 
         void set_target_tickets(int new_target) {
             if (target_tickets > new_target) {
-                coro_t::spawn_sometime(std::bind(
+                coro_t::spawn_sometime(boost::bind(
                     &client_t::reclaim_tickets_blocking, this,
                     target_tickets - new_target,
                     auto_drainer_t::lock_t(drainer.get())));
@@ -118,7 +117,7 @@ private:
             guarantee(held_tickets > 0);
             held_tickets--;
             in_use_tickets++;
-            coro_t::spawn_sometime(std::bind(
+            coro_t::spawn_sometime(boost::bind(
                 &client_t::perform_request, this,
                 request,
                 auto_drainer_t::lock_t(drainer.get())));

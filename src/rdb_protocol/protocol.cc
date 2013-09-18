@@ -3,6 +3,9 @@
 
 #include <algorithm>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -145,7 +148,7 @@ void bring_sindexes_up_to_date(
         sindexes_to_bring_up_to_date_uuid.insert(sindexes[*it].id);
     }
 
-    coro_t::spawn_sometime(std::bind(
+    coro_t::spawn_sometime(boost::bind(
                 &post_construct_and_drain_queue,
                 sindexes_to_bring_up_to_date_uuid,
                 store,
@@ -1516,7 +1519,7 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
     rdb_backfill_callback_impl_t callback(chunk_fun_cb);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
-    pmap(regions.size(), std::bind(&call_rdb_backfill, _1,
+    pmap(regions.size(), boost::bind(&call_rdb_backfill, _1,
         btree, regions, &callback, txn, &refcount_wrapper, sindex_block, progress, interruptor));
 
     /* If interruptor was pulsed, `call_rdb_backfill()` exited silently, so we

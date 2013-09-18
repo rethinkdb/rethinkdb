@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/runtime.hpp"
 
 template <class value_t>
@@ -9,8 +9,8 @@ cross_thread_watchable_variable_t<value_t>::cross_thread_watchable_variable_t(co
     watchable_thread(get_thread_id()),
     dest_thread(_dest_thread),
     rethreader(this),
-    subs(std::bind(&cross_thread_watchable_variable_t<value_t>::on_value_changed, this)),
-    deliver_cb(std::bind(&cross_thread_watchable_variable_t<value_t>::deliver, this, std::placeholders::_1)),
+    subs(boost::bind(&cross_thread_watchable_variable_t<value_t>::on_value_changed, this)),
+    deliver_cb(boost::bind(&cross_thread_watchable_variable_t<value_t>::deliver, this, _1)),
     messanger_pool(1, &value_producer, &deliver_cb) //Note it's very important that this coro_pool only have one worker it will be a race condition if it has more
 {
     rassert(original->get_rwi_lock_assertion()->home_thread() == watchable_thread);

@@ -2,6 +2,9 @@
 #define __STDC_FORMAT_MACROS
 #include "buffer_cache/mirrored/mirrored.hpp"
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/arch.hpp"
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
@@ -203,7 +206,7 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id, file_ac
     // Some things expect us to return immediately (as of 5/12/2011), so we do the loading in a
     // separate coro. We have to make sure that load_inner_buf() acquires the lock first
     // however, so we use spawn_now_dangerously().
-    coro_t::spawn_now_dangerously(std::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
+    coro_t::spawn_now_dangerously(boost::bind(&mc_inner_buf_t::load_inner_buf, this, true, _io_account));
 
     // TODO: only increment pm_n_blocks_in_memory when we actually load the block into memory.
     ++_cache->stats->pm_n_blocks_in_memory;
@@ -1091,7 +1094,7 @@ void get_subtree_recencies_helper(threadnum_t slice_home_thread, serializer_t *s
         }
     }
 
-    do_on_thread(slice_home_thread, std::bind(&get_subtree_recencies_callback_t::got_subtree_recencies, cb));
+    do_on_thread(slice_home_thread, boost::bind(&get_subtree_recencies_callback_t::got_subtree_recencies, cb));
 }
 
 void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
@@ -1110,7 +1113,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     }
 
     if (need_second_loop) {
-        do_on_thread(cache->serializer->home_thread(), std::bind(&get_subtree_recencies_helper, get_thread_id(), cache->serializer, block_ids, num_block_ids, recencies_out, cb));
+        do_on_thread(cache->serializer->home_thread(), boost::bind(&get_subtree_recencies_helper, get_thread_id(), cache->serializer, block_ids, num_block_ids, recencies_out, cb));
     } else {
         cb->got_subtree_recencies();
     }
@@ -1385,6 +1388,6 @@ void mc_cache_t::maybe_unregister_read_ahead_callback() {
     if (read_ahead_registered && page_repl.is_full(dynamic_config.max_size / serializer->get_block_size().ser_value() / 10 + 1)) {
         read_ahead_registered = false;
         // unregister_read_ahead_cb requires a coro context, but we might not be in any
-        coro_t::spawn_now_dangerously(std::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
+        coro_t::spawn_now_dangerously(boost::bind(&serializer_t::unregister_read_ahead_cb, serializer, this));
     }
 }

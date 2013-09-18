@@ -1,4 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "unittest/unittest_utils.hpp"
 
 #include "arch/runtime/coroutines.hpp"
@@ -139,7 +142,7 @@ void run_simple_job_test() {
 
 TEST(ExtProc, SimpleJob) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_simple_job_test));
+    unittest::run_in_thread_pool(boost::bind(&run_simple_job_test));
 }
 
 void run_talkative_job_test() {
@@ -157,7 +160,7 @@ void run_talkative_job_test() {
 
 TEST(ExtProc, TalkativeJob) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_talkative_job_test));
+    unittest::run_in_thread_pool(boost::bind(&run_talkative_job_test));
 }
 
 void run_single_job(extproc_pool_t *pool, size_t *counter, cond_t *done) {
@@ -187,8 +190,8 @@ void run_multi_job_test() {
 
     // Spawn enough jobs that some have to wait for previous jobs to complete
     for (size_t i = 0; i < num_jobs; ++i) {
-        coro_t::spawn_sometime(std::bind(&run_single_job,
-                                         &pool, &working, &done_cond));
+        coro_t::spawn_sometime(boost::bind(&run_single_job,
+                                           &pool, &working, &done_cond));
     }
 
     // Wait for all jobs to complete
@@ -198,7 +201,7 @@ void run_multi_job_test() {
 TEST(ExtProc, MultiJob) {
     for (size_t i = 0; i < 100; ++i) {
         extproc_spawner_t extproc_spawner;
-        unittest::run_in_thread_pool(std::bind(run_multi_job_test));
+        unittest::run_in_thread_pool(boost::bind(run_multi_job_test));
     }
 }
 
@@ -346,7 +349,7 @@ void run_crashed_job_test() {
 
 TEST(ExtProc, CrashedJob) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(run_crashed_job_test));
+    unittest::run_in_thread_pool(boost::bind(run_crashed_job_test));
 }
 
 class hang_job_t {
@@ -390,7 +393,7 @@ void run_hanging_job_test() {
 
 TEST(ExtProc, HangingJob) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(run_hanging_job_test));
+    unittest::run_in_thread_pool(boost::bind(run_hanging_job_test));
 }
 
 class corrupt_job_t {
@@ -463,7 +466,7 @@ void run_corrupt_job_test() {
 
 TEST(ExtProc, CorruptJob) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(run_corrupt_job_test));
+    unittest::run_in_thread_pool(boost::bind(run_corrupt_job_test));
 }
 
 void run_interrupt_job_by_user_test() {
@@ -476,7 +479,7 @@ void run_interrupt_job_by_user_test() {
 
 TEST(ExtProc, InterruptJobByUser) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_interrupt_job_by_user_test));
+    unittest::run_in_thread_pool(boost::bind(&run_interrupt_job_by_user_test));
 }
 
 void interrupt_job_by_pool_internal(object_buffer_t<extproc_pool_t> *pool,
@@ -494,8 +497,8 @@ void run_interrupt_job_by_pool_test() {
     {
         fib_job_t job(10, pool.get(), NULL);
 
-        coro_t::spawn_now_dangerously(std::bind(&interrupt_job_by_pool_internal,
-                                                &pool, &done));
+        coro_t::spawn_now_dangerously(boost::bind(&interrupt_job_by_pool_internal,
+                                                  &pool, &done));
 
         EXPECT_THROW(job.run(), interrupted_exc_t);
     }
@@ -505,5 +508,5 @@ void run_interrupt_job_by_pool_test() {
 
 TEST(ExtProc, InterruptJobByPool) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_interrupt_job_by_pool_test));
+    unittest::run_in_thread_pool(boost::bind(&run_interrupt_job_by_pool_test));
 }

@@ -3,6 +3,9 @@
 
 #include <math.h>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "buffer_cache/mirrored/mirrored.hpp"
@@ -309,7 +312,7 @@ void writeback_t::start_concurrent_flush() {
     writeback_in_progress = true;
     ++active_flushes;
 
-    coro_t::spawn(std::bind(&writeback_t::do_concurrent_flush, this));
+    coro_t::spawn(boost::bind(&writeback_t::do_concurrent_flush, this));
 }
 
 // TODO(rntz) break this up into smaller functions

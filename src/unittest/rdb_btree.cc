@@ -1,5 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
@@ -178,7 +181,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
             super_block->get_sindex_block_id(),
             &dummy_interruptor);
 
-    coro_t::spawn_sometime(std::bind(&insert_rows_and_pulse_when_done,
+    coro_t::spawn_sometime(boost::bind(&insert_rows_and_pulse_when_done,
                 (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,
                 store, background_inserts_done));
 

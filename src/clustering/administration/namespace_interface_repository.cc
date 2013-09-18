@@ -1,14 +1,14 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/namespace_interface_repository.hpp"
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 
 #include "arch/timing.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
-
 
 #define NAMESPACE_INTERFACE_EXPIRATION_MS (60 * 1000)
 
@@ -151,7 +151,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
     reverse. Fortunately RAII works really nicely here. */
     on_thread_t switch_to_home_thread(home_thread());
     clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > subview =
-        namespaces_directory_metadata->subview(std::bind(&get_reactor_business_cards<protocol_t>, _1, namespace_id));
+        namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards<protocol_t>, _1, namespace_id));
     cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > cross_thread_watchable(subview, thread);
     on_thread_t switch_back(thread);
 
@@ -216,7 +216,7 @@ typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *namespace_r
         namespace_id_t id(ns_id);
         cache->entries.insert(id, cache_entry);
 
-        coro_t::spawn_sometime(std::bind(
+        coro_t::spawn_sometime(boost::bind(
             &namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface, this,
             cache, ns_id,
             auto_drainer_t::lock_t(&cache->drainer)));
