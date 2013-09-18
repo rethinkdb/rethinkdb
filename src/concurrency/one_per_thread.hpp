@@ -5,7 +5,6 @@
 #include "arch/runtime/runtime.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
-#include "containers/object_buffer.hpp"
 
 template <class T>
 class one_per_thread_t {

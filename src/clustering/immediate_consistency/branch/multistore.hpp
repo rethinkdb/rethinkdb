@@ -22,6 +22,7 @@ template <class> class send_backfill_callback_t;
 template <class> class store_view_t;
 template <class> class store_subview_t;
 class traversal_progress_combiner_t;
+template <class> class object_buffer_t;
 class order_token_t;
 class order_checkpoint_t;
 class version_range_t;
