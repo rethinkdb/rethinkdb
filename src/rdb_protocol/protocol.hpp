@@ -244,26 +244,29 @@ struct rdb_protocol_t {
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
         typedef boost::variant<
-            stream_t,
+            // Error.
             ql::exc_t,
             ql::datum_exc_t,
+
+            // Result of a terminal.
+            empty_t, // for `reduce`
             counted_t<const ql::datum_t>,
             ql::wire_datum_map_t,
-            std::vector<ql::wire_datum_map_t>,
-            empty_t
+
+            // Streaming Result.
+            stream_t
             > result_t;
 
         key_range_t key_range;
         result_t result;
-        int errors;
         bool truncated;
         store_key_t last_considered_key;
 
         rget_read_response_t() : truncated(false) { }
         rget_read_response_t(
             const key_range_t &_key_range, const result_t _result,
-            int _errors, bool _truncated, const store_key_t &_last_considered_key)
-            : key_range(_key_range), result(_result), errors(_errors),
+            bool _truncated, const store_key_t &_last_considered_key)
+            : key_range(_key_range), result(_result),
               truncated(_truncated), last_considered_key(_last_considered_key) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
