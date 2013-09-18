@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RPC_MAILBOX_TYPED_HPP_
 #define RPC_MAILBOX_TYPED_HPP_
 
@@ -6,7 +6,6 @@
 Please modify '../scripts/generate_rpc_templates.py' instead of modifying this file.*/
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/function.hpp>
 
 #include "containers/archive/archive.hpp"

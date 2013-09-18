@@ -1,5 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include <functional>
 
 #include "buffer_cache/buffer_cache.hpp"
 #include "buffer_cache/global_page_repl.hpp"

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 
 #include <functional>
@@ -9,6 +9,7 @@
 #include "serializer/translator.hpp"
 #include "storage_ctx.hpp"
 #include "utils.hpp"
+
 
 /* This object serves mostly as a container for arguments to the
  * do_construct_existing_store function because we hit the std::bind argument
@@ -146,7 +147,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // them in the pmap?  No.
 
         pmap(num_stores, std::bind(do_construct_existing_store<protocol_t>,
-                                   std::placeholders::_1, store_args, multiplexer.get(),
+                                   _1, store_args, multiplexer.get(),
                                    num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
@@ -176,7 +177,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
         pmap(num_stores, std::bind(do_create_new_store<protocol_t>,
-                                   std::placeholders::_1, store_args, multiplexer.get(),
+                                   _1, store_args, multiplexer.get(),
                                    num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));

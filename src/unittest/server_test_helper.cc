@@ -1,8 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/server_test_helper.hpp"
 
-#include <functional>
-
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"

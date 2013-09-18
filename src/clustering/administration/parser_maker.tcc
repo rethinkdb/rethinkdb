@@ -1,11 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 #define CLUSTERING_ADMINISTRATION_PARSER_MAKER_TCC_
 
 #include "clustering/administration/parser_maker.hpp"
 
+#include <functional>
 #include <set>
 #include <string>
+
 
 template<class protocol_t, class parser_t>
 parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox_manager,
@@ -20,7 +22,7 @@ parser_maker_t<protocol_t, parser_t>::parser_maker_t(mailbox_manager_t *_mailbox
       local_addresses(_local_addresses),
       port_offset(_port_offset),
       repo(_repo),
-      namespaces_subscription(boost::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
+      namespaces_subscription(std::bind(&parser_maker_t::on_change, this), namespaces_semilattice_metadata),
       perfmon_collection_repo(_perfmon_collection_repo),
       local_issue_tracker(_local_issue_tracker)
 {
@@ -71,7 +73,7 @@ void parser_maker_t<protocol_t, parser_t>::on_change() {
             int port = get_port(it->second.get_ref(), port_offset);
             namespace_id_t tmp = it->first;
             namespaces_being_handled.insert(tmp, new ns_record_t(port));
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &parser_maker_t::serve_queries, this,
                 ns_name, it->first, port, auto_drainer_t::lock_t(&drainer)));
         }

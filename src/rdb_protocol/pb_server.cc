@@ -8,6 +8,7 @@
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
+
 Response on_unparsable_query2(ql::protob_t<Query> q, std::string msg) {
     Response res;
     res.set_token((q.has() && q->has_token()) ? q->token() : -1);
@@ -20,7 +21,7 @@ query2_server_t::query2_server_t(const std::set<ip_address_t> &local_addresses,
                                  rdb_protocol_t::context_t *_ctx) :
     server(local_addresses,
            port,
-           boost::bind(&query2_server_t::handle, this, _1, _2, _3),
+           std::bind(&query2_server_t::handle, this, _1, _2, _3),
            &on_unparsable_query2,
            _ctx->auth_metadata,
            INLINE),

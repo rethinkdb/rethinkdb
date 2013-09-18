@@ -1,8 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "memcached/tcp_conn.hpp"
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "arch/io/network.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -10,6 +7,8 @@
 #include "memcached/parser.hpp"
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
+
+
 
 struct tcp_conn_memcached_interface_t : public memcached_interface_t, public home_thread_mixin_debug_only_t {
     explicit tcp_conn_memcached_interface_t(tcp_conn_t *c) : conn(c) { }
@@ -108,7 +107,7 @@ memcache_listener_t::memcache_listener_t(const std::set<ip_address_t> &local_add
       parent(_parent),
       stats(parent),
       tcp_listener(new repeated_nonthrowing_tcp_listener_t(local_addresses, port,
-          boost::bind(&memcache_listener_t::handle, this, auto_drainer_t::lock_t(&drainer), _1)))
+          std::bind(&memcache_listener_t::handle, this, auto_drainer_t::lock_t(&drainer), _1)))
 {
     tcp_listener->begin_repeated_listening_attempts();
 }

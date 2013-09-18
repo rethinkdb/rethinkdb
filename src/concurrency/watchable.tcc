@@ -1,8 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "concurrency/watchable.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "concurrency/cond_var.hpp"
 #include "concurrency/wait_any.hpp"
@@ -49,7 +48,7 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, sign
     clone_ptr_t<watchable_t<value_type> > clone_this(this->clone());
     while (true) {
         cond_t changed;
-        typename watchable_t<value_type>::subscription_t subs(boost::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
+        typename watchable_t<value_type>::subscription_t subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
         {
             typename watchable_t<value_type>::freeze_t freeze(clone_this);
             ASSERT_FINITE_CORO_WAITING;
@@ -72,8 +71,8 @@ void run_until_satisfied_2(
     b->assert_thread();
     while (true) {
         cond_t changed;
-        typename watchable_t<a_type>::subscription_t a_subs(boost::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
-        typename watchable_t<b_type>::subscription_t b_subs(boost::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
+        typename watchable_t<a_type>::subscription_t a_subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
+        typename watchable_t<b_type>::subscription_t b_subs(std::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
         {
             typename watchable_t<a_type>::freeze_t a_freeze(a);
             typename watchable_t<b_type>::freeze_t b_freeze(b);

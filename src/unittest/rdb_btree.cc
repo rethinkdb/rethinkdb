@@ -1,7 +1,5 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
-#include <functional>
-
 #include "arch/io/disk.hpp"
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"

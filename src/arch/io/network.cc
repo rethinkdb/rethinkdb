@@ -12,9 +12,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include "utils.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"
@@ -614,7 +611,7 @@ bool linux_nonthrowing_tcp_listener_t::begin_listening() {
 
     // Start the accept loop
     accept_loop_drainer.init(new auto_drainer_t);
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &linux_nonthrowing_tcp_listener_t::accept_loop, this, auto_drainer_t::lock_t(accept_loop_drainer.get())));
 
     return true;
@@ -760,7 +757,7 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
         fd_t new_sock = accept(active_fd, NULL, NULL);
 
         if (new_sock != INVALID_FD) {
-            coro_t::spawn_now_dangerously(boost::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
+            coro_t::spawn_now_dangerously(std::bind(&linux_nonthrowing_tcp_listener_t::handle, this, new_sock));
 
             /* If we backed off before, un-backoff now that the problem seems to be
             resolved. */
@@ -863,7 +860,7 @@ int linux_repeated_nonthrowing_tcp_listener_t::get_port() const {
 void linux_repeated_nonthrowing_tcp_listener_t::begin_repeated_listening_attempts() {
     auto_drainer_t::lock_t lock(&drainer);
     coro_t::spawn_sometime(
-        boost::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this, lock));
+        std::bind(&linux_repeated_nonthrowing_tcp_listener_t::retry_loop, this, lock));
 }
 
 void linux_repeated_nonthrowing_tcp_listener_t::retry_loop(auto_drainer_t::lock_t lock) {

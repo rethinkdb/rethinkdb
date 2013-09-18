@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
 #define CLUSTERING_REACTOR_DIRECTORY_ECHO_TCC_
 
 #include "clustering/reactor/directory_echo.hpp"
 
+#include <functional>
 #include <map>
 
 template<class internal_t>
@@ -39,7 +40,9 @@ template<class internal_t>
 directory_echo_writer_t<internal_t>::directory_echo_writer_t(
         mailbox_manager_t *mm,
         const internal_t &initial) :
-    ack_mailbox(mm, boost::bind(&directory_echo_writer_t<internal_t>::on_ack, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
+    ack_mailbox(mm, std::bind(&directory_echo_writer_t<internal_t>::on_ack, this,
+                              std::placeholders::_1, std::placeholders::_2,
+                              auto_drainer_t::lock_t(&drainer))),
     value_watchable(directory_echo_wrapper_t<internal_t>(initial, 0, ack_mailbox.get_address())),
     version(0)
     { }
@@ -70,7 +73,7 @@ directory_echo_mirror_t<internal_t>::directory_echo_mirror_t(
         const clone_ptr_t<watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > > > &p) :
     mailbox_manager(mm), peers(p),
     subview(std::map<peer_id_t, internal_t>()),
-    sub(boost::bind(&directory_echo_mirror_t::on_change, this)) {
+    sub(std::bind(&directory_echo_mirror_t::on_change, this)) {
 
     typename watchable_t<std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > >::freeze_t freeze(peers);
     sub.reset(peers, &freeze);
@@ -94,7 +97,7 @@ void directory_echo_mirror_t<internal_t>::on_change() {
             before the acks are sent. That guarantees that whatever is watching
             our subview will see the change before we tell the other peer that
             we saw the change. */
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &directory_echo_mirror_t<internal_t>::ack_version, this,
                 it->second.ack_mailbox, version,
                 auto_drainer_t::lock_t(&drainer)));

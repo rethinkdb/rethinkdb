@@ -7,6 +7,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
+
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_broadcaster_in_directory(
         const typename protocol_t::region_t &region,
@@ -194,7 +195,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                     directory_echo_mirror.get_internal(),
                     blueprint,
                     std::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region,
-                              std::placeholders::_2, std::placeholders::_1, &broadcaster),
+                              _2, _1, &broadcaster),
                     interruptor);
 
                 /* We need to save this to a local variable because there may be a
@@ -213,7 +214,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                     directory_echo_mirror.get_internal(),
                     blueprint,
                     std::bind(&reactor_t<protocol_t>::find_replier_in_directory, this, region,
-                              branch_id, std::placeholders::_2, std::placeholders::_1,
+                              branch_id, _2, _1,
                               &location_to_backfill_from, &peer_id, &activity_id),
                     interruptor);
 

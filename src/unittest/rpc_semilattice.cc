@@ -1,7 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "containers/archive/archive.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
@@ -177,7 +174,7 @@ void run_watcher_test() {
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
-        boost::bind(&assign<bool>, &have_been_notified, true),
+        std::bind(&assign<bool>, &have_been_notified, true),
         slm.get_root_view());
 
     slm.get_root_view()->join(sl_int_t(1));
@@ -200,7 +197,7 @@ void run_view_controller_test() {
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
-        boost::bind(&assign<bool>, &have_been_notified, true),
+        std::bind(&assign<bool>, &have_been_notified, true),
         controller.get_view());
 
     EXPECT_FALSE(have_been_notified);
@@ -231,7 +228,7 @@ void run_field_view_test() {
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
-        boost::bind(&assign<bool>, &have_been_notified, true),
+        std::bind(&assign<bool>, &have_been_notified, true),
         x_view);
 
     EXPECT_FALSE(have_been_notified);
@@ -263,7 +260,7 @@ void run_member_view_test() {
 
     bool have_been_notified = false;
     semilattice_read_view_t<sl_int_t>::subscription_t watcher(
-        boost::bind(&assign<bool>, &have_been_notified, true),
+        std::bind(&assign<bool>, &have_been_notified, true),
         foo_view);
 
     EXPECT_FALSE(have_been_notified);

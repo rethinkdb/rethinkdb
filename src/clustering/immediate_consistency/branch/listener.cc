@@ -1,8 +1,5 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/listener.hpp"
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "clustering/generic/registrant.hpp"
 #include "clustering/generic/resource.hpp"
@@ -80,11 +77,11 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
+        std::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
+        std::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
+        std::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
 {
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
@@ -151,7 +148,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         cond_t backfiller_is_up_to_date;
         mailbox_t<void()> ack_mbox(
             mailbox_manager_,
-            boost::bind(&cond_t::pulse, &backfiller_is_up_to_date));
+            std::bind(&cond_t::pulse, &backfiller_is_up_to_date));
 
         resource_access_t<replier_business_card_t<protocol_t> > replier_access(replier);
         send(mailbox_manager_, replier_access.access().synchronize_mailbox, streaming_begin_point, ack_mbox.get_address());
@@ -215,7 +212,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
 
     current_timestamp_ = backfill_end_timestamp;
     write_queue_coro_pool_callback_.init(new boost_function_callback_t<write_queue_entry_t>(
-            boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)));
+            std::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, backfill_end_timestamp, _2)));
     write_queue_coro_pool_.init(new coro_pool_t<write_queue_entry_t>(
             WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()));
     write_queue_semaphore_.set_capacity(WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY);
@@ -250,11 +247,11 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
+        std::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
+        std::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
+        std::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
 {
     branch_birth_certificate_t<protocol_t> this_branch_history;
     {
@@ -303,7 +300,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
     /* Start streaming, just like we do after we finish a backfill */
     current_timestamp_ = listener_intro.broadcaster_begin_timestamp;
     write_queue_coro_pool_callback_.init(new boost_function_callback_t<write_queue_entry_t>(
-            boost::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, current_timestamp_, _2)));
+            std::bind(&listener_t<protocol_t>::perform_enqueued_write, this, _1, current_timestamp_, _2)));
     write_queue_coro_pool_.init(
         new coro_pool_t<write_queue_entry_t>(
             WRITE_QUEUE_CORO_POOL_SIZE, &write_queue_, write_queue_coro_pool_callback_.get()));
@@ -368,7 +365,7 @@ void listener_t<protocol_t>::try_start_receiving_writes(
     intro_receiver_t<protocol_t> intro_receiver;
     typename listener_business_card_t<protocol_t>::intro_mailbox_t
         intro_mailbox(mailbox_manager_,
-                      boost::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1));
+                      std::bind(&intro_receiver_t<protocol_t>::fill, &intro_receiver, _1));
 
     try {
         registrant_.init(new registrant_t<listener_business_card_t<protocol_t> >(
@@ -400,7 +397,7 @@ void listener_t<protocol_t>::on_write(const typename protocol_t::write_t &write,
     rassert(!region_is_empty(write.get_region()));
     order_token.assert_write_mode();
 
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &listener_t<protocol_t>::enqueue_write, this,
         write, transition_timestamp, order_token, fifo_token, ack_addr,
         auto_drainer_t::lock_t(&drainer_)));
@@ -488,7 +485,7 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
     order_token.assert_write_mode();
 
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &listener_t<protocol_t>::perform_writeread, this,
         write, transition_timestamp, order_token, fifo_token, ack_addr, durability,
         auto_drainer_t::lock_t(&drainer_)));
@@ -568,7 +565,7 @@ void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
     rassert(region_is_superset(svs_->get_region(), read.get_region()));
     order_token.assert_read_mode();
 
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &listener_t<protocol_t>::perform_read, this,
         read, expected_timestamp, order_token, fifo_token, ack_addr,
         auto_drainer_t::lock_t(&drainer_)));
