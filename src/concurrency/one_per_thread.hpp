@@ -12,11 +12,11 @@ public:
     template <class... Args>
     one_per_thread_t(const Args &... args) : array(get_num_threads()) {
         pmap(get_num_threads(), std::bind(&one_per_thread_t::construct<Args...>,
-                                          this, _1, std::ref(args)...));
+                                          this, std::placeholders::_1, std::ref(args)...));
     }
 
     ~one_per_thread_t() {
-        pmap(get_num_threads(), std::bind(&one_per_thread_t::destruct, this, _1));
+        pmap(get_num_threads(), std::bind(&one_per_thread_t::destruct, this, std::placeholders::_1));
     }
 
     T *get() {
