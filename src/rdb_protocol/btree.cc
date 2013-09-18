@@ -683,7 +683,7 @@ public:
             }
 
             if (terminal) {
-                terminal_initialize(&*terminal, &response->result);
+                query_language::terminal_initialize(&*terminal, &response->result);
             }
         } catch (const ql::exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
@@ -779,7 +779,8 @@ public:
             } else {
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        terminal_apply(ql_env, *jt, &*terminal, &response->result);
+                        query_language::terminal_apply(
+                            ql_env, *jt, &*terminal, &response->result);
                     }
                     return true;
                 } catch (const ql::datum_exc_t &e2) {
@@ -814,7 +815,6 @@ public:
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
 public:
     void operator()(const rget_read_response_t::stream_t &) const { }
-    void operator()(const rget_read_response_t::groups_t &) const { }
     void operator()(const ql::exc_t &) const { }
     void operator()(const ql::datum_exc_t &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }

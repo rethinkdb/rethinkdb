@@ -79,7 +79,6 @@ typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
 typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
-typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 

@@ -239,24 +239,18 @@ struct rdb_protocol_t {
     struct rget_read_response_t {
          // Present if there was no terminal
         typedef std::vector<rdb_protocol_details::rget_item_t> stream_t;
-        // Present if the terminal was a groupedmapreduce
-        typedef std::map<counted_t<const ql::datum_t>,
-                         counted_t<const ql::datum_t>,
-                         shared_scoped_less_t> groups_t;
 
         typedef std::vector<counted_t<const ql::datum_t> > vec_t;
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
         typedef boost::variant<
             stream_t,
-            groups_t,
             ql::exc_t,
             ql::datum_exc_t,
             counted_t<const ql::datum_t>,
             ql::wire_datum_map_t,
             std::vector<ql::wire_datum_map_t>,
-            empty_t,
-            vec_t
+            empty_t
             > result_t;
 
         key_range_t key_range;
