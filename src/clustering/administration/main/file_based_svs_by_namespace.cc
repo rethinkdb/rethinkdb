@@ -35,17 +35,15 @@ std::string hash_shard_perfmon_name(int hash_shard_number) {
 }
 
 template <class protocol_t>
-void do_construct_existing_store(int start_thread,
+void do_construct_existing_store(const std::vector<threadnum_t> &threads,
                                  int thread_offset,
                                  store_args_t<protocol_t> store_args,
                                  serializer_multiplexer_t *multiplexer,
-                                 int num_db_threads,
                                  stores_lifetimer_t<protocol_t> *stores_out,
                                  store_view_t<protocol_t> **store_views) {
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
-    const int threadnum = (start_thread + thread_offset) % num_db_threads;
-    on_thread_t th((threadnum_t(threadnum)));
+    on_thread_t th(threads[thread_offset]);
 
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
     typename protocol_t::store_t *store = new typename protocol_t::store_t(
@@ -57,15 +55,13 @@ void do_construct_existing_store(int start_thread,
 }
 
 template <class protocol_t>
-void do_create_new_store(int start_thread,
+void do_create_new_store(const std::vector<threadnum_t> &threads,
                          int thread_offset,
                          store_args_t<protocol_t> store_args,
                          serializer_multiplexer_t *multiplexer,
-                         int num_db_threads,
                          stores_lifetimer_t<protocol_t> *stores_out,
                          store_view_t<protocol_t> **store_views) {
-    const int threadnum = (start_thread + thread_offset) % num_db_threads;
-    on_thread_t th((threadnum_t(threadnum)));
+    on_thread_t th(threads[thread_offset]);
 
     typename protocol_t::store_t *store = new typename protocol_t::store_t(
         multiplexer->proxies[thread_offset], hash_shard_perfmon_name(thread_offset),
@@ -98,8 +94,12 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     // on N serializers.
 
     const int num_stores = CPU_SHARDING_FACTOR;
-    const int start_thread = next_thread;
-    next_thread = (next_thread + num_stores) % num_db_threads;
+    const threadnum_t serializer_thread = next_thread(num_db_threads);
+    std::vector<threadnum_t> store_threads;
+    for (int i = 0; i < num_stores; ++i) {
+        store_threads.push_back(next_thread(num_db_threads));
+    }
+    on_thread_t th(serializer_thread);
 
     const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
 
@@ -133,8 +133,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // them in the pmap?  No.
 
         pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
-                                     start_thread, _1, store_args, multiplexer.get(),
-                                     num_db_threads, stores_out, store_views.data()));
+                                     store_threads, _1, store_args, multiplexer.get(),
+                                     stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
     } else {
@@ -143,7 +143,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         standard_serializer_t::create(&file_opener,
                                       standard_serializer_t::static_config_t());
-
         serializer.init(new standard_serializer_t(
                             standard_serializer_t::dynamic_config_t(),
                             &file_opener,
@@ -153,7 +152,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         ptrs.push_back(serializer.get());
         serializer_multiplexer_t::create(ptrs, num_stores);
         multiplexer.init(new serializer_multiplexer_t(ptrs));
-
 
         // TODO: How do we specify what the stores' regions are?
 
@@ -165,8 +163,8 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
         pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
-                                     start_thread, _1,  store_args, multiplexer.get(),
-                                     num_db_threads, stores_out, store_views.data()));
+                                     store_threads, _1, store_args, multiplexer.get(),
+                                     stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
 
@@ -195,17 +193,29 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     stores_out->multiplexer()->init(multiplexer.release());
 }
 
-template <class protocol_t>
+template<class protocol_t>
 void file_based_svs_by_namespace_t<protocol_t>::destroy_svs(namespace_id_t namespace_id) {
-    // TODO: Handle errors?  It seems like we can't really handle the error so let's just ignore it?
+    // TODO: Handle errors?  It seems like we can't really handle the error so
+    // let's just ignore it?
     const std::string filepath = file_name_for(namespace_id).permanent_path();
     const int res = ::unlink(filepath.c_str());
-    guarantee_err(res == 0 || errno == ENOENT, "unlink failed for file %s", filepath.c_str());
+    guarantee_err(res == 0 || errno == ENOENT,
+                  "unlink failed for file %s", filepath.c_str());
 }
 
-template <class protocol_t>
+template<class protocol_t>
 serializer_filepath_t file_based_svs_by_namespace_t<protocol_t>::file_name_for(namespace_id_t namespace_id) {
     return serializer_filepath_t(base_path_, uuid_to_str(namespace_id));
+}
+
+template<class protocol_t>
+threadnum_t file_based_svs_by_namespace_t<protocol_t>::next_thread(int num_db_threads) {
+    // We only return thread 0 if `num_db_threads` is 1.
+    thread_counter = (thread_counter + 1) % num_db_threads;
+    if (thread_counter == 0) {
+        thread_counter = (thread_counter + 1) % num_db_threads;
+    }
+    return threadnum_t(thread_counter);
 }
 
 #include "mock/dummy_protocol.hpp"
