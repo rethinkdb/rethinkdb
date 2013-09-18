@@ -127,7 +127,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
         stores_out->stores()->init(num_stores);
 
-
         // TODO: Exceptions?  Can exceptions happen, and then
         // store_views' values would leak.  That is, are we handling
         // them in the pmap?  No.
@@ -210,8 +209,8 @@ serializer_filepath_t file_based_svs_by_namespace_t<protocol_t>::file_name_for(n
 
 template<class protocol_t>
 threadnum_t file_based_svs_by_namespace_t<protocol_t>::next_thread(int num_db_threads) {
-    thread_counter = (thread_counter + 1) % num_db_threads;
-    return threadnum_t(thread_counter);
+    thread_counter_ = (thread_counter_ + 1) % num_db_threads;
+    return threadnum_t(thread_counter_);
 }
 
 #include "mock/dummy_protocol.hpp"

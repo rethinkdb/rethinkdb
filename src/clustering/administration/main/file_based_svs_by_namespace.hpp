@@ -11,7 +11,7 @@ class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
 public:
     file_based_svs_by_namespace_t(io_backender_t *io_backender,
                                   const base_path_t& base_path)
-        : io_backender_(io_backender), base_path_(base_path), thread_counter(0) { }
+        : io_backender_(io_backender), base_path_(base_path), thread_counter_(0) { }
 
     void get_svs(perfmon_collection_t *serializers_perfmon_collection,
                  namespace_id_t namespace_id,
@@ -29,7 +29,7 @@ private:
     const base_path_t base_path_;
 
     threadnum_t next_thread(int num_db_threads);
-    int thread_counter; // should only be used by `next_thread`
+    int thread_counter_; // should only be used by `next_thread`
 
     DISABLE_COPYING(file_based_svs_by_namespace_t);
 };
