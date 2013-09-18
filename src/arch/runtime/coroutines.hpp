@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_COROUTINES_HPP_
 #define ARCH_RUNTIME_COROUTINES_HPP_
 
@@ -45,7 +45,7 @@ public:
         get_and_init_coro(action)->notify_later_ordered();
     }
 
-    // Use coro_t::spawn_*(std::bind(...)) for spawning with parameters.
+    // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
 
     /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
     `notify_later_ordered()`. They are deprecated and new code should not use

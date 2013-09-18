@@ -13,6 +13,9 @@
 #include <stdexcept>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "concurrency/coro_fifo.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/semaphore.hpp"
@@ -334,7 +337,7 @@ void do_get(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, bool with_cas, 
     block_pm_duration get_timer(&rh->stats->pm_cmd_get);
 
     /* Now that we're sure they're all valid, send off the requests */
-    pmap(gets.size(), std::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
+    pmap(gets.size(), boost::bind(&do_one_get, rh, with_cas, gets.data(), _1, token));
 
     if (rh->interruptor->is_pulsed()) {
         pipeliner_acq.begin_write();
@@ -566,14 +569,20 @@ enum storage_command_t {
     prepend_command
 };
 
+struct storage_metadata_t {
+    const mcflags_t mcflags;
+    const exptime_t exptime;
+    const cas_t unique;
+    storage_metadata_t(mcflags_t _mcflags, exptime_t _exptime, cas_t _unique)
+        : mcflags(_mcflags), exptime(_exptime), unique(_unique) { }
+};
+
 void run_storage_command(txt_memcached_handler_t *rh,
                          pipeliner_acq_t *pipeliner_acq_raw,
                          storage_command_t sc,
                          store_key_t key,
-                         const counted_t<data_buffer_t> &data,
-                         mcflags_t mcflags,
-                         exptime_t exptime,
-                         cas_t unique,
+                         const counted_t<data_buffer_t>& data,
+                         storage_metadata_t metadata,
                          bool noreply,
                          order_token_t token) {
 
@@ -613,8 +622,8 @@ void run_storage_command(txt_memcached_handler_t *rh,
         bool ok;
 
         try {
-            sarc_mutation_t sarc_mutation(key, data, mcflags, exptime,
-                add_policy, replace_policy, unique);
+            sarc_mutation_t sarc_mutation(key, data, metadata.mcflags, metadata.exptime,
+                add_policy, replace_policy, metadata.unique);
             memcached_protocol_t::write_t write(sarc_mutation, rh->generate_cas(), time(NULL));
             memcached_protocol_t::write_response_t result;
             rh->nsi->write(write, &result, token, rh->interruptor);
@@ -842,9 +851,13 @@ void do_storage(txt_memcached_handler_t *rh, pipeliner_t *pipeliner, storage_com
         return;
     }
 
+    /* Bundle metadata into one object so we don't try to pass too many arguments
+    to `boost::bind()` */
+    storage_metadata_t metadata(mcflags, exptime, unique);
+
     pipeliner_acq->done_argparsing();
 
-    coro_t::spawn_now_dangerously(std::bind(&run_storage_command, rh, pipeliner_acq.release(), sc, key, dp, mcflags, exptime, unique, noreply, token));
+    coro_t::spawn_now_dangerously(boost::bind(&run_storage_command, rh, pipeliner_acq.release(), sc, key, dp, metadata, noreply, token));
 }
 
 /* "incr" and "decr" commands */
@@ -1143,11 +1156,11 @@ void handle_memcache(memcached_interface_t *interface,
         /* Dispatch to the appropriate subclass */
         order_token_t token = order_source.check_in(std::string("handle_memcache+") + args[0]);
         if (!strcmp(args[0], "get")) {    // check for retrieval commands
-            coro_t::spawn_now_dangerously(std::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
+            coro_t::spawn_now_dangerously(boost::bind(do_get, &rh, &pipeliner, false, args.size(), args.data(), token.with_read_mode()));
         } else if (!strcmp(args[0], "gets")) {
-            coro_t::spawn_now_dangerously(std::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
+            coro_t::spawn_now_dangerously(boost::bind(do_get, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "rget")) {
-            coro_t::spawn_now_dangerously(std::bind(do_rget, &rh, &pipeliner, &order_source, args.size(), args.data()));
+            coro_t::spawn_now_dangerously(boost::bind(do_rget, &rh, &pipeliner, &order_source, args.size(), args.data()));
         } else if (!strcmp(args[0], "set")) {     // check for storage commands
             do_storage(&rh, &pipeliner, set_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "add")) {
@@ -1161,11 +1174,11 @@ void handle_memcache(memcached_interface_t *interface,
         } else if (!strcmp(args[0], "cas")) {
             do_storage(&rh, &pipeliner, cas_command, args.size(), args.data(), token);
         } else if (!strcmp(args[0], "delete")) {
-            coro_t::spawn_now_dangerously(std::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
+            coro_t::spawn_now_dangerously(boost::bind(do_delete, &rh, &pipeliner, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "incr")) {
-            coro_t::spawn_now_dangerously(std::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
+            coro_t::spawn_now_dangerously(boost::bind(do_incr_decr, &rh, &pipeliner, true, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "decr")) {
-            coro_t::spawn_now_dangerously(std::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
+            coro_t::spawn_now_dangerously(boost::bind(do_incr_decr, &rh, &pipeliner, false, args.size(), args.data(), token));
         } else if (!strcmp(args[0], "quit")) {
             // Make sure there's no more tokens (the kind in args, not
             // order tokens)

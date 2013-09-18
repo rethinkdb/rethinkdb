@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "protob/protob.hpp"
 
 #include <google/protobuf/stubs/common.h>
@@ -7,6 +7,7 @@
 #include <string>
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "arch/arch.hpp"
@@ -41,8 +42,8 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
         tcp_listener.init(new tcp_listener_t(
             local_addresses,
             port,
-            std::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn,
-                      this, std::placeholders::_1, auto_drainer_t::lock_t(&auto_drainer))));
+            boost::bind(&protob_server_t<request_t, response_t, context_t>::handle_conn,
+                        this, _1, auto_drainer_t::lock_t(&auto_drainer))));
     } catch (const address_in_use_exc_t &ex) {
         throw address_in_use_exc_t(strprintf("Could not bind to RDB protocol port: %s", ex.what()));
     }

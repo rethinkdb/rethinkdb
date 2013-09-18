@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include <string>
 #include <set>
 
@@ -15,7 +15,6 @@
 #include "perfmon/archive.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 
-
 static const char * STAT_REQ_TIMEOUT_PARAM = "timeout";
 static const uint64_t DEFAULT_STAT_REQ_TIMEOUT_MS = 1000;
 static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 60*1000;
@@ -23,7 +22,7 @@ static const uint64_t MAX_STAT_REQ_TIMEOUT_MS = 60*1000;
 class stats_request_record_t {
 public:
     explicit stats_request_record_t(mailbox_manager_t *mbox_manager)
-        : response_mailbox(mbox_manager, std::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1))
+        : response_mailbox(mbox_manager, boost::bind(&promise_t<perfmon_result_t>::pulse, &stats, _1))
     { }
     promise_t<perfmon_result_t> stats;
     mailbox_t<void(perfmon_result_t)> response_mailbox;

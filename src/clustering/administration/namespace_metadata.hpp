@@ -7,6 +7,9 @@
 #include <string>
 #include <utility>
 
+#include "utils.hpp"
+#include <boost/bind.hpp>
+
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/datacenter_metadata.hpp"
 #include "clustering/administration/http/json_adapters.hpp"

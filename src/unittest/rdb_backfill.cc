@@ -21,7 +21,6 @@
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
-
 namespace unittest {
 
 
@@ -109,7 +108,7 @@ void run_in_thread_pool_with_broadcaster(
                               order_source_t *)> fun)
 {
     extproc_spawner_t extproc_spawner;
-    run_in_thread_pool(std::bind(&run_with_broadcaster, fun));
+    run_in_thread_pool(boost::bind(&run_with_broadcaster, fun));
 }
 
 
@@ -174,7 +173,7 @@ void run_backfill_test(size_t value_padding_length,
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, value_padding_length, broadcaster->get(), _1, _2, _3, _4),
+        boost::bind(&write_to_broadcaster, value_padding_length, broadcaster->get(), _1, _2, _3, _4),
         NULL,
         &mc_key_gen,
         order_source,
@@ -226,11 +225,11 @@ void run_backfill_test(size_t value_padding_length,
 }
 
 TEST(RDBProtocolBackfill, Backfill) {
-     run_in_thread_pool_with_broadcaster(std::bind(&run_backfill_test, 0, _1, _2, _3, _4, _5, _6, _7, _8));
+     run_in_thread_pool_with_broadcaster(boost::bind(&run_backfill_test, 0, _1, _2, _3, _4, _5, _6, _7, _8));
 }
 
 TEST(RDBProtocolBackfill, BackfillLargeValues) {
-     run_in_thread_pool_with_broadcaster(std::bind(&run_backfill_test, 300, _1, _2, _3, _4, _5, _6, _7, _8));
+     run_in_thread_pool_with_broadcaster(boost::bind(&run_backfill_test, 300, _1, _2, _3, _4, _5, _6, _7, _8));
 }
 
 void run_sindex_backfill_test(std::pair<storage_ctx_t *, simple_mailbox_cluster_t *> io_backender_and_cluster,
@@ -285,7 +284,7 @@ void run_sindex_backfill_test(std::pair<storage_ctx_t *, simple_mailbox_cluster_
     /* Start sending operations to the broadcaster */
     std::map<std::string, std::string> inserter_state;
     test_inserter_t inserter(
-        std::bind(&write_to_broadcaster, 0, broadcaster->get(), _1, _2, _3, _4),
+        boost::bind(&write_to_broadcaster, 0, broadcaster->get(), _1, _2, _3, _4),
         NULL,
         &mc_key_gen,
         order_source,

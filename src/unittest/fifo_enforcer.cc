@@ -2,6 +2,7 @@
 #include "concurrency/fifo_enforcer.hpp"
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/variant.hpp>
 
 #include "arch/timing.hpp"
@@ -17,14 +18,14 @@ class test_shared_variable_t {
 public:
     explicit test_shared_variable_t(int initial) : variable(initial) { }
     void spawn_read(int expected_value) {
-        coro_t::spawn_sometime(std::bind(
+        coro_t::spawn_sometime(boost::bind(
             &test_shared_variable_t::attempt_read, this,
             expected_value,
             source.enter_read(),
             auto_drainer_t::lock_t(&auto_drainer)));
     }
     void spawn_write(int expected_value, int new_value) {
-        coro_t::spawn_sometime(std::bind(
+        coro_t::spawn_sometime(boost::bind(
             &test_shared_variable_t::attempt_write, this,
             expected_value, new_value,
             source.enter_write(),

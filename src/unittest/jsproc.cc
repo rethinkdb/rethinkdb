@@ -1,4 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "unittest/unittest_utils.hpp"
 
 #include "containers/archive/archive.hpp"
@@ -25,7 +28,7 @@ void run_eval_timeout_test() {
 
 TEST(JSProc, EvalTimeout) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_eval_timeout_test));
+    unittest::run_in_thread_pool(boost::bind(&run_eval_timeout_test));
 }
 
 void run_call_timeout_test() {
@@ -54,7 +57,7 @@ void run_call_timeout_test() {
 
 TEST(JSProc, CallTimeout) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_call_timeout_test));
+    unittest::run_in_thread_pool(boost::bind(&run_call_timeout_test));
 }
 
 void run_datum_test(const std::string &source_code, counted_t<const ql::datum_t> *res_out) {
@@ -84,7 +87,7 @@ void run_literal_number_test() {
 
 TEST(JSProc, LiteralNumber) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_literal_number_test));
+    unittest::run_in_thread_pool(boost::bind(&run_literal_number_test));
 }
 
 void run_literal_string_test() {
@@ -97,7 +100,7 @@ void run_literal_string_test() {
 
 TEST(JSProc, LiteralString) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_literal_string_test));
+    unittest::run_in_thread_pool(boost::bind(&run_literal_string_test));
 }
 
 void run_eval_and_call_test() {
@@ -134,7 +137,7 @@ void run_eval_and_call_test() {
 
 TEST(JSProc, EvalAndCall) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_eval_and_call_test));
+    unittest::run_in_thread_pool(boost::bind(&run_eval_and_call_test));
 }
 
 void run_broken_function_test() {
@@ -167,7 +170,7 @@ void run_broken_function_test() {
 
 TEST(JSProc, BrokenFunction) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_broken_function_test));
+    unittest::run_in_thread_pool(boost::bind(&run_broken_function_test));
 }
 
 void run_invalid_function_test() {
@@ -190,7 +193,7 @@ void run_invalid_function_test() {
 
 TEST(JSProc, InvalidFunction) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_invalid_function_test));
+    unittest::run_in_thread_pool(boost::bind(&run_invalid_function_test));
 }
 
 void run_infinite_recursion_function_test() {
@@ -222,7 +225,7 @@ void run_infinite_recursion_function_test() {
 
 TEST(JSProc, InfiniteRecursionFunction) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_infinite_recursion_function_test));
+    unittest::run_in_thread_pool(boost::bind(&run_infinite_recursion_function_test));
 }
 
 void run_overalloc_function_test() {
@@ -259,7 +262,7 @@ void run_overalloc_function_test() {
 /*
 TEST(JSProc, OverallocFunction) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_overalloc_function_test));
+    unittest::run_in_thread_pool(boost::bind(&run_overalloc_function_test));
 }
 */
 
@@ -362,5 +365,5 @@ void run_passthrough_test() {
 // This test will make sure that conversion of datum_t to and from v8 types works correctly
 TEST(JSProc, Passthrough) {
     extproc_spawner_t extproc_spawner;
-    unittest::run_in_thread_pool(std::bind(&run_passthrough_test));
+    unittest::run_in_thread_pool(boost::bind(&run_passthrough_test));
 }

@@ -366,16 +366,16 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
 
         // Pass out the point_replace_response_t.
         promise_t<superblock_t *> superblock_promise;
-        coro_t::spawn(std::bind(&do_a_replace_from_batched_replace,
-                                auto_drainer_t::lock_t(&drainer),
-                                &batched_replaces_fifo_sink,
-                                batched_replaces_fifo_source.enter_write(),
-                                slice_timestamp_txn_replace_t(slice, timestamp, txn, &replaces[i].second),
-                                current_superblock.release(),
-                                ql_env,
-                                &superblock_promise,
-                                &response_out->point_replace_responses[i].second,
-                                sindex_cb));
+        coro_t::spawn(boost::bind(&do_a_replace_from_batched_replace,
+                                  auto_drainer_t::lock_t(&drainer),
+                                  &batched_replaces_fifo_sink,
+                                  batched_replaces_fifo_source.enter_write(),
+                                  slice_timestamp_txn_replace_t(slice, timestamp, txn, &replaces[i].second),
+                                  current_superblock.release(),
+                                  ql_env,
+                                  &superblock_promise,
+                                  &response_out->point_replace_responses[i].second,
+                                  sindex_cb));
 
         current_superblock.init(superblock_promise.wait());
     }
@@ -522,7 +522,7 @@ void spawn_sindex_erase_ranges(
         bool release_superblock,
         signal_t *interruptor) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
-        coro_t::spawn_sometime(std::bind(
+        coro_t::spawn_sometime(boost::bind(
                     &sindex_erase_range, key_range, txn, &*it,
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock));
@@ -1093,7 +1093,7 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
                                                     it != sindexes.end();
                                                     ++it) {
-            coro_t::spawn_sometime(std::bind(
+            coro_t::spawn_sometime(boost::bind(
                         &rdb_update_single_sindex, &*it,
                         modification, txn, auto_drainer_t::lock_t(&drainer)));
         }

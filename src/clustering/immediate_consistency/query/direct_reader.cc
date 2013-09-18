@@ -1,9 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
 
 #include "protocol_api.hpp"
 #include "btree/btree_store.hpp"
-
 
 template <class protocol_t>
 direct_reader_t<protocol_t>::direct_reader_t(
@@ -11,7 +10,7 @@ direct_reader_t<protocol_t>::direct_reader_t(
         store_view_t<protocol_t> *svs_) :
     mailbox_manager(mm),
     svs(svs_),
-    read_mailbox(mm, std::bind(&direct_reader_t<protocol_t>::on_read, this, _1, _2))
+    read_mailbox(mm, boost::bind(&direct_reader_t<protocol_t>::on_read, this, _1, _2))
     { }
 
 template <class protocol_t>
@@ -23,7 +22,7 @@ template <class protocol_t>
 void direct_reader_t<protocol_t>::on_read(
         const typename protocol_t::read_t &read,
         const mailbox_addr_t<void(typename protocol_t::read_response_t)> &cont) {
-    coro_t::spawn_sometime(std::bind(
+    coro_t::spawn_sometime(boost::bind(
         &direct_reader_t<protocol_t>::perform_read, this,
         read, cont,
         auto_drainer_t::lock_t(&drainer)));

@@ -1,6 +1,5 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "unittest/dummy_namespace_interface.hpp"
-
 #include "unittest/gtest.hpp"
 #include "mock/dummy_protocol.hpp"
 
@@ -43,7 +42,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<dum
 }
 
 void run_in_thread_pool_with_namespace_interface(boost::function<void(namespace_interface_t<dummy_protocol_t> *, order_source_t *)> fun) {
-    run_in_thread_pool(std::bind(&run_with_namespace_interface, fun));
+    run_in_thread_pool(boost::bind(&run_with_namespace_interface, fun));
 }
 
 }   /* anonymous namespace */

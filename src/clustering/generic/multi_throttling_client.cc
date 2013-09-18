@@ -1,9 +1,7 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/generic/multi_throttling_client.hpp"
 
 #include "clustering/generic/registrant.hpp"
 #include "containers/archive/boost_types.hpp"
-
 
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket_acq_t::ticket_acq_t(multi_throttling_client_t *p) : parent(p) {
@@ -42,13 +40,13 @@ multi_throttling_client_t<request_type, inner_client_business_card_type>::multi_
     mailbox_manager(mm),
     free_tickets(0),
     give_tickets_mailbox(mailbox_manager,
-        std::bind(&multi_throttling_client_t::on_give_tickets, this, _1)),
+        boost::bind(&multi_throttling_client_t::on_give_tickets, this, _1)),
     reclaim_tickets_mailbox(mailbox_manager,
-        std::bind(&multi_throttling_client_t::on_reclaim_tickets, this, _1))
+        boost::bind(&multi_throttling_client_t::on_reclaim_tickets, this, _1))
 {
     mailbox_t<void(server_business_card_t)> intro_mailbox(
         mailbox_manager,
-        std::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, _1));
+        boost::bind(&promise_t<server_business_card_t>::pulse, &intro_promise, _1));
 
     {
         const client_business_card_t client_business_card(inner_client_business_card,
@@ -127,9 +125,9 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::o
     int to_relinquish = std::min(count, free_tickets);
     if (to_relinquish > 0) {
         free_tickets -= to_relinquish;
-        coro_t::spawn_sometime(std::bind(&multi_throttling_client_t<request_type, inner_client_business_card_type>::relinquish_tickets_blocking, this,
-                                         to_relinquish,
-                                         auto_drainer_t::lock_t(&drainer)));
+        coro_t::spawn_sometime(boost::bind(&multi_throttling_client_t<request_type, inner_client_business_card_type>::relinquish_tickets_blocking, this,
+                                           to_relinquish,
+                                           auto_drainer_t::lock_t(&drainer)));
     }
 }
 
