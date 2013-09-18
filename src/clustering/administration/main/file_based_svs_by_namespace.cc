@@ -210,11 +210,7 @@ serializer_filepath_t file_based_svs_by_namespace_t<protocol_t>::file_name_for(n
 
 template<class protocol_t>
 threadnum_t file_based_svs_by_namespace_t<protocol_t>::next_thread(int num_db_threads) {
-    // We only return thread 0 if `num_db_threads` is 1.
     thread_counter = (thread_counter + 1) % num_db_threads;
-    if (thread_counter == 0) {
-        thread_counter = (thread_counter + 1) % num_db_threads;
-    }
     return threadnum_t(thread_counter);
 }
 
