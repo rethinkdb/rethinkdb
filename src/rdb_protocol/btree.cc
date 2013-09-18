@@ -613,26 +613,27 @@ size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
     return serialized_size(datum);
 }
 
-class rdb_rget_depth_first_traversal_callback_t : public concurrent_traversal_callback_t {
+class rdb_rget_depth_first_traversal_callback_t
+    : public concurrent_traversal_callback_t {
 public:
     /* This constructor does a traversal on the primary btree, it's not to be
      * used with sindexes. The constructor below is for use with sindexes. */
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
-                                              ql::env_t *_ql_env,
-                                              const rdb_protocol_details::transform_t &_transform,
-                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
-                                              const key_range_t &range,
-                                              direction_t _direction,
-                                              rget_read_response_t *_response) :
-        bad_init(false),
-        transaction(txn),
-        response(_response),
-        cumulative_size(0),
-        ql_env(_ql_env),
-        transform(_transform),
-        terminal(_terminal),
-        direction(_direction)
-    {
+    rdb_rget_depth_first_traversal_callback_t(
+        transaction_t *txn,
+        ql::env_t *_ql_env,
+        const rdb_protocol_details::transform_t &_transform,
+        boost::optional<rdb_protocol_details::terminal_t> _terminal,
+        const key_range_t &range,
+        direction_t _direction,
+        rget_read_response_t *_response)
+        : bad_init(false),
+          transaction(txn),
+          response(_response),
+          cumulative_size(0),
+          ql_env(_ql_env),
+          transform(_transform),
+          terminal(_terminal),
+          direction(_direction) {
         init(range);
     }
 
@@ -644,25 +645,25 @@ public:
      * operations but their sindex values get mixed together and you wind up
      * with multiple copies of each. This constructor will filter out the
      * duplicates. This was issue #606. */
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
-                                              ql::env_t *_ql_env,
-                                              const rdb_protocol_details::transform_t &_transform,
-                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
-                                              const key_range_t &range,
-                                              const key_range_t &_primary_key_range,
-                                              direction_t _direction,
-                                              boost::optional<ql::map_wire_func_t> _sindex_function,
-                                              rget_read_response_t *_response) :
-        bad_init(false),
-        transaction(txn),
-        response(_response),
-        cumulative_size(0),
-        ql_env(_ql_env),
-        transform(_transform),
-        terminal(_terminal),
-        primary_key_range(_primary_key_range),
-        direction(_direction)
-    {
+    rdb_rget_depth_first_traversal_callback_t(
+        transaction_t *txn,
+        ql::env_t *_ql_env,
+        const rdb_protocol_details::transform_t &_transform,
+        boost::optional<rdb_protocol_details::terminal_t> _terminal,
+        const key_range_t &range,
+        const key_range_t &_primary_key_range,
+        direction_t _direction,
+        boost::optional<ql::map_wire_func_t> _sindex_function,
+        rget_read_response_t *_response)
+        : bad_init(false),
+          transaction(txn),
+          response(_response),
+          cumulative_size(0),
+          ql_env(_ql_env),
+          transform(_transform),
+          terminal(_terminal),
+          primary_key_range(_primary_key_range),
+          direction(_direction) {
         if (_sindex_function) {
             sindex_function = _sindex_function->compile_wire_func();
         }
@@ -711,7 +712,8 @@ public:
             }
         }
         try {
-            lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()), transaction);
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
+                                    transaction);
             first_value.get();
 
             keyvalue.reset();
