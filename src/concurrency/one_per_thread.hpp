@@ -7,7 +7,7 @@
 #include "containers/scoped.hpp"
 #include "containers/object_buffer.hpp"
 
-template<class inner_t>
+template <class T>
 class one_per_thread_t {
 public:
     struct construct_0_t {
@@ -15,7 +15,7 @@ public:
         explicit construct_0_t(one_per_thread_t *p) : parent_(p) { }
         void operator()(int thread) const {
             on_thread_t th((threadnum_t(thread)));
-            parent_->array[thread].create();
+            parent_->array[thread].init(new T());
         }
     };
 
@@ -31,7 +31,7 @@ public:
 
         void operator()(int thread) const {
             on_thread_t th((threadnum_t(thread)));
-            parent_->array[thread].create(arg1_);
+            parent_->array[thread].init(new T(arg1_));
         }
     };
 
@@ -50,7 +50,7 @@ public:
 
         void operator()(int thread) const {
             on_thread_t th((threadnum_t(thread)));
-            parent_->array[thread].create(arg1_, arg2_);
+            parent_->array[thread].init(new T(arg1_, arg2_));
         }
     };
 
@@ -73,18 +73,18 @@ public:
         pmap(get_num_threads(), destruct_t(this));
     }
 
-    inner_t *get() {
+    T *get() {
         return array[get_thread_id().threadnum].get();
     }
 
 private:
-    // An array of buffers of inner_t of size get_num_threads(), the
-    // array is allocated and then the buffers are initialized (on
-    // their respective threads).  The array and buffers are owned by
-    // this object.
-    scoped_array_t<object_buffer_t<inner_t> > array;
+    // An array of size get_num_threads().  Pointees are allocated and destroyed on
+    // their respective threads.  Because this is an array of pointers and not
+    // object_buffer_t<T>, objects live on separate cache lines.
+    scoped_array_t<scoped_ptr_t<T> > array;
 
     DISABLE_COPYING(one_per_thread_t);
 };
 
 #endif /* CONCURRENCY_ONE_PER_THREAD_HPP_ */
+
