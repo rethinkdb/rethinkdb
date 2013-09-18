@@ -1023,7 +1023,6 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
                 store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
         }
     } else {
-        debugf("Key: %s\n", index->print_secondary(primary_key).c_str());
         keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
     }
 }
