@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/network_logger.hpp"
 
 network_logger_t::network_logger_t(
@@ -7,8 +7,8 @@ network_logger_t::network_logger_t(
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &sv) :
     us(our_peer_id),
     directory_view(dv), semilattice_view(sv),
-    directory_subscription(boost::bind(&network_logger_t::on_change, this)),
-    semilattice_subscription(boost::bind(&network_logger_t::on_change, this))
+    directory_subscription(std::bind(&network_logger_t::on_change, this)),
+    semilattice_subscription(std::bind(&network_logger_t::on_change, this))
 {
     watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> >::freeze_t directory_freeze(directory_view);
     guarantee(directory_view->get().empty());

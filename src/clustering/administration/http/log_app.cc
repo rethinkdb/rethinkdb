@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/http/log_app.hpp"
 
 #include "arch/timing.hpp"
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "utils.hpp"
+
 
 cJSON *render_as_json(log_message_t *message) {
     std::string timestamp_buffer = strprintf("%ld.%09ld", message->timestamp.tv_sec, message->timestamp.tv_nsec);
@@ -114,7 +115,7 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
     scoped_cJSON_t map_to_fill(cJSON_CreateObject());
 
     cond_t non_interruptor;
-    pmap(peer_ids.size(), boost::bind(
+    pmap(peer_ids.size(), std::bind(
         &log_http_app_t::fetch_logs, this, _1,
         machine_ids, peer_ids,
         max_length, min_timestamp, max_timestamp,

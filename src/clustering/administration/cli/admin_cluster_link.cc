@@ -27,6 +27,7 @@
 #include "perfmon/perfmon.hpp"
 #include "perfmon/archive.hpp"
 
+
 const std::vector<std::string>& guarantee_param_vec(const std::map<std::string, std::vector<std::string> >& params, const std::string& name) {
     std::map<std::string, std::vector<std::string> >::const_iterator it = params.find(name);
     guarantee(it != params.end());
@@ -1211,7 +1212,7 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<
 struct admin_stats_request_t {
     explicit admin_stats_request_t(mailbox_manager_t *mailbox_manager) :
         response_mailbox(mailbox_manager,
-                         boost::bind(&promise_t<perfmon_result_t>::pulse, &stats_promise, _1)) { }
+                         std::bind(&promise_t<perfmon_result_t>::pulse, &stats_promise, _1)) { }
     promise_t<perfmon_result_t> stats_promise;
     mailbox_t<void(perfmon_result_t)> response_mailbox;
 };

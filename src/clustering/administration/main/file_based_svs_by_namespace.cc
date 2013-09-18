@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/main/file_based_svs_by_namespace.hpp"
 
 #include "clustering/immediate_consistency/branch/multistore.hpp"
@@ -7,8 +7,9 @@
 #include "serializer/translator.hpp"
 #include "utils.hpp"
 
+
 /* This object serves mostly as a container for arguments to the
- * do_construct_existing_store function because we hit the boost::bind argument
+ * do_construct_existing_store function because we hit the std::bind argument
  * limit. */
 template <class protocol_t>
 struct store_args_t {
@@ -130,9 +131,9 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // store_views' values would leak.  That is, are we handling
         // them in the pmap?  No.
 
-        pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
-                                     _1, store_args, multiplexer.get(),
-                                     num_db_threads, stores_out, store_views.data()));
+        pmap(num_stores, std::bind(do_construct_existing_store<protocol_t>,
+                                   _1, store_args, multiplexer.get(),
+                                   num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
     } else {
@@ -160,9 +161,9 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         // TODO: This should use pmap.
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
-        pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
-                                     _1,  store_args, multiplexer.get(),
-                                     num_db_threads, stores_out, store_views.data()));
+        pmap(num_stores, std::bind(do_create_new_store<protocol_t>,
+                                   _1,  store_args, multiplexer.get(),
+                                   num_db_threads, stores_out, store_views.data()));
 
         svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
 

@@ -1,7 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/make_shared.hpp>
 
 #include "concurrency/coro_fifo.hpp"
@@ -16,6 +16,7 @@
 #include "rpc/mailbox/typed.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/view/member.hpp"
+
 
 template <class protocol_t>
 const int broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES =
@@ -215,9 +216,9 @@ public:
         background_write_workers(100, &background_write_queue, &background_write_caller),
         controller(c),
         upgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
+            std::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
         downgrade_mailbox(controller->mailbox_manager,
-            boost::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
+            std::bind(&dispatchee_t::downgrade, this, _1, auto_drainer_t::lock_t(&drainer)))
     {
         controller->assert_thread();
         controller->sanity_check();
@@ -234,14 +235,14 @@ public:
         /* This coroutine will send an intro message to the newly-registered
         listener. It needs to be a separate coroutine so that we don't block while
         holding `controller->mutex`. */
-        coro_t::spawn_sometime(boost::bind(&dispatchee_t::send_intro, this,
+        coro_t::spawn_sometime(std::bind(&dispatchee_t::send_intro, this,
             d, controller->newest_complete_timestamp, auto_drainer_t::lock_t(&drainer)));
 
         for (typename std::list<boost::shared_ptr<incomplete_write_t> >::iterator it = controller->incomplete_writes.begin();
                 it != controller->incomplete_writes.end(); it++) {
 
-            coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
-                                               this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_source.check_in("dispatchee_t"), fifo_source.enter_write()));
+            coro_t::spawn_sometime(std::bind(&broadcaster_t::background_write, controller,
+                                             this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_source.check_in("dispatchee_t"), fifo_source.enter_write()));
         }
     }
 
@@ -348,7 +349,7 @@ void listener_write(
     cond_t ack_cond;
     mailbox_t<void()> ack_mailbox(
         mailbox_manager,
-        boost::bind(&cond_t::pulse, &ack_cond));
+        std::bind(&cond_t::pulse, &ack_cond));
 
     send(mailbox_manager, write_mailbox,
          w, ts, order_token, token, ack_mailbox.get_address());
@@ -374,7 +375,7 @@ void listener_read(
     cond_t resp_cond;
     mailbox_t<void(typename protocol_t::read_response_t)> resp_mailbox(
         mailbox_manager,
-        boost::bind(&store_listener_response<typename protocol_t::read_response_t>, response, _1, &resp_cond));
+        std::bind(&store_listener_response<typename protocol_t::read_response_t>, response, _1, &resp_cond));
 
     send(mailbox_manager, read_mailbox,
          r, ts, order_token, token, resp_mailbox.get_address());
@@ -488,10 +489,10 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
                 unreachable();
             }
 
-            it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
+            it->first->background_write_queue.push(std::bind(&broadcaster_t::background_writeread, this,
                 it->first, it->second, write_ref, order_token, fifo_enforcer_token, durability));
         } else {
-            it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
+            it->first->background_write_queue.push(std::bind(&broadcaster_t::background_write, this,
                 it->first, it->second, write_ref, order_token, fifo_enforcer_token));
         }
     }
@@ -534,7 +535,7 @@ void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_
         typename protocol_t::write_response_t response;
         mailbox_t<void(typename protocol_t::write_response_t)> response_mailbox(
             mailbox_manager,
-            boost::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond));
+            std::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond));
 
         send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address(), durability);
 

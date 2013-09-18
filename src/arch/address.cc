@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/address.hpp"
 
 #include <errno.h>
@@ -6,9 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
@@ -58,8 +55,8 @@ std::set<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
     int errno_res;
     struct addrinfo *addrs;
     boost::function<void ()> fn =
-        boost::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL),
-                    &hint, &addrs, &res, &errno_res);
+        std::bind(do_getaddrinfo, host.c_str(), static_cast<const char*>(NULL),
+                  &hint, &addrs, &res, &errno_res);
     thread_pool_t::run_in_blocker_pool(fn);
 
     if (res != 0) {
