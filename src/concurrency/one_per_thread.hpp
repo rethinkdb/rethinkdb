@@ -10,23 +10,23 @@ template <class T>
 class one_per_thread_t {
 public:
     one_per_thread_t() : array(get_num_threads()) {
-        pmap(get_num_threads(), std::bind(&one_per_thread_t::construct_0, this, _1));
+        pmap(get_num_threads(), std::bind(&one_per_thread_t::construct_0, this, ph::_1));
     }
 
     template <class arg1_t>
     explicit one_per_thread_t(const arg1_t &arg1) : array(get_num_threads()) {
         pmap(get_num_threads(), std::bind(&one_per_thread_t::construct_1<arg1_t>,
-                                          this, _1, std::ref(arg1)));
+                                          this, ph::_1, std::ref(arg1)));
     }
 
     template<class arg1_t, class arg2_t>
     one_per_thread_t(const arg1_t &arg1, const arg2_t &arg2) : array(get_num_threads()) {
         pmap(get_num_threads(), std::bind(&one_per_thread_t::construct_2<arg1_t, arg2_t>,
-                                          this, _1, std::ref(arg1), std::ref(arg2)));
+                                          this, ph::_1, std::ref(arg1), std::ref(arg2)));
     }
 
     ~one_per_thread_t() {
-        pmap(get_num_threads(), std::bind(&one_per_thread_t::destruct, this, _1));
+        pmap(get_num_threads(), std::bind(&one_per_thread_t::destruct, this, ph::_1));
     }
 
     T *get() {

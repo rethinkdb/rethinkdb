@@ -26,11 +26,7 @@
 #include "errors.hpp"
 #include "config/args.hpp"
 
-// Use NO_STD_PLACEHOLDERS in your file if some boost header (or other header) comes
-// with boost's _1, _2, etc.  (But first try also using BOOST_BIND_NO_PLACEHOLDERS.)
-#ifndef NO_STD_PLACEHOLDERS
-using namespace std::placeholders;
-#endif
+namespace ph = std::placeholders;
 
 class Term;
 void pb_print(Term *t);

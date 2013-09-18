@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/reactor/reactor.hpp"
 
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
@@ -114,7 +114,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             run_until_satisfied_2(
                 directory_echo_mirror.get_internal(),
                 blueprint,
-                std::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing, this, _1, _2, region),
+                boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing, this, _1, _2, region),
                 interruptor);
         }
 

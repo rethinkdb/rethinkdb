@@ -96,19 +96,20 @@ void cluster_access_t::join_and_wait_to_propagate(
         sl_metadata = semilattice_metadata->get();
     }
 
-    boost::function<bool (const cow_ptr_t<ns_metadata_t> s)> p
-        = std::bind(&is_joined<cow_ptr_t<ns_metadata_t > >,
-                    _1,
-                    sl_metadata.rdb_namespaces);
+    boost::function<bool (const cow_ptr_t<ns_metadata_t> s)> p = boost::bind(
+        &is_joined<cow_ptr_t<ns_metadata_t > >,
+        _1,
+        sl_metadata.rdb_namespaces
+    );
 
     {
         on_thread_t switcher(namespaces_semilattice_metadata->home_thread());
         namespaces_semilattice_metadata->run_until_satisfied(p,
                                                              interruptor);
         databases_semilattice_metadata->run_until_satisfied(
-            std::bind(&is_joined<databases_semilattice_metadata_t>,
-                      _1,
-                      sl_metadata.databases),
+            boost::bind(&is_joined<databases_semilattice_metadata_t>,
+                        _1,
+                        sl_metadata.databases),
             interruptor);
     }
 }

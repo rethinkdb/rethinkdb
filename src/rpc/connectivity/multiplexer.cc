@@ -1,7 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/connectivity/multiplexer.hpp"
 
 #include "errors.hpp"
+#include <boost/bind.hpp>
 #include <boost/function.hpp>
 
 #include "rpc/connectivity/connectivity.hpp"

@@ -1,13 +1,16 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "http/file_app.hpp"
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 
 #include <time.h>
 
 #include <set>
 #include <string>
 
+#include "errors.hpp"
+#include <boost/bind.hpp>
+
 #include "arch/runtime/thread_pool.hpp"   /* for `run_in_blocker_pool()` */
 #include "containers/archive/file_stream.hpp"
+#include "http/file_app.hpp"
 #include "logger.hpp"
 #include "stl_utils.hpp"
 #include "utils.hpp"
@@ -52,7 +55,7 @@ http_res_t file_http_app_t::handle(const http_req_t &req) {
 #endif
     res.add_header_line("Expires", http_format_date(expires));
 
-    thread_pool_t::run_in_blocker_pool(std::bind(&file_http_app_t::handle_blocking, this, filename, &res));
+    thread_pool_t::run_in_blocker_pool(boost::bind(&file_http_app_t::handle_blocking, this, filename, &res));
 
     if (res.code == 404) {
         logINF("File %s was requested and is on the whitelist but we didn't find it in the directory.", (asset_dir + filename).c_str());

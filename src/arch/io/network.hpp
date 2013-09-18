@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #ifndef ARCH_IO_NETWORK_HPP_
 #define ARCH_IO_NETWORK_HPP_
 
@@ -283,7 +283,7 @@ private:
     void internal_flush_write_buffer();
 
     /* Used to queue up buffers to write. The functions in `write_queue` will all be
-    `std::bind()`s of the `perform_write()` function below. */
+    `boost::bind()`s of the `perform_write()` function below. */
     unlimited_fifo_queue_t<write_queue_op_t*, intrusive_list_t<write_queue_op_t> > write_queue;
 
     /* This semaphore prevents the write queue from getting arbitrarily big. */

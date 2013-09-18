@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 
 #include "errors.hpp"
@@ -9,7 +9,6 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "protocol_api.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
-
 
 template <class protocol_t>
 struct multistore_ptr_t<protocol_t>::switch_read_token_t {
@@ -72,7 +71,7 @@ void multistore_ptr_t<protocol_t>::do_initialize(int i, store_view_t<protocol_t>
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::initialize(store_view_t<protocol_t> **store_views) THROWS_NOTHING {
-    pmap(store_views_.size(), std::bind(&multistore_ptr_t<protocol_t>::do_initialize, this, _1, store_views));
+    pmap(store_views_.size(), boost::bind(&multistore_ptr_t<protocol_t>::do_initialize, this, _1, store_views));
 }
 
 template <class protocol_t>
@@ -87,7 +86,7 @@ void do_destroy(int i, store_view_t<protocol_t> **store_views) {
 
 template <class protocol_t>
 multistore_ptr_t<protocol_t>::~multistore_ptr_t() {
-    pmap(store_views_.size(), std::bind(do_destroy<protocol_t>, _1, store_views_.data()));
+    pmap(store_views_.size(), boost::bind(do_destroy<protocol_t>, _1, store_views_.data()));
 }
 
 template <class protocol_t>
@@ -161,8 +160,8 @@ void multistore_ptr_t<protocol_t>::do_get_metainfo(order_token_t order_token,
     // TODO: For getting, we possibly want to cache things on the home
     // thread, but wait until we want a multithreaded listener.
 
-    pmap(count, std::bind(&multistore_ptr_t<protocol_t>::do_get_a_metainfo,
-                          this, _1, order_token, &internal_tokens, interruptor, out, &out_mutex));
+    pmap(count, boost::bind(&multistore_ptr_t<protocol_t>::do_get_a_metainfo,
+                            this, _1, order_token, &internal_tokens, interruptor, out, &out_mutex));
 
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
@@ -212,7 +211,7 @@ void multistore_ptr_t<protocol_t>::set_metainfo(const region_map_t<protocol_t, b
     switch_write_tokens(external_token, interruptor, &order_token, &internal_tokens);
 
     pmap(num_stores(),
-         std::bind(&multistore_ptr_t<protocol_t>::do_set_a_metainfo, this, _1, boost::ref(new_metainfo), order_token, boost::ref(internal_tokens), interruptor));
+         boost::bind(&multistore_ptr_t<protocol_t>::do_set_a_metainfo, this, _1, boost::ref(new_metainfo), order_token, boost::ref(internal_tokens), interruptor));
 
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
