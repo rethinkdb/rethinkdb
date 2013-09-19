@@ -46,11 +46,10 @@ private:
 };
 
 class page_repl_random_t {
-    typedef mc_cache_t cache_t;
     friend class evictable_t;
 
 public:
-    page_repl_random_t(size_t _unload_threshold, cache_t *_cache);
+    page_repl_random_t(size_t _unload_threshold, mc_cache_t *_cache);
 
     // If is_full(space_needed), the next call to make_space(space_needed) probably
     // has to evict something
@@ -72,7 +71,7 @@ public:
 
 private:
     size_t unload_threshold;
-    cache_t *cache;
+    mc_cache_t *cache;
     segmented_vector_t<evictable_t *> array;
 };
 

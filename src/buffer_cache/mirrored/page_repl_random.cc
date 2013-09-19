@@ -45,7 +45,7 @@ void evictable_t::remove_from_page_repl() {
     page_repl_index = static_cast<size_t>(-1);
 }
 
-page_repl_random_t::page_repl_random_t(size_t _unload_threshold, cache_t *_cache)
+page_repl_random_t::page_repl_random_t(size_t _unload_threshold, mc_cache_t *_cache)
     : unload_threshold(_unload_threshold),
       cache(_cache)
     {}
