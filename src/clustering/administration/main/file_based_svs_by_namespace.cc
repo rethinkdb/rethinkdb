@@ -94,100 +94,91 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     // on N serializers.
 
     const int num_stores = CPU_SHARDING_FACTOR;
+    stores_out->stores()->init(num_stores);
+
     const threadnum_t serializer_thread = next_thread(num_db_threads);
     std::vector<threadnum_t> store_threads;
     for (int i = 0; i < num_stores; ++i) {
         store_threads.push_back(next_thread(num_db_threads));
     }
-    on_thread_t th(serializer_thread);
-
-    const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
 
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
-
-    int res = access(serializer_filepath.permanent_path().c_str(), R_OK | W_OK);
-    store_args_t<protocol_t> store_args(io_backender_, base_path_,
-            namespace_id, cache_size, serializers_perfmon_collection, ctx);
-    if (res == 0) {
-        filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
-
-        // TODO: Could we handle failure when loading the serializer?  Right
-        // now, we don't.
-        serializer.init(new standard_serializer_t(
-                            standard_serializer_t::dynamic_config_t(),
-                            &file_opener,
-                            serializers_perfmon_collection));
-
-        std::vector<standard_serializer_t *> ptrs;
-        ptrs.push_back(serializer.get());
-        multiplexer.init(new serializer_multiplexer_t(ptrs));
-
-        // The files already exist, thus we don't create them.
-        scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
-        stores_out->stores()->init(num_stores);
-
-        // TODO: Exceptions?  Can exceptions happen, and then
-        // store_views' values would leak.  That is, are we handling
-        // them in the pmap?  No.
-
-        pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
-                                     store_threads, _1, store_args, multiplexer.get(),
-                                     stores_out, store_views.data()));
-
-        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
-    } else {
-        stores_out->stores()->init(num_stores);
-
-        filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
-        standard_serializer_t::create(&file_opener,
-                                      standard_serializer_t::static_config_t());
-        serializer.init(new standard_serializer_t(
-                            standard_serializer_t::dynamic_config_t(),
-                            &file_opener,
-                            serializers_perfmon_collection));
-
-        std::vector<standard_serializer_t *> ptrs;
-        ptrs.push_back(serializer.get());
-        serializer_multiplexer_t::create(ptrs, num_stores);
-        multiplexer.init(new serializer_multiplexer_t(ptrs));
-
-        // TODO: How do we specify what the stores' regions are?
-
-        // TODO: Exceptions?  Can exceptions happen, and then store_views'
-        // values would leak.
-
-        // The files do not exist, create them.
-        // TODO: This should use pmap.
+    scoped_ptr_t<multistore_ptr_t<protocol_t> > mptr;
+    {
+        on_thread_t th(serializer_thread);
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
-        pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
-                                     store_threads, _1, store_args, multiplexer.get(),
-                                     stores_out, store_views.data()));
+        const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
+        int res = access(serializer_filepath.permanent_path().c_str(), R_OK | W_OK);
+        store_args_t<protocol_t> store_args(io_backender_, base_path_,
+                                            namespace_id, cache_size,
+                                            serializers_perfmon_collection, ctx);
+        filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
+        if (res == 0) {
+            // TODO: Could we handle failure when loading the serializer?  Right
+            // now, we don't.
+            serializer.init(new standard_serializer_t(
+                                standard_serializer_t::dynamic_config_t(),
+                                &file_opener,
+                                serializers_perfmon_collection));
 
-        svs_out->init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
+            std::vector<standard_serializer_t *> ptrs;
+            ptrs.push_back(serializer.get());
+            multiplexer.init(new serializer_multiplexer_t(ptrs));
 
-        // Initialize the metadata in the underlying stores.
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
-        (*svs_out)->new_write_token(&write_token);
+            // TODO: Exceptions?  Can exceptions happen, and then
+            // store_views' values would leak.  That is, are we handling
+            // them in the pmap?  No.
+            pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
+                                         store_threads, _1, store_args,
+                                         multiplexer.get(),
+                                         stores_out, store_views.data()));
+            mptr.init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
+        } else {
+            standard_serializer_t::create(&file_opener,
+                                          standard_serializer_t::static_config_t());
+            serializer.init(new standard_serializer_t(
+                                standard_serializer_t::dynamic_config_t(),
+                                &file_opener,
+                                serializers_perfmon_collection));
 
-        cond_t dummy_interruptor;
+            std::vector<standard_serializer_t *> ptrs;
+            ptrs.push_back(serializer.get());
+            serializer_multiplexer_t::create(ptrs, num_stores);
+            multiplexer.init(new serializer_multiplexer_t(ptrs));
 
-        order_source_t order_source;  // TODO: order_token_t::ignore.  Use the svs.
+            // TODO: How do we specify what the stores' regions are?
+            // TODO: Exceptions?  Can exceptions happen, and then store_views'
+            // values would leak.
+            // The files do not exist, create them.
+            // TODO: This should use pmap.
+            pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
+                                         store_threads, _1, store_args,
+                                         multiplexer.get(),
+                                         stores_out, store_views.data()));
+            mptr.init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
 
-        guarantee((*svs_out)->get_region() == protocol_t::region_t::universe());
-        (*svs_out)->set_metainfo(
-            region_map_t<protocol_t, binary_blob_t>(
-                (*svs_out)->get_region(),
-                binary_blob_t(version_range_t(version_t::zero()))),
-            order_source.check_in("file_based_svs_by_namespace_t"),
-            &write_token,
-            &dummy_interruptor);
+            // Initialize the metadata in the underlying stores.
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
+            mptr->new_write_token(&write_token);
+            cond_t dummy_interruptor;
+            order_source_t order_source;  // TODO: order_token_t::ignore.  Use the svs.
+            guarantee(mptr->get_region() == protocol_t::region_t::universe());
+            mptr->set_metainfo(
+                region_map_t<protocol_t, binary_blob_t>(
+                    mptr->get_region(),
+                    binary_blob_t(version_range_t(version_t::zero()))),
+                order_source.check_in("file_based_svs_by_namespace_t"),
+                &write_token,
+                &dummy_interruptor);
 
-        // Finally, the store is created.
-        file_opener.move_serializer_file_to_permanent_location();
-    }
+            // Finally, the store is created.
+            file_opener.move_serializer_file_to_permanent_location();
+        }
+    } // back on calling thread
 
+    svs_out->init(mptr.release());
     stores_out->serializer()->init(serializer.release());
     stores_out->multiplexer()->init(multiplexer.release());
 }
