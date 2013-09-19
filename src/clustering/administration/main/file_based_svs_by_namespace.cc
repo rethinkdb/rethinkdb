@@ -35,39 +35,41 @@ std::string hash_shard_perfmon_name(int hash_shard_number) {
 }
 
 template <class protocol_t>
-void do_construct_existing_store(const std::vector<threadnum_t> &threads,
-                                 int thread_offset,
-                                 store_args_t<protocol_t> store_args,
-                                 serializer_multiplexer_t *multiplexer,
-                                 stores_lifetimer_t<protocol_t> *stores_out,
-                                 store_view_t<protocol_t> **store_views) {
+void do_construct_existing_store(
+    const std::vector<threadnum_t> &threads,
+    int thread_offset,
+    store_args_t<protocol_t> store_args,
+    serializer_multiplexer_t *multiplexer,
+    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > *stores_out_stores,
+    store_view_t<protocol_t> **store_views) {
+
     // TODO: Exceptions?  Can exceptions happen, and then this doesn't
     // catch it, and the caller doesn't handle it.
     on_thread_t th(threads[thread_offset]);
-
     // TODO: Can we pass serializers_perfmon_collection across threads like this?
     typename protocol_t::store_t *store = new typename protocol_t::store_t(
         multiplexer->proxies[thread_offset], hash_shard_perfmon_name(thread_offset),
         store_args.cache_size, false, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path);
-    (*stores_out->stores())[thread_offset].init(store);
+    (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
 
 template <class protocol_t>
-void do_create_new_store(const std::vector<threadnum_t> &threads,
-                         int thread_offset,
-                         store_args_t<protocol_t> store_args,
-                         serializer_multiplexer_t *multiplexer,
-                         stores_lifetimer_t<protocol_t> *stores_out,
-                         store_view_t<protocol_t> **store_views) {
-    on_thread_t th(threads[thread_offset]);
+void do_create_new_store(
+    const std::vector<threadnum_t> &threads,
+    int thread_offset,
+    store_args_t<protocol_t> store_args,
+    serializer_multiplexer_t *multiplexer,
+    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > *stores_out_stores,
+    store_view_t<protocol_t> **store_views) {
 
+    on_thread_t th(threads[thread_offset]);
     typename protocol_t::store_t *store = new typename protocol_t::store_t(
         multiplexer->proxies[thread_offset], hash_shard_perfmon_name(thread_offset),
         store_args.cache_size, true, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path);
-    (*stores_out->stores())[thread_offset].init(store);
+    (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
 
@@ -94,7 +96,9 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     // on N serializers.
 
     const int num_stores = CPU_SHARDING_FACTOR;
-    stores_out->stores()->init(num_stores);
+    scoped_array_t<scoped_ptr_t<typename protocol_t::store_t> > *stores_out_stores
+        = stores_out->stores();
+    stores_out_stores->init(num_stores);
 
     const threadnum_t serializer_thread = next_thread(num_db_threads);
     std::vector<threadnum_t> store_threads;
@@ -133,7 +137,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             pmap(num_stores, boost::bind(do_construct_existing_store<protocol_t>,
                                          store_threads, _1, store_args,
                                          multiplexer.get(),
-                                         stores_out, store_views.data()));
+                                         stores_out_stores, store_views.data()));
             mptr.init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
         } else {
             standard_serializer_t::create(&file_opener,
@@ -156,7 +160,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             pmap(num_stores, boost::bind(do_create_new_store<protocol_t>,
                                          store_threads, _1, store_args,
                                          multiplexer.get(),
-                                         stores_out, store_views.data()));
+                                         stores_out_stores, store_views.data()));
             mptr.init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
 
             // Initialize the metadata in the underlying stores.
