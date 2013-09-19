@@ -49,10 +49,10 @@ batched_rget_stream_t::batched_rget_stream_t(
       sindex_range(_sindex_start_value, start_value_open,
                    _sindex_end_value, end_value_open),
       range(rdb_protocol_t::sindex_key_range(
-                _sindex_start_value != NULL
+                _sindex_start_value.has()
                   ? _sindex_start_value->truncated_secondary()
                   : store_key_t::min(),
-                _sindex_end_value != NULL
+                _sindex_end_value.has()
                   ? _sindex_end_value->truncated_secondary()
                   : store_key_t::max())),
       table_scan_backtrace(),

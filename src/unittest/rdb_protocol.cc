@@ -357,6 +357,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
+            //std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10, "abcdefghijklmnopqrstuvwxyz"[(j - 100) / 5]);
             std::string id(i + rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 10, static_cast<char>(j));
             std::string sid(j, 'a');
             auto sindex_key_literal = make_counted<const ql::datum_t>(std::string(sid));
@@ -385,9 +386,11 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                            &response,
                            osource->check_in("unittest::run_sindex_oversized_keys_test(rdb_protocol_t.cc-A"),
                            &interruptor);
-
-                if (!boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
+                auto resp = boost::get<rdb_protocol_t::point_write_response_t>(&response.response);
+                if (!resp) {
                     ADD_FAILURE() << "got wrong type of result back";
+                } else {
+                    ASSERT_EQ(resp->result, STORED);
                 }
             }
 

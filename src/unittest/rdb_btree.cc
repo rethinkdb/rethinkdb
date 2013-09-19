@@ -18,6 +18,7 @@
 #include "unittest/unittest_utils.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
+#define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -93,9 +94,11 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
     ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
+    sindex_multi_bool_t multi_bool = SINGLE;
 
     write_message_t wm;
     wm << m;
+    wm << multi_bool;
 
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
@@ -304,7 +307,16 @@ void run_sindex_post_construction() {
             &background_inserts_done);
     background_inserts_done.wait();
 
-    check_keys_are_present(&store, sindex_id);
+    for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
+        try {
+            check_keys_are_present(&store, sindex_id);
+        } catch (const sindex_not_post_constructed_exc_t&) {
+            /* Unfortunately we don't have an easy way right now to tell if the
+             * sindex has actually been postconstructed so we just need to
+             * check by polling. */
+            nap(100);
+        }
+    }
 }
 
 TEST(RDBBtree, SindexPostConstruct) {

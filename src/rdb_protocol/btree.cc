@@ -741,7 +741,7 @@ public:
 
                 if (sindex_multi == MULTI &&
                     sindex_value->get_type() == ql::datum_t::R_ARRAY) {
-                        boost::optional<size_t> tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
+                        boost::optional<uint64_t> tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
                         guarantee(tag);
                         guarantee(sindex_value->size() > tag);
                         sindex_value = sindex_value->get(*tag);
@@ -1018,7 +1018,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
         mapping->compile_wire_func()->call(env, doc)->as_datum();
 
     if (multi == MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
-        for (size_t i = 0; i < index->size(); ++i) {
+        for (uint64_t i = 0; i < index->size(); ++i) {
             keys_out->push_back(
                 store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
         }

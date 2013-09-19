@@ -3,10 +3,10 @@
 #include "rdb_protocol/datum.hpp"
 
 namespace unittest {
-void test_mangle(const std::string &pkey, const std::string &skey, boost::optional<size_t> tag = boost::optional<size_t>()) {
+void test_mangle(const std::string &pkey, const std::string &skey, boost::optional<uint64_t> tag = boost::optional<size_t>()) {
     std::string tag_string;
     if (tag) {
-        tag_string = strprintf("%zu", *tag);
+        tag_string = std::string(reinterpret_cast<const char *>(&*tag), sizeof(uint64_t));
     }
     std::string mangled = ql::datum_t::mangle_secondary(skey, pkey, tag_string);
     ASSERT_EQ(pkey, ql::datum_t::extract_primary(mangled));

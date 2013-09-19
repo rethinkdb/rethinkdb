@@ -15,7 +15,10 @@
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "stl_utils.hpp"
 
+
 namespace ql {
+
+const size_t tag_size = 8;
 
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
@@ -401,7 +404,7 @@ std::string datum_t::mangle_secondary(const std::string &secondary, const std::s
 }
 
 std::string datum_t::print_secondary(const store_key_t &primary_key,
-        boost::optional<size_t> tag_num) const {
+        boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
@@ -431,12 +434,13 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
 
     std::string tag_string;
     if (tag_num) {
-        tag_string = strprintf("%zu", *tag_num);
+        static_assert(sizeof(*tag_num) == tag_size,
+                "tag_size constant is assumed to be the size of a uint64_t.");
+        tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
     }
 
     secondary_key_string =
-        secondary_key_string.substr(0,
-                MAX_KEY_SIZE - primary_key_string.length() - tag_string.length() - 2);
+        secondary_key_string.substr(0, trunc_size(primary_key_string.length()));
 
     return mangle_secondary(secondary_key_string, primary_key_string, tag_string);
 }
@@ -444,7 +448,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
 struct components_t {
     std::string secondary;
     std::string primary;
-    boost::optional<size_t> tag_num;
+    boost::optional<uint64_t> tag_num;
 };
 
 void parse_secondary(const std::string &key, components_t *components) {
@@ -458,10 +462,7 @@ void parse_secondary(const std::string &key, components_t *components) {
 
     std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
     if (tag_str.size() != 0) {
-        const char *str = tag_str.c_str(), *end;
-        components->tag_num =
-            strtou64_strict(str, &end, 10);
-        guarantee(str != end);
+        components->tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
     }
 }
 
@@ -477,7 +478,7 @@ std::string datum_t::extract_secondary(const std::string &secondary) {
     return components.secondary;
 }
 
-boost::optional<size_t> datum_t::extract_tag(const std::string &secondary) {
+boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
     components_t components;
     parse_secondary(secondary, &components);
     return components.tag_num;
@@ -928,7 +929,14 @@ void datum_t::init_from_pb(const Datum *d) {
 }
 
 size_t datum_t::max_trunc_size() {
-    return MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
+    return trunc_size(rdb_protocol_t::MAX_PRIMARY_KEY_SIZE);
+}
+
+size_t datum_t::trunc_size(size_t primary_key_size) {
+    //The 2 in this function is necessary because of the offsets which are
+    //included at the end of the key so that we can extract the primary key and
+    //the tag num from secondary keys.
+    return MAX_KEY_SIZE - primary_key_size - tag_size - 2;
 }
 
 bool datum_t::key_is_truncated(const store_key_t &key) {

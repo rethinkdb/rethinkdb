@@ -257,6 +257,7 @@ RDB_DECLARE_SERIALIZABLE(key_range_t);
 void debug_print(printf_buffer_t *buf, const store_key_t &k);
 void debug_print(printf_buffer_t *buf, const store_key_t *k);
 void debug_print(printf_buffer_t *buf, const key_range_t &kr);
+std::string key_range_to_string(const key_range_t &kr);
 
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
 bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
