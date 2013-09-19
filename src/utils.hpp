@@ -427,23 +427,9 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 
 class debug_timer_t {
 public:
-    debug_timer_t(std::string _name = "")
-        : start(current_microtime()), last(start), name(_name) {
-        tick("start");
-    }
-    ~debug_timer_t() {
-        tick("end");
-        // We print on destruction so that we can collect multiple ticks inside
-        // of very fast functions without printing messing them up.
-        debugf("%s", out.c_str());
-    }
-    microtime_t tick(const std::string &tag) {
-        microtime_t prev = last;
-        last = current_microtime();
-        out += strprintf("TIMER %s: %s (%" PRIu64 " %" PRIu64 " %" PRIu64 ")\n",
-                         name.c_str(), tag.c_str(), last, last - start, last - prev);
-        return last - start;
-    }
+    debug_timer_t(std::string _name = "");
+    ~debug_timer_t();
+    microtime_t tick(const std::string &tag);
 private:
     microtime_t start, last;
     std::string name, out;

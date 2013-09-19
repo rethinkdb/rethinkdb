@@ -1251,7 +1251,8 @@ void store_t::protocol_read(const read_t &read,
                             superblock_t *superblock,
                             read_token_pair_t *token_pair,
                             signal_t *interruptor) {
-    rdb_read_visitor_t v(btree, this, txn, superblock, token_pair, ctx, response, interruptor);
+    rdb_read_visitor_t v(
+        btree, this, txn, superblock, token_pair, ctx, response, interruptor);
     boost::apply_visitor(v, read.read);
 }
 
