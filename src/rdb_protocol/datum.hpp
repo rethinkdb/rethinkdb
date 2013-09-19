@@ -117,8 +117,6 @@ public:
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs,
                                    merge_resoluter_t f) const;
 
-    cJSON *as_json_raw() const;
-    scoped_cJSON_t as_json() const;
     counted_t<datum_stream_t> as_datum_stream(
             const protob_t<const Backtrace> &backtrace) const;
 
@@ -193,6 +191,8 @@ public:
 private:
     DISABLE_COPYING(datum_t);
 };
+
+scoped_cJSON_t json_from_datum(const datum_t &datum);
 
 void write_to_protobuf(const datum_t &d, Datum *d_out);
 

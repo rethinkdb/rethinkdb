@@ -134,7 +134,7 @@ void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_
 
     std::map<std::string, counted_t<const ql::datum_t> > resp;
     if (new_val->get_type() == ql::datum_t::R_OBJECT) {
-        data->insert(std::make_pair(r.key, new scoped_cJSON_t(new_val->as_json())));
+        data->insert(std::make_pair(r.key, new scoped_cJSON_t(json_from_datum(*new_val))));
         if (old_val->get_type() == ql::datum_t::R_NULL) {
             resp["inserted"] = num_records;
         } else {

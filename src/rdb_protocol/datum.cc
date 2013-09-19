@@ -193,7 +193,7 @@ std::string datum_t::get_type_name() const {
 }
 
 std::string datum_t::print() const {
-    return as_json().Print();
+    return json_from_datum(*this).Print();
 }
 
 std::string datum_t::trunc_print() const {
@@ -603,34 +603,34 @@ const std::map<std::string, counted_t<const datum_t> > &datum_t::as_object() con
     return *r_object;
 }
 
-cJSON *datum_t::as_json_raw() const {
-    switch (get_type()) {
-    case R_NULL: return cJSON_CreateNull();
-    case R_BOOL: return cJSON_CreateBool(as_bool());
-    case R_NUM: return cJSON_CreateNumber(as_num());
-    case R_STR: return cJSON_CreateString(as_str().c_str());
-    case R_ARRAY: {
+cJSON *raw_json_from_datum(const datum_t &d) {
+    switch (d.get_type()) {
+    case datum_t::R_NULL: return cJSON_CreateNull();
+    case datum_t::R_BOOL: return cJSON_CreateBool(d.as_bool());
+    case datum_t::R_NUM: return cJSON_CreateNumber(d.as_num());
+    case datum_t::R_STR: return cJSON_CreateString(d.as_str().c_str());
+    case datum_t::R_ARRAY: {
         scoped_cJSON_t arr(cJSON_CreateArray());
-        for (size_t i = 0; i < as_array().size(); ++i) {
-            arr.AddItemToArray(as_array()[i]->as_json_raw());
+        const std::vector<counted_t<const datum_t> > &array = d.as_array();
+        for (size_t i = 0; i < array.size(); ++i) {
+            arr.AddItemToArray(raw_json_from_datum(*array[i]));
         }
         return arr.release();
     } break;
-    case R_OBJECT: {
+    case datum_t::R_OBJECT: {
         scoped_cJSON_t obj(cJSON_CreateObject());
-        for (std::map<std::string, counted_t<const datum_t> >::const_iterator
-                 it = r_object->begin(); it != r_object->end(); ++it) {
-            obj.AddItemToObject(it->first.c_str(), it->second->as_json_raw());
+        const std::map<std::string, counted_t<const datum_t> > &object = d.as_object();
+        for (auto it = object.begin(); it != object.end(); ++it) {
+            obj.AddItemToObject(it->first.c_str(), raw_json_from_datum(*it->second));
         }
         return obj.release();
     } break;
     default: unreachable();
     }
-    unreachable();
 }
 
-scoped_cJSON_t datum_t::as_json() const {
-    return scoped_cJSON_t(as_json_raw());
+scoped_cJSON_t json_from_datum(const datum_t &d) {
+    return scoped_cJSON_t(raw_json_from_datum(d));
 }
 
 // TODO: make STR and OBJECT convertible to sequence?
