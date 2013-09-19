@@ -68,16 +68,9 @@ size_t randsize(size_t n) {
 
 // make_space tries to make sure that the number of blocks currently in memory is at least
 // 'space_needed' less than the user-specified memory limit.
-void page_repl_random_t::make_space(size_t space_needed) {
+void page_repl_random_t::make_space() {
     cache->assert_thread();
-    size_t target;
-    // TODO(rntz): why, if more space is needed than unload_threshold, do we set the target number
-    // of pages in cache to unload_threshold rather than 0? (note: git blames this on tim)
-    if (space_needed > unload_threshold) {
-        target = unload_threshold;
-    } else {
-        target = unload_threshold - space_needed;
-    }
+    const size_t target = unload_threshold;
 
     while (array.size() > target) {
         // Try to find a block we can unload. Blocks are ineligible to be unloaded if they are

@@ -57,7 +57,7 @@ public:
 
     // make_space tries to make sure that the number of blocks currently in memory is
     // at least 'space_needed' less than the user-specified memory limit.
-    void make_space(size_t space_needed = 0);
+    void make_space();
 
     /* The page replacement component actually serves two roles. In addition to its
     primary role as a mechanism for kicking out buffers when memory runs low, it also
