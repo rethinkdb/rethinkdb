@@ -355,6 +355,7 @@ mc_inner_buf_t::~mc_inner_buf_t() {
         remove_from_page_repl();
     }
 
+    // RSI: Are we accounting for buf_snapshot_t's properly?
     --cache->stats->pm_n_blocks_in_memory;
 }
 
