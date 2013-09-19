@@ -43,6 +43,8 @@ protected:
     mc_cache_t *cache;
 private:
     size_t page_repl_index;
+
+    DISABLE_COPYING(evictable_t);
 };
 
 class page_repl_random_t {
@@ -56,8 +58,8 @@ public:
     // has to evict something
     bool is_full(size_t space_needed);
 
-    // make_space tries to make sure that the number of blocks currently in memory is
-    // at least 'space_needed' less than the user-specified memory limit.
+    // make_space tries to make the number of blocks in memory no greater than the
+    // limit.
     void make_space();
 
     /* The page replacement component actually serves two roles. In addition to its
@@ -75,6 +77,8 @@ private:
     mc_cache_t *const cache;
     size_t unload_threshold;
     segmented_vector_t<evictable_t *> array;
+
+    DISABLE_COPYING(page_repl_random_t);
 };
 
 #endif  // BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_

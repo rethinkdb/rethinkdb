@@ -60,8 +60,6 @@ bool page_repl_random_t::is_full(size_t space_needed) {
     return array.size() + space_needed > unload_threshold;
 }
 
-//perfmon_counter_t pm_n_blocks_evicted("blocks_evicted");
-
 size_t randsize(size_t n) {
     size_t x = randint(0x10000);
     x = x * 0x10000 + randint(0x10000);
