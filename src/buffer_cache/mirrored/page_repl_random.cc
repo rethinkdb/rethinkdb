@@ -1,7 +1,8 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "buffer_cache/mirrored/page_repl_random.hpp"
 
 #include "buffer_cache/mirrored/mirrored.hpp"
+#include "config/args.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
 
@@ -45,10 +46,14 @@ void evictable_t::remove_from_page_repl() {
     page_repl_index = static_cast<size_t>(-1);
 }
 
-page_repl_random_t::page_repl_random_t(size_t _unload_threshold, mc_cache_t *_cache)
-    : unload_threshold(_unload_threshold),
-      cache(_cache)
-    {}
+page_repl_random_t::page_repl_random_t(global_page_repl_t *_global_page_repl,
+                                       size_t _unload_threshold, mc_cache_t *_cache)
+    : global_page_repl(_global_page_repl),
+      cache(_cache),
+      unload_threshold(_unload_threshold) {
+    (void)global_page_repl;
+}
+
 
 bool page_repl_random_t::is_full(size_t space_needed) {
     cache->assert_thread();

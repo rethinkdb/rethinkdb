@@ -1150,7 +1150,7 @@ void mc_cache_t::create(serializer_t *serializer) {
 }
 
 // RSI: Use global_page_repl.
-mc_cache_t::mc_cache_t(UNUSED global_page_repl_t *global_page_repl,
+mc_cache_t::mc_cache_t(global_page_repl_t *global_page_repl,
                        serializer_t *_serializer,
                        const mirrored_cache_config_t &_dynamic_config,
                        perfmon_collection_t *perfmon_parent) :
@@ -1158,6 +1158,7 @@ mc_cache_t::mc_cache_t(UNUSED global_page_repl_t *global_page_repl,
     serializer(_serializer),
     stats(new mc_cache_stats_t(perfmon_parent)),
     page_repl(
+        global_page_repl,
         // Launch page replacement if the user-specified maximum number of blocks is reached
         dynamic_config.max_size / _serializer->get_block_size().ser_value(),
         this),

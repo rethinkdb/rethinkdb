@@ -35,3 +35,4 @@ void global_page_repl_t::change_memory_limit(uint64_t new_memory_limit) {
     memory_limit_ = new_memory_limit;
     // RSI: Give this a real implementation.
 }
+

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
 #define BUFFER_CACHE_MIRRORED_PAGE_REPL_RANDOM_HPP_
 
@@ -6,7 +6,9 @@
 
 #include "buffer_cache/types.hpp"
 #include "containers/segmented_vector.hpp"
-#include "config/args.hpp"
+
+class global_page_repl_t;
+class mc_cache_t;
 
 /* The random page replacement algorithm needs to be able to quickly choose a random
 buf among all the bufs in memory. This is accomplished using a dense array of
@@ -16,8 +18,6 @@ memory. When a buf is removed from memory, the last buf in the array is moved to
 slot it last occupied, keeping the array dense. Each buf carries an index which is
 its position in the dense random array; this allows all insertion, deletion, and
 random selection to be done in constant time. */
-
-class mc_cache_t;
 
 class evictable_t {
 public:
@@ -49,7 +49,8 @@ class page_repl_random_t {
     friend class evictable_t;
 
 public:
-    page_repl_random_t(size_t _unload_threshold, mc_cache_t *_cache);
+    page_repl_random_t(global_page_repl_t *global_page_repl,
+                       size_t unload_threshold, mc_cache_t *cache);
 
     // If is_full(space_needed), the next call to make_space(space_needed) probably
     // has to evict something
@@ -70,8 +71,9 @@ public:
     evictable_t *get_first_buf();
 
 private:
+    global_page_repl_t *const global_page_repl;
+    mc_cache_t *const cache;
     size_t unload_threshold;
-    mc_cache_t *cache;
     segmented_vector_t<evictable_t *> array;
 };
 

@@ -61,11 +61,11 @@ public:
     global_page_repl_t(uint64_t memory_limit = (1 << 28));
     ~global_page_repl_t();
 
-    // Changes the memory limt.
     void change_memory_limit(uint64_t new_memory_limit);
 
 private:
     uint64_t memory_limit_;
+    // RSI: one_per_thread_t uses get_num_threads() instead of get_num_db_threads.
     one_per_thread_t<thread_page_repl_t> thread_page_repl_;
     DISABLE_COPYING(global_page_repl_t);
 };
