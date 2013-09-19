@@ -425,7 +425,29 @@ void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_e
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
 
-
+class debug_timer_t {
+public:
+    debug_timer_t(std::string _name = "")
+        : start(current_microtime()), last(start), name(_name) {
+        tick("start");
+    }
+    ~debug_timer_t() {
+        tick("end");
+        // We print on destruction so that we can collect multiple ticks inside
+        // of very fast functions without printing messing them up.
+        debugf("%s", out.c_str());
+    }
+    microtime_t tick(const std::string &tag) {
+        microtime_t prev = last;
+        last = current_microtime();
+        out += strprintf("TIMER %s: %s (%" PRIu64 " %" PRIu64 " %" PRIu64 ")\n",
+                         name.c_str(), tag.c_str(), last, last - start, last - prev);
+        return last - start;
+    }
+private:
+    microtime_t start, last;
+    std::string name, out;
+};
 
 #define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__

@@ -790,7 +790,6 @@ void pb_print(DEBUG_VAR Term *t) {
     debugf("%s\n", t->DebugString().c_str());
 }
 
-
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
 // This is the simplist thing I could find that gave warning in all of these
 // cases:

@@ -267,9 +267,11 @@ void batched_rget_stream_t::read_more(ql::env_t *env) {
         if (use_outdated) {
             ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+            ns_access.get_namespace_if()->read(
+                read, &res, order_token_t::ignore, env->interruptor);
         }
-        rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+        rdb_protocol_t::rget_read_response_t *p_res
+            = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */

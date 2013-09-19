@@ -27,14 +27,21 @@ cluster_namespace_interface_t<protocol_t>::cluster_namespace_interface_t(
 
 
 template <class protocol_t>
-void cluster_namespace_interface_t<protocol_t>::read(const typename protocol_t::read_t &r,
-                                                     typename protocol_t::read_response_t *response,
-                                                     order_token_t order_token,
-                                                     signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+void cluster_namespace_interface_t<protocol_t>::read(
+    const typename protocol_t::read_t &r,
+    typename protocol_t::read_response_t *response,
+    order_token_t order_token,
+    signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+
     order_token.assert_read_mode();
-    dispatch_immediate_op<typename protocol_t::read_t, fifo_enforcer_sink_t::exit_read_t, typename protocol_t::read_response_t>(&master_access_t<protocol_t>::new_read_token, &master_access_t<protocol_t>::read,
-                                                                                                                                r, response, order_token, interruptor);
+    dispatch_immediate_op<
+        typename protocol_t::read_t,
+        fifo_enforcer_sink_t::exit_read_t,
+        typename protocol_t::read_response_t>(
+            &master_access_t<protocol_t>::new_read_token,
+            &master_access_t<protocol_t>::read,
+            r, response, order_token, interruptor);
 }
 
 template <class protocol_t>
