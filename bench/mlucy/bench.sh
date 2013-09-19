@@ -5,7 +5,12 @@ postfix=${2-}
 load_conf "$bench"
 export PREFIX=$PREFIX$postfix
 
+must_kill=""
 function on_err() {
+    for i in $must_kill; do
+        echo "Killing $i..."
+        kill -9 $i
+    done
     figlet "ERROR" >&2
     echo "ERROR $0:$1" >&2
     echo "WTF is this error?  Do you even bench?" >&2
@@ -34,6 +39,7 @@ mkdir -p stats
 rm -f stats/*
 stats_pid=`bash -c 'set -m; set -e;
 nohup poll_stats '"$POC"' 1 >stats1.log 2>stats2.log & echo $!'`
+must_kill+=" $stats_pid"
 
 echo "Running $bench/server/setup.sh on $POC..."
 ssh_to $POC <<EOF
