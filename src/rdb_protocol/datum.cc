@@ -974,12 +974,10 @@ size_t serialized_size(const counted_t<const datum_t> &datum) {
     } break;
     case datum_t::R_OBJECT: {
         sz += serialized_size(datum->as_object());
-        break;
-    }
+    } break;
     case datum_t::R_STR: {
         sz += serialized_size(datum->as_str());
-        break;
-    }
+    } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
