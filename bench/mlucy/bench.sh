@@ -28,6 +28,13 @@ init_rdb_cluster "`cat server_hosts`" \
 
 wait
 
+# Start stats collection
+echo "Starting stats collection..."
+mkdir -p stats
+rm -f stats/*
+stats_pid=`bash -c 'set -m; set -e;
+nohup poll_stats '"$POC"' 1 >stats1.log 2>stats2.log & echo $!'`
+
 echo "Running $bench/server/setup.sh on $POC..."
 ssh_to $POC <<EOF
 cd $SERVER_STAGING$POC_OFFSET
@@ -54,7 +61,6 @@ wait
 run_at=$((`date +%s`+${RUN_AT_SLEEP-10}))
 echo "Running $bench at `date --date=@$run_at` ($run_at)..." >&2
 rm -f raw raw.map
-stats_pid=`bash -c 'set -m; set -e; nohup poll_stats '"$POC"' 1 >/dev/null 2>/dev/null & echo $!'`
 bench="run_bench {} $STAGING $run_at | tee -a raw | ${CLIENT_MAP-cat}"
 parallel -j0 $bench :::: client_hosts \
     | tee raw.map | eval ${CLIENT_REDUCE-cat} | tee -a runs.t

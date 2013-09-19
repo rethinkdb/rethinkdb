@@ -22,8 +22,8 @@ function ruby() {
 require 'rethinkdb'
 include RethinkDB::Shortcuts
 def linger
-  res = nil
-  while !res
+  res = oldres = rand
+  while res == oldres
     begin
       res = yield
     rescue RethinkDB::RqlRuntimeError => e
