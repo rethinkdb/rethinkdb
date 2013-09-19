@@ -25,12 +25,13 @@
 // promising to evict it later, because we'll overflow the memory limit and start
 // thrashing.
 //
-// The system obeys the hard memory limit except under extreme duress.  [2]
+// The system obeys [2] the hard memory limit except under extreme duress.  [3]
 //
-// To obey the hard memory limit, and to allow for information delay, each thread is
-// given an amount of reserve memory it's allowed to allocate.  The "reserve" memory
-// limit gets updated when the global page repl has learned of the cache's new amount
-// of memory usage.
+// To obey the hard memory limit, each thread operates independently (in a "thread page
+// repl") with a hard limit.  Obviously they try to use as much of their limit as
+// possible.  Thread page repls keep track of how much eviction they're doing, and
+// memory allowances are redistributed between threads to keep the current eviction
+// rates proportional to each thread page repl's allowance.
 //
 //
 // [1] For the sake of fairness, it is important that each cache try to evict specific
@@ -41,7 +42,11 @@
 // global_page_repl_t has demanded of it.  Of course, when under extreme duress, a
 // cache could refuse to evict anything.
 //
-// [2] "Duress" can occur if an mc_transaction_t acquires all the blocks and keeps
+// [2] "Obeys" might be a bit loose here.  We're talking about memory that's been
+// accounted for, not all the unaccounted memory usage that goes on in metadata
+// structures, allocation overhead, temporarily loaded readahead blocks, etc.
+//
+// [3] "Duress" can occur if an mc_transaction_t acquires all the blocks and keeps
 // trying to acquire more.  We could drain every other transaction, but not that one.
 // Duress can be handled on a per-thread basis -- if one cache claims it can't evict
 // _anything_, then another cache will be selected on the same thread until we find one
