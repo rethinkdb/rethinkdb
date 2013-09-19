@@ -189,7 +189,6 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
          * return so we return nothing. */
         return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
     } else {
-        debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
         if (sorting == ASCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),

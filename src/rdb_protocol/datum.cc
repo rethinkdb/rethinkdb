@@ -940,7 +940,12 @@ size_t datum_t::trunc_size(size_t primary_key_size) {
 }
 
 bool datum_t::key_is_truncated(const store_key_t &key) {
-    return key.size() == MAX_KEY_SIZE;
+    std::string key_str = key_to_unescaped_str(key);
+    if (extract_tag(key_str)) {
+        return key.size() == MAX_KEY_SIZE;
+    } else {
+        return key.size() == MAX_KEY_SIZE - tag_size;
+    }
 }
 
 void datum_t::write_to_protobuf(Datum *d) const {
