@@ -159,11 +159,18 @@ def write_table_metadata(conn, db, table, base_path):
     out.write(json.dumps(table_info) + "\n")
     out.close()
 
-def read_table_into_queue(conn, db, table, task_queue, exit_event):
+def read_table_into_queue(conn, db, table, task_queue, progress_queue, exit_event):
+    read_rows = 0
     for row in r.db(db).table(table).run(conn, time_format="raw"):
         if exit_event.is_set():
             break
         task_queue.put([row])
+
+        # Update the progress every 20 rows
+        read_rows += 1
+        if read_rows % 20 == 0:
+            progress_queue.put({"value": 20})
+    progress_queue.put({"value": read_rows % 20})
 
 def json_writer(filename, fields, task_queue, error_queue):
     try:
@@ -217,7 +224,7 @@ def csv_writer(filename, fields, task_queue, error_queue):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, exit_event):
+def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_queue, exit_event):
     task_queue = multiprocessing.queues.SimpleQueue()
 
     if format == "json":
@@ -235,9 +242,11 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
 
     try:
         conn = r.connect(host, port, auth_key=auth_key)
+        table_size = r.db(db).table(table).count().run(conn)
+        progress_queue.put({"table": "%s.%s" % (db, table), "value": table_size})
         write_table_metadata(conn, db, table, directory)
         writer.start()
-        read_table_into_queue(conn, db, table, task_queue, exit_event)
+        read_table_into_queue(conn, db, table, task_queue, progress_queue, exit_event)
     except (r.RqlClientError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
@@ -255,16 +264,47 @@ def abort_export(signum, frame, exit_event, interrupt_event):
     interrupt_event.set()
     exit_event.set()
 
+def update_progress(progress_info, progress_queue):
+    while not progress_queue.empty():
+        item = progress_queue.get()
+        if "table" in item:
+            progress_info["table_counts"][item["table"]] = item["value"]
+        else:
+            progress_info["done"] += item["value"]
+
+    done_rows = progress_info["done"]
+    total_rows = 0
+    for table_count in progress_info["table_counts"].itervalues():
+        if table_count is None:
+            total_rows = None
+            break
+        total_rows += table_count
+
+    if total_rows is None:
+        # We don't have a full count of the rows yet, just wait
+        return
+
+    # Print progress
+    ratio = float(done_rows) / total_rows
+    total_width = 40
+    done_width = int(ratio * total_width)
+    undone_width = total_width - done_width
+    print "\r[%s%s] %d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
+    sys.stdout.flush()
+
 def run_clients(options, db_table_set):
     # Spawn one client for each db.table
     exit_event = multiprocessing.Event()
     processes = []
+    progress_queue = multiprocessing.queues.SimpleQueue()
     error_queue = multiprocessing.queues.SimpleQueue()
     interrupt_event = multiprocessing.Event()
 
     signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event, interrupt_event))
 
     try:
+        progress_info = { "done": 0, "table_counts": {} }
+
         for (db, table) in db_table_set:
             processes.append(multiprocessing.Process(target=export_table,
                                                      args=(options["host"],
@@ -275,8 +315,11 @@ def run_clients(options, db_table_set):
                                                            options["fields"],
                                                            options["format"],
                                                            error_queue,
+                                                           progress_queue,
                                                            exit_event)))
             processes[-1].start()
+            progress_info["table_counts"]["%s.%s" % (db, table)] = None
+
 
         # Wait for all tables to finish
         while len(processes) > 0:
@@ -284,6 +327,10 @@ def run_clients(options, db_table_set):
             if not error_queue.empty():
                 exit_event.set() # Stop rather immediately if an error occurs
             processes = [process for process in processes if process.is_alive()]
+            update_progress(progress_info, progress_queue)
+
+        # Continue past the progress output line
+        print ""
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
