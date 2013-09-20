@@ -12,7 +12,7 @@ except ImportError:
     print "Please install the driver via `pip install rethinkdb`."
     exit(1)
 
-info = "'rethinkdb import` loads data into a rethinkdb cluster"
+info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
       [-i (DB | DB.TABLE)]\n\
@@ -54,25 +54,25 @@ def print_import_help():
     print "EXAMPLES:"
     print ""
     print "rethinkdb import -d rdb_export -c mnemosyne:39500 --clients 128"
-    print "  import data into a cluster running on host 'mnemosyne' with a client port at 39500,"
-    print "  using 128 client connections and the named export directory"
+    print "  Import data into a cluster running on host 'mnemosyne' with a client port at 39500,"
+    print "  using 128 client connections and the named export directory."
     print ""
     print "rethinkdb import -f site_history.csv --format csv --table test.history --pkey count"
-    print "  import data into a local cluster and the table 'history' in the 'test' database,"
-    print "  using the named csv file, and using the 'count' field as the primary key"
+    print "  Import data into a local cluster and the table 'history' in the 'test' database,"
+    print "  using the named CSV file, and using the 'count' field as the primary key."
     print ""
     print "rethinkdb import -d rdb_export -c hades -a hunter2 -i test"
-    print "  import data into a cluster running on host 'hades' which requires authorization,"
-    print "  using only the database 'test' from the named export directory"
+    print "  Import data into a cluster running on host 'hades' which requires authorization,"
+    print "  using only the database 'test' from the named export directory."
     print ""
     print "rethinkdb import -f subscriber_info.json --fields id,name,hashtag --force"
-    print "  import data into a local cluster using the named json file, and only the fields"
-    print "  'id', 'name', and 'hashtag', overwriting any existing rows with the same primary key"
+    print "  Import data into a local cluster using the named JSON file, and only the fields"
+    print "  'id', 'name', and 'hashtag', overwriting any existing rows with the same primary key."
     print ""
     print "rethinkdb import -f user_data.csv --delimiter ';' --no-header --custom-header id,name,number"
-    print "  import data into a local cluster using the named csv file with no header and instead"
+    print "  Import data into a local cluster using the named CSV file with no header and instead"
     print "  use the fields 'id', 'name', and 'number', the delimiter is a semicolon (rather than"
-    print "  a comma)"
+    print "  a comma)."
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -99,7 +99,7 @@ def parse_options():
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("Error: No positional arguments supported")
+        raise RuntimeError("Error: No positional arguments supported. Unrecognized option '%s'" % args[0])
 
     if options.help:
         print_import_help()
@@ -112,7 +112,7 @@ def parse_options():
     if len(host_port) == 1:
         host_port = (host_port[0], "28015") # If just a host, use the default port
     if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format")
+        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
     (res["host"], res["port"]) = host_port
 
     if options.clients < 1:
@@ -190,13 +190,13 @@ def parse_options():
         if options.import_format is None:
             res["import_format"] = "json"
         elif options.import_format not in ["csv", "json"]:
-            raise RuntimeError("Error: Unknown format specified, valid options are 'csv' and 'json'")
+            raise RuntimeError("Error: Unknown format '%s', valid options are 'csv' and 'json'" % options.import_format)
         else:
             res["import_format"] = options.import_format
 
         # Verify valid --table option
         if options.import_table is None:
-            raise RuntimeError("Error: Must specify a destination table to import into using --table")
+            raise RuntimeError("Error: Must specify a destination table to import into using the --table option")
         if not all(c in string.ascii_letters + string.digits + "._" for c in options.import_table):
             raise RuntimeError("Error: Invalid 'db' or 'db.table' name: %s" % options.import_table)
         db_table = options.import_table.split(".")
@@ -219,7 +219,7 @@ def parse_options():
                 elif options.delimiter == "\\t":
                     res["delimiter"] = "\t"
                 else:
-                    raise RuntimeError("Error: Must specify only one character for --delimiter")
+                    raise RuntimeError("Error: Must specify only one character for the --delimiter option")
 
             if options.custom_header is None:
                 res["custom_header"] = None
@@ -227,15 +227,15 @@ def parse_options():
                 res["custom_header"] = options.custom_header.split(",")
 
             if options.no_header == True and options.custom_header is None:
-                raise RuntimeError("Error: Cannot import a csv file with --no-header and no --custom-header")
+                raise RuntimeError("Error: Cannot import a CSV file with --no-header and no --custom-header option")
             res["no_header"] = options.no_header
         else:
             if options.delimiter is not None:
-                raise RuntimeError("Error: --delimiter option is only valid for csv file formats")
+                raise RuntimeError("Error: --delimiter option is only valid for CSV file formats")
             if options.no_header == True:
-                raise RuntimeError("Error: --no-header option is only valid for csv file formats")
+                raise RuntimeError("Error: --no-header option is only valid for CSV file formats")
             if options.custom_header is not None:
-                raise RuntimeError("Error: --custom-header option is only valid for csv file formats")
+                raise RuntimeError("Error: --custom-header option is only valid for CSV file formats")
 
         res["primary_key"] = options.primary_key
     else:

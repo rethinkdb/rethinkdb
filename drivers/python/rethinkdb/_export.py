@@ -15,7 +15,7 @@ except ImportError:
     print "Please install the driver via `pip install rethinkdb`."
     exit(1)
 
-info = "'rethinkdb export` exports data from a rethinkdb cluster into a directory"
+info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
   rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-f (csv | json)] [-d DIR]\n\
       [--fields FIELD,FIELD...] [-e (DB | DB.TABLE)]..."
@@ -32,25 +32,25 @@ def print_export_help():
     print "                                   rethinkdb_export_DATE_TIME)"
     print "  --format (csv | json)            format to write (defaults to json)"
     print "  --fields FIELD,FIELD...          limit the exported fields to those specified"
-    print "                                   (required for csv format)"
+    print "                                   (required for CSV format)"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
     print "                                   be specified multiple times)"
     print ""
     print "EXAMPLES:"
     print "rethinkdb export -c mnemosyne:39500"
-    print "  export all data from a cluster running on host 'mnemosyne' with a client port at 39500"
+    print "  Export all data from a cluster running on host 'mnemosyne' with a client port at 39500."
     print ""
     print "rethinkdb export -e test -d rdb_export"
-    print "  export only the 'test' database on a local cluster into a named directory"
+    print "  Export only the 'test' database on a local cluster into a named directory."
     print ""
     print "rethinkdb export -c hades -e test.subscribers -a hunter2"
-    print "  export a specific table from a cluster running on host 'hades' which requires authorization"
+    print "  Export a specific table from a cluster running on host 'hades' which requires authorization."
     print ""
     print "rethinkdb export --format csv -e test.history --fields time,message"
-    print "  export a specific table from a local cluster in csv format with the fields 'time' and 'message'"
+    print "  Export a specific table from a local cluster in CSV format with the fields 'time' and 'message'."
     print ""
     print "rethinkdb export --fields id,value -e test.data"
-    print "  export a specific table from a local cluster in json format with only the fields 'id' and 'value'"
+    print "  Export a specific table from a local cluster in JSON format with only the fields 'id' and 'value'."
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -65,7 +65,7 @@ def parse_options():
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("Error: No positional arguments supported")
+        raise RuntimeError("Error: No positional arguments supported. Unrecognized option '%s'" % args[0])
 
     if options.help:
         print_export_help()
@@ -78,12 +78,12 @@ def parse_options():
     if len(host_port) == 1:
         host_port = (host_port[0], "28015") # If just a host, use the default port
     if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format")
+        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
     (res["host"], res["port"]) = host_port
 
     # Verify valid --format option
     if options.format not in ["csv", "json"]:
-        raise RuntimeError("Error: Unknown format specified, valid options are 'csv' and 'json'")
+        raise RuntimeError("Error: Unknown format '%s', valid options are 'csv' and 'json'" % options.format)
     res["format"] = options.format
 
     # Verify valid directory option
@@ -112,7 +112,7 @@ def parse_options():
     # Parse fields
     if options.fields is None:
         if options.format == "csv":
-            raise RuntimeError("Error: Cannot write a csv with no fields selected")
+            raise RuntimeError("Error: Cannot write a CSV with no fields selected.  The '--fields' option must be specified.")
         res["fields"] = None
     elif len(res["tables"]) != 1 or len(res["tables"][0]) != 2:
         raise RuntimeError("Error: Can only use the --fields option when exporting a single table")
@@ -313,7 +313,7 @@ def main():
         start_time = time.time()
         run_clients(options, db_table_set)
     except RuntimeError as ex:
-        print sys.stderr, ex
+        print >> sys.stderr, ex
         return 1
     print "  Done (%d seconds)" % (time.time() - start_time)
     return 0

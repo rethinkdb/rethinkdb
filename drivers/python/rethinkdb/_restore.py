@@ -2,8 +2,8 @@
 import sys, os, datetime, time, shutil, tempfile, subprocess, string
 from optparse import OptionParser
 
-info = "'rethinkdb restore' loads data into a rethinkdb cluster from an archive"
-usage = "  rethinkdb restore FILE [-c HOST:PORT] [-a AUTH_KEY] [--force] [-i (DB | DB.TABLE)]..."
+info = "'rethinkdb restore' loads data into a RethinkDB cluster from an archive"
+usage = "rethinkdb restore FILE [-c HOST:PORT] [-a AUTH_KEY] [--force] [-i (DB | DB.TABLE)]..."
 
 def print_restore_help():
     print info
@@ -23,19 +23,19 @@ def print_restore_help():
     print "EXAMPLES:"
     print ""
     print "rethinkdb restore rdb_dump.tar.gz -c mnemosyne:39500"
-    print "  import data into a cluster running on host 'mnemosyne' with a client port at 39500 using"
-    print "  the named archive file"
+    print "  Import data into a cluster running on host 'mnemosyne' with a client port at 39500 using"
+    print "  the named archive file."
     print ""
     print "rethinkdb restore rdb_dump.tar.gz -i test"
-    print "  import data into a local cluster from only the 'test' database in the named archive file"
+    print "  Import data into a local cluster from only the 'test' database in the named archive file."
     print ""
     print "rethinkdb restore rdb_dump.tar.gz -i test.subscribers -c hades -a hunter2"
-    print "  import data into a cluster running on host 'hades' which requires authorization from only"
-    print "  a specific table from the named archive file"
+    print "  Import data into a cluster running on host 'hades' which requires authorization from only"
+    print "  a specific table from the named archive file."
     print ""
     print "rethinkdb restore rdb_dump.tar.gz --clients 4 --force"
-    print "  import data to a local cluster from the named archive file using only 4 client connections"
-    print "  and overwriting any existing rows with the same primary key"
+    print "  Import data to a local cluster from the named archive file using only 4 client connections"
+    print "  and overwriting any existing rows with the same primary key."
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -53,7 +53,7 @@ def parse_options():
 
     # Check validity of arguments
     if len(args) == 0:
-        raise RuntimeError("Error: Archive to import not specified")
+        raise RuntimeError("Error: Archive to import not specified.  Provide an archive file from rethinkdb-dump.")
     elif len(args) != 1:
         raise RuntimeError("Error: Only one positional argument supported")
 
@@ -64,14 +64,14 @@ def parse_options():
     if len(host_port) == 1:
         host_port = (host_port[0], "28015") # If just a host, use the default port
     if len(host_port) != 2:
-        raise RuntimeError("Error: Invalid 'host:port' format")
+        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
     (res["host"], res["port"]) = host_port
 
     # Verify valid input file
     res["in_file"] = os.path.abspath(args[0])
 
     if not os.path.exists(res["in_file"]):
-        raise RuntimeError("Error: Input file does not exist: %s" % res["in_file"])
+        raise RuntimeError("Error: Archive file does not exist: %s" % res["in_file"])
 
     # Verify valid --import options
     res["dbs"] = []
@@ -112,7 +112,7 @@ def do_unzip(temp_dir, options):
 
     res = subprocess.call(tar_args)
     if res != 0:
-        raise RuntimeError("Error: untar of archive failed")
+        raise RuntimeError("Error: untar of archive '%s' failed" % options["in_file"])
 
     print "  Done (%d seconds)" % (time.time() - start_time)
 
@@ -157,7 +157,7 @@ def main():
     try:
         options = parse_options()
     except RuntimeError as ex:
-        print >> sys.stderr, "Usage:\n%s" % usage
+        print >> sys.stderr, "Usage: %s" % usage
         print >> sys.stderr, ex
         return 1
 

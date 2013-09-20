@@ -2,8 +2,8 @@
 import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
-info = "'rethinkdb dump' creates an archive of data from a rethinkdb cluster"
-usage = "  rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
+info = "'rethinkdb dump' creates an archive of data from a RethinkDB cluster"
+usage = "rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
 
 def print_dump_help():
     print info
@@ -20,13 +20,13 @@ def print_dump_help():
     print ""
     print "EXAMPLES:"
     print "rethinkdb dump -c mnemosyne:39500"
-    print "  archive all data from a cluster running on host 'mnemosyne' with a client port at 39500"
+    print "  Archive all data from a cluster running on host 'mnemosyne' with a client port at 39500."
     print ""
     print "rethinkdb dump -e test -f rdb_dump.tar.gz"
-    print "  archive only the 'test' database from a local cluster into a named file"
+    print "  Archive only the 'test' database from a local cluster into a named file."
     print ""
     print "rethinkdb dump -c hades -e test.subscribers -a hunter2"
-    print "  archive a specific table from a cluster running on host 'hades' which requires authorization"
+    print "  Archive a specific table from a cluster running on host 'hades' which requires authorization."
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -39,7 +39,7 @@ def parse_options():
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("Error: No positional arguments supported")
+        raise RuntimeError("Error: No positional arguments supported. Unrecognized option '%s'" % args[0])
 
     if options.help:
         print_dump_help()
@@ -123,7 +123,7 @@ def main():
     try:
         options = parse_options()
     except RuntimeError as ex:
-        print >> sys.stderr, "Usage:\n%s" % usage
+        print >> sys.stderr, "Usage: %s" % usage
         print >> sys.stderr, ex
         return 1
 
