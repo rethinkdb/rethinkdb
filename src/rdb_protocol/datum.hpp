@@ -92,7 +92,7 @@ public:
     static std::string mangle_secondary(const std::string &secondary,
             const std::string &primary, const std::string &tag);
     std::string print_secondary(const store_key_t &key,
-            boost::optional<uint64_t> tag_num = boost::optional<size_t>()) const;
+            boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
     static std::string extract_secondary(const std::string &secondary_and_primary);

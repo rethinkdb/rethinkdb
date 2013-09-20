@@ -8,6 +8,9 @@
 
 #include <algorithm>
 
+#include "errors.hpp"
+#include <boost/detail/endian.hpp>
+
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/proto_utils.hpp"
@@ -436,6 +439,9 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
     if (tag_num) {
         static_assert(sizeof(*tag_num) == tag_size,
                 "tag_size constant is assumed to be the size of a uint64_t.");
+#ifndef BOOST_LITTLE_ENDIAN
+        static_assert(false, "This piece of code will break on little endian systems.");
+#endif
         tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
     }
 
@@ -462,6 +468,9 @@ void parse_secondary(const std::string &key, components_t *components) {
 
     std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
     if (tag_str.size() != 0) {
+#ifndef BOOST_LITTLE_ENDIAN
+        static_assert(false, "This piece of code will break on little endian systems.");
+#endif
         components->tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
     }
 }
