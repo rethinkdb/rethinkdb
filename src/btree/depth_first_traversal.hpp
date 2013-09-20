@@ -27,6 +27,14 @@ public:
         guarantee(buf_.has());
     }
 
+    scoped_key_value_t(scoped_key_value_t &&movee)
+        : key_(movee.key_),
+          value_(movee.value_),
+          buf_(std::move(movee.buf_)) {
+        movee.key_ = NULL;
+        movee.value_ = NULL;
+    }
+
     const btree_key_t *key() const {
         guarantee(buf_.has());
         return key_;

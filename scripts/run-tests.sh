@@ -60,7 +60,7 @@ usage () {
 }
 
 # Parse the command line options
-while getopts ":lo:hvs:j:r:d:w:b:u:ct:" opt; do
+while getopts ":lo:hvs:j:r:d:w:b:u:ct:F:" opt; do
     case $opt in
         l) list_only=true ;;
         o) dir=$OPTARG ;;
@@ -148,7 +148,12 @@ run_single_test () {
         if [[ $exit_code = 0 ]]; then
             echo "${green}Ok   $test ($index)${plain}"
         else
-            echo "${red}Fail $test ($index)${plain}"
+            if test -e flaky; then
+                colour=$yellow
+            else
+                colour=$red
+            fi
+            echo "${colour}Fail $test ($index)${plain}"
             ( tail -n 10 stdout-$index; tail -n 10 stderr-$index ) | sed 's/\(.\{'$((OUTPUT_WIDTH - 6))'\}\)/\1\\\n    /g; s/^/  | /' | tail -n 10
         fi
         exit $exit_code
