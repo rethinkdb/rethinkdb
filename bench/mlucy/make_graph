@@ -1,0 +1,30 @@
+#!/bin/bash
+. `cd -P -- "$(dirname $0)" && pwd -P`/init.sh
+start=no_start
+{
+    for i in "$@"; do
+        {
+            row1=`json_parse.rb $i _._.serializers._.serializer_data_extents_gced`
+            row2=`json_parse.rb $i _._.serializers._._.keys_set`
+            echo ${i##*/} \
+                `echo "p $row1.reduce(:+)" | ruby` \
+                `echo "p $row2.reduce(:+)" | ruby`
+        } &
+    done
+    wait
+} | sort >raw_graph.t
+min_point=`head -1 raw_graph.t | awk '{print $1}'`
+min_gced=`head -1 raw_graph.t | awk '{print $2}'`
+tail -n +2 raw_graph.t | awk '
+BEGIN {last_1='$min_point'; last_2='$min_gced'}
+{
+time_diff=$1-last_1
+last_1=$1
+gc_diff=$2-last_2
+last_2=$2
+gc_rate=gc_diff/time_diff
+
+$1=$1-'$min_point'
+$2=gc_rate
+print
+}' >graph.t
