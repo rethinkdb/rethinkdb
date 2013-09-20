@@ -79,10 +79,6 @@ typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
 typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
-typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
-typedef rdb_protocol_t::rget_read_response_t::atom_t atom_t;
-typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
-typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
@@ -99,8 +95,6 @@ RDB_IMPL_SERIALIZABLE_2(range_and_func_filter_transform_t, range_predicate, mapp
 namespace rdb_protocol_details {
 
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
-RDB_IMPL_SERIALIZABLE_2(transform_atom_t, variant, backtrace);
-RDB_IMPL_SERIALIZABLE_2(terminal_t, variant, backtrace);
 
 void post_construct_and_drain_queue(
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
@@ -547,38 +541,31 @@ public:
 
     void operator()(const rget_read_t &rg) {
         response_out->response = rget_read_response_t();
-        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
+        rget_read_response_t *rg_response
+            = boost::get<rget_read_response_t>(&response_out->response);
         rg_response->truncated = false;
         rg_response->key_range = read_t(rg).get_region().inner;
         rg_response->last_considered_key = read_t(rg).get_region().inner.left;
 
-        try {
-            /* First check to see if any of the responses we're unsharding threw. */
-            for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
-                const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
-                guarantee(rr != NULL);
+        /* First check to see if any of the responses we're unsharding threw. */
+        for (size_t i = 0; i < count; ++i) {
+            // TODO: we're ignoring the limit when recombining.
+            auto rr = boost::get<rget_read_response_t>(&responses[i].response);
+            guarantee(rr != NULL);
 
-                if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&rr->result)) {
-                    throw *e;
-                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&rr->result)) {
-                    throw *e2;
-                } else if (const ql::datum_exc_t *e3 = boost::get<ql::datum_exc_t>(&rr->result)) {
-                    throw *e3;
-                }
+            if (auto e = boost::get<ql::exc_t>(&rr->result)) {
+                rg_response->result = *e;
+                return;
+            } else if (auto e = boost::get<ql::datum_exc_t>(&rr->result)) {
+                rg_response->result = *e;
+                return;
             }
+        }
 
-            if (!rg.terminal) {
-                unshard_range_get(rg);
-            } else {
-                unshard_reduce(rg);
-            }
-        } catch (const runtime_exc_t &e) {
-            rg_response->result = e;
-        } catch (const ql::exc_t &e) {
-            rg_response->result = e;
-        } catch (const ql::datum_exc_t &e) {
-            rg_response->result = e;
+        if (!rg.terminal) {
+            unshard_range_get(rg);
+        } else {
+            unshard_reduce(rg);
         }
     }
 
@@ -655,7 +642,6 @@ private:
     size_t count;
     read_response_t *response_out;
     ql::env_t ql_env;
-
 
     void unshard_range_get(const rget_read_t &rg) {
         rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
@@ -738,10 +724,11 @@ private:
     }
 
     void unshard_reduce(const rget_read_t &rg) {
-        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
+        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(
+            &response_out->response);
         try {
             if (const ql::reduce_wire_func_t *reduce_func =
-                    boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)) {
+                    boost::get<ql::reduce_wire_func_t>(&*rg.terminal)) {
                 ql::reduce_wire_func_t local_reduce_func = *reduce_func;
                 rg_response->result = rget_read_response_t::empty_t();
                 for (size_t i = 0; i < count; ++i) {
@@ -753,32 +740,38 @@ private:
                     const counted_t<const ql::datum_t> *rhs =
                         boost::get<counted_t<const ql::datum_t> >(&(_rr->result));
                     if (!rhs) {
-                        guarantee(boost::get<rget_read_response_t::empty_t>(&(_rr->result)));
+                        guarantee(boost::get<rget_read_response_t::empty_t>(
+                                      &(_rr->result)));
                         continue;
                     } else {
                         if (lhs) {
                             counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile_wire_func()->call(&ql_env, *lhs, *rhs)->as_datum();
+                                local_reduce_func.compile_wire_func()->call(
+                                    &ql_env, *lhs, *rhs)->as_datum();
                             rg_response->result = reduced_val;
                         } else {
-                            guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
+                            guarantee(boost::get<rget_read_response_t::empty_t>(
+                                          &rg_response->result));
                             rg_response->result = _rr->result;
                         }
                     }
                 }
-            } else if (boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
+            } else if (boost::get<ql::count_wire_func_t>(&*rg.terminal)) {
                 rg_response->result = make_counted<const ql::datum_t>(0.0);
 
                 for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr =
                         boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
-                    counted_t<const ql::datum_t> lhs = boost::get<counted_t<const ql::datum_t> >(rg_response->result);
-                    counted_t<const ql::datum_t> rhs = boost::get<counted_t<const ql::datum_t> >(_rr->result);
-                    rg_response->result = make_counted<const ql::datum_t>(lhs->as_num() + rhs->as_num());
+                    counted_t<const ql::datum_t> lhs =
+                        boost::get<counted_t<const ql::datum_t> >(rg_response->result);
+                    counted_t<const ql::datum_t> rhs =
+                        boost::get<counted_t<const ql::datum_t> >(_rr->result);
+                    rg_response->result = make_counted<const ql::datum_t>(
+                        lhs->as_num() + rhs->as_num());
                 }
             } else if (const ql::gmr_wire_func_t *gmr_func =
-                    boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
+                    boost::get<ql::gmr_wire_func_t>(&*rg.terminal)) {
                 ql::gmr_wire_func_t local_gmr_func = *gmr_func;
                 rg_response->result = ql::wire_datum_map_t();
                 ql::wire_datum_map_t *map =
@@ -816,13 +809,14 @@ private:
         } catch (const ql::datum_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any
                more requests. */
-            terminal_exception(e, rg.terminal->variant, &rg_response->result);
+            terminal_exception(e, *rg.terminal, &rg_response->result);
         }
     }
 };
 
-void read_t::unshard(read_response_t *responses, size_t count, read_response_t
-        *response, context_t *ctx, signal_t *interruptor) const
+void read_t::unshard(read_response_t *responses, size_t count,
+                     read_response_t *response, context_t *ctx,
+                     signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
     rdb_r_unshard_visitor_t v(responses, count, response, ctx, interruptor);
     boost::apply_visitor(v, read);
@@ -830,8 +824,8 @@ void read_t::unshard(read_response_t *responses, size_t count, read_response_t
 
 /* write_t::get_region() implementation */
 
-// TODO: This entire type is suspect, given the performance for batched_replaces_t.  Is it used in
-// anything other than assertions?
+// TODO: This entire type is suspect, given the performance for
+// batched_replaces_t.  Is it used in anything other than assertions?
 struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_replace_t &pr) const {
         return rdb_protocol_t::monokey_region(pr.key);
@@ -1036,7 +1030,9 @@ private:
     write_response_t *const response_out;
 };
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response_out, context_t *, signal_t *) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, size_t count,
+                      write_response_t *response_out, context_t *, signal_t *)
+    const THROWS_NOTHING {
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
     boost::apply_visitor(visitor, write);
 }
@@ -1155,12 +1151,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-            range_and_func_filter_transform_t sindex_filter(*rget.sindex_range, sindex_mapping);
+            range_and_func_filter_transform_t sindex_filter(
+                *rget.sindex_range, sindex_mapping);
 
             // We then add this new filter to the beginning of the transform stack
             rdb_protocol_details::transform_t sindex_transform(rget.transform);
-            sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
-                                            sindex_filter, backtrace_t()));
+            sindex_transform.push_front(sindex_filter);
 
             bool is_ordered = rget.sorting != UNORDERED;
             rdb_rget_secondary_slice(
@@ -1255,7 +1251,8 @@ void store_t::protocol_read(const read_t &read,
                             superblock_t *superblock,
                             read_token_pair_t *token_pair,
                             signal_t *interruptor) {
-    rdb_read_visitor_t v(btree, this, txn, superblock, token_pair, ctx, response, interruptor);
+    rdb_read_visitor_t v(
+        btree, this, txn, superblock, token_pair, ctx, response, interruptor);
     boost::apply_visitor(v, read.read);
 }
 
@@ -1382,7 +1379,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cluster_metadata,
-               0,
+               NULL,
                &interruptor,
                ctx->machine_id,
                std::map<std::string, ql::wire_func_t>()),
@@ -1661,12 +1658,9 @@ hash_region_t<key_range_t> sindex_range_t::to_region() const {
 }
 
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, inserted);
-
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
-RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_response_t,
-                           result, errors, key_range, truncated, last_considered_key);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
+                           result, key_range, truncated, last_considered_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);

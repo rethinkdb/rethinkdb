@@ -10,7 +10,6 @@
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "serializer/config.hpp"
@@ -31,17 +30,19 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         scoped_ptr_t<real_superblock_t> superblock;
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
-        store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                            1, WRITE_DURABILITY_SOFT,
-                                            &token_pair, &txn, &superblock, &dummy_interruptor);
+        store->acquire_superblock_for_write(
+            rwi_write, repli_timestamp_t::invalid,
+            1, WRITE_DURABILITY_SOFT,
+            &token_pair, &txn, &superblock, &dummy_interruptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
         std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         point_write_response_t response;
 
-        store_key_t pk(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i)).get(), backtrace_t()));
+        store_key_t pk(make_counted<const ql::datum_t>(double(i))->print_primary());
         rdb_modification_report_t mod_report(pk);
-        rdb_set(pk, make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
+        rdb_set(pk,
+                make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
                 superblock.get(), &response, &mod_report.info);
 
@@ -215,13 +216,16 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
+        double ii = i * i;
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
-               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
-                                                store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
-               txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-               boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
+            rdb_protocol_t::sindex_key_range(
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
+            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
 
-        rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+        rdb_protocol_t::rget_read_response_t::stream_t *stream
+            = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 
@@ -255,13 +259,16 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
+        double ii = i * i;
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
-               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
-                                                store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
-               txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-               boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
+            rdb_protocol_t::sindex_key_range(
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
+            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
 
-        rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+        rdb_protocol_t::rget_read_response_t::stream_t *stream
+            = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(0ul, stream->size());
     }

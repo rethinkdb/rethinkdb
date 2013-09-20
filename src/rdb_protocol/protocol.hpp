@@ -28,7 +28,6 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/exceptions.hpp"
 #include "rdb_protocol/wire_func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "utils.hpp"
@@ -45,9 +44,7 @@ template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
 
-using query_language::backtrace_t;
 using query_language::shared_scoped_less_t;
-using query_language::runtime_exc_t;
 
 enum point_write_result_t {
     STORED,
@@ -147,34 +144,12 @@ typedef boost::variant<ql::map_wire_func_t,
                        filter_transform_t,
                        range_and_func_filter_transform_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
-
-struct transform_atom_t {
-    transform_atom_t() { }
-    transform_atom_t(const transform_variant_t &tv, const backtrace_t &b) :
-        variant(tv), backtrace(b) { }
-
-    transform_variant_t variant;
-    backtrace_t backtrace;
-};
-
-RDB_DECLARE_SERIALIZABLE(transform_atom_t);
-
-typedef std::list<transform_atom_t> transform_t;
+typedef std::list<transform_variant_t> transform_t;
 
 typedef boost::variant<ql::gmr_wire_func_t,
                        ql::count_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
-
-struct terminal_t {
-    terminal_t() { }
-    terminal_t(const terminal_variant_t &tv, const backtrace_t &b) :
-        variant(tv), backtrace(b) { }
-
-    terminal_variant_t variant;
-    backtrace_t backtrace;
-};
-
-RDB_DECLARE_SERIALIZABLE(terminal_t);
+typedef terminal_variant_t terminal_t;
 
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
@@ -222,9 +197,12 @@ struct rdb_protocol_t {
         context_t();
         context_t(extproc_pool_t *_extproc_pool,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > _cluster_metadata,
-                  boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > _auth_metadata,
-                  directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+                  boost::shared_ptr<semilattice_readwrite_view_t<
+                      cluster_semilattice_metadata_t> > _cluster_metadata,
+                  boost::shared_ptr<semilattice_readwrite_view_t<
+                      auth_semilattice_metadata_t> > _auth_metadata,
+                  directory_read_manager_t<
+                      cluster_directory_metadata_t> *_directory_read_manager,
                   uuid_u _machine_id);
         ~context_t();
 
@@ -233,12 +211,19 @@ struct rdb_protocol_t {
 
         /* These arrays contain a watchable for each thread.
          * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > > > cross_thread_namespace_watchables;
-        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<databases_semilattice_metadata_t> > > cross_thread_database_watchables;
-        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> > cluster_metadata;
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> > auth_metadata;
+        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<
+            namespaces_semilattice_metadata_t<rdb_protocol_t> > > > >
+                cross_thread_namespace_watchables;
+        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<
+            databases_semilattice_metadata_t> > > cross_thread_database_watchables;
+        boost::shared_ptr<semilattice_readwrite_view_t<
+            cluster_semilattice_metadata_t> > cluster_metadata;
+        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+            auth_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
-        cond_t interruptor; // TODO figure out where we're going to want to interrupt this from and put this there instead
+        // TODO figure out where we're going to want to interrupt this from and
+        // put this there instead
+        cond_t interruptor;
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         uuid_u machine_id;
     };
@@ -247,61 +232,44 @@ struct rdb_protocol_t {
         counted_t<const ql::datum_t> data;
         point_read_response_t() { }
         explicit point_read_response_t(counted_t<const ql::datum_t> _data)
-            : data(_data)
-        { }
-
+            : data(_data) { }
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct rget_read_response_t {
-        typedef std::vector<rdb_protocol_details::rget_item_t> stream_t; // Present if there was no terminal
-        typedef std::map<counted_t<const ql::datum_t>, counted_t<const ql::datum_t>, shared_scoped_less_t> groups_t; // Present if the terminal was a groupedmapreduce
-        typedef counted_t<const ql::datum_t> atom_t; // Present if the terminal was a reduction
-
-        struct length_t {
-            int length;
-            RDB_DECLARE_ME_SERIALIZABLE;
-        };
-
-        struct inserted_t {
-            int inserted;
-            RDB_DECLARE_ME_SERIALIZABLE;
-        };
-
+         // Present if there was no terminal
+        typedef std::vector<rdb_protocol_details::rget_item_t> stream_t;
 
         typedef std::vector<counted_t<const ql::datum_t> > vec_t;
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
         typedef boost::variant<
-
-            stream_t,
-            groups_t,
-            atom_t,
-            length_t,
-            inserted_t,
-            runtime_exc_t,
+            // Error.
             ql::exc_t,
             ql::datum_exc_t,
-            counted_t<const ql::datum_t>,
-            //            std::vector<ql::wire_datum_t>,
-            ql::wire_datum_map_t, // a map from datum_t * -> datum_t *
-            std::vector<ql::wire_datum_map_t>,
-            empty_t,
-            vec_t
 
+            // Result of a terminal.
+            counted_t<const ql::datum_t>,
+            empty_t, // for `reduce`, sometimes
+            ql::wire_datum_map_t, // for `gmr`, always
+
+            // Streaming Result.
+            stream_t
             > result_t;
 
         key_range_t key_range;
         result_t result;
-        int errors;
         bool truncated;
         store_key_t last_considered_key;
 
-        rget_read_response_t() : truncated(false) { }
-        rget_read_response_t(const key_range_t &_key_range, const result_t _result, int _errors, bool _truncated, const store_key_t &_last_considered_key)
-            : key_range(_key_range), result(_result), errors(_errors), truncated(_truncated),
-              last_considered_key(_last_considered_key)
-        { }
+        // Code seems to depend on a default-initialized rget_read_response_t
+        // having a `stream_t` in this variant.  TODO: wtf?
+        rget_read_response_t() : result(stream_t()), truncated(false) { }
+        rget_read_response_t(
+            const key_range_t &_key_range, const result_t _result,
+            bool _truncated, const store_key_t &_last_considered_key)
+            : key_range(_key_range), result(_result),
+              truncated(_truncated), last_considered_key(_last_considered_key) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -474,8 +442,9 @@ struct rdb_protocol_t {
         bool shard(const region_t &region,
                    read_t *read_out) const THROWS_NOTHING;
 
-        void unshard(read_response_t *responses, size_t count, read_response_t *response,
-                context_t *ctx, signal_t *interruptor) const
+        void unshard(read_response_t *responses, size_t count,
+                     read_response_t *response, context_t *ctx,
+                     signal_t *interruptor) const
             THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
@@ -652,7 +621,9 @@ struct rdb_protocol_t {
         // non-empty write was written to write_out.
         bool shard(const region_t &region,
                    write_t *write_out) const THROWS_NOTHING;
-        void unshard(const write_response_t *responses, size_t count, write_response_t *response, context_t *cache, signal_t *) const THROWS_NOTHING;
+        void unshard(const write_response_t *responses, size_t count,
+                     write_response_t *response, context_t *cache, signal_t *)
+            const THROWS_NOTHING;
 
         durability_requirement_t durability() const { return durability_requirement; }
 
@@ -814,3 +785,4 @@ struct range_key_tester_t : public key_tester_t {
 } // namespace rdb_protocol_details
 
 #endif  // RDB_PROTOCOL_PROTOCOL_HPP_
+

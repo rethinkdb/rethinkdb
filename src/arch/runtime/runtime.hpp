@@ -2,12 +2,9 @@
 #ifndef ARCH_RUNTIME_RUNTIME_HPP_
 #define ARCH_RUNTIME_RUNTIME_HPP_
 
-#include "errors.hpp"
 #include "utils.hpp"
 
 class linux_thread_message_t;
-class threadnum_t;
-
 typedef linux_thread_message_t thread_message_t;
 
 threadnum_t get_thread_id();
