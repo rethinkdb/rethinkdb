@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
@@ -32,7 +35,7 @@ void sanitize_time(datum_t *time);
 } // namespace pseudo
 
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
-// They should be passed to functions that have multiple behaviors (like `el` or
+// They should be passed to functions that have multiple behaviors (like `get` or
 // `add` below).
 
 // NOTHROW: Return NULL
@@ -86,10 +89,14 @@ public:
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
-    std::string print_secondary(const store_key_t &key) const;
+    static std::string mangle_secondary(const std::string &secondary,
+            const std::string &primary, const std::string &tag);
+    std::string print_secondary(const store_key_t &key,
+            boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
     /* An inverse to print_secondary. Returns the primary key. */
-    static std::string unprint_secondary(const std::string &secondary_and_primary);
+    static std::string extract_primary(const std::string &secondary_and_primary);
     static std::string extract_secondary(const std::string &secondary_and_primary);
+    static boost::optional<size_t> extract_tag(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
@@ -99,7 +106,7 @@ public:
     int64_t as_int() const;
     const std::string &as_str() const;
 
-    // Use of `size` and `el` is preferred to `as_array` when possible.
+    // Use of `size` and `get` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
     size_t size() const;
     // Access an element of an array.
@@ -140,6 +147,7 @@ public:
                       std::string msg) const NORETURN;
 
     static size_t max_trunc_size();
+    static size_t trunc_size(size_t primary_key_size);
     /* Note key_is_truncated returns true if the key is of max size. This gives
      * a false positive if the sum sizes of the keys is exactly the maximum but
      * not over at all. This means that a key of exactly max_trunc_size counts

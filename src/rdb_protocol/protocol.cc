@@ -90,7 +90,6 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
 
 RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
-RDB_IMPL_SERIALIZABLE_2(range_and_func_filter_transform_t, range_predicate, mapping_func);
 
 namespace rdb_protocol_details {
 
@@ -1110,7 +1109,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // Normal rget
             rdb_rget_slice(btree, rget.region.inner, txn, superblock,
                     &ql_env, rget.transform, rget.terminal,
-                    (forward(rget.sorting) ? FORWARD : BACKWARD), res);
+                    rget.sorting, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
@@ -1136,10 +1135,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 return;
             }
 
-            guarantee(rget.sindex_region, "If an rget has an sindex specified, "
-                      "it should also have an sindex_region.");
-            guarantee(rget.sindex_range, "If an rget has an sindex specified, "
-                      "it shoud also have an sindex_range.");
+            guarantee(rget.sindex_range, "If an rget has a sindex specified "
+                      "it should also have a sindex_range.");
+            guarantee(rget.sindex_region, "If an rget has a sindex specified "
+                      "it should also have a sindex_region.");
 
             // This chunk of code puts together a filter so we can exclude any items
             //  that don't fall in the specified range.  Because the secondary index
@@ -1147,26 +1146,19 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
+            sindex_multi_bool_t multi_bool = MULTI;
             vector_read_stream_t read_stream(&sindex_mapping_data);
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+            success = deserialize(&read_stream, &multi_bool);
+            guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-            range_and_func_filter_transform_t sindex_filter(
-                *rget.sindex_range, sindex_mapping);
-
-            // We then add this new filter to the beginning of the transform stack
-            rdb_protocol_details::transform_t sindex_transform(rget.transform);
-            sindex_transform.push_front(sindex_filter);
-
-            bool is_ordered = rget.sorting != UNORDERED;
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
-                    rget.sindex_region->inner,
-                    txn, sindex_sb.get(), &ql_env, sindex_transform,
-                    rget.terminal, rget.region.inner,
-                    (forward(rget.sorting) ? FORWARD : BACKWARD),
-                    (is_ordered ? sindex_mapping : boost::optional<ql::map_wire_func_t>()),
-                    res);
+                    *rget.sindex_range, //guaranteed present above
+                    txn, sindex_sb.get(), &ql_env, rget.transform,
+                    rget.terminal, rget.region.inner, rget.sorting,
+                    sindex_mapping, multi_bool, res);
         }
     }
 
@@ -1316,6 +1308,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
         write_message_t wm;
         wm << c.mapping;
+        wm << c.multi;
 
         vector_stream_t stream;
         int write_res = send_write_message(&stream, &wm);
@@ -1657,6 +1650,11 @@ hash_region_t<key_range_t> sindex_range_t::to_region() const {
         end != NULL ? end->truncated_secondary() : store_key_t::max()));
 }
 
+bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
+    return (!start || (*start < *value || (*start == *value && !start_open))) &&
+           (!end   || (*value < *end   || (*value == *end && !end_open)));
+}
+
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
@@ -1692,7 +1690,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_t, point_replaces);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_create_t, id, mapping, region);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_t, write, durability_requirement);

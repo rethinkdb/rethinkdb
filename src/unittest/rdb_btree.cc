@@ -17,6 +17,7 @@
 #include "unittest/unittest_utils.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
+#define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -94,9 +95,11 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
     ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
+    sindex_multi_bool_t multi_bool = SINGLE;
 
     write_message_t wm;
     wm << m;
+    wm << multi_bool;
 
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
@@ -193,7 +196,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
             sindex_block.get(), txn.get());
 }
 
-void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
+void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         std::string sindex_id) {
     cond_t dummy_interruptor;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
@@ -222,7 +225,7 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
             txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
+            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
@@ -235,7 +238,20 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
     }
 }
 
-void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
+void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
+        std::string sindex_id) {
+    for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
+        try {
+            _check_keys_are_present(store, sindex_id);
+        } catch (const sindex_not_post_constructed_exc_t&) { }
+        /* Unfortunately we don't have an easy way right now to tell if the
+         * sindex has actually been postconstructed so we just need to
+         * check by polling. */
+        nap(100);
+    }
+}
+
+void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         std::string sindex_id) {
     /* Check that we don't have any of the keys (we just deleted them all) */
     cond_t dummy_interruptor;
@@ -265,12 +281,25 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
             txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
+            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(0ul, stream->size());
+    }
+}
+
+void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
+        std::string sindex_id) {
+    for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
+        try {
+            _check_keys_are_NOT_present(store, sindex_id);
+        } catch (const sindex_not_post_constructed_exc_t&) { }
+        /* Unfortunately we don't have an easy way right now to tell if the
+         * sindex has actually been postconstructed so we just need to
+         * check by polling. */
+        nap(100);
     }
 }
 
