@@ -44,22 +44,22 @@ void call_later_on_this_thread(linux_thread_message_t *msg) {
 
 struct starter_t : public thread_message_t {
     linux_thread_pool_t *tp;
-    boost::function<void()> run;
+    std::function<void()> run;
 
-    starter_t(linux_thread_pool_t *_tp, const boost::function<void()>& _fun) : tp(_tp), run(boost::bind(&starter_t::run_wrapper, this, _fun)) { }
+    starter_t(linux_thread_pool_t *_tp, const std::function<void()> &_fun) : tp(_tp), run(boost::bind(&starter_t::run_wrapper, this, _fun)) { }
     void on_thread_switch() {
         rassert(get_thread_id().threadnum == 0);
         coro_t::spawn_sometime(run);
     }
 private:
-    void run_wrapper(const boost::function<void()>& fun) {
+    void run_wrapper(const std::function<void()> &fun) {
         fun();
         tp->shutdown_thread_pool();
     }
 };
 
 // Runs the action 'fun()' on thread zero.
-void run_in_thread_pool(const boost::function<void()>& fun, int worker_threads) {
+void run_in_thread_pool(const std::function<void()> &fun, int worker_threads) {
     linux_thread_pool_t thread_pool(worker_threads, false);
     starter_t starter(&thread_pool, fun);
     thread_pool.run_thread_pool(&starter);

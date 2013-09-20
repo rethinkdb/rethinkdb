@@ -33,7 +33,7 @@ void let_stuff_happen();
 
 std::set<ip_address_t> get_unittest_addresses();
 
-void run_in_thread_pool(const boost::function<void()>& fun, int num_workers = 1);
+void run_in_thread_pool(const std::function<void()> &fun, int num_workers = 1);
 
 }  // namespace unittest
 
