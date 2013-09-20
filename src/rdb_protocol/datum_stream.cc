@@ -177,16 +177,14 @@ lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
 counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
-        rdb_protocol_details::transform_variant_t(map_wire_func_t(f)),
-        query_language::backtrace_t());
+        rdb_protocol_details::transform_variant_t(map_wire_func_t(f)));
     return counted_t<datum_stream_t>(out.release());
 }
 
 counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
     out->json_stream = json_stream->add_transformation(
-        rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(f)),
-        query_language::backtrace_t());
+        rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(f)));
     return counted_t<datum_stream_t>(out.release());
 }
 counted_t<datum_stream_t>
@@ -196,10 +194,9 @@ lazy_datum_stream_t::filter(counted_t<func_t> f,
     out->json_stream = json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(filter_transform_t(
             wire_func_t(f),
-            default_filter_val.has() ?
-                boost::make_optional(wire_func_t(default_filter_val)) :
-                boost::none)),
-        query_language::backtrace_t());
+            default_filter_val.has()
+                ? boost::make_optional(wire_func_t(default_filter_val))
+                : boost::none)));
     return counted_t<datum_stream_t>(out.release());
 }
 
@@ -208,8 +205,7 @@ lazy_datum_stream_t::filter(counted_t<func_t> f,
 rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(
         env_t *env,
         const rdb_protocol_details::terminal_variant_t &t) {
-    return json_stream->apply_terminal(
-        t, env, query_language::backtrace_t());
+    return json_stream->apply_terminal(t, env);
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::count(env_t *env) {
@@ -248,8 +244,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
                                                   counted_t<func_t> r) {
     rdb_protocol_t::rget_read_response_t::result_t res =
         json_stream->apply_terminal(
-            rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(g, m, r)),
-            env, query_language::backtrace_t());
+            rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(g, m, r)), env);
     wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
     r_sanity_check(dm);
     dm->compile();

@@ -425,7 +425,15 @@ void remove_directory_recursive(const char *path) THROWS_ONLY(remove_directory_e
 bool ptr_in_byte_range(const void *p, const void *range_start, size_t size_in_bytes);
 bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range_start, size_t size_in_bytes);
 
-
+class debug_timer_t {
+public:
+    debug_timer_t(std::string _name = "");
+    ~debug_timer_t();
+    microtime_t tick(const std::string &tag);
+private:
+    microtime_t start, last;
+    std::string name, out;
+};
 
 #define MSTR(x) stringify(x) // Stringify a macro
 #if defined __clang__

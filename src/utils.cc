@@ -790,6 +790,25 @@ void pb_print(DEBUG_VAR Term *t) {
     debugf("%s\n", t->DebugString().c_str());
 }
 
+debug_timer_t::debug_timer_t(std::string _name)
+    : start(current_microtime()), last(start), name(_name), out("\n") {
+    tick("start");
+}
+debug_timer_t::~debug_timer_t() {
+    tick("end");
+#ifndef NDEBUG
+    debugf("%s", out.c_str());
+#else
+    fprintf(stderr, "%s", out.c_str());
+#endif // NDEBUG
+}
+microtime_t debug_timer_t::tick(const std::string &tag) {
+    microtime_t prev = last;
+    last = current_microtime();
+    out += strprintf("TIMER %s: %15s (%" PRIu64 " %12" PRIu64 " %12" PRIu64 ")\n",
+                     name.c_str(), tag.c_str(), last, last - start, last - prev);
+    return last - start;
+}
 
 // GCC and CLANG are smart enough to optimize out strlen(""), so this works.
 // This is the simplist thing I could find that gave warning in all of these

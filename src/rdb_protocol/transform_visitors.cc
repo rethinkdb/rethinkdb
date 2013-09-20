@@ -69,8 +69,7 @@ private:
 void transform_exception(const datum_exc_t &exc,
                          const rdb_protocol_details::transform_variant_t &t,
                          rdb_protocol_t::rget_read_response_t::result_t *out) {
-    boost::apply_visitor(transform_exc_visitor_t(exc, out),
-                         t);
+    boost::apply_visitor(transform_exc_visitor_t(exc, out), t);
 }
 
 
@@ -84,8 +83,7 @@ class transform_visitor_t : public boost::static_visitor<void> {
 public:
     transform_visitor_t(counted_t<const ql::datum_t> _arg,
                         std::vector<counted_t<const ql::datum_t> > *_out,
-                        ql::env_t *_ql_env,
-                        const backtrace_t &_backtrace);
+                        ql::env_t *_ql_env);
 
     void operator()(const ql::map_wire_func_t &func) const;
     void operator()(const filter_transform_t &func) const;
@@ -95,15 +93,13 @@ private:
     counted_t<const ql::datum_t> arg;
     std::vector<counted_t<const ql::datum_t> > *out;
     ql::env_t *ql_env;
-    backtrace_t backtrace;
 };
 
-transform_visitor_t::transform_visitor_t(counted_t<const ql::datum_t> _arg,
-                                         std::vector<counted_t<const ql::datum_t> > *_out,
-                                         ql::env_t *_ql_env,
-                                         const backtrace_t &_backtrace)
-    : arg(_arg), out(_out), ql_env(_ql_env),
-      backtrace(_backtrace) { }
+transform_visitor_t::transform_visitor_t(
+    counted_t<const ql::datum_t> _arg,
+    std::vector<counted_t<const ql::datum_t> > *_out,
+    ql::env_t *_ql_env)
+    : arg(_arg), out(_out), ql_env(_ql_env) { }
 
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
@@ -131,12 +127,10 @@ void transform_visitor_t::operator()(const filter_transform_t &transf) const {
 }
 
 void transform_apply(ql::env_t *ql_env,
-                     const backtrace_t &backtrace,
                      counted_t<const ql::datum_t> json,
                      const rdb_protocol_details::transform_variant_t *t,
                      std::vector<counted_t<const ql::datum_t> > *out) {
-    boost::apply_visitor(transform_visitor_t(json, out, ql_env, backtrace),
-                         *t);
+    boost::apply_visitor(transform_visitor_t(json, out, ql_env), *t);
 }
 
 /* A visitor for applying a terminal to a bit of json. */
@@ -144,7 +138,6 @@ class terminal_visitor_t : public boost::static_visitor<void> {
 public:
     terminal_visitor_t(lazy_json_t _json,
                        ql::env_t *_ql_env,
-                       const backtrace_t &_backtrace,
                        rget_read_response_t::result_t *_out);
 
     void operator()(const ql::count_wire_func_t &) const;
@@ -153,15 +146,13 @@ public:
 private:
     lazy_json_t json;
     ql::env_t *ql_env;
-    backtrace_t backtrace;
     rget_read_response_t::result_t *out;
 };
 
 terminal_visitor_t::terminal_visitor_t(lazy_json_t _json,
                                        ql::env_t *_ql_env,
-                                       const backtrace_t &_backtrace,
                                        rget_read_response_t::result_t *_out)
-    : json(_json), ql_env(_ql_env), backtrace(_backtrace), out(_out) { }
+    : json(_json), ql_env(_ql_env), out(_out) { }
 
 // All of this logic is analogous to the eager logic in datum_stream.cc.  This
 // code duplication needs to go away, but I'm not 100% sure how to do it (there
@@ -203,22 +194,18 @@ void terminal_visitor_t::operator()(const ql::reduce_wire_func_t &func) const {
 }
 
 void terminal_apply(ql::env_t *ql_env,
-                    const backtrace_t &backtrace,
                     lazy_json_t json,
                     const rdb_protocol_details::terminal_variant_t *t,
                     rget_read_response_t::result_t *out) {
-    boost::apply_visitor(terminal_visitor_t(json, ql_env, backtrace, out),
-                         *t);
+    boost::apply_visitor(terminal_visitor_t(json, ql_env, out), *t);
 }
 
 
 /* A visitor for setting the result type based on a terminal. */
 class terminal_initializer_visitor_t : public boost::static_visitor<void> {
 public:
-    terminal_initializer_visitor_t(rget_read_response_t::result_t *_out,
-                                   const backtrace_t &_backtrace)
-        : out(_out), backtrace(_backtrace) { }
-
+    terminal_initializer_visitor_t(rget_read_response_t::result_t *_out)
+        : out(_out) { }
 
     void operator()(const ql::gmr_wire_func_t &f) const {
         counted_t<ql::func_t> group = f.compile_group();
@@ -240,15 +227,11 @@ public:
 
 private:
     rget_read_response_t::result_t *out;
-    backtrace_t backtrace;
 };
 
-void terminal_initialize(const backtrace_t &backtrace,
-                         const rdb_protocol_details::terminal_variant_t *t,
+void terminal_initialize(const rdb_protocol_details::terminal_variant_t *t,
                          rget_read_response_t::result_t *out) {
-    boost::apply_visitor(
-        terminal_initializer_visitor_t(out, backtrace),
-        *t);
+    boost::apply_visitor(terminal_initializer_visitor_t(out), *t);
 }
 
 
