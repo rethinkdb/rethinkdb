@@ -440,7 +440,7 @@ std::string datum_t::print_secondary(const store_key_t &primary_key,
         static_assert(sizeof(*tag_num) == tag_size,
                 "tag_size constant is assumed to be the size of a uint64_t.");
 #ifndef BOOST_LITTLE_ENDIAN
-        static_assert(false, "This piece of code will break on little endian systems.");
+        static_assert(false, "This piece of code will break on big-endian systems.");
 #endif
         tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
     }
