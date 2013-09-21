@@ -69,13 +69,16 @@ class rget_depth_first_traversal_callback_t : public depth_first_traversal_callb
 public:
     rget_depth_first_traversal_callback_t(transaction_t *txn, int max, exptime_t et) :
         transaction(txn), maximum(max), effective_time(et), cumulative_size(0) { }
-    bool handle_pair(const btree_key_t *key, const void *value) {
-        const memcached_value_t *mc_value = reinterpret_cast<const memcached_value_t *>(value);
+    bool handle_pair(scoped_key_value_t &&keyvalue) {
+        const memcached_value_t *mc_value
+            = static_cast<const memcached_value_t *>(keyvalue.value());
         if (mc_value->expired(effective_time)) {
             return true;
         }
         counted_t<data_buffer_t> data(value_to_data_buffer(mc_value, transaction));
-        result.pairs.push_back(key_with_data_buffer_t(store_key_t(key), mc_value->mcflags(), data));
+        result.pairs.push_back(key_with_data_buffer_t(store_key_t(keyvalue.key()),
+                                                      mc_value->mcflags(),
+                                                      data));
         cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
         return static_cast<int64_t>(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size;
     }

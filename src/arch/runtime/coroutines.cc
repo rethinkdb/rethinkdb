@@ -124,7 +124,7 @@ coro_t::coro_t() :
     notified_(false),
     waiting_(false)
 #ifndef NDEBUG
-    , selfname_number(get_thread_id() + MAX_THREADS * ++coro_selfname_counter)
+    , selfname_number(get_thread_id().threadnum + MAX_THREADS * ++coro_selfname_counter)
 #endif
 {
     ++pm_allocated_coroutines;
@@ -251,7 +251,7 @@ void coro_t::yield() {  /* class method */
 void coro_t::notify_now_deprecated() {
     rassert(waiting_);
     rassert(!notified_);
-    rassert(current_thread_ == linux_thread_pool_t::thread_id);
+    rassert(current_thread_.threadnum == linux_thread_pool_t::thread_id);
 
 #ifndef NDEBUG
     rassert(cglobals->assert_no_coro_waiting_counter == 0,
@@ -307,10 +307,10 @@ void coro_t::notify_later_ordered() {
     linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
 }
 
-void coro_t::move_to_thread(int thread) {
+void coro_t::move_to_thread(threadnum_t thread) {
     assert_good_thread_id(thread);
     rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine.");
-    if (thread == linux_thread_pool_t::thread_id) {
+    if (thread.threadnum == linux_thread_pool_t::thread_id) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }

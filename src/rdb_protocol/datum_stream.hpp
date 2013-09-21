@@ -357,7 +357,9 @@ private:
 
         std::sort(data.begin(), data.end(), std::bind(lt_cmp, env, std::placeholders::_1, std::placeholders::_2));
     }
-    T lt_cmp;
+    std::function<bool(env_t *,
+                       const counted_t<const datum_t> &,
+                       const counted_t<const datum_t> &)> lt_cmp;
     counted_t<datum_stream_t> src;
 
     std::deque<counted_t<const datum_t> > data;

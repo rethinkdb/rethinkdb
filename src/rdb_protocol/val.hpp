@@ -79,7 +79,8 @@ public:
         bool upsert,
         durability_requirement_t durability_requirement);
 
-    MUST_USE bool sindex_create(env_t *env, const std::string &name, counted_t<func_t> index_func);
+    MUST_USE bool sindex_create(env_t *env, const std::string &name,
+            counted_t<func_t> index_func, sindex_multi_bool_t multi);
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
     counted_t<const datum_t> sindex_list(env_t *env);
 

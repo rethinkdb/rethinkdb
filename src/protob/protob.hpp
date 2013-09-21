@@ -110,7 +110,6 @@ private:
 template <class request_t, class response_t, class context_t>
 class protob_server_t : public http_app_t {
 public:
-    // TODO: Function pointers?  Really?
     protob_server_t(const std::set<ip_address_t> &local_addresses,
                     int port,
                     boost::function<bool(request_t, response_t *, context_t *)> _f,  // NOLINT(readability/casting)
@@ -138,7 +137,7 @@ private:
 
     /* WARNING: The order here is fragile. */
     cond_t main_shutting_down_cond;
-    signal_t *shutdown_signal() { return &shutting_down_conds[get_thread_id()]; }
+    signal_t *shutdown_signal() { return &shutting_down_conds[get_thread_id().threadnum]; }
     boost::ptr_vector<cross_thread_signal_t> shutting_down_conds;
     auto_drainer_t auto_drainer;
     struct pulse_on_destruct_t {

@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
@@ -32,7 +35,7 @@ void sanitize_time(datum_t *time);
 } // namespace pseudo
 
 // These let us write e.g. `foo(NOTHROW) instead of `foo(false/*nothrow*/)`.
-// They should be passed to functions that have multiple behaviors (like `el` or
+// They should be passed to functions that have multiple behaviors (like `get` or
 // `add` below).
 
 // NOTHROW: Return NULL
@@ -86,10 +89,14 @@ public:
     static const size_t trunc_len = 300;
     std::string trunc_print() const;
     std::string print_primary() const;
-    std::string print_secondary(const store_key_t &key) const;
+    static std::string mangle_secondary(const std::string &secondary,
+            const std::string &primary, const std::string &tag);
+    std::string print_secondary(const store_key_t &key,
+            boost::optional<uint64_t> tag_num = boost::optional<uint64_t>()) const;
     /* An inverse to print_secondary. Returns the primary key. */
-    static std::string unprint_secondary(const std::string &secondary_and_primary);
+    static std::string extract_primary(const std::string &secondary_and_primary);
     static std::string extract_secondary(const std::string &secondary_and_primary);
+    static boost::optional<size_t> extract_tag(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
@@ -99,7 +106,7 @@ public:
     int64_t as_int() const;
     const std::string &as_str() const;
 
-    // Use of `size` and `el` is preferred to `as_array` when possible.
+    // Use of `size` and `get` is preferred to `as_array` when possible.
     const std::vector<counted_t<const datum_t> > &as_array() const;
     size_t size() const;
     // Access an element of an array.
@@ -111,7 +118,6 @@ public:
     counted_t<const datum_t> get(const std::string &key,
                                  throw_bool_t throw_bool = THROW) const;
     counted_t<const datum_t> merge(counted_t<const datum_t> rhs) const;
-    // RSI: Rename this typedef.
     typedef counted_t<const datum_t> (*merge_resoluter_t)(const std::string &key,
                                                           counted_t<const datum_t> l,
                                                           counted_t<const datum_t> r);
@@ -141,6 +147,7 @@ public:
                       std::string msg) const NORETURN;
 
     static size_t max_trunc_size();
+    static size_t trunc_size(size_t primary_key_size);
     /* Note key_is_truncated returns true if the key is of max size. This gives
      * a false positive if the sum sizes of the keys is exactly the maximum but
      * not over at all. This means that a key of exactly max_trunc_size counts
@@ -210,7 +217,10 @@ archive_result_t deserialize(read_stream_t *s, counted_t<const datum_t> *datum);
 write_message_t &operator<<(write_message_t &wm, const empty_ok_t<const counted_t<const datum_t> > &datum);
 archive_result_t deserialize(read_stream_t *s, empty_ok_ref_t<counted_t<const datum_t> > datum);
 
-// Converts a double to int, but throws if it's out of range.
+// Converts a double to int, but returns false if it's not an integer or out of range.
+bool number_as_integer(double d, int64_t *i_out);
+
+// Converts a double to int, calling number_as_integer and throwing if it fails.
 int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 
 // If you need to do mutable operations to a `datum_t`, use one of these (it's
@@ -296,7 +306,7 @@ private:
 namespace pseudo {
 class datum_cmp_t {
 public:
-    virtual int operator()(const datum_t& x, const datum_t& y) const = 0;
+    virtual int operator()(const datum_t &x, const datum_t &y) const = 0;
     virtual ~datum_cmp_t() { }
 };
 } // namespace pseudo

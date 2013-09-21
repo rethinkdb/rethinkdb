@@ -68,8 +68,9 @@ RDB_IMPL_ME_SERIALIZABLE_4(order_token_t, bucket_, read_mode_, value_, tag_);
 
 
 order_source_t::order_source_t() : bucket_(order_bucket_t::create()), counter_(0) { }
-order_source_t::order_source_t(int specified_home_thread)
-    : home_thread_mixin_debug_only_t(specified_home_thread), bucket_(order_bucket_t::create()), counter_(0) { }
+order_source_t::order_source_t(threadnum_t specified_home_thread)
+    : home_thread_mixin_debug_only_t(specified_home_thread),
+      bucket_(order_bucket_t::create()), counter_(0) { }
 
 order_source_t::~order_source_t() { }
 

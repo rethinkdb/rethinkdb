@@ -9,7 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "btree/backfill.hpp"
-#include "btree/depth_first_traversal.hpp"
+#include "btree/concurrent_traversal.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
@@ -474,7 +474,7 @@ public:
         : key_range_(key_range) { }
 
     bool key_should_be_erased(const btree_key_t *key) {
-        std::string pk = ql::datum_t::unprint_secondary(
+        std::string pk = ql::datum_t::extract_primary(
             key_to_unescaped_str(store_key_t(key)));
 
         return key_range_.contains_key(store_key_t(pk));
@@ -606,25 +606,27 @@ size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum) {
     return serialized_size(datum);
 }
 
-class rdb_rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
+class rdb_rget_depth_first_traversal_callback_t
+    : public concurrent_traversal_callback_t {
 public:
     /* This constructor does a traversal on the primary btree, it's not to be
      * used with sindexes. The constructor below is for use with sindexes. */
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
-                                              ql::env_t *_ql_env,
-                                              const rdb_protocol_details::transform_t &_transform,
-                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
-                                              const key_range_t &range,
-                                              direction_t _direction,
-                                              rget_read_response_t *_response) :
-        bad_init(false),
-        transaction(txn),
-        response(_response),
-        cumulative_size(0),
-        ql_env(_ql_env),
-        transform(_transform),
-        terminal(_terminal),
-        direction(_direction)
+    rdb_rget_depth_first_traversal_callback_t(
+        transaction_t *txn,
+        ql::env_t *_ql_env,
+        const rdb_protocol_details::transform_t &_transform,
+        boost::optional<rdb_protocol_details::terminal_t> _terminal,
+        const key_range_t &range,
+        sorting_t _sorting,
+        rget_read_response_t *_response)
+        : bad_init(false),
+          transaction(txn),
+          response(_response),
+          cumulative_size(0),
+          ql_env(_ql_env),
+          transform(_transform),
+          terminal(_terminal),
+          sorting(_sorting)
     {
         init(range);
     }
@@ -637,37 +639,40 @@ public:
      * operations but their sindex values get mixed together and you wind up
      * with multiple copies of each. This constructor will filter out the
      * duplicates. This was issue #606. */
-    rdb_rget_depth_first_traversal_callback_t(transaction_t *txn,
-                                              ql::env_t *_ql_env,
-                                              const rdb_protocol_details::transform_t &_transform,
-                                              boost::optional<rdb_protocol_details::terminal_t> _terminal,
-                                              const key_range_t &range,
-                                              const key_range_t &_primary_key_range,
-                                              direction_t _direction,
-                                              boost::optional<ql::map_wire_func_t> _sindex_function,
-                                              rget_read_response_t *_response) :
-        bad_init(false),
-        transaction(txn),
-        response(_response),
-        cumulative_size(0),
-        ql_env(_ql_env),
-        transform(_transform),
-        terminal(_terminal),
-        primary_key_range(_primary_key_range),
-        direction(_direction)
+    rdb_rget_depth_first_traversal_callback_t(
+        transaction_t *txn,
+        ql::env_t *_ql_env,
+        const rdb_protocol_details::transform_t &_transform,
+        boost::optional<rdb_protocol_details::terminal_t> _terminal,
+        const key_range_t &range,
+        const key_range_t &_primary_key_range,
+        sorting_t _sorting,
+        ql::map_wire_func_t _sindex_function,
+        sindex_multi_bool_t _sindex_multi,
+        sindex_range_t _sindex_range,
+        rget_read_response_t *_response)
+        : bad_init(false),
+          transaction(txn),
+          response(_response),
+          cumulative_size(0),
+          ql_env(_ql_env),
+          transform(_transform),
+          terminal(_terminal),
+          sorting(_sorting),
+          primary_key_range(_primary_key_range),
+          sindex_range(_sindex_range),
+          sindex_multi(_sindex_multi)
     {
-        if (_sindex_function) {
-            sindex_function = _sindex_function->compile_wire_func();
-        }
+        sindex_function = _sindex_function.compile_wire_func();
         init(range);
     }
 
     void init(const key_range_t &range) {
         try {
-            if (direction == FORWARD) {
+            if (forward(sorting)) {
                 response->last_considered_key = range.left;
             } else {
-                guarantee(direction == BACKWARD);
+                guarantee(backward(sorting));
                 if (!range.right.unbounded) {
                     response->last_considered_key = range.right.key;
                 } else {
@@ -676,54 +681,66 @@ public:
             }
 
             if (terminal) {
-                terminal_initialize(terminal->backtrace,
-                                    &terminal->variant,
-                                    &response->result);
+                query_language::terminal_initialize(&*terminal, &response->result);
             }
-        } catch (const query_language::runtime_exc_t &e) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            response->result = e;
-            bad_init = true;
         } catch (const ql::exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e2;
             bad_init = true;
         } catch (const ql::datum_exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
-            terminal_exception(e2, terminal->variant, &response->result);
+            terminal_exception(e2, *terminal, &response->result);
             bad_init = true;
         }
     }
 
-    bool handle_pair(const btree_key_t* key, const void *value) {
-        store_key_t store_key(key);
+    bool handle_pair(scoped_key_value_t &&keyvalue,
+                     concurrent_traversal_fifo_enforcer_signal_t waiter)
+        THROWS_ONLY(interrupted_exc_t) {
+        store_key_t store_key(keyvalue.key());
         if (bad_init) {
             return false;
         }
         if (primary_key_range) {
-            std::string pk = ql::datum_t::unprint_secondary(
+            std::string pk = ql::datum_t::extract_primary(
                     key_to_unescaped_str(store_key));
             if (!primary_key_range->contains_key(store_key_t(pk))) {
                 return true;
             }
         }
         try {
-            if ((response->last_considered_key < store_key && direction == FORWARD) ||
-                (response->last_considered_key > store_key && direction == BACKWARD)) {
+            lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
+                                    transaction);
+            first_value.get();
+
+            keyvalue.reset();
+
+            waiter.wait_interruptible();
+
+            if ((response->last_considered_key < store_key && forward(sorting)) ||
+                (response->last_considered_key > store_key && backward(sorting))) {
                 response->last_considered_key = store_key;
             }
 
-            lazy_json_t first_value(static_cast<const rdb_value_t *>(value), transaction);
-
-            std::list<lazy_json_t> data;
+            std::vector<lazy_json_t> data;
             data.push_back(first_value);
 
             counted_t<const ql::datum_t> sindex_value;
+            if (sindex_function) {
+                sindex_value = sindex_function->call(ql_env, first_value.get())->as_datum();
+                guarantee(sindex_range);
+                guarantee(sindex_multi);
 
-            if (sindex_function &&
-                ql::datum_t::key_is_truncated(store_key)) {
-                counted_t<const ql::datum_t> datum_value = first_value.get();
-                sindex_value = sindex_function->call(ql_env, datum_value)->as_datum();
+                if (sindex_multi == MULTI &&
+                    sindex_value->get_type() == ql::datum_t::R_ARRAY) {
+                        boost::optional<uint64_t> tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
+                        guarantee(tag);
+                        guarantee(sindex_value->size() > tag);
+                        sindex_value = sindex_value->get(*tag);
+                }
+                if (!sindex_range->contains(sindex_value)) {
+                    return true;
+                }
             }
 
             // Apply transforms to the data
@@ -731,12 +748,11 @@ public:
                 rdb_protocol_details::transform_t::iterator it;
                 for (it = transform.begin(); it != transform.end(); ++it) {
                     try {
-                        std::list<counted_t<const ql::datum_t> > tmp;
+                        std::vector<counted_t<const ql::datum_t> > tmp;
 
                         for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                            transform_apply(ql_env, it->backtrace,
-                                            jt->get(), &it->variant,
-                                            &tmp);
+                            query_language::transform_apply(
+                                ql_env, jt->get(), &*it, &tmp);
                         }
                         data.clear();
                         for (auto jt = tmp.begin(); jt != tmp.end(); ++jt) {
@@ -745,7 +761,7 @@ public:
                     } catch (const ql::datum_exc_t &e2) {
                         /* Evaluation threw so we're not going to be accepting any
                            more requests. */
-                        transform_exception(e2, it->variant, &response->result);
+                        transform_exception(e2, *it, &response->result);
                         return false;
                     }
                 }
@@ -757,38 +773,31 @@ public:
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
                     counted_t<const ql::datum_t> datum = it->get();
-                    if (sindex_value) {
-                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                                                            sindex_value,
-                                                                            datum));
+                    if (sorting != UNORDERED && sindex_value) {
+                        stream->push_back(rdb_protocol_details::rget_item_t(
+                                    store_key, sindex_value, datum));
                     } else {
-                        stream->push_back(rdb_protocol_details::rget_item_t(store_key,
-                                                                            datum));
+                        stream->push_back(rdb_protocol_details::rget_item_t(
+                                              store_key, datum));
                     }
 
                     cumulative_size += estimate_rget_response_size(datum);
                 }
-
                 return cumulative_size < rget_max_chunk_size;
             } else {
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
-                        terminal_apply(ql_env, terminal->backtrace,
-                                       *jt,
-                                       &terminal->variant, &response->result);
+                        query_language::terminal_apply(
+                            ql_env, *jt, &*terminal, &response->result);
                     }
                     return true;
                 } catch (const ql::datum_exc_t &e2) {
                     /* Evaluation threw so we're not going to be accepting any
                        more requests. */
-                    terminal_exception(e2, terminal->variant, &response->result);
+                    terminal_exception(e2, *terminal, &response->result);
                     return false;
                 }
             }
-        } catch (const query_language::runtime_exc_t &e) {
-            /* Evaluation threw so we're not going to be accepting any more requests. */
-            response->result = e;
-            return false;
         } catch (const ql::exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e2;
@@ -803,24 +812,20 @@ public:
     ql::env_t *ql_env;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
+    sorting_t sorting;
 
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
-    direction_t direction;
-
+    boost::optional<sindex_range_t> sindex_range;
     counted_t<ql::func_t> sindex_function;
+    boost::optional<sindex_multi_bool_t> sindex_multi;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
 public:
     void operator()(const rget_read_response_t::stream_t &) const { }
-    void operator()(const rget_read_response_t::groups_t &) const { }
-    void operator()(const rget_read_response_t::length_t &) const { }
-    void operator()(const rget_read_response_t::inserted_t &) const { }
-    void operator()(const query_language::runtime_exc_t &) const { }
     void operator()(const ql::exc_t &) const { }
     void operator()(const ql::datum_exc_t &) const { }
-    //    void operator()(const std::vector<ql::wire_datum_t> &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
     void operator()(const rget_read_response_t::vec_t &) const { }
@@ -836,10 +841,12 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    direction_t direction,
+                    sorting_t sorting,
                     rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal, range, direction, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
+    rdb_rget_depth_first_traversal_callback_t callback(
+            txn, ql_env, transform, terminal, range, sorting, response);
+    btree_concurrent_traversal(slice, txn, superblock, range, &callback,
+            (forward(sorting) ? FORWARD : BACKWARD));
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -850,18 +857,21 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
-void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
-                    transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env,
+void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex_range,
+                    transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
-                    direction_t direction,
-                    const boost::optional<ql::map_wire_func_t> &map_wire_func,
+                    sorting_t sorting,
+                    const ql::map_wire_func_t &sindex_func,
+                    sindex_multi_bool_t sindex_multi,
                     rget_read_response_t *response) {
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
-            range, pk_range, direction, map_wire_func, response);
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, direction);
+            sindex_range.to_region().inner, pk_range,
+            sorting, sindex_func, sindex_multi, sindex_range, response);
+
+    btree_concurrent_traversal(slice, txn, superblock, sindex_range.to_region().inner,
+            &callback, (forward(sorting) ? FORWARD : BACKWARD));
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -981,6 +991,23 @@ void rdb_modification_report_cb_t::on_mod_report(
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
+void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> doc,
+                  ql::map_wire_func_t *mapping, sindex_multi_bool_t multi, ql::env_t *env,
+                  std::vector<store_key_t> *keys_out) {
+    guarantee(keys_out->empty());
+    counted_t<const ql::datum_t> index =
+        mapping->compile_wire_func()->call(env, doc)->as_datum();
+
+    if (multi == MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
+        for (uint64_t i = 0; i < index->size(); ++i) {
+            keys_out->push_back(
+                store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
+        }
+    } else {
+        keys_out->push_back(store_key_t(index->print_secondary(primary_key)));
+    }
+}
+
 /* Used below by rdb_update_sindexes. */
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
@@ -994,8 +1021,11 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
+    sindex_multi_bool_t multi = MULTI;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
+    guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+    success = deserialize(&read_stream, &multi);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
     // TODO we just use a NULL environment here. People should not be able
@@ -1011,32 +1041,32 @@ void rdb_update_single_sindex(
     if (modification->info.deleted.first) {
         guarantee(!modification->info.deleted.second.empty());
         try {
-            promise_t<superblock_t *> return_superblock_local;
-            {
-                counted_t<const ql::datum_t> deleted = modification->info.deleted.first;
+            counted_t<const ql::datum_t> deleted = modification->info.deleted.first;
 
-                counted_t<const ql::datum_t> index =
-                    mapping.compile_wire_func()->call(&env, deleted)->as_datum();
+            std::vector<store_key_t> keys;
 
-                store_key_t sindex_key(
-                    index->print_secondary(modification->primary_key));
+            compute_keys(modification->primary_key, deleted, &mapping, multi, &env, &keys);
 
-                keyvalue_location_t<rdb_value_t> kv_location;
+            for (auto it = keys.begin(); it != keys.end(); ++it) {
+                promise_t<superblock_t *> return_superblock_local;
+                {
+                    keyvalue_location_t<rdb_value_t> kv_location;
 
-                find_keyvalue_location_for_write(txn, super_block,
-                                                 sindex_key.btree_key(),
-                                                 &kv_location,
-                                                 &sindex->btree->root_eviction_priority,
-                                                 &sindex->btree->stats,
-                                                 &return_superblock_local);
+                    find_keyvalue_location_for_write(txn, super_block,
+                                                     it->btree_key(),
+                                                     &kv_location,
+                                                     &sindex->btree->root_eviction_priority,
+                                                     &sindex->btree->stats,
+                                                     &return_superblock_local);
 
-                if (kv_location.value.has()) {
-                    kv_location_delete(&kv_location, sindex_key,
-                                       sindex->btree, repli_timestamp_t::distant_past, txn, NULL);
+                    if (kv_location.value.has()) {
+                        kv_location_delete(&kv_location, *it,
+                            sindex->btree, repli_timestamp_t::distant_past, txn, NULL);
+                    }
+                    // The keyvalue location gets destroyed here.
                 }
-                // The keyvalue location gets destroyed here.
+                super_block = return_superblock_local.wait();
             }
-            super_block = return_superblock_local.wait();
         } catch (const ql::base_exc_t &) {
             // Do nothing (it wasn't actually in the index).
         }
@@ -1046,25 +1076,29 @@ void rdb_update_single_sindex(
         try {
             counted_t<const ql::datum_t> added = modification->info.added.first;
 
-            counted_t<const ql::datum_t> index
-                = mapping.compile_wire_func()->call(&env, added)->as_datum();
+            std::vector<store_key_t> keys;
 
-            store_key_t sindex_key(index->print_secondary(modification->primary_key));
+            compute_keys(modification->primary_key, added, &mapping, multi, &env, &keys);
 
-            keyvalue_location_t<rdb_value_t> kv_location;
+            for (auto it = keys.begin(); it != keys.end(); ++it) {
+                promise_t<superblock_t *> return_superblock_local;
+                {
+                    keyvalue_location_t<rdb_value_t> kv_location;
 
-            promise_t<superblock_t *> dummy;
-            find_keyvalue_location_for_write(txn,
-                                             super_block,
-                                             sindex_key.btree_key(),
-                                             &kv_location,
-                                             &sindex->btree->root_eviction_priority,
-                                             &sindex->btree->stats,
-                                             &dummy);
+                    find_keyvalue_location_for_write(txn, super_block,
+                                                     it->btree_key(),
+                                                     &kv_location,
+                                                     &sindex->btree->root_eviction_priority,
+                                                     &sindex->btree->stats,
+                                                     &return_superblock_local);
 
-            kv_location_set(&kv_location, sindex_key,
-                            modification->info.added.second, sindex->btree,
-                            repli_timestamp_t::distant_past, txn);
+                    kv_location_set(&kv_location, *it,
+                                    modification->info.added.second, sindex->btree,
+                                    repli_timestamp_t::distant_past, txn);
+                    // The keyvalue location gets destroyed here.
+                }
+                super_block = return_superblock_local.wait();
+            }
         } catch (const ql::base_exc_t &) {
             // Do nothing (we just drop the row from the index).
         }

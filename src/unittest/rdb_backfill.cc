@@ -9,7 +9,6 @@
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -24,14 +23,16 @@
 namespace unittest {
 
 void run_with_broadcaster(
-        boost::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-                              branch_history_manager_t<rdb_protocol_t> *,
-                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
-                              scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-                              test_store_t<rdb_protocol_t> *,
-                              scoped_ptr_t<listener_t<rdb_protocol_t> > *,
-                              rdb_protocol_t::context_t *ctx,
-                              order_source_t *)> fun) {
+    boost::function< void(
+        std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
+        branch_history_manager_t<rdb_protocol_t> *,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<
+            broadcaster_business_card_t<rdb_protocol_t> > > > >,
+        scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
+        test_store_t<rdb_protocol_t> *,
+        scoped_ptr_t<listener_t<rdb_protocol_t> > *,
+        rdb_protocol_t::context_t *ctx,
+        order_source_t *)> fun) {
     order_source_t order_source;
 
     /* Set up a cluster so mailboxes can be created */
@@ -260,7 +261,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
 
         ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m, SINGLE));
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());

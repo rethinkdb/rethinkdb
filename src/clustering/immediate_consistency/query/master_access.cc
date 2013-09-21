@@ -43,13 +43,19 @@ void master_access_t<protocol_t>::read(
         order_token_t otok,
         fifo_enforcer_sink_t::exit_read_t *token,
         signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) {
+        THROWS_ONLY(interrupted_exc_t,
+                    resource_lost_exc_t,
+                    cannot_perform_query_exc_t) {
     rassert(region_is_superset(region, read.get_region()));
 
-    promise_t<boost::variant<typename protocol_t::read_response_t, std::string> > result_or_failure;
-    mailbox_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)> result_or_failure_mailbox(
-        mailbox_manager,
-        boost::bind(&promise_t<boost::variant<typename protocol_t::read_response_t, std::string> >::pulse, &result_or_failure, _1));
+    promise_t<boost::variant<typename protocol_t::read_response_t, std::string> >
+        result_or_failure;
+    mailbox_t<void(boost::variant<typename protocol_t::read_response_t, std::string>)>
+        result_or_failure_mailbox(
+            mailbox_manager,
+            boost::bind(&promise_t<boost::variant<typename protocol_t::read_response_t,
+                                                  std::string> >::pulse,
+                        &result_or_failure, _1));
 
     wait_interruptible(token, interruptor);
     fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
@@ -71,10 +77,12 @@ void master_access_t<protocol_t>::read(
     wait_interruptible(&waiter, interruptor);
 
     if (result_or_failure.is_pulsed()) {
-        if (const std::string *error = boost::get<std::string>(&result_or_failure.wait())) {
+        if (const std::string *error
+            = boost::get<std::string>(&result_or_failure.wait())) {
             throw cannot_perform_query_exc_t(*error);
         } else if (const typename protocol_t::read_response_t *result =
-                boost::get<typename protocol_t::read_response_t>(&result_or_failure.wait())) {
+                boost::get<typename protocol_t::read_response_t>(
+                    &result_or_failure.wait())) {
             *response = *result;
         } else {
             unreachable();
