@@ -1013,14 +1013,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::INT_POSITIVE);
 
-size_t real_serialized_size(const counted_t<const datum_t> &datum) {
-    write_message_t wm;
-    wm << datum;
-    string_stream_t ss;
-    UNUSED int res = send_write_message(&ss, &wm);
-    return ss.str().size();
-}
-
 // This must be kept in sync with operator<<(write_message_t &, const counted_t<const
 // datum_T> &).
 size_t serialized_size(const counted_t<const datum_t> &datum) {
