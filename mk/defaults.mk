@@ -96,6 +96,10 @@ SHOW_BUILD_REASON ?= 0
 # Enable backtraces for RQL errors
 RQL_ERROR_BT ?= 0
 
+# Always collect full perfmon stats. This makes RethinkDB slower
+# but can be useful for analyzing performance issues.
+FULL_PERFMON ?= 0
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0
