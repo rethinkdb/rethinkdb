@@ -96,7 +96,7 @@ public:
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
     static std::string extract_secondary(const std::string &secondary_and_primary);
-    static boost::optional<size_t> extract_tag(const std::string &secondary_and_primary);
+    static boost::optional<uint64_t> extract_tag(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;

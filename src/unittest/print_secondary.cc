@@ -3,7 +3,7 @@
 #include "rdb_protocol/datum.hpp"
 
 namespace unittest {
-void test_mangle(const std::string &pkey, const std::string &skey, boost::optional<uint64_t> tag = boost::optional<size_t>()) {
+void test_mangle(const std::string &pkey, const std::string &skey, boost::optional<uint64_t> tag = boost::optional<uint64_t>()) {
     std::string tag_string;
     if (tag) {
         tag_string = std::string(reinterpret_cast<const char *>(&*tag), sizeof(uint64_t));

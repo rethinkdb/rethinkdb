@@ -735,7 +735,7 @@ public:
                     sindex_value->get_type() == ql::datum_t::R_ARRAY) {
                         boost::optional<uint64_t> tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
                         guarantee(tag);
-                        guarantee(sindex_value->size() > tag);
+                        guarantee(sindex_value->size() > *tag);
                         sindex_value = sindex_value->get(*tag);
                 }
                 if (!sindex_range->contains(sindex_value)) {
