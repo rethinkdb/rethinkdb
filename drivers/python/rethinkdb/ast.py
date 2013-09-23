@@ -631,7 +631,7 @@ class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
 
-class Default(RqlQuery):
+class Default(RqlMethodQuery):
     tt = p.Term.DEFAULT
     st = "default"
 
