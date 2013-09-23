@@ -133,11 +133,12 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 counted_t<const datum_t> replacement =
                     replacement_generator->call(env, original_values[i])->as_datum();
 
-                funcs[i] = map_wire_func_t::make_safely(pb::dummy_var_t::IGNORED,
-                                                        std::bind(make_replacement_body,
-                                                                  replacement,
-                                                                  std::placeholders::_1),
-                                                        backtrace());
+                funcs[i] = map_wire_func_t::make_safely(
+                    pb::dummy_var_t::IGNORED,
+                    std::bind(make_replacement_body,
+                              replacement,
+                              std::placeholders::_1),
+                    backtrace());
                 pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
             } catch (const base_exc_t &exc) {
                 pairs[i] = datum_func_pair_t(make_error_datum(exc));

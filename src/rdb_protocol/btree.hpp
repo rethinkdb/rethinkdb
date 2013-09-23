@@ -18,7 +18,6 @@ class key_tester_t;
 class parallel_traversal_progress_t;
 struct rdb_value_t;
 
-
 typedef rdb_protocol_t::read_t read_t;
 typedef rdb_protocol_t::read_response_t read_response_t;
 
@@ -33,6 +32,9 @@ typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_
 
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
+
+typedef rdb_protocol_t::batched_replace_t batched_replace_t;
+typedef rdb_protocol_t::batched_insert_t batched_insert_t;
 
 typedef rdb_protocol_t::point_replace_t point_replace_t;
 typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
@@ -62,7 +64,10 @@ public:
 
     bool fits(const void *value, int length_available) const;
 
-    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const;
+    bool deep_fsck(block_getter_t *getter,
+                   const void *value,
+                   int length_available,
+                   std::string *msg_out) const;
     int max_possible_size() const;
 
     static block_magic_t leaf_magic();
@@ -83,12 +88,54 @@ struct rdb_modification_info_t;
 struct rdb_modification_report_t;
 class rdb_modification_report_cb_t;
 
-void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
+void rdb_get(const store_key_t &key,
+             btree_slice_t *slice,
+             transaction_t *txn,
+             superblock_t *superblock,
+             point_read_response_t *response);
 
 enum return_vals_t {
     NO_RETURN_VALS = 0,
     RETURN_VALS = 1
 };
+
+struct btree_info_t {
+    btree_info_t(btree_slice_t *_slice,
+                 repli_timestamp_t _timestamp,
+                 transaction_t *_txn,
+                 superblock_t *_superblock,
+                 const std::string *_primary_key)
+        : slice(_slice), timestamp(_timestamp), txn(_txn),
+          superblock(_superblock), primary_key(_primary_key) { }
+    btree_slice_t *slice;
+    repli_timestamp_t timestamp;
+    transaction_t *txn;
+    superblock_t *superblock;
+    const std::string *primary_key;
+};
+
+struct btree_batched_replacer_t {
+    virtual counted_t<const ql::datum_t> replace(
+        const counted_t<const ql::datum_t> &d, size_t index) const = 0;
+    virtual bool return_vals_p() = 0;
+};
+struct btree_point_replacer_t {
+    virtual counted_t<const ql::datum_t> replace(
+        const counted_t<const ql::datum_t> &d) const = 0;
+    virtual bool return_vals_p() = 0;
+};
+
+counted_t<const ql::datum_t> rdb_replace(
+    const btree_info_t &info,
+    const store_key_t &key,
+    const btree_point_replacer_t *replacer,
+    rdb_modification_info_t *mod_info);
+
+counted_t<const ql::datum_t> rdb_batched_replace(
+    const btree_info_t &info,
+    const std::vector<store_key_t> &keys,
+    const btree_batched_replacer_t *replacer,
+    rdb_modification_info_t *mod_info_out);
 
 // QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
 // just a different function passed to this function).
@@ -104,10 +151,15 @@ void rdb_replace(btree_slice_t *slice,
                  Datum *response_out,
                  rdb_modification_info_t *mod_info);
 
-void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> > &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
-                         transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
-                         batched_replaces_response_t *response_out,
-                         rdb_modification_report_cb_t *sindex_cb);
+void rdb_batched_replace(
+    const std::vector<std::pair<int64_t, point_replace_t> > &replaces,
+    btree_slice_t *slice,
+    repli_timestamp_t timestamp,
+    transaction_t *txn,
+    scoped_ptr_t<superblock_t> *superblock,
+    ql::env_t *ql_env,
+    batched_replaces_response_t *response_out,
+    rdb_modification_report_cb_t *sindex_cb);
 
 void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,

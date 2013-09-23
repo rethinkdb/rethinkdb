@@ -57,7 +57,9 @@ public:
     }
 
     btree_key_t *btree_key() { return reinterpret_cast<btree_key_t *>(buffer); }
-    const btree_key_t *btree_key() const { return reinterpret_cast<const btree_key_t *>(buffer); }
+    const btree_key_t *btree_key() const {
+        return reinterpret_cast<const btree_key_t *>(buffer);
+    }
     void set_size(int s) {
         rassert(s <= MAX_KEY_SIZE);
         btree_key()->size = s;
