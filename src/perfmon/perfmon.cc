@@ -21,7 +21,11 @@ static const char * stat_std_dev = "std_dev";
 static const char * no_value = "-";
 
 
+#ifdef FULL_PERFMON
+bool global_full_perfmon = true;
+#else
 bool global_full_perfmon = false;
+#endif
 
 /* perfmon_counter_t */
 
