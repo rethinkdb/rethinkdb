@@ -127,9 +127,10 @@ archive_result_t wire_func_t::rdb_deserialize(read_stream_t *s) {
     }
 }
 
-map_wire_func_t map_wire_func_t::make_safely(pb::dummy_var_t dummy_var,
-                                             const std::function<protob_t<Term>(sym_t argname)> &body_generator,
-                                             protob_t<const Backtrace> backtrace) {
+map_wire_func_t map_wire_func_t::make_safely(
+    pb::dummy_var_t dummy_var,
+    const std::function<protob_t<Term>(sym_t argname)> &body_generator,
+    protob_t<const Backtrace> backtrace) {
     const sym_t varname = dummy_var_to_sym(dummy_var);
     protob_t<Term> body = body_generator(varname);
     propagate_backtrace(body.get(), backtrace.get());

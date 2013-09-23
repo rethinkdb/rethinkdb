@@ -92,6 +92,7 @@ private:
     }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        debug_timer_t tm("insert");
         counted_t<table_t> t = arg(env, 0)->as_table();
         counted_t<val_t> upsert_val = optarg(env, "upsert");
         bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
@@ -105,6 +106,7 @@ private:
         counted_t<const datum_t> stats = new_stats_object();
         std::vector<std::string> generated_keys;
         counted_t<val_t> v1 = arg(env, 1);
+        tm.tick("v1");
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             counted_t<const datum_t> d = v1->as_datum();
             if (d->get_type() == datum_t::R_OBJECT) {
@@ -115,7 +117,8 @@ private:
                     // TODO: that solution sucks.
                 }
                 counted_t<const datum_t> new_stats =
-                    t->replace(env->env, d, d, upsert, durability_requirement, return_vals);
+                    t->replace(env->env, d, d, upsert,
+                               durability_requirement, return_vals);
                 stats = stats->merge(new_stats, stats_merge);
                 done = true;
             }
@@ -142,8 +145,11 @@ private:
                     }
                 }
 
+                tm.tick("pre_br");
                 std::vector<counted_t<const datum_t> > results =
-                    t->batch_replace(env->env, datums, datums, upsert, durability_requirement);
+                    t->batch_replace(env->env, datums, datums,
+                                     upsert, durability_requirement);
+                tm.tick("batch_replace");
                 for (auto it = results.begin(); it != results.end(); ++it) {
                     stats = stats->merge(*it, stats_merge);
                 }
@@ -157,7 +163,8 @@ private:
                 genkeys.push_back(make_counted<datum_t>(std::move(generated_keys[i])));
             }
             datum_ptr_t d(datum_t::R_OBJECT);
-            UNUSED bool b = d.add("generated_keys", make_counted<datum_t>(std::move(genkeys)));
+            UNUSED bool b = d.add("generated_keys",
+                                  make_counted<datum_t>(std::move(genkeys)));
             stats = stats->merge(d.to_counted(), pure_merge);
         }
 

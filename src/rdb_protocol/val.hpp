@@ -87,10 +87,12 @@ public:
     const std::string name;
 private:
     struct datum_func_pair_t {
-        datum_func_pair_t() : original_value(NULL), replacer(NULL), error_value(NULL) { }
+        datum_func_pair_t()
+            : original_value(NULL), replacer(NULL), error_value(NULL) { }
         datum_func_pair_t(counted_t<const datum_t> _original_value,
                           const map_wire_func_t *_replacer)
-            : original_value(_original_value), replacer(_replacer), error_value(NULL) { }
+            : original_value(_original_value),
+              replacer(_replacer), error_value(NULL) { }
 
         explicit datum_func_pair_t(counted_t<const datum_t> _error_value)
             : original_value(NULL), replacer(NULL), error_value(_error_value) { }

@@ -148,7 +148,8 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     }
 }
 
-protob_t<Term> make_upsert_replace_body(bool upsert, counted_t<const datum_t> d, sym_t x) {
+protob_t<Term> make_upsert_replace_body(
+    bool upsert, counted_t<const datum_t> d, sym_t x) {
     protob_t<Term> twrap = make_counted_term();
     Term *const arg = twrap.get();
     if (upsert) {
@@ -177,19 +178,25 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         const std::vector<counted_t<const datum_t> > &replacement_values,
         const bool upsert,
         const durability_requirement_t durability_requirement) {
+    debug_timer_t tm("shim");
     r_sanity_check(original_values.size() == replacement_values.size());
     scoped_array_t<map_wire_func_t> funcs(original_values.size());
     std::vector<datum_func_pair_t> pairs(original_values.size());
+    debug_timer_t inner_tm("shim");
     for (size_t i = 0; i < original_values.size(); ++i) {
         try {
-            funcs[i] = upsert_replacement_func(upsert, replacement_values[i], backtrace());
+            funcs[i]
+                = upsert_replacement_func(upsert, replacement_values[i], backtrace());
             pairs[i] = datum_func_pair_t(original_values[i], &funcs[i]);
         } catch (const base_exc_t &exc) {
             pairs[i] = datum_func_pair_t(make_error_datum(exc));
         }
     }
 
-    return batch_replace(env, pairs, durability_requirement);
+    tm.tick("bullshit");
+    auto res = batch_replace(env, pairs, durability_requirement);
+    tm.tick("post_bullshit");
+    return res;
 }
 
 bool is_sorted_by_first(const std::vector<std::pair<int64_t, Datum> > &v) {
@@ -214,6 +221,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         env_t *env,
         const std::vector<datum_func_pair_t> &replacements,
         const durability_requirement_t durability_requirement) {
+    debug_timer_t tm("batch_replace");
     std::vector<counted_t<const datum_t> > ret(replacements.size());
 
     std::vector<std::pair<int64_t, rdb_protocol_t::point_replace_t> > point_replaces;
@@ -228,9 +236,8 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
                 r_sanity_check(orig.has());
 
                 if (orig->get_type() == datum_t::R_NULL) {
-                    // TODO: We copy this for some reason, possibly no reason.
-                    map_wire_func_t mwf = *replacements[i].replacer;
-                    orig = mwf.compile_wire_func()->call(env, orig)->as_datum();
+                    const map_wire_func_t *mwf = replacements[i].replacer;
+                    orig = mwf->compile_wire_func()->call(env, orig)->as_datum();
                     if (orig->get_type() == datum_t::R_NULL) {
                         datum_ptr_t resp(datum_t::R_OBJECT);
                         counted_t<const datum_t> one(new datum_t(1.0));
@@ -257,14 +264,20 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
     }
 
     if (!point_replaces.empty()) {
-        rdb_protocol_t::write_t write(rdb_protocol_t::batched_replaces_t(point_replaces),
-                                      durability_requirement);
+        rdb_protocol_t::write_t write(
+            rdb_protocol_t::batched_replaces_t(point_replaces),
+            durability_requirement);
         rdb_protocol_t::write_response_t response;
-        access->get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+        tm.tick("pre_write");
+        access->get_namespace_if()->write(
+            write, &response, order_token_t::ignore, env->interruptor);
+        tm.tick("write");
         rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
-            = boost::get<rdb_protocol_t::batched_replaces_response_t>(&response.response);
+            = boost::get<rdb_protocol_t::batched_replaces_response_t>(
+                &response.response);
         r_sanity_check(batched_replaces_response != NULL);
-        std::vector<std::pair<int64_t, Datum> > *datums = &batched_replaces_response->point_replace_responses;
+        std::vector<std::pair<int64_t, Datum> > *datums
+            = &batched_replaces_response->point_replace_responses;
 
         rassert(is_sorted_by_first(*datums));
 

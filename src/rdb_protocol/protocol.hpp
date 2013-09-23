@@ -544,7 +544,8 @@ struct rdb_protocol_t {
     class batched_replaces_t {
     public:
         batched_replaces_t() { }
-        batched_replaces_t(const std::vector<std::pair<int64_t, point_replace_t> > &_point_replaces)
+        batched_replaces_t(
+            const std::vector<std::pair<int64_t, point_replace_t> > &_point_replaces)
             : point_replaces(_point_replaces) {
             guarantee(!_point_replaces.empty());
         }
