@@ -98,15 +98,31 @@ struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
                  transaction_t *_txn,
-                 superblock_t *_superblock,
                  const std::string *_primary_key)
         : slice(_slice), timestamp(_timestamp), txn(_txn),
-          superblock(_superblock), primary_key(_primary_key) { }
-    btree_slice_t *slice;
-    repli_timestamp_t timestamp;
-    transaction_t *txn;
-    superblock_t *superblock;
+          primary_key(_primary_key) {
+        guarantee(slice != NULL);
+        guarantee(txn != NULL);
+        guarantee(primary_key != NULL);
+    }
+    btree_slice_t *const slice;
+    const repli_timestamp_t timestamp;
+    transaction_t *const txn;
     const std::string *primary_key;
+};
+
+struct btree_loc_info_t {
+    btree_loc_info_t(const btree_info_t *_btree,
+                     superblock_t *_superblock,
+                     const store_key_t *_key)
+        : btree(_btree), superblock(_superblock), key(_key) {
+        guarantee(btree != NULL);
+        guarantee(superblock != NULL);
+        guarantee(key != NULL);
+    }
+    const btree_info_t *const btree;
+    superblock_t *const superblock;
+    const store_key_t *const key;
 };
 
 struct btree_batched_replacer_t {
@@ -122,11 +138,11 @@ struct btree_point_replacer_t {
     virtual bool return_vals_p() const = 0;
 };
 
+// RSI: does anyone use this?
 counted_t<const ql::datum_t> rdb_replace(
-    const btree_info_t &info,
-    const store_key_t &key,
+    const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
-    rdb_modification_info_t *mod_info);
+    rdb_modification_info_t *mod_info_out);
 
 counted_t<const ql::datum_t> rdb_batched_replace(
     const btree_info_t &info,

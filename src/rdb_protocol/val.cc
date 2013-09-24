@@ -98,7 +98,7 @@ counted_t<const datum_t> table_t::batched_replace(
 
     if (!replacement_generator->is_deterministic()) {
         r_sanity_check(nondeterministic_replacements_ok);
-        datum_ptr_t stats(new datum_t(datum_t::R_OBJECT));
+        datum_ptr_t stats(datum_t::R_OBJECT);
         std::vector<counted_t<const datum_t> > replacement_values;
         replacement_values.reserve(original_values.size());
         for (auto it = original_values.begin(); it != original_values.end(); ++it) {

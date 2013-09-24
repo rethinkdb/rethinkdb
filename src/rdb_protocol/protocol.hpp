@@ -28,8 +28,8 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/wire_func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
+#include "rdb_protocol/wire_func.hpp"
 #include "utils.hpp"
 
 class extproc_pool_t;
@@ -514,8 +514,7 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    class batched_replace_t {
-    public:
+    struct batched_replace_t {
         batched_replace_t() { }
         batched_replace_t(
             std::vector<store_key_t> &&_keys,
@@ -525,34 +524,40 @@ struct rdb_protocol_t {
             bool _return_vals)
             : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),
               return_vals(_return_vals) {
-            guarantee(keys.size() != 0);
-            guarantee(keys.size() == 1 || !return_vals);
+            r_sanity_check(keys.size() != 0);
+            r_sanity_check(keys.size() == 1 || !return_vals);
         }
-        RDB_DECLARE_ME_SERIALIZABLE;
-    private:
-        // DISABLE_COPYING(batched_replace_t);
         std::vector<store_key_t> keys;
         std::string pkey;
         ql::wire_func_t f;
         std::map<std::string, ql::wire_func_t > optargs;
         bool return_vals;
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    class batched_insert_t {
-    public:
+    struct batched_insert_t {
         batched_insert_t() { }
         batched_insert_t(
             std::vector<counted_t<const ql::datum_t> > &&_inserts,
             const std::string &_pkey, bool _upsert)
             : inserts(std::move(_inserts)), pkey(_pkey), upsert(_upsert) {
-            guarantee(inserts.size() != 0);
+            r_sanity_check(inserts.size() != 0);
+            keys.reserve(inserts.size());
+            // We need `keys` in lots of places, and we don't want e.g. the
+            // unsharding code having to know how to get a key from a `datum_t`,
+            // so we precompute them.
+            for (auto it = inserts.begin(); it != inserts.end(); ++it) {
+                counted_t<const ql::datum_t> keyval = (*it)->get(pkey, ql::NOTHROW);
+                r_sanity_check(keyval.has());
+                keys.emplace_back(keyval->print_primary());
+            }
+            r_sanity_check(keys.size() == inserts.size());
         }
-        RDB_DECLARE_ME_SERIALIZABLE;
-    private:
-        // DISABLE_COPYING(batched_insert_t);
+        std::vector<store_key_t> keys;
         std::vector<counted_t<const ql::datum_t> > inserts;
         std::string pkey;
         bool upsert;
+        RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_write_t {

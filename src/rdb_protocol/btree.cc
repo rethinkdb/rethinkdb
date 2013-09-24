@@ -24,6 +24,17 @@
 
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
+template<class Value>
+void find_keyvalue_location_for_write(
+    const btree_loc_info_t &info,
+    keyvalue_location_t<Value> *kv_loc_out,
+    promise_t<superblock_t *> *pass_back_superblock) {
+    find_keyvalue_location_for_write(
+        info.btree->txn, info.superblock, info.key->btree_key(), kv_loc_out,
+        &info.btree->slice->root_eviction_priority, &info.btree->slice->stats,
+        pass_back_superblock);
+}
+
 const rdb_value_t *value_sizer_t<rdb_value_t>::as_rdb(const void *p) {
     return reinterpret_cast<const rdb_value_t *>(p);
 }
@@ -75,8 +86,11 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
     }
 }
 
-void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
-                        btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn,
+void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
+                        const store_key_t &key,
+                        btree_slice_t *slice,
+                        repli_timestamp_t timestamp,
+                        transaction_t *txn,
                         rdb_modification_info_t *mod_info_out) {
     guarantee(kv_location->value.has());
 
@@ -92,12 +106,16 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location, const sto
 
     kv_location->value.reset();
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
+    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp,
+                          false, &null_cb, &slice->root_eviction_priority);
 }
 
-void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
+void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
+                     const store_key_t &key,
                      counted_t<const ql::datum_t> data,
-                     btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn,
+                     btree_slice_t *slice,
+                     repli_timestamp_t timestamp,
+                     transaction_t *txn,
                      rdb_modification_info_t *mod_info_out) {
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
     bzero(new_value.get(), blob::btree_maxreflen);
@@ -107,7 +125,8 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     wm << data;
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
-    guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
+    guarantee_err(res == 0,
+                  "Serialization for json data failed... this shouldn't happen.\n");
 
     // TODO more copies, good lord
     std::string sered_data(stream.vector().begin(), stream.vector().end());
@@ -125,20 +144,26 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
 
     if (kv_location->value.has() && mod_info_out) {
         guarantee(mod_info_out->deleted.second.empty());
-        mod_info_out->deleted.second.assign(kv_location->value->value_ref(),
-            kv_location->value->value_ref() + kv_location->value->inline_size(block_size));
+        mod_info_out->deleted.second.assign(
+            kv_location->value->value_ref(),
+            kv_location->value->value_ref()
+            + kv_location->value->inline_size(block_size));
     }
 
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
-    //                                                                  ^^^^^ That means the key isn't expired.
+    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp,
+                          false, &null_cb, &slice->root_eviction_priority);
+    //                    ^^^^^ That means the key isn't expired.
 }
 
-void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_key_t &key,
+void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
+                     const store_key_t &key,
                      const std::vector<char> &value_ref,
-                     btree_slice_t *slice, repli_timestamp_t timestamp, transaction_t *txn) {
+                     btree_slice_t *slice,
+                     repli_timestamp_t timestamp,
+                     transaction_t *txn) {
     scoped_malloc_t<rdb_value_t> new_value(
             value_ref.data(), value_ref.data() + value_ref.size());
 
@@ -152,25 +177,37 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location, const store_
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
-    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp, false, &null_cb, &slice->root_eviction_priority);
-    //                                                                  ^^^^^ That means the key isn't expired.
+    apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp,
+                          false, &null_cb, &slice->root_eviction_priority);
+    //                    ^^^^^ That means the key isn't expired.
+}
+
+void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
+                     const btree_loc_info_t &info,
+                     counted_t<const ql::datum_t> data,
+                     rdb_modification_info_t *mod_info_out) {
+    kv_location_set(kv_location, *info.key, data, info.btree->slice,
+                    info.btree->timestamp, info.btree->txn, mod_info_out);
+}
+void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
+                        const btree_loc_info_t &info,
+                        rdb_modification_info_t *mod_info_out) {
+    kv_location_delete(kv_location, *info.key, info.btree->slice,
+                       info.btree->timestamp, info.btree->txn, mod_info_out);
 }
 
 counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
-    const btree_info_t &info,
-    const store_key_t &key,
+    const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
-    promise_t<superblock_t *> *superblock_promise_or_null,
+    promise_t<superblock_t *> *superblock_promise,
     rdb_modification_info_t *mod_info_out) {
     bool return_vals = replacer->return_vals_p();
-    const std::string &primary_key = *info.primary_key;
+    const std::string &primary_key = *info.btree->primary_key;
+    const store_key_t &key = *info.key;
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(
-            info.txn, info.superblock, key.btree_key(), &kv_location,
-            &info.slice->root_eviction_priority, &info.slice->stats,
-            superblock_promise_or_null);
+        find_keyvalue_location_for_write(info, &kv_location, superblock_promise);
 
         bool started_empty, ended_empty;
         counted_t<const ql::datum_t> old_val;
@@ -181,7 +218,7 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
-            old_val = get_data(kv_location.value.get(), info.txn);
+            old_val = get_data(kv_location.value.get(), info.btree->txn);
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
@@ -230,9 +267,7 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                kv_location_set(&kv_location, key, new_val,
-                                info.slice, info.timestamp, info.txn,
-                                mod_info_out);
+                kv_location_set(&kv_location, info, new_val, mod_info_out);
                 guarantee(mod_info_out->deleted.second.empty());
                 guarantee(!mod_info_out->added.second.empty());
                 mod_info_out->added.first = new_val;
@@ -240,8 +275,7 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
         } else {
             if (ended_empty) {
                 conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
-                kv_location_delete(&kv_location, key, info.slice,
-                                   info.timestamp, info.txn, mod_info_out);
+                kv_location_delete(&kv_location, info, mod_info_out);
                 guarantee(!mod_info_out->deleted.second.empty());
                 guarantee(mod_info_out->added.second.empty());
                 mod_info_out->deleted.first = old_val;
@@ -254,8 +288,7 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    kv_location_set(&kv_location, key, new_val, info.slice,
-                                    info.timestamp, info.txn, mod_info_out);
+                    kv_location_set(&kv_location, info, new_val, mod_info_out);
                     guarantee(!mod_info_out->deleted.second.empty());
                     guarantee(!mod_info_out->added.second.empty());
                     mod_info_out->added.first = new_val;
@@ -278,38 +311,36 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
 }
 
 counted_t<const ql::datum_t> rdb_replace(
-    const btree_info_t &info,
-    const store_key_t &key,
+    const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
     rdb_modification_info_t *mod_info_out) {
-    return rdb_replace_and_return_superblock(info, key, replacer, NULL, mod_info_out);
+    return rdb_replace_and_return_superblock(info, replacer, NULL, mod_info_out);
 }
 
 void do_a_replace_from_batched_replace(
     auto_drainer_t::lock_t,
     fifo_enforcer_sink_t *batched_replaces_fifo_sink,
     const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
-    const btree_info_t &info,
-    const store_key_t &key,
+    const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
-    promise_t<superblock_t *> *superblock_promise_or_null,
+    promise_t<superblock_t *> *superblock_promise,
     rdb_modification_report_cb_t *sindex_cb,
     counted_t<const ql::datum_t> *stats_out) {
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
-    rdb_modification_report_t mod_report(key);
+    rdb_modification_report_t mod_report(*info.key);
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
-        info, key, replacer, superblock_promise_or_null, &mod_report.info);
+        info, replacer, superblock_promise, &mod_report.info);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
     exiter.wait();
     sindex_cb->on_mod_report(mod_report);
 }
 
-class shim_replacer_t : public btree_point_replacer_t {
+class one_replace_t : public btree_point_replacer_t {
 public:
-    shim_replacer_t(const btree_batched_replacer_t *_replacer, size_t _index)
+    one_replace_t(const btree_batched_replacer_t *_replacer, size_t _index)
         : replacer(_replacer), index(_index) { }
 
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d) const {
@@ -327,7 +358,6 @@ counted_t<const ql::datum_t> rdb_batched_replace(
     const std::vector<store_key_t> &keys,
     const btree_batched_replacer_t *replacer,
     rdb_modification_report_cb_t *sindex_cb) {
-    guarantee(superblock && info.superblock == superblock->get());
 
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
@@ -343,7 +373,7 @@ counted_t<const ql::datum_t> rdb_batched_replace(
 
     counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
     for (size_t i = 0; i < keys.size(); ++i) {
-        shim_replacer_t shim(replacer, i);
+        one_replace_t replace_i(replacer, i);
 
         // Pass out the point_replace_response_t.
         promise_t<superblock_t *> superblock_promise;
@@ -354,10 +384,8 @@ counted_t<const ql::datum_t> rdb_batched_replace(
                 &batched_replaces_fifo_sink,
                 batched_replaces_fifo_source.enter_write(),
 
-                btree_info_t(info.slice, info.timestamp, info.txn,
-                             current_superblock.get(), info.primary_key),
-                keys[i],
-                &shim,
+                btree_loc_info_t(&info, current_superblock.release(), &keys[i]),
+                &replace_i,
 
                 &superblock_promise,
                 sindex_cb,
@@ -368,9 +396,14 @@ counted_t<const ql::datum_t> rdb_batched_replace(
     return stats;
 }
 
-void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
-             btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock, point_write_response_t *response_out,
+void rdb_set(const store_key_t &key,
+             counted_t<const ql::datum_t> data,
+             bool overwrite,
+             btree_slice_t *slice,
+             repli_timestamp_t timestamp,
+             transaction_t *txn,
+             superblock_t *superblock,
+             point_write_response_t *response_out,
              rdb_modification_info_t *mod_info) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
