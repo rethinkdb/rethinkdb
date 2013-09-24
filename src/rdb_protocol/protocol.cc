@@ -123,7 +123,9 @@ void bring_sindexes_up_to_date(
     boost::shared_ptr<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
                 store->io_backender_,
-                serializer_filepath_t(store->base_path_, "post_construction_" + uuid_to_str(post_construct_id)),
+                serializer_filepath_t(
+                    store->base_path_,
+                    "post_construction_" + uuid_to_str(post_construct_id)),
                 &store->perfmon_collection));
 
     {

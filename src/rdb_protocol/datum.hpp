@@ -149,6 +149,8 @@ public:
     static bool key_is_truncated(const store_key_t &key);
 
     void rcheck_is_ptype(const std::string s = "") const;
+    void rcheck_valid_replace(counted_t<const datum_t> old_val,
+                              const std::string &pkey) const;
 
 private:
     friend class datum_ptr_t;
@@ -222,13 +224,23 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 class datum_ptr_t {
 public:
     template<class... Args>
-    explicit datum_ptr_t(Args... args) : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
+    explicit datum_ptr_t(Args... args)
+        : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
     counted_t<const datum_t> to_counted(
             const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
         ptr()->maybe_sanitize_ptype(allowed_ptypes);
         return counted_t<const datum_t>(ptr_.release());
     }
     const datum_t *operator->() const { return const_ptr(); }
+    void add_error(const char *msg) {
+        counted_t<const datum_t> old_ecount = ptr()->get("errors", NOTHROW);
+        double ecount = (old_ecount.has() ? old_ecount->as_num() : 0) + 1;
+        counted_t<const datum_t> old_err = ptr()->get("first_error", NOTHROW);
+        counted_t<const datum_t> err
+            = old_err.has() ? old_err : make_counted<const datum_t>(msg);
+        UNUSED bool b = ptr()->add("errors", make_counted<const datum_t>(ecount))
+                     || ptr()->add("first_error", err);
+    }
     void add(counted_t<const datum_t> val) { ptr()->add(val); }
     void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
     void insert(size_t i, counted_t<const datum_t> val) { ptr()->insert(i, val); }

@@ -25,7 +25,7 @@ class env_t;
 class wire_func_t {
 public:
     wire_func_t();
-    explicit wire_func_t(counted_t<func_t> f);
+    explicit wire_func_t(const counted_t<func_t> &f);
     ~wire_func_t();
     wire_func_t(const wire_func_t &copyee);
     wire_func_t &operator=(const wire_func_t &assignee);

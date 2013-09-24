@@ -351,6 +351,21 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
+void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
+                                   const std::string &pkey) const {
+    counted_t<const datum_t> pk = get(pkey, NOTHROW);
+    rcheck(pk.has(), base_exc_t::GENERIC,
+           strprintf("Inserted object must have primary key `%s`:\n%s",
+                     pkey.c_str(), print().c_str()));
+    if (old_val.has && old_val.get_type() != R_NULL) {
+        counted_t<const datum_t> old_pk = old_val->get(pkey, NOTHROW);
+        r_sanity_check(old_pk.has());
+        rcheck(*old_pk == *pk, base_exc_t::GENERIC,
+               strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
+                         pkey.c_str(), old_val->print().c_str(), print().c_str()));
+    }
+}
+
 std::string datum_t::print_primary() const {
     std::string s;
     switch (get_type()) {

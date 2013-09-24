@@ -10,7 +10,7 @@ namespace ql {
 
 wire_func_t::wire_func_t() { }
 
-wire_func_t::wire_func_t(counted_t<func_t> f) : func(f) {
+wire_func_t::wire_func_t(const counted_t<func_t> &f) : func(f) {
     r_sanity_check(func.has());
 }
 

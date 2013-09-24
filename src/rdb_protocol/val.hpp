@@ -65,26 +65,27 @@ public:
                                      durability_requirement_t durability_requirement,
                                      bool return_vals);
 
-    std::vector<counted_t<const datum_t> > batch_replace(
+    counted_t<const datum_t> batched_replace(
         env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
         counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement);
 
-    std::vector<counted_t<const datum_t> > batch_replace(
+    counted_t<const datum_t> batched_insert(
         env_t *env,
-        const std::vector<counted_t<const datum_t> > &original_values,
-        const std::vector<counted_t<const datum_t> > &replacement_values,
+        std::vector<counted_t<const datum_t> > &&insert_datums,
         bool upsert,
         durability_requirement_t durability_requirement);
 
-    MUST_USE bool sindex_create(env_t *env, const std::string &name, counted_t<func_t> index_func);
+    MUST_USE bool sindex_create(env_t *env, const std::string &name,
+                                counted_t<func_t> index_func);
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
     counted_t<const datum_t> sindex_list(env_t *env);
 
     counted_t<const db_t> db;
     const std::string name;
+
 private:
     struct datum_func_pair_t {
         datum_func_pair_t()
@@ -103,9 +104,15 @@ private:
         counted_t<const datum_t> error_value;
     };
 
-    std::vector<counted_t<const datum_t> > batch_replace(
+    template<class T>
+    counted_t<const datum_t> do_batched_write(
+        env_t *env, T &&t, durability_requirement_t durability_requirement);
+
+    counted_t<const datum_t> batched_insert_with_keys(
         env_t *env,
-        const std::vector<datum_func_pair_t> &replacements,
+        const std::vector<store_key_t> &keys,
+        const std::vector<counted_t<const datum_t> > &insert_datums,
+        bool upsert,
         durability_requirement_t durability_requirement);
 
     counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,

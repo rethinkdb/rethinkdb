@@ -36,11 +36,6 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 typedef rdb_protocol_t::batched_replace_t batched_replace_t;
 typedef rdb_protocol_t::batched_insert_t batched_insert_t;
 
-typedef rdb_protocol_t::point_replace_t point_replace_t;
-typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
-
-typedef rdb_protocol_t::batched_replaces_response_t batched_replaces_response_t;
-
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
 
@@ -115,11 +110,13 @@ struct btree_info_t {
 };
 
 struct btree_batched_replacer_t {
+    virtual ~btree_batched_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t index) const = 0;
     virtual bool return_vals_p() = 0;
 };
 struct btree_point_replacer_t {
+    virtual ~btree_point_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d) const = 0;
     virtual bool return_vals_p() = 0;
@@ -137,41 +134,27 @@ counted_t<const ql::datum_t> rdb_batched_replace(
     const btree_batched_replacer_t *replacer,
     rdb_modification_info_t *mod_info_out);
 
-// QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
-// just a different function passed to this function).
-void rdb_replace(btree_slice_t *slice,
-                 repli_timestamp_t timestamp,
-                 transaction_t *txn,
-                 superblock_t *superblock,
-                 const std::string &primary_key,
-                 const store_key_t &key,
-                 ql::map_wire_func_t *f,
-                 return_vals_t return_vals,
-                 ql::env_t *ql_env,
-                 Datum *response_out,
-                 rdb_modification_info_t *mod_info);
-
-void rdb_batched_replace(
-    const std::vector<std::pair<int64_t, point_replace_t> > &replaces,
-    btree_slice_t *slice,
-    repli_timestamp_t timestamp,
-    transaction_t *txn,
-    scoped_ptr_t<superblock_t> *superblock,
-    ql::env_t *ql_env,
-    batched_replaces_response_t *response_out,
-    rdb_modification_report_cb_t *sindex_cb);
-
 void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
+             transaction_t *txn, superblock_t *superblock,
+             point_write_response_t *response,
              rdb_modification_info_t *mod_info);
 
 class rdb_backfill_callback_t {
 public:
-    virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_delete_range(
+        const key_range_t &range,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_deletion(
+        const btree_key_t *key,
+        repli_timestamp_t recency,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_keyvalue(
+        const rdb_protocol_details::backfill_atom_t& atom,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_sindexes(
+        const std::map<std::string, secondary_index_t> &sindexes,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~rdb_backfill_callback_t() { }
 };

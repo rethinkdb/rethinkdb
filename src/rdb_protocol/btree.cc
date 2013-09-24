@@ -163,7 +163,7 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
     promise_t<superblock_t *> *superblock_promise_or_null,
     rdb_modification_info_t *mod_info_out) {
     bool return_vals = replacer->return_vals_p();
-    counted_t<const ql::datum_t> res(new ql::datum_t(ql::datum_t::R_OBJECT));
+    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(
@@ -199,12 +199,8 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
+            new_val->rcheck_valid_replace(old_val, primary_key);
             counted_t<const ql::datum_t> pk = new_val->get(primary_key, ql::NOTHROW);
-            rcheck_target(
-                new_val, ql::base_exc_t::GENERIC,
-                pk.has(),
-                strprintf("Inserted object must have primary key `%s`:\n%s",
-                          primary_key.c_str(), new_val->print().c_str()));
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,
                 key.compare(store_key_t(pk->print_primary())) == 0,
@@ -248,7 +244,8 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
                 guarantee(mod_info->added.second.empty());
                 mod_info->deleted.first = old_val;
             } else {
-                r_sanity_check(*old_val->get(primary_key) == *new_val->get(primary_key));
+                r_sanity_check(
+                    *old_val->get(primary_key) == *new_val->get(primary_key));
                 if (*old_val == *new_val) {
                     conflict = resp.add("unchanged",
                                          make_counted<ql::datum_t>(1.0));
@@ -266,15 +263,10 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
         }
         guarantee(!conflict); // message never added twice
     } catch (const ql::base_exc_t &e) {
-        std::string msg = e.what();
-        bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
-            || resp.add("first_error", make_counted<ql::datum_t>(std::move(msg)));
-        guarantee(!b);
+        resp.add_error(e.what());
     } catch (const interrupted_exc_t &e) {
         std::string msg = strprintf("interrupted (%s:%d)", __FILE__, __LINE__);
-        bool b = resp.add("errors", make_counted<ql::datum_t>(1.0))
-            || resp.add("first_error", make_counted<ql::datum_t>(std::move(msg)));
-        guarantee(!b);
+        resp.add_error(msg.c_str());
         // We don't rethrow because we're in a coroutine.  Theoretically the
         // above message should never make it back to a user because the calling
         // function will also be interrupted, but we document where it comes
@@ -371,6 +363,7 @@ counted_t<const ql::datum_t> rdb_batched_replace(
                 &stats));
 
         current_superblock.init(superblock_promise.wait());
+        guarantee(current_superblock.get() == info.superblock);
     }
 }
 

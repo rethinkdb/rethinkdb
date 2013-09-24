@@ -514,24 +514,23 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    enum state_t { UNINITIALIZED, INITIALIZED };
-
     class batched_replace_t {
     public:
         batched_replace_t() { }
         batched_replace_t(
             std::vector<store_key_t> &&_keys,
             const std::string &_pkey,
-            const ql::wire_func_t &_f,
+            const counted_t<ql::func_t> &func,
             const std::map<std::string, ql::wire_func_t > &_optargs,
             bool _return_vals)
-            : keys(_keys), pkey(_pkey), f(_f), optargs(_optargs),
+            : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),
               return_vals(_return_vals) {
             guarantee(keys.size() != 0);
             guarantee(keys.size() == 1 || !return_vals);
         }
-
+        RDB_DECLARE_ME_SERIALIZABLE;
     private:
+        // DISABLE_COPYING(batched_replace_t);
         std::vector<store_key_t> keys;
         std::string pkey;
         ql::wire_func_t f;
@@ -543,33 +542,17 @@ struct rdb_protocol_t {
     public:
         batched_insert_t() { }
         batched_insert_t(
-            const std::string &_pkey, bool _upsert,
-            const std::vector<counted_t<const ql::datum_t> > &insert_datums)
-            : pkey(_pkey), upsert(_upsert) {
-            inserts.reserve(insert_datums.size());
-            for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
-                inserts.push_back(point_insert_t(*it, pkey));
-            }
+            std::vector<counted_t<const ql::datum_t> > &&_inserts,
+            const std::string &_pkey, bool _upsert)
+            : inserts(std::move(_inserts)), pkey(_pkey), upsert(_upsert) {
             guarantee(inserts.size() != 0);
         }
-
-        class point_insert_t {
-        public:
-            point_insert_t() { }
-            point_insert_t(const counted_t<const ql::datum_t> &d, std::string _pkey)
-                : key(d->get(_pkey)->print_primary()), data(d) {
-                guarantee(data.has());
-            }
-            RDB_DECLARE_ME_SERIALIZABLE;
-        private:
-            store_key_t key;
-            counted_t<const ql::datum_t> data; // Serialized counted_t<ql::datum_t>
-        };
         RDB_DECLARE_ME_SERIALIZABLE;
     private:
+        // DISABLE_COPYING(batched_insert_t);
+        std::vector<counted_t<const ql::datum_t> > inserts;
         std::string pkey;
         bool upsert;
-        std::vector<point_insert_t> inserts;
     };
 
     class point_write_t {
