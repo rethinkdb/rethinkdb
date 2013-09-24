@@ -33,7 +33,7 @@ class build_ext_nofail(build_ext):
             print >> sys.stderr, "*** WARNING: Defaulting to the python implementation"
 
 setup(name="rethinkdb"
-     ,version="1.9.0-0"
+     ,version="1.9.0-1"
      ,description="This package provides the Python driver library for the RethinkDB database server."
      ,url="http://rethinkdb.com"
      ,maintainer="RethinkDB Inc."
