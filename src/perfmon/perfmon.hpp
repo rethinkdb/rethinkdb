@@ -24,7 +24,7 @@ threadnum_t get_thread_id();
 
 /* When `global_full_perfmon` is true, some perfmons will perform more
  * elaborate stat calculations, which might take longer but will produce more
- * informative performance stats. The command-line flag `--full-perfmon` sets
+ * informative performance stats. The compile time option FULL_PERFMON sets
  * `global_full_perfmon` to true.
  */
 extern bool global_full_perfmon;
@@ -97,12 +97,8 @@ struct stats_t {
     void record(double v) {
         count++;
         sum += v;
-        if (count) {
-            min = std::min(min, v);
-            max = std::max(max, v);
-        } else {
-            min = max = v;
-        }
+        min = std::min(min, v);
+        max = std::max(max, v);
     }
     void aggregate(const stats_t &s) {
         count += s.count;
@@ -216,7 +212,7 @@ public:
  * Frequently we're in the case where we'd like to have a single slow perfmon
  * up, but don't want the other ones, perfmon_duration_sampler_t has an
  * ignore_global_full_perfmon field on it, which when true makes it run
- * regardless of --full-perfmon flag this can also be enable and disabled at
+ * regardless of FULL_PERFMON flag this can also be enabled and disabled at
  * runtime.
  */
 struct perfmon_duration_sampler_t : public perfmon_t {

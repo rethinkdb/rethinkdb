@@ -2,6 +2,7 @@
 #include "clustering/administration/cli/admin_command_parser.hpp"
 
 #include <stdarg.h>
+#include <termcap.h>
 
 #include <map>
 #include <stdexcept>
@@ -322,35 +323,94 @@ admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t:
     return option;
 }
 
-std::string make_bold(const std::string& str) {
-    return "\x1b[1m" + str + "\x1b[0m";
+admin_command_parser_t::admin_term_cap_t::admin_term_cap_t(fd_t fd) {
+    bool is_a_tty = isatty(fd);
+
+    // If the end-point is not a tty, no control characters
+    if (!is_a_tty) {
+        return;
+    }
+
+    // If we don't know the terminal type, no control characters
+    char *term_env = getenv("TERM");
+    if (term_env == NULL) {
+        return;
+    }
+
+    // If we can't find the terminal type in the termcap database, no control characters
+    int res = tgetent(NULL, term_env);
+    if (res != 1) {
+        return;
+    }
+
+    // Command to disable all formatting
+    char *normal_cstr = tgetstr("me", NULL);
+    if (normal_cstr != NULL) {
+        normal_str.assign(normal_cstr);
+        free(normal_cstr);
+    } else {
+        // If we couldn't find this, we can't use bold or underline either, just return
+        return;
+    }
+
+    // Command to enable double-bright mode (bold)
+    char *bold_cstr = tgetstr("md", NULL);
+    if (bold_cstr != NULL) {
+        bold_str.assign(bold_cstr);
+        free(bold_cstr);
+    }
+
+    // Command to enable underline mode
+    char *underline_cstr = tgetstr("us", NULL);
+    if (underline_cstr != NULL) {
+        underline_str.assign(underline_cstr);
+        free(underline_cstr);
+    }
 }
 
-std::string underline_options(const std::string& str) {
+// TODO: these may need padding on some terminals (though that seems unlikely)
+const std::string &admin_command_parser_t::admin_term_cap_t::bold() const {
+    return bold_str;
+}
+
+const std::string &admin_command_parser_t::admin_term_cap_t::underline() const {
+    return underline_str;
+}
+
+const std::string &admin_command_parser_t::admin_term_cap_t::normal() const {
+    return normal_str;
+}
+
+std::string admin_command_parser_t::make_bold(const std::string& str) {
+    return termcap.bold() + str + termcap.normal();
+}
+
+std::string admin_command_parser_t::underline_options(const std::string& str) {
     std::string result;
     bool format_on = false;
     for (size_t i = 0; i < str.length(); ++i) {
         if (str[i] == '<') {
-            result.append("\x1b[1m\x1b[4m");
+            result += termcap.bold();
+            result += termcap.underline();
             format_on = true;
         } else if (str[i] == '>') {
-            result.append("\x1b[0m");
+            result += termcap.normal();
             format_on = false;
         } else {
             result += str[i];
         }
     }
     if (format_on) {
-        result.append("\x1b[0m");
+        result += termcap.normal();
     }
     return result;
 }
 
 // Format by width should only be passed a string with spaces as whitespace, any others will be converted to spaces
-std::string indent_and_underline(const std::string& str,
-                                 size_t initial_indent,
-                                 size_t subsequent_indent,
-                                 size_t terminal_width) {
+std::string admin_command_parser_t::indent_and_underline(const std::string& str,
+                                                         size_t initial_indent,
+                                                         size_t subsequent_indent,
+                                                         size_t terminal_width) {
     std::string result(initial_indent, ' ');
     std::string indent_string(subsequent_indent, ' ');
     std::string current_word;
@@ -481,6 +541,7 @@ admin_command_parser_t::admin_command_parser_t(const std::string& peer_string,
                                                const peer_address_t &_canonical_addresses,
                                                int client_port,
                                                signal_t *_interruptor) :
+    termcap(STDOUT_FILENO),
     join_peer(peer_string),
     joins_param(joins),
     canonical_addresses(_canonical_addresses),
