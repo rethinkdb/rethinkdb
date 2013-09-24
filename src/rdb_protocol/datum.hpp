@@ -307,6 +307,13 @@ private:
     enum { SERIALIZABLE, COMPILED } state;
 };
 
+
+// This function is used by e.g. foreach to merge statistics from multiple write
+// operations.
+counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
+                                     counted_t<const datum_t> l,
+                                     counted_t<const datum_t> r);
+
 namespace pseudo {
 class datum_cmp_t {
 public:

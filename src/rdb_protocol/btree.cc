@@ -163,6 +163,7 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
     promise_t<superblock_t *> *superblock_promise_or_null,
     rdb_modification_info_t *mod_info_out) {
     bool return_vals = replacer->return_vals_p();
+    const std::string &primary_key = *info.primary_key;
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
@@ -180,7 +181,7 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
         } else {
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
-            old_val = get_data(kv_location.value.get(), txn);
+            old_val = get_data(kv_location.value.get(), info.txn);
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
@@ -230,19 +231,20 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
                 kv_location_set(&kv_location, key, new_val,
-                                slice, timestamp, txn,
-                                mod_info);
-                guarantee(mod_info->deleted.second.empty());
-                guarantee(!mod_info->added.second.empty());
-                mod_info->added.first = new_val;
+                                info.slice, info.timestamp, info.txn,
+                                mod_info_out);
+                guarantee(mod_info_out->deleted.second.empty());
+                guarantee(!mod_info_out->added.second.empty());
+                mod_info_out->added.first = new_val;
             }
         } else {
             if (ended_empty) {
                 conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
-                kv_location_delete(&kv_location, key, slice, timestamp, txn, mod_info);
-                guarantee(!mod_info->deleted.second.empty());
-                guarantee(mod_info->added.second.empty());
-                mod_info->deleted.first = old_val;
+                kv_location_delete(&kv_location, key, info.slice,
+                                   info.timestamp, info.txn, mod_info_out);
+                guarantee(!mod_info_out->deleted.second.empty());
+                guarantee(mod_info_out->added.second.empty());
+                mod_info_out->deleted.first = old_val;
             } else {
                 r_sanity_check(
                     *old_val->get(primary_key) == *new_val->get(primary_key));
@@ -252,12 +254,12 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    kv_location_set(&kv_location, key, new_val,
-                                    slice, timestamp, txn, mod_info);
-                    guarantee(!mod_info->deleted.second.empty());
-                    guarantee(!mod_info->added.second.empty());
-                    mod_info->added.first = new_val;
-                    mod_info->deleted.first = old_val;
+                    kv_location_set(&kv_location, key, new_val, info.slice,
+                                    info.timestamp, info.txn, mod_info_out);
+                    guarantee(!mod_info_out->deleted.second.empty());
+                    guarantee(!mod_info_out->added.second.empty());
+                    mod_info_out->added.first = new_val;
+                    mod_info_out->deleted.first = old_val;
                 }
             }
         }
@@ -272,7 +274,7 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
         // function will also be interrupted, but we document where it comes
         // from to aid in future debugging if that invariant becomes violated.
     }
-    return resp;
+    return resp.to_counted();
 }
 
 counted_t<const ql::datum_t> rdb_replace(
@@ -296,10 +298,9 @@ void do_a_replace_from_batched_replace(
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
-    ql::map_wire_func_t f = sttr.replace->f;
-    rdb_modification_report_t mod_report(sttr.replace->key);
+    rdb_modification_report_t mod_report(key);
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
-        info, key, replacer, superblock_promise_or_null, mod_info_out);
+        info, key, replacer, superblock_promise_or_null, &mod_report.info);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
     exiter.wait();
@@ -311,20 +312,22 @@ public:
     shim_replacer_t(const btree_batched_replacer_t *_replacer, size_t _index)
         : replacer(_replacer), index(_index) { }
 
-    counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d) {
-        replacer->replace(d, index);
+    counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d) const {
+        return replacer->replace(d, index);
     }
-    bool return_vals_p() { return replacer->return_vals_p(); }
+    bool return_vals_p() const { return replacer->return_vals_p(); }
 private:
     const btree_batched_replacer_t *const replacer;
     const size_t index;
-}
+};
 
 counted_t<const ql::datum_t> rdb_batched_replace(
     const btree_info_t &info,
+    scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
     const btree_batched_replacer_t *replacer,
-    rdb_modification_info_t *mod_info_out) {
+    rdb_modification_report_cb_t *sindex_cb) {
+    guarantee(superblock && info.superblock == superblock->get());
 
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
@@ -341,8 +344,6 @@ counted_t<const ql::datum_t> rdb_batched_replace(
     counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
     for (size_t i = 0; i < keys.size(); ++i) {
         shim_replacer_t shim(replacer, i);
-        // Pass out the int64_t for shard/unshard reordering.
-        response_out->point_replace_responses[i].first = replaces[i].first;
 
         // Pass out the point_replace_response_t.
         promise_t<superblock_t *> superblock_promise;
@@ -353,18 +354,18 @@ counted_t<const ql::datum_t> rdb_batched_replace(
                 &batched_replaces_fifo_sink,
                 batched_replaces_fifo_source.enter_write(),
 
-                info,
+                btree_info_t(info.slice, info.timestamp, info.txn,
+                             current_superblock.get(), info.primary_key),
                 keys[i],
                 &shim,
 
-                current_superblock.release(),
                 &superblock_promise,
                 sindex_cb,
                 &stats));
 
         current_superblock.init(superblock_promise.wait());
-        guarantee(current_superblock.get() == info.superblock);
     }
+    return stats;
 }
 
 void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,

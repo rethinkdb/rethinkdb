@@ -113,13 +113,13 @@ struct btree_batched_replacer_t {
     virtual ~btree_batched_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t index) const = 0;
-    virtual bool return_vals_p() = 0;
+    virtual bool return_vals_p() const = 0;
 };
 struct btree_point_replacer_t {
     virtual ~btree_point_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d) const = 0;
-    virtual bool return_vals_p() = 0;
+    virtual bool return_vals_p() const = 0;
 };
 
 counted_t<const ql::datum_t> rdb_replace(
@@ -130,9 +130,10 @@ counted_t<const ql::datum_t> rdb_replace(
 
 counted_t<const ql::datum_t> rdb_batched_replace(
     const btree_info_t &info,
+    scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
     const btree_batched_replacer_t *replacer,
-    rdb_modification_info_t *mod_info_out);
+    rdb_modification_report_cb_t *sindex_cb);
 
 void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,

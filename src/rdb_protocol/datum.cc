@@ -357,7 +357,7 @@ void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
                      pkey.c_str(), print().c_str()));
-    if (old_val.has && old_val.get_type() != R_NULL) {
+    if (old_val.has() && old_val->get_type() != R_NULL) {
         counted_t<const datum_t> old_pk = old_val->get(pkey, NOTHROW);
         r_sanity_check(old_pk.has());
         rcheck(*old_pk == *pk, base_exc_t::GENERIC,
@@ -1243,6 +1243,32 @@ archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
     if (res) return res;
     state = SERIALIZABLE;
     return ARCHIVE_SUCCESS;
+}
+
+counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
+                                     counted_t<const datum_t> l,
+                                     counted_t<const datum_t> r) {
+    if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
+        return make_counted<datum_t>(l->as_num() + r->as_num());
+    } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
+        datum_ptr_t arr(datum_t::R_ARRAY);
+        for (size_t i = 0; i < l->size(); ++i) {
+            arr.add(l->get(i));
+        }
+        for (size_t i = 0; i < r->size(); ++i) {
+            arr.add(r->get(i));
+        }
+        return arr.to_counted();
+    }
+
+    // Merging a string is left-preferential, which is just a no-op.
+    rcheck_datum(
+        l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        base_exc_t::GENERIC,
+        strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
+                  l->trunc_print().c_str(), l->get_type_name().c_str(),
+                  r->trunc_print().c_str(), r->get_type_name().c_str()));
+    return l;
 }
 
 } // namespace ql

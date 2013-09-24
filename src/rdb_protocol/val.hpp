@@ -51,26 +51,13 @@ public:
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
-
-    counted_t<const datum_t> replace(env_t *env,
-                                     counted_t<const datum_t> orig,
-                                     counted_t<func_t> f,
-                                     bool nondet_ok,
-                                     durability_requirement_t durability_requirement,
-                                     bool return_vals);
-    counted_t<const datum_t> replace(env_t *env,
-                                     counted_t<const datum_t> orig,
-                                     counted_t<const datum_t> d,
-                                     bool upsert,
-                                     durability_requirement_t durability_requirement,
-                                     bool return_vals);
-
     counted_t<const datum_t> batched_replace(
         env_t *env,
         const std::vector<counted_t<const datum_t> > &original_values,
         counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
-        durability_requirement_t durability_requirement);
+        durability_requirement_t durability_requirement,
+        bool return_vals);
 
     counted_t<const datum_t> batched_insert(
         env_t *env,
@@ -114,21 +101,6 @@ private:
         const std::vector<counted_t<const datum_t> > &insert_datums,
         bool upsert,
         durability_requirement_t durability_requirement);
-
-    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
-                                        const map_wire_func_t &mwf,
-                                        durability_requirement_t durability_requirement,
-                                        bool return_vals);
-    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
-                                        counted_t<func_t> f,
-                                        bool nondet_ok,
-                                        durability_requirement_t durability_requirement,
-                                        bool return_vals);
-    counted_t<const datum_t> do_replace(env_t *env, counted_t<const datum_t> orig,
-                                        counted_t<const datum_t> d,
-                                        bool upsert,
-                                        durability_requirement_t durability_requirement,
-                                        bool return_vals);
 
     bool use_outdated;
     std::string pkey;
