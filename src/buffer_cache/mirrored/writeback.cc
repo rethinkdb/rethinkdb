@@ -156,9 +156,9 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
         dirty = true;
         if (!recency_dirty) {
             gbuf->cache->writeback.dirty_bufs.push_back(this);
-            /* Use `force_lock()` to prevent deadlocks; `co_lock()` could block. */
-            gbuf->cache->writeback.dirty_block_semaphore.force_lock();
         }
+        /* Use `force_lock()` to prevent deadlocks; `co_lock()` could block. */
+        gbuf->cache->writeback.dirty_block_semaphore.force_lock();
         ++gbuf->cache->stats->pm_n_blocks_dirty;
     }
     if (dirty && !_dirty) {
@@ -166,8 +166,8 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
         dirty = false;
         if (!recency_dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
-            gbuf->cache->writeback.dirty_block_semaphore.unlock();
         }
+        gbuf->cache->writeback.dirty_block_semaphore.unlock();
         --gbuf->cache->stats->pm_n_blocks_dirty;
     }
 }
@@ -179,7 +179,6 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
         recency_dirty = true;
         if (!dirty) {
             gbuf->cache->writeback.dirty_bufs.push_back(this);
-            gbuf->cache->writeback.dirty_block_semaphore.force_lock();
         }
         // TODO perfmon
     }
@@ -187,7 +186,6 @@ void writeback_t::local_buf_t::set_recency_dirty(bool _recency_dirty) {
         recency_dirty = false;
         if (!dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
-            gbuf->cache->writeback.dirty_block_semaphore.unlock();
         }
         // TODO perfmon
     }
