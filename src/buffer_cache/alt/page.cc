@@ -1,6 +1,8 @@
 #include "buffer_cache/alt/page.hpp"
 
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "serializer/serializer.hpp"
 
 namespace alt {
 
@@ -8,14 +10,27 @@ page_cache_t::page_cache_t(serializer_t *serializer)
     : serializer_(serializer),
       free_list_(serializer),
       drainer_(new auto_drainer_t) {
-    // RSI: We'll use the serializer soon to load pages with.
-    (void)serializer_;
+    {
+        // RSI: Don't you hate this?
+        on_thread_t thread_switcher(serializer->home_thread());
+        // RSI: These priority values were configurable in the old cache.  Did
+        // anything configure them?
+        reads_io_account.init(serializer->make_io_account(CACHE_READS_IO_PRIORITY));
+        writes_io_account.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
+    }
 }
 
 page_cache_t::~page_cache_t() {
     drainer_.reset();
     for (auto it = current_pages_.begin(); it != current_pages_.end(); ++it) {
         delete *it;
+    }
+
+    {
+        /* IO accounts must be destroyed on the thread they were created on */
+        on_thread_t thread_switcher(serializer_->home_thread());
+        reads_io_account.reset();
+        writes_io_account.reset();
     }
 }
 
@@ -25,7 +40,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     }
 
     if (current_pages_[block_id] == NULL) {
-        current_pages_[block_id] = new current_page_t(block_id, serializer_);
+        current_pages_[block_id] = new current_page_t(block_id, this);
     }
 
     return current_pages_[block_id];
@@ -33,7 +48,9 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
 
 current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     block_id_t block_id = free_list_.acquire_block_id();
-    current_page_t *ret = page_for_block_id(block_id);
+    // RSI: Have a user-specifiable block size.
+    current_page_t *ret = new current_page_t(serializer_->get_block_size(),
+                                             serializer_->malloc());
     *block_id_out = block_id;
     return ret;
 }
@@ -92,8 +109,17 @@ page_t *current_page_acq_t::page_for_write() {
     return current_page_->the_page_for_write();
 }
 
-current_page_t::current_page_t(block_id_t block_id, serializer_t *serializer)
-    : block_id_(block_id), serializer_(serializer), page_(NULL) {
+current_page_t::current_page_t(block_id_t block_id, page_cache_t *page_cache)
+    : block_id_(block_id),
+      page_cache_(page_cache),
+      page_(NULL) {
+}
+
+current_page_t::current_page_t(block_size_t block_size,
+                               scoped_malloc_t<ser_buffer_t> buf)
+    : block_id_(NULL_BLOCK_ID),
+      page_cache_(NULL),
+      page_(new page_t(block_size, std::move(buf))) {
 }
 
 current_page_t::~current_page_t() {
@@ -142,6 +168,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                 // write-acquirers.
                 cur->snapshotted_page_ = the_page_for_read();
                 cur->current_page_ = NULL;
+                cur->snapshotted_page_->add_snapshotter(cur);
                 acquirers_.remove(cur);
             }
             cur = next;
@@ -158,13 +185,102 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     }
 }
 
-page_t *current_page_t::the_page_for_read() {
+void current_page_t::convert_from_serializer_if_necessary() {
     if (page_ == NULL) {
-        page_ = new page_t(block_id_, serializer_);
-        serializer_ = NULL;
+        page_ = new page_t(block_id_, page_cache_);
+        page_cache_ = NULL;
+        block_id_ = NULL_BLOCK_ID;
+    }
+}
+
+page_t *current_page_t::the_page_for_read() {
+    convert_from_serializer_if_necessary();
+    return page_;
+}
+
+page_t *current_page_t::the_page_for_write() {
+    convert_from_serializer_if_necessary();
+    if (page_->has_snapshot_references()) {
+        page_ = page_->make_copy();
+    }
+    return page_;
+}
+
+page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
+    : destroy_ptr_(NULL),
+      buf_size_(block_size_t::undefined()),
+      snapshot_refcount_(0) {
+    coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
+                                            this,
+                                            block_id,
+                                            page_cache));
+}
+
+page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf)
+    : destroy_ptr_(NULL),
+      buf_size_(block_size),
+      buf_(std::move(buf)),
+      snapshot_refcount_(0) {
+    rassert(buf_.has());
+}
+
+
+void page_t::load_with_block_id(page_t *page, block_id_t block_id,
+                                page_cache_t *page_cache) {
+    // This is called using spawn_now_dangerously.  We need to atomically set
+    // destroy_ptr_.
+    bool page_destroyed = false;
+    rassert(page->destroy_ptr_ == NULL);
+    page->destroy_ptr_ = &page_destroyed;
+
+    // Okay, now it's safe to block.  We do so by going to another thread.  RSI: Can
+    // the lock constructor yield?  (It's okay if it can, but I'd be curious if we're
+    // worried about on_thread_t not yielding.)
+    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+
+    scoped_malloc_t<ser_buffer_t> buf;
+    counted_t<standard_block_token_t> block_token;
+    {
+        serializer_t *serializer = page_cache->serializer_;
+        // RSI: It would be nice if we _always_ yielded here (not just when the
+        // thread's different.  spawn_now_dangerously is dangerous, after all.
+        on_thread_t th(serializer->home_thread());
+        block_token = serializer->index_read(block_id);
+        // RSI: Figure out if block_token can be empty (if a page is deleted?).
+        rassert(block_token.has());
+        // RSI: Support variable block size.
+        buf = serializer->malloc();
+        serializer->block_read(block_token,
+                               buf.get(),
+                               NULL  /* RSI: file account */);
     }
 
-    return page_;
+    ASSERT_FINITE_CORO_WAITING;
+    if (page_destroyed) {
+        return;
+    }
+
+    rassert(!page->block_token_.has());
+    rassert(!page->buf_.has());
+    rassert(block_token.has());
+    page->buf_size_ = block_token->block_size();
+    page->buf_ = std::move(buf);
+    page->block_token_ = std::move(block_token);
+}
+
+void page_t::add_snapshotter(current_page_acq_t *acq) {
+    (void)acq;  // RSI: remove param.
+    ++snapshot_refcount_;
+}
+
+void page_t::remove_snapshotter(current_page_acq_t *acq) {
+    (void)acq;  // RSI: remove param.
+    rassert(snapshot_refcount_ > 0);
+    --snapshot_refcount_;
+}
+
+bool page_t::has_snapshot_references() {
+    return snapshot_refcount_ > 0;
 }
 
 

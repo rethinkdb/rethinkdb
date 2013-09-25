@@ -6,30 +6,44 @@
 #include "serializer/types.hpp"
 
 class auto_drainer_t;
+class file_account_t;
 
 namespace alt {
 
 class current_page_acq_t;
 class page_acq_t;
+class page_cache_t;
 
 
 enum class alt_access_t { read, write };
 
 class page_t {
 public:
-    page_t(block_id_t block_id, serializer_t *serializer);
+    page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf);
+    page_t(block_id_t block_id, page_cache_t *page_cache);
     ~page_t();
 
     void *get_buf();
     uint32_t get_buf_size();
 
+    void add_snapshotter(current_page_acq_t *acq);
     void remove_snapshotter(current_page_acq_t *acq);
+    bool has_snapshot_references();
+    page_t *make_copy();
 
 private:
+    static void load_with_block_id(page_t *page,
+                                   block_id_t block_id,
+                                   page_cache_t *page_cache);
+
+    // One of destroy_ptr_, buf_, or block_token_ is non-null.
     bool *destroy_ptr_;
     block_size_t buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
     counted_t<standard_block_token_t> block_token_;
+
+    // How many pointers to this value are expecting it to be snapshotted?
+    size_t snapshot_refcount_;
 
     intrusive_list_t<page_acq_t> waiters_;
     DISABLE_COPYING(page_t);
@@ -52,7 +66,10 @@ private:
 
 class current_page_t {
 public:
-    current_page_t(block_id_t block_id, serializer_t *serializer);
+    // Constructs a fresh, empty page.
+    current_page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf);
+    // Constructs a page to be loaded from the serializer.
+    current_page_t(block_id_t block_id, page_cache_t *page_cache);
     ~current_page_t();
 
 
@@ -66,12 +83,14 @@ private:
     page_t *the_page_for_write();
     page_t *the_page_for_read();
 
+    void convert_from_serializer_if_necessary();
+
     // Our block id.
     block_id_t block_id_;
-    // Either page_ is null or serializer_ is null.  block_id_ and serializer_ can be
+    // Either page_ is null or page_cache_ is null.  block_id_ and page_cache_ can be
     // used to construct (and load) the page when it's null.
     // RSP:  This is a waste of memory.
-    serializer_t *serializer_;
+    page_cache_t *page_cache_;
     page_t *page_;
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
@@ -131,6 +150,15 @@ public:
 
 
 private:
+    friend class page_t;
+
+    // We use a separate IO account for reads and writes, so reads can pass ahead
+    // of active writebacks. Otherwise writebacks could badly block out readers,
+    // thereby blocking user queries.
+    // RSI: ^ wat.
+    scoped_ptr_t<file_account_t> reads_io_account;
+    scoped_ptr_t<file_account_t> writes_io_account;
+
     serializer_t *serializer_;
 
     // RSP: std::vector bad growth performance
