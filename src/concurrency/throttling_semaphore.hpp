@@ -45,6 +45,7 @@ class throttling_semaphore_t : public repeating_timer_callback_t {
     int64_t delay_at_half;
     intrusive_list_t<lock_request_t> waiters;
     scoped_ptr_t<repeating_timer_t> timer;
+    int64_t last_ring_msecs;
     bool maintain_ordering;
 
 

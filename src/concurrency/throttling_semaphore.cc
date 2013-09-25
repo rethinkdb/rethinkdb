@@ -3,6 +3,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
+#include "utils.hpp"
 
 
 void throttling_semaphore_t::on_waiters_changed() {
@@ -10,16 +11,27 @@ void throttling_semaphore_t::on_waiters_changed() {
     if (waiters.empty() && timer.has()) {
         timer.reset();
     } else if (!waiters.empty() && !timer.has()) {
+        const double secs = ticks_to_secs(get_ticks());
+        const int64_t msecs = static_cast<int64_t>(secs * 1000.0);
+        last_ring_msecs = msecs;
         timer.init(new repeating_timer_t(delay_granularity, this));
     }
 }
 
 void throttling_semaphore_t::on_ring() {
+    if (!timer.has()) return;
+    
+    const double secs = ticks_to_secs(get_ticks());
+    const int64_t msecs = static_cast<int64_t>(secs * 1000.0);
+    const int64_t time_passed = msecs - last_ring_msecs;
+    if (time_passed == 0) return;
+    last_ring_msecs = msecs;
+    
     lock_request_t *request = waiters.head();
     while (request != NULL) {
         lock_request_t *next_request = waiters.next(request);
         
-        request->progress(delay_granularity);
+        request->progress(time_passed);
         
         const bool might_have_waited_long_enough = request->total_time_waited >= request->target_delay;
         const bool recalc_delay_met = request->time_since_recalc >= request->recalc_delay;
