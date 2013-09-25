@@ -10,21 +10,31 @@ void throttling_semaphore_t::on_waiters_changed() {
     // Start or stop the timer depending on whether waiters is empty or not
     if (waiters.empty() && timer.has()) {
         timer.reset();
-    } else if (!waiters.empty() && !timer.has()) {
-        const double secs = ticks_to_secs(get_ticks());
-        const int64_t msecs = static_cast<int64_t>(secs * 1000.0);
-        last_ring_msecs = msecs;
-        timer.init(new repeating_timer_t(delay_granularity, this));
+    } else if (!waiters.empty()) {
+        if (!timer.has()) {
+            // Starting a fresh timer
+            const double secs = ticks_to_secs(get_ticks());
+            const int64_t msecs = static_cast<int64_t>(secs * 1000.0);
+            last_ring_msecs = msecs;
+        }
+        // The next wakeup is either delay_granularity, or the next request to complete its target delay.
+        // Whichever comes first.
+        int64_t next_wakeup = delay_granularity;
+        lock_request_t *request = waiters.head();
+        while (request != NULL) {
+            int64_t time_till_delay_complete = std::max(1, request->target_delay - request->total_time_waited);
+            next_wakeup = std::min(next_wakeup, time_till_delay_complete);
+            if (maintain_ordering) break;
+            request = waiters.next(request);
+        }
+        timer.init(new repeating_timer_t(next_wakeup, this));
     }
 }
 
-void throttling_semaphore_t::on_ring() {
-    if (!timer.has()) return;
-    
+void throttling_semaphore_t::on_ring() {    
     const double secs = ticks_to_secs(get_ticks());
     const int64_t msecs = static_cast<int64_t>(secs * 1000.0);
     const int64_t time_passed = msecs - last_ring_msecs;
-    if (time_passed == 0) return;
     last_ring_msecs = msecs;
     
     lock_request_t *request = waiters.head();
@@ -45,7 +55,6 @@ void throttling_semaphore_t::on_ring() {
         if (has_waited_long_enough) {
             current += request->count;
             waiters.remove(request);
-            on_waiters_changed();
             request->on_available();
         } else {
             // If we want to maintain the ordering of requests,
@@ -55,6 +64,7 @@ void throttling_semaphore_t::on_ring() {
         
         request = next_request;
     }
+    on_waiters_changed();
 }
 
 void throttling_semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
@@ -80,7 +90,6 @@ void throttling_semaphore_t::lock(semaphore_available_callback_t *cb, int count)
 void throttling_semaphore_t::unlock(int count) {
     rassert(current >= count);
     current -= count;
-    on_ring();
 }
 
 void throttling_semaphore_t::force_lock(int count) {
@@ -89,7 +98,6 @@ void throttling_semaphore_t::force_lock(int count) {
 
 void throttling_semaphore_t::set_capacity(int new_capacity) {
     capacity = new_capacity;
-    on_ring();
 }
 
 void throttling_semaphore_t::co_lock(int count) {

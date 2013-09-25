@@ -51,7 +51,7 @@ class throttling_semaphore_t : public repeating_timer_callback_t {
 
 public:
     /* throttling_semaphore_t starts throttling transactions when current >= cap * thre.
-     * The granularity in which delays are processed is gran (smaller = higher resolution, more overhead).
+     * The granularity in which delay updates are processed is gran (smaller = higher resolution, more overhead).
      * If current is halfway in between (cap - (cap * thre)) and cap, the delay will be d_half.
      */
     explicit throttling_semaphore_t(int cap, double thre = 0.5, int64_t gran = 20, int64_t d_half = 25) :
