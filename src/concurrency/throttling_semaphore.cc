@@ -22,7 +22,7 @@ void throttling_semaphore_t::on_waiters_changed() {
         int64_t next_wakeup = delay_granularity;
         lock_request_t *request = waiters.head();
         while (request != NULL) {
-            int64_t time_till_delay_complete = std::max(1, request->target_delay - request->total_time_waited);
+            int64_t time_till_delay_complete = std::max((int64_t)1, request->target_delay - request->total_time_waited);
             next_wakeup = std::min(next_wakeup, time_till_delay_complete);
             if (maintain_ordering) break;
             request = waiters.next(request);
