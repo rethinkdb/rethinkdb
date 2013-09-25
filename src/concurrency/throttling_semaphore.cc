@@ -134,8 +134,8 @@ int64_t throttling_semaphore_t::compute_target_delay() const {
     // This is the function we are using to calculate delays: http://www.wolframalpha.com/input/?i=1%2F%281-x%29+-+1+for+x+from+0+to+1
     // If necessary, the steepness can be adjusted by taking a power of delay_level. This
     // is not currently implemented here though.
-    if (delay_level > 0.999999) // Fall-through for (close enough to) infinite
-        return 1000000;
+    if (delay_level > 0.99999999) // Fall-through for (close enough to) infinite
+        return 100000000;
     // We multiply the value of the function by a delay_at_half constant.
     // delay_at_half is the delay in ms when delay_level = 0.5
     const double target_delay = static_cast<double>(delay_at_half) * (1.0/(1.0 - delay_level) - 1.0);
