@@ -92,8 +92,14 @@ private:
 
 class throttling_semaphore_acq_t {
 public:
-    throttling_semaphore_acq_t(throttling_semaphore_t *_acquiree, int c = 1) : acquiree(_acquiree), count(c) {
-        acquiree->co_lock(count);
+    throttling_semaphore_acq_t(throttling_semaphore_t *_acquiree, int c = 1, bool use_the_force = false) :
+                acquiree(_acquiree),
+                count(c) {
+                    
+        if (use_the_force)
+            acquiree->force_lock(count);
+        else
+            acquiree->co_lock(count);
     }
 
     throttling_semaphore_acq_t(throttling_semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
