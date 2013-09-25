@@ -1,16 +1,33 @@
 #ifndef BUFFER_CACHE_ALT_PAGE_HPP_
 #define BUFFER_CACHE_ALT_PAGE_HPP_
 
+#include "concurrency/cond_var.hpp"
+#include "containers/intrusive_list.hpp"
+#include "serializer/types.hpp"
+
 namespace alt {
+
+class current_page_acq_t;
+class page_acq_t;
+
+
+enum class alt_access_t { read, write };
 
 class page_t {
 public:
+    page_t();
+    ~page_t();
 
     void *get_buf();
+    uint32_t get_buf_size();
 
 private:
+    bool *destroy_ptr_;
+    block_size_t buf_size_;
+    scoped_malloc_t<ser_buffer_t> buf_;
+    counted_t<standard_block_token_t> block_token_;
 
-
+    intrusive_list_t<page_acq_t> waiters_;
     DISABLE_COPYING(page_t);
 };
 
@@ -22,6 +39,7 @@ public:
     void init(page_t *page);
 
     signal_t *buf_ready_signal();
+    bool has() const;
 
 private:
     cond_t buf_ready_signal_;
@@ -30,8 +48,11 @@ private:
 
 class current_page_t {
 public:
+    current_page_t();
+    ~current_page_t();
 
 private:
+    intrusive_list_t<current_page_acq_t> acquirers_;
     DISABLE_COPYING(current_page_t);
 };
 
@@ -49,6 +70,7 @@ public:
 private:
     alt_access_t access_;
     current_page_t *current_page_;
+    page_t *snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
 
