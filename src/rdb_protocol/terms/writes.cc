@@ -67,6 +67,8 @@ private:
         counted_t<table_t> t = arg(env, 0)->as_table();
         counted_t<val_t> upsert_val = optarg(env, "upsert");
         bool upsert = upsert_val.has() ? upsert_val->as_bool() : false;
+        counted_t<val_t> return_vals_val = optarg(env, "return_vals");
+        bool return_vals = return_vals_val.has() ? return_vals_val->as_bool() : false;
 
         const durability_requirement_t durability_requirement
             = parse_durability_optarg(optarg(env, "durability"), this);
@@ -86,7 +88,8 @@ private:
                     // TODO: that solution sucks.
                 }
                 counted_t<const datum_t> replace_stats = t->batched_insert(
-                    env->env, std::move(datums), upsert, durability_requirement);
+                    env->env, std::move(datums), upsert,
+                    durability_requirement, return_vals);
                 stats = stats->merge(replace_stats, stats_merge);
                 done = true;
             }
@@ -94,6 +97,9 @@ private:
 
         if (!done) {
             counted_t<datum_stream_t> datum_stream = v1->as_seq(env->env);
+            rcheck(!return_vals, base_exc_t::GENERIC,
+                   "Optarg RETURN_VALS is invalid for multi-row inserts.");
+
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
                     = datum_stream->next_batch(env->env);
@@ -111,7 +117,7 @@ private:
                 }
 
                 counted_t<const datum_t> replace_stats = t->batched_insert(
-                    env->env, std::move(datums), upsert, durability_requirement);
+                    env->env, std::move(datums), upsert, durability_requirement, false);
                 stats = stats->merge(replace_stats);
             }
         }

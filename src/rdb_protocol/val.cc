@@ -113,13 +113,14 @@ counted_t<const datum_t> table_t::batched_replace(
             r_sanity_check(new_val.has());
         }
         counted_t<const datum_t> insert_stats = batched_insert(
-            env, std::move(replacement_values), true, durability_requirement);
+            env, std::move(replacement_values), true,
+            durability_requirement, return_vals);
         return stats.to_counted()->merge(insert_stats, stats_merge);
     } else {
         std::vector<store_key_t> keys;
         keys.reserve(original_values.size());
         for (auto it = original_values.begin(); it != original_values.end(); ++it) {
-            keys.push_back(store_key_t((*it)->print_primary()));
+            keys.push_back(store_key_t((*it)->get(get_pkey())->print_primary()));
         }
         return do_batched_write(
             env,
@@ -137,10 +138,13 @@ counted_t<const datum_t> table_t::batched_insert(
     env_t *env,
     std::vector<counted_t<const datum_t> > &&insert_datums,
     bool upsert,
-    durability_requirement_t durability_requirement) {
+    durability_requirement_t durability_requirement,
+    bool return_vals) {
 
     if (insert_datums.empty()) {
         return make_counted<const datum_t>(ql::datum_t::R_OBJECT);
+    } else if (insert_datums.size() != 1) {
+        r_sanity_check(!return_vals);
     }
 
     counted_t<const datum_t> empty_old_val(new datum_t(datum_t::R_NULL));
@@ -149,7 +153,8 @@ counted_t<const datum_t> table_t::batched_insert(
     }
     return do_batched_write(
         env,
-        rdb_protocol_t::batched_insert_t(std::move(insert_datums), get_pkey(), upsert),
+        rdb_protocol_t::batched_insert_t(
+            std::move(insert_datums), get_pkey(), upsert, return_vals),
         durability_requirement);
 }
 

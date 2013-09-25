@@ -943,7 +943,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
         if (!shard_inserts.empty()) {
             *write_out = write_t(
-                batched_insert_t(std::move(shard_inserts), bi.pkey, bi.upsert),
+                batched_insert_t(
+                    std::move(shard_inserts), bi.pkey, bi.upsert, bi.return_vals),
                 durability_requirement);
             return true;
         } else {
@@ -1293,8 +1294,8 @@ private:
 class datum_replacer_t : public btree_batched_replacer_t {
 public:
     datum_replacer_t(const std::vector<counted_t<const ql::datum_t> > *_datums,
-                     bool _upsert, const std::string &_pkey)
-        : datums(_datums), upsert(_upsert), pkey(_pkey) { }
+                     bool _upsert, const std::string &_pkey, bool _return_vals)
+        : datums(_datums), upsert(_upsert), pkey(_pkey), return_vals(_return_vals) { }
     counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t index) const {
         guarantee(index < datums->size());
@@ -1308,11 +1309,12 @@ public:
         }
         unreachable();
     }
-    bool return_vals_p() const { return false; }
+    bool return_vals_p() const { return return_vals; }
 private:
     const std::vector<counted_t<const ql::datum_t> > *const datums;
     const bool upsert;
     const std::string pkey;
+    const bool return_vals;
 };
 
 // TODO: get rid of this extra response_t copy on the stack
@@ -1341,7 +1343,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             store, token_pair, txn,
             (*superblock)->get_sindex_block_id(),
             auto_drainer_t::lock_t(&store->drainer));
-        datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey);
+        datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey, bi.return_vals);
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp, txn, &bi.pkey),
@@ -1749,8 +1751,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::batched_replace_t,
                            keys, pkey, f, optargs, return_vals);
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::batched_insert_t,
-                           keys, inserts, pkey, upsert);
+RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::batched_insert_t,
+                           keys, inserts, pkey, upsert, return_vals);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);

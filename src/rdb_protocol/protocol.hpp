@@ -539,8 +539,9 @@ struct rdb_protocol_t {
         batched_insert_t() { }
         batched_insert_t(
             std::vector<counted_t<const ql::datum_t> > &&_inserts,
-            const std::string &_pkey, bool _upsert)
-            : inserts(std::move(_inserts)), pkey(_pkey), upsert(_upsert) {
+            const std::string &_pkey, bool _upsert, bool _return_vals)
+            : inserts(std::move(_inserts)), pkey(_pkey),
+              upsert(_upsert), return_vals(_return_vals) {
             r_sanity_check(inserts.size() != 0);
             keys.reserve(inserts.size());
             // We need `keys` in lots of places, and we don't want e.g. the
@@ -557,6 +558,7 @@ struct rdb_protocol_t {
         std::vector<counted_t<const ql::datum_t> > inserts;
         std::string pkey;
         bool upsert;
+        bool return_vals;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 

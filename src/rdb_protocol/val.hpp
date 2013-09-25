@@ -63,7 +63,8 @@ public:
         env_t *env,
         std::vector<counted_t<const datum_t> > &&insert_datums,
         bool upsert,
-        durability_requirement_t durability_requirement);
+        durability_requirement_t durability_requirement,
+        bool return_vals);
 
     MUST_USE bool sindex_create(env_t *env, const std::string &name,
                                 counted_t<func_t> index_func);
