@@ -27,15 +27,12 @@ class throttling_semaphore_t : public repeating_timer_callback_t {
         int count;
         int64_t target_delay;
         int64_t total_time_waited;
-        int64_t time_since_recalc;
-        int64_t recalc_delay;
         void on_available() {
             cb->on_semaphore_available();
             delete this;
         }
         void progress(int64_t time_passed) {
             total_time_waited += time_passed;            
-            time_since_recalc += time_passed;            
         }
     };
 
@@ -54,7 +51,7 @@ public:
      * The granularity in which delay updates are processed is gran (smaller = higher resolution, more overhead).
      * If current is halfway in between (cap - (cap * thre)) and cap, the delay will be d_half.
      */
-    explicit throttling_semaphore_t(int cap, double thre = 0.5, int64_t gran = 20, int64_t d_half = 25) :
+    explicit throttling_semaphore_t(int cap, double thre = 0.5, int64_t gran = 20, int64_t d_half = 50) :
         capacity(cap),
         current(0),
         throttling_threshold(thre),

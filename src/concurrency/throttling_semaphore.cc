@@ -31,7 +31,7 @@ void throttling_semaphore_t::on_waiters_changed() {
     }
 }
 
-void throttling_semaphore_t::on_ring() {    
+void throttling_semaphore_t::on_ring() {
     const double secs = ticks_to_secs(get_ticks());
     const int64_t msecs = static_cast<int64_t>(secs * 1000.0);
     const int64_t time_passed = msecs - last_ring_msecs;
@@ -42,15 +42,7 @@ void throttling_semaphore_t::on_ring() {
         lock_request_t *next_request = waiters.next(request);
         
         request->progress(time_passed);
-        
-        const bool might_have_waited_long_enough = request->total_time_waited >= request->target_delay;
-        const bool recalc_delay_met = request->time_since_recalc >= request->recalc_delay;
-        if (recalc_delay_met || might_have_waited_long_enough) {
-            request->target_delay = compute_target_delay();
-            request->time_since_recalc = 0;
-            // Wait longer before we perform the next re-calculation
-            request->recalc_delay *= 2; // TODO (daniel): Should we limit this to some reasonable value?
-        }
+        request->target_delay = compute_target_delay();
         
         const bool has_waited_long_enough = request->total_time_waited >= request->target_delay;
         if (has_waited_long_enough) {
@@ -79,9 +71,7 @@ void throttling_semaphore_t::lock(semaphore_available_callback_t *cb, int count)
         lock_request_t *r = new lock_request_t;
         r->count = count;
         r->cb = cb;
-        r->recalc_delay = delay_granularity; // Re-calculate the delay for the first time at delay_granularity
         r->target_delay = target_delay;
-        r->time_since_recalc = 0;
         r->total_time_waited = 0;
         waiters.push_back(r);
         on_waiters_changed();
