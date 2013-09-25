@@ -47,6 +47,7 @@ void throttling_semaphore_t::on_ring() {
         const bool recalc_delay_met = request->time_since_recalc >= request->recalc_delay;
         if (recalc_delay_met || might_have_waited_long_enough) {
             request->target_delay = compute_target_delay();
+            request->time_since_recalc = 0;
             // Wait longer before we perform the next re-calculation
             request->recalc_delay *= 2; // TODO (daniel): Should we limit this to some reasonable value?
         }
