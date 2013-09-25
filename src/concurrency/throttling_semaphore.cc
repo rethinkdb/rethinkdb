@@ -68,10 +68,16 @@ void throttling_semaphore_t::lock(semaphore_available_callback_t *cb, int count)
 void throttling_semaphore_t::unlock(int count) {
     rassert(current >= count);
     current -= count;
+    on_ring();
 }
 
 void throttling_semaphore_t::force_lock(int count) {
     current += count;
+}
+
+void throttling_semaphore_t::set_capacity(int new_capacity) {
+    capacity = new_capacity;
+    on_ring();
 }
 
 void throttling_semaphore_t::co_lock(int count) {
@@ -112,7 +118,7 @@ int64_t throttling_semaphore_t::compute_target_delay() const {
     
     rassert(current > threshold);
     rassert(threshold < capacity);
-    const double delay_level = static_cast<double>(current - threshold) / static_cast<double>(capacity - threshold);
+    const double delay_level = std::min(1.0, static_cast<double>(current - threshold) / static_cast<double>(capacity - threshold));
     rassert(delay_level >= 0.0 && delay_level <= 1.0);
     // This is the function we are using to calculate delays: http://www.wolframalpha.com/input/?i=1%2F%281-x%29+-+1+for+x+from+0+to+1
     // If necessary, the steepness can be adjusted by taking a power of delay_level. This

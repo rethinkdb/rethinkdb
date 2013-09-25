@@ -53,7 +53,7 @@ public:
      * The granularity in which delays are processed is gran (smaller = higher resolution, more overhead).
      * If current is halfway in between (cap - (cap * thre)) and cap, the delay will be d_half.
      */
-    explicit throttling_semaphore_t(int cap, double thre = 0.5, int64_t gran = 25, int64_t d_half = 100) :
+    explicit throttling_semaphore_t(int cap, double thre = 0.5, int64_t gran = 20, int64_t d_half = 25) :
         capacity(cap),
         current(0),
         throttling_threshold(thre),
@@ -75,10 +75,7 @@ public:
 
     void force_lock(int count = 1);
 
-    // This does not trigger any request to be re-scheduled immediately.
-    // Instead the new capacity will become effective as part of the regular
-    // re-calculation schedule.
-    void set_capacity(int new_capacity) { capacity = new_capacity; }
+    void set_capacity(int new_capacity);
     int get_capacity() const { return capacity; }
     
     virtual void on_ring(); // Called periodically by timer
