@@ -100,14 +100,18 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
 
         /* Throttling */
-        dirty_block_semaphore.co_lock(txn->expected_change_count);
+        txn->throttling_lock.init(
+                new throttling_semaphore_acq_t(&dirty_block_semaphore, txn->expected_change_count));
 
         /* Acquire flush lock in non-exclusive mode */
         flush_lock.co_lock(rwi_read);
     } else if (txn->get_access() == rwi_read_sync) {
 
         /* Throttling */
-        dirty_block_semaphore.co_lock(1); // This 1 is just a dummy thing, so we go through the throttling queue
+        // This 1 is just a dummy thing, so we go through the throttling queue and thereby
+        // guarantee that write transactions do not get re-ordered relative to us.
+        txn->throttling_lock.init(
+                new throttling_semaphore_acq_t(&dirty_block_semaphore, 1));
 
         /* Acquire flush lock in non-exclusive mode */
         flush_lock.co_lock(rwi_read);
@@ -118,14 +122,14 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
         // 3. unlock the flush_lock immediately, we don't really need it
         txn->access = rwi_read;
 
-        dirty_block_semaphore.unlock(1);
+        txn->throttling_lock.reset();
         flush_lock.unlock();
     }
 }
 
 void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
-        dirty_block_semaphore.unlock(txn->expected_change_count);
+        txn->throttling_lock.reset();
 
         flush_lock.unlock();
 
@@ -157,8 +161,11 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
         if (!recency_dirty) {
             gbuf->cache->writeback.dirty_bufs.push_back(this);
         }
-        /* Use `force_lock()` to prevent deadlocks; `co_lock()` could block. */
-        gbuf->cache->writeback.dirty_block_semaphore.force_lock();
+        /* Use the force flag to prevent deadlocks; `co_lock()` could block. */
+        throttling_lock.init(new throttling_semaphore_acq_t(
+                &gbuf->cache->writeback.dirty_block_semaphore,
+                1,
+                true));
         ++gbuf->cache->stats->pm_n_blocks_dirty;
     }
     if (dirty && !_dirty) {
@@ -167,7 +174,12 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
         if (!recency_dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
         }
-        gbuf->cache->writeback.dirty_block_semaphore.unlock();
+        // Note: We do not release the throttling lock here.
+        // Flushes call set_dirty(false) on all involved blocks at all,
+        // which would unthrottle a whole bunch of transactions at once, just
+        // to have the next batch of transactions starve completely again.
+        // Instead, the throttling_lock will be released by buf_writer_t when
+        // the block has actually been written to disk.
         --gbuf->cache->stats->pm_n_blocks_dirty;
     }
 }
@@ -225,6 +237,7 @@ class writeback_t::buf_writer_t :
     public home_thread_mixin_t {
     friend class writeback_t;
     bool io_completed_;
+    scoped_ptr_t<throttling_semaphore_acq_t> throttling_lock;
 
 public:
     struct launch_callback_t :
@@ -260,23 +273,23 @@ public:
         }
     } launch_cb;
 
-    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf)
+    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf, local_buf_t *lbuf)
         : io_completed_(false) {
+        lbuf->extract_throttling_lock(throttling_lock);
         launch_cb.parent = wb;
         launch_cb.buf = std::move(buf);
         launch_cb.parent->cache->assert_thread();
-        /* When we spawn a flush, the block ceases to be dirty, so we release the
-        semaphore. To avoid releasing a tidal wave of write transactions every time
-        the flush starts, we have the writer acquire the semaphore and release it only
-        once the block is safely on disk. */
-        launch_cb.parent->dirty_block_semaphore.force_lock(1);
     }
     void on_io_complete() {
         if (continue_on_thread(home_thread(), this)) on_thread_switch();
     }
     void on_thread_switch() {
         assert_thread();
-        launch_cb.parent->dirty_block_semaphore.unlock();
+        
+        // Release the throttling lock now that the block has been written to disk.
+        // This allows queued up write transaction to get through again.
+        throttling_lock.reset();
+        
         // Ideally, if we were done updating the block sequence id, we would be able to release the
         // buffer now. However, we're not in coroutine context, and releasing a buffer could require
         // releasing a snapshot, which could cause an ls_block_token to hit refcount 0 and be
@@ -456,6 +469,8 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
         const bool recency_dirty = lbuf->get_recency_dirty();
 #endif
 
+        // TODO (daniel): Comment and extract the dirty_block lock from the buf
+        
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
         lbuf->set_recency_dirty(false);
@@ -480,7 +495,8 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
             guarantee(buf_block_size.value() <= cache->serializer->get_block_size().value());
 
 
-            buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf));
+            // TODO (daniel): Pass in the dirty_block lock here
+            buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf), lbuf);
             state->buf_writers.push_back(buf_writer);
 
             // Fill the serializer structure
