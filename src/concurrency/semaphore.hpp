@@ -44,7 +44,7 @@ public:
 
     void co_lock(int count = 1);
 
-    void co_lock_interruptible(signal_t *interruptor);
+    void co_lock_interruptible(signal_t *interruptor, int count = 1);
 
     void unlock(int count = 1);
     void lock_now(int count = 1);
@@ -88,7 +88,7 @@ public:
     void lock(semaphore_available_callback_t *cb, int count = 1);
 
     void co_lock(int count = 1);
-    void co_lock_interruptible(signal_t *interruptor);
+    void co_lock_interruptible(signal_t *interruptor, int count = 1);
 
     void unlock(int count = 1);
 
