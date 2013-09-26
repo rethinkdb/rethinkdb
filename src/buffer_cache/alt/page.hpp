@@ -68,7 +68,7 @@ private:
 // A page_ptr_t holds a pointer to a page_t.
 class page_ptr_t {
 public:
-    page_ptr_t(page_t *page) { init(page); }
+    explicit page_ptr_t(page_t *page) { init(page); }
     page_ptr_t();
     ~page_ptr_t();
 
@@ -176,7 +176,7 @@ private:
 
 class free_list_t {
 public:
-    free_list_t(serializer_t *serializer);
+    explicit free_list_t(serializer_t *serializer);
     ~free_list_t();
 
     block_id_t acquire_block_id();
@@ -191,7 +191,7 @@ private:
 
 class page_cache_t {
 public:
-    page_cache_t(serializer_t *serializer);
+    explicit page_cache_t(serializer_t *serializer);
     ~page_cache_t();
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
