@@ -9,17 +9,23 @@
 #include "containers/intrusive_list.hpp"
 #include "arch/timing.hpp"
 
-/* TODO (daniel): Document
+/* `throttling_semaphore_t` delays requests depending on how much of a given
+ * resource is available. The available amount of the resource is called the
+ * capacity of the semaphore. If a fraction higher than throttling_threshold
+ * of the resource is used, `throttling_semaphore_t` begins to delay requests.
+ * If the resource keeps getting scarcer, the delay times are increased gradually.
+ * Look at the implementation of compute_target_delay() to see how exactly delays
+ * are computed.
+ * 
  * It attempts to meet the following design goals:
  * - No lock is ever granted if the given capacity is currently violated (except when using lock_force).
  *   If necessary, lock requests are delayed indefinitely. Note that the capacity requirements
  *   of the issued lock itself are not considered in this guarantee (so no request is
  *   hold back indefinitely if its own count is higher than the capacity).
  * - throttling_semaphore_t does adapt to changing conditions. If locks are released
- *   earlier or later than expected, the delay times of queued lock requests are re-evaluated
- *   automatically.
+ *   earlier or later than expected, the delay times of queued lock requests are re-evaluated.
  * - The configuration of delay times is robust, i.e. throttling_semaphore_t works reasonably well
- *   for a wide range of `delay_at_half` values.
+ *   for a wide range of `delay_at_half` values, on a wide range of hardware.
  */
 class throttling_semaphore_t : public repeating_timer_callback_t {    
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
@@ -51,7 +57,7 @@ public:
      * The granularity in which delay updates are processed is gran (smaller = higher resolution, more overhead).
      * If current is halfway in between (cap - (cap * thre)) and cap, the delay will be d_half.
      */
-    explicit throttling_semaphore_t(int cap, double thre = 0.5, int64_t gran = 20, int64_t d_half = 50) :
+    explicit throttling_semaphore_t(int cap, double thre = 0.5, int64_t gran = 20, int64_t d_half = 100) :
         capacity(cap),
         current(0),
         throttling_threshold(thre),
