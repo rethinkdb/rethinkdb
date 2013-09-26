@@ -380,6 +380,48 @@ static bool deserialize_and_check(tcp_conn_stream_t *c, T *p, const char *peer) 
     }
 }
 
+// Reads a chunk of data off of the connection, buffer must have at least 'size' bytes
+//  available to write into
+static bool read_header_chunk(tcp_conn_stream_t *conn, char *buffer, int64_t size, const char *peer) {
+    int64_t r = conn->read(buffer, size);
+    if (-1 == r) {
+        logWRN("Network error while receiving clustering header from %s, closing connection.", peer);
+        return false; // network error.
+    }
+    rassert(r >= 0);
+    if (0 == r) {
+        logWRN("Received incomplete clustering header from %s, closing connection.", peer);
+        return false;
+    }
+    return true;
+}
+
+// Reads an int64_t for size, then the string data
+static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
+                                          std::string* str_out,
+                                          const char *peer) {
+    uint64_t raw_size;
+    int64_t res = deserialize(conn, &raw_size);
+    if (res != 0) {
+        logWRN("Network error while receiving clustering header from %s, closing connection", peer);
+        return false;
+    }
+
+    if (raw_size > 4096) {
+        logWRN("Received excessive string size in header from peer %s, closing connection", peer);
+        return false;
+    }
+
+    size_t size = static_cast<size_t>(raw_size);
+    scoped_array_t<char> buffer(size);
+    if (!read_header_chunk(conn, buffer.data(), size, peer)) {
+        return false;
+    }
+
+    str_out->assign(buffer.data(), size);
+    return true;
+}
+
 bool is_similar_peer_address(const peer_address_t &left,
                              const peer_address_t &right) {
     bool left_loopback_only = true;
@@ -483,9 +525,12 @@ void connectivity_cluster_t::run_t::handle(
     {
         write_message_t msg;
         msg.append(cluster_proto_header.c_str(), cluster_proto_header.length());
-        msg << cluster_version;
-        msg << cluster_arch_bitsize;
-        msg << cluster_build_mode;
+        msg << static_cast<uint64_t>(cluster_version.length());
+        msg.append(cluster_version.data(), cluster_version.length());
+        msg << static_cast<uint64_t>(cluster_arch_bitsize.length());
+        msg.append(cluster_arch_bitsize.data(), cluster_arch_bitsize.length());
+        msg << static_cast<uint64_t>(cluster_build_mode.length());
+        msg.append(cluster_build_mode.data(), cluster_build_mode.length());
         msg << parent->me;
         msg << routing_table[parent->me].hosts();
         if (send_write_message(conn, &msg))
@@ -510,34 +555,51 @@ void connectivity_cluster_t::run_t::handle(
         }
     }
 
+    // Check version number (e.g. 1.9.0-466-gadea67)
     {
         std::string remote_version;
-        std::string remote_arch_bitsize;
-        std::string remote_build_mode;
 
-        if (deserialize_and_check(conn, &remote_version, peername) ||
-            deserialize_and_check(conn, &remote_arch_bitsize, peername),
-            deserialize_and_check(conn, &remote_build_mode, peername))
+        if (!deserialize_compatible_string(conn, &remote_version, peername)) {
             return;
+        }
 
         if (remote_version != cluster_version) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong version,"
-                   " local version: %s, remote version: %s, connection dropped\n",
-                   cluster_version.c_str(), remote_version.c_str());
+            logWRN("Connection attempt with a RethinkDB node of the wrong version, "
+                   "peer: %s, local version: %s, remote version: %s, connection dropped\n",
+                   peername, cluster_version.c_str(), remote_version.c_str());
+            return;
+        }
+    }
+
+    // Check bitsize (e.g. 32bit or 64bit)
+    {
+        std::string remote_arch_bitsize;
+
+        if (!deserialize_compatible_string(conn, &remote_arch_bitsize, peername)) {
             return;
         }
 
         if (remote_arch_bitsize != cluster_arch_bitsize) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong architecture,"
-                   " local: %s, remote: %s, connection dropped\n",
-                   cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            logWRN("Connection attempt with a RethinkDB node of the wrong architecture, "
+                   "peer: %s, local: %s, remote: %s, connection dropped\n",
+                   peername, cluster_arch_bitsize.c_str(), remote_arch_bitsize.c_str());
+            return;
+        }
+
+    }
+
+    // Check build mode (e.g. debug or release)
+    {
+        std::string remote_build_mode;
+
+        if (!deserialize_compatible_string(conn, &remote_build_mode, peername)) {
             return;
         }
 
         if (remote_build_mode != cluster_build_mode) {
-            logWRN("Connection attempt with a RethinkDB node of the wrong build mode,"
-                   " local: %s, remote: %s, connection dropped\n",
-                   cluster_build_mode.c_str(), remote_build_mode.c_str());
+            logWRN("Connection attempt with a RethinkDB node of the wrong build mode, "
+                   "peer: %s, local: %s, remote: %s, connection dropped\n",
+                   peername, cluster_build_mode.c_str(), remote_build_mode.c_str());
             return;
         }
     }
