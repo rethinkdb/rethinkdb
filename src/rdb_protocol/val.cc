@@ -106,11 +106,11 @@ counted_t<const datum_t> table_t::batched_replace(
             try {
                 new_val = replacement_generator->call(env, *it)->as_datum();
                 new_val->rcheck_valid_replace(*it, get_pkey());
+                r_sanity_check(new_val.has());
                 replacement_values.push_back(new_val);
             } catch (const base_exc_t &e) {
                 stats.add_error(e.what());
             }
-            r_sanity_check(new_val.has());
         }
         counted_t<const datum_t> insert_stats = batched_insert(
             env, std::move(replacement_values), true,

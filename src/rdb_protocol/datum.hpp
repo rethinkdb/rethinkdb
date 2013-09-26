@@ -243,11 +243,10 @@ public:
     void add_error(const char *msg) {
         counted_t<const datum_t> old_ecount = ptr()->get("errors", NOTHROW);
         double ecount = (old_ecount.has() ? old_ecount->as_num() : 0) + 1;
-        counted_t<const datum_t> old_err = ptr()->get("first_error", NOTHROW);
-        counted_t<const datum_t> err
-            = old_err.has() ? old_err : make_counted<const datum_t>(msg);
-        UNUSED bool b = ptr()->add("errors", make_counted<const datum_t>(ecount))
-                     || ptr()->add("first_error", err);
+        UNUSED bool errors_clobber =
+            ptr()->add("errors", make_counted<const datum_t>(ecount), CLOBBER);
+        UNUSED bool first_error_clobber =
+            ptr()->add("first_error", make_counted<const datum_t>(msg), NOCLOBBER);
     }
     void add(counted_t<const datum_t> val) { ptr()->add(val); }
     void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
