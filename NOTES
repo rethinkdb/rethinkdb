@@ -4,12 +4,12 @@ Released on 2013-09-26
 
 ## New Features ##
 
-* Added Multi-Indexes (#933)
+* Added multi-indexes (#933)
 * Added selective history deletion to the Data Explorer (#1297)
 * Made `filter` support the nested object syntax (#1325)
-* Added `r.not_` to the Python drivee (#1329)
-* The backup scripts are now installed by the python driver (#1355)
-* Implemented variable width object length encoding and other improvements to serialization (#1424)
+* Added `r.not_` to the Python driver (#1329)
+* The backup scripts are now installed by the Python driver (#1355)
+* Implemented variable-width object length encoding and other improvements to serialization (#1424)
 * Lowered the I/O pool threads' stack size (#1425)
 * Improved datum integer serialization (#1426)
 * Added a thin wrapper struct `threadnum_t` instead of using raw ints for thread numbers (#1445)
