@@ -24,18 +24,22 @@ public:
     page_t(page_t *copyee, page_cache_t *page_cache);
     ~page_t();
 
-    void *get_buf();
-    uint32_t get_buf_size();
-
-    void add_snapshotter();
-    void remove_snapshotter();
-    bool has_snapshot_references();
     page_t *make_copy(page_cache_t *page_cache);
 
     void add_waiter(page_acq_t *acq);
     void remove_waiter(page_acq_t *acq);
 
 private:
+    friend class page_acq_t;
+    void *get_buf();
+    uint32_t get_buf_size();
+
+    friend class page_ptr_t;
+    void add_snapshotter();
+    void remove_snapshotter();
+    size_t num_snapshot_references();
+
+
     void pulse_waiters();
 
     static void load_with_block_id(page_t *page,
@@ -49,9 +53,11 @@ private:
     bool *destroy_ptr_;
     block_size_t buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
+    // RSI: There's no code that resets block_token_ when the page gets modified.
     counted_t<standard_block_token_t> block_token_;
 
-    // How many pointers to this value are expecting it to be snapshotted?
+    // How many things (how many page_ptr_t's) point at this page, expecting nothing
+    // to modify it, other than themselves.
     size_t snapshot_refcount_;
 
     // RSP: This could be a single pointer instead of two.
@@ -59,15 +65,44 @@ private:
     DISABLE_COPYING(page_t);
 };
 
+// A page_ptr_t holds a pointer to a page_t.
+class page_ptr_t {
+public:
+    page_ptr_t(page_t *page) { init(page); }
+    page_ptr_t();
+    ~page_ptr_t();
+
+    void init(page_t *page);
+
+    page_t *get_page_for_read();
+    page_t *get_page_for_write(page_cache_t *page_cache);
+
+    bool has() {
+        return page_ != NULL;
+    }
+
+private:
+    page_t *page_;
+    DISABLE_COPYING(page_ptr_t);
+};
+
+// This type's purpose is to wait for the page to be loaded, and to prevent it from
+// being unloaded.
 class page_acq_t : public intrusive_list_node_t<page_acq_t> {
 public:
     page_acq_t();
     ~page_acq_t();
 
+    // RSI: This doesn't actually try to make the page loaded, if it's not already
+    // loaded.
     void init(page_t *page);
 
     signal_t *buf_ready_signal();
     bool has() const;
+
+    // These block, uninterruptibly waiting for buf_ready_signal() to be pulsed.
+    uint32_t get_buf_size();
+    void *get_buf();
 
 private:
     friend class page_t;
@@ -105,7 +140,7 @@ private:
     // null).  block_id_ and page_cache_ can be used to construct (and load) the page
     // when it's null.  RSP: This is a waste of memory.
     page_cache_t *page_cache_;
-    page_t *page_;
+    page_ptr_t page_;
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
@@ -129,10 +164,10 @@ private:
     friend class current_page_t;
 
     alt_access_t access_;
-    bool declared_snapshotted_ = false;  // RSI this won't compile
+    bool declared_snapshotted_;
     // At most one of current_page_ is NULL or snapshotted_page_ is NULL.
     current_page_t *current_page_;
-    page_t *snapshotted_page_;
+    page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
 
@@ -160,8 +195,6 @@ public:
     ~page_cache_t();
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
-
-
 
 private:
     friend class page_t;

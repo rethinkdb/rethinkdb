@@ -55,8 +55,8 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
         page_acq_.init(page);
     }
     page_acq_.buf_ready_signal()->wait();
-    *block_size_out = page->get_buf_size();
-    return page->get_buf();
+    *block_size_out = page_acq_.get_buf_size();
+    return page_acq_.get_buf();
 }
 
 alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
@@ -74,7 +74,7 @@ void *alt_buf_write_t::get_data_write(uint32_t block_size) {
         page_acq_.init(page);
     }
     page_acq_.buf_ready_signal()->wait();
-    return page->get_buf();
+    return page_acq_.get_buf();
 }
 
 
