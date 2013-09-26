@@ -175,7 +175,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
 
     ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
-    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m));
+    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, SINGLE));
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;
@@ -396,9 +396,12 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                                "rdb_protocol_t.cc-A"),
                            &interruptor);
 
-                if (!boost::get<rdb_protocol_t::point_write_response_t>(
-                        &response.response)) {
+                auto resp = boost::get<rdb_protocol_t::point_write_response_t>(
+                        &response.response);
+                if (!resp) {
                     ADD_FAILURE() << "got wrong type of result back";
+                } else {
+                    ASSERT_EQ(resp->result, STORED);
                 }
             }
 

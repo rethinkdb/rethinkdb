@@ -14,11 +14,11 @@ class serializer_multiplexer_t {
 public:
     /* Blocking call. Assumes the given serializers are empty; initializes them such that they can
     be treated as 'n_proxies' proxy-serializers. */
-    static void create(const std::vector<standard_serializer_t *>& underlying, int n_proxies);
+    static void create(const std::vector<standard_serializer_t *> &underlying, int n_proxies);
 
     /* Blocking call. Must give the same set of underlying serializers you gave to create(). (It
     will abort if this is not the case.) */
-    explicit serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying);
+    explicit serializer_multiplexer_t(const std::vector<standard_serializer_t *> &underlying);
 
     /* proxies.size() is the same as 'n_proxies' you passed to create(). Please do not mutate
     'proxies'. */
@@ -26,9 +26,6 @@ public:
 
     /* Blocking call. */
     ~serializer_multiplexer_t();
-
-    /* Used internally and used by fsck & friends */
-    static int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices);
 
     creation_timestamp_t creation_timestamp;
 };
@@ -119,7 +116,7 @@ public:
     /* Allocates a new io account for the underlying file */
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
+    void index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account);
 
     std::vector<counted_t<standard_block_token_t> >
     block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
@@ -138,13 +135,13 @@ public:
     repli_timestamp_t get_recency(block_id_t id);
     bool get_delete_bit(block_id_t id);
 
-    void block_read(const counted_t<standard_block_token_t>& token, ser_buffer_t *buf, file_account_t *io_account);
+    void block_read(const counted_t<standard_block_token_t> &token, ser_buffer_t *buf, file_account_t *io_account);
     counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
 public:
     void offer_read_ahead_buf(block_id_t block_id,
                               scoped_malloc_t<ser_buffer_t> *buf,
-                              const counted_t<standard_block_token_t>& token,
+                              const counted_t<standard_block_token_t> &token,
                               repli_timestamp_t recency_timestamp);
 };
 

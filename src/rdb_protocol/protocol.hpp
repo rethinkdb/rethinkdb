@@ -20,8 +20,6 @@
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
-#include "containers/archive/boost_types.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "hash_region.hpp"
 #include "http/json.hpp"
 #include "http/json/cJSON.hpp"
@@ -87,6 +85,7 @@ public:
         : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
     // Constructs some kind of region out of truncated_secondary values.
     hash_region_t<key_range_t> to_region() const;
+    bool contains(counted_t<const ql::datum_t> value) const;
 
     counted_t<const ql::datum_t> start, end;
     bool start_open, end_open;
@@ -106,20 +105,6 @@ struct filter_transform_t {
 };
 
 RDB_DECLARE_SERIALIZABLE(filter_transform_t);
-
-struct range_and_func_filter_transform_t {
-    range_and_func_filter_transform_t() { }
-    range_and_func_filter_transform_t(const sindex_range_t &_range_predicate,
-                                      const ql::wire_func_t &_mapping_func)
-        : range_predicate(_range_predicate), mapping_func(_mapping_func) { }
-
-    // A filter transform that applies mapping_func before checking if the mapped value
-    // is in the range.
-    sindex_range_t range_predicate;
-    ql::wire_func_t mapping_func;
-};
-
-RDB_DECLARE_SERIALIZABLE(range_and_func_filter_transform_t);
 
 namespace rdb_protocol_details {
 
@@ -142,7 +127,6 @@ RDB_DECLARE_SERIALIZABLE(backfill_atom_t);
 
 typedef boost::variant<ql::map_wire_func_t,
                        filter_transform_t,
-                       range_and_func_filter_transform_t,
                        ql::concatmap_wire_func_t> transform_variant_t;
 typedef std::list<transform_variant_t> transform_t;
 
@@ -167,14 +151,18 @@ struct rget_item_t {
                 counted_t<const ql::datum_t> _data)
         : key(_key), sindex_key(_sindex_key), data(_data) { }
 
+    RDB_DECLARE_ME_SERIALIZABLE;
+
     store_key_t key;
     boost::optional<counted_t<const ql::datum_t> > sindex_key;
     counted_t<const ql::datum_t> data;
-    RDB_MAKE_ME_SERIALIZABLE_3(key, sindex_key, data);
 };
 
 } // namespace rdb_protocol_details
 
+enum sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t, SINGLE, MULTI);
 
 class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
@@ -318,7 +306,6 @@ struct rdb_protocol_t {
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-
 
     class rget_read_t {
     public:
@@ -591,13 +578,15 @@ struct rdb_protocol_t {
     class sindex_create_t {
     public:
         sindex_create_t() { }
-        sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping)
-            : id(_id), mapping(_mapping), region(region_t::universe())
+        sindex_create_t(const std::string &_id, const ql::map_wire_func_t &_mapping,
+                        sindex_multi_bool_t _multi)
+            : id(_id), mapping(_mapping), region(region_t::universe()), multi(_multi)
         { }
 
         std::string id;
         ql::map_wire_func_t mapping;
         region_t region;
+        sindex_multi_bool_t multi;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

@@ -74,8 +74,8 @@ private:
     // std::string implementation, since we copy by value.
     std::string tag_;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(bucket_, read_mode_, value_, tag_);
-#else  // ifndef NDEBUG
+    RDB_DECLARE_ME_SERIALIZABLE;
+#else
     RDB_MAKE_ME_SERIALIZABLE_0();
 #endif  // ifndef NDEBUG
 

@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_
 #define CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_
 
@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "concurrency/fifo_enforcer.hpp"
+#include "concurrency/queue/passive_producer.hpp"
 
 namespace unittest {
 void run_queue_equivalence_test();

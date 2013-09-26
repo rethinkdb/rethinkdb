@@ -1,10 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_INTERFACE_REPOSITORY_HPP_
 
 #include <map>
 
-#include "clustering/reactor/namespace_interface.hpp"
+#include "containers/clone_ptr.hpp"
+#include "concurrency/auto_drainer.hpp"
+#include "concurrency/one_per_thread.hpp"
+#include "concurrency/promise.hpp"
 
 /* `namespace_repo_t` is responsible for constructing and caching
 `cluster_namespace_interface_t` objects for all of the namespaces in the cluster
@@ -13,8 +16,13 @@ important because every time a new `cluster_namespace_interface_t` is created,
 it must perform a handshake with every `master_t`, which means several network
 round-trips. */
 
-template <class> class watchable_t;
+class mailbox_manager_t;
+template <class> class namespace_interface_t;
 template <class> class namespaces_directory_metadata_t;
+class peer_id_t;
+class signal_t;
+class uuid_u;
+template <class> class watchable_t;
 
 template <class protocol_t>
 class base_namespace_repo_t {

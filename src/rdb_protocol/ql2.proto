@@ -409,7 +409,7 @@ message Term {
 
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.
-        INDEX_CREATE = 75; // Table, STRING, Function(1) -> OBJECT
+        INDEX_CREATE = 75; // Table, STRING, Function(1), {multi:BOOL} -> OBJECT
         // Drops a secondary index with a particular name from the specified table.
         INDEX_DROP   = 76; // Table, STRING -> OBJECT
         // Lists all secondary indexes on a particular table.

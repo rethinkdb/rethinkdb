@@ -8,7 +8,7 @@
 #include "containers/archive/archive.hpp"
 #include "rpc/connectivity/cluster.hpp"
 
-struct mailbox_manager_t;
+class mailbox_manager_t;
 
 /* `mailbox_t` is a receiver of messages. Construct it with a callback function
 to handle messages it receives. To send messages to the mailbox, call the
@@ -33,7 +33,7 @@ public:
     typedef uint64_t id_t;
 
 private:
-    friend struct mailbox_manager_t;
+    friend class mailbox_manager_t;
     friend class raw_mailbox_writer_t;
     friend void send(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
 
@@ -68,7 +68,7 @@ public:
     private:
         friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
         friend struct raw_mailbox_t;
-        friend struct mailbox_manager_t;
+        friend class mailbox_manager_t;
 
         RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
 
@@ -103,7 +103,7 @@ Usually you will split a `message_service_t` into several sub-services using
 because the `mailbox_manager_t` relies on something else to send the initial
 mailbox addresses back and forth between nodes. */
 
-struct mailbox_manager_t : public message_handler_t {
+class mailbox_manager_t : public message_handler_t {
 public:
     explicit mailbox_manager_t(message_service_t *);
 

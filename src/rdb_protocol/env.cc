@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/env.hpp"
 
+#include "clustering/administration/database_metadata.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"

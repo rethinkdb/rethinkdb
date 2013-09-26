@@ -1,4 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef PROTOB_PROTOB_TCC_
+#define PROTOB_PROTOB_TCC_
+
 #include "protob/protob.hpp"
 
 #include <google/protobuf/stubs/common.h>
@@ -12,7 +15,11 @@
 
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "containers/auth_key.hpp"
+#include "rpc/semilattice/joins/vclock.hpp"
+#include "rpc/semilattice/view.hpp"
 #include "utils.hpp"
 
 template <class request_t, class response_t, class context_t>
@@ -331,3 +338,5 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
         return res;
     }
 }
+
+#endif  // PROTOB_PROTOB_TCC_

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "buffer_cache/mirrored/writeback.hpp"
-#include "containers/archive/archive.hpp"
+#include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "serializer/types.hpp"
 
@@ -42,12 +42,12 @@ struct secondary_index_t {
     uuid_u id;
 
     /* Used in unit tests. */
-    bool operator==(const secondary_index_t & other) const {
+    bool operator==(const secondary_index_t &other) const {
         return superblock == other.superblock &&
                opaque_definition == other.opaque_definition;
     }
 
-    RDB_MAKE_ME_SERIALIZABLE_4(superblock, opaque_definition, post_construction_complete, id);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 //Secondary Index functions

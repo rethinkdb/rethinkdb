@@ -3,16 +3,25 @@
 
 #include <float.h>
 #include <math.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include <algorithm>
 
+#include "errors.hpp"
+#include <boost/detail/endian.hpp>
+
+#include "containers/archive/string_stream.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "stl_utils.hpp"
 
+
 namespace ql {
+
+const size_t tag_size = 8;
 
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
@@ -398,8 +407,23 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
-std::string datum_t::print_secondary(const store_key_t &primary_key) const {
-    std::string s;
+std::string datum_t::mangle_secondary(const std::string &secondary, const std::string &primary,
+        const std::string &tag) {
+    guarantee(secondary.size() < UINT8_MAX);
+    guarantee(secondary.size() + primary.size() < UINT8_MAX);
+
+    uint8_t pk_offset = static_cast<uint8_t>(secondary.size()),
+            tag_offset = static_cast<uint8_t>(primary.size()) + pk_offset;
+
+    std::string res = secondary + primary + tag +
+           std::string(1, pk_offset) + std::string(1, tag_offset);
+    guarantee(res.size() <= MAX_KEY_SIZE);
+    return res;
+}
+
+std::string datum_t::print_secondary(const store_key_t &primary_key,
+        boost::optional<uint64_t> tag_num) const {
+    std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
     if (primary_key_string.length() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
@@ -410,15 +434,15 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
     }
 
     if (type == R_NUM) {
-        num_to_str_key(&s);
+        num_to_str_key(&secondary_key_string);
     } else if (type == R_STR) {
-        str_to_str_key(&s);
+        str_to_str_key(&secondary_key_string);
     } else if (type == R_BOOL) {
-        bool_to_str_key(&s);
+        bool_to_str_key(&secondary_key_string);
     } else if (type == R_ARRAY) {
-        array_to_str_key(&s);
+        array_to_str_key(&secondary_key_string);
     } else if (type == R_OBJECT && is_ptype()) {
-        pt_to_str_key(&s);
+        pt_to_str_key(&secondary_key_string);
     } else {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, pseudotype, or array "
@@ -426,24 +450,62 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - 1) +
-        std::string(1, '\0') + primary_key_string;
+    std::string tag_string;
+    if (tag_num) {
+        static_assert(sizeof(*tag_num) == tag_size,
+                "tag_size constant is assumed to be the size of a uint64_t.");
+#ifndef BOOST_LITTLE_ENDIAN
+        static_assert(false, "This piece of code will break on big-endian systems.");
+#endif
+        tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
+    }
 
-    return s;
+    secondary_key_string =
+        secondary_key_string.substr(0, trunc_size(primary_key_string.length()));
+
+    return mangle_secondary(secondary_key_string, primary_key_string, tag_string);
 }
 
-std::string datum_t::unprint_secondary(
-        const std::string &secondary_and_primary) {
-    size_t separator = secondary_and_primary.find_last_of('\0');
+struct components_t {
+    std::string secondary;
+    std::string primary;
+    boost::optional<uint64_t> tag_num;
+};
 
-    return secondary_and_primary.substr(separator + 1, std::string::npos);
+void parse_secondary(const std::string &key, components_t *components) {
+    uint8_t start_of_tag = key[key.size() - 1],
+            start_of_primary = key[key.size() - 2];
+
+    guarantee(start_of_primary < start_of_tag);
+
+    components->secondary = key.substr(0, start_of_primary);
+    components->primary = key.substr(start_of_primary, start_of_tag - start_of_primary);
+
+    std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
+    if (tag_str.size() != 0) {
+#ifndef BOOST_LITTLE_ENDIAN
+        static_assert(false, "This piece of code will break on little endian systems.");
+#endif
+        components->tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
+    }
 }
 
-std::string datum_t::extract_secondary(
-        const std::string &secondary_and_primary) {
-    size_t separator = secondary_and_primary.find_last_of('\0');
+std::string datum_t::extract_primary(const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.primary;
+}
 
-    return secondary_and_primary.substr(0, separator);
+std::string datum_t::extract_secondary(const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.secondary;
+}
+
+boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.tag_num;
 }
 
 // This function returns a store_key_t suitable for searching by a secondary-index.
@@ -469,11 +531,8 @@ store_key_t datum_t::truncated_secondary() const {
             print().c_str(), get_type_name().c_str()));
     }
 
-    // If the key does not need truncation, add a null byte at the end to filter out more
-    //  potential results
-    if (s.length() < max_trunc_size()) {
-        s += std::string(1, '\0');
-    } else {
+    // Truncate the key if necessary
+    if (s.length() >= max_trunc_size()) {
         s.erase(max_trunc_size());
     }
 
@@ -894,11 +953,23 @@ void datum_t::init_from_pb(const Datum *d) {
 }
 
 size_t datum_t::max_trunc_size() {
-    return MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
+    return trunc_size(rdb_protocol_t::MAX_PRIMARY_KEY_SIZE);
+}
+
+size_t datum_t::trunc_size(size_t primary_key_size) {
+    //The 2 in this function is necessary because of the offsets which are
+    //included at the end of the key so that we can extract the primary key and
+    //the tag num from secondary keys.
+    return MAX_KEY_SIZE - primary_key_size - tag_size - 2;
 }
 
 bool datum_t::key_is_truncated(const store_key_t &key) {
-    return key.size() == MAX_KEY_SIZE;
+    std::string key_str = key_to_unescaped_str(key);
+    if (extract_tag(key_str)) {
+        return key.size() == MAX_KEY_SIZE;
+    } else {
+        return key.size() == MAX_KEY_SIZE - tag_size;
+    }
 }
 
 void datum_t::write_to_protobuf(Datum *d) const {
@@ -956,14 +1027,6 @@ enum class datum_serialized_type_t {
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::INT_POSITIVE);
-
-size_t real_serialized_size(const counted_t<const datum_t> &datum) {
-    write_message_t wm;
-    wm << datum;
-    string_stream_t ss;
-    UNUSED int res = send_write_message(&ss, &wm);
-    return ss.str().size();
-}
 
 // This must be kept in sync with operator<<(write_message_t &, const counted_t<const
 // datum_T> &).

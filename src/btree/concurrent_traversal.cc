@@ -1,5 +1,6 @@
 #include "btree/concurrent_traversal.hpp"
 
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 

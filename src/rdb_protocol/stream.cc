@@ -48,10 +48,10 @@ batched_rget_stream_t::batched_rget_stream_t(
       sindex_range(_sindex_start_value, start_value_open,
                    _sindex_end_value, end_value_open),
       range(rdb_protocol_t::sindex_key_range(
-                _sindex_start_value != NULL
+                _sindex_start_value.has()
                   ? _sindex_start_value->truncated_secondary()
                   : store_key_t::min(),
-                _sindex_end_value != NULL
+                _sindex_end_value.has()
                   ? _sindex_end_value->truncated_secondary()
                   : store_key_t::max())),
       sorting(_sorting),
@@ -139,6 +139,11 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
                 break;
             }
 
+            if (!sindex_id) {
+                pop();
+                return hinted_datum_t(START, item->data);
+            }
+
             std::string key = key_to_unescaped_str(item->key);
             std::string skey = ql::datum_t::extract_secondary(key);
 
@@ -182,7 +187,6 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
          * return so we return nothing. */
         return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
     } else {
-        debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
         if (sorting == ASCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),

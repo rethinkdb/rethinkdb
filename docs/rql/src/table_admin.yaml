@@ -176,6 +176,20 @@ commands:
             r.table('dc').index_create('parental_planets') {|hero|
               [hero['mothers_home_planet'], hero['fathers_home_planet']]
             }.run(conn)
+      - description: |
+          A multi index can be created by passing an optional
+          <code>multi</code> argument.  Multi indexes functions should return
+          arrays and allow you to query based on whether a value is present in
+          the returned array. The example would allow us to get heroes who
+          possess a specific ability (the field <code>'abilities'</code> is an
+          array).
+        code:
+          js: |
+            r.table('dc').indexCreate('abilities', {multi:true}).run(conn, callback)
+          py: |
+            r.table('dc').index_create('abilities', multi=True).run(conn)
+          rb: |
+            r.table('dc').index_create('abilities', :multi => true).run(conn)
 
   - tag: index_drop
     section: table_admin

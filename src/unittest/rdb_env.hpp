@@ -10,21 +10,22 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "unittest/test_cluster_group.hpp"
-#include "unittest/unittest_utils.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
-#include "concurrency/watchable.hpp"
-#include "concurrency/cross_thread_watchable.hpp"
-#include "rpc/semilattice/watchable.hpp"
-#include "rpc/semilattice/view/field.hpp"
-#include "rpc/directory/read_manager.hpp"
-#include "rpc/directory/write_manager.hpp"
 #include "clustering/administration/main/ports.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rdb_protocol/env.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
+#include "concurrency/watchable.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
+#include "rdb_protocol/env.hpp"
+#include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/watchable.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
+#include "unittest/test_cluster_group.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 

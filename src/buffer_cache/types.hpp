@@ -85,14 +85,6 @@ protected:
 
 template <class T> class scoped_malloc_t;
 
-// HEY: This is kind of fsck-specific, maybe it belongs somewhere else.
-class block_getter_t {
-public:
-    virtual bool get_block(block_id_t, scoped_malloc_t<char> *block_out) = 0;
-protected:
-    virtual ~block_getter_t() { }
-};
-
 
 
 // Keep this part below synced up with buffer_cache.hpp.

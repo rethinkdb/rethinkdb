@@ -95,8 +95,6 @@ public:
 /* `backfiller_business_card_t` represents a thing that is willing to serve
 backfills over the network. It appears in the directory. */
 
-typedef uuid_u backfill_session_id_t;
-
 template<class protocol_t>
 struct backfiller_business_card_t {
 
