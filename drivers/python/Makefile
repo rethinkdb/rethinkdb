@@ -45,7 +45,7 @@ sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE)
 	cd $(PY_PKG_DIR) && python setup.py sdist
 
 publish: sdist
-	cd $(PY_PKG_DIR) && python setup.py register upload
+	cd $(PY_PKG_DIR) && python setup.py sdist register upload
 
 install: sdist
 	cd $(PY_PKG_DIR) && python setup.py install
