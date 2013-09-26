@@ -347,7 +347,6 @@ admin_command_parser_t::admin_term_cap_t::admin_term_cap_t(fd_t fd) {
     char *normal_cstr = tgetstr("me", NULL);
     if (normal_cstr != NULL) {
         normal_str.assign(normal_cstr);
-        free(normal_cstr);
     } else {
         // If we couldn't find this, we can't use bold or underline either, just return
         return;
@@ -357,14 +356,12 @@ admin_command_parser_t::admin_term_cap_t::admin_term_cap_t(fd_t fd) {
     char *bold_cstr = tgetstr("md", NULL);
     if (bold_cstr != NULL) {
         bold_str.assign(bold_cstr);
-        free(bold_cstr);
     }
 
     // Command to enable underline mode
     char *underline_cstr = tgetstr("us", NULL);
     if (underline_cstr != NULL) {
         underline_str.assign(underline_cstr);
-        free(underline_cstr);
     }
 }
 
