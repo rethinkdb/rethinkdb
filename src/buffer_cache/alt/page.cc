@@ -85,7 +85,7 @@ signal_t *current_page_acq_t::write_acq_signal() {
     return &write_cond_;
 }
 
-page_t *current_page_acq_t::page_for_read() {
+page_t *current_page_acq_t::current_page_for_read() {
     rassert(snapshotted_page_.has() || current_page_ != NULL);
     read_cond_.wait();
     if (snapshotted_page_.has()) {
@@ -95,7 +95,7 @@ page_t *current_page_acq_t::page_for_read() {
     return current_page_->the_page_for_read();
 }
 
-page_t *current_page_acq_t::page_for_write() {
+page_t *current_page_acq_t::current_page_for_write() {
     rassert(access_ == alt_access_t::write);
     rassert(current_page_ != NULL);
     write_cond_.wait();

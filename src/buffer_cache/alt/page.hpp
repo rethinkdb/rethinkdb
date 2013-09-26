@@ -159,8 +159,8 @@ public:
     signal_t *read_acq_signal();
     signal_t *write_acq_signal();
 
-    page_t *page_for_read();
-    page_t *page_for_write();
+    page_t *current_page_for_read();
+    page_t *current_page_for_write();
 
 private:
     friend class current_page_t;
