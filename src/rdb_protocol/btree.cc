@@ -310,13 +310,6 @@ counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
     return resp.to_counted();
 }
 
-counted_t<const ql::datum_t> rdb_replace(
-    const btree_loc_info_t &info,
-    const btree_point_replacer_t *replacer,
-    rdb_modification_info_t *mod_info_out) {
-    return rdb_replace_and_return_superblock(info, replacer, NULL, mod_info_out);
-}
-
 void do_a_replace_from_batched_replace(
     auto_drainer_t::lock_t,
     fifo_enforcer_sink_t *batched_replaces_fifo_sink,

@@ -76,8 +76,8 @@ private:
     };
 
     struct write_visitor_t : public boost::static_visitor<void> {
-        void operator()(const rdb_protocol_t::point_replace_t &r);
-        void NORETURN operator()(const rdb_protocol_t::batched_replaces_t &br);
+        void operator()(const rdb_protocol_t::batched_replace_t &br);
+        void operator()(const rdb_protocol_t::batched_insert_t &br);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_write_t &w);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);

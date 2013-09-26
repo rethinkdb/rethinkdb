@@ -138,12 +138,6 @@ struct btree_point_replacer_t {
     virtual bool return_vals_p() const = 0;
 };
 
-// RSI: does anyone use this?
-counted_t<const ql::datum_t> rdb_replace(
-    const btree_loc_info_t &info,
-    const btree_point_replacer_t *replacer,
-    rdb_modification_info_t *mod_info_out);
-
 counted_t<const ql::datum_t> rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
