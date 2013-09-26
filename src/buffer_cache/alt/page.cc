@@ -233,7 +233,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
                               page_cache_t *page_cache) {
     // This is called using spawn_now_dangerously.  We need to atomically set
     // destroy_ptr_ (and add a snapshotter, why not).
-    copyee->add_snapshotter();
+    page_ptr_t page_ptr(page);
     bool page_destroyed = false;
     rassert(page->destroy_ptr_ == NULL);
     page->destroy_ptr_ = &page_destroyed;
@@ -268,10 +268,6 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             page->pulse_waiters();
         }
     }
-
-    // RSI: Shouldn't there be some better way to acquire and release a snapshot
-    // reference?  Maybe not.
-    copyee->remove_snapshotter();
 }
 
 
@@ -326,7 +322,15 @@ void page_t::add_snapshotter() {
 void page_t::remove_snapshotter() {
     rassert(snapshot_refcount_ > 0);
     --snapshot_refcount_;
-    // RSI: We might need to delete the page here.
+    if (snapshot_refcount_ == 0) {
+        // Every page_acq_t is bounded by the lifetime of some page_ptr_t: either the
+        // one in current_page_acq_t or its current_page_t or the one in
+        // load_from_copyee.
+        rassert(waiters_.empty());
+
+        // Is this what we do?  For now it is.
+        delete this;
+    }
 }
 
 size_t page_t::num_snapshot_references() {
@@ -352,22 +356,20 @@ void page_t::add_waiter(page_acq_t *acq) {
 }
 
 void *page_t::get_buf() {
-    // RSI: definitely make private, used through page_acq_t.
     rassert(buf_.has());
     return buf_->cache_data;
 }
 
 uint32_t page_t::get_buf_size() {
-    // RSI: definitely make private, used through page_acq_t.
     rassert(buf_.has());
     return buf_size_.value();
 }
 
 void page_t::remove_waiter(page_acq_t *acq) {
     waiters_.remove(acq);
-    if (waiters_.empty()) {
-        // RSI: We might need to delete the page here.
-    }
+
+    // page_acq_t always has a lesser lifetime than some page_ptr_t.
+    rassert(snapshot_refcount_ > 0);
 }
 
 page_acq_t::page_acq_t() : page_(NULL) {

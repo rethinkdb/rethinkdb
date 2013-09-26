@@ -56,10 +56,12 @@ private:
     // RSI: There's no code that resets block_token_ when the page gets modified.
     counted_t<standard_block_token_t> block_token_;
 
-    // How many things (how many page_ptr_t's) point at this page, expecting nothing
-    // to modify it, other than themselves.
+    // How many page_ptr_t's point at this page, expecting nothing to modify it,
+    // other than themselves.
     size_t snapshot_refcount_;
 
+    // A list of waiters that expect the value to be loaded, and (as long as there
+    // are waiters) expect the value to never be evicted.
     // RSP: This could be a single pointer instead of two.
     intrusive_list_t<page_acq_t> waiters_;
     DISABLE_COPYING(page_t);
