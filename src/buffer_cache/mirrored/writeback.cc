@@ -343,7 +343,8 @@ void writeback_t::do_concurrent_flush() {
         rassert(writeback_in_progress);
 
         cache->stats->pm_flushes_locking.end(&start_time);
-
+        cache->stats->pm_flushes_preparing.begin(&start_time);
+        
         // Move callbacks to locals only after we got the lock.
         // That way callbacks coming in while waiting for the flush lock
         // can still go into this flush.
@@ -353,15 +354,19 @@ void writeback_t::do_concurrent_flush() {
         start_next_sync_immediately = false;
 
         // Go through the different flushing steps...
-        cache->stats->pm_flushes_writing.begin(&start_time);
         flush_acquire_bufs(transaction, &state);
     }
+    
+    cache->stats->pm_flushes_preparing.end(&start_time);
+    cache->stats->pm_flushes_writing.begin(&start_time);
 
     // Now that preparations are complete, send the writes to the serializer
     if (!state.serializer_writes.empty()) {
         on_thread_t switcher(cache->serializer->home_thread());
         do_writes(cache->serializer, state.serializer_writes, cache->writes_io_account.get());
     }
+    cache->stats->pm_flushes_writing.end(&start_time);
+    cache->stats->pm_flushes_finalizing.begin(&start_time);
 
     // Once transaction has completed, perform cleanup.
     for (size_t i = 0; i < state.serializer_writes.size(); ++i) {
@@ -407,7 +412,7 @@ void writeback_t::do_concurrent_flush() {
         cb->pulse();
     }
 
-    cache->stats->pm_flushes_writing.end(&start_time);
+    cache->stats->pm_flushes_finalizing.end(&start_time);
     --active_flushes;
 
     // Try again to start the next sync now.  If we didn't do this,

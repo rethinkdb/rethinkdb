@@ -34,7 +34,9 @@ struct mc_cache_stats_t {
     /* Used in writeback.hpp */
     perfmon_duration_sampler_t
         pm_flushes_locking,
-        pm_flushes_writing;
+        pm_flushes_writing,
+        pm_flushes_preparing,
+        pm_flushes_finalizing;
 
     perfmon_sampler_t
         pm_flushes_blocks,
