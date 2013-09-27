@@ -2,6 +2,6 @@ desc: 831 -- Empty batched_replaces_t constructed
 tests:
   - py: r.db('test').table_create('831')
   - py: r.db('test').table('831').insert([True, True])
-    ot: err('RqlRuntimeError', 'Expected type OBJECT but found BOOL.', [0])
+    ot: ({'first_error':'Expected type OBJECT but found BOOL.', 'skipped':0, 'deleted':0, 'unchanged':0, 'errors':2, 'replaced':0, 'inserted':0})
   - py: r.db('test').table_drop('831')
     ot: ({'dropped':1})
