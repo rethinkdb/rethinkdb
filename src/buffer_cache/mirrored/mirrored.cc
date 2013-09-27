@@ -1082,13 +1082,6 @@ void mc_transaction_t::set_token_pair(write_token_pair_t *_token_pair) {
     token_pair = _token_pair;
 }
 
-void mc_transaction_t::yield_flush_lock() {
-    rassert(get_access() == rwi_write);
-    // TODO!
-    cache->writeback.flush_lock.unlock();
-    cache->writeback.flush_lock.co_lock(rwi_read);
-}
-
 file_account_t *mc_transaction_t::get_io_account() const {
     return (cache_account == NULL ? cache->reads_io_account.get() : cache_account->io_account_);
 }

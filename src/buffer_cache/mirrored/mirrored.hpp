@@ -261,11 +261,6 @@ public:
     void set_account(mc_cache_account_t *cache_account);
 
     void set_token_pair(write_token_pair_t *_token_pair);
-    
-    // TODO (daniel): Just a quick hack to temporarily yield the flush lock.
-    // Only call this when the btree is in a consistent state and no blocks are held by the transaction.
-    // Must be run in a coroutine
-    void yield_flush_lock();
 
 private:
     void register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap);

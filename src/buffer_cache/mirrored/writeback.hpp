@@ -128,8 +128,7 @@ private:
     locks will take care of that) while the writeback locks the flush lock for writing, because it
     must exclude all of the transactions.
     */
-    
-friend class mc_transaction_t; // TODO (daniel): Temporary hack
+
     rwi_lock_t flush_lock;
 
     // List of things waiting for their data to be written to disk. They will be called back after
