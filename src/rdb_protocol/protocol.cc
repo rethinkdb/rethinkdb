@@ -866,7 +866,12 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return region_from_keys(br.keys);
     }
     region_t operator()(const batched_insert_t &bi) const {
-        return region_from_keys(bi.keys);
+        std::vector<store_key_t> keys;
+        keys.reserve(bi.inserts.size());
+        for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
+            keys.emplace_back((*it)->get(bi.pkey)->print_primary());
+        }
+        return region_from_keys(keys);
     }
 
     region_t operator()(const point_write_t &pw) const {
@@ -886,9 +891,12 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     }
 };
 
+#ifndef NDEBUG
+// This is slow, and should only be used in debug mode for assertions.
 region_t write_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(rdb_w_get_region_visitor(), write);
 }
+#endif // NDEBUG
 
 /* write_t::shard implementation */
 

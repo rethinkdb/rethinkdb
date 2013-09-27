@@ -617,8 +617,8 @@ struct rdb_protocol_t {
         durability_requirement_t durability_requirement;
 
         region_t get_region() const THROWS_NOTHING;
-        // Returns true if the write had any side effects applicable to the region, and a
-        // non-empty write was written to write_out.
+        // Returns true if the write had any side effects applicable to the
+        // region, and a non-empty write was written to write_out.
         bool shard(const region_t &region,
                    write_t *write_out) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count,
