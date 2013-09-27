@@ -407,7 +407,8 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
-std::string datum_t::mangle_secondary(const std::string &secondary, const std::string &primary,
+std::string datum_t::mangle_secondary(const std::string &secondary,
+                                      const std::string &primary,
         const std::string &tag) {
     guarantee(secondary.size() < UINT8_MAX);
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
@@ -422,7 +423,7 @@ std::string datum_t::mangle_secondary(const std::string &secondary, const std::s
 }
 
 std::string datum_t::print_secondary(const store_key_t &primary_key,
-        boost::optional<uint64_t> tag_num) const {
+                                     boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
@@ -508,10 +509,11 @@ boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
     return components.tag_num;
 }
 
-// This function returns a store_key_t suitable for searching by a secondary-index.
-//  This is needed because secondary indexes may be truncated, but the amount truncated
-//  depends on the length of the primary key.  Since we do not know how much was truncated,
-//  we have to truncate the maximum amount, then return all matches and filter them out later.
+// This function returns a store_key_t suitable for searching by a
+// secondary-index.  This is needed because secondary indexes may be truncated,
+// but the amount truncated depends on the length of the primary key.  Since we
+// do not know how much was truncated, we have to truncate the maximum amount,
+// then return all matches and filter them out later.
 store_key_t datum_t::truncated_secondary() const {
     std::string s;
     if (type == R_NUM) {

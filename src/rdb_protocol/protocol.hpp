@@ -532,18 +532,24 @@ struct rdb_protocol_t {
             : inserts(std::move(_inserts)), pkey(_pkey),
               upsert(_upsert), return_vals(_return_vals) {
             r_sanity_check(inserts.size() != 0);
-            keys.reserve(inserts.size());
-            // We need `keys` in lots of places, and we don't want e.g. the
-            // unsharding code having to know how to get a key from a `datum_t`,
-            // so we precompute them.
+            r_sanity_check(inserts.size() == 1 || !return_vals);
+#ifndef NDEBUG
+            // These checks are done above us, but in debug mode we do them
+            // again.  (They're slow.)  We do them above us because the code in
+            // val.cc knows enough to report the write errors correctly while
+            // still doing the other writes.
             for (auto it = inserts.begin(); it != inserts.end(); ++it) {
                 counted_t<const ql::datum_t> keyval = (*it)->get(pkey, ql::NOTHROW);
                 r_sanity_check(keyval.has());
-                keys.emplace_back(keyval->print_primary());
+                try {
+                    keyval->print_primary(); // ERROR CHECKING
+                    continue;
+                } catch (const ql::base_exc_t &e) {
+                }
+                r_sanity_check(false); // throws, so can't do this in exception handler
             }
-            r_sanity_check(keys.size() == inserts.size());
+#endif // NDEBUG
         }
-        std::vector<store_key_t> keys;
         std::vector<counted_t<const ql::datum_t> > inserts;
         std::string pkey;
         bool upsert;

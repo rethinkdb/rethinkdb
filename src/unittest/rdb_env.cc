@@ -162,23 +162,22 @@ void mock_namespace_interface_t::write_visitor_t::operator()(
 void mock_namespace_interface_t::write_visitor_t::operator()(
     const rdb_protocol_t::batched_insert_t &bi) {
     counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
-    guarantee(bi.keys.size() == bi.inserts.size());
-    for (size_t i = 0; i < bi.keys.size(); ++i) {
+    for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
+        store_key_t key((*it)->get(bi.pkey)->print_primary());
         ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
         counted_t<const ql::datum_t> old_val;
-        if (data->find(bi.keys[i]) != data->end()) {
-            old_val = make_counted<ql::datum_t>(data->at(bi.keys[i])->get());
+        if (data->find(key) != data->end()) {
+            old_val = make_counted<ql::datum_t>(data->at(key)->get());
         } else {
             old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
         }
 
-        counted_t<const ql::datum_t> new_val = bi.inserts[i];
-        data->erase(bi.keys[i]);
+        counted_t<const ql::datum_t> new_val = *it;
+        data->erase(key);
 
         bool err;
         if (new_val->get_type() == ql::datum_t::R_OBJECT) {
-            data->insert(std::make_pair(bi.keys[i],
-                                        new scoped_cJSON_t(new_val->as_json())));
+            data->insert(std::make_pair(key, new scoped_cJSON_t(new_val->as_json())));
             if (old_val->get_type() == ql::datum_t::R_NULL) {
                 err = resp.add("inserted", make_counted<const ql::datum_t>(1.0));
             } else {

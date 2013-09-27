@@ -942,10 +942,10 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
 
     bool operator()(const batched_insert_t &bi) const {
         std::vector<counted_t<const ql::datum_t> > shard_inserts;
-        guarantee(bi.keys.size() == bi.inserts.size());
-        for (size_t i = 0; i < bi.keys.size(); ++i) {
-            if (region_contains_key(*region, bi.keys[i])) {
-                shard_inserts.push_back(bi.inserts[i]);
+        for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
+            store_key_t key((*it)->get(bi.pkey)->print_primary());
+            if (region_contains_key(*region, key)) {
+                shard_inserts.push_back(*it);
             }
         }
         if (!shard_inserts.empty()) {
@@ -1344,10 +1344,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             (*superblock)->get_sindex_block_id(),
             auto_drainer_t::lock_t(&store->drainer));
         datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey, bi.return_vals);
+        std::vector<store_key_t> keys;
+        keys.reserve(bi.inserts.size());
+        for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
+            keys.emplace_back((*it)->get(bi.pkey)->print_primary());
+        }
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp, txn, &bi.pkey),
-                superblock, bi.keys, &replacer, &sindex_cb);
+                superblock, keys, &replacer, &sindex_cb);
     }
 
     void operator()(const point_write_t &w) {
@@ -1758,8 +1763,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::batched_replace_t,
                            keys, pkey, f, optargs, return_vals);
-RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::batched_insert_t,
-                           keys, inserts, pkey, upsert, return_vals);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::batched_insert_t,
+                           inserts, pkey, upsert, return_vals);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);

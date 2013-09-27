@@ -141,21 +141,33 @@ counted_t<const datum_t> table_t::batched_insert(
     durability_requirement_t durability_requirement,
     bool return_vals) {
 
-    if (insert_datums.empty()) {
-        return make_counted<const datum_t>(ql::datum_t::R_OBJECT);
+    datum_ptr_t stats(datum_t::R_OBJECT);
+    std::vector<counted_t<const datum_t> > valid_inserts;
+    valid_inserts.reserve(insert_datums.size());
+    counted_t<const datum_t> empty_old_val(new datum_t(datum_t::R_NULL));
+    for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
+        try {
+            (*it)->rcheck_valid_replace(empty_old_val, get_pkey());
+            counted_t<const ql::datum_t> keyval = (*it)->get(get_pkey(), ql::NOTHROW);
+            (*it)->get(get_pkey())->print_primary(); // does error checking
+            valid_inserts.push_back(std::move(*it));
+        } catch (const base_exc_t &e) {
+            stats.add_error(e.what());
+        }
+    }
+
+    if (valid_inserts.empty()) {
+        return stats.to_counted();
     } else if (insert_datums.size() != 1) {
         r_sanity_check(!return_vals);
     }
 
-    counted_t<const datum_t> empty_old_val(new datum_t(datum_t::R_NULL));
-    for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
-        (*it)->rcheck_valid_replace(empty_old_val, get_pkey());
-    }
-    return do_batched_write(
+    counted_t<const datum_t> insert_stats = do_batched_write(
         env,
         rdb_protocol_t::batched_insert_t(
-            std::move(insert_datums), get_pkey(), upsert, return_vals),
+            std::move(valid_inserts), get_pkey(), upsert, return_vals),
         durability_requirement);
+    return stats.to_counted()->merge(insert_stats, stats_merge);
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,
