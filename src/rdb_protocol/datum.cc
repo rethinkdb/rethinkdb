@@ -1308,6 +1308,10 @@ archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
     return ARCHIVE_SUCCESS;
 }
 
+// `key` is unused because this is passed to `datum_t::merge`, which takes a
+// generic conflict resolution function, but this particular conflict resolution
+// function doesn't care about they key (although we could add some
+// error-checking using the key in the future).
 counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
                                      counted_t<const datum_t> l,
                                      counted_t<const datum_t> r) {
