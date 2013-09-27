@@ -103,7 +103,9 @@ public:
             acquiree->co_lock(count);
     }
 
-    throttling_semaphore_acq_t(throttling_semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
+    throttling_semaphore_acq_t(throttling_semaphore_acq_t &&movee) :
+                acquiree(movee.acquiree),
+                count(movee.count) {
         movee.acquiree = NULL;
     }
 
