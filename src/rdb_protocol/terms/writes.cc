@@ -142,21 +142,8 @@ private:
                     }
                 }
 
-                // TODO (daniel): Just a small hack to avoid large write transactions
-                std::vector<counted_t<const datum_t> > results(datums.size());
-                durability_requirement_t non_final_durability_requirement = DURABILITY_REQUIREMENT_SOFT;
-                for (size_t i = 0; i < datums.size(); ++i) {
-                    // Use soft durability for all but the final write
-                    const bool is_final_datum = i+1 == datums.size();
-                    const durability_requirement_t datum_durability_requirement =
-                            is_final_datum ? durability_requirement : non_final_durability_requirement;
-                    results[i] =
-                            t->replace(env->env, datums[i], datums[i], upsert, datum_durability_requirement, return_vals);
-                }
-                /*
                 std::vector<counted_t<const datum_t> > results =
                     t->batch_replace(env->env, datums, datums, upsert, durability_requirement);
-                */
                 for (auto it = results.begin(); it != results.end(); ++it) {
                     stats = stats->merge(*it, stats_merge);
                 }
@@ -227,22 +214,8 @@ private:
                 if (datums.empty()) {
                     break;
                 }
-                
-                // TODO (daniel): Just a small hack to avoid large write transactions
-                std::vector<counted_t<const datum_t> > results(datums.size());
-                durability_requirement_t non_final_durability_requirement = DURABILITY_REQUIREMENT_SOFT;
-                for (size_t i = 0; i < datums.size(); ++i) {
-                    // Use soft durability for all but the final write
-                    const bool is_final_datum = i+1 == datums.size();
-                    const durability_requirement_t datum_durability_requirement =
-                            is_final_datum ? durability_requirement : non_final_durability_requirement;
-                    results[i] =
-                            tbl->replace(env->env, datums[i], f, nondet_ok, datum_durability_requirement, return_vals);
-                }
-                /*
                 std::vector<counted_t<const datum_t> > results =
                     tbl->batch_replace(env->env, datums, f, nondet_ok, durability_requirement);
-                */
 
                 for (auto result = results.begin(); result != results.end(); ++result) {
                     stats = stats->merge(*result, stats_merge);
