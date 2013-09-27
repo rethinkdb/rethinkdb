@@ -26,8 +26,8 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/wire_func.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
+#include "rdb_protocol/wire_func.hpp"
 #include "utils.hpp"
 
 class extproc_pool_t;
@@ -288,7 +288,10 @@ struct rdb_protocol_t {
                        sindex_list_response_t> response;
 
         read_response_t() { }
-        explicit read_response_t(const boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> &r)
+        explicit read_response_t(
+            const boost::variant<point_read_response_t,
+                                 rget_read_response_t,
+                                 distribution_read_response_t> &r)
             : response(r) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -419,13 +422,15 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-
     struct read_t {
-        boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> read;
+        boost::variant<point_read_t,
+                       rget_read_t,
+                       distribution_read_t,
+                       sindex_list_t> read;
 
         region_t get_region() const THROWS_NOTHING;
-        // Returns true if the read has any operation for this region.  Returns false if
-        // read_out has not been touched.
+        // Returns true if the read has any operation for this region.  Returns
+        // false if read_out has not been touched.
         bool shard(const region_t &region,
                    read_t *read_out) const THROWS_NOTHING;
 
@@ -435,7 +440,10 @@ struct rdb_protocol_t {
             THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
-        explicit read_t(const boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> &r)
+        explicit read_t(const boost::variant<point_read_t,
+                                             rget_read_t,
+                                             distribution_read_t,
+                                             sindex_list_t> &r)
             : read(r) { }
 
         // Only use snapshotting if we're doing a range get.
@@ -443,19 +451,6 @@ struct rdb_protocol_t {
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-
-    typedef Datum point_replace_response_t;
-
-    struct batched_replaces_response_t {
-        std::vector<std::pair<int64_t, point_replace_response_t> > point_replace_responses;
-
-        batched_replaces_response_t() { }
-        explicit batched_replaces_response_t(const std::vector<std::pair<int64_t, point_replace_response_t> > &_point_replace_responses)
-            : point_replace_responses(_point_replace_responses) { }
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
 
     struct point_write_response_t {
         point_write_result_t result;
@@ -492,60 +487,82 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    typedef counted_t<const ql::datum_t> batched_replace_response_t;
     struct write_response_t {
-        boost::variant<point_replace_response_t,
-                       batched_replaces_response_t,
+        boost::variant<batched_replace_response_t,
+                       // batched_replace_response_t is also for batched_insert
                        point_write_response_t,
                        point_delete_response_t,
                        sindex_create_response_t,
                        sindex_drop_response_t> response;
 
         write_response_t() { }
-        explicit write_response_t(const point_replace_response_t& r) : response(r) { }
-        explicit write_response_t(const batched_replaces_response_t& br) : response(br) { }
-        explicit write_response_t(const point_write_response_t& w) : response(w) { }
-        explicit write_response_t(const point_delete_response_t& d) : response(d) { }
+        template<class T>
+        explicit write_response_t(const T &t) : response(t) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    class point_replace_t {
-    public:
-        point_replace_t() { }
-        point_replace_t(const std::string &_primary_key, const store_key_t &_key,
-                        const ql::map_wire_func_t &_f,
-                        const std::map<std::string, ql::wire_func_t> &_optargs,
-                        bool _return_vals)
-            : primary_key(_primary_key), key(_key), f(_f), optargs(_optargs),
-              return_vals(_return_vals) { }
-
-        std::string primary_key;
-        store_key_t key;
-        ql::map_wire_func_t f;
-        std::map<std::string, ql::wire_func_t> optargs;
-        bool return_vals;
-
-        RDB_DECLARE_ME_SERIALIZABLE;
-    };
-
-    class batched_replaces_t {
-    public:
-        batched_replaces_t() { }
-        batched_replaces_t(const std::vector<std::pair<int64_t, point_replace_t> > &_point_replaces)
-            : point_replaces(_point_replaces) {
-            guarantee(!_point_replaces.empty());
+    struct batched_replace_t {
+        batched_replace_t() { }
+        batched_replace_t(
+            std::vector<store_key_t> &&_keys,
+            const std::string &_pkey,
+            const counted_t<ql::func_t> &func,
+            const std::map<std::string, ql::wire_func_t > &_optargs,
+            bool _return_vals)
+            : keys(std::move(_keys)), pkey(_pkey), f(func), optargs(_optargs),
+              return_vals(_return_vals) {
+            r_sanity_check(keys.size() != 0);
+            r_sanity_check(keys.size() == 1 || !return_vals);
         }
+        std::vector<store_key_t> keys;
+        std::string pkey;
+        ql::wire_func_t f;
+        std::map<std::string, ql::wire_func_t > optargs;
+        bool return_vals;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
 
-        // The replaces are numbered so that unshard can sort them back in order.
-        std::vector<std::pair<int64_t, point_replace_t> > point_replaces;
-
+    struct batched_insert_t {
+        batched_insert_t() { }
+        batched_insert_t(
+            std::vector<counted_t<const ql::datum_t> > &&_inserts,
+            const std::string &_pkey, bool _upsert, bool _return_vals)
+            : inserts(std::move(_inserts)), pkey(_pkey),
+              upsert(_upsert), return_vals(_return_vals) {
+            r_sanity_check(inserts.size() != 0);
+            r_sanity_check(inserts.size() == 1 || !return_vals);
+#ifndef NDEBUG
+            // These checks are done above us, but in debug mode we do them
+            // again.  (They're slow.)  We do them above us because the code in
+            // val.cc knows enough to report the write errors correctly while
+            // still doing the other writes.
+            for (auto it = inserts.begin(); it != inserts.end(); ++it) {
+                counted_t<const ql::datum_t> keyval = (*it)->get(pkey, ql::NOTHROW);
+                r_sanity_check(keyval.has());
+                try {
+                    keyval->print_primary(); // ERROR CHECKING
+                    continue;
+                } catch (const ql::base_exc_t &e) {
+                }
+                r_sanity_check(false); // throws, so can't do this in exception handler
+            }
+#endif // NDEBUG
+        }
+        std::vector<counted_t<const ql::datum_t> > inserts;
+        std::string pkey;
+        bool upsert;
+        bool return_vals;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     class point_write_t {
     public:
         point_write_t() { }
-        point_write_t(const store_key_t& _key, counted_t<const ql::datum_t> _data, bool _overwrite = true)
+        point_write_t(const store_key_t& _key,
+                      counted_t<const ql::datum_t> _data,
+                      bool _overwrite = true)
             : key(_key), data(_data), overwrite(_overwrite) { }
 
         store_key_t key;
@@ -596,8 +613,8 @@ struct rdb_protocol_t {
     };
 
     struct write_t {
-        boost::variant<point_replace_t,
-                       batched_replaces_t,
+        boost::variant<batched_replace_t,
+                       batched_insert_t,
                        point_write_t,
                        point_delete_t,
                        sindex_create_t,
@@ -606,8 +623,8 @@ struct rdb_protocol_t {
         durability_requirement_t durability_requirement;
 
         region_t get_region() const THROWS_NOTHING;
-        // Returns true if the write had any side effects applicable to the region, and a
-        // non-empty write was written to write_out.
+        // Returns true if the write had any side effects applicable to the
+        // region, and a non-empty write was written to write_out.
         bool shard(const region_t &region,
                    write_t *write_out) const THROWS_NOTHING;
         void unshard(const write_response_t *responses, size_t count,
@@ -617,10 +634,12 @@ struct rdb_protocol_t {
         durability_requirement_t durability() const { return durability_requirement; }
 
         write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const point_replace_t &r, durability_requirement_t durability)
-            : write(r), durability_requirement(durability) { }
-        explicit write_t(const batched_replaces_t &br, durability_requirement_t durability)
+        explicit write_t(const batched_replace_t &br,
+                         durability_requirement_t durability)
             : write(br), durability_requirement(durability) { }
+        explicit write_t(const batched_insert_t &bi,
+                         durability_requirement_t durability)
+            : write(bi), durability_requirement(durability) { }
         explicit write_t(const point_write_t &w,
                          durability_requirement_t durability)
             : write(w), durability_requirement(durability) { }
