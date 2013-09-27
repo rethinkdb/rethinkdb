@@ -35,6 +35,7 @@ typedef rdb_protocol_t::write_response_t write_response_t;
 
 typedef rdb_protocol_t::batched_replace_t batched_replace_t;
 typedef rdb_protocol_t::batched_insert_t batched_insert_t;
+typedef rdb_protocol_t::batched_replace_response_t batched_replace_response_t;
 
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
@@ -134,7 +135,7 @@ struct btree_point_replacer_t {
     virtual bool return_vals_p() const = 0;
 };
 
-counted_t<const ql::datum_t> rdb_batched_replace(
+batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,

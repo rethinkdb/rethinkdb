@@ -189,7 +189,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
                        info.btree->timestamp, info.btree->txn, mod_info_out);
 }
 
-counted_t<const ql::datum_t> rdb_replace_and_return_superblock(
+batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
     promise_t<superblock_t *> *superblock_promise,
@@ -311,7 +311,7 @@ void do_a_replace_from_batched_replace(
     const btree_point_replacer_t *replacer,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_report_cb_t *sindex_cb,
-    counted_t<const ql::datum_t> *stats_out) {
+    batched_replace_response_t *stats_out) {
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
@@ -338,7 +338,7 @@ private:
     const size_t index;
 };
 
-counted_t<const ql::datum_t> rdb_batched_replace(
+batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,

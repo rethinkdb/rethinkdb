@@ -70,7 +70,7 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
     return d.to_counted();
 }
 
-template<class T>
+template<class T> // batched_replace_t and batched_insert_t
 counted_t<const datum_t> table_t::do_batched_write(
     env_t *env, T &&t, durability_requirement_t durability_requirement) {
     rdb_protocol_t::write_t write(std::move(t), durability_requirement);

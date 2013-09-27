@@ -487,8 +487,10 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    typedef counted_t<const ql::datum_t> batched_replace_response_t;
     struct write_response_t {
-        boost::variant<counted_t<const ql::datum_t>,
+        boost::variant<batched_replace_response_t,
+                       // batched_replace_response_t is also for batched_insert
                        point_write_response_t,
                        point_delete_response_t,
                        sindex_create_response_t,
