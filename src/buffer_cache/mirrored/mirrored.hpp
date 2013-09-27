@@ -276,7 +276,7 @@ private:
 
     ticks_t start_time;
     const int expected_change_count;
-    scoped_ptr_t<throttling_semaphore_acq_t> throttling_lock;
+    scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock;
     access_t access;
     repli_timestamp_t recency_timestamp;
     mc_inner_buf_t::version_id_t snapshot_version;

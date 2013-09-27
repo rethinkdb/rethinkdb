@@ -109,22 +109,31 @@ private:
 
 class adjustable_semaphore_acq_t {
 public:
-    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree) : acquiree(_acquiree) {
-        acquiree->co_lock();
+    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree, int c = 1, bool use_the_force = false) :
+                acquiree(_acquiree),
+                count(c) {
+                    
+        if (use_the_force)
+            acquiree->force_lock(count);
+        else
+            acquiree->co_lock(count);
     }
 
-    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
+    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) :
+                acquiree(movee.acquiree),
+                count(movee.count) {
         movee.acquiree = NULL;
     }
 
     ~adjustable_semaphore_acq_t() {
         if (acquiree) {
-            acquiree->unlock();
+            acquiree->unlock(count);
         }
     }
 
 private:
     adjustable_semaphore_t *acquiree;
+    int count;
     DISABLE_COPYING(adjustable_semaphore_acq_t);
 };
 

@@ -10,7 +10,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/rwi_lock.hpp"
-#include "concurrency/throttling_semaphore.hpp"
+#include "concurrency/semaphore.hpp"
 #include "serializer/types.hpp"
 #include "utils.hpp"
 
@@ -76,14 +76,14 @@ public:
 
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
         
-        void extract_throttling_lock(scoped_ptr_t<throttling_semaphore_acq_t> &target) {
+        void extract_throttling_lock(scoped_ptr_t<adjustable_semaphore_acq_t> &target) {
             throttling_lock.swap(target);
         }
 
     private:
         bool dirty;
         bool recency_dirty;
-        scoped_ptr_t<throttling_semaphore_acq_t> throttling_lock;
+        scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock;
 
     private:
         DISABLE_COPYING(local_buf_t);
@@ -115,10 +115,7 @@ private:
     bool writeback_in_progress;
     unsigned int active_flushes;
 
-    /* The throttling semaphore gradually decreases the throughput when the given resource
-     * (here: remaining number of clean blocks below max_dirty_blocks) becomes scarce.
-     * We use it to throttle write transactions. */
-    throttling_semaphore_t dirty_block_semaphore;
+    adjustable_semaphore_t dirty_block_semaphore;
 
     mc_cache_t *cache;
 

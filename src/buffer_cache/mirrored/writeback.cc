@@ -104,7 +104,7 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
             ticks_t start_time;
             cache->stats->pm_throttling_waiting.begin(&start_time);
             txn->throttling_lock.init(
-                    new throttling_semaphore_acq_t(&dirty_block_semaphore, txn->expected_change_count));
+                    new adjustable_semaphore_acq_t(&dirty_block_semaphore, txn->expected_change_count));
             cache->stats->pm_throttling_waiting.end(&start_time);
         }
 
@@ -116,7 +116,7 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
         // This 1 is just a dummy thing, so we go through the throttling queue and thereby
         // guarantee that write transactions do not get re-ordered relative to us.
         txn->throttling_lock.init(
-                new throttling_semaphore_acq_t(&dirty_block_semaphore, 1));
+                new adjustable_semaphore_acq_t(&dirty_block_semaphore, 1));
 
         /* Acquire flush lock in non-exclusive mode */
         flush_lock.co_lock(rwi_read);
@@ -167,7 +167,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
             gbuf->cache->writeback.dirty_bufs.push_back(this);
         }
         /* Use the force flag to prevent deadlocks; `co_lock()` could block. */
-        throttling_lock.init(new throttling_semaphore_acq_t(
+        throttling_lock.init(new adjustable_semaphore_acq_t(
                 &gbuf->cache->writeback.dirty_block_semaphore,
                 1,
                 true));
@@ -237,7 +237,7 @@ class writeback_t::buf_writer_t :
     public home_thread_mixin_t {
     friend class writeback_t;
     bool io_completed_;
-    scoped_ptr_t<throttling_semaphore_acq_t> throttling_lock;
+    scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock;
 
 public:
     struct launch_callback_t :
@@ -273,7 +273,7 @@ public:
         }
     } launch_cb;
 
-    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf, scoped_ptr_t<throttling_semaphore_acq_t> &t_lock)
+    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf, scoped_ptr_t<adjustable_semaphore_acq_t> &t_lock)
         : io_completed_(false) {
         throttling_lock.swap(t_lock);
         launch_cb.parent = wb;
@@ -476,7 +476,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
         // have the next batch of transactions starve completely again.
         // Instead, the throttling_lock will be released by buf_writer_t when
         // the block has actually been written to disk.
-        scoped_ptr_t<throttling_semaphore_acq_t> throttling_lock;
+        scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock;
         lbuf->extract_throttling_lock(throttling_lock);
         
         // Removes it from dirty_bufs
