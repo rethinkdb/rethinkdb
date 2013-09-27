@@ -227,7 +227,7 @@ tests:
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.insert({ 'id':row }), tbl.insert({ 'id':row*10 })])
       rb: r.expr([1,2,3]).for_each{ |row| [tbl.insert({ :id => row}), tbl.insert({ :id => row*10})] }
-      ot: ({'first_error':'Duplicate primary key.','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':3,'skipped':0.0,'inserted':3})
+      ot: ({'first_error':"Duplicate primary key `id`:\n{\n\t\"foo\":\t3,\n\t\"id\":\t1\n}\n{\n\t\"id\":\t1\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':3,'skipped':0.0,'inserted':3})
 
     - cd: tbl.count()
       ot: 6

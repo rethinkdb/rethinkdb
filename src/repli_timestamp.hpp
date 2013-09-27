@@ -8,8 +8,8 @@
 
 class printf_buffer_t;
 
-/* Note that repli_timestamp_t does NOT represent an actual timestamp; instead it's an arbitrary
-counter. */
+/* Note that repli_timestamp_t does NOT represent an actual timestamp; instead
+it's an arbitrary counter. */
 
 class repli_timestamp_t {
 public:
