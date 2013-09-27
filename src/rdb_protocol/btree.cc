@@ -371,6 +371,14 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
                                   sindex_cb));
 
         current_superblock.init(superblock_promise.wait());
+        // TODO (daniel): Quick hack to start a new transaction for each replace
+        current_superblock.reset();
+        txn->yield_flush_lock();
+        scoped_ptr_t<real_superblock_t> real_superblock;
+        get_btree_superblock(txn, txn->get_access(), &real_superblock);
+        // What is this? do we need to do it again? Or maybe we even leave the metainfo in an inconsistent state?
+        //check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), real_superblock.get());
+        current_superblock.init(real_superblock.release());
     }
 }
 
