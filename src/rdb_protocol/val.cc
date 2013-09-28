@@ -190,7 +190,11 @@ counted_t<const datum_t> table_t::batched_insert(
                     current_durability_requirement);
             } catch (interrupted_exc_t &e) {
                 interruptor.pulse_if_not_already_pulsed();
+            } catch (...) {
+                interruptor.pulse_if_not_already_pulsed();
             }
+            // TODO (daniel): What exactly do we have to do with these exceptions?
+            // We should certainly rethrow them somehow. But what if we receive multiple ones?
         }
         cond_t interruptor;
         table_t *tbl;
