@@ -72,7 +72,7 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 
 template<class T> // batched_replace_t and batched_insert_t
 counted_t<const datum_t> table_t::do_batched_write(
-    env_t *env, T &&t, durability_requirement_t durability_requirement) {
+        env_t *env, T &&t, durability_requirement_t durability_requirement) {  
     rdb_protocol_t::write_t write(std::move(t), durability_requirement);
     rdb_protocol_t::write_response_t response;
     access->get_namespace_if()->write(
@@ -161,13 +161,84 @@ counted_t<const datum_t> table_t::batched_insert(
     } else if (insert_datums.size() != 1) {
         r_sanity_check(!return_vals);
     }
+    
+   
+    /* With our current cache, there is the issue that long-running write
+     * transactions can stall further writes because of the flush lock.
+     * We split the write up into multiple single writes, each of which
+     * uses its own transaction.
+     * This is a bit messy, and should be considered a temporary work-around
+     * until we get the cache fixed.
+     */
+    // TODO (daniel): Make this work for replaces as well. Just
+    // put it into a small templated function which can spawn different kinds of
+    // writes.
+    // TODO (daniel): I'm actually unsure now again that this helps at all, because
+    // we launch all of the transactions simultaneously. Have to test that.
+    std::vector<counted_t<const datum_t> > insert_stats(valid_inserts.size());
+    const durability_requirement_t non_final_durability_requirement = DURABILITY_REQUIREMENT_SOFT;
+    
+    struct batch_map_env_t {
+        void batch_map(int i) {
+            try {
+                std::vector<counted_t<const datum_t> > single_datum;
+                single_datum.push_back(std::move((*valid_inserts)[i]));
+                (*insert_stats)[i] = tbl->do_batched_write(
+                    env,
+                    rdb_protocol_t::batched_insert_t(
+                            std::move(single_datum), tbl->get_pkey(), upsert, return_vals),
+                    current_durability_requirement);
+            } catch (interrupted_exc_t &e) {
+                interruptor.pulse_if_not_already_pulsed();
+            }
+        }
+        cond_t interruptor;
+        table_t *tbl;
+        env_t *env;
+        std::vector<counted_t<const datum_t> > *insert_stats;
+        std::vector<counted_t<const datum_t> > *valid_inserts;
+        durability_requirement_t current_durability_requirement;
+        bool upsert, return_vals;
+    };
+    batch_map_env_t batch_map;
+    batch_map.tbl = this;
+    batch_map.env = env;
+    batch_map.insert_stats = &insert_stats;
+    batch_map.valid_inserts = &valid_inserts;
+    batch_map.upsert = upsert;
+    batch_map.return_vals = return_vals;
+    
+    // First start all bat the final write with soft durability
+    batch_map.current_durability_requirement = non_final_durability_requirement;
+    if (valid_inserts.size() > 1) {
+        // TODO (daniel): Check that pmap works well with the interruptor...
+        pmap(valid_inserts.size() - 1, boost::bind(&batch_map_env_t::batch_map, &batch_map, _1));
+        if (batch_map.interruptor.is_pulsed()) {
+                throw interrupted_exc_t();
+        }
+    }
+    // When they are done, start the final write with the original durability
+    batch_map.current_durability_requirement = durability_requirement;
+    batch_map.batch_map(valid_inserts.size() - 1);
+    if (batch_map.interruptor.is_pulsed()) {
+        throw interrupted_exc_t();
+    }
+    
+    // Merge results
+    counted_t<const datum_t> counted_stats = stats.to_counted();
+    for (size_t i = 0; i < insert_stats.size(); ++i) {
+        counted_stats->merge(insert_stats[i], stats_merge);
+    }
+    return counted_stats;
 
+    // Below is the original code, which just launches a single batched insert.
+    /*
     counted_t<const datum_t> insert_stats = do_batched_write(
         env,
         rdb_protocol_t::batched_insert_t(
             std::move(valid_inserts), get_pkey(), upsert, return_vals),
         durability_requirement);
-    return stats.to_counted()->merge(insert_stats, stats_merge);
+    return stats.to_counted()->merge(insert_stats, stats_merge);*/
 }
 
 MUST_USE bool table_t::sindex_create(env_t *env,

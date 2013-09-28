@@ -249,7 +249,7 @@ public:
 
     mc_transaction_t(mc_cache_t *cache, access_t access, i_am_writeback_t i_am_writeback);
     ~mc_transaction_t();
-
+    
     mc_cache_t *get_cache() const { return cache; }
     access_t get_access() const { return access; }
 
