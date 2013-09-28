@@ -16,14 +16,14 @@ namespace ql {
 class datum_t;
 } //namespace ql
 
-class explain_t {
+class task_t {
 public:
-    explain_t(const std::string &description);
-    ~explain_t();
-    explain_t *new_task(const std::string &description);
-    explain_t *new_parallel_task(const std::string &description);
-    explain_t *finish_parallel_tasks(
-            const std::vector<explain_t *> &tasks,
+    task_t(const std::string &description);
+    ~task_t();
+    task_t *new_task(const std::string &description);
+    task_t *new_parallel_task(const std::string &description);
+    task_t *finish_parallel_tasks(
+            const std::vector<task_t *> &tasks,
             const std::string &description);
 
     void finish();
@@ -37,7 +37,7 @@ private:
     std::string description_;
     ticks_t start_time_;
     boost::optional<ticks_t> ticks_;
-    std::vector<explain_t *> parallel_tasks;
-    explain_t *next_task;
+    std::vector<task_t *> parallel_tasks;
+    task_t *next_task;
 };
 #endif
