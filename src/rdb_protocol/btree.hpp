@@ -126,13 +126,13 @@ struct btree_batched_replacer_t {
     virtual ~btree_batched_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t index) const = 0;
-    virtual bool return_vals_p() const = 0;
+    virtual bool should_return_vals() const = 0;
 };
 struct btree_point_replacer_t {
     virtual ~btree_point_replacer_t() { }
     virtual counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d) const = 0;
-    virtual bool return_vals_p() const = 0;
+    virtual bool should_return_vals() const = 0;
 };
 
 batched_replace_response_t rdb_batched_replace(

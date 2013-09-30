@@ -194,7 +194,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_point_replacer_t *replacer,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_info_t *mod_info_out) {
-    bool return_vals = replacer->return_vals_p();
+    bool return_vals = replacer->should_return_vals();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
@@ -312,7 +312,7 @@ public:
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d) const {
         return replacer->replace(d, index);
     }
-    bool return_vals_p() const { return replacer->return_vals_p(); }
+    bool should_return_vals() const { return replacer->should_return_vals(); }
 private:
     const btree_batched_replacer_t *const replacer;
     const size_t index;
@@ -378,7 +378,7 @@ batched_replace_response_t rdb_batched_replace(
 
             current_superblock.init(superblock_promise.wait());
         }
-    } // Make sure the drainer is destructed before we return.
+    } // Make sure the drainer is destructed before the return statement.
     return stats;
 }
 

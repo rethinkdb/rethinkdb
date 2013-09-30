@@ -1284,7 +1284,7 @@ public:
         const counted_t<const ql::datum_t> &d, size_t) const {
         return f->call(env, d)->as_datum();
     }
-    bool return_vals_p() const { return return_vals; }
+    bool should_return_vals() const { return return_vals; }
 private:
     ql::env_t *const env;
     const counted_t<ql::func_t> f;
@@ -1309,7 +1309,7 @@ public:
         }
         unreachable();
     }
-    bool return_vals_p() const { return return_vals; }
+    bool should_return_vals() const { return return_vals; }
 private:
     const std::vector<counted_t<const ql::datum_t> > *const datums;
     const bool upsert;
