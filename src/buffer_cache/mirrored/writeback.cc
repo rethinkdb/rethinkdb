@@ -476,8 +476,8 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
         // have the next batch of transactions starve completely again.
         // Instead, the throttling_lock will be released by buf_writer_t when
         // the block has actually been written to disk.
-        scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock;
-        lbuf->extract_throttling_lock(&throttling_lock);
+        scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock
+                = lbuf->extract_throttling_lock();
         
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);

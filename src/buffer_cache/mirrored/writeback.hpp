@@ -76,8 +76,8 @@ public:
 
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
         
-        void extract_throttling_lock(scoped_ptr_t<adjustable_semaphore_acq_t> *target) {
-            throttling_lock.swap(*target);
+        scoped_ptr_t<adjustable_semaphore_acq_t> extract_throttling_lock() {
+            return std::move(throttling_lock);
         }
 
     private:
