@@ -96,7 +96,7 @@ public:
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
     static std::string extract_secondary(const std::string &secondary_and_primary);
-    static boost::optional<size_t> extract_tag(const std::string &secondary_and_primary);
+    static boost::optional<uint64_t> extract_tag(const std::string &secondary_and_primary);
     store_key_t truncated_secondary() const;
     void check_type(type_t desired, const char *msg = NULL) const;
     void type_error(const std::string &msg) const NORETURN;
@@ -157,6 +157,8 @@ public:
     static bool key_is_truncated(const store_key_t &key);
 
     void rcheck_is_ptype(const std::string s = "") const;
+    void rcheck_valid_replace(counted_t<const datum_t> old_val,
+                              const std::string &pkey) const;
 
 private:
     friend class datum_ptr_t;
@@ -230,13 +232,22 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d);
 class datum_ptr_t {
 public:
     template<class... Args>
-    explicit datum_ptr_t(Args... args) : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
+    explicit datum_ptr_t(Args... args)
+        : ptr_(make_scoped<datum_t>(std::forward<Args>(args)...)) { }
     counted_t<const datum_t> to_counted(
             const std::set<std::string> &allowed_ptypes = std::set<std::string>()) {
         ptr()->maybe_sanitize_ptype(allowed_ptypes);
         return counted_t<const datum_t>(ptr_.release());
     }
     const datum_t *operator->() const { return const_ptr(); }
+    void add_error(const char *msg) {
+        counted_t<const datum_t> old_ecount = ptr()->get("errors", NOTHROW);
+        double ecount = (old_ecount.has() ? old_ecount->as_num() : 0) + 1;
+        UNUSED bool errors_clobber =
+            ptr()->add("errors", make_counted<const datum_t>(ecount), CLOBBER);
+        UNUSED bool first_error_clobber =
+            ptr()->add("first_error", make_counted<const datum_t>(msg), NOCLOBBER);
+    }
     void add(counted_t<const datum_t> val) { ptr()->add(val); }
     void change(size_t i, counted_t<const datum_t> val) { ptr()->change(i, val); }
     void insert(size_t i, counted_t<const datum_t> val) { ptr()->insert(i, val); }
@@ -302,6 +313,13 @@ public:
 private:
     enum { SERIALIZABLE, COMPILED } state;
 };
+
+
+// This function is used by e.g. foreach to merge statistics from multiple write
+// operations.
+counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
+                                     counted_t<const datum_t> l,
+                                     counted_t<const datum_t> r);
 
 namespace pseudo {
 class datum_cmp_t {

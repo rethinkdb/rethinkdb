@@ -48,15 +48,16 @@ private:
     void remove_block_from_tail(transaction_t *txn);
 
     mutex_t mutex;
-    int64_t queue_size;
-    block_id_t head_block_id, tail_block_id;
-    scoped_ptr_t<standard_serializer_t> serializer;
-    scoped_ptr_t<cache_t> cache;
 
     // Serves more as sanity-checking for the cache than this type's ordering.
     order_source_t cache_order_source;
     perfmon_collection_t perfmon_collection;
     perfmon_membership_t perfmon_membership;
+
+    int64_t queue_size;
+    block_id_t head_block_id, tail_block_id;
+    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<cache_t> cache;
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };

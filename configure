@@ -237,7 +237,17 @@ read_args () {
                 elif contains "$all_libs" "$arg"; then
                     static_libs="$static_libs $arg"
                 else
-                    die "Unknown static library: $arg"
+                    die "Unknown library: $arg"
+                fi ;;
+            --dynamic) $has_arg
+                if [[ "$arg" = none ]]; then
+                    static_libs=$all_libs
+                elif [[ "$arg" = all ]]; then
+                    static_libs=
+                elif contains "$all_libs" "$arg"; then
+                    static_libs=$(remove "$static_libs" "$arg")
+                else
+                    die "Unknown library: $arg"
                 fi ;;
             --lib-path) $has_arg; lib_paths="$lib_paths $arg" ;;
             --with-tcmalloc) $no_arg; with_tcmalloc=true ;;
@@ -305,6 +315,7 @@ EOF
     done
     cat <<EOF
   --static <lib>          Statically link some libraries. <lib> is a library name, 'all' or 'none'
+  --dynamic <lib>         Dynamically link some libraries. <lib> is a library name, 'all' or 'none'
   --prefix <dir>          Installation prefix. Defaults to /usr/local
   --sysconfdir <dir>      Configuration prefix. Defaults to /usr/local/etc
   --localstatedir <dir>   Runtime data prefix. Defaults to /usr/local/var
@@ -599,10 +610,21 @@ test_bin_version () {
 }
 
 # contains <haystack> <needle>
-# Test if the space-seperated list haystack contains needle
+# Test if the space-separated list haystack contains needle
 contains () {
     local d=" $1 "
     [[ "${d% $2 *}" != "$d" ]]
+}
+
+# remove <list> <item>
+# remove an item from a space-separated list
+remove () {
+    if contains "$1" "$2"; then
+        local d=" $1 "
+        echo -n "${d%% $2 *} ${d#* $2 }"
+    else
+        echo -n "$1"
+    fi
 }
 
 # any "<list>" <command>

@@ -1426,8 +1426,8 @@ void run_backup_script(const std::string& script_name, char * const arguments[])
     if (res == -1) {
         fprintf(stderr,
                 "Error when launching %s: %s\n"
-                "The %s command depends on the python driver, which much be installed.\n"
-                "Instructions for installing the python driver are available here:\n"
+                "The %s command depends on the RethinkDB Python driver, which must be installed.\n"
+                "Instructions for installing the RethinkDB Python driver are available here:\n"
                 "http://www.rethinkdb.com/docs/install-drivers/python/\n",
                 script_name.c_str(),
                 errno_string(errno).c_str(),
