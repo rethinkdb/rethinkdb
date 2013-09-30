@@ -186,7 +186,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 if (ap.key() == "noreply") {
                     bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
                     r_sanity_check(!conflict);
-                    counted_t<val_t> noreply = env->global_optargs.get_optarg(env, "noreply");
+                    counted_t<val_t> noreply
+                        = env->global_optargs.get_optarg(env, "noreply");
                     r_sanity_check(noreply.has());
                     *response_needed_out = !noreply->as_bool();
                     break;

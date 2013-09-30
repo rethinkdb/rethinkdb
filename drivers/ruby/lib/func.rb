@@ -58,8 +58,13 @@ module RethinkDB
         }
       end
 
+      old_m = m
       m = @@rewrites[m] || m
-      termtype = Term::TermType.const_get(m.to_s.upcase)
+      begin
+        termtype = Term::TermType.const_get(m.to_s.upcase)
+      rescue NameError => e
+        unbound_if(true, old_m)
+      end
       unbound_if(!termtype, m)
 
       if (opt_offset = @@optarg_offsets[m])

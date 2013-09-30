@@ -360,6 +360,21 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
+void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
+                                   const std::string &pkey) const {
+    counted_t<const datum_t> pk = get(pkey, NOTHROW);
+    rcheck(pk.has(), base_exc_t::GENERIC,
+           strprintf("Inserted object must have primary key `%s`:\n%s",
+                     pkey.c_str(), print().c_str()));
+    if (old_val.has() && old_val->get_type() != R_NULL) {
+        counted_t<const datum_t> old_pk = old_val->get(pkey, NOTHROW);
+        r_sanity_check(old_pk.has());
+        rcheck(*old_pk == *pk, base_exc_t::GENERIC,
+               strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
+                         pkey.c_str(), old_val->print().c_str(), print().c_str()));
+    }
+}
+
 std::string datum_t::print_primary() const {
     std::string s;
     switch (get_type()) {
@@ -392,7 +407,8 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
-std::string datum_t::mangle_secondary(const std::string &secondary, const std::string &primary,
+std::string datum_t::mangle_secondary(const std::string &secondary,
+                                      const std::string &primary,
         const std::string &tag) {
     guarantee(secondary.size() < UINT8_MAX);
     guarantee(secondary.size() + primary.size() < UINT8_MAX);
@@ -407,7 +423,7 @@ std::string datum_t::mangle_secondary(const std::string &secondary, const std::s
 }
 
 std::string datum_t::print_secondary(const store_key_t &primary_key,
-        boost::optional<uint64_t> tag_num) const {
+                                     boost::optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
@@ -493,10 +509,11 @@ boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
     return components.tag_num;
 }
 
-// This function returns a store_key_t suitable for searching by a secondary-index.
-//  This is needed because secondary indexes may be truncated, but the amount truncated
-//  depends on the length of the primary key.  Since we do not know how much was truncated,
-//  we have to truncate the maximum amount, then return all matches and filter them out later.
+// This function returns a store_key_t suitable for searching by a
+// secondary-index.  This is needed because secondary indexes may be truncated,
+// but the amount truncated depends on the length of the primary key.  Since we
+// do not know how much was truncated, we have to truncate the maximum amount,
+// then return all matches and filter them out later.
 store_key_t datum_t::truncated_secondary() const {
     std::string s;
     if (type == R_NUM) {
@@ -1291,6 +1308,36 @@ archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
     if (res) return res;
     state = SERIALIZABLE;
     return ARCHIVE_SUCCESS;
+}
+
+// `key` is unused because this is passed to `datum_t::merge`, which takes a
+// generic conflict resolution function, but this particular conflict resolution
+// function doesn't care about they key (although we could add some
+// error-checking using the key in the future).
+counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
+                                     counted_t<const datum_t> l,
+                                     counted_t<const datum_t> r) {
+    if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
+        return make_counted<datum_t>(l->as_num() + r->as_num());
+    } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
+        datum_ptr_t arr(datum_t::R_ARRAY);
+        for (size_t i = 0; i < l->size(); ++i) {
+            arr.add(l->get(i));
+        }
+        for (size_t i = 0; i < r->size(); ++i) {
+            arr.add(r->get(i));
+        }
+        return arr.to_counted();
+    }
+
+    // Merging a string is left-preferential, which is just a no-op.
+    rcheck_datum(
+        l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        base_exc_t::GENERIC,
+        strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
+                  l->trunc_print().c_str(), l->get_type_name().c_str(),
+                  r->trunc_print().c_str(), r->get_type_name().c_str()));
+    return l;
 }
 
 } // namespace ql
