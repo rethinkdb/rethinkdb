@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_INTRUSIVE_LIST_HPP_
 #define CONTAINERS_INTRUSIVE_LIST_HPP_
 
@@ -8,16 +8,7 @@ template <class node_t> class intrusive_list_t;
 
 template <class derived_t>
 class intrusive_list_node_t {
-    friend class intrusive_list_t<derived_t>;
-
 public:
-    intrusive_list_node_t() :
-#ifndef NDEBUG
-        parent_list(NULL),
-#endif
-        prev(NULL), next(NULL)
-        {}
-
 #ifndef NDEBUG
     bool in_a_list() {
         return (parent_list != NULL);
@@ -25,6 +16,13 @@ public:
 #endif
 
 protected:
+    intrusive_list_node_t() :
+#ifndef NDEBUG
+        parent_list(NULL),
+#endif
+        prev(NULL), next(NULL)
+        {}
+
     ~intrusive_list_node_t() {
         rassert(prev == NULL);
         rassert(next == NULL);
@@ -32,6 +30,8 @@ protected:
     }
 
 private:
+    friend class intrusive_list_t<derived_t>;
+
 #ifndef NDEBUG
     intrusive_list_t<derived_t> *parent_list;
 #endif
