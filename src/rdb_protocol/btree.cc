@@ -378,7 +378,7 @@ batched_replace_response_t rdb_batched_replace(
 
             current_superblock.init(superblock_promise.wait());
         }
-    }
+    } // Make sure the drainer is destructed before we return.
     return stats;
 }
 
