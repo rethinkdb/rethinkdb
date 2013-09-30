@@ -103,7 +103,7 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
         {
             ticks_t start_time;
             cache->stats->pm_throttling_waiting.begin(&start_time);
-            txn->throttling_lock.init(
+            txn->throttling_acq.init(
                     new adjustable_semaphore_acq_t(&dirty_block_semaphore, txn->expected_change_count));
             cache->stats->pm_throttling_waiting.end(&start_time);
         }
@@ -115,7 +115,7 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
         /* Throttling */
         // This 1 is just a dummy thing, so we go through the throttling queue and thereby
         // guarantee that write transactions do not get re-ordered relative to us.
-        txn->throttling_lock.init(
+        txn->throttling_acq.init(
                 new adjustable_semaphore_acq_t(&dirty_block_semaphore, 1));
 
         /* Acquire flush lock in non-exclusive mode */
@@ -127,14 +127,14 @@ void writeback_t::begin_transaction(mc_transaction_t *txn) {
         // 3. unlock the flush_lock immediately, we don't really need it
         txn->access = rwi_read;
 
-        txn->throttling_lock.reset();
+        txn->throttling_acq.reset();
         flush_lock.unlock();
     }
 }
 
 void writeback_t::on_transaction_commit(mc_transaction_t *txn) {
     if (txn->get_access() == rwi_write) {
-        txn->throttling_lock.reset();
+        txn->throttling_acq.reset();
 
         flush_lock.unlock();
 
@@ -167,7 +167,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
             gbuf->cache->writeback.dirty_bufs.push_back(this);
         }
         /* Use the force flag to prevent deadlocks; `co_lock()` could block. */
-        throttling_lock.init(new adjustable_semaphore_acq_t(
+        throttling_acq.init(new adjustable_semaphore_acq_t(
                 &gbuf->cache->writeback.dirty_block_semaphore,
                 1,
                 true));
@@ -179,7 +179,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
         if (!recency_dirty) {
             gbuf->cache->writeback.dirty_bufs.remove(this);
         }
-        throttling_lock.reset();
+        throttling_acq.reset();
         --gbuf->cache->stats->pm_n_blocks_dirty;
     }
 }
@@ -237,7 +237,7 @@ class writeback_t::buf_writer_t :
     public home_thread_mixin_t {
     friend class writeback_t;
     bool io_completed_;
-    scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock;
+    scoped_ptr_t<adjustable_semaphore_acq_t> throttling_acq;
 
 public:
     struct launch_callback_t :
@@ -273,9 +273,9 @@ public:
         }
     } launch_cb;
 
-    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf, scoped_ptr_t<adjustable_semaphore_acq_t> &&t_lock)
+    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf, scoped_ptr_t<adjustable_semaphore_acq_t> &&t_acq)
         : io_completed_(false) {
-        throttling_lock = std::move(t_lock);
+        throttling_acq = std::move(t_acq);
         launch_cb.parent = wb;
         launch_cb.buf = std::move(buf);
         launch_cb.parent->cache->assert_thread();
@@ -288,7 +288,7 @@ public:
         
         // Release the throttling lock now that the block has been written to disk.
         // This allows queued up write transaction to get through again.
-        throttling_lock.reset();
+        throttling_acq.reset();
         
         // Ideally, if we were done updating the block sequence id, we would be able to release the
         // buffer now. However, we're not in coroutine context, and releasing a buffer could require
@@ -476,8 +476,8 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
         // have the next batch of transactions starve completely again.
         // Instead, the throttling_lock will be released by buf_writer_t when
         // the block has actually been written to disk.
-        scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock
-                = lbuf->extract_throttling_lock();
+        scoped_ptr_t<adjustable_semaphore_acq_t> throttling_acq
+                = lbuf->extract_throttling_acq();
         
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
@@ -503,7 +503,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
             guarantee(buf_block_size.value() <= cache->serializer->get_block_size().value());
 
             // Initiate a write and hand over the throttling lock
-            buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf), std::move(throttling_lock));
+            buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf), std::move(throttling_acq));
             state->buf_writers.push_back(buf_writer);
 
             // Fill the serializer structure
