@@ -109,14 +109,15 @@ private:
 
 class adjustable_semaphore_acq_t {
 public:
-    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree, int c = 1, bool use_the_force = false) :
+    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree, int _count = 1, bool _force = false) :
                 acquiree(_acquiree),
-                count(c) {
+                count(_count) {
                     
-        if (use_the_force)
+        if (_force) {
             acquiree->force_lock(count);
-        else
+        } else {
             acquiree->co_lock(count);
+        }
     }
 
     adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) :

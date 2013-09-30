@@ -273,9 +273,9 @@ public:
         }
     } launch_cb;
 
-    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf, scoped_ptr_t<adjustable_semaphore_acq_t> &t_lock)
+    buf_writer_t(writeback_t *wb, scoped_ptr_t<mc_buf_lock_t> &&buf, scoped_ptr_t<adjustable_semaphore_acq_t> &&t_lock)
         : io_completed_(false) {
-        throttling_lock.swap(t_lock);
+        throttling_lock = std::move(t_lock);
         launch_cb.parent = wb;
         launch_cb.buf = std::move(buf);
         launch_cb.parent->cache->assert_thread();
@@ -477,7 +477,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
         // Instead, the throttling_lock will be released by buf_writer_t when
         // the block has actually been written to disk.
         scoped_ptr_t<adjustable_semaphore_acq_t> throttling_lock;
-        lbuf->extract_throttling_lock(throttling_lock);
+        lbuf->extract_throttling_lock(&throttling_lock);
         
         // Removes it from dirty_bufs
         lbuf->set_dirty(false);
@@ -503,7 +503,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
             guarantee(buf_block_size.value() <= cache->serializer->get_block_size().value());
 
             // Initiate a write and hand over the throttling lock
-            buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf), throttling_lock);
+            buf_writer_t *buf_writer = new buf_writer_t(this, std::move(buf), std::move(throttling_lock));
             state->buf_writers.push_back(buf_writer);
 
             // Fill the serializer structure
