@@ -165,67 +165,43 @@ counted_t<const datum_t> table_t::batched_insert(
    
     /* With our current cache, there is the issue that long-running write
      * transactions can stall further writes because of the flush lock.
-     * We split the write up into multiple single writes, each of which
+     * We split the write up into multiple smaller writes, each of which
      * uses its own transaction.
      * This is a bit messy, and should be considered a temporary work-around
      * until we get the cache fixed.
      */
     // TODO (daniel): Make this work for replaces as well. Just
-    // put it into a small templated function which can spawn different kinds of
+    // put it into a small templated function which can split up different kinds of
     // writes.
-    // TODO (daniel): I'm actually unsure now again that this helps at all, because
-    // we launch all of the transactions simultaneously. Have to test that.
-    std::vector<counted_t<const datum_t> > insert_stats(valid_inserts.size());
+    const size_t SUB_BATCH_SIZE = 8;
+    
+    // First start all bat the final write with soft durability.
+    // When they are done, the final write is performed with the original durability.
+    // WARNING: This makes the assumption that whenever we have a hard durability
+    // write to the cache, it will always guarantee that all previous soft
+    // durability writes are getting to disk as well. This is true for our current
+    // cache, but could change in the future.
     const durability_requirement_t non_final_durability_requirement = DURABILITY_REQUIREMENT_SOFT;
-    
-    struct batch_map_env_t {
-        void batch_map(int i) {
-            try {
-                std::vector<counted_t<const datum_t> > single_datum;
-                single_datum.push_back(std::move((*valid_inserts)[i]));
-                (*insert_stats)[i] = tbl->do_batched_write(
-                    env,
-                    rdb_protocol_t::batched_insert_t(
-                            std::move(single_datum), tbl->get_pkey(), upsert, return_vals),
-                    current_durability_requirement);
-            } catch (interrupted_exc_t &e) {
-                interruptor.pulse_if_not_already_pulsed();
-            } catch (...) {
-                interruptor.pulse_if_not_already_pulsed();
-            }
-            // TODO (daniel): What exactly do we have to do with these exceptions?
-            // We should certainly rethrow them somehow. But what if we receive multiple ones?
+    std::vector<counted_t<const datum_t> > insert_stats;
+    insert_stats.reserve(valid_inserts.size() / SUB_BATCH_SIZE + 1);
+    size_t sub_batch_begin = 0;
+    while (sub_batch_begin < valid_inserts.size()) {
+        const size_t sub_batch_end = std::min(valid_inserts.size(), sub_batch_begin + SUB_BATCH_SIZE);
+        const bool is_final_batch = sub_batch_end == valid_inserts.size();
+        const durability_requirement_t current_durability_requirement =
+                    is_final_batch ? durability_requirement : non_final_durability_requirement;
+        
+        // The final sub batch can be smaller than SUB_BATCH_SIZE.
+        const size_t actual_sub_batch_size = sub_batch_end - sub_batch_begin;
+        std::vector<counted_t<const datum_t> > sub_batch(actual_sub_batch_size);
+        for (size_t i = 0; i < actual_sub_batch_size; ++i) {
+                sub_batch[i] = std::move(valid_inserts[sub_batch_begin + i]);
         }
-        cond_t interruptor;
-        table_t *tbl;
-        env_t *env;
-        std::vector<counted_t<const datum_t> > *insert_stats;
-        std::vector<counted_t<const datum_t> > *valid_inserts;
-        durability_requirement_t current_durability_requirement;
-        bool upsert, return_vals;
-    };
-    batch_map_env_t batch_map;
-    batch_map.tbl = this;
-    batch_map.env = env;
-    batch_map.insert_stats = &insert_stats;
-    batch_map.valid_inserts = &valid_inserts;
-    batch_map.upsert = upsert;
-    batch_map.return_vals = return_vals;
-    
-    // First start all bat the final write with soft durability
-    batch_map.current_durability_requirement = non_final_durability_requirement;
-    if (valid_inserts.size() > 1) {
-        // TODO (daniel): Check that pmap works well with the interruptor...
-        pmap(valid_inserts.size() - 1, boost::bind(&batch_map_env_t::batch_map, &batch_map, _1));
-        if (batch_map.interruptor.is_pulsed()) {
-                throw interrupted_exc_t();
-        }
-    }
-    // When they are done, start the final write with the original durability
-    batch_map.current_durability_requirement = durability_requirement;
-    batch_map.batch_map(valid_inserts.size() - 1);
-    if (batch_map.interruptor.is_pulsed()) {
-        throw interrupted_exc_t();
+        insert_stats.push_back(do_batched_write(
+                env,
+                rdb_protocol_t::batched_insert_t(
+                        std::move(sub_batch), get_pkey(), upsert, return_vals),
+                current_durability_requirement));
     }
     
     // Merge results
