@@ -72,7 +72,8 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 
 template<class T> // batched_replace_t and batched_insert_t
 counted_t<const datum_t> table_t::do_batched_write(
-        env_t *env, T &&t, durability_requirement_t durability_requirement) {  
+    env_t *env, T &&t, durability_requirement_t durability_requirement) {
+
     rdb_protocol_t::write_t write(std::move(t), durability_requirement);
     rdb_protocol_t::write_response_t response;
     access->get_namespace_if()->write(
@@ -188,7 +189,7 @@ counted_t<const datum_t> table_t::batched_insert(
     while (sub_batch_begin < valid_inserts.size()) {
         const size_t sub_batch_end = std::min(valid_inserts.size(), sub_batch_begin + SUB_BATCH_SIZE);
         const bool is_final_batch = sub_batch_end == valid_inserts.size();
-        const durability_requirement_t current_durability_requirement =
+        const durability_requirement_t sub_batch_durability_requirement =
                     is_final_batch ? durability_requirement : non_final_durability_requirement;
         
         // The final sub batch can be smaller than SUB_BATCH_SIZE.
@@ -201,7 +202,7 @@ counted_t<const datum_t> table_t::batched_insert(
                 env,
                 rdb_protocol_t::batched_insert_t(
                         std::move(sub_batch), get_pkey(), upsert, return_vals),
-                        current_durability_requirement));
+                        sub_batch_durability_requirement));
         
         sub_batch_begin += SUB_BATCH_SIZE;
     }
@@ -209,7 +210,7 @@ counted_t<const datum_t> table_t::batched_insert(
     // Merge results
     counted_t<const datum_t> counted_stats = stats.to_counted();
     for (size_t i = 0; i < insert_stats.size(); ++i) {
-        counted_stats->merge(insert_stats[i], stats_merge);
+        counted_stats = counted_stats->merge(insert_stats[i], stats_merge);
     }
     return counted_stats;
 

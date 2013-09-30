@@ -347,7 +347,7 @@ batched_replace_response_t rdb_batched_replace(
 
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
-    
+
     // Note the destructor ordering: We have to drain write operations before
     // destructing the batched_replaces_fifo_sink, because the coroutines being
     // drained use said fifo.
