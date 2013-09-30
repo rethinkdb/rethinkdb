@@ -201,7 +201,9 @@ counted_t<const datum_t> table_t::batched_insert(
                 env,
                 rdb_protocol_t::batched_insert_t(
                         std::move(sub_batch), get_pkey(), upsert, return_vals),
-                current_durability_requirement));
+                        current_durability_requirement));
+        
+        sub_batch_begin += SUB_BATCH_SIZE;
     }
     
     // Merge results
