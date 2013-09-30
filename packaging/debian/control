@@ -17,7 +17,7 @@ Source: VERSIONED_QUALIFIED_PACKAGE_NAME
 Section: database
 Priority: optional
 Maintainer: Package Maintainer <packaging@rethinkdb.com>
-define(`BASE_DEPENDS',`Build-Depends: g++, libboost-dev, libssl-dev, libboost-program-options-dev, curl, exuberant-ctags, m4, debhelper, fakeroot, python, openjdk-6-jdk')dnl
+define(`BASE_DEPENDS',`Build-Depends: g++, libboost-dev, libssl-dev, curl, exuberant-ctags, m4, debhelper, fakeroot, python, libncurses5-dev')dnl
 define(`NODEJS_DEPENDS_EXTRA',`ifelse(NODEJS_NEW,1,`, nodejs-legacy',`')')dnl
 define(`V8_DEPENDS_EXTRA',`ifelse(STATIC_V8,0,`, libv8-dev',`')')dnl
 define(`PROTOC_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libprotoc-dev',`')')dnl
@@ -32,7 +32,7 @@ Package: VERSIONED_QUALIFIED_PACKAGE_NAME
 Version: PACKAGE_VERSION
 Architecture: ifelse(SOURCEBUILD, 1,`i386 amd64', `CURRENT_ARCH')
 Pre-Depends: adduser (>= 3.40)
-Depends: ifelse(LEGACY_PACKAGE, 1,
+Depends: libncurses5, ifelse(LEGACY_PACKAGE, 1,
   `libc6 (>= 2.5), libstdc++6 (>= 4.4), libgcc1',
   `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libprotobuf7')`'dnl
 ifelse(STATIC_V8, 0, `, libv8-dev (>= 3.1)', `')
@@ -47,7 +47,7 @@ Package: VERSIONED_QUALIFIED_PACKAGE_NAME`'-dbg
 Version: PACKAGE_VERSION
 Architecture: i386 amd64
 Pre-Depends: adduser (>= 3.40)
-Depends: ifelse(LEGACY_LINUX, 1, `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1',
+Depends: libncurses5, ifelse(LEGACY_LINUX, 1, `libc6 (>= 2.5), libstdc++6 (>= 4.6), libgcc1',
   `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1')`'dnl
 ifelse(STATIC_V8, 0, `, libv8-dev (>= 3.1)', `')`, 'VERSIONED_QUALIFIED_PACKAGE_NAME` '(= PACKAGE_VERSION)
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)

@@ -194,7 +194,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_point_replacer_t *replacer,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_info_t *mod_info_out) {
-    bool return_vals = replacer->return_vals_p();
+    bool return_vals = replacer->should_return_vals();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
@@ -303,26 +303,6 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     return resp.to_counted();
 }
 
-void do_a_replace_from_batched_replace(
-    auto_drainer_t::lock_t,
-    fifo_enforcer_sink_t *batched_replaces_fifo_sink,
-    const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
-    const btree_loc_info_t &info,
-    const btree_point_replacer_t *replacer,
-    promise_t<superblock_t *> *superblock_promise,
-    rdb_modification_report_cb_t *sindex_cb,
-    batched_replace_response_t *stats_out) {
-    fifo_enforcer_sink_t::exit_write_t exiter(
-        batched_replaces_fifo_sink, batched_replaces_fifo_token);
-
-    rdb_modification_report_t mod_report(*info.key);
-    counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
-        info, replacer, superblock_promise, &mod_report.info);
-    *stats_out = (*stats_out)->merge(res, ql::stats_merge);
-
-    exiter.wait();
-    sindex_cb->on_mod_report(mod_report);
-}
 
 class one_replace_t : public btree_point_replacer_t {
 public:
@@ -332,11 +312,32 @@ public:
     counted_t<const ql::datum_t> replace(const counted_t<const ql::datum_t> &d) const {
         return replacer->replace(d, index);
     }
-    bool return_vals_p() const { return replacer->return_vals_p(); }
+    bool should_return_vals() const { return replacer->should_return_vals(); }
 private:
     const btree_batched_replacer_t *const replacer;
     const size_t index;
 };
+
+void do_a_replace_from_batched_replace(
+    auto_drainer_t::lock_t,
+    fifo_enforcer_sink_t *batched_replaces_fifo_sink,
+    const fifo_enforcer_write_token_t &batched_replaces_fifo_token,
+    const btree_loc_info_t &info,
+    const one_replace_t one_replace,
+    promise_t<superblock_t *> *superblock_promise,
+    rdb_modification_report_cb_t *sindex_cb,
+    batched_replace_response_t *stats_out) {
+    fifo_enforcer_sink_t::exit_write_t exiter(
+        batched_replaces_fifo_sink, batched_replaces_fifo_token);
+
+    rdb_modification_report_t mod_report(*info.key);
+    counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
+        info, &one_replace, superblock_promise, &mod_report.info);
+    *stats_out = (*stats_out)->merge(res, ql::stats_merge);
+
+    exiter.wait();
+    sindex_cb->on_mod_report(mod_report);
+}
 
 batched_replace_response_t rdb_batched_replace(
     const btree_info_t &info,
@@ -348,37 +349,36 @@ batched_replace_response_t rdb_batched_replace(
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
 
-    // Note the destructor ordering: We have to drain write operations before
-    // destructing the batched_replaces_fifo_sink, because the coroutines being
-    // drained use said fifo.
-    auto_drainer_t drainer;
-
-    // Note the destructor ordering: We release the superblock before draining
-    // on all the write operations.
-    scoped_ptr_t<superblock_t> current_superblock(superblock->release());
-
     counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
-    for (size_t i = 0; i < keys.size(); ++i) {
-        one_replace_t replace_i(replacer, i);
 
-        // Pass out the point_replace_response_t.
-        promise_t<superblock_t *> superblock_promise;
-        coro_t::spawn(
-            boost::bind(
-                &do_a_replace_from_batched_replace,
-                auto_drainer_t::lock_t(&drainer),
-                &batched_replaces_fifo_sink,
-                batched_replaces_fifo_source.enter_write(),
+    // We have to drain write operations before destructing everything above us,
+    // because the coroutines being drained use them.
+    {
+        auto_drainer_t drainer;
 
-                btree_loc_info_t(&info, current_superblock.release(), &keys[i]),
-                &replace_i,
+        // Note the destructor ordering: We release the superblock before draining
+        // on all the write operations.
+        scoped_ptr_t<superblock_t> current_superblock(superblock->release());
+        for (size_t i = 0; i < keys.size(); ++i) {
+            // Pass out the point_replace_response_t.
+            promise_t<superblock_t *> superblock_promise;
+            coro_t::spawn(
+                boost::bind(
+                    &do_a_replace_from_batched_replace,
+                    auto_drainer_t::lock_t(&drainer),
+                    &batched_replaces_fifo_sink,
+                    batched_replaces_fifo_source.enter_write(),
 
-                &superblock_promise,
-                sindex_cb,
-                &stats));
+                    btree_loc_info_t(&info, current_superblock.release(), &keys[i]),
+                    one_replace_t(replacer, i),
 
-        current_superblock.init(superblock_promise.wait());
-    }
+                    &superblock_promise,
+                    sindex_cb,
+                    &stats));
+
+            current_superblock.init(superblock_promise.wait());
+        }
+    } // Make sure the drainer is destructed before the return statement.
     return stats;
 }
 
