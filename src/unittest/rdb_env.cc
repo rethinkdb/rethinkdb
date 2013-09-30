@@ -2,6 +2,7 @@
 #include "unittest/rdb_env.hpp"
 
 #include "rdb_protocol/func.hpp"
+#include "rdb_protocol/explain.hpp"
 
 namespace unittest {
 
@@ -265,6 +266,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     test_cluster(0),
     rdb_ns_repo()
 {
+    explain::task_t task("unittest");
     env.init(new ql::env_t(&extproc_pool,
                            &rdb_ns_repo,
                            namespaces_metadata,
@@ -273,7 +275,8 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            NULL,
                            &interruptor,
                            test_env->machine_id,
-                           std::map<std::string, ql::wire_func_t>()));
+                           std::map<std::string, ql::wire_func_t>(),
+                           &task));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas

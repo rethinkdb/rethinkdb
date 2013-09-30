@@ -139,7 +139,8 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
-    const std::map<std::string, wire_func_t> &_optargs)
+    const std::map<std::string, wire_func_t> &_optargs,
+    explain::task_t *_task)
   : global_optargs(_optargs),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
@@ -149,6 +150,7 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
+    task(_task),
     eval_callback(NULL) { }
 
 env_t::env_t(signal_t *_interruptor)
@@ -160,6 +162,7 @@ env_t::env_t(signal_t *_interruptor)
                    NULL,
                    uuid_u()),
     interruptor(_interruptor),
+    task(NULL),
     eval_callback(NULL) { }
 
 env_t::~env_t() { }

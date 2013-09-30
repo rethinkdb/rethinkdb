@@ -5,6 +5,7 @@
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/explain.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -47,6 +48,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
     try {
         threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
+        explain::task_t task("Start query");
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
                 ctx->extproc_pool, ctx->ns_repo,
@@ -54,7 +56,8 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
                 interruptor, ctx->machine_id,
-                std::map<std::string, ql::wire_func_t>()));
+                std::map<std::string, ql::wire_func_t>(),
+                &task));
         // `ql::run` will set the status code
         ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
     } catch (const interrupted_exc_t &e) {

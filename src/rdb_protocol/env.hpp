@@ -18,10 +18,13 @@
 
 class extproc_pool_t;
 
+namespace explain {
+class task_t;
+} //namespace explain
+
 namespace ql {
 class datum_t;
 class term_t;
-class compile_env_t;
 
 class global_optargs_t {
 public:
@@ -94,7 +97,8 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine,
-        const std::map<std::string, wire_func_t> &_optargs);
+        const std::map<std::string, wire_func_t> &_optargs,
+        explain::task_t *_task);
 
     explicit env_t(signal_t *);
 
@@ -132,6 +136,8 @@ public:
 
     // The interruptor signal while a query evaluates.  This can get overwritten!
     signal_t *interruptor;
+
+    explain::task_t *task;
 
 private:
     js_runner_t js_runner;

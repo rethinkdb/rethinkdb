@@ -16,10 +16,14 @@ namespace ql {
 class datum_t;
 } //namespace ql
 
+namespace explain {
+
 class task_t {
 public:
+    task_t();
     task_t(const std::string &description);
     ~task_t();
+    void init(const std::string &description);
     task_t *new_task(const std::string &description);
     task_t *new_parallel_task(const std::string &description);
     task_t *finish_parallel_tasks(
@@ -34,10 +38,13 @@ private:
     void as_datum_helper(std::vector<counted_t<const ql::datum_t> > *parent) const;
     counted_t<const ql::datum_t> get_atom() const;
 
+    enum state_t {INIT, RUNNING, FINISHED} state_;
+
     std::string description_;
-    ticks_t start_time_;
-    boost::optional<ticks_t> ticks_;
+    ticks_t start_time_, ticks_;
     std::vector<task_t *> parallel_tasks;
     task_t *next_task;
 };
+
+} //namespace explain
 #endif

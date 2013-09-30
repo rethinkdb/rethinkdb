@@ -26,8 +26,9 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/wire_func.hpp"
+#include "rdb_protocol/explain.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
+#include "rdb_protocol/wire_func.hpp"
 #include "utils.hpp"
 
 class extproc_pool_t;
@@ -286,6 +287,7 @@ struct rdb_protocol_t {
                        rget_read_response_t,
                        distribution_read_response_t,
                        sindex_list_response_t> response;
+        explain::task_t task;
 
         read_response_t() { }
         explicit read_response_t(const boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> &r)
@@ -499,6 +501,7 @@ struct rdb_protocol_t {
                        point_delete_response_t,
                        sindex_create_response_t,
                        sindex_drop_response_t> response;
+        explain::task_t task;
 
         write_response_t() { }
         explicit write_response_t(const point_replace_response_t& r) : response(r) { }

@@ -3,15 +3,28 @@
 #include "rdb_protocol/explain.hpp"
 #include "rdb_protocol/datum.hpp"
 
+namespace explain {
+
+task_t::task_t()
+    : state_(INIT) { }
+
 task_t::task_t(const std::string &description)
-    : description_(description), start_time_(get_ticks()), next_task(NULL)
-{ }
+    : next_task(NULL)
+{
+    init(description);
+}
 
 task_t::~task_t() {
     for (auto it = parallel_tasks.begin(); it != parallel_tasks.end(); ++it) {
         delete *it;
     }
     delete next_task;
+}
+
+void task_t::init(const std::string &description) {
+    state_ = RUNNING;
+    description_ = description;
+    start_time_ = get_ticks();
 }
 
 task_t *task_t::new_task(const std::string &description) {
@@ -42,6 +55,9 @@ task_t *task_t::finish_parallel_tasks(
 }
 
 void task_t::finish() {
+    guarantee(state_ == RUNNING,
+            "Can't call finish without calling init (or constructing with a description)");
+    state_ = FINISHED;
     ticks_ = get_ticks() - start_time_;
 }
 
@@ -69,11 +85,13 @@ void task_t::as_datum_helper(
 }
 
 counted_t<const ql::datum_t> task_t::get_atom() const {
+    guarantee(state_ == FINISHED,  "Someone tried to convert to a datum without calling `finish`.");
     std::map<std::string, counted_t<const ql::datum_t> > res;
     res["description"] =
         make_counted<const ql::datum_t>(std::move(std::string(description_)));
-    guarantee(ticks_, "Someone tried to convert to a datum without calling `finish`.\n");
-    guarantee(*ticks_ < std::numeric_limits<double>::max());
-    res["time"] = make_counted<const ql::datum_t>(static_cast<double>(*ticks_));
+    guarantee(ticks_ < std::numeric_limits<double>::max());
+    res["time"] = make_counted<const ql::datum_t>(static_cast<double>(ticks_));
     return make_counted<const ql::datum_t>(std::move(res));
 }
+
+} //namespace explain
