@@ -174,7 +174,7 @@ counted_t<const datum_t> table_t::batched_insert(
     // TODO (daniel): Make this work for replaces as well. Just
     // put it into a small templated function which can split up different kinds of
     // writes.
-    const size_t SUB_BATCH_SIZE = 8;
+    const size_t SUB_BATCH_SIZE = 16;
     
     // First start all bat the final write with soft durability.
     // When they are done, the final write is performed with the original durability.
@@ -202,7 +202,7 @@ counted_t<const datum_t> table_t::batched_insert(
                 env,
                 rdb_protocol_t::batched_insert_t(
                         std::move(sub_batch), get_pkey(), upsert, return_vals),
-                        sub_batch_durability_requirement));
+                sub_batch_durability_requirement));
         
         sub_batch_begin += SUB_BATCH_SIZE;
     }
