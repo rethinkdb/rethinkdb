@@ -4,7 +4,7 @@ tests:
       cd: t = 1375147296.68
       js: t = 1375147296.68 * 1000
 
-  - rb: r(Time.at(t)).to_iso8601
+  - rb: r(Time.at(t).getlocal('-07:00')).to_iso8601
     py: r.expr(datetime.fromtimestamp(t, pytz.timezone('US/Pacific'))).to_iso8601()
     js: r(new Date(t)).inTimezone("-07:00").toISO8601()
     ot: ("2013-07-29T18:21:36.680-07:00")
