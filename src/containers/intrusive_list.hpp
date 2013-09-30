@@ -17,17 +17,19 @@ public:
 #endif
         prev(NULL), next(NULL)
         {}
-    virtual ~intrusive_list_node_t() {
-        rassert(prev == NULL);
-        rassert(next == NULL);
-        rassert(parent_list == NULL);
-    }
 
 #ifndef NDEBUG
     bool in_a_list() {
         return (parent_list != NULL);
     }
 #endif
+
+protected:
+    ~intrusive_list_node_t() {
+        rassert(prev == NULL);
+        rassert(next == NULL);
+        rassert(parent_list == NULL);
+    }
 
 private:
 #ifndef NDEBUG
