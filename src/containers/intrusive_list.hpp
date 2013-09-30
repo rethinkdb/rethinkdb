@@ -4,193 +4,184 @@
 
 #include "errors.hpp"
 
-template <class node_t> class intrusive_list_t;
+template <class T> class intrusive_list_t;
 
-template <class derived_t>
+template <class T>
 class intrusive_list_node_t {
 public:
-#ifndef NDEBUG
-    bool in_a_list() {
-        return (parent_list != NULL);
+    bool in_a_list() const {
+        rassert((next_ == NULL) == (prev_ == NULL));
+        return prev_ != NULL;
     }
-#endif
 
 protected:
-    intrusive_list_node_t() :
-#ifndef NDEBUG
-        parent_list(NULL),
-#endif
-        prev(NULL), next(NULL)
-        {}
-
+    intrusive_list_node_t() : prev_(NULL), next_(NULL) { }
     ~intrusive_list_node_t() {
-        rassert(prev == NULL);
-        rassert(next == NULL);
-        rassert(parent_list == NULL);
+        guarantee(prev_ == NULL,
+                  "non-detached intrusive list node destroyed");
+        rassert(next_ == NULL,
+                "inconsistent intrusive list node!");
     }
 
+    intrusive_list_node_t(intrusive_list_node_t &&movee) {
+        rassert((movee.prev_ == NULL) == (movee.next_ == NULL));
+        rassert(movee.prev_ != &movee,
+                "Only intrusive_list_t can be a self-pointing node.");
+        prev_ = movee.prev_;
+        next_ = movee.next_;
+        if (prev_ != NULL) {
+            prev_->next_ = this;
+            next_->prev_ = this;
+        }
+    }
+
+    // Don't implement this.  _Maybe_ you won't fuck it up.  Just use the
+    // move-constructor in subclasses' assignment operator implementations.
+    intrusive_list_node_t &operator=(intrusive_list_node_t &&movee) = delete;
+
 private:
-    friend class intrusive_list_t<derived_t>;
+    friend class intrusive_list_t<T>;
 
-#ifndef NDEBUG
-    intrusive_list_t<derived_t> *parent_list;
-#endif
-
-    derived_t *prev, *next;
+    intrusive_list_node_t *prev_;
+    intrusive_list_node_t *next_;
 
     DISABLE_COPYING(intrusive_list_node_t);
 };
 
-template <class node_t>
-class intrusive_list_t {
+template <class T>
+class intrusive_list_t : private intrusive_list_node_t<T> {
 public:
-    intrusive_list_t() : _head(NULL), _tail(NULL), _size(0) {}
+    intrusive_list_t() : size_(0) {
+        this->prev_ = this;
+        this->next_ = this;
+    }
+
     ~intrusive_list_t() {
-        guarantee(empty());
+        guarantee(this->prev_ == this, "non-empty intrusive list destroyed");
+        rassert(this->next_ == this, "inconsistent intrusive list (end node)!");
+        rassert(size_ == 0, "empty intrusive list destroyed with non-zero size");
+
+        // Set these to NULL to appease base class destructor's assertions.
+        this->prev_ = NULL;
+        this->next_ = NULL;
     }
 
-    bool empty() {
-        return !head();
+    bool empty() const {
+        return this->prev_ == this;
     }
 
-    node_t *head() const {
-        return _head;
-    }
-    node_t *tail() const {
-        return _tail;
+    T *head() const {
+        return null_if_self(this->next_);
     }
 
-    node_t *next(node_t *elem) const {
-        return static_cast<intrusive_list_node_t<node_t> *>(elem)->next;
-    }
-    node_t *prev(node_t *elem) const {
-        return static_cast<intrusive_list_node_t<node_t> *>(elem)->prev;
+    T *tail() const {
+        return null_if_self(this->prev_);
     }
 
-    void push_front(node_t *_value) {
-
-        intrusive_list_node_t<node_t> *value = _value;
-        rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->parent_list); // Make sure that the object is not already in a list.
-#ifndef NDEBUG
-        value->parent_list = this;
-#endif
-        value->next = _head;
-        value->prev = NULL;
-        if (_head) {
-            static_cast<intrusive_list_node_t<node_t> *>(_head)->prev = _value;
-        }
-        _head = _value;
-        if (_tail == NULL) {
-            _tail = _value;
-        }
-        _size++;
+    T *next(T *elem) const {
+        return null_if_self(elem->next_);
     }
 
-    void push_back(node_t *_value) {
-
-        intrusive_list_node_t<node_t> *value = _value;
-        rassert(value->next == NULL && value->prev == NULL && _head != _value && !value->parent_list); // Make sure that the object is not already in a list.
-#ifndef NDEBUG
-        value->parent_list = this;
-#endif
-        value->prev = _tail;
-        value->next = NULL;
-        if (_tail) {
-            static_cast<intrusive_list_node_t<node_t> *>(_tail)->next = _value;
-        }
-        _tail = _value;
-        if (_head == NULL) {
-            _head = _value;
-        }
-        _size++;
+    T *prev(T *elem) const {
+        return null_if_self(elem->prev_);
     }
 
-    void remove(node_t *_value) {
+    void push_front(T *node) {
+        insert_between(node, this, this->next_);
+        ++size_;
+    }
 
-        intrusive_list_node_t<node_t> *value = _value;
+    void push_back(T *node) {
+        insert_between(node, this->prev_, this);
+        ++size_;
+    }
 
-#ifndef NDEBUG
-        rassert(value->parent_list == this);
-        value->parent_list = NULL;
-#endif
-
-        if (value->next) {
-            static_cast<intrusive_list_node_t<node_t> *>(value->next)->prev = value->prev;
-        } else {
-            _tail = value->prev;
-        }
-        if (value->prev) {
-            static_cast<intrusive_list_node_t<node_t> *>(value->prev)->next = value->next;
-        } else {
-            _head = value->next;
-        }
-        value->next = value->prev = NULL;
-        _size--;
+    void remove(T *value) {
+        intrusive_list_node_t<T> *node = value;
+        guarantee(node->in_a_list());
+        remove_node(value);
+        --size_;
     }
 
     void pop_front() {
-        rassert(!empty());
-        remove(head());
+        guarantee(!empty());
+        remove_node(static_cast<T *>(this->next_));
+        --size_;
     }
+
     void pop_back() {
-        rassert(!empty());
-        remove(tail());
+        guarantee(!empty());
+        remove_node(static_cast<T *>(this->prev_));
+        --size_;
     }
 
-    void append_and_clear(intrusive_list_t<node_t> *list) {
-
-        if (list->empty())
-            return;
-
-#ifndef NDEBUG
-        for (node_t *x = list->head(); x; x = list->next(x)) {
-            rassert(static_cast<intrusive_list_node_t<node_t> *>(x)->parent_list == list);
-            static_cast<intrusive_list_node_t<node_t> *>(x)->parent_list = this;
-        }
-#endif
-
-        if (!_head) {
-            // We're empty, just set head and tail to the new list
-            _head = list->head();
-            _tail = list->tail();
-        } else {
-            // Just continue to new list
-            static_cast<intrusive_list_node_t<node_t> *>(_tail)->next = list->head();
-            static_cast<intrusive_list_node_t<node_t> *>(list->head())->prev = _tail;
-            _tail = list->tail();
-        }
-        // Note, we can't do appends without clear because we'd break
-        // the previous pointer in the head of the appended list.
-        _size += list->size();
-        list->_head = NULL;
-        list->_tail = NULL;
-        list->_size = 0;
+    size_t size() const {
+        return size_;
     }
 
-    unsigned int size() const { return _size; }
+    void append_and_clear(intrusive_list_t<T> *appendee) {
+        if (!appendee->empty()) {
+            intrusive_list_node_t<T> *t = this->prev_;
+            t->next_ = appendee->next_;
+            appendee->next_->prev_ = t;
+            this->prev_ = appendee->prev_;
+            appendee->prev_->next_ = this;
+
+            appendee->next_ = appendee;
+            appendee->prev_ = appendee;
+
+            size_ += appendee->size_;
+            appendee->size_ = 0;
+        }
+    }
 
 #ifndef NDEBUG
     void validate() const {
-        node_t *last_node = NULL;
-        unsigned int count = 0;
-        for (node_t *node = _head; node; node = static_cast<intrusive_list_node_t<node_t> *>(node)->next) {
-            count++;
-            rassert(static_cast<intrusive_list_node_t<node_t> *>(node)->parent_list == this);
-            rassert(static_cast<intrusive_list_node_t<node_t> *>(node)->prev == last_node);
-            last_node = node;
-        }
-        rassert(_tail == last_node);
-        rassert(_size == count);
+        const intrusive_list_node_t<T> *node = this;
+        size_t count = 0;
+        do {
+            ++count;
+            rassert(node->prev_ != NULL, "count = %zu", count);
+            rassert(node->prev_->next_ == node);
+            rassert(node->next_ != NULL);
+            rassert(node->next_->prev_ == node);
+            node = node->next_;
+        } while (node != this);
+        rassert(count == size_ + 1);
     }
-#endif
-
+#endif // NDEBUG
 
 private:
-    node_t *_head, *_tail;
-    unsigned int _size;
+    static void insert_between(T *item,
+                               intrusive_list_node_t<T> *before,
+                               intrusive_list_node_t<T> *after) {
+        intrusive_list_node_t<T> *node = item;
+        guarantee(!node->in_a_list());
+        rassert(before->in_a_list());
+        rassert(after->in_a_list());
+        before->next_ = node;
+        after->prev_ = node;
+        node->prev_ = before;
+        node->next_ = after;
+    }
+
+    static void remove_node(T *item) {
+        intrusive_list_node_t<T> *node = item;
+        rassert(node->in_a_list());
+        node->prev_->next_ = node->next_;
+        node->next_->prev_ = node->prev_;
+        node->prev_ = NULL;
+        node->next_ = NULL;
+    }
+
+    T *null_if_self(intrusive_list_node_t<T> *node) const {
+        return node == this ? NULL : static_cast<T *>(node);
+    }
+
+    size_t size_;
 
     DISABLE_COPYING(intrusive_list_t);
 };
 
-#endif // CONTAINERS_INTRUSIVE_LIST_HPP_
 
+#endif // CONTAINERS_INTRUSIVE_LIST_HPP_
