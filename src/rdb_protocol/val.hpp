@@ -96,12 +96,6 @@ private:
     template<class T>
     counted_t<const datum_t> do_batched_write(
         env_t *env, T &&t, durability_requirement_t durability_requirement);
-    
-    template<class T>
-    counted_t<const datum_t> split_replace_batches(
-        const std::function<counted_t<const datum_t>(std::vector<T> &&, durability_requirement_t)> &sub_batch_visitor,
-        std::vector<T> &&whole_batch,
-        durability_requirement_t original_durability_requirement);
 
     counted_t<const datum_t> batched_insert_with_keys(
         env_t *env,
