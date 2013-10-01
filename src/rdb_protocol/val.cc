@@ -228,6 +228,20 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     }
 }
 
+MUST_USE bool table_t::sync(env_t *env) {
+    rdb_protocol_t::write_t write((
+            rdb_protocol_t::sync_t()));
+
+    rdb_protocol_t::write_response_t res;
+    access->get_namespace_if()->write(
+        write, &res, order_token_t::ignore, env->interruptor);
+
+    rdb_protocol_t::sync_response_t *response =
+        boost::get<rdb_protocol_t::sync_response_t>(&res.response);
+    r_sanity_check(response);
+    return true; // With our current implementation, a sync can never fail.
+}
+
 const std::string &table_t::get_pkey() { return pkey; }
 
 counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> pval) {

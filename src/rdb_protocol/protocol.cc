@@ -1447,6 +1447,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         /* TODO (daniel): Comment what we do here
          */
         guarantee(txn->get_durability() == WRITE_DURABILITY_HARD);
+        
+        token_pair->sindex_write_token.reset();
     }
 
 
