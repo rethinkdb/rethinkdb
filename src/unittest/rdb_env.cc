@@ -266,7 +266,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     test_cluster(0),
     rdb_ns_repo()
 {
-    explain::task_t task("unittest");
+    explain::task_t task;
     env.init(new ql::env_t(&extproc_pool,
                            &rdb_ns_repo,
                            namespaces_metadata,

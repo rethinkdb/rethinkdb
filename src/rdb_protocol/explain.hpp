@@ -24,6 +24,7 @@ public:
     task_t(const std::string &description);
     ~task_t();
     void init(const std::string &description);
+    bool is_initted();
     task_t *new_task(const std::string &description);
     task_t *new_parallel_task(const std::string &description);
     task_t *finish_parallel_tasks(
@@ -32,13 +33,13 @@ public:
 
     void finish();
 
-    counted_t<const ql::datum_t> as_datum() const;
+    counted_t<const ql::datum_t> as_datum();
 
 private:
-    void as_datum_helper(std::vector<counted_t<const ql::datum_t> > *parent) const;
-    counted_t<const ql::datum_t> get_atom() const;
+    void as_datum_helper(std::vector<counted_t<const ql::datum_t> > *parent);
+    counted_t<const ql::datum_t> get_atom();
 
-    enum state_t {INIT, RUNNING, FINISHED} state_;
+    enum state_t {UNINITIALIZED, RUNNING, FINISHED} state_;
 
     std::string description_;
     ticks_t start_time_, ticks_;

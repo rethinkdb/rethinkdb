@@ -48,7 +48,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
     try {
         threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
-        explain::task_t task("Start query");
+        explain::task_t task;
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
                 ctx->extproc_pool, ctx->ns_repo,
@@ -58,8 +58,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 interruptor, ctx->machine_id, q, &task));
         // `ql::run` will set the status code
         ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
-        if (env->task) {
-            env->task->finish();
+        if (task.is_initted()) {
             task.as_datum()->write_to_protobuf(response_out->mutable_explain());
         }
     } catch (const interrupted_exc_t &e) {

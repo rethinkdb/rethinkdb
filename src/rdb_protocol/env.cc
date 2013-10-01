@@ -101,7 +101,9 @@ void env_t::do_eval_callback() {
 }
 
 void env_t::start_new_task(const std::string &description) {
-    task = task->new_task(description);
+    if (task) {
+        task = task->new_task(description);
+    }
 }
 
 cluster_access_t::cluster_access_t(
@@ -190,6 +192,7 @@ env_t::env_t(
     counted_t<val_t> explain = global_optargs.get_optarg(this, "explain");
     if (explain.has() && explain->as_bool()) {
         task = _task;
+        task->init("Start query");
     } else {
         task = NULL;
     }

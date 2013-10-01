@@ -6,7 +6,7 @@
 namespace explain {
 
 task_t::task_t()
-    : state_(INIT), next_task(NULL) { }
+    : state_(UNINITIALIZED), next_task(NULL) { }
 
 task_t::task_t(const std::string &description)
     : next_task(NULL)
@@ -25,6 +25,10 @@ void task_t::init(const std::string &description) {
     state_ = RUNNING;
     description_ = description;
     start_time_ = get_ticks();
+}
+
+bool task_t::is_initted() {
+    return state_ != UNINITIALIZED;
 }
 
 task_t *task_t::new_task(const std::string &description) {
@@ -61,14 +65,14 @@ void task_t::finish() {
     ticks_ = get_ticks() - start_time_;
 }
 
-counted_t<const ql::datum_t> task_t::as_datum() const {
+counted_t<const ql::datum_t> task_t::as_datum() {
     std::vector<counted_t<const ql::datum_t> > res;
     as_datum_helper(&res);
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
 void task_t::as_datum_helper(
-        std::vector<counted_t<const ql::datum_t> > *parent) const {
+        std::vector<counted_t<const ql::datum_t> > *parent) {
     parent->push_back(get_atom());
 
     if (!parallel_tasks.empty()) {
@@ -84,8 +88,10 @@ void task_t::as_datum_helper(
     }
 }
 
-counted_t<const ql::datum_t> task_t::get_atom() const {
-    guarantee(state_ == FINISHED,  "Someone tried to convert to a datum without calling `finish`.");
+counted_t<const ql::datum_t> task_t::get_atom() {
+    if (state_ != FINISHED) {
+        finish();
+    }
     std::map<std::string, counted_t<const ql::datum_t> > res;
     res["description"] =
         make_counted<const ql::datum_t>(std::move(std::string(description_)));
