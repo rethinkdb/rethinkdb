@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netinet/in.h>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -39,19 +40,21 @@ void do_getaddrinfo(const char *node,
 }
 
 /* Format an `in_addr` in dotted deciaml notation. */
-std::string addr_as_dotted_decimal(struct in_addr addr) {
-    char buffer[INET_ADDRSTRLEN + 1] = { 0 };
-    const char *result = inet_ntop(AF_INET, reinterpret_cast<const void*>(&addr),
-        buffer, INET_ADDRSTRLEN);
+template <class addr_type>
+std::string ip_to_string(const addr_type &addr, int address_family) {
+    char buffer[INET6_ADDRSTRLEN + 1] = { 0 };
+    const char *result = inet_ntop(address_family, reinterpret_cast<const void*>(&addr),
+                                   buffer, INET6_ADDRSTRLEN);
     guarantee(result == buffer, "Could not format IP address");
     return std::string(buffer);
 }
 
-std::set<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
-    std::set<ip_address_t> ips;
+void hostname_to_ips_internal(const std::string &host,
+                              int address_family,
+                              std::set<ip_address_t> *ips) {
     struct addrinfo hint;
     memset(&hint, 0, sizeof(hint));
-    hint.ai_family = AF_INET;
+    hint.ai_family = address_family;
     hint.ai_socktype = SOCK_STREAM;
 
     int res;
@@ -68,10 +71,30 @@ std::set<ip_address_t> ip_address_t::from_hostname(const std::string &host) {
 
     guarantee(addrs);
     for (struct addrinfo *ai = addrs; ai; ai = ai->ai_next) {
-        ips.insert(ip_address_t(ai));
+        ips->insert(ip_address_t(ai->ai_addr));
     }
 
     freeaddrinfo(addrs);
+}
+
+std::set<ip_address_t> hostname_to_ips(const std::string &host) {
+    std::set<ip_address_t> ips;
+
+    // Allow an error on one lookup, but not both
+    bool errored = false;
+
+    try {
+        hostname_to_ips_internal(host, AF_INET, &ips);
+    } catch (const host_lookup_exc_t &ex) {
+        errored = true;
+    }
+
+    try {
+        hostname_to_ips_internal(host, AF_INET6, &ips);
+    } catch (const host_lookup_exc_t &ex) {
+        if (errored) throw;
+    }
+
     return ips;
 }
 
@@ -80,12 +103,12 @@ bool check_address_filter(ip_address_t addr, const std::set<ip_address_t> &filte
     return filter.find(addr) != filter.end() || addr.is_loopback();
 }
 
-std::set<ip_address_t> ip_address_t::get_local_addresses(const std::set<ip_address_t> &filter, bool get_all) {
+std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool get_all) {
     std::set<ip_address_t> all_ips;
     std::set<ip_address_t> filtered_ips;
 
     try {
-        all_ips = from_hostname(str_gethostname());
+        all_ips = hostname_to_ips(str_gethostname());
     } catch (const host_lookup_exc_t &ex) {
         // Continue on, this probably means there's no DNS entry for this host
     }
@@ -98,7 +121,7 @@ std::set<ip_address_t> ip_address_t::get_local_addresses(const std::set<ip_addre
         struct sockaddr *addr_data = current_addr->ifa_addr;
         if (addr_data == NULL) {
             continue;
-        } else if (addr_data->sa_family == AF_INET) {
+        } else if (addr_data->sa_family == AF_INET || addr_data->sa_family == AF_INET6) {
             all_ips.insert(ip_address_t(addr_data));
         }
     }
@@ -114,12 +137,121 @@ std::set<ip_address_t> ip_address_t::get_local_addresses(const std::set<ip_addre
     return filtered_ips;
 }
 
-std::string ip_address_t::as_dotted_decimal() const {
-    return addr_as_dotted_decimal(get_addr());
+ip_address_t ip_address_t::any(int address_family) {
+    ip_address_t result;
+    result.addr_family = address_family;
+
+    if (address_family == AF_INET) {
+        result.ipv4_addr.s_addr = INADDR_ANY;
+    } else if (address_family == AF_INET6) {
+        result.ipv6_addr = in6addr_any;
+    } else {
+        throw invalid_address_exc_t("unknown address family");
+    }
+
+    return result;
+}
+
+ip_address_t::ip_address_t(const sockaddr *sa) {
+    addr_family = sa->sa_family;
+
+    if (addr_family == AF_INET) {
+        ipv4_addr = reinterpret_cast<const sockaddr_in *>(sa)->sin_addr;
+    } else if (addr_family == AF_INET6) {
+        ipv6_addr = reinterpret_cast<const sockaddr_in6 *>(sa)->sin6_addr;
+        ipv6_scope_id = reinterpret_cast<const sockaddr_in6*>(sa)->sin6_scope_id;
+    } else {
+        throw invalid_address_exc_t("unknown address family");
+    }
+}
+
+ip_address_t::ip_address_t(const std::string &addr_str) {
+    // First attempt to parse as IPv4, then try IPv6
+    if (inet_pton(AF_INET, addr_str.c_str(), &ipv4_addr) == 1) {
+        addr_family = AF_INET;
+    } else if (inet_pton(AF_INET6, addr_str.c_str(), &ipv6_addr) == 1) {
+        addr_family = AF_INET6;
+    } else {
+        throw invalid_address_exc_t(strprintf("could not parse IP address from string: '%s'", addr_str.c_str()));
+    }
+}
+
+const struct in_addr &ip_address_t::get_ipv4_addr() const {
+    if (!is_ipv4()) {
+        throw invalid_address_exc_t("get_ipv4_addr() called on a non-IPv4 ip_address_t");
+    }
+    return ipv4_addr;
+}
+
+const struct in6_addr &ip_address_t::get_ipv6_addr() const {
+    if (!is_ipv6()) {
+        throw invalid_address_exc_t("get_ipv6_addr() called on a non-IPv6 ip_address_t");
+    }
+    return ipv6_addr;
+}
+
+uint32_t ip_address_t::get_ipv6_scope_id() const {
+    if (!is_ipv6()) {
+        throw invalid_address_exc_t("get_ipv6_scope_id() called on a non-IPv6 ip_address_t");
+    }
+    return ipv6_scope_id;
+}
+
+std::string ip_address_t::to_string() const {
+    std::string result;
+
+    if (is_ipv4()) {
+        result = ip_to_string(ipv4_addr, AF_INET);
+    } else if (is_ipv6()) {
+        result = ip_to_string(ipv6_addr, AF_INET6);
+    } else {
+        crash("to_string called on an uninitialized ip_address_t, addr_family: %d", addr_family);
+    }
+
+    return result;
+}
+
+bool ip_address_t::operator == (const ip_address_t &x) const {
+    if (addr_family == x.addr_family) {
+        if (is_ipv4()) {
+            return memcmp(&ipv4_addr, &x.ipv4_addr, sizeof(ipv4_addr)) == 0;
+        } else if (is_ipv6()) {
+            return memcmp(&ipv6_addr, &x.ipv6_addr, sizeof(ipv6_addr)) == 0;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ip_address_t::operator < (const ip_address_t &x) const {
+    if (addr_family == x.addr_family) {
+        if (is_ipv4()) {
+            return memcmp(&ipv4_addr, &x.ipv4_addr, sizeof(ipv4_addr)) < 0;
+        } else if (is_ipv6()) {
+            return memcmp(&ipv6_addr, &x.ipv6_addr, sizeof(ipv6_addr)) < 0;
+        } else {
+            return false;
+        }
+    }
+    return addr_family < x.addr_family;
 }
 
 bool ip_address_t::is_loopback() const {
-    return (ntohl(s_addr) >> 24) == 127;
+    if (is_ipv4()) {
+        return (ntohl(ipv4_addr.s_addr) >> 24) == IN_LOOPBACKNET;
+    } else if (is_ipv6()) {
+        return IN6_IS_ADDR_LOOPBACK(&ipv6_addr);
+    }
+    return false;
+}
+
+bool ip_address_t::is_any() const {
+    if (is_ipv4()) {
+        return ipv4_addr.s_addr == INADDR_ANY;
+    } else if (is_ipv6()) {
+        return IN6_IS_ADDR_UNSPECIFIED(&ipv6_addr);
+    }
+    return false;
 }
 
 port_t::port_t(int _value) : value_(_value) {
@@ -178,7 +310,7 @@ bool host_and_port_t::operator == (const host_and_port_t &other) const {
 
 std::set<ip_and_port_t> host_and_port_t::resolve() const {
     std::set<ip_and_port_t> result;
-    std::set<ip_address_t> host_ips = ip_address_t::from_hostname(host_);
+    std::set<ip_address_t> host_ips = hostname_to_ips(host_);
     for (auto jt = host_ips.begin(); jt != host_ips.end(); ++jt) {
         result.insert(ip_and_port_t(*jt, port_));
     }
@@ -235,11 +367,11 @@ bool peer_address_t::operator != (const peer_address_t &a) const {
 }
 
 void debug_print(printf_buffer_t *buf, const ip_address_t &addr) {
-    buf->appendf("%s", addr.as_dotted_decimal().c_str());
+    buf->appendf("%s", addr.to_string().c_str());
 }
 
 void debug_print(printf_buffer_t *buf, const ip_and_port_t &addr) {
-    buf->appendf("%s:%d", addr.ip().as_dotted_decimal().c_str(), addr.port().value());
+    buf->appendf("%s:%d", addr.ip().to_string().c_str(), addr.port().value());
 }
 
 void debug_print(printf_buffer_t *buf, const host_and_port_t &addr) {
