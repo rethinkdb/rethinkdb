@@ -206,7 +206,6 @@ private:
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,
     // thereby blocking user queries.
-    // RSI: ^ wat.
     scoped_ptr_t<file_account_t> reads_io_account;
     scoped_ptr_t<file_account_t> writes_io_account;
 
