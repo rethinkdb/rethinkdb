@@ -314,7 +314,10 @@ class RqlQuery(object):
             return GetField(self, index)
 
     def __iter__(self):
-        raise RqlDriverError("RqlQuery does not support iterative operations.")
+        raise RqlDriverError(
+                "__iter__ called on an RqlQuery object.\n"+
+                "To iterate over the results of a query, call run first.\n"+
+                "To iterate inside a query, use map or for_each.")
 
     def nth(self, index):
         return Nth(self, index)
