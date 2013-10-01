@@ -101,10 +101,10 @@ counted_t<const datum_t> table_t::split_replace_batches(
     const std::function<counted_t<const datum_t>(std::vector<T> &&, durability_requirement_t)> &sub_batch_visitor,
     std::vector<T> &&whole_batch,
     durability_requirement_t original_durability_requirement) {
-    
-    const size_t SUB_BATCH_SIZE = 16;
-    
-    // First start all bat the final write with soft durability.
+
+    const size_t SUB_BATCH_SIZE = 8;
+
+    // First start all but the final write with soft durability.
     // When they are done, the final write is performed with the original durability.
     // WARNING: This makes the assumption that whenever we have a hard durability
     // write to the cache, it will always guarantee that all previous soft
@@ -119,7 +119,7 @@ counted_t<const datum_t> table_t::split_replace_batches(
         const bool is_final_batch = sub_batch_end == whole_batch.size();
         const durability_requirement_t sub_batch_durability_requirement =
                     is_final_batch ? original_durability_requirement : non_final_durability_requirement;
-        
+
         // The final sub batch can be smaller than SUB_BATCH_SIZE.
         const size_t actual_sub_batch_size = sub_batch_end - sub_batch_begin;
         std::vector<T> sub_batch(actual_sub_batch_size);
@@ -130,10 +130,13 @@ counted_t<const datum_t> table_t::split_replace_batches(
             sub_batch_visitor(
                 std::move(sub_batch),
                 sub_batch_durability_requirement));
-        
+
         sub_batch_begin += SUB_BATCH_SIZE;
     }
     
+    // TODO (daniel): We have to change this to use a sync operation, not rely on a
+    // hard durability sub-batch.
+
     // Merge results
     counted_t<const datum_t> stats = datum_ptr_t(datum_t::R_OBJECT).to_counted();
     for (size_t i = 0; i < sub_stats.size(); ++i) {
