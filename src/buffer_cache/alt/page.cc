@@ -52,11 +52,14 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     return ret;
 }
 
-current_page_acq_t::current_page_acq_t(current_page_t *current_page,
+current_page_acq_t::current_page_acq_t(page_txn_t *txn,
+                                       block_id_t block_id,
                                        alt_access_t access)
-    : access_(access),
+    : txn_(txn),
+      access_(access),
       declared_snapshotted_(false),
-      current_page_(current_page) {
+      current_page_(txn->page_cache_->page_for_block_id(block_id)) {
+    txn_->add_acquirer(this);
     current_page_->add_acquirer(this);
 }
 
@@ -64,16 +67,21 @@ current_page_acq_t::~current_page_acq_t() {
     if (current_page_ != NULL) {
         current_page_->remove_acquirer(this);
     }
+    txn_->remove_acquirer(this);
 }
 
 void current_page_acq_t::declare_snapshotted() {
     rassert(access_ == alt_access_t::read);
+
     // Allow redeclaration of snapshottedness.
     if (!declared_snapshotted_) {
         declared_snapshotted_ = true;
         rassert(current_page_ != NULL);
         current_page_->pulse_pulsables(this);
     }
+
+    rassert(current_page_ == NULL);
+    rassert(snapshotted_page_.has());
 }
 
 signal_t *current_page_acq_t::read_acq_signal() {
@@ -328,7 +336,7 @@ void page_t::remove_snapshotter() {
         // load_from_copyee.
         rassert(waiters_.empty());
 
-        // Is this what we do?  For now it is.
+        // RSI: Is this what we do?  For now it is.
         delete this;
     }
 }
@@ -474,6 +482,34 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
     }
     return page_;
 }
+
+page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_null)
+    : page_cache_(page_cache),
+      preceder_or_null_(preceding_txn_or_null) {
+    if (preceder_or_null_ != NULL) {
+        preceder_or_null_->subseqers_.push_back(this);
+    }
+}
+
+page_txn_t::~page_txn_t() {
+    // RSI: Implement.
+    // Tell the subsequent transactions that you're flushing?
+}
+
+void page_txn_t::add_acquirer(current_page_acq_t *acq) {
+    live_acqs_.push_back(acq);
+}
+
+void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
+    for (auto it = live_acqs_.begin(); it != live_acqs_.end(); ++it) {
+        if (*it == acq) {
+            live_acqs_.erase(it);
+            return;
+        }
+    }
+    unreachable();
+}
+
 
 
 }  // namespace alt

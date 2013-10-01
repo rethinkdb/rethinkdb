@@ -12,7 +12,8 @@ alt_cache_t::~alt_cache_t() {
 }
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
-    : cache_(cache), preceding_txn_(preceding_txn),
+    : cache_(cache),
+      page_txn_(&cache->page_cache_, &preceding_txn->page_txn_),
       this_txn_timestamp_(repli_timestamp_t::invalid) { }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
@@ -21,8 +22,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
     : txn_(txn),
       cache_(txn_->cache()),
       block_id_(block_id),
-      current_page_acq_(txn->cache()->page_cache_.page_for_block_id(block_id),
-                        access),
+      current_page_acq_(txn->page_txn(), block_id, access),
       snapshot_node_(NULL) {
     // RSI: Obviously, we want to use snapshot_node_ at some point.
     (void)snapshot_node_;
@@ -34,8 +34,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     : txn_(parent->txn_),
       cache_(txn_->cache()),
       block_id_(block_id),
-      current_page_acq_(parent->txn_->cache()->page_cache_.page_for_block_id(block_id),
-                        access),
+      current_page_acq_(txn_->page_txn(), block_id, access),
       snapshot_node_(NULL) {
 }
 

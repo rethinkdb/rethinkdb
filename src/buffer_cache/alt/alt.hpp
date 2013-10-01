@@ -32,9 +32,12 @@ public:
 
     alt_cache_t *cache() { return cache_; }
 
+    page_txn_t *page_txn() { return &page_txn_; }
+
 private:
     alt_cache_t *cache_;
-    alt_txn_t *preceding_txn_;
+    page_txn_t page_txn_;
+    // RSI: Is this_txn_timestamp_ used?  How?
     repli_timestamp_t this_txn_timestamp_;
 
     DISABLE_COPYING(alt_txn_t);
