@@ -83,6 +83,65 @@ counted_t<const datum_t> table_t::do_batched_write(
     return *dp;
 }
 
+/* With our current cache, there is the issue that long-running write
+ * transactions can stall further writes because of the flush lock.
+ * 
+ * split_replace_batches splits a large batch up into smaller
+ * sub-batches to achieve a good compromise between short flush-lock
+ * acquisition times and single-client performance.
+ * 
+ * sub_batch_visitor is called multiple times on a subset of
+ * whole_batch together with a durability_requirement_t.
+ * 
+ * This should be considered a temporary work-around
+ * until we get the cache fixed.
+ */
+template<typename T>
+counted_t<const datum_t> table_t::split_replace_batches(
+    const std::function<counted_t<const datum_t>(std::vector<T> &&, durability_requirement_t)> &sub_batch_visitor,
+    std::vector<T> &&whole_batch,
+    durability_requirement_t original_durability_requirement) {
+    
+    const size_t SUB_BATCH_SIZE = 16;
+    
+    // First start all bat the final write with soft durability.
+    // When they are done, the final write is performed with the original durability.
+    // WARNING: This makes the assumption that whenever we have a hard durability
+    // write to the cache, it will always guarantee that all previous soft
+    // durability writes are getting to disk as well. This is true for our current
+    // cache, but could change in the future.
+    const durability_requirement_t non_final_durability_requirement = DURABILITY_REQUIREMENT_SOFT;
+    std::vector<counted_t<const datum_t> > sub_stats;
+    sub_stats.reserve(whole_batch.size() / SUB_BATCH_SIZE + 1);
+    size_t sub_batch_begin = 0;
+    while (sub_batch_begin < whole_batch.size()) {
+        const size_t sub_batch_end = std::min(whole_batch.size(), sub_batch_begin + SUB_BATCH_SIZE);
+        const bool is_final_batch = sub_batch_end == whole_batch.size();
+        const durability_requirement_t sub_batch_durability_requirement =
+                    is_final_batch ? original_durability_requirement : non_final_durability_requirement;
+        
+        // The final sub batch can be smaller than SUB_BATCH_SIZE.
+        const size_t actual_sub_batch_size = sub_batch_end - sub_batch_begin;
+        std::vector<T> sub_batch(actual_sub_batch_size);
+        for (size_t i = 0; i < actual_sub_batch_size; ++i) {
+                sub_batch[i] = std::move(whole_batch[sub_batch_begin + i]);
+        }
+        sub_stats.push_back(
+            sub_batch_visitor(
+                std::move(sub_batch),
+                sub_batch_durability_requirement));
+        
+        sub_batch_begin += SUB_BATCH_SIZE;
+    }
+    
+    // Merge results
+    counted_t<const datum_t> stats = datum_ptr_t(datum_t::R_OBJECT).to_counted();
+    for (size_t i = 0; i < sub_stats.size(); ++i) {
+        stats = stats->merge(sub_stats[i], stats_merge);
+    }
+    return stats;
+}
+
 counted_t<const datum_t> table_t::batched_replace(
     env_t *env,
     const std::vector<counted_t<const datum_t> > &original_values,
@@ -123,6 +182,51 @@ counted_t<const datum_t> table_t::batched_replace(
         for (auto it = original_values.begin(); it != original_values.end(); ++it) {
             keys.push_back(store_key_t((*it)->get(get_pkey())->print_primary()));
         }
+        
+        
+        /* With our current cache, there is the issue that long-running write
+         * transactions can stall further writes because of the flush lock.
+         * We split the write up into multiple smaller writes, each of which
+         * uses its own transaction.
+         * This should be considered a temporary work-around
+         * until we get the cache fixed.
+         */
+        struct sub_batch_visitor_t {
+            static counted_t<const datum_t> visit(
+                std::vector<store_key_t> &&sub_batch, 
+                durability_requirement_t durability_requirement,
+                table_t *tbl,
+                env_t *env,
+                const counted_t<func_t> &replacement_generator,
+                bool return_vals) {
+
+                return tbl->do_batched_write(
+                    env,
+                    rdb_protocol_t::batched_replace_t(
+                        std::move(sub_batch),
+                        tbl->get_pkey(),
+                        replacement_generator,
+                        env->global_optargs.get_all_optargs(),
+                        return_vals),
+                    durability_requirement);
+            }
+        };
+        return split_replace_batches<store_key_t>(
+            std::bind(
+                sub_batch_visitor_t::visit,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                this,
+                env,
+                replacement_generator,
+                return_vals),
+            std::move(keys),
+            durability_requirement);
+
+        // Below is the original code, which just launches a single batched insert.
+        // We should restore it once the cache is fixed, because it will be simpler,
+        // more robust, and potentially faster.
+        /*
         return do_batched_write(
             env,
             rdb_protocol_t::batched_replace_t(
@@ -132,6 +236,7 @@ counted_t<const datum_t> table_t::batched_replace(
                 env->global_optargs.get_all_optargs(),
                 return_vals),
             durability_requirement);
+        */
     }
 }
 
@@ -168,53 +273,41 @@ counted_t<const datum_t> table_t::batched_insert(
      * transactions can stall further writes because of the flush lock.
      * We split the write up into multiple smaller writes, each of which
      * uses its own transaction.
-     * This is a bit messy, and should be considered a temporary work-around
+     * This should be considered a temporary work-around
      * until we get the cache fixed.
      */
-    // TODO (daniel): Make this work for replaces as well. Just
-    // put it into a small templated function which can split up different kinds of
-    // writes.
-    const size_t SUB_BATCH_SIZE = 16;
-    
-    // First start all bat the final write with soft durability.
-    // When they are done, the final write is performed with the original durability.
-    // WARNING: This makes the assumption that whenever we have a hard durability
-    // write to the cache, it will always guarantee that all previous soft
-    // durability writes are getting to disk as well. This is true for our current
-    // cache, but could change in the future.
-    const durability_requirement_t non_final_durability_requirement = DURABILITY_REQUIREMENT_SOFT;
-    std::vector<counted_t<const datum_t> > insert_stats;
-    insert_stats.reserve(valid_inserts.size() / SUB_BATCH_SIZE + 1);
-    size_t sub_batch_begin = 0;
-    while (sub_batch_begin < valid_inserts.size()) {
-        const size_t sub_batch_end = std::min(valid_inserts.size(), sub_batch_begin + SUB_BATCH_SIZE);
-        const bool is_final_batch = sub_batch_end == valid_inserts.size();
-        const durability_requirement_t sub_batch_durability_requirement =
-                    is_final_batch ? durability_requirement : non_final_durability_requirement;
-        
-        // The final sub batch can be smaller than SUB_BATCH_SIZE.
-        const size_t actual_sub_batch_size = sub_batch_end - sub_batch_begin;
-        std::vector<counted_t<const datum_t> > sub_batch(actual_sub_batch_size);
-        for (size_t i = 0; i < actual_sub_batch_size; ++i) {
-                sub_batch[i] = std::move(valid_inserts[sub_batch_begin + i]);
-        }
-        insert_stats.push_back(do_batched_write(
+    struct sub_batch_visitor_t {
+        static counted_t<const datum_t> visit(
+            std::vector<counted_t<const datum_t> > &&sub_batch, 
+            durability_requirement_t durability_requirement,
+            table_t *tbl,
+            env_t *env,
+            bool upsert,
+            bool return_vals) {
+            
+            return tbl->do_batched_write(
                 env,
                 rdb_protocol_t::batched_insert_t(
-                        std::move(sub_batch), get_pkey(), upsert, return_vals),
-                sub_batch_durability_requirement));
-        
-        sub_batch_begin += SUB_BATCH_SIZE;
-    }
-    
-    // Merge results
-    counted_t<const datum_t> counted_stats = stats.to_counted();
-    for (size_t i = 0; i < insert_stats.size(); ++i) {
-        counted_stats = counted_stats->merge(insert_stats[i], stats_merge);
-    }
-    return counted_stats;
+                        std::move(sub_batch), tbl->get_pkey(), upsert, return_vals),
+                durability_requirement);
+        }
+    };
+    counted_t<const datum_t> insert_stats = split_replace_batches<counted_t<const datum_t> >(
+        std::bind(
+            sub_batch_visitor_t::visit,
+            std::placeholders::_1,
+            std::placeholders::_2,
+            this,
+            env,
+            upsert,
+            return_vals),
+        std::move(valid_inserts),
+        durability_requirement);
+    return stats.to_counted()->merge(insert_stats, stats_merge);
 
     // Below is the original code, which just launches a single batched insert.
+    // We should restore it once the cache is fixed, because it will be simpler,
+    // more robust, and potentially faster.
     /*
     counted_t<const datum_t> insert_stats = do_batched_write(
         env,
