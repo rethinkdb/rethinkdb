@@ -6,7 +6,7 @@
 namespace explain {
 
 task_t::task_t()
-    : state_(INIT) { }
+    : state_(INIT), next_task(NULL) { }
 
 task_t::task_t(const std::string &description)
     : next_task(NULL)

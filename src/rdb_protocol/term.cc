@@ -174,46 +174,6 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
-            preprocess_term(t);
-            Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
-
-
-            // We parse out the `noreply` optarg in a special step so that we
-            // don't send back an unneeded response in the case where another
-            // optional argument throws a compilation error.
-            for (int i = 0; i < q->global_optargs_size(); ++i) {
-                const Query::AssocPair &ap = q->global_optargs(i);
-                if (ap.key() == "noreply") {
-                    bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
-                    r_sanity_check(!conflict);
-                    counted_t<val_t> noreply = env->global_optargs.get_optarg(env, "noreply");
-                    r_sanity_check(noreply.has());
-                    *response_needed_out = !noreply->as_bool();
-                    break;
-                }
-            }
-
-            // Parse global optargs
-            for (int i = 0; i < q->global_optargs_size(); ++i) {
-                const Query::AssocPair &ap = q->global_optargs(i);
-                if (ap.key() != "noreply") {
-                    bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
-                    rcheck_toplevel(
-                        !conflict, base_exc_t::GENERIC,
-                        strprintf("Duplicate global optarg: %s", ap.key().c_str()));
-                }
-            }
-
-            protob_t<Term> ewt = make_counted_term();
-            Term *const arg = ewt.get();
-
-            N1(DB, NDATUM("test"));
-
-            propagate_backtrace(arg, t_bt); // duplicate toplevel backtrace
-            UNUSED bool _b = env->global_optargs.add_optarg("db", *arg);
-            //          ^^ UNUSED because user can override this value safely
-
-            // Parse actual query
             compile_env_t compile_env((var_visibility_t()));
             root_term = compile_term(&compile_env, q.make_child(t));
             // TODO: handle this properly

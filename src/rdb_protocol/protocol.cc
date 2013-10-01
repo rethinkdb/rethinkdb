@@ -529,9 +529,8 @@ public:
                  NULL,
                  interruptor,
                  ctx->machine_id,
-                 std::map<std::string, ql::wire_func_t>(),
+                 ql::protob_t<Query>(),
                  &response_out->task)
-                  
     { }
 
     void operator()(const point_read_t &) {
@@ -1224,7 +1223,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               std::map<std::string, ql::wire_func_t>(),
+               ql::protob_t<Query>(),
                &response->task)
     { }
 
@@ -1378,7 +1377,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               std::map<std::string, ql::wire_func_t>(),
+               ql::protob_t<Query>(),
                &response->task),
         sindex_block_id((*superblock)->get_sindex_block_id())
     { }

@@ -194,6 +194,7 @@ private:
             db_id = arg(env, 0)->as_db()->id;
             tbl_name = get_name(arg(env, 1), this);
         }
+
         // Ensure table doesn't already exist.
         metadata_search_status_t status;
         namespace_predicate_t pred(&tbl_name, &db_id);

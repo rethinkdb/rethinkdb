@@ -241,17 +241,22 @@ class Connection(object):
         # Sequence responses
         elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
             chunk = [Datum.deconstruct(datum, time_format) for datum in response.response]
-            return Cursor(self, opts, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
+            value = Cursor(self, opts, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
 
         # Atom response
         elif response.type == p.Response.SUCCESS_ATOM:
             if len(response.response) < 1:
-                return None
-            return Datum.deconstruct(response.response[0], time_format)
+                value = None
+            value = Datum.deconstruct(response.response[0], time_format)
 
         # Default for unknown response types
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
+
+        if Datum.deconstruct(response.explain) == None:
+            return value
+        else:
+            return {"value": value, "explanation": Datum.deconstruct(response.explain)}
 
 def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20):
     return Connection(host, port, db, auth_key, timeout)

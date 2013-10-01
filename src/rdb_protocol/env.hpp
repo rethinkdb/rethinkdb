@@ -29,7 +29,7 @@ class term_t;
 class global_optargs_t {
 public:
     global_optargs_t();
-    global_optargs_t(const std::map<std::string, wire_func_t> &_optargs);
+    global_optargs_t(protob_t<Query> q);
 
     // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
@@ -97,7 +97,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine,
-        const std::map<std::string, wire_func_t> &_optargs,
+        protob_t<Query> query,
         explain::task_t *_task);
 
     explicit env_t(signal_t *);
@@ -138,6 +138,8 @@ public:
     signal_t *interruptor;
 
     explain::task_t *task;
+
+    void start_new_task(const std::string &description);
 
 private:
     js_runner_t js_runner;

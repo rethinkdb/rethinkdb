@@ -24,8 +24,40 @@ bool is_joined(const T &multiple, const T &divisor) {
 
 global_optargs_t::global_optargs_t() { }
 
-global_optargs_t::global_optargs_t(const std::map<std::string, wire_func_t> &_optargs)
-    : optargs(_optargs) { }
+global_optargs_t::global_optargs_t(protob_t<Query> q) {
+    if (!q.has()) {
+        return;
+    }
+    Term *t = q->mutable_query();
+    preprocess_term(t);
+    Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
+
+
+    // We parse out the `noreply` optarg in a special step so that we
+    // don't send back an unneeded response in the case where another
+    // optional argument throws a compilation error.
+    for (int i = 0; i < q->global_optargs_size(); ++i) {
+        const Query::AssocPair &ap = q->global_optargs(i);
+        if (ap.key() == "noreply") {
+            bool conflict = add_optarg(ap.key(), ap.val());
+            r_sanity_check(!conflict);
+        } else {
+            bool conflict = add_optarg(ap.key(), ap.val());
+            rcheck_toplevel(
+                    !conflict, base_exc_t::GENERIC,
+                    strprintf("Duplicate global optarg: %s", ap.key().c_str()));
+        }
+    }
+
+    protob_t<Term> ewt = make_counted_term();
+    Term *const arg = ewt.get();
+
+    N1(DB, NDATUM("test"));
+
+    propagate_backtrace(arg, t_bt); // duplicate toplevel backtrace
+    UNUSED bool _b = add_optarg("db", *arg);
+    //          ^^ UNUSED because user can override this value safely
+}
 
 bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) {
@@ -66,6 +98,10 @@ void env_t::do_eval_callback() {
     if (eval_callback != NULL) {
         eval_callback->eval_callback();
     }
+}
+
+void env_t::start_new_task(const std::string &description) {
+    task = task->new_task(description);
 }
 
 cluster_access_t::cluster_access_t(
@@ -139,9 +175,9 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
-    const std::map<std::string, wire_func_t> &_optargs,
+    protob_t<Query> query,
     explain::task_t *_task)
-  : global_optargs(_optargs),
+  : global_optargs(query),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
@@ -150,8 +186,14 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    task(_task),
-    eval_callback(NULL) { }
+    eval_callback(NULL) {
+    counted_t<val_t> explain = global_optargs.get_optarg(this, "explain");
+    if (explain.has() && explain->as_bool()) {
+        task = _task;
+    } else {
+        task = NULL;
+    }
+}
 
 env_t::env_t(signal_t *_interruptor)
   : extproc_pool(NULL),

@@ -55,17 +55,23 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
                 ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
-                interruptor, ctx->machine_id,
-                std::map<std::string, ql::wire_func_t>(),
-                &task));
+                interruptor, ctx->machine_id, q, &task));
         // `ql::run` will set the status code
         ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
+        if (env->task) {
+            env->task->finish();
+            task.as_datum()->write_to_protobuf(response_out->mutable_explain());
+        }
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");
     } catch (const std::exception &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        strprintf("Unexpected exception: %s\n", e.what()));
+    } catch (const ql::exc_t &e) {
+        fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
+    } catch (const ql::datum_exc_t &e) {
+        fill_error(response_out, Response::COMPILE_ERROR, e.what(), ql::backtrace_t());
     }
 
     return response_needed;

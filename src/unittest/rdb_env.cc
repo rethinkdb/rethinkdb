@@ -275,7 +275,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            NULL,
                            &interruptor,
                            test_env->machine_id,
-                           std::map<std::string, ql::wire_func_t>(),
+                           ql::protob_t<Query>(),
                            &task));
     rdb_ns_repo.set_env(env.get());
 
