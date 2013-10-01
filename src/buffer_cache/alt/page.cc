@@ -355,15 +355,21 @@ void page_t::add_waiter(page_acq_t *acq) {
     }
 }
 
-void *page_t::get_buf() {
+uint32_t page_t::get_page_buf_size() {
+    rassert(buf_.has());
+    return buf_size_.value();
+}
+
+void *page_t::get_page_buf() {
     rassert(buf_.has());
     return buf_->cache_data;
 }
 
-uint32_t page_t::get_buf_size() {
-    rassert(buf_.has());
-    return buf_size_.value();
+void page_t::reset_block_token() {
+    rassert(block_token_.has());
+    block_token_.reset();
 }
+
 
 void page_t::remove_waiter(page_acq_t *acq) {
     waiters_.remove(acq);
@@ -392,12 +398,18 @@ signal_t *page_acq_t::buf_ready_signal() {
 
 uint32_t page_acq_t::get_buf_size() {
     buf_ready_signal_.wait();
-    return page_->get_buf_size();
+    return page_->get_page_buf_size();
 }
 
-void *page_acq_t::get_buf() {
+void *page_acq_t::get_buf_write() {
     buf_ready_signal_.wait();
-    return page_->get_buf();
+    page_->reset_block_token();
+    return page_->get_page_buf();
+}
+
+const void *page_acq_t::get_buf_read() {
+    buf_ready_signal_.wait();
+    return page_->get_page_buf();
 }
 
 page_acq_t::~page_acq_t() {

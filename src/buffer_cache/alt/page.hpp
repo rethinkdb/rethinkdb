@@ -31,8 +31,10 @@ public:
 
 private:
     friend class page_acq_t;
-    void *get_buf();
-    uint32_t get_buf_size();
+    // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
+    void *get_page_buf();
+    void reset_block_token();
+    uint32_t get_page_buf_size();
 
     friend class page_ptr_t;
     void add_snapshotter();
@@ -53,7 +55,6 @@ private:
     bool *destroy_ptr_;
     block_size_t buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
-    // RSI: There's no code that resets block_token_ when the page gets modified.
     counted_t<standard_block_token_t> block_token_;
 
     // How many page_ptr_t's point at this page, expecting nothing to modify it,
@@ -104,7 +105,8 @@ public:
 
     // These block, uninterruptibly waiting for buf_ready_signal() to be pulsed.
     uint32_t get_buf_size();
-    void *get_buf();
+    void *get_buf_write();
+    const void *get_buf_read();
 
 private:
     friend class page_t;
