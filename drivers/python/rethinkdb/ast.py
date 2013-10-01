@@ -313,6 +313,9 @@ class RqlQuery(object):
         elif isinstance(index, types.StringTypes):
             return GetField(self, index)
 
+    def __iter__(self):
+        raise RqlDriverError("RqlQuery does not support iterative operations.")
+
     def nth(self, index):
         return Nth(self, index)
 
