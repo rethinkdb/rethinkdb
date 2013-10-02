@@ -70,6 +70,9 @@
 // Size of the device block size (in bytes)
 #define DEVICE_BLOCK_SIZE                         512
 
+// Size of the metablock (in bytes)
+#define METABLOCK_SIZE                            (4 * KILOBYTE)
+
 // Size of each btree node (in bytes) on disk
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
@@ -181,8 +184,9 @@
 #define LBA_SHARD_FACTOR                          4
 
 // How much space to reserve in the metablock to store inline LBA entries
+// Make sure that it fits into METABLOCK_SIZE, including all other meta data
 // TODO (daniel): Tune
-#define LBA_INLINE_SIZE                           (KILOBYTE * 2)
+#define LBA_INLINE_SIZE                           (KILOBYTE * 3)
 #define LBA_NUM_INLINE_ENTRIES                    (static_cast<int32_t>(LBA_INLINE_SIZE / sizeof(lba_entry_t)))
 
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
