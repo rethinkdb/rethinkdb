@@ -8,6 +8,8 @@
 #include "config/args.hpp"
 
 
+#define LBA_NUM_INLINE_ENTRIES                    (static_cast<int32_t>(LBA_INLINE_SIZE / sizeof(lba_entry_t)))
+
 
 // Contains an int64_t, or a "padding" value, or a "unused" value.  I
 // don't think we really need separate padding and unused values.

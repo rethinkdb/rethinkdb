@@ -186,8 +186,7 @@
 // How much space to reserve in the metablock to store inline LBA entries
 // Make sure that it fits into METABLOCK_SIZE, including all other meta data
 // TODO (daniel): Tune
-#define LBA_INLINE_SIZE                           (KILOBYTE * 3)
-#define LBA_NUM_INLINE_ENTRIES                    (static_cast<int32_t>(LBA_INLINE_SIZE / sizeof(lba_entry_t)))
+#define LBA_INLINE_SIZE                           (METABLOCK_SIZE - 512)
 
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
