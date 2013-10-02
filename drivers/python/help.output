@@ -1,0 +1,2175 @@
+Help on class RqlQuery in module rethinkdb.ast:
+
+class RqlQuery(__builtin__.object)
+ |  Methods defined here:
+ |  
+ |  __add__(self, other)
+ |      Sum two numbers, concatenate two strings, or concatenate 2 arrays.
+ |      
+ |      It's as easy as 2 + 2 = 4.
+ |      >>> (r.expr(2) + 2).run(conn)
+ |      
+ |      Strings can be concatenated too.
+ |      >>> (r.expr("foo") + "bar").run(conn)
+ |      
+ |      Arrays can be concatenated too.
+ |      >>> (r.expr(["foo", "bar"]) + ["buzz"]).run(conn)
+ |      
+ |      Create a date one year from now.
+ |      >>> r.now() + 365*24*60*60
+ |  
+ |  __and__(self, other)
+ |      Compute the logical and of two values.
+ |      
+ |      True and false anded is false?
+ |      >>> (r.expr(True) & False).run(conn)
+ |  
+ |  __div__(self, other)
+ |      Divide two numbers.
+ |      
+ |      It's as easy as 2 / 2 = 1.
+ |      >>> (r.expr(2) / 2).run(conn)
+ |  
+ |  __eq__(self, other)
+ |      Test if two values are equal.
+ |      
+ |      Does 2 equal 2?
+ |      >>> (r.expr(2) == 2).run(conn)
+ |  
+ |  __ge__(self, other)
+ |      Test if the first value is greater than or equal to other.
+ |      
+ |      Is 2 greater than or equal to 2?
+ |      >>> (r.expr(2) >= 2).run(conn)
+ |  
+ |  __getitem__(self, index)
+ |      Get a single field from an object.  If called on a sequence, gets that field from every object in the sequence, skipping objects that lack it.
+ |      
+ |      What was Iron Man's first appearance in a comic?
+ |      >>> r.table('marvel').get('IronMan')['firstAppearance'].run(conn)
+ |  
+ |  __gt__(self, other)
+ |      Test if the first value is greater than other.
+ |      
+ |      Is 2 greater than 2?
+ |      >>> (r.expr(2) > 2).run(conn)
+ |  
+ |  __init__(self, *args, **optargs)
+ |      # Instantiate this AST node with the given pos and opt args
+ |  
+ |  __invert__(self)
+ |      Compute the logical inverse (not).
+ |      
+ |      Not true is false.
+ |      >>> (~r.expr(True)).run(conn)
+ |  
+ |  __le__(self, other)
+ |      Test if the first value is less than or equal to other.
+ |      
+ |      Is 2 less than or equal to 2?
+ |      >>> (r.expr(2) <= 2).run(conn)
+ |  
+ |  __lt__(self, other)
+ |      Test if the first value is less than other.
+ |      
+ |      Is 2 less than 2?
+ |      >>> (r.expr(2) < 2).run(conn)
+ |  
+ |  __mod__(self, other)
+ |      Find the remainder when dividing two numbers.
+ |      
+ |      It's as easy as 2 % 2 = 0.
+ |      >>> (r.expr(2) % 2).run(conn)
+ |  
+ |  __mul__(self, other)
+ |      Multiply two numbers, or make a periodic array.
+ |      
+ |      It's as easy as 2 * 2 = 4.
+ |      >>> (r.expr(2) * 2).run(conn)
+ |      
+ |      Arrays can be multiplied by numbers as well.
+ |      >>> (r.expr(["This", "is", "the", "song", "that", "never", "ends."]) * 100).run(conn)
+ |  
+ |  __ne__(self, other)
+ |      Test if two values are not equal.
+ |      
+ |      Does 2 not equal 2?
+ |      >>> (r.expr(2) != 2).run(conn)
+ |  
+ |  __or__(self, other)
+ |      Compute the logical or of two values.
+ |      
+ |      True or false ored is true?
+ |      >>> (r.expr(True) | False).run(conn)
+ |  
+ |  __radd__(self, other)
+ |  
+ |  __rand__(self, other)
+ |  
+ |  __rdiv__(self, other)
+ |  
+ |  __repr__(self)
+ |  
+ |  __rmod__(self, other)
+ |  
+ |  __rmul__(self, other)
+ |  
+ |  __ror__(self, other)
+ |  
+ |  __rsub__(self, other)
+ |  
+ |  __str__(self)
+ |  
+ |  __sub__(self, other)
+ |      Subtract two numbers.
+ |      
+ |      It's as easy as 2 - 2 = 0.
+ |      >>> (r.expr(2) - 2).run(conn)
+ |      
+ |      Create a date one year ago today.
+ |      >>> r.now() - 365*24*60*60
+ |      
+ |      Retrieve how many seconds elapsed between today and date
+ |      >>> r.now() - date
+ |  
+ |  add(*args)
+ |  
+ |  append(self, val)
+ |      Append a value to an array.
+ |      
+ |      Retrieve Iron Man's equipment list with the addition of some new boots.
+ |      >>> r.table('marvel').get('IronMan')['equipment'].append('newBoots').run(conn)
+ |  
+ |  between(self, left=None, right=None, left_bound=(), right_bound=(), index=())
+ |      Get all documents between two keys.  Accepts three optional arguments: `index`, `left_bound`, and `right_bound`.  If `index` is set to the name of a secondary index, `between` will return all documents where that index's value is in the specified range (it uses the primary key by default).  `left_bound` or `right_bound` may be set to `open` or `closed` to indicate whether or not to include that endpoint of the range (by default, `left_bound` is closed and `right_bound` is open).
+ |      
+ |      
+ |      Find all users with primary key >= 10 and < 20 (a normal half-open interval).
+ |      >>> r.table('marvel').between(10, 20).run(conn)
+ |      
+ |      Find all users with primary key >= 10 and <= 20 (an interval closed on both sides).
+ |      >>> r.table('marvel').between(10, 20, right_bound='closed').run(conn)
+ |      
+ |      Find all users with primary key < 20.  (You can use `NULL` to mean "unbounded" for either endpoint.)
+ |      >>> r.table('marvel').between(None, 20, right_bound='closed').run(conn)
+ |      
+ |      Between can be used on secondary indexes too. Just pass an optional index
+ |      argument giving the secondary index to query.
+ |      
+ |      >>> r.table('dc').between('dark_knight', 'man_of_steel', index='code_name').run(conn)
+ |  
+ |  build(self, term)
+ |      # Compile this query to a binary protobuf buffer
+ |  
+ |  change_at(self, index, value)
+ |      Change a value in an array at a given index. Returns the modified array.
+ |      
+ |      Bruce Banner hulks out.
+ |      >>> r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
+ |  
+ |  coerce_to(self, other_type)
+ |      Converts a value of one type into another. 
+ |      
+ |      You can convert: a selection, sequence, or object into an ARRAY, 
+ |      an array of pairs into an OBJECT, and any DATUM into a STRING.
+ |      
+ |      
+ |      Convert a table to an array.
+ |      >>> r.table('marvel').coerce_to('array').run(conn)
+ |      
+ |      Convert an array of pairs into an object.
+ |      >>> r.expr([['name', 'Ironman'], ['victories', 2000]]).coerce_to('object').run(conn)
+ |      
+ |      Convert a number to a string.
+ |      >>> r.expr(1).coerce_to('string').run(conn)
+ |  
+ |  concat_map(self, func)
+ |      Flattens a sequence of arrays returned by the mappingFunction into a single sequence.
+ |      
+ |      Construct a sequence of all monsters defeated by Marvel heroes. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence.
+ |      >>> r.table('marvel').concat_map(lambda hero: hero['defeatedMonsters']).run(conn)
+ |  
+ |  contains(self, *attr)
+ |      Returns whether or not a sequence contains all the specified values, or if functions are provided instead, returns whether or not a sequence contains values matching all the specified functions.
+ |      
+ |      Has Iron Man ever fought Superman?
+ |      >>> r.table('marvel').get('ironman')['opponents'].contains('superman').run(conn)
+ |      
+ |      Has Iron Man ever defeated Superman in battle?
+ |      >>> r.table('marvel').get('ironman')['battles'].contains(lambda battle: (battle['winner'] == 'ironman') & (battle['loser'] == 'superman'))
+ |  
+ |  count(self, filter=())
+ |      Count the number of elements in the sequence. With a single argument, count the number of elements equal to it. If the argument is a function, it is equivalent to calling filter before count.
+ |      
+ |      Just how many super heroes are there?
+ |      >>> (r.table('marvel').count() + r.table('dc').count()).run(conn)
+ |      
+ |      Just how many super heroes have invisibility?
+ |      >>> r.table('marvel').concat_map(r.row['superpowers']).count('invisibility').run(conn)
+ |      
+ |      Just how many super heroes have defeated the Sphinx?
+ |      >>> r.table('marvel').count(r.row['monstersKilled'].contains('Sphinx')).run(conn)
+ |  
+ |  date(self)
+ |      Return a new time object only based on the day, month and year (ie. the same day at 00:00).
+ |      
+ |      
+ |      Retrieve all the users whose birthday is today
+ |      >>> r.table("users").filter(lambda user:
+ |      ...   user["birthdate"].date() == r.now().date()
+ |      ... ).run(conn)
+ |  
+ |  day(self)
+ |      Return the day of a time object as a number between 1 and 31.
+ |      
+ |      
+ |      Return the users born on the 24th of any month.
+ |      >>> r.table("users").filter(
+ |      ...   r.row["birthdate"].day() == 24
+ |      ... )
+ |  
+ |  day_of_week(self)
+ |      Return the day of week of a time object as a number between 1 and 7 (following ISO 8601 standard).
+ |      For your convenience, the terms r.monday, r.tuesday etc. are defined and map
+ |      to the appropriate integer.
+ |      
+ |      
+ |      Return today's day of week.
+ |      >>> r.now().day_of_week().run(conn)
+ |      
+ |      
+ |      Retrieve all the users who were born on a Tuesday.
+ |      >>> r.table("users").filter(
+ |      ...   r.row["birthdate"].day_of_week() == r.tuesday
+ |      ... )
+ |  
+ |  day_of_year(self)
+ |      Return the day of the year of a time object as a number between 1 and 366 (following ISO 8601 standard).
+ |      
+ |      
+ |      Retrieve all the users who were born the first day of a year.
+ |      >>> r.table("users").filter(
+ |      ...   r.row["birthdate"].day_of_year() == 1
+ |      ... )
+ |  
+ |  default(self, handler)
+ |      Handle non-existence errors.  Tries to evaluate and return its first argument.  If an error related to the absence of a value is thrown in the process, or if its first argument returns null, returns its second argument.  (Alternatively, the second argument may be a function which will be called with either the text of the non-existence error or null.)
+ |      
+ |      Stark Industries made the mistake of trusting an intern with data entry, and now a bunch of fields are missing from some of their documents.  Iron Man takes a break from fighting Mandarin to write some safe analytics queries.
+ |      >>> r.table('projects').map(
+ |      ...   lambda p: p['staff'].default(0) + p['management'].default(0)
+ |      ... ).run(conn)
+ |  
+ |  delete(self, durability=(), return_vals=())
+ |      Delete one or more documents from a table.  The optional argument return_vals will return the old value of the row you're deleting when set to true (only valid for single-row deletes).  The optional argument
+ |      durability with value 'hard' or
+ |      'soft' will override the table or query's default
+ |      durability setting.
+ |      
+ |      Delete returns an object that contains the following attributes:
+ |      
+ |      * deleted - the number of documents that were deleted;
+ |      * skipped - the number of documents from the selection that were left unmodified
+ |      because there was nothing to do. For example, if you delete a row that has already been deleted,
+ |      that row will be skipped;
+ |      * errors - the number of errors encountered while deleting;
+ |      * if errors occured, first_error contains the text of the first error;
+ |      * inserted, replaced, and unchanged - all
+ |      0 for a delete operation.
+ |      
+ |      
+ |      
+ |      Delete superman from the database.
+ |      >>> r.table('marvel').get('superman').delete().run(conn)
+ |      
+ |      Delete every document from the table 'marvel'.  Also, don't wait for the operation to be flushed to disk.
+ |      >>> r.table('marvel').delete(durability='soft').run(conn)
+ |      
+ |      You can get back a copy of the row you delete from the database as well.
+ |      >>> r.table('marvel').delete(return_vals=True).run(conn)
+ |  
+ |  delete_at(self, *indexes)
+ |      Remove an element from an array at a given index. Returns the modified array.
+ |      
+ |      Hulk decides to leave the avengers.
+ |      >>> r.expr(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
+ |      
+ |      Hulk and Thor decide to leave the avengers.
+ |      >>> r.expr(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,3).run(conn)
+ |  
+ |  difference(self, val)
+ |      Remove the elements of one array from another array.
+ |      
+ |      Retrieve Iron Man's equipment list without boots.
+ |      >>> r.table('marvel').get('IronMan')['equipment'].difference(['Boots']).run(conn)
+ |  
+ |  distinct(self)
+ |      Remove duplicate elements from the sequence.
+ |      
+ |      Which unique villains have been vanquished by marvel heroes?
+ |      >>> r.table('marvel').concat_map(lambda hero: hero['villainList']).distinct().run(conn)
+ |  
+ |  div(*args)
+ |  
+ |  do(self, func)
+ |      Evaluate the expr in the context of one or more value
+ |      bindings.
+ |      
+ |      The type of the result is the type of the value returned from expr.
+ |      
+ |      
+ |      The object(s) passed to do() can be bound to name(s). The last argument is the expression to evaluate in the context of the bindings.
+ |      >>> r.do(r.table('marvel').get('IronMan'),
+ |      ...      lambda ironman: ironman['name']).run(conn)
+ |  
+ |  during(self, t2, t3, left_bound=(), right_bound=())
+ |      Return if a time is between two other times (by default, inclusive for the start, exclusive for the end).
+ |      
+ |      
+ |      Retrieve all the posts that were posted between December 1st, 2013 (inclusive) and December 10th, 2013 (exclusive).
+ |      >>> r.table("posts").filter(
+ |      ...     r.row['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10))
+ |      ... ).run(conn)
+ |      
+ |      
+ |      Retrieve all the posts that were posted between December 1st, 2013 (exclusive) and December 10th, 2013 (inclusive).
+ |      >>> r.table("posts").filter(
+ |      ...   r.row['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10), left_bound="open", right_bound="closed")
+ |      ... ).run(conn)
+ |  
+ |  eq(*args)
+ |  
+ |  eq_join(self, left_attr, other, index=())
+ |      An efficient join that looks up elements in the right table by primary key.
+ |      
+ |      Let our heroes join forces to battle evil!
+ |      >>> r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run(conn)
+ |      
+ |      The above query is equivalent to this inner join but runs in O(n log(m)) time rather than the O(n * m) time the inner join takes.
+ |      >>> r.table('marvel').inner_join(r.table('dc'),
+ |      ...   lambda left, right: left['main_dc_collaborator'] == right['hero_name']).run(conn)
+ |      
+ |      You can take advantage of a secondary index on the second table by giving an optional index parameter.
+ |      >>> r.table('marvel').eq_join('main_weapon_origin',
+ |      ...     r.table('mythical_weapons'), index='origin').run(conn)
+ |      
+ |      
+ |      You can pass a function instead of an attribute to join on more complicated expressions. Here we join to the DC universe collaborator with whom the hero has the most appearances.
+ |      >>> r.table('marvel').eq_join(lambda doc: doc['dc_collaborators'].order_by('appearances')[0]['name'],
+ |      ...     r.table('dc')).run(conn)
+ |  
+ |  filter(self, func, default=())
+ |      Get all the documents for which the given predicate is true.<br
+ |      />
+ |       filter can be called on a sequence,
+ |      selection, or a field containing an array of elements. The
+ |      return type is the same as the type on which the function was
+ |      called on.  The body of every filter is wrapped in an implicit
+ |      `.default(false)`, and the default value can be changed by
+ |      passing the optional argument `default`.  Setting this optional
+ |      argument to `r.error()` will cause any non-existence errors to
+ |      abort the filter.
+ |      
+ |      
+ |      Get all active users aged 30.
+ |      >>> r.table('users').filter({'active': True, 'profile': {'age': 30}}).run(conn)
+ |      
+ |      Filter supports the r.literal syntax if you want to get an exact match.
+ |      >>> r.table('users').filter({'active': True, 'profile': r.literal({'age': 30})}).run(conn)
+ |      
+ |      Select all documents where the 'magazines' field is greater than 5.
+ |      >>> r.table('users').filter(r.row['magazines'] > 5).run(conn)
+ |      
+ |      Select all documents where the 'abilities' embedded document has an attribute called 'super-strength'.
+ |      >>> r.table('marvel').filter(
+ |      ...     lambda hero: hero['abilities'].has_fields('super-strength')).run(conn)
+ |      
+ |      
+ |      Select all documents where the field 'powers' containing an array has an element equal to 10.
+ |      >>> r.table('marvel').filter(
+ |      ...   r.row['powers'].filter(lambda el: el == 10).count() > 0
+ |      ... ).run(conn)
+ |  
+ |  for_each(self, mapping)
+ |      Loop over a sequence, evaluating the given write query for each element.
+ |      
+ |      Now that our heroes have defeated their villains, we can safely remove them from the villain table.
+ |      >>> r.table('marvel').for_each(
+ |      ...     lambda hero: r.table('villains').get(hero['villainDefeated']).delete()
+ |      ... ).run(conn)
+ |  
+ |  ge(*args)
+ |  
+ |  group_by(self, arg1, arg2, *rest)
+ |      Groups elements by the values of the given attributes and then applies the given reduction. Though similar to grouped_map_reduce, groupby takes a standardized object for specifying the reduction. Can be used with a number of predefined common reductions.
+ |      
+ |      Using a predefined reduction we can easily find the average strength of members of each weight class.
+ |      >>> r.table('marvel').group_by('weightClass', r.avg('strength')).run(conn)
+ |      
+ |      Groupings can also be specified on nested attributes.
+ |      >>> r.table('marvel').group_by({'abilities' : {'primary' : True}}, r.avg('strength')).run(conn)
+ |      
+ |      The nested syntax can quickly become verbose so there's a shortcut.
+ |      >>> r.table('marvel').group_by({'abilities' : 'primary'}, r.avg('strength')).run(conn)
+ |  
+ |  grouped_map_reduce(self, grouping, mapping, data_collector, base=())
+ |      Partition the sequence into groups based on the grouping function. The elements of each group are then mapped using the mapping function and reduced using the reduction function.
+ |      
+ |      grouped_map_reduce is a generalized form of group by.
+ |      
+ |      It's only fair that heroes be compared against their weight class.
+ |      >>> r.table('marvel').grouped_map_reduce(
+ |      ...   lambda hero: hero['weightClass'],  # grouping
+ |      ...   lambda hero: hero.pluck('name', 'strength'),  # mapping
+ |      ...   lambda acc, hero: r.branch(acc['strength'] < hero['strength'], hero, acc),
+ |      ...   {'name':'none', 'strength':0}  # base
+ |      ... ).run(conn)
+ |  
+ |  gt(*args)
+ |  
+ |  has_fields(self, *attr)
+ |      Test if an object has all of the specified fields.  An object has a field if it has the specified key and that key maps to a non-null value.  For instance, the object `{'a':1,'b':2,'c':null}` has the fields `a` and `b`.
+ |      
+ |      Which heroes are married?
+ |      >>> r.table('marvel').has_fields('spouse').run(conn)
+ |      
+ |      Test if a single object has a field.
+ |      >>> r.table('marvel').get("IronMan").has_fields('spouse').run(conn)
+ |      
+ |      You can also test if nested fields exist to get only spouses with powers of their own.
+ |      >>> r.table('marvel').has_fields({'spouse' : {'powers' : True}}).run(conn)
+ |      
+ |      The nested syntax can quickly get verbose so there's a shorthand.
+ |      >>> r.table('marvel').has_fields({'spouse' : 'powers'}).run(conn)
+ |  
+ |  hours(self)
+ |      Return the hour in a time object as a number between 0 and 23.
+ |      
+ |      
+ |      Return all the posts submitted after midnight and before 4am.
+ |      >>> r.table("posts").filter(lambda post:
+ |      ...     post["date"].hours() < 4
+ |      ... )
+ |  
+ |  in_timezone(self, tzstr)
+ |      Return a new time object with a different timezone. While the time stays the same,
+ |      the results returned by methods such as hours() will change since they take the
+ |      timezone into account.
+ |      The timezone argument has to be of the ISO 8601 format.
+ |      
+ |      
+ |      Hour of the day in San Francisco (UTC/GMT -8, without daylight saving time).
+ |      >>> r.now().in_timezone('-08:00').hours().run(conn)
+ |  
+ |  indexes_of(self, val)
+ |      Get the indexes of an element in a sequence. If the argument is a predicate, get the indexes of all elements matching it.
+ |      
+ |      Find the position of the letter 'c'.
+ |      >>> r.expr(['a','b','c']).indexes_of('c').run(conn)
+ |      
+ |      Find the popularity ranking of invisible heroes.
+ |      >>> r.table('marvel').union(r.table('dc')).order_by('popularity').indexes_of(
+ |      ...   r.row['superpowers'].contains('invisibility')
+ |      ... ).run(conn)
+ |  
+ |  info(self)
+ |      Get information about a RQL value.
+ |      
+ |      Get information about a table such as primary key, or cache size.
+ |      
+ |      >>> r.table('marvel').info().run(conn)
+ |  
+ |  inner_join(self, other, predicate)
+ |      Returns the inner product of two sequences (e.g. a table, a filter result) filtered by the predicate. The query compares each row of the left sequence with each row of the right sequence to find all pairs of rows which satisfy the predicate. When the predicate is satisfied, each matched pair of rows of both sequences are combined into a result row.
+ |      
+ |      Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.
+ |      >>> r.table('marvel').inner_join(r.table('dc'), lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)
+ |  
+ |  insert_at(self, index, value)
+ |      Insert a value in to an array at a given index. Returns the modified array.
+ |      
+ |      Hulk decides to join the avengers.
+ |      >>> r.expr(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
+ |  
+ |  is_empty(self)
+ |      Test if a sequence is empty.
+ |      
+ |      Are there any documents in the marvel table?
+ |      >>> r.table('marvel').is_empty().run(conn)
+ |  
+ |  keys(self)
+ |      Return an array containing all of the object's keys.
+ |      
+ |      Get all the keys of a row.
+ |      >>> r.table('marvel').get('ironman').keys().run(conn)
+ |  
+ |  le(*args)
+ |  
+ |  limit(self, index)
+ |      End the sequence after the given number of elements.
+ |      
+ |      Only so many can fit in our Pantheon of heroes.
+ |      >>> r.table('marvel').order_by('belovedness').limit(10).run(conn)
+ |  
+ |  lt(*args)
+ |  
+ |  map(self, func)
+ |      Transform each element of the sequence by applying the given mapping function.
+ |      
+ |      Construct a sequence of hero power ratings.
+ |      >>> r.table('marvel').map(
+ |      ...     lambda hero: hero['combatPower'] + hero['compassionPower'] * 2).run(conn)
+ |  
+ |  match(self, pattern)
+ |      Match against a regular expression.  Returns a match object containing the matched string, that string's start/end position, and the capture groups.  Accepts RE2 syntax (https://code.google.com/p/re2/wiki/Syntax).  You can enable case-insensitive matching by prefixing the regular expression with `(?i)`.  (See linked RE2 documentation for more flags.)
+ |      
+ |      Get all users whose name starts with A.
+ |      >>> r.table('users').filter(lambda row:row['name'].match("^A")).run(conn)
+ |      
+ |      Parse out a name (returns "mlucy").
+ |      >>> r.expr('id:0,name:mlucy,foo:bar').match('name:(\w+)')['groups'][0]['str'].run(conn)
+ |      
+ |      Fail to parse out a name (returns null).
+ |      >>> r.expr('id:0,foo:bar').match('name:(\w+)')['groups'][0]['str'].run(conn)
+ |  
+ |  merge(self, other)
+ |      Merge two objects together to construct a new object with properties from both. Gives preference to attributes from other when there is a conflict.
+ |      
+ |      Equip IronMan for battle.
+ |      >>> r.table('marvel').get('IronMan').merge(
+ |      ...   r.table('loadouts').get('alienInvasionKit')).run(conn)
+ |      
+ |      Merge can be used recursively to modify object within objects.
+ |      >>> r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+ |      ...   {'weapons' : {'spectacular graviton beam' : {'dmg' : 10}}}).run(conn)
+ |      
+ |      To replace a nested object with another object you can use the literal keyword.
+ |      >>> r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+ |      ...   {'weapons' : r.literal({'repulsor rays' : {'dmg' : 3, 'cooldown' : 0}})}).run(conn)
+ |      
+ |      Literal can be used to remove keys from an object as well.
+ |      >>> r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+ |      ...   {'weapons' : {'spectacular graviton beam' : r.literal()}}).run(conn)
+ |  
+ |  minutes(self)
+ |      Return the minute in a time object as a number between 0 and 59.
+ |      
+ |      
+ |      Return all the posts submitted during the first 10 minutes of every hour.
+ |      >>> r.table("posts").filter(lambda post:
+ |      ...     post["date"].minutes() < 10
+ |      ... )
+ |  
+ |  mod(self, other)
+ |  
+ |  month(self)
+ |      Return the month of a time object as a number between 1 and 12.
+ |      For your convenience, the terms r.january, r.february etc. are defined and map
+ |      to the appropriate integer.
+ |      
+ |      
+ |      Retrieve all the users who were born in November.
+ |      >>> r.table("users").filter(
+ |      ...   r.row["birthdate"].month() == 11
+ |      ... )
+ |      
+ |      
+ |      Retrieve all the users who were born in November.
+ |      >>> r.table("users").filter(
+ |      ...   r.row["birthdate"].month() == r.november
+ |      ... )
+ |  
+ |  mul(*args)
+ |  
+ |  ne(*args)
+ |  
+ |  not_(self)
+ |      Compute the logical inverse (not).
+ |      
+ |      Not true is false.
+ |      >>> (~r.expr(True)).run(conn)
+ |  
+ |  nth(self, index)
+ |  
+ |  order_by(self, *obs, **kwargs)
+ |      Sort the sequence by document values of the given key(s).
+ |      
+ |       order by defaults to ascending ordering. To explicitly specify the ordering, wrap the attribute with either r.asc or r.desc.
+ |      
+ |      Order our heroes by a series of performance metrics.
+ |      >>> r.table('marvel').order_by('enemies_vanquished', 'damsels_saved').run(conn)
+ |      
+ |      Indexes can be used to perform more efficient orderings. Notice that the index ordering always has highes precedence. Thus the following example is equivalent to the one above.
+ |      >>> r.table('marvel').order_by('damsels_saved', index='enemies_vanquished').run(conn)
+ |      
+ |      You can also specify a descending order when using an index.
+ |      >>> r.table('marvel').order_by(index=r.desc('enemies_vanquished')).run(conn)
+ |      
+ |      Let's lead with our best vanquishers by specify descending ordering.
+ |      >>> r.table('marvel').order_by(
+ |      ...     r.desc('enemies_vanquished'), r.asc('damsels_saved')).run(conn)
+ |      
+ |      You can use a function for ordering instead of just selecting an attribute.
+ |      >>> r.table('marvel').order_by(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved']).run(conn)
+ |      
+ |      Functions can also be used descendingly.
+ |      >>> r.table('marvel').order_by(r.desc(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved'])).run(conn)
+ |  
+ |  outer_join(self, other, predicate)
+ |      Computes a left outer join by retaining each row in the left table even if no match was found in the right table.
+ |      
+ |      Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence.
+ |      >>> r.table('marvel').outer_join(r.table('dc'),
+ |      ...   lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)
+ |  
+ |  pluck(self, *attrs)
+ |      Plucks out one or more attributes from either an object or a sequence of objects (projection).
+ |      
+ |      We just need information about IronMan's reactor and not the rest of the document.
+ |      >>> r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+ |      
+ |      For the hero beauty contest we only care about certain qualities.
+ |      >>> r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+ |      
+ |      Pluck can also be used on nested objects.
+ |      >>> r.table('marvel').pluck({'abilities' : {'damage' : True, 'mana_cost' : True}, 'weapons' : True}).run(conn)
+ |      
+ |      The nested syntax can quickly become overly verbose so there's a shorthand for it.
+ |      >>> r.table('marvel').pluck({'abilities' : ['damage', 'mana_cost']}, 'weapons').run(conn)
+ |  
+ |  prepend(self, val)
+ |      Prepend a value to an array.
+ |      
+ |      Retrieve Iron Man's equipment list with the addition of some new boots.
+ |      >>> r.table('marvel').get('IronMan')['equipment'].prepend('newBoots').run(conn)
+ |  
+ |  reduce(self, func, base=())
+ |      Produce a single value from a sequence through repeated application
+ |      of a reduction function.
+ |      
+ |      The reduce function gets invoked repeatedly not only
+ |      for the input values but also for results of previous reduce invocations.
+ |      The type and format of the object that is passed in to reduce must be
+ |      the same with the one returned from reduce.
+ |      
+ |      
+ |      How many enemies have our heroes defeated?
+ |      >>> r.table('marvel').map(r.row['monstersKilled']).reduce(
+ |      ...     lambda acc, val: acc + val, 0).run(conn)
+ |  
+ |  replace(self, func, non_atomic=(), durability=(), return_vals=())
+ |      Replace documents in a table. Accepts a JSON document or a RQL
+ |      expression, and replaces the original document with the new
+ |      one. The new document must have the same primary key as the
+ |      original document.  The optional argument
+ |      durability with value 'hard' or
+ |      'soft' will override the table or query's default
+ |      durability setting.  The optional argument return_vals will return the old and new values of the row you're modifying when set to true (only valid for single-row replacements).  The optional argument
+ |      non_atomic lets you permit non-atomic updates.
+ |      
+ |      Replace returns an object that contains the following attributes:
+ |      
+ |      * replaced - the number of documents that were replaced;
+ |      * unchanged - the number of documents that would have been modified,
+ |      except that the new value was the same as the old value;
+ |      * inserted - the number of new documents added. You can have new documents
+ |      inserted if you do a point-replace on a key that isn't in the table or you do a replace
+ |      on a selection and one of the documents you are replacing has been deleted;
+ |      * deleted - the number of deleted documents when doing a replace with null;
+ |      * errors - the number of errors encountered while performing the replace;
+ |      * if errors occurred performing the replace, first_error contains the text of the first error encountered;
+ |      * skipped - 0 for a replace operation.
+ |      
+ |      
+ |      
+ |      Remove all existing attributes from Superman's document, and add an attribute 'age'.
+ |      >>> r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(conn)
+ |      
+ |      Allow the server to run non-atomic operations.
+ |      >>> r.table('marvel').get('superman').replace(
+ |      ...     { 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
+ |      
+ |      
+ |      Mark all Marvel heroes as favorites, specifying soft durability.
+ |      >>> r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
+ |      ...     lambda hero: hero.merge({'is_fav': True}), durability='soft').run(conn)
+ |      
+ |      
+ |      You can get a copy of the previous value and the old value back using the return_vals flag.
+ |      >>> r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
+ |      ...     lambda hero: hero.merge({'is_fav': True}), return_vals=True).run(conn)
+ |  
+ |  run(self, c=None, **global_opt_args)
+ |      Run a query on a connection.
+ |      
+ |      Call run on the connection with a query to execute the query.
+ |      The callback will get a cursor from which results may be retrieved.
+ |      
+ |      >>> for doc in r.table('marvel').run(conn):
+ |      ...   print doc
+ |      
+ |      
+ |      If you are OK with potentially out of date data from all the tables
+ |      involved in this query and want potentially faster reads, pass a flag
+ |      allowing out of date data in an options object.  Settings for
+ |      individual tables will supercede this global setting for all tables
+ |      in the query.
+ |      
+ |      >>> r.table('marvel').run(conn, use_outdated=True)
+ |      
+ |      If you just want to send a write and forget about it, you
+ |      can set `noreply` to true in the options.  In this case
+ |      `run` will return immediately.
+ |      
+ |      >>> r.table('marvel').run(conn, noreply=True)
+ |      
+ |      If you want to specify whether to wait for a write to be
+ |      written to disk (overriding the table's default settings),
+ |      you can set `durability` to `'hard'` or `'soft'` in the
+ |      options.
+ |      
+ |      >>> r.table('marvel')
+ |      ...  .insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' })
+ |      ...  .run(conn, noreply=True, durability='soft')
+ |      
+ |      
+ |      If you do not want a time object to be converted to a native date object,
+ |      you can pass a time_format flag to prevent it (valid flags are "raw" and "native").
+ |      This query returns an object with two fields (epoch_time and $reql_type$)
+ |      instead of a native date object.
+ |      
+ |      >>> r.now().run(conn, time_format="raw")
+ |  
+ |  sample(self, count)
+ |      Select a given number of elements from a sequence with uniform random
+ |      distribution. Selection is done without replacement.
+ |      
+ |      
+ |      Select 3 random heroes.
+ |      >>> r.table('marvel').sample(3).run(conn)
+ |  
+ |  seconds(self)
+ |      Return the seconds in a time object as a number between 0 and 59.999 (double precision).
+ |      
+ |      
+ |      Return the post submitted during the first 30 seconds of every minute.
+ |      >>> r.table("posts").filter(lambda post:
+ |      ...     post["date"].seconds() < 30
+ |      ... )
+ |  
+ |  set_difference(self, val)
+ |      Remove the elements of one array from another and return them as a
+ |      set (an array with distinct values).
+ |      
+ |      
+ |      Check which pieces of equipment Iron Man has, excluding a fixed list.
+ |      >>> r.table('marvel').get('IronMan')['equipment'].set_difference(['newBoots', 'arc_reactor']).run(conn)
+ |  
+ |  set_insert(self, val)
+ |      Add a value to an array and return it as a set
+ |      (an array with distinct values).
+ |      
+ |      
+ |      Retrieve Iron Man's equipment list with the addition of some new boots.
+ |      >>> r.table('marvel').get('IronMan')['equipment'].set_insert('newBoots').run(conn)
+ |  
+ |  set_intersection(self, val)
+ |      Intersect two arrays returning values that occur in both of
+ |      them as a set (an array with distinct values).
+ |      
+ |      
+ |      Check which pieces of equipment Iron Man has from a fixed list.
+ |      >>> r.table('marvel').get('IronMan')['equipment'].set_intersection(['newBoots', 'arc_reactor']).run(conn)
+ |  
+ |  set_union(self, val)
+ |      Add a several values to an array and return it as a
+ |      set (an array with distinct values).
+ |      
+ |      
+ |      Retrieve Iron Man's equipment list with the addition of some new
+ |      boots and an arc reactor.
+ |      
+ |      >>> r.table('marvel').get('IronMan')['equipment'].set_union(['newBoots', 'arc_reactor']).run(conn)
+ |  
+ |  skip(self, index)
+ |      Skip a number of elements from the head of the sequence.
+ |      
+ |      Here in conjunction with `order_by` we choose to ignore the most successful heroes.
+ |      >>> r.table('marvel').order_by('successMetric').skip(10).run(conn)
+ |  
+ |  slice(self, left, right, left_bound=(), right_bound=())
+ |  
+ |  splice_at(self, index, values)
+ |      Insert several values in to an array at a given index. Returns the modified array.
+ |      
+ |      Hulk and Thor decide to join the avengers.
+ |      >>> r.expr(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
+ |  
+ |  sub(*args)
+ |  
+ |  time_of_day(self)
+ |      Return the number of seconds elapsed since the beginning of the day stored in the time object.
+ |      
+ |      
+ |      Retrieve posts that were submitted before noon.
+ |      >>> r.table("posts").filter(
+ |      ...     r.row["date"].time_of_day() <= 12*60*60
+ |      ... ).run(conn)
+ |  
+ |  timezone(self)
+ |      Return the timezone of the time object.
+ |      
+ |      
+ |      Return all the users in the "-07:00" timezone.
+ |      >>> r.table("users").filter( lambda user:
+ |      ...   user["subscriptionDate"].timezone() == "-07:00"
+ |      ... )
+ |  
+ |  to_epoch_time(self)
+ |      Convert a time object to its epoch time.
+ |      
+ |      
+ |      Return the current time in an ISO8601 format.
+ |      >>> r.now().to_epoch_time()
+ |  
+ |  to_iso8601(self)
+ |      Convert a time object to its iso 8601 format.
+ |      
+ |      
+ |      Return the current time in an ISO8601 format.
+ |      >>> r.now().to_iso8601()
+ |  
+ |  type_of(self)
+ |      Gets the type of a value.
+ |      
+ |      Get the type of a string.
+ |      >>> r.expr("foo").type_of().run(conn)
+ |  
+ |  union(self, *others)
+ |      Concatenate two sequences.
+ |      
+ |      Construct a stream of all heroes.
+ |      >>> r.table('marvel').union(r.table('dc')).run(conn)
+ |  
+ |  update(self, func, non_atomic=(), durability=(), return_vals=())
+ |      Update JSON documents in a table. Accepts a JSON document, a RQL
+ |      expression, or a combination of the two.  The optional argument
+ |      durability with value 'hard' or
+ |      'soft' will override the table or query's default
+ |      durability setting.  The optional argument return_vals will return the old and new values of the row you're modifying when set to true (only valid for single-row updates).  The optional argument
+ |      non_atomic lets you permit non-atomic updates.
+ |      
+ |      Update returns an object that contains the following attributes:
+ |      
+ |      * replaced - the number of documents that were updated;
+ |      * unchanged - the number of documents that would have been modified
+ |      except the new value was the same as the old value;
+ |      * skipped - the number of documents that were left unmodified because
+ |      there was nothing to do: either the row didn't exist or the new value is null;
+ |      * errors - the number of errors encountered while performing the update;
+ |      * if errors occured, first_error contains the text of the first error;
+ |      * deleted and  inserted
+ |      - 0 for an update operation.
+ |      
+ |      
+ |      
+ |      Update Superman's age to 30. If attribute 'age' doesn't
+ |      exist, adds it to the document.
+ |      
+ |      >>> r.table('marvel').get('superman').update({ 'age': 30 }).run(conn)
+ |      
+ |      Increment every superhero's age. If age doesn't exist, throws an error.  Specify soft durability.
+ |      
+ |      >>> r.table('marvel').update(lambda x: {'age': x['age'] + 1}, durability='soft').run(conn)
+ |      
+ |      Allow the server to run non-atomic operations.
+ |      >>> r.table('marvel').update(
+ |      ...     lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True).run(conn)
+ |      
+ |      
+ |      You can get back a copy of the original row and the update row using the return_vals flag.
+ |      >>> r.table('marvel').get('superman').update({ 'age': 30 }, return_vals=True).run(conn)
+ |  
+ |  with_fields(self, *attr)
+ |      Takes a sequence of objects and a list of fields.  If any objects in the sequence don't have all of the specified fields, they're dropped from the sequence.  The remaining objects have the specified fields plucked out.  (This is identical to `has_fields` followed by `pluck` on a sequence.)
+ |      
+ |      Get a list of heroes and their nemeses, excluding any heroes that lack one.
+ |      >>> r.table('marvel').with_fields('id', 'nemesis')
+ |      
+ |      Get a list of heroes and their nemeses, excluding any heroes whose nemesis isn't in an evil organization.
+ |      >>> r.table('marvel').with_fields('id', {'nemesis' : {'evil_organization' : True}})
+ |      
+ |      The nested syntax can quickly become overly verbose so there's a shorthand.
+ |      >>> r.table('marvel').with_fields('id', {'nemesis' : 'evil_organization'})
+ |  
+ |  without(self, *attrs)
+ |      The opposite of pluck; takes an object or a sequence of objects, and returns them with the specified paths removed.
+ |      
+ |      Since we don't need it for this computation we'll save bandwidth and leave out the list of IronMan's romantic conquests.
+ |      >>> r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+ |      
+ |      Without their prized weapons, our enemies will quickly be vanquished.
+ |      >>> r.table('enemies').without('weapons').run(conn)
+ |      
+ |      Nested objects can be used to remove the damage subfield from the weapons and abilities fields.
+ |      >>> r.table('marvel').without({'weapons' : {'damage' : True}, 'abilities' : {'damage' : True}}).run(conn)
+ |      
+ |      The nested syntax can quickly become overly verbose so there's a shorthand for it.
+ |      >>> r.table('marvel').without({'weapons' : 'damage', 'abilities' : 'damage'}).run(conn)
+ |  
+ |  year(self)
+ |      Return the year of a time object.
+ |      
+ |      
+ |      Retrieve all the users born in 1986.
+ |      >>> r.table("users").filter(lambda user:
+ |      ...   user["birthdate"].year() == 1986
+ |      ... ).run(conn)
+ |  
+ |  zip(self)
+ |      Used to 'zip' up the result of a join by merging the 'right' fields into 'left' fields of each member of the sequence.
+ |      
+ |      'zips up' the sequence by merging the left and right fields produced by a join.
+ |      >>> r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).zip().run(conn)
+ |  
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |  
+ |  __dict__
+ |      dictionary for instance variables (if defined)
+ |  
+ |  __weakref__
+ |      list of weak references to the object (if defined)
+
+Help on module rethinkdb.query in rethinkdb:
+
+NAME
+    rethinkdb.query
+
+FILE
+    /home/ssd1/atnnn/code/rethinkdb/drivers/python/rethinkdb/query.py
+
+CLASSES
+    rethinkdb.ast.RqlQuery(__builtin__.object)
+        RqlTimeName
+    
+    class RqlTimeName(rethinkdb.ast.RqlQuery)
+     |  Method resolution order:
+     |      RqlTimeName
+     |      rethinkdb.ast.RqlQuery
+     |      __builtin__.object
+     |  
+     |  Methods defined here:
+     |  
+     |  compose(self, args, optargs)
+     |  
+     |  ----------------------------------------------------------------------
+     |  Methods inherited from rethinkdb.ast.RqlQuery:
+     |  
+     |  __add__(self, other)
+     |      Sum two numbers, concatenate two strings, or concatenate 2 arrays.
+     |      
+     |      It's as easy as 2 + 2 = 4.
+     |      >>> (r.expr(2) + 2).run(conn)
+     |      
+     |      Strings can be concatenated too.
+     |      >>> (r.expr("foo") + "bar").run(conn)
+     |      
+     |      Arrays can be concatenated too.
+     |      >>> (r.expr(["foo", "bar"]) + ["buzz"]).run(conn)
+     |      
+     |      Create a date one year from now.
+     |      >>> r.now() + 365*24*60*60
+     |  
+     |  __and__(self, other)
+     |      Compute the logical and of two values.
+     |      
+     |      True and false anded is false?
+     |      >>> (r.expr(True) & False).run(conn)
+     |  
+     |  __div__(self, other)
+     |      Divide two numbers.
+     |      
+     |      It's as easy as 2 / 2 = 1.
+     |      >>> (r.expr(2) / 2).run(conn)
+     |  
+     |  __eq__(self, other)
+     |      Test if two values are equal.
+     |      
+     |      Does 2 equal 2?
+     |      >>> (r.expr(2) == 2).run(conn)
+     |  
+     |  __ge__(self, other)
+     |      Test if the first value is greater than or equal to other.
+     |      
+     |      Is 2 greater than or equal to 2?
+     |      >>> (r.expr(2) >= 2).run(conn)
+     |  
+     |  __getitem__(self, index)
+     |      Get a single field from an object.  If called on a sequence, gets that field from every object in the sequence, skipping objects that lack it.
+     |      
+     |      What was Iron Man's first appearance in a comic?
+     |      >>> r.table('marvel').get('IronMan')['firstAppearance'].run(conn)
+     |  
+     |  __gt__(self, other)
+     |      Test if the first value is greater than other.
+     |      
+     |      Is 2 greater than 2?
+     |      >>> (r.expr(2) > 2).run(conn)
+     |  
+     |  __init__(self, *args, **optargs)
+     |      # Instantiate this AST node with the given pos and opt args
+     |  
+     |  __invert__(self)
+     |      Compute the logical inverse (not).
+     |      
+     |      Not true is false.
+     |      >>> (~r.expr(True)).run(conn)
+     |  
+     |  __le__(self, other)
+     |      Test if the first value is less than or equal to other.
+     |      
+     |      Is 2 less than or equal to 2?
+     |      >>> (r.expr(2) <= 2).run(conn)
+     |  
+     |  __lt__(self, other)
+     |      Test if the first value is less than other.
+     |      
+     |      Is 2 less than 2?
+     |      >>> (r.expr(2) < 2).run(conn)
+     |  
+     |  __mod__(self, other)
+     |      Find the remainder when dividing two numbers.
+     |      
+     |      It's as easy as 2 % 2 = 0.
+     |      >>> (r.expr(2) % 2).run(conn)
+     |  
+     |  __mul__(self, other)
+     |      Multiply two numbers, or make a periodic array.
+     |      
+     |      It's as easy as 2 * 2 = 4.
+     |      >>> (r.expr(2) * 2).run(conn)
+     |      
+     |      Arrays can be multiplied by numbers as well.
+     |      >>> (r.expr(["This", "is", "the", "song", "that", "never", "ends."]) * 100).run(conn)
+     |  
+     |  __ne__(self, other)
+     |      Test if two values are not equal.
+     |      
+     |      Does 2 not equal 2?
+     |      >>> (r.expr(2) != 2).run(conn)
+     |  
+     |  __or__(self, other)
+     |      Compute the logical or of two values.
+     |      
+     |      True or false ored is true?
+     |      >>> (r.expr(True) | False).run(conn)
+     |  
+     |  __radd__(self, other)
+     |  
+     |  __rand__(self, other)
+     |  
+     |  __rdiv__(self, other)
+     |  
+     |  __repr__(self)
+     |  
+     |  __rmod__(self, other)
+     |  
+     |  __rmul__(self, other)
+     |  
+     |  __ror__(self, other)
+     |  
+     |  __rsub__(self, other)
+     |  
+     |  __str__(self)
+     |  
+     |  __sub__(self, other)
+     |      Subtract two numbers.
+     |      
+     |      It's as easy as 2 - 2 = 0.
+     |      >>> (r.expr(2) - 2).run(conn)
+     |      
+     |      Create a date one year ago today.
+     |      >>> r.now() - 365*24*60*60
+     |      
+     |      Retrieve how many seconds elapsed between today and date
+     |      >>> r.now() - date
+     |  
+     |  add(*args)
+     |  
+     |  append(self, val)
+     |      Append a value to an array.
+     |      
+     |      Retrieve Iron Man's equipment list with the addition of some new boots.
+     |      >>> r.table('marvel').get('IronMan')['equipment'].append('newBoots').run(conn)
+     |  
+     |  between(self, left=None, right=None, left_bound=(), right_bound=(), index=())
+     |      Get all documents between two keys.  Accepts three optional arguments: `index`, `left_bound`, and `right_bound`.  If `index` is set to the name of a secondary index, `between` will return all documents where that index's value is in the specified range (it uses the primary key by default).  `left_bound` or `right_bound` may be set to `open` or `closed` to indicate whether or not to include that endpoint of the range (by default, `left_bound` is closed and `right_bound` is open).
+     |      
+     |      
+     |      Find all users with primary key >= 10 and < 20 (a normal half-open interval).
+     |      >>> r.table('marvel').between(10, 20).run(conn)
+     |      
+     |      Find all users with primary key >= 10 and <= 20 (an interval closed on both sides).
+     |      >>> r.table('marvel').between(10, 20, right_bound='closed').run(conn)
+     |      
+     |      Find all users with primary key < 20.  (You can use `NULL` to mean "unbounded" for either endpoint.)
+     |      >>> r.table('marvel').between(None, 20, right_bound='closed').run(conn)
+     |      
+     |      Between can be used on secondary indexes too. Just pass an optional index
+     |      argument giving the secondary index to query.
+     |      
+     |      >>> r.table('dc').between('dark_knight', 'man_of_steel', index='code_name').run(conn)
+     |  
+     |  build(self, term)
+     |      # Compile this query to a binary protobuf buffer
+     |  
+     |  change_at(self, index, value)
+     |      Change a value in an array at a given index. Returns the modified array.
+     |      
+     |      Bruce Banner hulks out.
+     |      >>> r.expr(["Iron Man", "Bruce", "Spider-Man"]).change_at(1, "Hulk").run(conn)
+     |  
+     |  coerce_to(self, other_type)
+     |      Converts a value of one type into another. 
+     |      
+     |      You can convert: a selection, sequence, or object into an ARRAY, 
+     |      an array of pairs into an OBJECT, and any DATUM into a STRING.
+     |      
+     |      
+     |      Convert a table to an array.
+     |      >>> r.table('marvel').coerce_to('array').run(conn)
+     |      
+     |      Convert an array of pairs into an object.
+     |      >>> r.expr([['name', 'Ironman'], ['victories', 2000]]).coerce_to('object').run(conn)
+     |      
+     |      Convert a number to a string.
+     |      >>> r.expr(1).coerce_to('string').run(conn)
+     |  
+     |  concat_map(self, func)
+     |      Flattens a sequence of arrays returned by the mappingFunction into a single sequence.
+     |      
+     |      Construct a sequence of all monsters defeated by Marvel heroes. Here the field 'defeatedMonsters' is a list that is concatenated to the sequence.
+     |      >>> r.table('marvel').concat_map(lambda hero: hero['defeatedMonsters']).run(conn)
+     |  
+     |  contains(self, *attr)
+     |      Returns whether or not a sequence contains all the specified values, or if functions are provided instead, returns whether or not a sequence contains values matching all the specified functions.
+     |      
+     |      Has Iron Man ever fought Superman?
+     |      >>> r.table('marvel').get('ironman')['opponents'].contains('superman').run(conn)
+     |      
+     |      Has Iron Man ever defeated Superman in battle?
+     |      >>> r.table('marvel').get('ironman')['battles'].contains(lambda battle: (battle['winner'] == 'ironman') & (battle['loser'] == 'superman'))
+     |  
+     |  count(self, filter=())
+     |      Count the number of elements in the sequence. With a single argument, count the number of elements equal to it. If the argument is a function, it is equivalent to calling filter before count.
+     |      
+     |      Just how many super heroes are there?
+     |      >>> (r.table('marvel').count() + r.table('dc').count()).run(conn)
+     |      
+     |      Just how many super heroes have invisibility?
+     |      >>> r.table('marvel').concat_map(r.row['superpowers']).count('invisibility').run(conn)
+     |      
+     |      Just how many super heroes have defeated the Sphinx?
+     |      >>> r.table('marvel').count(r.row['monstersKilled'].contains('Sphinx')).run(conn)
+     |  
+     |  date(self)
+     |      Return a new time object only based on the day, month and year (ie. the same day at 00:00).
+     |      
+     |      
+     |      Retrieve all the users whose birthday is today
+     |      >>> r.table("users").filter(lambda user:
+     |      ...   user["birthdate"].date() == r.now().date()
+     |      ... ).run(conn)
+     |  
+     |  day(self)
+     |      Return the day of a time object as a number between 1 and 31.
+     |      
+     |      
+     |      Return the users born on the 24th of any month.
+     |      >>> r.table("users").filter(
+     |      ...   r.row["birthdate"].day() == 24
+     |      ... )
+     |  
+     |  day_of_week(self)
+     |      Return the day of week of a time object as a number between 1 and 7 (following ISO 8601 standard).
+     |      For your convenience, the terms r.monday, r.tuesday etc. are defined and map
+     |      to the appropriate integer.
+     |      
+     |      
+     |      Return today's day of week.
+     |      >>> r.now().day_of_week().run(conn)
+     |      
+     |      
+     |      Retrieve all the users who were born on a Tuesday.
+     |      >>> r.table("users").filter(
+     |      ...   r.row["birthdate"].day_of_week() == r.tuesday
+     |      ... )
+     |  
+     |  day_of_year(self)
+     |      Return the day of the year of a time object as a number between 1 and 366 (following ISO 8601 standard).
+     |      
+     |      
+     |      Retrieve all the users who were born the first day of a year.
+     |      >>> r.table("users").filter(
+     |      ...   r.row["birthdate"].day_of_year() == 1
+     |      ... )
+     |  
+     |  default(self, handler)
+     |      Handle non-existence errors.  Tries to evaluate and return its first argument.  If an error related to the absence of a value is thrown in the process, or if its first argument returns null, returns its second argument.  (Alternatively, the second argument may be a function which will be called with either the text of the non-existence error or null.)
+     |      
+     |      Stark Industries made the mistake of trusting an intern with data entry, and now a bunch of fields are missing from some of their documents.  Iron Man takes a break from fighting Mandarin to write some safe analytics queries.
+     |      >>> r.table('projects').map(
+     |      ...   lambda p: p['staff'].default(0) + p['management'].default(0)
+     |      ... ).run(conn)
+     |  
+     |  delete(self, durability=(), return_vals=())
+     |      Delete one or more documents from a table.  The optional argument return_vals will return the old value of the row you're deleting when set to true (only valid for single-row deletes).  The optional argument
+     |      durability with value 'hard' or
+     |      'soft' will override the table or query's default
+     |      durability setting.
+     |      
+     |      Delete returns an object that contains the following attributes:
+     |      
+     |      * deleted - the number of documents that were deleted;
+     |      * skipped - the number of documents from the selection that were left unmodified
+     |      because there was nothing to do. For example, if you delete a row that has already been deleted,
+     |      that row will be skipped;
+     |      * errors - the number of errors encountered while deleting;
+     |      * if errors occured, first_error contains the text of the first error;
+     |      * inserted, replaced, and unchanged - all
+     |      0 for a delete operation.
+     |      
+     |      
+     |      
+     |      Delete superman from the database.
+     |      >>> r.table('marvel').get('superman').delete().run(conn)
+     |      
+     |      Delete every document from the table 'marvel'.  Also, don't wait for the operation to be flushed to disk.
+     |      >>> r.table('marvel').delete(durability='soft').run(conn)
+     |      
+     |      You can get back a copy of the row you delete from the database as well.
+     |      >>> r.table('marvel').delete(return_vals=True).run(conn)
+     |  
+     |  delete_at(self, *indexes)
+     |      Remove an element from an array at a given index. Returns the modified array.
+     |      
+     |      Hulk decides to leave the avengers.
+     |      >>> r.expr(["Iron Man", "Hulk", "Spider-Man"]).delete_at(1).run(conn)
+     |      
+     |      Hulk and Thor decide to leave the avengers.
+     |      >>> r.expr(["Iron Man", "Hulk", "Thor", "Spider-Man"]).delete_at(1,3).run(conn)
+     |  
+     |  difference(self, val)
+     |      Remove the elements of one array from another array.
+     |      
+     |      Retrieve Iron Man's equipment list without boots.
+     |      >>> r.table('marvel').get('IronMan')['equipment'].difference(['Boots']).run(conn)
+     |  
+     |  distinct(self)
+     |      Remove duplicate elements from the sequence.
+     |      
+     |      Which unique villains have been vanquished by marvel heroes?
+     |      >>> r.table('marvel').concat_map(lambda hero: hero['villainList']).distinct().run(conn)
+     |  
+     |  div(*args)
+     |  
+     |  do(self, func)
+     |      Evaluate the expr in the context of one or more value
+     |      bindings.
+     |      
+     |      The type of the result is the type of the value returned from expr.
+     |      
+     |      
+     |      The object(s) passed to do() can be bound to name(s). The last argument is the expression to evaluate in the context of the bindings.
+     |      >>> r.do(r.table('marvel').get('IronMan'),
+     |      ...      lambda ironman: ironman['name']).run(conn)
+     |  
+     |  during(self, t2, t3, left_bound=(), right_bound=())
+     |      Return if a time is between two other times (by default, inclusive for the start, exclusive for the end).
+     |      
+     |      
+     |      Retrieve all the posts that were posted between December 1st, 2013 (inclusive) and December 10th, 2013 (exclusive).
+     |      >>> r.table("posts").filter(
+     |      ...     r.row['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10))
+     |      ... ).run(conn)
+     |      
+     |      
+     |      Retrieve all the posts that were posted between December 1st, 2013 (exclusive) and December 10th, 2013 (inclusive).
+     |      >>> r.table("posts").filter(
+     |      ...   r.row['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10), left_bound="open", right_bound="closed")
+     |      ... ).run(conn)
+     |  
+     |  eq(*args)
+     |  
+     |  eq_join(self, left_attr, other, index=())
+     |      An efficient join that looks up elements in the right table by primary key.
+     |      
+     |      Let our heroes join forces to battle evil!
+     |      >>> r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run(conn)
+     |      
+     |      The above query is equivalent to this inner join but runs in O(n log(m)) time rather than the O(n * m) time the inner join takes.
+     |      >>> r.table('marvel').inner_join(r.table('dc'),
+     |      ...   lambda left, right: left['main_dc_collaborator'] == right['hero_name']).run(conn)
+     |      
+     |      You can take advantage of a secondary index on the second table by giving an optional index parameter.
+     |      >>> r.table('marvel').eq_join('main_weapon_origin',
+     |      ...     r.table('mythical_weapons'), index='origin').run(conn)
+     |      
+     |      
+     |      You can pass a function instead of an attribute to join on more complicated expressions. Here we join to the DC universe collaborator with whom the hero has the most appearances.
+     |      >>> r.table('marvel').eq_join(lambda doc: doc['dc_collaborators'].order_by('appearances')[0]['name'],
+     |      ...     r.table('dc')).run(conn)
+     |  
+     |  filter(self, func, default=())
+     |      Get all the documents for which the given predicate is true.<br
+     |      />
+     |       filter can be called on a sequence,
+     |      selection, or a field containing an array of elements. The
+     |      return type is the same as the type on which the function was
+     |      called on.  The body of every filter is wrapped in an implicit
+     |      `.default(false)`, and the default value can be changed by
+     |      passing the optional argument `default`.  Setting this optional
+     |      argument to `r.error()` will cause any non-existence errors to
+     |      abort the filter.
+     |      
+     |      
+     |      Get all active users aged 30.
+     |      >>> r.table('users').filter({'active': True, 'profile': {'age': 30}}).run(conn)
+     |      
+     |      Filter supports the r.literal syntax if you want to get an exact match.
+     |      >>> r.table('users').filter({'active': True, 'profile': r.literal({'age': 30})}).run(conn)
+     |      
+     |      Select all documents where the 'magazines' field is greater than 5.
+     |      >>> r.table('users').filter(r.row['magazines'] > 5).run(conn)
+     |      
+     |      Select all documents where the 'abilities' embedded document has an attribute called 'super-strength'.
+     |      >>> r.table('marvel').filter(
+     |      ...     lambda hero: hero['abilities'].has_fields('super-strength')).run(conn)
+     |      
+     |      
+     |      Select all documents where the field 'powers' containing an array has an element equal to 10.
+     |      >>> r.table('marvel').filter(
+     |      ...   r.row['powers'].filter(lambda el: el == 10).count() > 0
+     |      ... ).run(conn)
+     |  
+     |  for_each(self, mapping)
+     |      Loop over a sequence, evaluating the given write query for each element.
+     |      
+     |      Now that our heroes have defeated their villains, we can safely remove them from the villain table.
+     |      >>> r.table('marvel').for_each(
+     |      ...     lambda hero: r.table('villains').get(hero['villainDefeated']).delete()
+     |      ... ).run(conn)
+     |  
+     |  ge(*args)
+     |  
+     |  group_by(self, arg1, arg2, *rest)
+     |      Groups elements by the values of the given attributes and then applies the given reduction. Though similar to grouped_map_reduce, groupby takes a standardized object for specifying the reduction. Can be used with a number of predefined common reductions.
+     |      
+     |      Using a predefined reduction we can easily find the average strength of members of each weight class.
+     |      >>> r.table('marvel').group_by('weightClass', r.avg('strength')).run(conn)
+     |      
+     |      Groupings can also be specified on nested attributes.
+     |      >>> r.table('marvel').group_by({'abilities' : {'primary' : True}}, r.avg('strength')).run(conn)
+     |      
+     |      The nested syntax can quickly become verbose so there's a shortcut.
+     |      >>> r.table('marvel').group_by({'abilities' : 'primary'}, r.avg('strength')).run(conn)
+     |  
+     |  grouped_map_reduce(self, grouping, mapping, data_collector, base=())
+     |      Partition the sequence into groups based on the grouping function. The elements of each group are then mapped using the mapping function and reduced using the reduction function.
+     |      
+     |      grouped_map_reduce is a generalized form of group by.
+     |      
+     |      It's only fair that heroes be compared against their weight class.
+     |      >>> r.table('marvel').grouped_map_reduce(
+     |      ...   lambda hero: hero['weightClass'],  # grouping
+     |      ...   lambda hero: hero.pluck('name', 'strength'),  # mapping
+     |      ...   lambda acc, hero: r.branch(acc['strength'] < hero['strength'], hero, acc),
+     |      ...   {'name':'none', 'strength':0}  # base
+     |      ... ).run(conn)
+     |  
+     |  gt(*args)
+     |  
+     |  has_fields(self, *attr)
+     |      Test if an object has all of the specified fields.  An object has a field if it has the specified key and that key maps to a non-null value.  For instance, the object `{'a':1,'b':2,'c':null}` has the fields `a` and `b`.
+     |      
+     |      Which heroes are married?
+     |      >>> r.table('marvel').has_fields('spouse').run(conn)
+     |      
+     |      Test if a single object has a field.
+     |      >>> r.table('marvel').get("IronMan").has_fields('spouse').run(conn)
+     |      
+     |      You can also test if nested fields exist to get only spouses with powers of their own.
+     |      >>> r.table('marvel').has_fields({'spouse' : {'powers' : True}}).run(conn)
+     |      
+     |      The nested syntax can quickly get verbose so there's a shorthand.
+     |      >>> r.table('marvel').has_fields({'spouse' : 'powers'}).run(conn)
+     |  
+     |  hours(self)
+     |      Return the hour in a time object as a number between 0 and 23.
+     |      
+     |      
+     |      Return all the posts submitted after midnight and before 4am.
+     |      >>> r.table("posts").filter(lambda post:
+     |      ...     post["date"].hours() < 4
+     |      ... )
+     |  
+     |  in_timezone(self, tzstr)
+     |      Return a new time object with a different timezone. While the time stays the same,
+     |      the results returned by methods such as hours() will change since they take the
+     |      timezone into account.
+     |      The timezone argument has to be of the ISO 8601 format.
+     |      
+     |      
+     |      Hour of the day in San Francisco (UTC/GMT -8, without daylight saving time).
+     |      >>> r.now().in_timezone('-08:00').hours().run(conn)
+     |  
+     |  indexes_of(self, val)
+     |      Get the indexes of an element in a sequence. If the argument is a predicate, get the indexes of all elements matching it.
+     |      
+     |      Find the position of the letter 'c'.
+     |      >>> r.expr(['a','b','c']).indexes_of('c').run(conn)
+     |      
+     |      Find the popularity ranking of invisible heroes.
+     |      >>> r.table('marvel').union(r.table('dc')).order_by('popularity').indexes_of(
+     |      ...   r.row['superpowers'].contains('invisibility')
+     |      ... ).run(conn)
+     |  
+     |  info(self)
+     |      Get information about a RQL value.
+     |      
+     |      Get information about a table such as primary key, or cache size.
+     |      
+     |      >>> r.table('marvel').info().run(conn)
+     |  
+     |  inner_join(self, other, predicate)
+     |      Returns the inner product of two sequences (e.g. a table, a filter result) filtered by the predicate. The query compares each row of the left sequence with each row of the right sequence to find all pairs of rows which satisfy the predicate. When the predicate is satisfied, each matched pair of rows of both sequences are combined into a result row.
+     |      
+     |      Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose.
+     |      >>> r.table('marvel').inner_join(r.table('dc'), lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)
+     |  
+     |  insert_at(self, index, value)
+     |      Insert a value in to an array at a given index. Returns the modified array.
+     |      
+     |      Hulk decides to join the avengers.
+     |      >>> r.expr(["Iron Man", "Spider-Man"]).insert_at(1, "Hulk").run(conn)
+     |  
+     |  is_empty(self)
+     |      Test if a sequence is empty.
+     |      
+     |      Are there any documents in the marvel table?
+     |      >>> r.table('marvel').is_empty().run(conn)
+     |  
+     |  keys(self)
+     |      Return an array containing all of the object's keys.
+     |      
+     |      Get all the keys of a row.
+     |      >>> r.table('marvel').get('ironman').keys().run(conn)
+     |  
+     |  le(*args)
+     |  
+     |  limit(self, index)
+     |      End the sequence after the given number of elements.
+     |      
+     |      Only so many can fit in our Pantheon of heroes.
+     |      >>> r.table('marvel').order_by('belovedness').limit(10).run(conn)
+     |  
+     |  lt(*args)
+     |  
+     |  map(self, func)
+     |      Transform each element of the sequence by applying the given mapping function.
+     |      
+     |      Construct a sequence of hero power ratings.
+     |      >>> r.table('marvel').map(
+     |      ...     lambda hero: hero['combatPower'] + hero['compassionPower'] * 2).run(conn)
+     |  
+     |  match(self, pattern)
+     |      Match against a regular expression.  Returns a match object containing the matched string, that string's start/end position, and the capture groups.  Accepts RE2 syntax (https://code.google.com/p/re2/wiki/Syntax).  You can enable case-insensitive matching by prefixing the regular expression with `(?i)`.  (See linked RE2 documentation for more flags.)
+     |      
+     |      Get all users whose name starts with A.
+     |      >>> r.table('users').filter(lambda row:row['name'].match("^A")).run(conn)
+     |      
+     |      Parse out a name (returns "mlucy").
+     |      >>> r.expr('id:0,name:mlucy,foo:bar').match('name:(\w+)')['groups'][0]['str'].run(conn)
+     |      
+     |      Fail to parse out a name (returns null).
+     |      >>> r.expr('id:0,foo:bar').match('name:(\w+)')['groups'][0]['str'].run(conn)
+     |  
+     |  merge(self, other)
+     |      Merge two objects together to construct a new object with properties from both. Gives preference to attributes from other when there is a conflict.
+     |      
+     |      Equip IronMan for battle.
+     |      >>> r.table('marvel').get('IronMan').merge(
+     |      ...   r.table('loadouts').get('alienInvasionKit')).run(conn)
+     |      
+     |      Merge can be used recursively to modify object within objects.
+     |      >>> r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+     |      ...   {'weapons' : {'spectacular graviton beam' : {'dmg' : 10}}}).run(conn)
+     |      
+     |      To replace a nested object with another object you can use the literal keyword.
+     |      >>> r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+     |      ...   {'weapons' : r.literal({'repulsor rays' : {'dmg' : 3, 'cooldown' : 0}})}).run(conn)
+     |      
+     |      Literal can be used to remove keys from an object as well.
+     |      >>> r.expr({'weapons' : {'spectacular graviton beam' : {'dmg' : 10, 'cooldown' : 20}}}).merge(
+     |      ...   {'weapons' : {'spectacular graviton beam' : r.literal()}}).run(conn)
+     |  
+     |  minutes(self)
+     |      Return the minute in a time object as a number between 0 and 59.
+     |      
+     |      
+     |      Return all the posts submitted during the first 10 minutes of every hour.
+     |      >>> r.table("posts").filter(lambda post:
+     |      ...     post["date"].minutes() < 10
+     |      ... )
+     |  
+     |  mod(self, other)
+     |  
+     |  month(self)
+     |      Return the month of a time object as a number between 1 and 12.
+     |      For your convenience, the terms r.january, r.february etc. are defined and map
+     |      to the appropriate integer.
+     |      
+     |      
+     |      Retrieve all the users who were born in November.
+     |      >>> r.table("users").filter(
+     |      ...   r.row["birthdate"].month() == 11
+     |      ... )
+     |      
+     |      
+     |      Retrieve all the users who were born in November.
+     |      >>> r.table("users").filter(
+     |      ...   r.row["birthdate"].month() == r.november
+     |      ... )
+     |  
+     |  mul(*args)
+     |  
+     |  ne(*args)
+     |  
+     |  not_(self)
+     |      Compute the logical inverse (not).
+     |      
+     |      Not true is false.
+     |      >>> (~r.expr(True)).run(conn)
+     |  
+     |  nth(self, index)
+     |  
+     |  order_by(self, *obs, **kwargs)
+     |      Sort the sequence by document values of the given key(s).
+     |      
+     |       order by defaults to ascending ordering. To explicitly specify the ordering, wrap the attribute with either r.asc or r.desc.
+     |      
+     |      Order our heroes by a series of performance metrics.
+     |      >>> r.table('marvel').order_by('enemies_vanquished', 'damsels_saved').run(conn)
+     |      
+     |      Indexes can be used to perform more efficient orderings. Notice that the index ordering always has highes precedence. Thus the following example is equivalent to the one above.
+     |      >>> r.table('marvel').order_by('damsels_saved', index='enemies_vanquished').run(conn)
+     |      
+     |      You can also specify a descending order when using an index.
+     |      >>> r.table('marvel').order_by(index=r.desc('enemies_vanquished')).run(conn)
+     |      
+     |      Let's lead with our best vanquishers by specify descending ordering.
+     |      >>> r.table('marvel').order_by(
+     |      ...     r.desc('enemies_vanquished'), r.asc('damsels_saved')).run(conn)
+     |      
+     |      You can use a function for ordering instead of just selecting an attribute.
+     |      >>> r.table('marvel').order_by(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved']).run(conn)
+     |      
+     |      Functions can also be used descendingly.
+     |      >>> r.table('marvel').order_by(r.desc(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved'])).run(conn)
+     |  
+     |  outer_join(self, other, predicate)
+     |      Computes a left outer join by retaining each row in the left table even if no match was found in the right table.
+     |      
+     |      Construct a sequence of documents containing all cross-universe matchups where a marvel hero would lose, but keep marvel heroes who would never lose a matchup in the sequence.
+     |      >>> r.table('marvel').outer_join(r.table('dc'),
+     |      ...   lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)
+     |  
+     |  pluck(self, *attrs)
+     |      Plucks out one or more attributes from either an object or a sequence of objects (projection).
+     |      
+     |      We just need information about IronMan's reactor and not the rest of the document.
+     |      >>> r.table('marvel').get('IronMan').pluck('reactorState', 'reactorPower').run(conn)
+     |      
+     |      For the hero beauty contest we only care about certain qualities.
+     |      >>> r.table('marvel').pluck('beauty', 'muscleTone', 'charm').run(conn)
+     |      
+     |      Pluck can also be used on nested objects.
+     |      >>> r.table('marvel').pluck({'abilities' : {'damage' : True, 'mana_cost' : True}, 'weapons' : True}).run(conn)
+     |      
+     |      The nested syntax can quickly become overly verbose so there's a shorthand for it.
+     |      >>> r.table('marvel').pluck({'abilities' : ['damage', 'mana_cost']}, 'weapons').run(conn)
+     |  
+     |  prepend(self, val)
+     |      Prepend a value to an array.
+     |      
+     |      Retrieve Iron Man's equipment list with the addition of some new boots.
+     |      >>> r.table('marvel').get('IronMan')['equipment'].prepend('newBoots').run(conn)
+     |  
+     |  reduce(self, func, base=())
+     |      Produce a single value from a sequence through repeated application
+     |      of a reduction function.
+     |      
+     |      The reduce function gets invoked repeatedly not only
+     |      for the input values but also for results of previous reduce invocations.
+     |      The type and format of the object that is passed in to reduce must be
+     |      the same with the one returned from reduce.
+     |      
+     |      
+     |      How many enemies have our heroes defeated?
+     |      >>> r.table('marvel').map(r.row['monstersKilled']).reduce(
+     |      ...     lambda acc, val: acc + val, 0).run(conn)
+     |  
+     |  replace(self, func, non_atomic=(), durability=(), return_vals=())
+     |      Replace documents in a table. Accepts a JSON document or a RQL
+     |      expression, and replaces the original document with the new
+     |      one. The new document must have the same primary key as the
+     |      original document.  The optional argument
+     |      durability with value 'hard' or
+     |      'soft' will override the table or query's default
+     |      durability setting.  The optional argument return_vals will return the old and new values of the row you're modifying when set to true (only valid for single-row replacements).  The optional argument
+     |      non_atomic lets you permit non-atomic updates.
+     |      
+     |      Replace returns an object that contains the following attributes:
+     |      
+     |      * replaced - the number of documents that were replaced;
+     |      * unchanged - the number of documents that would have been modified,
+     |      except that the new value was the same as the old value;
+     |      * inserted - the number of new documents added. You can have new documents
+     |      inserted if you do a point-replace on a key that isn't in the table or you do a replace
+     |      on a selection and one of the documents you are replacing has been deleted;
+     |      * deleted - the number of deleted documents when doing a replace with null;
+     |      * errors - the number of errors encountered while performing the replace;
+     |      * if errors occurred performing the replace, first_error contains the text of the first error encountered;
+     |      * skipped - 0 for a replace operation.
+     |      
+     |      
+     |      
+     |      Remove all existing attributes from Superman's document, and add an attribute 'age'.
+     |      >>> r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(conn)
+     |      
+     |      Allow the server to run non-atomic operations.
+     |      >>> r.table('marvel').get('superman').replace(
+     |      ...     { 'id': 'superman', 'age': 30 }, non_atomic=True).run(conn)
+     |      
+     |      
+     |      Mark all Marvel heroes as favorites, specifying soft durability.
+     |      >>> r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
+     |      ...     lambda hero: hero.merge({'is_fav': True}), durability='soft').run(conn)
+     |      
+     |      
+     |      You can get a copy of the previous value and the old value back using the return_vals flag.
+     |      >>> r.table('heroes').filter(r.row['universe'] == 'marvel').replace(
+     |      ...     lambda hero: hero.merge({'is_fav': True}), return_vals=True).run(conn)
+     |  
+     |  run(self, c=None, **global_opt_args)
+     |      Run a query on a connection.
+     |      
+     |      Call run on the connection with a query to execute the query.
+     |      The callback will get a cursor from which results may be retrieved.
+     |      
+     |      >>> for doc in r.table('marvel').run(conn):
+     |      ...   print doc
+     |      
+     |      
+     |      If you are OK with potentially out of date data from all the tables
+     |      involved in this query and want potentially faster reads, pass a flag
+     |      allowing out of date data in an options object.  Settings for
+     |      individual tables will supercede this global setting for all tables
+     |      in the query.
+     |      
+     |      >>> r.table('marvel').run(conn, use_outdated=True)
+     |      
+     |      If you just want to send a write and forget about it, you
+     |      can set `noreply` to true in the options.  In this case
+     |      `run` will return immediately.
+     |      
+     |      >>> r.table('marvel').run(conn, noreply=True)
+     |      
+     |      If you want to specify whether to wait for a write to be
+     |      written to disk (overriding the table's default settings),
+     |      you can set `durability` to `'hard'` or `'soft'` in the
+     |      options.
+     |      
+     |      >>> r.table('marvel')
+     |      ...  .insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' })
+     |      ...  .run(conn, noreply=True, durability='soft')
+     |      
+     |      
+     |      If you do not want a time object to be converted to a native date object,
+     |      you can pass a time_format flag to prevent it (valid flags are "raw" and "native").
+     |      This query returns an object with two fields (epoch_time and $reql_type$)
+     |      instead of a native date object.
+     |      
+     |      >>> r.now().run(conn, time_format="raw")
+     |  
+     |  sample(self, count)
+     |      Select a given number of elements from a sequence with uniform random
+     |      distribution. Selection is done without replacement.
+     |      
+     |      
+     |      Select 3 random heroes.
+     |      >>> r.table('marvel').sample(3).run(conn)
+     |  
+     |  seconds(self)
+     |      Return the seconds in a time object as a number between 0 and 59.999 (double precision).
+     |      
+     |      
+     |      Return the post submitted during the first 30 seconds of every minute.
+     |      >>> r.table("posts").filter(lambda post:
+     |      ...     post["date"].seconds() < 30
+     |      ... )
+     |  
+     |  set_difference(self, val)
+     |      Remove the elements of one array from another and return them as a
+     |      set (an array with distinct values).
+     |      
+     |      
+     |      Check which pieces of equipment Iron Man has, excluding a fixed list.
+     |      >>> r.table('marvel').get('IronMan')['equipment'].set_difference(['newBoots', 'arc_reactor']).run(conn)
+     |  
+     |  set_insert(self, val)
+     |      Add a value to an array and return it as a set
+     |      (an array with distinct values).
+     |      
+     |      
+     |      Retrieve Iron Man's equipment list with the addition of some new boots.
+     |      >>> r.table('marvel').get('IronMan')['equipment'].set_insert('newBoots').run(conn)
+     |  
+     |  set_intersection(self, val)
+     |      Intersect two arrays returning values that occur in both of
+     |      them as a set (an array with distinct values).
+     |      
+     |      
+     |      Check which pieces of equipment Iron Man has from a fixed list.
+     |      >>> r.table('marvel').get('IronMan')['equipment'].set_intersection(['newBoots', 'arc_reactor']).run(conn)
+     |  
+     |  set_union(self, val)
+     |      Add a several values to an array and return it as a
+     |      set (an array with distinct values).
+     |      
+     |      
+     |      Retrieve Iron Man's equipment list with the addition of some new
+     |      boots and an arc reactor.
+     |      
+     |      >>> r.table('marvel').get('IronMan')['equipment'].set_union(['newBoots', 'arc_reactor']).run(conn)
+     |  
+     |  skip(self, index)
+     |      Skip a number of elements from the head of the sequence.
+     |      
+     |      Here in conjunction with `order_by` we choose to ignore the most successful heroes.
+     |      >>> r.table('marvel').order_by('successMetric').skip(10).run(conn)
+     |  
+     |  slice(self, left, right, left_bound=(), right_bound=())
+     |  
+     |  splice_at(self, index, values)
+     |      Insert several values in to an array at a given index. Returns the modified array.
+     |      
+     |      Hulk and Thor decide to join the avengers.
+     |      >>> r.expr(["Iron Man", "Spider-Man"]).splice_at(1, ["Hulk", "Thor"]).run(conn)
+     |  
+     |  sub(*args)
+     |  
+     |  time_of_day(self)
+     |      Return the number of seconds elapsed since the beginning of the day stored in the time object.
+     |      
+     |      
+     |      Retrieve posts that were submitted before noon.
+     |      >>> r.table("posts").filter(
+     |      ...     r.row["date"].time_of_day() <= 12*60*60
+     |      ... ).run(conn)
+     |  
+     |  timezone(self)
+     |      Return the timezone of the time object.
+     |      
+     |      
+     |      Return all the users in the "-07:00" timezone.
+     |      >>> r.table("users").filter( lambda user:
+     |      ...   user["subscriptionDate"].timezone() == "-07:00"
+     |      ... )
+     |  
+     |  to_epoch_time(self)
+     |      Convert a time object to its epoch time.
+     |      
+     |      
+     |      Return the current time in an ISO8601 format.
+     |      >>> r.now().to_epoch_time()
+     |  
+     |  to_iso8601(self)
+     |      Convert a time object to its iso 8601 format.
+     |      
+     |      
+     |      Return the current time in an ISO8601 format.
+     |      >>> r.now().to_iso8601()
+     |  
+     |  type_of(self)
+     |      Gets the type of a value.
+     |      
+     |      Get the type of a string.
+     |      >>> r.expr("foo").type_of().run(conn)
+     |  
+     |  union(self, *others)
+     |      Concatenate two sequences.
+     |      
+     |      Construct a stream of all heroes.
+     |      >>> r.table('marvel').union(r.table('dc')).run(conn)
+     |  
+     |  update(self, func, non_atomic=(), durability=(), return_vals=())
+     |      Update JSON documents in a table. Accepts a JSON document, a RQL
+     |      expression, or a combination of the two.  The optional argument
+     |      durability with value 'hard' or
+     |      'soft' will override the table or query's default
+     |      durability setting.  The optional argument return_vals will return the old and new values of the row you're modifying when set to true (only valid for single-row updates).  The optional argument
+     |      non_atomic lets you permit non-atomic updates.
+     |      
+     |      Update returns an object that contains the following attributes:
+     |      
+     |      * replaced - the number of documents that were updated;
+     |      * unchanged - the number of documents that would have been modified
+     |      except the new value was the same as the old value;
+     |      * skipped - the number of documents that were left unmodified because
+     |      there was nothing to do: either the row didn't exist or the new value is null;
+     |      * errors - the number of errors encountered while performing the update;
+     |      * if errors occured, first_error contains the text of the first error;
+     |      * deleted and  inserted
+     |      - 0 for an update operation.
+     |      
+     |      
+     |      
+     |      Update Superman's age to 30. If attribute 'age' doesn't
+     |      exist, adds it to the document.
+     |      
+     |      >>> r.table('marvel').get('superman').update({ 'age': 30 }).run(conn)
+     |      
+     |      Increment every superhero's age. If age doesn't exist, throws an error.  Specify soft durability.
+     |      
+     |      >>> r.table('marvel').update(lambda x: {'age': x['age'] + 1}, durability='soft').run(conn)
+     |      
+     |      Allow the server to run non-atomic operations.
+     |      >>> r.table('marvel').update(
+     |      ...     lambda x: {'age': x['age'] + r.js('1')}, non_atomic=True).run(conn)
+     |      
+     |      
+     |      You can get back a copy of the original row and the update row using the return_vals flag.
+     |      >>> r.table('marvel').get('superman').update({ 'age': 30 }, return_vals=True).run(conn)
+     |  
+     |  with_fields(self, *attr)
+     |      Takes a sequence of objects and a list of fields.  If any objects in the sequence don't have all of the specified fields, they're dropped from the sequence.  The remaining objects have the specified fields plucked out.  (This is identical to `has_fields` followed by `pluck` on a sequence.)
+     |      
+     |      Get a list of heroes and their nemeses, excluding any heroes that lack one.
+     |      >>> r.table('marvel').with_fields('id', 'nemesis')
+     |      
+     |      Get a list of heroes and their nemeses, excluding any heroes whose nemesis isn't in an evil organization.
+     |      >>> r.table('marvel').with_fields('id', {'nemesis' : {'evil_organization' : True}})
+     |      
+     |      The nested syntax can quickly become overly verbose so there's a shorthand.
+     |      >>> r.table('marvel').with_fields('id', {'nemesis' : 'evil_organization'})
+     |  
+     |  without(self, *attrs)
+     |      The opposite of pluck; takes an object or a sequence of objects, and returns them with the specified paths removed.
+     |      
+     |      Since we don't need it for this computation we'll save bandwidth and leave out the list of IronMan's romantic conquests.
+     |      >>> r.table('marvel').get('IronMan').without('personalVictoriesList').run(conn)
+     |      
+     |      Without their prized weapons, our enemies will quickly be vanquished.
+     |      >>> r.table('enemies').without('weapons').run(conn)
+     |      
+     |      Nested objects can be used to remove the damage subfield from the weapons and abilities fields.
+     |      >>> r.table('marvel').without({'weapons' : {'damage' : True}, 'abilities' : {'damage' : True}}).run(conn)
+     |      
+     |      The nested syntax can quickly become overly verbose so there's a shorthand for it.
+     |      >>> r.table('marvel').without({'weapons' : 'damage', 'abilities' : 'damage'}).run(conn)
+     |  
+     |  year(self)
+     |      Return the year of a time object.
+     |      
+     |      
+     |      Retrieve all the users born in 1986.
+     |      >>> r.table("users").filter(lambda user:
+     |      ...   user["birthdate"].year() == 1986
+     |      ... ).run(conn)
+     |  
+     |  zip(self)
+     |      Used to 'zip' up the result of a join by merging the 'right' fields into 'left' fields of each member of the sequence.
+     |      
+     |      'zips up' the sequence by merging the left and right fields produced by a join.
+     |      >>> r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).zip().run(conn)
+     |  
+     |  ----------------------------------------------------------------------
+     |  Data descriptors inherited from rethinkdb.ast.RqlQuery:
+     |  
+     |  __dict__
+     |      dictionary for instance variables (if defined)
+     |  
+     |  __weakref__
+     |      list of weak references to the object (if defined)
+
+FUNCTIONS
+    Lock = allocate_lock(...)
+        allocate_lock() -> lock object
+        (allocate() is an obsolete synonym)
+        
+        Create a new lock object.  See help(LockType) for information about locks.
+    
+    add(*args)
+        Sum two numbers, concatenate two strings, or concatenate 2 arrays.
+        
+        It's as easy as 2 + 2 = 4.
+        >>> (r.expr(2) + 2).run(conn)
+        
+        Strings can be concatenated too.
+        >>> (r.expr("foo") + "bar").run(conn)
+        
+        Arrays can be concatenated too.
+        >>> (r.expr(["foo", "bar"]) + ["buzz"]).run(conn)
+        
+        Create a date one year from now.
+        >>> r.now() + 365*24*60*60
+    
+    all(*args)
+        Compute the logical and of two values.
+        
+        True and false anded is false?
+        >>> (r.expr(True) & False).run(conn)
+    
+    any(*args)
+        Compute the logical or of two values.
+        
+        True or false ored is true?
+        >>> (r.expr(True) | False).run(conn)
+    
+    asc(attr)
+    
+    avg(attr)
+        Compute the average value of the given attribute for the group.
+        
+        What's the average agility of heroes at each strength level?
+        >>> r.table('marvel').group_by('strength', r.avg('agility')).run(conn)
+    
+    branch(predicate, true_branch, false_branch)
+        Evaluate one of two control paths based on the value of an expression. 
+        branch is effectively an if renamed due to
+        language constraints.
+        
+        The type of the result is determined by the type of the branch that
+        gets executed.
+        
+        
+        Return the manlier of two heroes:
+        >>> r.table('marvel').map(r.branch(r.row['victories'] > 100,
+        ...     r.row['name'] + ' is a superhero',
+        ...     r.row['name'] + ' is a hero')
+        ... ).run(conn)
+    
+    db(db_name)
+        Reference a database.
+        
+        Before we can query a table we have to select the correct database.
+        >>> r.db('heroes').table('marvel').run(conn)
+    
+    db_create(db_name)
+        Create a database. A RethinkDB database is a collection of tables,
+        similar to relational databases.
+        
+        If successful, the operation returns
+        an object: {created: 1}. If a database with the same name already
+        exists the operation throws RqlRuntimeError.
+         Note:
+        that you can only use alphanumeric characters and underscores for the database name.
+        
+        
+        Create a database named 'superheroes'.
+        >>> r.db_create('superheroes').run(conn)
+    
+    db_drop(db_name)
+        Drop a database. The database, all its tables, and corresponding
+        data will be deleted.
+        
+        If successful, the operation returns the object
+        {dropped: 1}. If the specified database doesn't exist a RqlRuntimeError
+        is thrown.
+        
+        
+        Drop a database named 'superheroes'.
+        >>> r.db_drop('superheroes').run(conn)
+    
+    db_list()
+        List all database names in the system.
+        
+        The result is a list of strings.
+        
+        
+        List all databases.
+        >>> r.db_list().run(conn)
+    
+    desc(attr)
+    
+    div(*args)
+        Divide two numbers.
+        
+        It's as easy as 2 / 2 = 1.
+        >>> (r.expr(2) / 2).run(conn)
+    
+    do(arg0, *args)
+    
+    epoch_time(number)
+        Create a time object based on seconds since epoch.
+        
+        
+        Update the birthdate of the user "John" to November 3rd, 1986.
+        >>> r.table("user").get("John").update({"birthdate": r.epoch_time(531360000)}).run(conn)
+    
+    eq(*args)
+    
+    error(*msg)
+        Throw a runtime error.  If called with no arguments inside the second argument to `default`, re-throw the current error.
+        
+        Iron Man can't possibly have lost a battle:
+        >>> r.table('marvel').get('IronMan').do(
+        ...   lambda ironman: r.branch(ironman['victories'] < ironman['battles'],
+        ...                             r.error('impossible code path'),
+        ...                             ironman)
+        ... ).run(conn)
+    
+    ge(*args)
+    
+    gt(*args)
+    
+    info(val)
+    
+    iso8601(string, default_timezone=())
+        Create a time object based on an iso8601 date-time string
+        (e.g. '2013-01-01T01:01:01+00:00'). We support all valid ISO
+        8601 formats except for week dates.  If you pass an ISO 8601
+        date-time without a time zone, you must specify the time zone
+        with the optarg `default_timezone`.  Read
+        more about the ISO 8601 format on the <a href="http://en.wikipedia.org/wiki/ISO_8601">Wikipedia page</a>.
+        
+        
+        Update the time of John's birth.
+        >>> r.table("user").get("John").update({"birth": r.iso8601('1986-11-03T08:30:00-07:00')}).run(conn)
+    
+    js(js_str, timeout=())
+        Create a javascript expression.
+        
+        Concatenate two strings using Javascript'
+        >>> r.js("'str1' + 'str2'").run(conn)
+        
+        Select all documents where the 'magazines' field is greater than 5 by running Javascript on the server.
+        >>> r.table('marvel').filter(
+        ...   r.js('(function (row) { return row.magazines > 5; })')).run(conn)
+        
+        You may also specify a timeout in seconds (defaults to 5).
+        >>> r.js('while(true) {}', timeout=1.3).run(conn)
+    
+    json(json_str)
+        Parse a JSON string on the server.
+        
+        Send an array to the server'
+        >>> r.json("[1,2,3]").run(conn)
+    
+    le(*args)
+    
+    literal(val=())
+        # Merge values
+    
+    lt(*args)
+    
+    make_timezone(tzstring)
+    
+    mod(a, b)
+        Find the remainder when dividing two numbers.
+        
+        It's as easy as 2 % 2 = 0.
+        >>> (r.expr(2) % 2).run(conn)
+    
+    mul(*args)
+        Multiply two numbers, or make a periodic array.
+        
+        It's as easy as 2 * 2 = 4.
+        >>> (r.expr(2) * 2).run(conn)
+        
+        Arrays can be multiplied by numbers as well.
+        >>> (r.expr(["This", "is", "the", "song", "that", "never", "ends."]) * 100).run(conn)
+    
+    ne(*args)
+    
+    not_(a)
+        Compute the logical inverse (not).
+        
+        Not true is false.
+        >>> (~r.expr(True)).run(conn)
+    
+    now()
+        Return a time object representing the current time in UTC. The
+        command now() is computed once when the server
+        receives the query, so multiple instances of
+        r.now() will always return the same time inside a
+        query.
+        
+        
+        Add a new user with the time at which he subscribed.
+        >>> r.table("users").insert({
+        ...   "name": "John",
+        ...   "subscription_date": r.now()
+        ... }).run(conn)
+    
+    sub(*args)
+        Subtract two numbers.
+        
+        It's as easy as 2 - 2 = 0.
+        >>> (r.expr(2) - 2).run(conn)
+        
+        Create a date one year ago today.
+        >>> r.now() - 365*24*60*60
+        
+        Retrieve how many seconds elapsed between today and date
+        >>> r.now() - date
+    
+    sum(attr)
+        Compute the sum of the given field in the group.
+        
+        How many enemies have been vanquished by heroes at each strength level?
+        >>> r.table('marvel').group_by('strength', r.sum('enemiesVanquished')).run(conn)
+    
+    table(tbl_name, use_outdated=False)
+    
+    table_create(table_name, primary_key=(), datacenter=(), cache_size=(), durability=())
+    
+    table_drop(table_name)
+    
+    table_list()
+    
+    time(*args)
+        Create a time object for a specific time.
+        
+        
+        Update the birthdate of the user "John" to November 3rd, 1986 UTC.
+        >>> r.table("user").get("John").update({"birthdate": r.time(1986, 11, 3, 'Z')}).run(conn)
+    
+    type_of(val)
+
+DATA
+    april = <RqlQuery instance: r.april >
+    august = <RqlQuery instance: r.august >
+    count = {'COUNT': True}
+    december = <RqlQuery instance: r.december >
+    february = <RqlQuery instance: r.february >
+    friday = <RqlQuery instance: r.friday >
+    january = <RqlQuery instance: r.january >
+    july = <RqlQuery instance: r.july >
+    june = <RqlQuery instance: r.june >
+    march = <RqlQuery instance: r.march >
+    may = <RqlQuery instance: r.may >
+    monday = <RqlQuery instance: r.monday >
+    november = <RqlQuery instance: r.november >
+    october = <RqlQuery instance: r.october >
+    row = <RqlQuery instance: r.row >
+    saturday = <RqlQuery instance: r.saturday >
+    september = <RqlQuery instance: r.september >
+    sunday = <RqlQuery instance: r.sunday >
+    thursday = <RqlQuery instance: r.thursday >
+    tuesday = <RqlQuery instance: r.tuesday >
+    wednesday = <RqlQuery instance: r.wednesday >
+
+
