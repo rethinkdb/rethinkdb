@@ -511,10 +511,20 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
 }
 
 page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_null)
-    : page_cache_(page_cache),
-      preceder_or_null_(preceding_txn_or_null) {
-    if (preceder_or_null_ != NULL) {
-        preceder_or_null_->subseqers_.push_back(this);
+    : page_cache_(page_cache) {
+    if (preceding_txn_or_null != NULL) {
+        add_preceder(preceding_txn_or_null);
+    }
+}
+
+void page_txn_t::add_preceder(page_txn_t *preceder) {
+    // RSI: What if `preceder` is already flushed, some dormant object?  We should
+    // not add it as a preceder, in that case.
+
+    // RSP: performance
+    if (std::find(preceders_.begin(), preceders_.end(), preceder) == preceders_.end()) {
+        preceders_.push_back(preceder);
+        preceder->subseqers_.push_back(this);
     }
 }
 
@@ -559,17 +569,20 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         snapshotted_dirtied_pages_.push_back(std::make_pair(block_id,
                                                             std::move(local)));
     }
-
-    start_flush_if_we_should();
 }
 
 void page_txn_t::start_flush_if_we_should() {
-    if (live_acqs_.empty() && preceder_or_null_ == NULL) {
+    if (live_acqs_.empty() && preceders_.empty()) {
         // Start the flush!
         // (... if there's things to be flushed.)
-        // RSI: Start the flush.
+        rassert(!flush_started_);
+        flush_started_ = true;
+
+        // RSI: Actually cause a flush to happen.
+        // page_cache_->nominate_to_be_flushed(this);
     }
 }
+
 
 
 

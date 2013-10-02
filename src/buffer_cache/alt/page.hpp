@@ -272,6 +272,8 @@ public:
     ~page_txn_t();
 
 private:
+    void add_preceder(page_txn_t *preceder);
+
     friend class current_page_acq_t;
     void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
@@ -280,10 +282,10 @@ private:
 
     page_cache_t *page_cache_;
 
-    // The txn that must be committed before or at the same time as this txn.  For
-    // now, there's at most one, because we snapshot all blocks that we write.  This
-    // gets set to NULL when the preceder ceases to exist.
-    page_txn_t *preceder_or_null_;
+    // The transactions that must be committed before or at the same time as this
+    // transaction.  RSI: Are all these transactions those that still need to be
+    // flushed?
+    std::vector<page_txn_t *> preceders_;
 
     // txn's that we precede.
     // RSP: Performance?
@@ -302,6 +304,7 @@ private:
     // RSI: Dead acqs need to get converted into snapshot buffers or block ids or
     // something.
 
+    bool flush_started_ = false;  // RSI: compile
     cond_t flush_complete_cond_;
 
     DISABLE_COPYING(page_txn_t);
