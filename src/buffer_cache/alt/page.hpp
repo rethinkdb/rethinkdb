@@ -13,6 +13,7 @@ namespace alt {
 class current_page_acq_t;
 class page_acq_t;
 class page_cache_t;
+class page_txn_t;
 
 
 enum class alt_access_t { read, write };
@@ -31,8 +32,10 @@ public:
 
 private:
     friend class page_acq_t;
-    void *get_buf();
-    uint32_t get_buf_size();
+    // These may not be called until the page_acq_t's buf_ready_signal is pulsed.
+    void *get_page_buf();
+    void reset_block_token();
+    uint32_t get_page_buf_size();
 
     friend class page_ptr_t;
     void add_snapshotter();
@@ -53,7 +56,6 @@ private:
     bool *destroy_ptr_;
     block_size_t buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
-    // RSI: There's no code that resets block_token_ when the page gets modified.
     counted_t<standard_block_token_t> block_token_;
 
     // How many page_ptr_t's point at this page, expecting nothing to modify it,
@@ -104,7 +106,8 @@ public:
 
     // These block, uninterruptibly waiting for buf_ready_signal() to be pulsed.
     uint32_t get_buf_size();
-    void *get_buf();
+    void *get_buf_write();
+    const void *get_buf_read();
 
 private:
     friend class page_t;
@@ -151,9 +154,13 @@ private:
 
 class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t> {
 public:
-    current_page_acq_t(current_page_t *current_page, alt_access_t access);
+    // RSI: Maybe get the current_page_t from the cache instead of exposing it.
+    current_page_acq_t(page_txn_t *txn,
+                       block_id_t block_id,
+                       alt_access_t access);
     ~current_page_acq_t();
 
+    // Declares ourself snapshotted.
     void declare_snapshotted();
 
     signal_t *read_acq_signal();
@@ -165,6 +172,7 @@ public:
 private:
     friend class current_page_t;
 
+    page_txn_t *txn_;
     alt_access_t access_;
     bool declared_snapshotted_;
     // At most one of current_page_ is NULL or snapshotted_page_ is NULL.
@@ -204,7 +212,6 @@ private:
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,
     // thereby blocking user queries.
-    // RSI: ^ wat.
     scoped_ptr_t<file_account_t> reads_io_account;
     scoped_ptr_t<file_account_t> writes_io_account;
 
@@ -219,6 +226,62 @@ private:
 
     DISABLE_COPYING(page_cache_t);
 };
+
+// page_txn_t's exist for the purpose of writing to disk.  The rules are as follows:
+//
+//  - When a page_txn_t gets "committed" (written to disk), all blocks modified with
+//    a given page_txn_t must be committed to disk at the same time.  (That is, they
+//    all go in the same index_write operation.)
+//
+//  - For all blocks N and page_txn_t S and T, if S modifies N before T modifies N,
+//    then S must be committed to disk before or at the same time as T.
+//
+//  - For all page_txn_t S and T, if S is the preceding_txn of T then S must be
+//    committed to disk before or at the same time as T.
+//
+// As a result, we form a directed graph of txns, which gets modified on the fly, and
+// we commit them in topological order.  (_Cycles_ cannot happen, because we do not
+// have row-level locking -- write transactions can't pass each other.  If there was
+// a cycle, then the txn's would have had an inconsistent view of the cache.  So
+// transactions must form a DAG.  However, if two txns modify the same block (without
+// the first txn saving a snapshot), then they both must be committed at the same
+// time.)  HOWEVER, FOR NOW, TRANSACTIONS SNAPSHOT ALL BLOCKS THEY CHANGED, SO THAT
+// THEY CAN BE WRITTEN WITHOUT WAITING FOR SUBSEQUENT TRANSACTIONS THAT HAVE MODIFIED
+// THE BLOCK.  RSP: THIS IS WASTEFUL (WHEN MANY TRANSACTIONS MODIFY THE SAME BLOCK IN
+// A ROW).
+class page_txn_t {
+public:
+    // RSI: Somehow distinguish between write and read behavior.
+
+    // Our transaction has to get committed to disk _after_ or at the same time as
+    // preceding_txn, if it's not NULL.
+    explicit page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn = NULL);
+    ~page_txn_t();
+
+private:
+    friend class current_page_acq_t;
+    void add_acquirer(current_page_acq_t *acq);
+    void remove_acquirer(current_page_acq_t *acq);
+
+    page_cache_t *page_cache_;
+
+    // The txn that must be committed before or at the same time as this txn.  For
+    // now, there's only one, because we snapshot all blocks that we write.
+    page_txn_t *preceder_or_null_;
+
+    // txn's that we precede.
+    std::vector<page_txn_t *> subseqers_;
+
+    // acqs that are currently alive.
+    std::vector<current_page_acq_t *> live_acqs_;
+
+    // RSI: Dead acqs need to get converted into snapshot buffers or block ids or
+    // something.
+
+    DISABLE_COPYING(page_txn_t);
+};
+
+// RSI: Make alt_buf_lock_t guarantee that its parent has been acquired.
 
 
 

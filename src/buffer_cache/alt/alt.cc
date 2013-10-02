@@ -12,7 +12,8 @@ alt_cache_t::~alt_cache_t() {
 }
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
-    : cache_(cache), preceding_txn_(preceding_txn),
+    : cache_(cache),
+      page_txn_(&cache->page_cache_, &preceding_txn->page_txn_),
       this_txn_timestamp_(repli_timestamp_t::invalid) { }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
@@ -21,8 +22,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
     : txn_(txn),
       cache_(txn_->cache()),
       block_id_(block_id),
-      current_page_acq_(txn->cache()->page_cache_.page_for_block_id(block_id),
-                        access),
+      current_page_acq_(txn->page_txn(), block_id, access),
       snapshot_node_(NULL) {
     // RSI: Obviously, we want to use snapshot_node_ at some point.
     (void)snapshot_node_;
@@ -34,8 +34,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     : txn_(parent->txn_),
       cache_(txn_->cache()),
       block_id_(block_id),
-      current_page_acq_(parent->txn_->cache()->page_cache_.page_for_block_id(block_id),
-                        access),
+      current_page_acq_(txn_->page_txn(), block_id, access),
       snapshot_node_(NULL) {
 }
 
@@ -56,7 +55,7 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
     }
     page_acq_.buf_ready_signal()->wait();
     *block_size_out = page_acq_.get_buf_size();
-    return page_acq_.get_buf();
+    return page_acq_.get_buf_read();
 }
 
 alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
@@ -74,7 +73,7 @@ void *alt_buf_write_t::get_data_write(uint32_t block_size) {
         page_acq_.init(page);
     }
     page_acq_.buf_ready_signal()->wait();
-    return page_acq_.get_buf();
+    return page_acq_.get_buf_write();
 }
 
 
