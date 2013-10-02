@@ -270,9 +270,11 @@ private:
     page_txn_t *preceder_or_null_;
 
     // txn's that we precede.
+    // RSP: Performance?
     std::vector<page_txn_t *> subseqers_;
 
     // acqs that are currently alive.
+    // RSP: Performance?  remove_acquirer takes linear time.
     std::vector<current_page_acq_t *> live_acqs_;
 
     // RSI: Dead acqs need to get converted into snapshot buffers or block ids or

@@ -8,11 +8,9 @@
 
 #include "errors.hpp"
 
-template <class element_t>
+template <class element_t, size_t ELEMENTS_PER_SEGMENT = (1 << 14)>
 class segmented_vector_t {
 private:
-    static const size_t ELEMENTS_PER_SEGMENT = 1 << 14;
-
     struct segment_t {
         element_t elements[ELEMENTS_PER_SEGMENT];
     };
