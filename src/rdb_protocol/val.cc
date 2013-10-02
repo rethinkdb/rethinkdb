@@ -18,7 +18,7 @@ table_t::table_t(env_t *env,
       db(_db),
       name(_name),
       use_outdated(_use_outdated),
-      sorting(UNORDERED) {
+      sorting(sorting_t::UNORDERED) {
     uuid_u db_id = db->id;
     name_string_t table_name;
     bool b = table_name.assign_value(name);
@@ -423,7 +423,7 @@ counted_t<datum_stream_t> table_t::get_all(
         const protob_t<const Backtrace> &bt) {
     rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
             "Cannot chain get_all and other indexed operations.");
-    r_sanity_check(sorting == UNORDERED);
+    r_sanity_check(sorting == sorting_t::UNORDERED);
     r_sanity_check(!bounds);
 
     if (get_all_sindex_id == get_pkey()) {
@@ -431,19 +431,19 @@ counted_t<datum_stream_t> table_t::get_all(
                 env, use_outdated, access.get(),
                 value, false,
                 value, false,
-                UNORDERED, bt);
+                sorting_t::UNORDERED, bt);
     } else {
         return make_counted<lazy_datum_stream_t>(
                 env, use_outdated, access.get(),
                 value, false,
                 value, false,
-                get_all_sindex_id, UNORDERED, bt);
+                get_all_sindex_id, sorting_t::UNORDERED, bt);
     }
 }
 
 void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
                           const rcheckable_t *parent) {
-    r_sanity_check(_sorting != UNORDERED);
+    r_sanity_check(_sorting != sorting_t::UNORDERED);
 
     rcheck_target(parent, base_exc_t::GENERIC, !sorting,
             "Cannot apply 2 indexed orderings to the same TABLE.");

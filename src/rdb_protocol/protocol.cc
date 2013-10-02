@@ -662,7 +662,7 @@ private:
         rg_response->result = stream_t();
         stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
 
-        if (rg.sorting == UNORDERED) {
+        if (rg.sorting == sorting_t::UNORDERED) {
             for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -1147,7 +1147,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
-            sindex_multi_bool_t multi_bool = MULTI;
+            sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
             vector_read_stream_t read_stream(&sindex_mapping_data);
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
@@ -1205,6 +1205,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        read_token_pair_t *_token_pair,
                        rdb_protocol_t::context_t *ctx,
                        read_response_t *_response,
+                       explain_bool_t explain,
                        signal_t *_interruptor) :
         response(_response),
         btree(_btree),
@@ -1223,8 +1224,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               ql::protob_t<Query>(),
-               &response->task)
+               (explain == explain_bool_t::EXPLAIN ? &response->task : NULL))
     { }
 
 private:
@@ -1246,7 +1246,8 @@ void store_t::protocol_read(const read_t &read,
                             read_token_pair_t *token_pair,
                             signal_t *interruptor) {
     rdb_read_visitor_t v(
-        btree, this, txn, superblock, token_pair, ctx, response, interruptor);
+        btree, this, txn, superblock, token_pair,
+        ctx, response, read.explain, interruptor);
     boost::apply_visitor(v, read.read);
 }
 
@@ -1677,7 +1678,7 @@ RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, explain);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
@@ -1697,7 +1698,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_t, write, durability_requirement);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_t, write, durability_requirement, explain);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);

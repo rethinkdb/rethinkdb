@@ -134,7 +134,7 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
         nsi->write(write, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"), &interruptor);
 
         if (rdb_protocol_t::point_write_response_t *maybe_point_write_response_t = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_write_response_t->result, STORED);
+            ASSERT_EQ(maybe_point_write_response_t->result, point_write_result_t::STORED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -175,7 +175,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
 
     ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
-    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, SINGLE));
+    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE));
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;
@@ -237,7 +237,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
         if (rdb_protocol_t::point_write_response_t *maybe_point_write_response
             = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_write_response->result, STORED);
+            ASSERT_EQ(maybe_point_write_response->result, point_write_result_t::STORED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -272,7 +272,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::point_delete_response_t *maybe_point_delete_response = boost::get<rdb_protocol_t::point_delete_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_delete_response->result, DELETED);
+            ASSERT_EQ(maybe_point_delete_response->result, point_delete_result_t::DELETED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -401,7 +401,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                 if (!resp) {
                     ADD_FAILURE() << "got wrong type of result back";
                 } else {
-                    ASSERT_EQ(resp->result, STORED);
+                    ASSERT_EQ(resp->result, point_write_result_t::STORED);
                 }
             }
 

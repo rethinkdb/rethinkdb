@@ -395,7 +395,8 @@ void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool ove
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
     }
-    response_out->result = (had_value ? DUPLICATE : STORED);
+    response_out->result =
+        (had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED);
 }
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
@@ -457,7 +458,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 
     if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn, mod_info);
     guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
-    response->result = (exists ? DELETED : MISSING);
+    response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
 void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
@@ -731,7 +732,7 @@ public:
                 guarantee(sindex_range);
                 guarantee(sindex_multi);
 
-                if (sindex_multi == MULTI &&
+                if (sindex_multi == sindex_multi_bool_t::MULTI &&
                     sindex_value->get_type() == ql::datum_t::R_ARRAY) {
                         boost::optional<uint64_t> tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
                         guarantee(tag);
@@ -773,7 +774,7 @@ public:
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
                     counted_t<const ql::datum_t> datum = it->get();
-                    if (sorting != UNORDERED && sindex_value) {
+                    if (sorting != sorting_t::UNORDERED && sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(
                                     store_key, sindex_value, datum));
                     } else {
@@ -998,7 +999,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     counted_t<const ql::datum_t> index =
         mapping->compile_wire_func()->call(env, doc)->as_datum();
 
-    if (multi == MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
+    if (multi == sindex_multi_bool_t::MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
         for (uint64_t i = 0; i < index->size(); ++i) {
             keys_out->push_back(
                 store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
@@ -1021,7 +1022,7 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
-    sindex_multi_bool_t multi = MULTI;
+    sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");

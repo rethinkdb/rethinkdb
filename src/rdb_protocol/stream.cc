@@ -110,7 +110,7 @@ bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &ri
  * */
 hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
     /* The simple case. No sorting is happening. */
-    if (sorting == UNORDERED) {
+    if (sorting == sorting_t::UNORDERED) {
         boost::optional<rget_item_t> item = head(env);
         if (item) {
             pop();
@@ -188,10 +188,10 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
         return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
     } else {
         /* There's data in the sorting_buffer time to sort it. */
-        if (sorting == ASCENDING) {
+        if (sorting == sorting_t::ASCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                       &rget_item_sindex_key_less);
-        } else if (sorting == DESCENDING) {
+        } else if (sorting == sorting_t::DESCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                       &rget_item_sindex_key_greater);
         } else {

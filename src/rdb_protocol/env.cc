@@ -188,13 +188,46 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    eval_callback(NULL) {
+    eval_callback(NULL)
+{
     counted_t<val_t> explain = global_optargs.get_optarg(this, "explain");
     if (explain.has() && explain->as_bool()) {
         task = _task;
         task->init("Start query");
     } else {
         task = NULL;
+    }
+}
+
+env_t::env_t(
+    extproc_pool_t *_extproc_pool,
+    base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+
+    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+        _namespaces_semilattice_metadata,
+
+    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+         _databases_semilattice_metadata,
+    boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+        _semilattice_metadata,
+    directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+    signal_t *_interruptor,
+    uuid_u _this_machine,
+    explain::task_t *_task)
+  : global_optargs(protob_t<Query>()),
+    extproc_pool(_extproc_pool),
+    cluster_access(_ns_repo,
+                   _namespaces_semilattice_metadata,
+                   _databases_semilattice_metadata,
+                   _semilattice_metadata,
+                   _directory_read_manager,
+                   _this_machine),
+    interruptor(_interruptor),
+    task(_task),
+    eval_callback(NULL)
+{
+    if (_task) {
+        task->init("Start query");
     }
 }
 

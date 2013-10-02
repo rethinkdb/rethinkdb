@@ -45,32 +45,46 @@ class traversal_progress_combiner_t;
 
 using query_language::shared_scoped_less_t;
 
-enum point_write_result_t {
+enum class explain_bool_t {
+    EXPLAIN,
+    DONT_EXPLAIN
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        explain_bool_t, int8_t, 
+        explain_bool_t::EXPLAIN, explain_bool_t::DONT_EXPLAIN);
+
+enum class point_write_result_t {
     STORED,
     DUPLICATE
 };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_write_result_t, int8_t, STORED, DUPLICATE);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        point_write_result_t, int8_t,
+        point_write_result_t::STORED, point_write_result_t::DUPLICATE);
 
-enum point_delete_result_t {
+enum class point_delete_result_t {
     DELETED,
     MISSING
 };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        point_delete_result_t, int8_t,
+        point_delete_result_t::DELETED, point_delete_result_t::MISSING);
 
 RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 RDB_DECLARE_SERIALIZABLE(Backtrace);
 
-enum sorting_t {
+enum class sorting_t {
     UNORDERED,
     ASCENDING,
     DESCENDING
 };
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        sorting_t, int8_t,
+        sorting_t::UNORDERED, sorting_t::DESCENDING);
 
 inline bool forward(sorting_t sorting) {
-    return sorting == ASCENDING || sorting == UNORDERED;
+    return sorting == sorting_t::ASCENDING || sorting == sorting_t::UNORDERED;
 }
 
 inline bool backward(sorting_t sorting) {
@@ -161,9 +175,10 @@ struct rget_item_t {
 
 } // namespace rdb_protocol_details
 
-enum sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
+enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t, SINGLE, MULTI);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
+        sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
 
 class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
@@ -311,14 +326,14 @@ struct rdb_protocol_t {
         rget_read_t() { }
 
         explicit rget_read_t(const region_t &_region,
-                             sorting_t _sorting = UNORDERED)
+                             sorting_t _sorting = sorting_t::UNORDERED)
             : region(_region), sorting(_sorting) {
         }
 
 
         rget_read_t(const std::string &_sindex,
                     sindex_range_t _sindex_range,
-                    sorting_t _sorting = UNORDERED)
+                    sorting_t _sorting = sorting_t::UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
               sindex_region(sindex_range->to_region()),
@@ -327,7 +342,7 @@ struct rdb_protocol_t {
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
                     sindex_range_t _sindex_range,
-                    sorting_t _sorting = UNORDERED)
+                    sorting_t _sorting = sorting_t::UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
               sindex_region(_sindex_region), sorting(_sorting) { }
@@ -337,7 +352,7 @@ struct rdb_protocol_t {
                     sindex_range_t _sindex_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    sorting_t _sorting = UNORDERED)
+                    sorting_t _sorting = sorting_t::UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
               sindex_region(_sindex_region),
@@ -347,7 +362,7 @@ struct rdb_protocol_t {
         rget_read_t(const region_t &_region,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    sorting_t _sorting = UNORDERED)
+                    sorting_t _sorting = sorting_t::UNORDERED)
             : region(_region), transform(_transform),
               optargs(_optargs), sorting(_sorting) {
             rassert(optargs.size() != 0);
@@ -424,6 +439,7 @@ struct rdb_protocol_t {
 
     struct read_t {
         boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> read;
+        explain_bool_t explain;
 
         region_t get_region() const THROWS_NOTHING;
         // Returns true if the read has any operation for this region.  Returns false if
@@ -607,6 +623,7 @@ struct rdb_protocol_t {
                        sindex_drop_t> write;
 
         durability_requirement_t durability_requirement;
+        explain_bool_t explain;
 
         region_t get_region() const THROWS_NOTHING;
         // Returns true if the write had any side effects applicable to the region, and a

@@ -261,7 +261,8 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
 
         ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m, SINGLE));
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(
+                    sindex_id, m, sindex_multi_bool_t::SINGLE));
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());

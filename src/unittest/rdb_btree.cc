@@ -97,7 +97,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
     ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
-    sindex_multi_bool_t multi_bool = SINGLE;
+    sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
     wm << m;
@@ -227,7 +227,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
             txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
+            boost::optional<rdb_protocol_details::terminal_t>(), sorting_t::ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
@@ -283,7 +283,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
             txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
+            boost::optional<rdb_protocol_details::terminal_t>(), sorting_t::ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
