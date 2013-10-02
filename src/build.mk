@@ -86,14 +86,6 @@ ifeq ($(BUILD_PORTABLE),1)
   endif
 endif
 
-ifeq ($(BUILD_PORTABLE),1)
-  LEGACY_PACKAGE := 1
-else ifeq ($(LEGACY_LINUX),1)
-  LEGACY_PACKAGE := 1
-else
-  LEGACY_PACKAGE := 0
-endif
-
 RT_LDFLAGS += $(LIB_SEARCH_PATHS)
 
 RT_CXXFLAGS?=

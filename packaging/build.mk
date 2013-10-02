@@ -36,14 +36,6 @@ prepare_deb_package_dirs:
 install-deb: DESTDIR = $(DEB_PACKAGE_DIR)
 install-deb: install install-deb-changelog
 
-.PHONY: install-deb-changelog
-install-deb-changelog:
-	$P INSTALL $(DESTDIR)$(doc_dir)/changelog.Debian.gz
-	install -m755 -d $(DESTDIR)$(doc_dir)
-	sed -e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' $(ASSETS_DIR)/docs/changelog.Debian | \
-	  gzip -c9 | \
-	  install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
-
 DSC_CONFIGURE_DEFAULT += --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
 ifeq ($(BUILD_PORTABLE),1)
@@ -60,28 +52,47 @@ else
   DIST_CUSTOM_MK_LINES :=
 endif
 
-BASE_DEPENDS := g++, libboost-dev, libssl-dev, curl, exuberant-ctags, m4, debhelper,
-BASE_DEPENDS += fakeroot, python, libncurses5-dev
-NODEJS_DEPENDS_EXTRA := ifelse(NODEJS_NEW,1,`, nodejs-legacy',`')')dnl
-# define(`V8_DEPENDS_EXTRA',`ifelse(STATIC_V8,0,`, libv8-dev',`')')dnl
-# define(`PROTOC_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libprotoc-dev',`')')dnl
-# define(`NODE_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, npm',`')')dnl
-# define(`GPERFTOOLS_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, libgoogle-perftools-dev',`')')dnl
-# define(`RUBY_DEPENDS_EXTRA',`ifelse(BUILD_DRIVERS,0,`, ruby, rubygems',`')')dnl
-DEB_BUILD_DEPENDS := $(BASE_DEPENDS) $(NODEJS_DEPENDS_EXTRA} $(V8_DEPENDS_EXTRA)
-DEB_BUILD_DEPENDS += $(PROTOC_DEPENDS_EXTRA) $(NODE_DEPENDS_EXTRA)
-DEB_BUILD_DEPENDS += $(GPERFTOOLS_DEPENDS_EXTRA) $(RUBY_DEPENDS_EXTRA)
+DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, exuberant-ctags, m4, debhelper
+DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev
+ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
+  DEB_BUILD_DEPENDS += , nodejs-legacy
+endif
+ifneq (1,$(STATIC_V8))
+  DEB_BUILD_DEPENDS += , libv8-dev
+endif
+ifneq (1,$(BUILD_PORTABLE))
+  DEB_BUILD_DEPENDS += , protobuf-compiler, protobuf-c-compiler, libprotobuf-dev
+  DEB_BUILD_DEPENDS += , libprotobuf-c0-dev, libprotoc-dev, npm, libgoogle-perftools-dev
+endif
 
-# TODO:
-# DEB_DEPENDS = libncurses5, ifelse(LEGACY_PACKAGE, 1,
-#   `libc6 (>= 2.5), libstdc++6 (>= 4.4), libgcc1',
-#   `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libprotobuf7')`'dnl
-# ifelse(STATIC_V8, 0, `, libv8-dev (>= 3.1)', `')
+ifeq ($(BUILD_PORTABLE),1)
+  LEGACY_PACKAGE := 1
+else ifeq ($(LEGACY_LINUX),1)
+  LEGACY_PACKAGE := 1
+else
+  LEGACY_PACKAGE := 0
+endif
+
+DEB_DEPENDS = libncurses5
+ifeq (1,$(LEGACY_PACKAGE))
+  DEB_DEPENDS += , libstdc++6 (>= 4.4), libgcc1
+else
+  DEB_DEPENDS += , libstdc++6 (>= 4.6), libgcc1, libprotobuf7
+endif
+ifneq (1,$(STATIC_V8))
+  DEB_DEPENDS += , libv8-dev (>= 3.1)
+endif
+
+ifneq (1,$(SIGN_PACKAGE))
+  DEBUILD_SIGN_OPTIONS := -us -uc
+else
+  DEBUILD_SIGN_OPTIONS :=
+endif
 
 .PHONY: build-deb-src
 build-deb-src: deb-src-dir
 	$P DEBUILD ""
-	cd $(DSC_PACKAGE_DIR) && yes | debuild -S -sa
+	cd $(DSC_PACKAGE_DIR) && yes | debuild -S -sa $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: deb-src-dir
 deb-src-dir: dist-dir
@@ -98,15 +109,16 @@ deb-src-dir: dist-dir
 	    PACKAGE_VERSION=$(RETHINKDB_PACKAGING_VERSION) \
 	  $(TOP)/scripts/gen-changelog.sh \
 	  > $(DSC_PACKAGE_DIR)/debian/changelog
-	$P ECHO $(DSC_PACKAGE_DIR)/debian/rethinkdb.substvars
-	( echo "PACKAGE_NAME=$(PACKAGE_NAME)" \
-	  echo "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
-	  echo "DEB_BUILD_DEPENDS=$(DEB_BUILD_DEPENDS)" \
-	  echo "DEB_DEPENDS=$(DEB_DEPENDS)" \
-	) > $(DSC_PACKAGE_DIR)/debian/rethinkdb.substvars
-	$P SED $(DSC_PACKAGE_DIR)/debian/control
-	sed "s/VERSIONED_QUALIFIED_PACKAGE_NAME/$(VERSIONED_QUALIFIED_PACKAGE_NAME)/" \
-	  $(DSC_PACKAGE_DIR)/debian/control.in > $(DSC_PACKAGE_DIR)/debian/control
+	$P ECHO $(DSC_PACKAGE_DIR)/debian/rethinkdb.version
+	echo $(RETHINKDB_VERSION_DEB) > $(DSC_PACKAGE_DIR)/debian/rethinkdb.version
+	$P M4 $(DSC_PACKAGE_DIR)/debian/control
+	m4 -D "PACKAGE_NAME=$(PACKAGE_NAME)" \
+	   -D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
+	   -D "DEB_BUILD_DEPENDS=$(DEB_BUILD_DEPENDS)" \
+	   -D "DEB_DEPENDS=$(DEB_DEPENDS)" \
+	   -D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
+	  $(DSC_PACKAGE_DIR)/debian/control.in \
+	  > $(DSC_PACKAGE_DIR)/debian/control
 	rm $(DSC_PACKAGE_DIR)/debian/control.in
 
 .PHONY: build-deb
@@ -171,7 +183,6 @@ build-osx: install-osx
 .PHONY: reset-dist-dir
 reset-dist-dir: FORCE | web-assets
 	$P CP $(DIST_FILE_LIST) $(DIST_DIR)
-	rm -rf $(PROTOC_JS_PLUGIN)
 	$(EXTERN_MAKE) -C $(TOP)/external/gtest/make clean
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)

@@ -100,6 +100,9 @@ RQL_ERROR_BT ?= 0
 # but can be useful for analyzing performance issues.
 FULL_PERFMON ?= 0
 
+# Sign the DSC file
+SIGN_PACKAGE ?= 1
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0
