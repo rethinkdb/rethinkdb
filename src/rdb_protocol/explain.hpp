@@ -9,8 +9,9 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
-#include "utils.hpp"
 #include "containers/counted.hpp"
+#include "rpc/serialize_macros.hpp"
+#include "utils.hpp"
 
 namespace ql {
 class datum_t;
@@ -35,17 +36,27 @@ public:
 
     counted_t<const ql::datum_t> as_datum();
 
+    RDB_DECLARE_ME_SERIALIZABLE;
+
 private:
     void as_datum_helper(std::vector<counted_t<const ql::datum_t> > *parent);
     counted_t<const ql::datum_t> get_atom();
 
-    enum state_t {UNINITIALIZED, RUNNING, FINISHED} state_;
+public:
+    /* Just to make serialization easier. */
+    enum state_t {UNINITIALIZED, RUNNING, FINISHED};
+private:
+    state_t state_;
 
     std::string description_;
     ticks_t start_time_, ticks_;
     std::vector<task_t *> parallel_tasks;
     task_t *next_task;
 };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        task_t::state_t, int8_t,
+        task_t::UNINITIALIZED, task_t::FINISHED);
 
 } //namespace explain
 #endif

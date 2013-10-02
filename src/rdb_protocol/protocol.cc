@@ -1665,7 +1665,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
                            result, key_range, truncated, last_considered_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_response_t, response, task);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
@@ -1684,7 +1684,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_response_t, response, task);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_response_t, point_replace_responses);
 

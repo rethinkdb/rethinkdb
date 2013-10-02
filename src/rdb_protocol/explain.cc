@@ -100,4 +100,68 @@ counted_t<const ql::datum_t> task_t::get_atom() {
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
+enum class has_next_bool_t { HAS_NEXT, NO_NEXT };
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        has_next_bool_t, int8_t,
+        has_next_bool_t::HAS_NEXT, has_next_bool_t::NO_NEXT);
+
+void task_t::rdb_serialize(write_message_t &msg) const {
+    /* serialize the simple fields. */
+    msg << state_ << description_ << start_time_ << ticks_;
+
+    /* serialize the parallel tasks if the exist */
+    msg << parallel_tasks.size();
+
+    for (auto it = parallel_tasks.begin(); it != parallel_tasks.end(); ++it) {
+        msg << **it;
+    }
+
+    /* serialize the next task */
+    if (next_task) {
+        msg << has_next_bool_t::HAS_NEXT;
+        msg << *next_task;
+    } else {
+        msg << has_next_bool_t::NO_NEXT;
+    }
+}
+
+#define RETURN_IF_NOT_SUCCESS(val) \
+{ \
+    archive_result_t res = (val); \
+    if (res != ARCHIVE_SUCCESS) { \
+        return res; \
+    } \
+}
+
+MUST_USE archive_result_t task_t::rdb_deserialize(read_stream_t *s) {
+    /* deserialize the simple fields */
+    RETURN_IF_NOT_SUCCESS(deserialize(s, &state_));
+    RETURN_IF_NOT_SUCCESS(deserialize(s, &description_));
+    RETURN_IF_NOT_SUCCESS(deserialize(s, &start_time_));
+    RETURN_IF_NOT_SUCCESS(deserialize(s, &ticks_));
+    size_t array_size;
+    RETURN_IF_NOT_SUCCESS(deserialize(s, &array_size));
+    parallel_tasks.resize(array_size, NULL);
+
+    /* deserialize the parallel_tasks */
+    for (auto it = parallel_tasks.begin(); it != parallel_tasks.end(); ++it) {
+        *it = new task_t();
+        RETURN_IF_NOT_SUCCESS(deserialize(s, *it));
+    }
+
+    /* deserialize the next_task */
+    has_next_bool_t has_next;
+    RETURN_IF_NOT_SUCCESS(deserialize(s, &has_next));
+
+    if (has_next == has_next_bool_t::HAS_NEXT) {
+        next_task = new task_t;
+        RETURN_IF_NOT_SUCCESS(deserialize(s, next_task));
+    } else {
+        next_task = NULL;
+    }
+
+    return ARCHIVE_SUCCESS;
+}
+
 } //namespace explain
