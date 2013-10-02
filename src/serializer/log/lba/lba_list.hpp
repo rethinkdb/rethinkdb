@@ -24,7 +24,8 @@ public:
     explicit lba_list_t(extent_manager_t *em);
     ~lba_list_t();
 
-    static void prepare_initial_metablock(metablock_mixin_t *mb);
+    static void prepare_initial_metablock(metablock_mixin_t *mb_out);
+    void prepare_metablock(metablock_mixin_t *mb_out);
 
     struct ready_callback_t {
         virtual void on_lba_ready() = 0;
@@ -61,8 +62,6 @@ public:
     };
     bool sync(file_account_t *io_account, sync_callback_t *cb);
 
-    void prepare_metablock(metablock_mixin_t *mb_out);
-
     void consider_gc(file_account_t *io_account, extent_transaction_t *txn);
 
     struct shutdown_callback_t {
@@ -90,6 +89,16 @@ private:
 
     in_memory_index_t in_memory_index;
 
+    // This is a set of inlined LBA entries which are written directly into the
+    // metablock. When the array gets full, all inline lba entries are moved
+    // to one of the LBA extents (through one of disk_structures).
+    lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
+    int32_t inline_lba_entries_count;
+    bool check_inline_lba_full() const;
+    void move_inline_entries_to_extents(file_account_t *io_account, extent_transaction_t *txn);
+    void add_inline_entry(block_id_t block, repli_timestamp_t recency,
+                                flagged_off64_t offset, uint32_t ser_block_size);
+    
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
 
     // Garbage-collect the given shard

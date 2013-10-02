@@ -180,10 +180,16 @@
 // TODO: LBA_SHARD_FACTOR used to be 16.
 #define LBA_SHARD_FACTOR                          4
 
+// How much space to reserve in the metablock to store inline LBA entries
+// TODO (daniel): Tune
+#define LBA_INLINE_SIZE                           (KILOBYTE * 2)
+#define LBA_NUM_INLINE_ENTRIES                    (static_cast<int32_t>(LBA_INLINE_SIZE / sizeof(lba_entry_t)))
+
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
 #define LBA_READ_BUFFER_SIZE                      GIGABYTE
+// TODO (daniel): Is this per serializer or what? Might be way too much.
 
 #define COROUTINE_STACK_SIZE                      131072
 

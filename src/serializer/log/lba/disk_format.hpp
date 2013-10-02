@@ -52,28 +52,6 @@ inline bool operator==(flagged_off64_t x, flagged_off64_t y) {
     return x.the_value_ == y.the_value_;
 }
 
-struct lba_shard_metablock_t {
-    /* Reference to the last lba extent (that's currently being
-     * written to). Once the extent is filled, the reference is
-     * moved to the lba superblock, and the next block gets a
-     * reference to the clean extent. */
-    int64_t last_lba_extent_offset;
-    int32_t last_lba_extent_entries_count;
-    int32_t padding1;
-
-    /* Reference to the LBA superblock and its size */
-    int64_t lba_superblock_offset;
-    int32_t lba_superblock_entries_count;
-    int32_t padding2;
-};
-
-struct lba_metablock_mixin_t {
-    lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
-};
-
-
-
-
 // PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA list only exists to fill
 // out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 
@@ -117,6 +95,28 @@ struct lba_entry_t {
 } __attribute__((__packed__));
 
 
+struct lba_shard_metablock_t {
+    /* Reference to the last lba extent (that's currently being
+     * written to). Once the extent is filled, the reference is
+     * moved to the lba superblock, and the next block gets a
+     * reference to the clean extent. */
+    int64_t last_lba_extent_offset;
+    int32_t last_lba_extent_entries_count;
+    int32_t padding1;
+
+    /* Reference to the LBA superblock and its size */
+    int64_t lba_superblock_offset;
+    int32_t lba_superblock_entries_count;
+    int32_t padding2;
+};
+
+struct lba_metablock_mixin_t {
+    lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
+    
+    lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
+    int32_t inline_lba_entries_count;
+    // TODO (daniel): Do we need padding here?
+};
 
 
 #define LBA_MAGIC_SIZE 8
