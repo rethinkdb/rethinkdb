@@ -48,6 +48,12 @@ public:
         (*this)[old_size] = element;
     }
 
+    void push_back(element_t &&element) {
+        size_t old_size = size_;
+        set_size(old_size + 1);
+        (*this)[old_size] = std::move(element);
+    }
+
     element_t &back() {
         return (*this)[size_ - 1];
     }

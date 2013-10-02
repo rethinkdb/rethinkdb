@@ -3,6 +3,7 @@
 
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
+#include "containers/segmented_vector.hpp"
 #include "serializer/types.hpp"
 
 class auto_drainer_t;
@@ -75,7 +76,8 @@ public:
     explicit page_ptr_t(page_t *page) { init(page); }
     page_ptr_t();
     ~page_ptr_t();
-
+    page_ptr_t(page_ptr_t &&movee);
+    page_ptr_t &operator=(page_ptr_t &&movee);
     void init(page_t *page);
 
     page_t *get_page_for_read();
@@ -139,6 +141,10 @@ private:
 
     void convert_from_serializer_if_necessary();
 
+    // page_txn_t should not access our fields directly.
+    friend class page_txn_t;
+    block_id_t block_id() const { return block_id_; }
+
     // Our block id.
     block_id_t block_id_;
     // Either page_ is null or page_cache_ is null (except that page_cache_ is never
@@ -160,7 +166,7 @@ public:
                        alt_access_t access);
     ~current_page_acq_t();
 
-    // Declares ourself snapshotted.
+    // Declares ourself snapshotted.  (You must be readonly to do this.)
     void declare_snapshotted();
 
     signal_t *read_acq_signal();
@@ -170,7 +176,13 @@ public:
     page_t *current_page_for_write();
 
 private:
+    friend class page_txn_t;
     friend class current_page_t;
+
+    // Returns true if this acq dirtied the page.
+    bool dirtied_page() const;
+    // Declares ourself readonly.  Only page_txn_t::remove_acquirer can do this!
+    void declare_readonly();
 
     page_txn_t *txn_;
     alt_access_t access_;
@@ -180,6 +192,7 @@ private:
     page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
+    bool dirtied_page_;
 
     DISABLE_COPYING(current_page_acq_t);
 };
@@ -276,6 +289,10 @@ private:
     // acqs that are currently alive.
     // RSP: Performance?  remove_acquirer takes linear time.
     std::vector<current_page_acq_t *> live_acqs_;
+
+    // Saved pages (by block id).
+    // This is a segmented_vector_t because page_ptr_t is non-copyable.
+    segmented_vector_t<std::pair<block_id_t, page_ptr_t>, 8> snapshotted_dirtied_pages_;
 
     // RSI: Dead acqs need to get converted into snapshot buffers or block ids or
     // something.

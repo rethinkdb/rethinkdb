@@ -58,16 +58,24 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
     : txn_(txn),
       access_(access),
       declared_snapshotted_(false),
-      current_page_(txn->page_cache_->page_for_block_id(block_id)) {
+      current_page_(txn->page_cache_->page_for_block_id(block_id)),
+      dirtied_page_(false) {
     txn_->add_acquirer(this);
     current_page_->add_acquirer(this);
 }
 
 current_page_acq_t::~current_page_acq_t() {
+    txn_->remove_acquirer(this);
     if (current_page_ != NULL) {
         current_page_->remove_acquirer(this);
     }
-    txn_->remove_acquirer(this);
+}
+
+void current_page_acq_t::declare_readonly() {
+    access_ = alt_access_t::read;
+    if (current_page_ != NULL) {
+        current_page_->pulse_pulsables(this);
+    }
 }
 
 void current_page_acq_t::declare_snapshotted() {
@@ -80,6 +88,8 @@ void current_page_acq_t::declare_snapshotted() {
         current_page_->pulse_pulsables(this);
     }
 
+    // RSI: What?  We might be far down the chain when calling this function.  This
+    // code is wrong, right?
     rassert(current_page_ == NULL);
     rassert(snapshotted_page_.has());
 }
@@ -108,7 +118,12 @@ page_t *current_page_acq_t::current_page_for_write() {
     rassert(current_page_ != NULL);
     write_cond_.wait();
     rassert(current_page_ != NULL);
+    dirtied_page_ = true;
     return current_page_->the_page_for_write();
+}
+
+bool current_page_acq_t::dirtied_page() const {
+    return dirtied_page_;
 }
 
 current_page_t::current_page_t(block_id_t block_id, page_cache_t *page_cache)
@@ -464,6 +479,16 @@ page_ptr_t::~page_ptr_t() {
     }
 }
 
+page_ptr_t::page_ptr_t(page_ptr_t &&movee) : page_(movee.page_) {
+    movee.page_ = NULL;
+}
+
+page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
+    page_ptr_t tmp(std::move(movee));
+    std::swap(page_, tmp.page_);
+    return *this;
+}
+
 void page_ptr_t::init(page_t *page) {
     rassert(page_ == NULL);
     page_ = page;
@@ -500,10 +525,38 @@ void page_txn_t::add_acquirer(current_page_acq_t *acq) {
     live_acqs_.push_back(acq);
 }
 
+// RSI: Make sure pulse_pulsables handles declare_snapshotted situations properly.
 void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
+    // This is called by acq's destructor.
     for (auto it = live_acqs_.begin(); it != live_acqs_.end(); ++it) {
         if (*it == acq) {
             live_acqs_.erase(it);
+            if (acq->dirtied_page()) {
+                // We know we hold an exclusive lock.
+                rassert(acq->access_ == alt_access_t::write);
+                rassert(acq->write_cond_.is_pulsed());
+                // It's not snapshotted because you can't snapshot write acqs.  (We
+                // rely on this fact solely because we need to grab the block_id_t
+                // and current_page_acq_t currently doesn't know it.)
+                rassert(acq->current_page_ != NULL);
+
+                // Get the block id while current_page_ is non-null.  (It'll become
+                // null once we're snapshotted.)
+                block_id_t block_id = acq->current_page_->block_id();
+
+                // Declare readonly (so that we may declare acq snapshotted).
+                acq->declare_readonly();
+                acq->declare_snapshotted();
+
+                // Since we snapshotted the lead acquirer, it gets detached.
+                rassert(acq->current_page_ == NULL);
+                // Steal the snapshotted page_ptr_t.
+                page_ptr_t local = std::move(acq->snapshotted_page_);
+                snapshotted_dirtied_pages_.push_back(std::make_pair(block_id,
+                                                                    std::move(local)));
+            }
+
+
             return;
         }
     }
