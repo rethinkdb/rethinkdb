@@ -24,29 +24,7 @@ else
   NODEJS_NEW := 1
 endif
 
-# We have facilities for converting between toy names and Debian release numbers.
-
-deb-release-numbers := 1:buzz 2:rex 3:bo 4:hamm 5:slink 6:potato 7:woody 8:sarge 9:etch 10:lenny 11:squeeze 12:wheezy 13:jessie
-deb-num-to-toy = $(patsubst $1:%,%,$(filter $1:%,$(deb-release-numbers)))
-deb-toy-to-num = $(patsubst %:$1,%,$(filter %:$1,$(deb-release-numbers)))
-
-# We can accept a toy name via DEB_RELEASE or a number via DEB_NUM_RELEASE.
-# Note that the numeric release does not correspond to the Debian version but to the sequence of major releases. Version 1.3 is number 3, and version 2 is number 4.
-# DEB_REAL_NUM_RELEASE is a scrubbed version of DEB_NUM_RELEASE.
-
-DEB_RELEASE_NUM := $(call deb-toy-to-num,$(DEB_RELEASE))
-
-ifneq ($(DEB_RELEASE),)
-  ifeq ($(DEB_RELEASE_NUM),)
-    $(warning The Debian version specification is invalid. We will ignore it.)
-  endif
-  ifneq ($(UBUNTU_RELEASE),)
-    $(warning We seem to have received an Ubuntu release specification and a Debian release specification. We will ignore the Debian release specification.)
-  endif
-endif
-
-DEB_PACKAGE_REVISION := $(shell env UBUNTU_RELEASE="$(UBUNTU_RELEASE)" DEB_RELEASE="$(DEB_RELEASE)" DEB_RELEASE_NUM="$(DEB_RELEASE_NUM)" PACKAGE_VERSION="" $(TOP)/scripts/gen-trailer.sh)
-RETHINKDB_VERSION_DEB := $(RETHINKDB_PACKAGING_VERSION)$(DEB_PACKAGE_REVISION)
+RETHINKDB_VERSION_DEB := $(RETHINKDB_PACKAGING_VERSION)ubuntu1~$(UBUNTU_RELEASE)
 
 .PHONY: prepare_deb_package_dirs
 prepare_deb_package_dirs:
@@ -56,7 +34,10 @@ prepare_deb_package_dirs:
 
 .PHONY: install-deb
 install-deb: DESTDIR = $(DEB_PACKAGE_DIR)
-install-deb: install
+install-deb: install install-deb-changelog
+
+.PHONY: install-deb-changelog
+install-deb-changelog:
 	$P INSTALL $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 	install -m755 -d $(DESTDIR)$(doc_dir)
 	sed -e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' $(ASSETS_DIR)/docs/changelog.Debian | \
@@ -79,8 +60,26 @@ else
   DIST_CUSTOM_MK_LINES :=
 endif
 
+BASE_DEPENDS := g++, libboost-dev, libssl-dev, curl, exuberant-ctags, m4, debhelper,
+BASE_DEPENDS += fakeroot, python, libncurses5-dev
+NODEJS_DEPENDS_EXTRA := ifelse(NODEJS_NEW,1,`, nodejs-legacy',`')')dnl
+# define(`V8_DEPENDS_EXTRA',`ifelse(STATIC_V8,0,`, libv8-dev',`')')dnl
+# define(`PROTOC_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, protobuf-compiler, protobuf-c-compiler, libprotobuf-dev, libprotobuf-c0-dev, libprotoc-dev',`')')dnl
+# define(`NODE_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, npm',`')')dnl
+# define(`GPERFTOOLS_DEPENDS_EXTRA',`ifelse(TC_BUNDLED,0,`, libgoogle-perftools-dev',`')')dnl
+# define(`RUBY_DEPENDS_EXTRA',`ifelse(BUILD_DRIVERS,0,`, ruby, rubygems',`')')dnl
+DEB_BUILD_DEPENDS := $(BASE_DEPENDS) $(NODEJS_DEPENDS_EXTRA} $(V8_DEPENDS_EXTRA)
+DEB_BUILD_DEPENDS += $(PROTOC_DEPENDS_EXTRA) $(NODE_DEPENDS_EXTRA)
+DEB_BUILD_DEPENDS += $(GPERFTOOLS_DEPENDS_EXTRA) $(RUBY_DEPENDS_EXTRA)
+
+# TODO:
+# DEB_DEPENDS = libncurses5, ifelse(LEGACY_PACKAGE, 1,
+#   `libc6 (>= 2.5), libstdc++6 (>= 4.4), libgcc1',
+#   `libc6 (>= 2.10.1), libstdc++6 (>= 4.6), libgcc1, libprotobuf7')`'dnl
+# ifelse(STATIC_V8, 0, `, libv8-dev (>= 3.1)', `')
+
 .PHONY: build-deb-src
-build-deb-src: deb-src-dir build-deb-src-control
+build-deb-src: deb-src-dir
 	$P DEBUILD ""
 	cd $(DSC_PACKAGE_DIR) && yes | debuild -S -sa
 
@@ -90,11 +89,8 @@ deb-src-dir: dist-dir
 	rm -rf $(DSC_PACKAGE_DIR)
 	mv $(DIST_DIR) $(DSC_PACKAGE_DIR)
 	echo $(DSC_CONFIGURE_DEFAULT) >> $(DSC_PACKAGE_DIR)/configure.default
-
-.PHONY: build-deb-src-control
-build-deb-src-control: | deb-src-dir
-	$P CP $(PACKAGING_DIR)/debian.template $(DSC_PACKAGE_DIR)/debian
-	cp -pRP $(PACKAGING_DIR)/debian.template $(DSC_PACKAGE_DIR)/debian
+	$P CP $(PACKAGING_DIR)/debian $(DSC_PACKAGE_DIR)/debian
+	cp -pRP $(PACKAGING_DIR)/debian $(DSC_PACKAGE_DIR)/debian
 	env UBUNTU_RELEASE=$(UBUNTU_RELEASE) \
 	    DEB_RELEASE=$(DEB_RELEASE) \
 	    DEB_RELEASE_NUM=$(DEB_RELEASE_NUM) \
@@ -102,37 +98,16 @@ build-deb-src-control: | deb-src-dir
 	    PACKAGE_VERSION=$(RETHINKDB_PACKAGING_VERSION) \
 	  $(TOP)/scripts/gen-changelog.sh \
 	  > $(DSC_PACKAGE_DIR)/debian/changelog
-	$P M4 $(DEBIAN_PKG_DIR)/control $(DSC_PACKAGE_DIR)/debian/control
-	env disk_size=0 \
-	  m4 -D "PACKAGE_NAME=$(PACKAGE_NAME)" \
-	     -D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)" \
-	     -D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)" \
-	     -D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-	     -D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
-	     -D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)" \
-	     -D "STATIC_V8=$(STATIC_V8)" \
-	     -D "TC_BUNDLED=$(BUILD_PORTABLE)" \
-	     -D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
-	     -D "DISK_SIZE=$${disk_size}" \
-	     -D "SOURCEBUILD=1" \
-	     -D "NODEJS_NEW=$(NODEJS_NEW)" \
-	     -D "CURRENT_ARCH=$(DEB_ARCH)" \
-	     $(DEBIAN_PKG_DIR)/control > $(DSC_PACKAGE_DIR)/debian/control
-	$P M4 preinst postinst prerm postrm "->" $(DSC_PACKAGE_DIR)/debian
-	for script in preinst postinst prerm postrm; do \
-	  m4 -D "BIN_DIR=$(bin_dir)" \
-	     -D "MAN1_DIR=$(man1_dir)" \
-	     -D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
-	     -D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
-	     -D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
-	     -D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
-	     -D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" \
-	     -D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
-	     $(DEBIAN_PKG_DIR)/$${script} > $(DSC_PACKAGE_DIR)/debian/$${script}; \
-	  chmod 0755 $(DSC_PACKAGE_DIR)/debian/$${script}; \
-	done
-	$P CAT $(DEBIAN_PKG_DIR)/copyright ">" $(DSC_PACKAGE_DIR)/debian/copyright
-	cat $(DEBIAN_PKG_DIR)/copyright > $(DSC_PACKAGE_DIR)/debian/copyright
+	$P ECHO $(DSC_PACKAGE_DIR)/debian/rethinkdb.substvars
+	( echo "PACKAGE_NAME=$(PACKAGE_NAME)" \
+	  echo "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
+	  echo "DEB_BUILD_DEPENDS=$(DEB_BUILD_DEPENDS)" \
+	  echo "DEB_DEPENDS=$(DEB_DEPENDS)" \
+	) > $(DSC_PACKAGE_DIR)/debian/rethinkdb.substvars
+	$P SED $(DSC_PACKAGE_DIR)/debian/control
+	sed "s/VERSIONED_QUALIFIED_PACKAGE_NAME/$(VERSIONED_QUALIFIED_PACKAGE_NAME)/" \
+	  $(DSC_PACKAGE_DIR)/debian/control.in > $(DSC_PACKAGE_DIR)/debian/control
+	rm $(DSC_PACKAGE_DIR)/debian/control.in
 
 .PHONY: build-deb
 build-deb: all prepare_deb_package_dirs install-deb
@@ -141,7 +116,7 @@ build-deb: all prepare_deb_package_dirs install-deb
 	   (cd $(DEB_PACKAGE_DIR) && xargs -0 md5sum) > $(DEB_CONTROL_ROOT)/md5sums
 	$P FIND $(DEB_CONTROL_ROOT)/conffiles
 	find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
-	$P M4 preinst postinst prerm postrm $(DEB_CONTROL_ROOT) 
+	$P M4 preinst postinst prerm postrm $(DEB_CONTROL_ROOT)
 	for script in preinst postinst prerm postrm; do \
 	  m4 -D "BIN_DIR=$(bin_dir)" \
 	     -D "MAN1_DIR=$(man1_dir)" \

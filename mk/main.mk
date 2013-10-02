@@ -53,7 +53,7 @@ include $(TOP)/mk/webui.mk
 include $(TOP)/src/build.mk
 
 # Packaging for deb, osx, ...
-include $(TOP)/mk/packaging.mk
+include $(TOP)/packaging/build.mk
 
 # Rules for tools like valgrind and code coverage report
 include $(TOP)/mk/tools.mk
