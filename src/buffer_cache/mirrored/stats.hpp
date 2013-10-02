@@ -41,6 +41,9 @@ struct mc_cache_stats_t {
     perfmon_sampler_t
         pm_flushes_blocks,
         pm_flushes_blocks_dirty;
+    
+    perfmon_duration_sampler_t
+        pm_throttling_waiting;
 
     perfmon_counter_t
         pm_n_blocks_in_memory,

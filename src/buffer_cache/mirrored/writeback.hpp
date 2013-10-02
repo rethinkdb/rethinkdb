@@ -75,10 +75,15 @@ public:
         void mark_block_id_deleted();
 
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
+        
+        scoped_ptr_t<adjustable_semaphore_acq_t> extract_throttling_acq() {
+            return std::move(throttling_acq);
+        }
 
     private:
         bool dirty;
         bool recency_dirty;
+        scoped_ptr_t<adjustable_semaphore_acq_t> throttling_acq;
 
     private:
         DISABLE_COPYING(local_buf_t);
@@ -110,7 +115,6 @@ private:
     bool writeback_in_progress;
     unsigned int active_flushes;
 
-    /* Use `adjustable_semaphore_t` instead of `semaphore_t` so we can get `force_lock()`. */
     adjustable_semaphore_t dirty_block_semaphore;
 
     mc_cache_t *cache;
