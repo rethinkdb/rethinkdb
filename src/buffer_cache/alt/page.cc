@@ -559,6 +559,16 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         snapshotted_dirtied_pages_.push_back(std::make_pair(block_id,
                                                             std::move(local)));
     }
+
+    start_flush_if_we_should();
+}
+
+void page_txn_t::start_flush_if_we_should() {
+    if (live_acqs_.empty() && preceder_or_null_ == NULL) {
+        // Start the flush!
+        // (... if there's things to be flushed.)
+        // RSI: Start the flush.
+    }
 }
 
 

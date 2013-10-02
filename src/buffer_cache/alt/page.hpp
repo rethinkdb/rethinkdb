@@ -276,10 +276,13 @@ private:
     void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
 
+    void start_flush_if_we_should();
+
     page_cache_t *page_cache_;
 
     // The txn that must be committed before or at the same time as this txn.  For
-    // now, there's only one, because we snapshot all blocks that we write.
+    // now, there's at most one, because we snapshot all blocks that we write.  This
+    // gets set to NULL when the preceder ceases to exist.
     page_txn_t *preceder_or_null_;
 
     // txn's that we precede.
@@ -291,11 +294,15 @@ private:
     std::vector<current_page_acq_t *> live_acqs_;
 
     // Saved pages (by block id).
-    // This is a segmented_vector_t because page_ptr_t is non-copyable.
     segmented_vector_t<std::pair<block_id_t, page_ptr_t>, 8> snapshotted_dirtied_pages_;
+
+    // RSP: Performance?
+    std::vector<std::pair<block_id_t, repli_timestamp_t> > touched_pages_;
 
     // RSI: Dead acqs need to get converted into snapshot buffers or block ids or
     // something.
+
+    cond_t flush_complete_cond_;
 
     DISABLE_COPYING(page_txn_t);
 };
