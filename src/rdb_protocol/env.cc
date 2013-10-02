@@ -106,6 +106,10 @@ void env_t::start_new_task(const std::string &description) {
     }
 }
 
+explain_bool_t env_t::explain() {
+    return task ? explain_bool_t::EXPLAIN : explain_bool_t::DONT_EXPLAIN;
+}
+
 cluster_access_t::cluster_access_t(
         base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
 

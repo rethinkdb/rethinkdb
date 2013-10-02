@@ -50,7 +50,7 @@ enum class explain_bool_t {
     DONT_EXPLAIN
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        explain_bool_t, int8_t, 
+        explain_bool_t, int8_t,
         explain_bool_t::EXPLAIN, explain_bool_t::DONT_EXPLAIN);
 
 enum class point_write_result_t {
@@ -453,8 +453,9 @@ struct rdb_protocol_t {
             THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
-        explicit read_t(const boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> &r)
-            : read(r) { }
+        read_t(const boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> &r,
+               explain_bool_t _explain)
+            : read(r), explain(_explain) { }
 
         // Only use snapshotting if we're doing a range get.
         bool use_snapshot() const { return boost::get<rget_read_t>(&read); }
@@ -637,20 +638,24 @@ struct rdb_protocol_t {
         durability_requirement_t durability() const { return durability_requirement; }
 
         write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const point_replace_t &r, durability_requirement_t durability)
-            : write(r), durability_requirement(durability) { }
-        explicit write_t(const batched_replaces_t &br, durability_requirement_t durability)
-            : write(br), durability_requirement(durability) { }
-        explicit write_t(const point_write_t &w,
-                         durability_requirement_t durability)
-            : write(w), durability_requirement(durability) { }
-        explicit write_t(const point_delete_t &d,
-                         durability_requirement_t durability)
-            : write(d), durability_requirement(durability) { }
-        explicit write_t(const sindex_create_t &c)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const sindex_drop_t &c)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
+        write_t(const point_replace_t &r, durability_requirement_t durability,
+                explain_bool_t _explain)
+            : write(r), durability_requirement(durability), explain(_explain) { }
+        write_t(const batched_replaces_t &br, durability_requirement_t durability,
+                explain_bool_t _explain)
+            : write(br), durability_requirement(durability), explain(_explain) { }
+        write_t(const point_write_t &w, durability_requirement_t durability,
+                explain_bool_t _explain)
+            : write(w), durability_requirement(durability), explain(_explain) { }
+        write_t(const point_delete_t &d, durability_requirement_t durability,
+                explain_bool_t _explain)
+            : write(d), durability_requirement(durability), explain(_explain) { }
+        write_t(const sindex_create_t &c, explain_bool_t _explain)
+            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+              explain(_explain) { }
+        write_t(const sindex_drop_t &c, explain_bool_t _explain)
+            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+              explain(_explain) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

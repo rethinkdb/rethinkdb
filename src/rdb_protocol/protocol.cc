@@ -418,14 +418,14 @@ region_t read_t::get_region() const THROWS_NOTHING {
 
 struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
-                                   read_t *_read_out)
-        : region(_region), read_out(_read_out) {}
+                                   explain_bool_t _explain, read_t *_read_out)
+        : region(_region), explain(_explain), read_out(_read_out) { }
 
     // The key was somehow already extracted from the arg.
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
         if (region_contains_key(*region, key)) {
-            *read_out = read_t(arg);
+            *read_out = read_t(arg, explain);
             return true;
         } else {
             return false;
@@ -443,7 +443,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *read_out = read_t(tmp);
+            *read_out = read_t(tmp, explain);
             return true;
         } else {
             return false;
@@ -463,12 +463,13 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     const hash_region_t<key_range_t> *region;
+    explain_bool_t explain;
     read_t *read_out;
 };
 
 bool read_t::shard(const hash_region_t<key_range_t> &region,
                    read_t *read_out) const THROWS_NOTHING {
-    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, read_out), read);
+    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, explain, read_out), read);
 }
 
 /* read_t::unshard implementation */
@@ -544,8 +545,9 @@ public:
         rget_read_response_t *rg_response
             = boost::get<rget_read_response_t>(&response_out->response);
         rg_response->truncated = false;
-        rg_response->key_range = read_t(rg).get_region().inner;
-        rg_response->last_considered_key = read_t(rg).get_region().inner.left;
+        rg_response->key_range = read_t(rg, explain_bool_t::DONT_EXPLAIN).get_region().inner;
+        rg_response->last_considered_key =
+            read_t(rg, explain_bool_t::DONT_EXPLAIN).get_region().inner.left;
 
         /* First check to see if any of the responses we're unsharding threw. */
         for (size_t i = 0; i < count; ++i) {
@@ -894,15 +896,15 @@ region_t write_t::get_region() const THROWS_NOTHING {
 struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     rdb_w_shard_visitor_t(const region_t *_region,
                           durability_requirement_t _durability_requirement,
-                          write_t *_write_out)
+                          explain_bool_t _explain, write_t *_write_out)
         : region(_region),
           durability_requirement(_durability_requirement),
-          write_out(_write_out) {}
+          explain(_explain), write_out(_write_out) {}
 
     template <class T>
     bool keyed_write(const T &arg) const {
         if (region_contains_key(*region, arg.key)) {
-            *write_out = write_t(arg, durability_requirement);
+            *write_out = write_t(arg, durability_requirement, explain);
             return true;
         } else {
             return false;
@@ -923,7 +925,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
 
         if (!sharded_replaces.empty()) {
-            *write_out = write_t(batched_replaces_t(), durability_requirement);
+            *write_out = write_t(batched_replaces_t(), durability_requirement, explain);
             batched_replaces_t *batched = boost::get<batched_replaces_t>(&write_out->write);
             batched->point_replaces.swap(sharded_replaces);
             return true;
@@ -947,7 +949,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp);
+            *write_out = write_t(tmp, explain);
             return true;
         } else {
             return false;
@@ -964,12 +966,13 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
 
     const region_t *region;
     durability_requirement_t durability_requirement;
+    explain_bool_t explain;
     write_t *write_out;
 };
 
 bool write_t::shard(const region_t &region,
                     write_t *write_out) const THROWS_NOTHING {
-    const rdb_w_shard_visitor_t v(&region, durability_requirement, write_out);
+    const rdb_w_shard_visitor_t v(&region, durability_requirement, explain, write_out);
     return boost::apply_visitor(v, write);
 }
 

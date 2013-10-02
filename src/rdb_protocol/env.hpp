@@ -157,6 +157,8 @@ public:
 
     void start_new_task(const std::string &description);
 
+    explain_bool_t explain();
+
 private:
     js_runner_t js_runner;
 
