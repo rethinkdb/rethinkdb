@@ -1444,7 +1444,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sync_t &) {
         response->response = sync_response_t();
 
-        /* TODO (daniel): Comment what we do here
+        /* With our current cache, we can ensure that all previous
+         * write transactions are persisted simply by following them
+         * up with another transaction with hard durability.
          */
         guarantee(txn->get_durability() == WRITE_DURABILITY_HARD);
         
