@@ -1,5 +1,7 @@
 #include "buffer_cache/alt/page.hpp"
 
+#include <algorithm>
+
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "serializer/serializer.hpp"
@@ -528,39 +530,35 @@ void page_txn_t::add_acquirer(current_page_acq_t *acq) {
 // RSI: Make sure pulse_pulsables handles declare_snapshotted situations properly.
 void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
     // This is called by acq's destructor.
-    for (auto it = live_acqs_.begin(); it != live_acqs_.end(); ++it) {
-        if (*it == acq) {
-            live_acqs_.erase(it);
-            if (acq->dirtied_page()) {
-                // We know we hold an exclusive lock.
-                rassert(acq->access_ == alt_access_t::write);
-                rassert(acq->write_cond_.is_pulsed());
-                // It's not snapshotted because you can't snapshot write acqs.  (We
-                // rely on this fact solely because we need to grab the block_id_t
-                // and current_page_acq_t currently doesn't know it.)
-                rassert(acq->current_page_ != NULL);
+    auto it = std::find(live_acqs_.begin(), live_acqs_.end(), acq);
+    rassert(it != live_acqs_.end());
 
-                // Get the block id while current_page_ is non-null.  (It'll become
-                // null once we're snapshotted.)
-                block_id_t block_id = acq->current_page_->block_id();
+    live_acqs_.erase(it);
 
-                // Declare readonly (so that we may declare acq snapshotted).
-                acq->declare_readonly();
-                acq->declare_snapshotted();
+    if (acq->dirtied_page()) {
+        // We know we hold an exclusive lock.
+        rassert(acq->access_ == alt_access_t::write);
+        rassert(acq->write_cond_.is_pulsed());
+        // It's not snapshotted because you can't snapshot write acqs.  (We
+        // rely on this fact solely because we need to grab the block_id_t
+        // and current_page_acq_t currently doesn't know it.)
+        rassert(acq->current_page_ != NULL);
 
-                // Since we snapshotted the lead acquirer, it gets detached.
-                rassert(acq->current_page_ == NULL);
-                // Steal the snapshotted page_ptr_t.
-                page_ptr_t local = std::move(acq->snapshotted_page_);
-                snapshotted_dirtied_pages_.push_back(std::make_pair(block_id,
-                                                                    std::move(local)));
-            }
+        // Get the block id while current_page_ is non-null.  (It'll become
+        // null once we're snapshotted.)
+        block_id_t block_id = acq->current_page_->block_id();
 
+        // Declare readonly (so that we may declare acq snapshotted).
+        acq->declare_readonly();
+        acq->declare_snapshotted();
 
-            return;
-        }
+        // Since we snapshotted the lead acquirer, it gets detached.
+        rassert(acq->current_page_ == NULL);
+        // Steal the snapshotted page_ptr_t.
+        page_ptr_t local = std::move(acq->snapshotted_page_);
+        snapshotted_dirtied_pages_.push_back(std::make_pair(block_id,
+                                                            std::move(local)));
     }
-    unreachable();
 }
 
 
