@@ -32,7 +32,7 @@ public:
         virtual void on_extent_sync() = 0;
         virtual ~sync_callback_t() {}
     };
-    void sync(sync_callback_t *cb);
+    MUST_USE bool sync(sync_callback_t *cb);
 
     extent_reference_t extent_ref;
     size_t amount_filled;

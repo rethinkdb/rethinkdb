@@ -224,7 +224,14 @@ public:
     {
         structures_unsynced = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-            owner->disk_structures[i]->sync(io_account, this);
+            bool shard_done = owner->disk_structures[i]->sync(io_account, this);
+            if (shard_done) {
+                structures_unsynced--;
+            }
+        }
+        
+        if (structures_unsynced == 0) {
+            done = true;
         }
     }
 
@@ -298,7 +305,9 @@ public:
 
         /* Sync the new LBA */
 
-        owner->disk_structures[i]->sync(io_account, this);
+        if (owner->disk_structures[i]->sync(io_account, this)) {
+            on_lba_sync();
+        }
     }
 
     void on_lba_sync() {
