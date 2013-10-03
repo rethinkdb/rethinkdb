@@ -101,6 +101,7 @@ private:
     
     template<class T>
     counted_t<const datum_t> split_replace_batches(
+        env_t *env,
         const std::function<counted_t<const datum_t>(std::vector<T> &&, durability_requirement_t)> &sub_batch_visitor,
         std::vector<T> &&whole_batch,
         durability_requirement_t original_durability_requirement);
