@@ -10,8 +10,19 @@ PYTHON_PB_FILE=$(PYTHON_SRC)/$(PROTO_BASE)_pb2.py
 CPP_PB_FILE=$(PBCPP_SRC)/$(PROTO_BASE).pb.cc
 PBCPP=rethinkdb_pbcpp.so
 PBCPP_BUILT=./build/lib.linux-x86_64-2.7/rethinkdb_pbcpp.so
+PYTHON_DOCS=$(PYTHON_SRC)/docs.py
 
-all: $(PYTHON_PB_FILE) $(PBCPP)
+DOCS_YAML_DIR := ../../docs/rql/src
+DOCS_YAML_FILES := $(shell find $(DOCS_YAML_DIR) -name '*.yaml')
+
+
+all: $(PYTHON_PB_FILE) $(PBCPP) $(PYTHON_DOCS)
+
+../../build/docs/reql_docs.json: $(DOCS_YAML_FILES)
+	$(MAKE) -C ../../ build/docs/reql_docs.json
+
+$(PYTHON_DOCS): ../../build/docs/reql_docs.json
+	python gendocs.py > $@
 
 $(PYTHON_PB_FILE): $(PROTO_FILE)
 	$(PROTOC) --python_out=$(PYTHON_SRC) -I$(PROTO_FILE_DIR) $(PROTO_FILE)
@@ -29,6 +40,7 @@ clean:
 	rm -f $(PYTHON_PB_FILE)
 	rm -f $(CPP_PB_FILE)
 	rm -f $(PBCPP)
+	rm -f $(PYTHON_DOCS)
 	rm -rf ./build
 	rm -rf ./dist
 	rm -rf ./rethinkdb.egg-info
@@ -36,7 +48,7 @@ clean:
 
 PY_PKG_DIR=$(RETHINKDB_HOME)/build/packages/python
 
-sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE)
+sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE) $(PYTHON_DOCS)
 	mkdir -p $(PY_PKG_DIR)
 	cp setup.py $(PY_PKG_DIR)
 	cp MANIFEST.in $(PY_PKG_DIR)
@@ -45,7 +57,7 @@ sdist: $(PYTHON_PB_FILE) $(CPP_PB_FILE)
 	cd $(PY_PKG_DIR) && python setup.py sdist
 
 publish: sdist
-	cd $(PY_PKG_DIR) && python setup.py sdist register upload
+	cd $(PY_PKG_DIR) && python setup.py register upload
 
 install: sdist
 	cd $(PY_PKG_DIR) && python setup.py install
