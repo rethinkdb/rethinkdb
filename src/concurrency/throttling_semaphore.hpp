@@ -103,9 +103,13 @@ public:
             acquiree->co_lock(count);
     }
 
+<<<<<<< HEAD
     throttling_semaphore_acq_t(throttling_semaphore_acq_t &&movee) :
                 acquiree(movee.acquiree),
                 count(movee.count) {
+=======
+    throttling_semaphore_acq_t(throttling_semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
+>>>>>>> parent of ecf7a5e... Reverted throttling to adjustable_semaphore_t while maintaining the remaining fixes.
         movee.acquiree = NULL;
     }
 
