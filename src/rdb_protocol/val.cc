@@ -138,7 +138,7 @@ counted_t<const datum_t> table_t::split_replace_batches(
     }
 
     // Merge results
-    counted_t<const datum_t> stats = datum_ptr_t(datum_t::R_OBJECT).to_counted();
+    counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
     for (size_t i = 0; i < sub_stats.size(); ++i) {
         stats = stats->merge(sub_stats[i], stats_merge);
     }
