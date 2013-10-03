@@ -120,7 +120,9 @@ public:
         }
     }
 
-    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
+    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) :
+                acquiree(movee.acquiree),
+                count(movee.count) {
         movee.acquiree = NULL;
     }
 
@@ -132,6 +134,7 @@ public:
 
 private:
     adjustable_semaphore_t *acquiree;
+    int count;
     DISABLE_COPYING(adjustable_semaphore_acq_t);
 };
 
