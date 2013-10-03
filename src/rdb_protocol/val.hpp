@@ -106,6 +106,9 @@ private:
         bool upsert,
         durability_requirement_t durability_requirement);
 
+    MUST_USE bool sync_depending_on_durability(env_t *env,
+                durability_requirement_t durability_requirement);
+
     bool use_outdated;
     std::string pkey;
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
