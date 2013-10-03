@@ -22,7 +22,8 @@ namespace explain {
 class task_t {
 public:
     task_t();
-    task_t(const std::string &description);
+    explicit task_t(const std::string &description);
+    task_t(task_t &&other);
     ~task_t();
     void init(const std::string &description);
     bool is_initted();
@@ -47,11 +48,12 @@ public:
     enum state_t {UNINITIALIZED, RUNNING, FINISHED};
 private:
     state_t state_;
-
     std::string description_;
     ticks_t start_time_, ticks_;
-    std::vector<task_t *> parallel_tasks;
-    task_t *next_task;
+    std::vector<task_t *> parallel_tasks_;
+    task_t *next_task_;
+
+    DISABLE_COPYING(task_t);
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(

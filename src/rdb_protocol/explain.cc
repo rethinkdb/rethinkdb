@@ -6,19 +6,27 @@
 namespace explain {
 
 task_t::task_t()
-    : state_(UNINITIALIZED), next_task(NULL) { }
+    : state_(UNINITIALIZED), next_task_(NULL) { }
 
 task_t::task_t(const std::string &description)
-    : next_task(NULL)
+    : next_task_(NULL)
 {
     init(description);
 }
 
+task_t::task_t(task_t &&other)
+    : state_(other.state_), description_(other.description_),
+      start_time_(other.start_time_), ticks_(other.ticks_),
+      parallel_tasks_(std::move(other.parallel_tasks_)), next_task_(other.next_task_)
+{
+    other.next_task_ = NULL;
+}
+
 task_t::~task_t() {
-    for (auto it = parallel_tasks.begin(); it != parallel_tasks.end(); ++it) {
+    for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
         delete *it;
     }
-    delete next_task;
+    delete next_task_;
 }
 
 void task_t::init(const std::string &description) {
@@ -32,30 +40,30 @@ bool task_t::is_initted() {
 }
 
 task_t *task_t::new_task(const std::string &description) {
-    guarantee(next_task == NULL);
-    guarantee(parallel_tasks.empty(), "If a task has had parallel tasks created"
+    guarantee(next_task_ == NULL);
+    guarantee(parallel_tasks_.empty(), "If a task has had parallel tasks created"
             " then you need to call finish_parallel_tasks instead of new_task.");
     finish();
-    next_task = new task_t(description);
-    return next_task;
+    next_task_ = new task_t(description);
+    return next_task_;
 }
 
 task_t *task_t::new_parallel_task(const std::string &description) {
     finish();
-    parallel_tasks.push_back(new task_t(description));
-    return parallel_tasks.back();
+    parallel_tasks_.push_back(new task_t(description));
+    return parallel_tasks_.back();
 }
 
 task_t *task_t::finish_parallel_tasks(
         const std::vector<task_t *> &tasks,
         const std::string &description) {
     for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-        guarantee((*it)->next_task == NULL);
+        guarantee((*it)->next_task_ == NULL);
         (*it)->finish();
     }
 
-    next_task = new task_t(description);
-    return next_task;
+    next_task_ = new task_t(description);
+    return next_task_;
 }
 
 void task_t::finish() {
@@ -75,16 +83,16 @@ void task_t::as_datum_helper(
         std::vector<counted_t<const ql::datum_t> > *parent) {
     parent->push_back(get_atom());
 
-    if (!parallel_tasks.empty()) {
+    if (!parallel_tasks_.empty()) {
         std::vector<counted_t<const ql::datum_t> > datum_parallel_tasks;
-        for (auto it = parallel_tasks.begin(); it != parallel_tasks.end(); ++it) {
+        for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
             datum_parallel_tasks.push_back((*it)->as_datum());
         }
         parent->push_back(make_counted<const ql::datum_t>(std::move(datum_parallel_tasks)));
     }
 
-    if (next_task != NULL) {
-        next_task->as_datum_helper(parent);
+    if (next_task_ != NULL) {
+        next_task_->as_datum_helper(parent);
     }
 }
 
@@ -111,16 +119,16 @@ void task_t::rdb_serialize(write_message_t &msg) const {
     msg << state_ << description_ << start_time_ << ticks_;
 
     /* serialize the parallel tasks if the exist */
-    msg << parallel_tasks.size();
+    msg << parallel_tasks_.size();
 
-    for (auto it = parallel_tasks.begin(); it != parallel_tasks.end(); ++it) {
+    for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
         msg << **it;
     }
 
     /* serialize the next task */
-    if (next_task) {
+    if (next_task_) {
         msg << has_next_bool_t::HAS_NEXT;
-        msg << *next_task;
+        msg << *next_task_;
     } else {
         msg << has_next_bool_t::NO_NEXT;
     }
@@ -142,23 +150,23 @@ MUST_USE archive_result_t task_t::rdb_deserialize(read_stream_t *s) {
     RETURN_IF_NOT_SUCCESS(deserialize(s, &ticks_));
     size_t array_size;
     RETURN_IF_NOT_SUCCESS(deserialize(s, &array_size));
-    parallel_tasks.resize(array_size, NULL);
+    parallel_tasks_.resize(array_size, NULL);
 
     /* deserialize the parallel_tasks */
-    for (auto it = parallel_tasks.begin(); it != parallel_tasks.end(); ++it) {
+    for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
         *it = new task_t();
         RETURN_IF_NOT_SUCCESS(deserialize(s, *it));
     }
 
-    /* deserialize the next_task */
+    /* deserialize the next_task_ */
     has_next_bool_t has_next;
     RETURN_IF_NOT_SUCCESS(deserialize(s, &has_next));
 
     if (has_next == has_next_bool_t::HAS_NEXT) {
-        next_task = new task_t;
-        RETURN_IF_NOT_SUCCESS(deserialize(s, next_task));
+        next_task_ = new task_t;
+        RETURN_IF_NOT_SUCCESS(deserialize(s, next_task_));
     } else {
-        next_task = NULL;
+        next_task_ = NULL;
     }
 
     return ARCHIVE_SUCCESS;
