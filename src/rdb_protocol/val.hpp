@@ -72,7 +72,7 @@ public:
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
     counted_t<const datum_t> sindex_list(env_t *env);
     
-    MUST_USE bool sync(env_t *env);
+    MUST_USE bool sync(env_t *env, const rcheckable_t *parent);
 
     counted_t<const db_t> db;
     const std::string name;
@@ -112,6 +112,9 @@ private:
         const std::vector<counted_t<const datum_t> > &insert_datums,
         bool upsert,
         durability_requirement_t durability_requirement);
+
+    MUST_USE bool sync_depending_on_durability(env_t *env,
+                durability_requirement_t durability_requirement);
 
     bool use_outdated;
     std::string pkey;

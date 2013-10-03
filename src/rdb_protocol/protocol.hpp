@@ -668,8 +668,14 @@ struct rdb_protocol_t {
             : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
         explicit write_t(const sindex_drop_t &c)
             : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const sync_t &c)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_HARD) { }
+        // Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
+        // not have the desired effect (of writing unsaved data to disk).
+        // However there are cases where we use sync internally (such as when
+        // splitting up batched replaces/inserts) and want it to only have an
+        // effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard durability.
+        explicit write_t(const sync_t &c,
+                         durability_requirement_t durability)
+            : write(c), durability_requirement(durability) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

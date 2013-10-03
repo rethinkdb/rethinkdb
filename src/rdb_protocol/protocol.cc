@@ -997,7 +997,11 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const sync_t &s) const {
-        return rangey_write(s);
+        // Sync always applied to the whole region.
+        sync_t tmp = s;
+        tmp.region = *region;
+        *write_out = write_t(tmp, durability_requirement);
+        return true;
     }
 
     const region_t *region;
@@ -1448,7 +1452,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
          * write transactions are persisted simply by following them
          * up with another transaction with hard durability.
          */
-        guarantee(txn->get_durability() == WRITE_DURABILITY_HARD);
         
         token_pair->sindex_write_token.reset();
     }
