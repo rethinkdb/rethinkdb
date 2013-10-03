@@ -129,13 +129,11 @@ counted_t<const datum_t> table_t::split_replace_batches(
     }
 
     // Sync the writes if necessary
-    // TODO (daniel): This assumption does not hold. We can have a default durability
-    //  requirement, which is a pain in this case. Guess we might need a sync_maybe operation.
-    //  Stupid.
-    rassert(original_durability_requirement == DURABILITY_REQUIREMENT_HARD
-            || original_durability_requirement == DURABILITY_REQUIREMENT_SOFT);
-    if (original_durability_requirement == DURABILITY_REQUIREMENT_HARD) {
-        bool success = sync(env);
+    // We do not really need the if below. It is just a small optimization to save us
+    // from having to issue a no-op sync if we already know that the durability
+    // is soft.
+    if (original_durability_requirement != DURABILITY_REQUIREMENT_SOFT) {
+        bool success = sync_depending_on_durability(env, original_durability_requirement);
         r_sanity_check(success);
     }
 
