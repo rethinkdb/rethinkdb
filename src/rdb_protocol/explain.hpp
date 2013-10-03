@@ -3,15 +3,11 @@
 #define RDB_PROTOCOL_EXPLAIN_HPP_
 
 #include <vector>
-#include <memory>
-
-#include "errors.hpp"
-#include <boost/optional.hpp>
-#include <boost/variant.hpp>
 
 #include "containers/counted.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
+#include "containers/scoped.hpp"
 
 namespace ql {
 class datum_t;
@@ -23,8 +19,8 @@ class task_t {
 public:
     task_t();
     explicit task_t(const std::string &description);
-    task_t(task_t &&other);
-    ~task_t();
+    task_t(const task_t &other);
+    task_t &operator=(const task_t &other);
     void init(const std::string &description);
     bool is_initted();
     task_t *new_task(const std::string &description);
@@ -50,10 +46,8 @@ private:
     state_t state_;
     std::string description_;
     ticks_t start_time_, ticks_;
-    std::vector<task_t *> parallel_tasks_;
-    task_t *next_task_;
-
-    DISABLE_COPYING(task_t);
+    std::vector<scoped_ptr_t<task_t> > parallel_tasks_;
+    scoped_ptr_t<task_t> next_task_;
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(

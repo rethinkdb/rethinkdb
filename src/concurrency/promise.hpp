@@ -20,12 +20,6 @@ public:
         cond.pulse();
     }
 
-    void pulse_in_place(val_t &&v) {
-        assert_thread();
-        value.create(v);
-        cond.pulse();
-    }
-
     const val_t &wait() const {
         assert_thread();
         cond.wait_lazily_unordered();
