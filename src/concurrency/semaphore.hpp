@@ -128,7 +128,7 @@ public:
 
     ~adjustable_semaphore_acq_t() {
         if (acquiree) {
-            acquiree->unlock();
+            acquiree->unlock(count);
         }
     }
 
