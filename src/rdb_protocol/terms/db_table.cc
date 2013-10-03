@@ -412,7 +412,7 @@ private:
     
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> t = arg(env, 0)->as_table();
-        bool success = t->sync(env->env);
+        bool success = t->sync(env->env, this);
         r_sanity_check(success);
         
         return "synced";

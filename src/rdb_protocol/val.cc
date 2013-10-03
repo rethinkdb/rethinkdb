@@ -228,7 +228,10 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     }
 }
 
-MUST_USE bool table_t::sync(env_t *env) {
+MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
+    rcheck_target(parent, base_exc_t::GENERIC, !bounds && !sorting,
+            "sync can only be applied directly to a table.");
+    
     // In order to get the guarantees that we expect from a user-facing command,
     // we always have to use hard durability in combination with sync.
     return sync_depending_on_durability(env, DURABILITY_REQUIREMENT_HARD);
