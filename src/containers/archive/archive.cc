@@ -83,7 +83,8 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
 }
 
 write_message_t &operator<<(write_message_t &msg, const in_addr &addr) {
-    return msg << addr.s_addr;
+    msg.append(&addr.s_addr, sizeof(addr.s_addr));
+    return msg;
 }
 
 MUST_USE archive_result_t deserialize(read_stream_t *s, in_addr *addr) {

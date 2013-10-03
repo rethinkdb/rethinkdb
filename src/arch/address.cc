@@ -214,9 +214,9 @@ std::string ip_address_t::to_string() const {
 bool ip_address_t::operator == (const ip_address_t &x) const {
     if (addr_family == x.addr_family) {
         if (is_ipv4()) {
-            return memcmp(&ipv4_addr, &x.ipv4_addr, sizeof(ipv4_addr)) == 0;
+            return ipv4_addr.s_addr == x.ipv4_addr.s_addr;
         } else if (is_ipv6()) {
-            return memcmp(&ipv6_addr, &x.ipv6_addr, sizeof(ipv6_addr)) == 0;
+            return IN6_ARE_ADDR_EQUAL(&ipv6_addr, &x.ipv6_addr);
         }
         return true;
     }
@@ -226,7 +226,7 @@ bool ip_address_t::operator == (const ip_address_t &x) const {
 bool ip_address_t::operator < (const ip_address_t &x) const {
     if (addr_family == x.addr_family) {
         if (is_ipv4()) {
-            return memcmp(&ipv4_addr, &x.ipv4_addr, sizeof(ipv4_addr)) < 0;
+            return ipv4_addr.s_addr < x.ipv4_addr.s_addr;
         } else if (is_ipv6()) {
             return memcmp(&ipv6_addr, &x.ipv6_addr, sizeof(ipv6_addr)) < 0;
         } else {
