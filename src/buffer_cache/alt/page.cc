@@ -50,6 +50,11 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     current_page_t *ret = new current_page_t(serializer_->get_block_size(),
                                              serializer_->malloc(),
                                              this);
+
+    // RSI: Is this really guaranteed to be NULL?  (RSI: Implement deletion.)
+    rassert(current_pages_[block_id] == NULL);
+    current_pages_[block_id] = ret;
+
     *block_id_out = block_id;
     return ret;
 }
@@ -89,11 +94,6 @@ void current_page_acq_t::declare_snapshotted() {
         rassert(current_page_ != NULL);
         current_page_->pulse_pulsables(this);
     }
-
-    // RSI: What?  We might be far down the chain when calling this function.  This
-    // code is wrong, right?
-    rassert(current_page_ == NULL);
-    rassert(snapshotted_page_.has());
 }
 
 signal_t *current_page_acq_t::read_acq_signal() {
@@ -130,7 +130,9 @@ bool current_page_acq_t::dirtied_page() const {
 
 current_page_t::current_page_t(block_id_t block_id, page_cache_t *page_cache)
     : block_id_(block_id),
-      page_cache_(page_cache) {
+      page_cache_(page_cache),
+      last_modifier_(NULL) {
+    // RSI: Is the last modifier null when constructing a page for a new block?
 }
 
 current_page_t::current_page_t(block_size_t block_size,
@@ -138,11 +140,14 @@ current_page_t::current_page_t(block_size_t block_size,
                                page_cache_t *page_cache)
     : block_id_(NULL_BLOCK_ID),
       page_cache_(page_cache),
-      page_(new page_t(block_size, std::move(buf))) {
+      page_(new page_t(block_size, std::move(buf))),
+      last_modifier_(NULL) {
+    // RSI: Is the last modifier null when constructing a page for a new block?
 }
 
 current_page_t::~current_page_t() {
     rassert(acquirers_.empty());
+    rassert(last_modifier_ == NULL);
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
@@ -169,7 +174,8 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     }
 
     // Second, avoid re-pulsing already-pulsed chains.
-    if (acq->access_ == alt_access_t::read && acq->read_cond_.is_pulsed()) {
+    if (acq->access_ == alt_access_t::read && acq->read_cond_.is_pulsed()
+        && !acq->declared_snapshotted_) {
         return;
     }
 
@@ -218,6 +224,13 @@ page_t *current_page_t::the_page_for_read() {
 page_t *current_page_t::the_page_for_write() {
     convert_from_serializer_if_necessary();
     return page_.get_page_for_write(page_cache_);
+}
+
+page_txn_t *current_page_t::change_last_modifier(page_txn_t *new_last_modifier) {
+    rassert(new_last_modifier != NULL);
+    page_txn_t *ret = last_modifier_;
+    last_modifier_ = new_last_modifier;
+    return ret;
 }
 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
@@ -282,8 +295,6 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             rassert(copyee->buf_.has());
             scoped_malloc_t<ser_buffer_t> buf = page_cache->serializer_->malloc();
 
-            // RSI: Are we sure we want to copy the whole ser buffer, and not the
-            // cache's part?  Is it _necessary_?  If unnecessary, let's not do it.
             memcpy(buf.get(), copyee->buf_.get(), buf_size.ser_value());
 
             page->buf_size_ = buf_size;
@@ -310,8 +321,6 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     counted_t<standard_block_token_t> block_token;
     {
         serializer_t *const serializer = page_cache->serializer_;
-        // RSI: It would be nice if we _always_ yielded here (not just when the
-        // thread's different.  spawn_now_dangerously is dangerous, after all.
         on_thread_t th(serializer->home_thread());
         block_token = serializer->index_read(block_id);
         // RSI: Figure out if block_token can be empty (if a page is deleted?).
@@ -511,7 +520,7 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
 }
 
 page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_null)
-    : page_cache_(page_cache) {
+    : page_cache_(page_cache), flush_started_(false) {
     if (preceding_txn_or_null != NULL) {
         add_preceder(preceding_txn_or_null);
     }
@@ -529,6 +538,7 @@ void page_txn_t::add_preceder(page_txn_t *preceder) {
 }
 
 page_txn_t::~page_txn_t() {
+    // RSI: Make last_modified_pages_ pointees last_modifier_ field be NULL.
     // RSI: Implement.
     // Tell the subsequent transactions that you're flushing?
 }
@@ -537,18 +547,21 @@ void page_txn_t::add_acquirer(current_page_acq_t *acq) {
     live_acqs_.push_back(acq);
 }
 
-// RSI: Make sure pulse_pulsables handles declare_snapshotted situations properly.
 void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
     // This is called by acq's destructor.
-    auto it = std::find(live_acqs_.begin(), live_acqs_.end(), acq);
-    rassert(it != live_acqs_.end());
+    {
+        auto it = std::find(live_acqs_.begin(), live_acqs_.end(), acq);
+        rassert(it != live_acqs_.end());
+        live_acqs_.erase(it);
+    }
 
-    live_acqs_.erase(it);
+    if (!acq->read_cond_.is_pulsed()) {
+        // If we delete the acquirer before we got any kind of access to the block,
+        // then we can't have dirtied the page or touched the page.
+        return;
+    }
 
-    if (acq->dirtied_page()) {
-        // We know we hold an exclusive lock.
-        rassert(acq->access_ == alt_access_t::write);
-        rassert(acq->write_cond_.is_pulsed());
+    if (acq->access_ == alt_access_t::write) {
         // It's not snapshotted because you can't snapshot write acqs.  (We
         // rely on this fact solely because we need to grab the block_id_t
         // and current_page_acq_t currently doesn't know it.)
@@ -556,18 +569,50 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
 
         // Get the block id while current_page_ is non-null.  (It'll become
         // null once we're snapshotted.)
-        block_id_t block_id = acq->current_page_->block_id();
+        const block_id_t block_id = acq->current_page_->block_id();
 
-        // Declare readonly (so that we may declare acq snapshotted).
-        acq->declare_readonly();
-        acq->declare_snapshotted();
+        touched_pages_.push_back(std::make_pair(block_id, repli_timestamp_t::invalid /* RSI: handle recency */));
 
-        // Since we snapshotted the lead acquirer, it gets detached.
-        rassert(acq->current_page_ == NULL);
-        // Steal the snapshotted page_ptr_t.
-        page_ptr_t local = std::move(acq->snapshotted_page_);
-        snapshotted_dirtied_pages_.push_back(std::make_pair(block_id,
-                                                            std::move(local)));
+        if (acq->dirtied_page()) {
+            // We know we hold an exclusive lock.
+            rassert(acq->write_cond_.is_pulsed());
+
+            // Set the last modifier while current_page_ is non-null (and while we're the
+            // exclusive holder).
+            {
+                page_txn_t *const previous_modifier
+                    = acq->current_page_->change_last_modifier(this);
+
+                // RSP: Performance (in the assertion).
+                rassert(pages_modified_last_.end()
+                        == std::find(pages_modified_last_.begin(),
+                                     pages_modified_last_.end(),
+                                     acq->current_page_));
+                pages_modified_last_.push_back(acq->current_page_);
+
+                if (previous_modifier != NULL) {
+                    auto it = std::find(previous_modifier->pages_modified_last_.begin(),
+                                        previous_modifier->pages_modified_last_.end(),
+                                        acq->current_page_);
+                    rassert(it != previous_modifier->pages_modified_last_.end());
+                    previous_modifier->pages_modified_last_.erase(it);
+
+                    add_preceder(previous_modifier);
+                }
+            }
+
+
+            // Declare readonly (so that we may declare acq snapshotted).
+            acq->declare_readonly();
+            acq->declare_snapshotted();
+
+            // Since we snapshotted the lead acquirer, it gets detached.
+            rassert(acq->current_page_ == NULL);
+            // Steal the snapshotted page_ptr_t.
+            page_ptr_t local = std::move(acq->snapshotted_page_);
+            snapshotted_dirtied_pages_.push_back(std::make_pair(block_id,
+                                                                std::move(local)));
+        }
     }
 }
 

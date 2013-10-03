@@ -144,14 +144,21 @@ private:
     // page_txn_t should not access our fields directly.
     friend class page_txn_t;
     block_id_t block_id() const { return block_id_; }
+    // Returns the previous last modifier (or NULL, if there's no active
+    // last-modifying previous txn).
+    page_txn_t *change_last_modifier(page_txn_t *new_last_modifier);
 
     // Our block id.
     block_id_t block_id_;
     // Either page_ is null or page_cache_ is null (except that page_cache_ is never
     // null).  block_id_ and page_cache_ can be used to construct (and load) the page
-    // when it's null.  RSP: This is a waste of memory.
+    // when it's null, unless marked_deleted_ is true, in which case page_ptr_t is
+    // null but can't be constructed by loading a block.  RSP: Suboptimal memory
+    // usage.
     page_cache_t *page_cache_;
     page_ptr_t page_;
+
+    page_txn_t *last_modifier_ = NULL;
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
@@ -291,6 +298,9 @@ private:
     // RSP: Performance?
     std::vector<page_txn_t *> subseqers_;
 
+    // Pages for which this page_txn_t is the last_modifier_ of that page.
+    std::vector<current_page_t *> pages_modified_last_;
+
     // acqs that are currently alive.
     // RSP: Performance?  remove_acquirer takes linear time.
     std::vector<current_page_acq_t *> live_acqs_;
@@ -304,7 +314,7 @@ private:
     // RSI: Dead acqs need to get converted into snapshot buffers or block ids or
     // something.
 
-    bool flush_started_ = false;  // RSI: compile
+    bool flush_started_;
     cond_t flush_complete_cond_;
 
     DISABLE_COPYING(page_txn_t);
