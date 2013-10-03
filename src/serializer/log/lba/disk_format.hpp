@@ -117,7 +117,7 @@ struct lba_metablock_mixin_t {
     
     lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
     int32_t inline_lba_entries_count;
-    // TODO (daniel): Do we need padding here?
+    int32_t padding;
 };
 
 
