@@ -403,6 +403,23 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
+class sync_term_t : public meta_write_op_t {
+public:
+    sync_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : meta_write_op_t(env, term, argspec_t(1)) { }
+
+private:
+    
+    virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> t = arg(env, 0)->as_table();
+        bool success = t->sync(env->env);
+        r_sanity_check(success);
+        
+        return "synced";
+    }
+    virtual const char *name() const { return "sync"; }
+};
+
 class table_term_t : public op_term_t {
 public:
     table_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -516,6 +533,10 @@ counted_t<term_t> make_table_drop_term(compile_env_t *env, const protob_t<const 
 
 counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<table_list_term_t>(env, term);
+}
+
+counted_t<term_t> make_sync_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sync_term_t>(env, term);
 }
 
 

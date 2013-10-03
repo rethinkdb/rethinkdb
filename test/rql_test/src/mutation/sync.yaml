@@ -1,0 +1,17 @@
+desc: Tests syncing tables
+tests:
+
+    # Set up our test tables
+    - cd: r.db('test').table_create('test1')
+      ot: ({'created':1})
+
+    - def: tbl = r.db('test').table('test1')
+
+    # This is the only way one can use sync at the moment
+    - cd: tbl.sync()
+      ot: ({'synced':1})
+
+    # clean up
+    - cd: r.db('test').table_drop('test1')
+      ot: "({'dropped':1})"
+
