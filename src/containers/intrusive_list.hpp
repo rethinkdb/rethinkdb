@@ -44,7 +44,7 @@ class intrusive_list_t {
 public:
     intrusive_list_t() : _head(NULL), _tail(NULL), _size(0) {}
     ~intrusive_list_t() {
-        //rassert(empty());
+        guarantee(empty());
     }
 
     bool empty() {

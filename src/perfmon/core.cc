@@ -37,8 +37,8 @@ public:
     }
 };
 
-perfmon_collection_t::perfmon_collection_t() {
-}
+perfmon_collection_t::perfmon_collection_t() { }
+perfmon_collection_t::~perfmon_collection_t() { }
 
 void *perfmon_collection_t::begin_stats() {
     stats_collection_context_t *ctx;
