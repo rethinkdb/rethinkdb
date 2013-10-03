@@ -1,5 +1,4 @@
 Source: VERSIONED_QUALIFIED_PACKAGE_NAME
-Standards-Version: 3.0
 Section: database
 Priority: optional
 Maintainer: RethinkDB <packaging@rethinkdb.com>
@@ -9,7 +8,7 @@ Homepage: http://www.rethinkdb.com
 Package: VERSIONED_QUALIFIED_PACKAGE_NAME
 Architecture: i386 amd64
 Pre-Depends: adduser (>= 3.40)
-Depends: DEB_DEPENDS, ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
 Provides: PACKAGE_NAME
