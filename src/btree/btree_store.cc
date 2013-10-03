@@ -130,7 +130,7 @@ void btree_store_t<protocol_t>::write(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-
+    
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now

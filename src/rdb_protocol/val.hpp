@@ -71,6 +71,8 @@ public:
         counted_t<func_t> index_func, sindex_multi_bool_t multi);
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
     counted_t<const datum_t> sindex_list(env_t *env);
+    
+    MUST_USE bool sync(env_t *env, const rcheckable_t *parent);
 
     counted_t<const db_t> db;
     const std::string name;
@@ -96,6 +98,13 @@ private:
     template<class T>
     counted_t<const datum_t> do_batched_write(
         env_t *env, T &&t, durability_requirement_t durability_requirement);
+    
+    template<class T>
+    counted_t<const datum_t> split_replace_batches(
+        env_t *env,
+        const std::function<counted_t<const datum_t>(std::vector<T> &&, durability_requirement_t)> &sub_batch_visitor,
+        std::vector<T> &&whole_batch,
+        durability_requirement_t original_durability_requirement);
 
     counted_t<const datum_t> batched_insert_with_keys(
         env_t *env,
@@ -103,6 +112,9 @@ private:
         const std::vector<counted_t<const datum_t> > &insert_datums,
         bool upsert,
         durability_requirement_t durability_requirement);
+
+    MUST_USE bool sync_depending_on_durability(env_t *env,
+                durability_requirement_t durability_requirement);
 
     bool use_outdated;
     std::string pkey;
