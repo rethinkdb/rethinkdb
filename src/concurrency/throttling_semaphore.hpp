@@ -81,12 +81,12 @@ public:
 
     void set_capacity(int new_capacity);
     int get_capacity() const { return capacity; }
-    
+
     virtual void on_ring(); // Called periodically by timer
 
 private:
     void on_waiters_changed(); // Should be called after a change to waiters
-    
+
     int64_t compute_target_delay() const; // The "heart" of throttling_semaphore_t.
 };
 
@@ -96,20 +96,16 @@ public:
     throttling_semaphore_acq_t(throttling_semaphore_t *_acquiree, int c = 1, bool use_the_force = false) :
                 acquiree(_acquiree),
                 count(c) {
-                    
+
         if (use_the_force)
             acquiree->force_lock(count);
         else
             acquiree->co_lock(count);
     }
 
-<<<<<<< HEAD
     throttling_semaphore_acq_t(throttling_semaphore_acq_t &&movee) :
                 acquiree(movee.acquiree),
                 count(movee.count) {
-=======
-    throttling_semaphore_acq_t(throttling_semaphore_acq_t &&movee) : acquiree(movee.acquiree) {
->>>>>>> parent of ecf7a5e... Reverted throttling to adjustable_semaphore_t while maintaining the remaining fixes.
         movee.acquiree = NULL;
     }
 
