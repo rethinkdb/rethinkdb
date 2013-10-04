@@ -378,7 +378,7 @@ void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
     int64_t microsec = (raw_sec * 1000000.0) - (sec * 1000000);
 
     // boost::posix_time::seconds doesn't like large numbers, and like any
-    // mature library, it reacts by silently overflowing somehwere and producing
+    // mature library, it reacts by silently overflowing somewhere and producing
     // an incorrect date if you give it a number that it doesn't like.
     int sign = sec < 0 ? -1 : 1;
     sec *= sign;
