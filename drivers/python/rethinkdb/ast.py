@@ -502,7 +502,7 @@ class RqlTzinfo(datetime.tzinfo):
         return self.delta
 
     def tzname(self, dt):
-        return offsetstr
+        return self.offsetstr
 
     def dst(self, dt):
         return datetime.timedelta(0)
@@ -590,7 +590,7 @@ class Datum(RqlQuery):
                     else:
                         raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
                 else:
-                    raise RqlDriverError("Unknown psudo-type %" % obj['$reql_type$'])
+                    raise RqlDriverError("Unknown psudo-type %s" % obj['$reql_type$'])
 
             return obj
         else:
@@ -895,10 +895,6 @@ class IndexesOf(RqlMethodQuery):
 class IsEmpty(RqlMethodQuery):
     tt = p.Term.IS_EMPTY
     st = 'is_empty'
-
-class IndexesOf(RqlMethodQuery):
-    tt = p.Term.INDEXES_OF
-    st = 'indexes_of'
 
 class GroupedMapReduce(RqlMethodQuery):
     tt = p.Term.GROUPED_MAP_REDUCE
