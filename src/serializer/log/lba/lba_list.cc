@@ -181,10 +181,17 @@ void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, exte
     //   This is not necessary, because the GC has already written them.
     //   It's probably not a big deal, but we do sometimes write a few redundant
     //   LBA entries due to this.
-    
+    // TODO (daniel): Also, if an entry which is still in the inline LBA has already
+    //   been deprecated by a more recent inlined entry, we are still going to write
+    //   the already deprecated entry to the LBA extent first. We could probably check
+    //   whether whether an entry still matches the in-memory LBA before we move
+    //   it to disc_structures.
+
+    // Note that the order is important here. The oldest inline entries have to be
+    // written first, because they might have been superseded by newer inline entries.
     for (int32_t i = 0; i < inline_lba_entries_count; ++i) {
         const lba_entry_t &e = inline_lba_entries[i];
-        
+
         /* Strangely enough, this works even with the GC. Here's the reasoning: If the GC is
         waiting for the disk structure lock, then sync() will never be called again on the
         current disk_structure, so it's meaningless but harmless to call add_entry(). However,
@@ -198,7 +205,7 @@ void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, exte
                 io_account,
                 txn);
     }
-    
+
     inline_lba_entries_count = 0;
 }
 
