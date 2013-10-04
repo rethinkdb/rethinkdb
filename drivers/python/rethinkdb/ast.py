@@ -496,7 +496,7 @@ class RqlTzinfo(datetime.tzinfo):
         return self.delta
 
     def tzname(self, dt):
-        return offsetstr
+        return self.offsetstr
 
     def dst(self, dt):
         return datetime.timedelta(0)
