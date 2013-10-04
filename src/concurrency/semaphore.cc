@@ -32,12 +32,12 @@ void semaphore_t::co_lock(int count) {
     coro_t::yield();
 }
 
-void semaphore_t::co_lock_interruptible(signal_t *interruptor) {
+void semaphore_t::co_lock_interruptible(signal_t *interruptor, int count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public cond_t {
         void on_semaphore_available() { pulse(); }
     } cb;
-    lock(&cb, 1);
+    lock(&cb, count);
 
     try {
         wait_interruptible(&cb, interruptor);
@@ -107,12 +107,12 @@ void adjustable_semaphore_t::co_lock(int count) {
     coro_t::yield();
 }
 
-void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor) {
+void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor, int count) {
     rassert(!in_callback);
     struct : public semaphore_available_callback_t, public cond_t {
         void on_semaphore_available() { pulse(); }
     } cb;
-    lock(&cb, 1);
+    lock(&cb, count);
 
     try {
         wait_interruptible(&cb, interruptor);
