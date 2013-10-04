@@ -100,14 +100,8 @@ void env_t::do_eval_callback() {
     }
 }
 
-void env_t::start_new_task(const std::string &description) {
-    if (task) {
-        task = task->new_task(description);
-    }
-}
-
 explain_bool_t env_t::explain() {
-    return task ? explain_bool_t::EXPLAIN : explain_bool_t::DONT_EXPLAIN;
+    return tracer.get_task() ? explain_bool_t::EXPLAIN : explain_bool_t::DONT_EXPLAIN;
 }
 
 cluster_access_t::cluster_access_t(
@@ -196,11 +190,9 @@ env_t::env_t(
 {
     counted_t<val_t> explain = global_optargs.get_optarg(this, "explain");
     if (explain.has() && explain->as_bool()) {
-        task = _task;
-        task->init("Start query");
-    } else {
-        task = NULL;
+        tracer.init(_task);
     }
+    tracer.checkin("Start query");
 }
 
 env_t::env_t(
@@ -227,12 +219,10 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    task(_task),
+    tracer(_task),
     eval_callback(NULL)
 {
-    if (_task) {
-        task->init("Start query");
-    }
+    tracer.checkin("Start query");
 }
 
 env_t::env_t(signal_t *_interruptor)
@@ -244,7 +234,6 @@ env_t::env_t(signal_t *_interruptor)
                    NULL,
                    uuid_u()),
     interruptor(_interruptor),
-    task(NULL),
     eval_callback(NULL) { }
 
 env_t::~env_t() { }

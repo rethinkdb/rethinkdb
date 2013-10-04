@@ -820,8 +820,19 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
+
+    if (explain == explain_bool_t::EXPLAIN) {
+        /* We've got some explaining to do. */
+        explain::trace_t trace(&response->task);
+        for (size_t i = 0; i < count; ++i) {
+            trace.add_parallel_task(std::move(responses[i].task));
+        }
+        trace.checkin("Unshard the reads.");
+    }
+
     rdb_r_unshard_visitor_t v(responses, count, response, ctx, interruptor);
     boost::apply_visitor(v, read);
+
 }
 
 /* write_t::get_region() implementation */

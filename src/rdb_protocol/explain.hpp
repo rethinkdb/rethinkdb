@@ -21,14 +21,14 @@ public:
     explicit task_t(const std::string &description);
     task_t(const task_t &other);
     task_t &operator=(const task_t &other);
+
     void init(const std::string &description);
     bool is_initted();
+    task_t *new_task();
     task_t *new_task(const std::string &description);
+    task_t *new_parallel_task();
     task_t *new_parallel_task(const std::string &description);
-    task_t *finish_parallel_tasks(
-            const std::vector<task_t *> &tasks,
-            const std::string &description);
-
+    task_t *tail();
     void finish();
 
     counted_t<const ql::datum_t> as_datum();
@@ -53,6 +53,23 @@ private:
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         task_t::state_t, int8_t,
         task_t::UNINITIALIZED, task_t::FINISHED);
+
+/* An trace_t wraps a task and makes it a bit easier to use. */
+class trace_t {
+public:
+    trace_t();
+    explicit trace_t(task_t *root);
+    void init(task_t *root);
+    void checkin(const std::string &description);
+    void add_task(task_t &&task);
+    void add_parallel_task(task_t &&task);
+    counted_t<const ql::datum_t> as_datum();
+    const task_t *get_task();
+
+private:
+    task_t *root_;
+    task_t *head_;
+};
 
 } //namespace explain
 #endif

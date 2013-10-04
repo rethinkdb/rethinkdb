@@ -153,9 +153,7 @@ public:
     // The interruptor signal while a query evaluates.  This can get overwritten!
     signal_t *interruptor;
 
-    explain::task_t *task;
-
-    void start_new_task(const std::string &description);
+    explain::trace_t tracer;
 
     explain_bool_t explain();
 

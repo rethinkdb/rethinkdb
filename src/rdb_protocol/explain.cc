@@ -52,31 +52,36 @@ bool task_t::is_initted() {
     return state_ != UNINITIALIZED;
 }
 
+task_t *task_t::new_task() {
+    guarantee(!next_task_.has());
+    finish();
+    next_task_.init(new task_t());
+    return next_task_.get();
+}
+
 task_t *task_t::new_task(const std::string &description) {
     guarantee(!next_task_.has());
-    guarantee(parallel_tasks_.empty(), "If a task has had parallel tasks created"
-            " then you need to call finish_parallel_tasks instead of new_task.");
     finish();
     next_task_.init(new task_t(description));
     return next_task_.get();
 }
 
+task_t *task_t::new_parallel_task() {
+    parallel_tasks_.emplace_back(new task_t());
+    return parallel_tasks_.back().get();
+}
+
 task_t *task_t::new_parallel_task(const std::string &description) {
-    finish();
     parallel_tasks_.emplace_back(new task_t(description));
     return parallel_tasks_.back().get();
 }
 
-task_t *task_t::finish_parallel_tasks(
-        const std::vector<task_t *> &tasks,
-        const std::string &description) {
-    for (auto it = tasks.begin(); it != tasks.end(); ++it) {
-        guarantee(!(*it)->next_task_.has());
-        (*it)->finish();
+task_t *task_t::tail() {
+    if (!next_task_.has()) {
+        return this;
+    } else {
+        return next_task_->tail();
     }
-
-    next_task_.init(new task_t(description));
-    return next_task_.get();
 }
 
 void task_t::finish() {
@@ -182,5 +187,56 @@ MUST_USE archive_result_t task_t::rdb_deserialize(read_stream_t *s) {
 
     return ARCHIVE_SUCCESS;
 }
+
+trace_t::trace_t()
+    : root_(NULL), head_(NULL)
+{ }
+
+trace_t::trace_t(task_t *root) {
+    init(root);
+}
+
+void trace_t::init(task_t *root) {
+    root_ = root;
+    head_ = root->tail();
+}
+
+void trace_t::checkin(const std::string &description) {
+    if (!head_) {
+        return;
+    }
+
+    if (head_->is_initted()) {
+        head_ = head_->new_task(description);
+    } else {
+        head_->init(description);
+    }
+}
+
+void trace_t::add_task(task_t &&task) {
+    if (!head_) {
+        return;
+    }
+
+    *head_->new_task() = task;
+    head_ = head_->tail();
+}
+
+void trace_t::add_parallel_task(task_t &&task) {
+    if (!head_) {
+        return;
+    }
+
+    *head_->new_parallel_task() = task;
+}
+
+counted_t<const ql::datum_t> trace_t::as_datum() {
+    return root_->as_datum();
+}
+
+const task_t *trace_t::get_task() {
+    return root_;
+}
+
 
 } //namespace explain
