@@ -590,7 +590,7 @@ class Datum(RqlQuery):
                     else:
                         raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
                 else:
-                    raise RqlDriverError("Unknown psudo-type %" % obj['$reql_type$'])
+                    raise RqlDriverError("Unknown psudo-type %s" % obj['$reql_type$'])
 
             return obj
         else:
