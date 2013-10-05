@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <algorithm>
@@ -127,11 +128,11 @@ static int merge_types(int supertype, int subtype) {
 
 class coerce_term_t : public op_term_t {
 public:
-    coerce_term_t(env_t *env, const protob_t<const Term> &term)
+    coerce_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<val_t> val = arg(0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> val = arg(env, 0);
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
         int start_subtype = 0;
@@ -141,7 +142,7 @@ private:
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = arg(1)->as_str();
+        std::string end_type_name = arg(env, 1)->as_str();
         int end_type = get_type(end_type_name, this);
 
         // Identity
@@ -163,16 +164,18 @@ private:
 
                 // OBJECT -> ARRAY
                 if (start_type == R_OBJECT_TYPE && end_type == R_ARRAY_TYPE) {
-                    datum_ptr_t arr(datum_t::R_ARRAY);
                     const std::map<std::string, counted_t<const datum_t> > &obj
                         = d->as_object();
+                    std::vector<counted_t<const datum_t> > arr;
+                    arr.reserve(obj.size());
                     for (auto it = obj.begin(); it != obj.end(); ++it) {
-                        datum_ptr_t pair(datum_t::R_ARRAY);
-                        pair.add(make_counted<datum_t>(it->first));
-                        pair.add(it->second);
-                        arr.add(pair.to_counted());
+                        std::vector<counted_t<const datum_t> > pair;
+                        pair.reserve(2);
+                        pair.push_back(make_counted<datum_t>(std::string(it->first)));
+                        pair.push_back(it->second);
+                        arr.push_back(make_counted<datum_t>(std::move(pair)));
                     }
-                    return new_val(arr.to_counted());
+                    return new_val(make_counted<const datum_t>(std::move(arr)));
                 }
 
                 // STR -> NUM
@@ -186,7 +189,6 @@ private:
                         rfail(base_exc_t::GENERIC, "Could not coerce `%s` to NUMBER.",
                               s.c_str());
                     }
-                    unreachable();
                 }
             }
             // TODO: Object to sequence?
@@ -197,17 +199,16 @@ private:
                  && start_type != R_ARRAY_TYPE)) {
             counted_t<datum_stream_t> ds;
             try {
-                ds = val->as_seq();
+                ds = val->as_seq(env->env);
             } catch (const base_exc_t &e) {
                 rfail(base_exc_t::GENERIC,
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
-                unreachable();
             }
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
-                while (counted_t<const datum_t> el = ds->next()) {
+                while (counted_t<const datum_t> el = ds->next(env->env)) {
                     arr.add(el);
                 }
                 return new_val(arr.to_counted());
@@ -217,7 +218,7 @@ private:
             if (end_type == R_OBJECT_TYPE) {
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                     datum_ptr_t obj(datum_t::R_OBJECT);
-                    while (counted_t<const datum_t> pair = ds->next()) {
+                    while (counted_t<const datum_t> pair = ds->next(env->env)) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj.add(key, keyval);
@@ -249,16 +250,16 @@ int val_type(counted_t<val_t> v) {
 
 class typeof_term_t : public op_term_t {
 public:
-    typeof_term_t(env_t *env, const protob_t<const Term> &term)
+    typeof_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        counted_t<val_t> v = arg(0);
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<val_t> v = arg(env, 0);
         if (v->get_type().raw_type == val_t::type_t::DATUM) {
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
         } else {
-            return new_val(make_counted<const datum_t>(get_name(val_type(arg(0)))));
+            return new_val(make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
         }
     }
     virtual const char *name() const { return "typeof"; }
@@ -266,41 +267,40 @@ private:
 
 class info_term_t : public op_term_t {
 public:
-    info_term_t(env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
+    info_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual counted_t<val_t> eval_impl(UNUSED eval_flags_t flags) {
-        return new_val(val_info(arg(0)));
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        return new_val(val_info(env, arg(env, 0)));
     }
 
-    counted_t<const datum_t> val_info(counted_t<val_t> v) {
+    counted_t<const datum_t> val_info(scope_env_t *env, counted_t<val_t> v) {
         datum_ptr_t info(datum_t::R_OBJECT);
         int type = val_type(v);
         bool b = info.add("type", make_counted<datum_t>(get_name(type)));
 
         switch (type) {
         case DB_TYPE: {
-            b |= info.add("name", make_counted<datum_t>(v->as_db()->name));
+            b |= info.add("name", make_counted<datum_t>(std::string(v->as_db()->name)));
         } break;
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
-            b |= info.add("name", make_counted<datum_t>(table->name));
-            b |= info.add("primary_key", make_counted<datum_t>(table->get_pkey()));
-            b |= info.add("indexes", table->sindex_list());
-            b |= info.add("db", val_info(new_val(table->db)));
+            b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
+            b |= info.add("primary_key", make_counted<datum_t>(std::string(table->get_pkey())));
+            b |= info.add("indexes", table->sindex_list(env->env));
+            b |= info.add("db", val_info(env, new_val(table->db)));
         } break;
         case SELECTION_TYPE: {
-            b |= info.add("table", val_info(new_val(v->as_selection().first)));
+            b |= info.add("table", val_info(env, new_val(v->as_selection(env->env).first)));
         } break;
         case SINGLE_SELECTION_TYPE: {
-            b |= info.add("table", val_info(new_val(v->as_single_selection().first)));
+            b |= info.add("table", val_info(env, new_val(v->as_single_selection().first)));
         } break;
         case SEQUENCE_TYPE: {
             // No more info.
         } break;
 
         case FUNC_TYPE: {
-            b |= info.add("source_code",
-                          make_counted<datum_t>(v->as_func()->print_src()));
+            b |= info.add("source_code", make_counted<datum_t>(v->as_func()->print_source()));
         } break;
 
         case R_NULL_TYPE:   // fallthru
@@ -322,13 +322,13 @@ private:
     virtual const char *name() const { return "info"; }
 };
 
-counted_t<term_t> make_coerce_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_coerce_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<coerce_term_t>(env, term);
 }
-counted_t<term_t> make_typeof_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_typeof_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<typeof_term_t>(env, term);
 }
-counted_t<term_t> make_info_term(env_t *env, const protob_t<const Term> &term) {
+counted_t<term_t> make_info_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<info_term_t>(env, term);
 }
 

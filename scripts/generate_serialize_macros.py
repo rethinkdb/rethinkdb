@@ -27,7 +27,7 @@ def generate_make_serializable_macro(nfields):
     print "    function_attr archive_result_t deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg)
     print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
     for i in xrange(nfields):
-        print "        res = deserialize(s, &thing->field%d); \\" % (i + 1)
+        print "        res = deserialize(s, deserialize_deref(thing->field%d)); \\" % (i + 1)
         print "        if (res) { return res; } \\"
     print "        return res; \\"
     print "    } \\"
@@ -49,7 +49,7 @@ def generate_make_me_serializable_macro(nfields):
     print "    archive_result_t rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
     for i in xrange(nfields):
-        print "        res = deserialize(s, &field%d); \\" % (i + 1)
+        print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
         print "        if (res) { return res; } \\"
     print "        return res; \\"
     print "    }"
@@ -65,7 +65,7 @@ def generate_impl_me_serializable_macro(nfields):
     print "    archive_result_t typ::rdb_deserialize(%sread_stream_t *s) { \\" % zeroarg
     print "        archive_result_t res = ARCHIVE_SUCCESS; \\"
     for i in xrange(nfields):
-        print "        res = deserialize(s, &field%d); \\" % (i + 1)
+        print "        res = deserialize(s, deserialize_deref(field%d)); \\" % (i + 1)
         print "        if (res) { return res; } \\"
     print "        return res; \\"
     print "    }"
@@ -82,7 +82,6 @@ if __name__ == "__main__":
     print
 
     print "#include \"containers/archive/archive.hpp\""
-    print "#include \"containers/archive/stl_types.hpp\""
     print
 
     print """
@@ -111,6 +110,7 @@ the class scope. */
     print "    archive_result_t deserialize(read_stream_t *s, type_t *thing)"
     print
     print "#define RDB_DECLARE_ME_SERIALIZABLE \\"
+    print "    friend class write_message_t; \\"
     print "    void rdb_serialize(write_message_t &msg /* NOLINT */) const; \\"
     print "    friend class archive_deserializer_t; \\"
     print "    archive_result_t rdb_deserialize(read_stream_t *s)"

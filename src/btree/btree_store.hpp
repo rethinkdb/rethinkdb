@@ -13,7 +13,6 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include "btree/erase_range.hpp"
-#include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"

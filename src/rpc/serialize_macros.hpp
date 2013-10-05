@@ -6,7 +6,6 @@
 Please modify '../scripts/generate_serialize_macros.py' instead of modifying this file.*/
 
 #include "containers/archive/archive.hpp"
-#include "containers/archive/stl_types.hpp"
 
 /* The purpose of these macros is to make it easier to serialize and
 unserialize data types that consist of a simple series of fields, each of which
@@ -32,6 +31,7 @@ the class scope. */
     archive_result_t deserialize(read_stream_t *s, type_t *thing)
 
 #define RDB_DECLARE_ME_SERIALIZABLE \
+    friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const; \
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s)
@@ -73,7 +73,7 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -89,7 +89,7 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
         return res; \
     }
@@ -100,7 +100,7 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
         return res; \
     }
@@ -113,9 +113,9 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -132,9 +132,9 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
         return res; \
     }
@@ -146,9 +146,9 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
         return res; \
     }
@@ -162,11 +162,11 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -184,11 +184,11 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
         return res; \
     }
@@ -201,11 +201,11 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
         return res; \
     }
@@ -220,13 +220,13 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -245,13 +245,13 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
         return res; \
     }
@@ -265,13 +265,13 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
         return res; \
     }
@@ -287,15 +287,15 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -315,15 +315,15 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
         return res; \
     }
@@ -338,15 +338,15 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
         return res; \
     }
@@ -363,17 +363,17 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -394,17 +394,17 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
         return res; \
     }
@@ -420,17 +420,17 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
         return res; \
     }
@@ -448,19 +448,19 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -482,19 +482,19 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
         return res; \
     }
@@ -511,19 +511,19 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
         return res; \
     }
@@ -542,21 +542,21 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -579,21 +579,21 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
         return res; \
     }
@@ -611,21 +611,21 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
         return res; \
     }
@@ -645,23 +645,23 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -685,23 +685,23 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
         return res; \
     }
@@ -720,23 +720,23 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
         return res; \
     }
@@ -757,25 +757,25 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -800,25 +800,25 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
         return res; \
     }
@@ -838,25 +838,25 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
         return res; \
     }
@@ -878,27 +878,27 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -924,27 +924,27 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
         return res; \
     }
@@ -965,27 +965,27 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1008,29 +1008,29 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field12); \
+        res = deserialize(s, deserialize_deref(thing->field12)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -1057,29 +1057,29 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1101,29 +1101,29 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1147,31 +1147,31 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field12); \
+        res = deserialize(s, deserialize_deref(thing->field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field13); \
+        res = deserialize(s, deserialize_deref(thing->field13)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -1199,31 +1199,31 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1246,31 +1246,31 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1295,33 +1295,33 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field12); \
+        res = deserialize(s, deserialize_deref(thing->field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field13); \
+        res = deserialize(s, deserialize_deref(thing->field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field14); \
+        res = deserialize(s, deserialize_deref(thing->field14)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -1350,33 +1350,33 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1400,33 +1400,33 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1452,35 +1452,35 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field12); \
+        res = deserialize(s, deserialize_deref(thing->field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field13); \
+        res = deserialize(s, deserialize_deref(thing->field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field14); \
+        res = deserialize(s, deserialize_deref(thing->field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field15); \
+        res = deserialize(s, deserialize_deref(thing->field15)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -1510,35 +1510,35 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1563,35 +1563,35 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1618,37 +1618,37 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field12); \
+        res = deserialize(s, deserialize_deref(thing->field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field13); \
+        res = deserialize(s, deserialize_deref(thing->field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field14); \
+        res = deserialize(s, deserialize_deref(thing->field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field15); \
+        res = deserialize(s, deserialize_deref(thing->field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field16); \
+        res = deserialize(s, deserialize_deref(thing->field16)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -1679,37 +1679,37 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &field16); \
+        res = deserialize(s, deserialize_deref(field16)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1735,37 +1735,37 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &field16); \
+        res = deserialize(s, deserialize_deref(field16)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1793,39 +1793,39 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field12); \
+        res = deserialize(s, deserialize_deref(thing->field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field13); \
+        res = deserialize(s, deserialize_deref(thing->field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field14); \
+        res = deserialize(s, deserialize_deref(thing->field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field15); \
+        res = deserialize(s, deserialize_deref(thing->field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field16); \
+        res = deserialize(s, deserialize_deref(thing->field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field17); \
+        res = deserialize(s, deserialize_deref(thing->field17)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -1857,39 +1857,39 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &field16); \
+        res = deserialize(s, deserialize_deref(field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &field17); \
+        res = deserialize(s, deserialize_deref(field17)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1916,39 +1916,39 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &field16); \
+        res = deserialize(s, deserialize_deref(field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &field17); \
+        res = deserialize(s, deserialize_deref(field17)); \
         if (res) { return res; } \
         return res; \
     }
@@ -1977,41 +1977,41 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field12); \
+        res = deserialize(s, deserialize_deref(thing->field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field13); \
+        res = deserialize(s, deserialize_deref(thing->field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field14); \
+        res = deserialize(s, deserialize_deref(thing->field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field15); \
+        res = deserialize(s, deserialize_deref(thing->field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field16); \
+        res = deserialize(s, deserialize_deref(thing->field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field17); \
+        res = deserialize(s, deserialize_deref(thing->field17)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field18); \
+        res = deserialize(s, deserialize_deref(thing->field18)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -2044,41 +2044,41 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &field16); \
+        res = deserialize(s, deserialize_deref(field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &field17); \
+        res = deserialize(s, deserialize_deref(field17)); \
         if (res) { return res; } \
-        res = deserialize(s, &field18); \
+        res = deserialize(s, deserialize_deref(field18)); \
         if (res) { return res; } \
         return res; \
     }
@@ -2106,41 +2106,41 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &field16); \
+        res = deserialize(s, deserialize_deref(field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &field17); \
+        res = deserialize(s, deserialize_deref(field17)); \
         if (res) { return res; } \
-        res = deserialize(s, &field18); \
+        res = deserialize(s, deserialize_deref(field18)); \
         if (res) { return res; } \
         return res; \
     }
@@ -2170,43 +2170,43 @@ the class scope. */
     } \
     function_attr archive_result_t deserialize(read_stream_t *s, type_t *thing) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &thing->field1); \
+        res = deserialize(s, deserialize_deref(thing->field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field2); \
+        res = deserialize(s, deserialize_deref(thing->field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field3); \
+        res = deserialize(s, deserialize_deref(thing->field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field4); \
+        res = deserialize(s, deserialize_deref(thing->field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field5); \
+        res = deserialize(s, deserialize_deref(thing->field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field6); \
+        res = deserialize(s, deserialize_deref(thing->field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field7); \
+        res = deserialize(s, deserialize_deref(thing->field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field8); \
+        res = deserialize(s, deserialize_deref(thing->field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field9); \
+        res = deserialize(s, deserialize_deref(thing->field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field10); \
+        res = deserialize(s, deserialize_deref(thing->field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field11); \
+        res = deserialize(s, deserialize_deref(thing->field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field12); \
+        res = deserialize(s, deserialize_deref(thing->field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field13); \
+        res = deserialize(s, deserialize_deref(thing->field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field14); \
+        res = deserialize(s, deserialize_deref(thing->field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field15); \
+        res = deserialize(s, deserialize_deref(thing->field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field16); \
+        res = deserialize(s, deserialize_deref(thing->field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field17); \
+        res = deserialize(s, deserialize_deref(thing->field17)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field18); \
+        res = deserialize(s, deserialize_deref(thing->field18)); \
         if (res) { return res; } \
-        res = deserialize(s, &thing->field19); \
+        res = deserialize(s, deserialize_deref(thing->field19)); \
         if (res) { return res; } \
         return res; \
     } \
@@ -2240,43 +2240,43 @@ the class scope. */
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &field16); \
+        res = deserialize(s, deserialize_deref(field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &field17); \
+        res = deserialize(s, deserialize_deref(field17)); \
         if (res) { return res; } \
-        res = deserialize(s, &field18); \
+        res = deserialize(s, deserialize_deref(field18)); \
         if (res) { return res; } \
-        res = deserialize(s, &field19); \
+        res = deserialize(s, deserialize_deref(field19)); \
         if (res) { return res; } \
         return res; \
     }
@@ -2305,43 +2305,43 @@ the class scope. */
     } \
     archive_result_t typ::rdb_deserialize(read_stream_t *s) { \
         archive_result_t res = ARCHIVE_SUCCESS; \
-        res = deserialize(s, &field1); \
+        res = deserialize(s, deserialize_deref(field1)); \
         if (res) { return res; } \
-        res = deserialize(s, &field2); \
+        res = deserialize(s, deserialize_deref(field2)); \
         if (res) { return res; } \
-        res = deserialize(s, &field3); \
+        res = deserialize(s, deserialize_deref(field3)); \
         if (res) { return res; } \
-        res = deserialize(s, &field4); \
+        res = deserialize(s, deserialize_deref(field4)); \
         if (res) { return res; } \
-        res = deserialize(s, &field5); \
+        res = deserialize(s, deserialize_deref(field5)); \
         if (res) { return res; } \
-        res = deserialize(s, &field6); \
+        res = deserialize(s, deserialize_deref(field6)); \
         if (res) { return res; } \
-        res = deserialize(s, &field7); \
+        res = deserialize(s, deserialize_deref(field7)); \
         if (res) { return res; } \
-        res = deserialize(s, &field8); \
+        res = deserialize(s, deserialize_deref(field8)); \
         if (res) { return res; } \
-        res = deserialize(s, &field9); \
+        res = deserialize(s, deserialize_deref(field9)); \
         if (res) { return res; } \
-        res = deserialize(s, &field10); \
+        res = deserialize(s, deserialize_deref(field10)); \
         if (res) { return res; } \
-        res = deserialize(s, &field11); \
+        res = deserialize(s, deserialize_deref(field11)); \
         if (res) { return res; } \
-        res = deserialize(s, &field12); \
+        res = deserialize(s, deserialize_deref(field12)); \
         if (res) { return res; } \
-        res = deserialize(s, &field13); \
+        res = deserialize(s, deserialize_deref(field13)); \
         if (res) { return res; } \
-        res = deserialize(s, &field14); \
+        res = deserialize(s, deserialize_deref(field14)); \
         if (res) { return res; } \
-        res = deserialize(s, &field15); \
+        res = deserialize(s, deserialize_deref(field15)); \
         if (res) { return res; } \
-        res = deserialize(s, &field16); \
+        res = deserialize(s, deserialize_deref(field16)); \
         if (res) { return res; } \
-        res = deserialize(s, &field17); \
+        res = deserialize(s, deserialize_deref(field17)); \
         if (res) { return res; } \
-        res = deserialize(s, &field18); \
+        res = deserialize(s, deserialize_deref(field18)); \
         if (res) { return res; } \
-        res = deserialize(s, &field19); \
+        res = deserialize(s, deserialize_deref(field19)); \
         if (res) { return res; } \
         return res; \
     }

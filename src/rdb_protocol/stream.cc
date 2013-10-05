@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/stream.hpp"
 
 #include "btree/keys.hpp"
@@ -11,109 +11,14 @@
 
 namespace query_language {
 
-boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace) {
-    rdb_protocol_details::transform_t transform;
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, backtrace));
-    return boost::make_shared<transform_stream_t>(shared_from_this(), ql_env, transform);
-}
-
-hinted_json_t json_stream_t::sorting_hint_next() {
-    return std::make_pair(CONTINUE, next());
-}
-
-result_t json_stream_t::apply_terminal(
-    const rdb_protocol_details::terminal_variant_t &_t,
-    ql::env_t *ql_env,
-    const backtrace_t &backtrace) {
-    rdb_protocol_details::terminal_variant_t t = _t;
-    result_t res;
-
-    terminal_initialize(ql_env, backtrace, &t, &res);
-
-    boost::shared_ptr<scoped_cJSON_t> json;
-    while ((json = next())) {
-        terminal_apply(ql_env, backtrace, lazy_json_t(json), &t, &res);
-    }
-    return res;
-}
-
-in_memory_stream_t::in_memory_stream_t(json_array_iterator_t it) {
-    while (cJSON *json = it.next()) {
-        data.push_back(boost::shared_ptr<scoped_cJSON_t>(new scoped_cJSON_t(cJSON_DeepCopy(json))));
-    }
-}
-
-in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
-    while (boost::shared_ptr<scoped_cJSON_t> json = stream->next()) {
-        data.push_back(json);
-    }
-}
-
-boost::shared_ptr<scoped_cJSON_t> in_memory_stream_t::next() {
-    if (data.empty()) {
-        return boost::shared_ptr<scoped_cJSON_t>();
-    } else {
-        boost::shared_ptr<scoped_cJSON_t> ret = data.front();
-        data.pop_front();
-        return ret;
-    }
-}
-
-transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
-                                       ql::env_t *_ql_env,
-                                       const rdb_protocol_details::transform_t &tr) :
-    stream(_stream),
-    ql_env(_ql_env),
-    transform(tr) { }
-
-boost::shared_ptr<scoped_cJSON_t> transform_stream_t::next() {
-    while (data.empty()) {
-        boost::shared_ptr<scoped_cJSON_t> input = stream->next();
-        if (!input) {
-            // End of stream reached.
-            return boost::shared_ptr<scoped_cJSON_t>();
-        }
-
-        json_list_t accumulator;
-        accumulator.push_back(input);
-
-        // Apply transforms to the data
-        typedef rdb_protocol_details::transform_t::iterator tit_t;
-        for (tit_t it  = transform.begin();
-                   it != transform.end();
-                   ++it) {
-            json_list_t tmp;
-            for (json_list_t::iterator jt  = accumulator.begin();
-                                       jt != accumulator.end();
-                                       ++jt) {
-                transform_apply(ql_env, it->backtrace, *jt, &it->variant, &tmp);
-            }
-
-            accumulator.swap(tmp);
-        }
-
-        data.swap(accumulator);
-    }
-
-    boost::shared_ptr<scoped_cJSON_t> datum = data.front();
-    data.pop_front();
-    return datum;
-}
-
-boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &backtrace) {
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, backtrace));
-    return shared_from_this();
-}
-
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-    signal_t *_interruptor,
     counted_t<const ql::datum_t> left_bound, bool left_bound_open,
     counted_t<const ql::datum_t> right_bound, bool right_bound_open,
     const std::map<std::string, ql::wire_func_t> &_optargs,
     bool _use_outdated, sorting_t _sorting,
     ql::rcheckable_t *_parent)
-    : ns_access(_ns_access), interruptor(_interruptor),
+    : ns_access(_ns_access),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
       range(left_bound_open ? key_range_t::open : key_range_t::closed,
             left_bound.has()
@@ -123,20 +28,18 @@ batched_rget_stream_t::batched_rget_stream_t(
             right_bound.has()
               ? store_key_t(right_bound->print_primary())
               : store_key_t::max()),
-      table_scan_backtrace(),
       sorting(_sorting),
       parent(_parent)
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-    signal_t *_interruptor, const std::string &_sindex_id,
+    const std::string &_sindex_id,
     counted_t<const ql::datum_t> _sindex_start_value, bool start_value_open,
     counted_t<const ql::datum_t> _sindex_end_value, bool end_value_open,
     const std::map<std::string, ql::wire_func_t> &_optargs, bool _use_outdated,
     sorting_t _sorting, ql::rcheckable_t *_parent)
     : ns_access(_ns_access),
-      interruptor(_interruptor),
       sindex_id(_sindex_id),
       finished(false),
       started(false),
@@ -145,24 +48,23 @@ batched_rget_stream_t::batched_rget_stream_t(
       sindex_range(_sindex_start_value, start_value_open,
                    _sindex_end_value, end_value_open),
       range(rdb_protocol_t::sindex_key_range(
-                _sindex_start_value != NULL
+                _sindex_start_value.has()
                   ? _sindex_start_value->truncated_secondary()
                   : store_key_t::min(),
-                _sindex_end_value != NULL
+                _sindex_end_value.has()
                   ? _sindex_end_value->truncated_secondary()
                   : store_key_t::max())),
-      table_scan_backtrace(),
       sorting(_sorting),
       parent(_parent)
 { }
 
-boost::optional<rget_item_t> batched_rget_stream_t::head() {
+boost::optional<rget_item_t> batched_rget_stream_t::head(ql::env_t *env) {
     started = true;
     if (data.empty()) {
         if (finished) {
             return boost::optional<rget_item_t>();
         }
-        read_more();
+        read_more(env);
         if (data.empty()) {
             finished = true;
             return boost::optional<rget_item_t>();
@@ -178,11 +80,15 @@ void batched_rget_stream_t::pop() {
 }
 
 bool rget_item_sindex_key_less(const rget_item_t &left, const rget_item_t &right) {
-    return json_cmp((*left.sindex_key)->get(), (*right.sindex_key)->get()) < 0;
+    r_sanity_check(left.sindex_key);
+    r_sanity_check(right.sindex_key);
+    return **left.sindex_key < **right.sindex_key;
 }
 
 bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &right) {
-    return json_cmp((*left.sindex_key)->get(), (*right.sindex_key)->get()) > 0;
+    r_sanity_check(left.sindex_key);
+    r_sanity_check(right.sindex_key);
+    return **right.sindex_key < **left.sindex_key;
 }
 
 /* This function is a big monolithic mess right now. This is because a lot of
@@ -202,15 +108,15 @@ bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &ri
  * The sorting by the other field is done above but it needs to know which
  * elements had the same index value so it knows what to apply the sorting too.
  * */
-hinted_json_t batched_rget_stream_t::sorting_hint_next() {
+hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
     /* The simple case. No sorting is happening. */
     if (sorting == UNORDERED) {
-        boost::optional<rget_item_t> item = head();
+        boost::optional<rget_item_t> item = head(env);
         if (item) {
             pop();
-            return std::make_pair(CONTINUE, item->data);
+            return hinted_datum_t(CONTINUE, item->data);
         } else {
-            return std::make_pair(CONTINUE, boost::shared_ptr<scoped_cJSON_t>());
+            return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
         }
     }
 
@@ -218,19 +124,24 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
         /* A non empty sorting buffer means we already got a batch of
          * ambigiously sorted values and sorted them. So now we can just pop
          * one off the front and return it. */
-        boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
+        counted_t<const ql::datum_t> datum = sorting_buffer.front().data;
         r_sanity_check(sorting_buffer.front().sindex_key);
         bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
-        return std::make_pair((is_new_key ? START : CONTINUE), datum);
+        return hinted_datum_t((is_new_key ? START : CONTINUE), datum);
     } else {
         for (;;) {
             /* In this loop we load data in to the sorting buffer until we can
              * be sure that the next value to be returned is in it. (Or we hit
              * the limit at which point we error.) */
-            boost::optional<rget_item_t> item = head();
+            boost::optional<rget_item_t> item = head(env);
             if (!item) {
                 break;
+            }
+
+            if (!sindex_id) {
+                pop();
+                return hinted_datum_t(START, item->data);
             }
 
             std::string key = key_to_unescaped_str(item->key);
@@ -242,7 +153,7 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
                      * empty. This means we have the next value. */
                     pop();
                     bool is_new_key = check_and_set_last_key(skey);
-                    return std::make_pair((is_new_key ? START : CONTINUE), item->data);
+                    return hinted_datum_t((is_new_key ? START : CONTINUE), item->data);
                 } else {
                     /* We have an untruncated key but there's data in the
                      * sorting buffer. That means this value definitely isn't
@@ -274,9 +185,8 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
     if (sorting_buffer.empty()) {
         /* Nothing in the sorting buffer, this means we don't have any data to
          * return so we return nothing. */
-        return std::make_pair(CONTINUE, boost::shared_ptr<scoped_cJSON_t>());
+        return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
     } else {
-        debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
         if (sorting == ASCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
@@ -289,44 +199,43 @@ hinted_json_t batched_rget_stream_t::sorting_hint_next() {
         }
 
         /* Now we can finally return a value from the sorting buffer. */
-        boost::shared_ptr<scoped_cJSON_t> datum = sorting_buffer.front().data;
+        counted_t<const ql::datum_t> datum = sorting_buffer.front().data;
         bool is_new_key = check_and_set_last_key(*sorting_buffer.front().sindex_key);
         sorting_buffer.pop_front();
-        return std::make_pair((is_new_key ? START : CONTINUE), datum);
+        return hinted_datum_t((is_new_key ? START : CONTINUE), datum);
     }
 }
 
-boost::shared_ptr<scoped_cJSON_t> batched_rget_stream_t::next() {
-    return sorting_hint_next().second;
+counted_t<const ql::datum_t> batched_rget_stream_t::next(ql::env_t *env) {
+    return sorting_hint_next(env).second;
 }
 
-boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &per_op_backtrace) {
+boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(
+    const rdb_protocol_details::transform_variant_t &t) {
     guarantee(!started);
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, per_op_backtrace));
+    transform.push_back(t);
     return shared_from_this();
 }
 
-result_t batched_rget_stream_t::apply_terminal(
-    const rdb_protocol_details::terminal_variant_t &t,
-    UNUSED ql::env_t *ql_env,
-    const backtrace_t &per_op_backtrace) {
+rdb_protocol_t::rget_read_response_t::result_t batched_rget_stream_t::apply_terminal(
+    const rdb_protocol_details::terminal_variant_t &t, ql::env_t *env) {
     rdb_protocol_t::rget_read_t rget_read = get_rget();
-    rget_read.terminal = rdb_protocol_details::terminal_t(t, per_op_backtrace);
+    rget_read.terminal = t;
     rdb_protocol_t::read_t read(rget_read);
     try {
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
-            ns_access.get_namespace_if()->read_outdated(read, &res, interruptor);
+            ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
+            ns_access.get_namespace_if()->read(
+                read, &res, order_token_t::ignore, env->interruptor);
         }
-        rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+        rdb_protocol_t::rget_read_response_t *p_res
+            = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
-            throw *e;
-        } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e2;
         } else if (ql::datum_exc_t *e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
             throw *e3;
@@ -334,13 +243,7 @@ result_t batched_rget_stream_t::apply_terminal(
 
         return p_res->result;
     } catch (const cannot_perform_query_exc_t &e) {
-        if (table_scan_backtrace) {
-            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
-        } else {
-            // No backtrace for these.
-            rfail_toplevel(ql::base_exc_t::GENERIC,
-                           "cannot perform read: %s", e.what());
-        }
+        rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
     }
 }
 
@@ -360,26 +263,26 @@ rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
     }
 }
 
-void batched_rget_stream_t::read_more() {
+void batched_rget_stream_t::read_more(ql::env_t *env) {
     rdb_protocol_t::read_t read(get_rget());
     try {
         guarantee(ns_access.get_namespace_if());
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
-            ns_access.get_namespace_if()->read_outdated(read, &res, interruptor);
+            ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
+            ns_access.get_namespace_if()->read(
+                read, &res, order_token_t::ignore, env->interruptor);
         }
-        rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+        rdb_protocol_t::rget_read_response_t *p_res
+            = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (auto e = boost::get<runtime_exc_t>(&p_res->result)) {
+        if (auto e = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e;
-        } else if (auto e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        } else if (auto e2 = boost::get<ql::datum_exc_t>(&p_res->result)) {
             throw *e2;
-        } else if (auto e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
-            throw *e3;
         }
 
         // todo: just do a straight copy?
@@ -410,13 +313,7 @@ void batched_rget_stream_t::read_more() {
             }
         }
     } catch (const cannot_perform_query_exc_t &e) {
-        if (table_scan_backtrace) {
-            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
-        } else {
-            // No backtrace.
-            rfail_toplevel(ql::base_exc_t::GENERIC,
-                           "cannot perform read: %s", e.what());
-        }
+        rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
     }
 }
 
@@ -450,17 +347,17 @@ bool batched_rget_stream_t::check_and_set_last_key(const std::string &key) {
         }
     }
 }
-bool batched_rget_stream_t::check_and_set_last_key(boost::shared_ptr<scoped_cJSON_t> key) {
-    boost::shared_ptr<scoped_cJSON_t> *last_key_json;
+bool batched_rget_stream_t::check_and_set_last_key(counted_t<const ql::datum_t> key) {
+    counted_t<const ql::datum_t> *last_key_json;
     /* Notice we check both for a last_key value which is a std::string and a
      * last_key value which is an empty shared_ptr the latter is only present
      * immediately after construction. */
-    if (!(last_key_json = boost::get<boost::shared_ptr<scoped_cJSON_t> >(&last_key)) ||
+    if (!(last_key_json = boost::get<counted_t<const ql::datum_t> >(&last_key)) ||
         !(*last_key_json)) {
         last_key = key;
         return true;
     } else {
-        if (json_cmp(key->get(), (*last_key_json)->get()) == 0) {
+        if (*key == **last_key_json) {
             return false;
         } else {
             last_key = key;

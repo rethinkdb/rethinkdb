@@ -45,7 +45,7 @@
 #define NON_NULL_ATTR(arg) __attribute__((nonnull(arg)))
 #endif
 
-#define NORETURN __attribute__((noreturn))
+#define NORETURN __attribute__((__noreturn__))
 
 /* Error handling
  *

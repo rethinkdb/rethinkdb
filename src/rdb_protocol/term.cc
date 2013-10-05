@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/term.hpp"
 
 #include "rdb_protocol/counted_term.hpp"
@@ -15,9 +15,9 @@
 
 namespace ql {
 
-counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
+counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     switch (t->type()) {
-    case Term::DATUM:              return make_datum_term(env, t);
+    case Term::DATUM:              return make_datum_term(t);
     case Term::MAKE_ARRAY:         return make_make_array_term(env, t);
     case Term::MAKE_OBJ:           return make_make_obj_term(env, t);
     case Term::VAR:                return make_var_term(env, t);
@@ -154,7 +154,7 @@ counted_t<term_t> compile_term(env_t *env, protob_t<const Term> t) {
     unreachable();
 }
 
-void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
+void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
          Response *res, stream_cache2_t *stream_cache2,
          bool *response_needed_out) {
     try {
@@ -166,7 +166,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
-    env_t *env = env_ptr->get();
+    env_t *env = env_ptr.get();
     int64_t token = q->token();
 
     switch (q->type()) {
@@ -184,9 +184,10 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
             for (int i = 0; i < q->global_optargs_size(); ++i) {
                 const Query::AssocPair &ap = q->global_optargs(i);
                 if (ap.key() == "noreply") {
-                    bool conflict = env->add_optarg(ap.key(), ap.val());
+                    bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
                     r_sanity_check(!conflict);
-                    counted_t<val_t> noreply = env->get_optarg("noreply");
+                    counted_t<val_t> noreply
+                        = env->global_optargs.get_optarg(env, "noreply");
                     r_sanity_check(noreply.has());
                     *response_needed_out = !noreply->as_bool();
                     break;
@@ -197,7 +198,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
             for (int i = 0; i < q->global_optargs_size(); ++i) {
                 const Query::AssocPair &ap = q->global_optargs(i);
                 if (ap.key() != "noreply") {
-                    bool conflict = env->add_optarg(ap.key(), ap.val());
+                    bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
                     rcheck_toplevel(
                         !conflict, base_exc_t::GENERIC,
                         strprintf("Duplicate global optarg: %s", ap.key().c_str()));
@@ -210,11 +211,12 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
             N1(DB, NDATUM("test"));
 
             propagate_backtrace(arg, t_bt); // duplicate toplevel backtrace
-            UNUSED bool _b = env->add_optarg("db", *arg);
+            UNUSED bool _b = env->global_optargs.add_optarg("db", *arg);
             //          ^^ UNUSED because user can override this value safely
 
             // Parse actual query
-            root_term = compile_term(env, q.make_child(t));
+            compile_env_t compile_env((var_visibility_t()));
+            root_term = compile_term(&compile_env, q.make_child(t));
             // TODO: handle this properly
         } catch (const exc_t &e) {
             fill_error(res, Response::COMPILE_ERROR, e.what(), e.backtrace());
@@ -237,7 +239,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
         }
 
         try {
-            counted_t<val_t> val = root_term->eval();
+            scope_env_t scope_env(env, var_scope_t());
+            counted_t<val_t> val = root_term->eval(&scope_env);
 
             if (!*response_needed_out) {
                 // It's fine to just abort here because we don't allow write
@@ -252,7 +255,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                stream_cache2->insert(token, env_ptr, val->as_seq());
+                stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
             } else {
@@ -293,10 +296,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> *env_ptr,
     }
 }
 
-term_t::term_t(env_t *_env, protob_t<const Term> _src)
-    : pb_rcheckable_t(_src), env(_env), src(_src) {
-    guarantee(env != NULL);
-}
+term_t::term_t(protob_t<const Term> _src)
+    : pb_rcheckable_t(get_backtrace(_src)), src(_src) { }
 term_t::~term_t() { }
 
 // Uncomment the define to enable instrumentation (you'll be able to see where
@@ -318,12 +319,6 @@ __thread int DBG_depth = 0;
 #define DEC_DEPTH
 #endif // INSTRUMENT
 
-bool term_t::is_deterministic() const {
-    bool b = is_deterministic_impl();
-    // DBG("%s det: %d\n", name(), b);
-    return b;
-}
-
 protob_t<const Term> term_t::get_src() const {
     return src;
 }
@@ -332,16 +327,16 @@ void term_t::prop_bt(Term *t) const {
     propagate_backtrace(t, &get_src()->GetExtension(ql2::extension::backtrace));
 }
 
-counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
+counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
-    DEBUG_ONLY_CODE(env->do_eval_callback());
+    DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
-    env->throw_if_interruptor_pulsed();
+    env->env->throw_if_interruptor_pulsed();
     INC_DEPTH;
 
     try {
         try {
-            counted_t<val_t> ret = eval_impl(eval_flags);
+            counted_t<val_t> ret = eval_impl(env, eval_flags);
             DEC_DEPTH;
             DBG("%s returned %s\n", name(), ret->print().c_str());
             return ret;
@@ -358,26 +353,26 @@ counted_t<val_t> term_t::eval(eval_flags_t eval_flags) {
 }
 
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
-    return make_counted<val_t>(d, this);
+    return make_counted<val_t>(d, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
-    return make_counted<val_t>(d, t, this);
+    return make_counted<val_t>(d, t, backtrace());
 }
 
-counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s) {
-    return make_counted<val_t>(s, this);
+counted_t<val_t> term_t::new_val(env_t *env, counted_t<datum_stream_t> s) {
+    return make_counted<val_t>(env, s, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<datum_stream_t> s, counted_t<table_t> d) {
-    return make_counted<val_t>(d, s, this);
+    return make_counted<val_t>(d, s, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<const db_t> db) {
-    return make_counted<val_t>(db, this);
+    return make_counted<val_t>(db, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<table_t> t) {
-    return make_counted<val_t>(t, this);
+    return make_counted<val_t>(t, backtrace());
 }
 counted_t<val_t> term_t::new_val(counted_t<func_t> f) {
-    return make_counted<val_t>(f, this);
+    return make_counted<val_t>(f, backtrace());
 }
 counted_t<val_t> term_t::new_val_bool(bool b) {
     return new_val(make_counted<const datum_t>(datum_t::R_BOOL, b));

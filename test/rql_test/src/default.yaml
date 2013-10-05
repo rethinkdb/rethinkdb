@@ -130,6 +130,14 @@ tests:
       py: arr.filter(lambda x:x['a'].eq(1), default=True)
       js: arr.filter(function(x){return x('a').eq(1)}, {'default':true})
       ot: [{}, {'a':1}] # `null` compares not equal to 1 with no error
+    - cd: arr.filter(:default => r.js('true')){|x| x['a'].eq(1)}
+      py: arr.filter(lambda x:x['a'].eq(1), default=r.js('true'))
+      js: arr.filter(function(x) { return x('a').eq(1) }, { 'default':r.js('true') })
+      ot: [{}, {'a':1}]
+    - cd: arr.filter(:default => r.js('false')){|x| x['a'].eq(1)}
+      py: arr.filter(lambda x:x['a'].eq(1), default=r.js('false'))
+      js: arr.filter(function(x) { return x('a').eq(1) }, { 'default':r.js('false') })
+      ot: [{'a':1}]
     - cd: arr.filter(:default => r.error){|x| x['a'].eq(1)}
       py: arr.filter(lambda x:x['a'].eq(1), default=r.error())
       js: arr.filter(function(x){return x('a').eq(1)}, {'default':r.error()})

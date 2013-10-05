@@ -18,7 +18,7 @@ commands:
       <li><code>durability</code>(string): if set to <code>'soft'</code>, this enables <strong>soft durability</strong>
        on this table: writes will be acknowledged by the server immediately and flushed to disk in the background.
        Default is <code>'hard'</code> (acknowledgement of writes happens after data has been written to disk);</li>
-      <li><code>cache_size</code>(number): set the cache size (in MB) to be used by the table. Default is 1024MB;</li>
+      <li><code>cache_size</code>(number): set the cache size (in bytes) to be used by the table. The default is 1073741824 (1024MB);</li>
       <li><code>datacenter</code>(string): the name of the datacenter this table should be assigned to.</li>
       </ul>
       <br /><br />In Javascript, these options can use either the underscore or camelcase form (e.g. primaryKey, cacheSize).
@@ -176,6 +176,20 @@ commands:
             r.table('dc').index_create('parental_planets') {|hero|
               [hero['mothers_home_planet'], hero['fathers_home_planet']]
             }.run(conn)
+      - description: |
+          A multi index can be created by passing an optional
+          <code>multi</code> argument.  Multi indexes functions should return
+          arrays and allow you to query based on whether a value is present in
+          the returned array. The example would allow us to get heroes who
+          possess a specific ability (the field <code>'abilities'</code> is an
+          array).
+        code:
+          js: |
+            r.table('dc').indexCreate('abilities', {multi:true}).run(conn, callback)
+          py: |
+            r.table('dc').index_create('abilities', multi=True).run(conn)
+          rb: |
+            r.table('dc').index_create('abilities', :multi => true).run(conn)
 
   - tag: index_drop
     section: table_admin

@@ -174,7 +174,7 @@ tests:
       ot: 1
 
     - cd: r.do(1, 2, r.js('(function(a, b, c) { return c; })'))
-      ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to JSON.", [0])
+      ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to ql::datum_t.", [0])
 
     - cd: r.expr([1, 2, 3]).filter(r.js('(function(a) { return a >= 2; })'))
       ot: ([2, 3])
@@ -186,7 +186,7 @@ tests:
       ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.", [0])
 
     - cd: r.expr([1, 2, 3]).filter(r.js('(function(a) {})'))
-      ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to JSON.", [0])
+      ot: err("RqlRuntimeError", "Cannot convert javascript `undefined` to ql::datum_t.", [0])
 
     # What happens if we pass static values to things that expect functions
     - cd: r.expr([1, 2, 3]).map(1)
@@ -227,7 +227,7 @@ tests:
     - js: r([1, 2, 3]).forEach(function (row) { return [tbl.insert({ id:row }), tbl.insert({ id:row.mul(10) })] })
       py: r.expr([1,2,3]).for_each(lambda row:[tbl.insert({ 'id':row }), tbl.insert({ 'id':row*10 })])
       rb: r.expr([1,2,3]).for_each{ |row| [tbl.insert({ :id => row}), tbl.insert({ :id => row*10})] }
-      ot: ({'first_error':'Duplicate primary key.','deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':3,'skipped':0.0,'inserted':3})
+      ot: ({'first_error':"Duplicate primary key `id`:\n{\n\t\"foo\":\t3,\n\t\"id\":\t1\n}\n{\n\t\"id\":\t1\n}",'deleted':0.0,'replaced':0.0,'unchanged':0.0,'errors':3,'skipped':0.0,'inserted':3})
 
     - cd: tbl.count()
       ot: 6

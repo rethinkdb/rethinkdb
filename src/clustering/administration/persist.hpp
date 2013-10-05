@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 
 #include <string>
 
+#include "buffer_cache/mirrored/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/scoped.hpp"
@@ -11,6 +12,7 @@
 #include "serializer/types.hpp"
 
 template <class> class branch_history_manager_t;
+class io_backender_t;
 
 namespace metadata_persistence {
 

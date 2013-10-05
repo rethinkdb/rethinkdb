@@ -11,12 +11,12 @@
 #include "backfill_progress.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/depth_first_traversal.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 
 class key_tester_t;
 class parallel_traversal_progress_t;
 struct rdb_value_t;
-
 
 typedef rdb_protocol_t::read_t read_t;
 typedef rdb_protocol_t::read_response_t read_response_t;
@@ -33,10 +33,9 @@ typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
-typedef rdb_protocol_t::point_replace_t point_replace_t;
-typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
-
-typedef rdb_protocol_t::batched_replaces_response_t batched_replaces_response_t;
+typedef rdb_protocol_t::batched_replace_t batched_replace_t;
+typedef rdb_protocol_t::batched_insert_t batched_insert_t;
+typedef rdb_protocol_t::batched_replace_response_t batched_replace_response_t;
 
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
@@ -61,7 +60,6 @@ public:
 
     bool fits(const void *value, int length_available) const;
 
-    bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const;
     int max_possible_size() const;
 
     static block_magic_t leaf_magic();
@@ -82,43 +80,89 @@ struct rdb_modification_info_t;
 struct rdb_modification_report_t;
 class rdb_modification_report_cb_t;
 
-void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
+void rdb_get(const store_key_t &key,
+             btree_slice_t *slice,
+             transaction_t *txn,
+             superblock_t *superblock,
+             point_read_response_t *response);
 
 enum return_vals_t {
     NO_RETURN_VALS = 0,
     RETURN_VALS = 1
 };
 
-// QL2 This implements UPDATE, REPLACE, and part of DELETE and INSERT (each is
-// just a different function passed to this function).
-void rdb_replace(btree_slice_t *slice,
-                 repli_timestamp_t timestamp,
-                 transaction_t *txn,
-                 superblock_t *superblock,
-                 const std::string &primary_key,
-                 const store_key_t &key,
-                 ql::map_wire_func_t *f,
-                 return_vals_t return_vals,
-                 ql::env_t *ql_env,
-                 Datum *response_out,
-                 rdb_modification_info_t *mod_info);
+struct btree_info_t {
+    btree_info_t(btree_slice_t *_slice,
+                 repli_timestamp_t _timestamp,
+                 transaction_t *_txn,
+                 const std::string *_primary_key)
+        : slice(_slice), timestamp(_timestamp), txn(_txn),
+          primary_key(_primary_key) {
+        guarantee(slice != NULL);
+        guarantee(txn != NULL);
+        guarantee(primary_key != NULL);
+    }
+    btree_slice_t *const slice;
+    const repli_timestamp_t timestamp;
+    transaction_t *const txn;
+    const std::string *primary_key;
+};
 
-void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> > &replaces, btree_slice_t *slice, repli_timestamp_t timestamp,
-                         transaction_t *txn, scoped_ptr_t<superblock_t> *superblock, ql::env_t *ql_env,
-                         batched_replaces_response_t *response_out,
-                         rdb_modification_report_cb_t *sindex_cb);
+struct btree_loc_info_t {
+    btree_loc_info_t(const btree_info_t *_btree,
+                     superblock_t *_superblock,
+                     const store_key_t *_key)
+        : btree(_btree), superblock(_superblock), key(_key) {
+        guarantee(btree != NULL);
+        guarantee(superblock != NULL);
+        guarantee(key != NULL);
+    }
+    const btree_info_t *const btree;
+    superblock_t *const superblock;
+    const store_key_t *const key;
+};
 
-void rdb_set(const store_key_t &key, boost::shared_ptr<scoped_cJSON_t> data, bool overwrite,
+struct btree_batched_replacer_t {
+    virtual ~btree_batched_replacer_t() { }
+    virtual counted_t<const ql::datum_t> replace(
+        const counted_t<const ql::datum_t> &d, size_t index) const = 0;
+    virtual bool should_return_vals() const = 0;
+};
+struct btree_point_replacer_t {
+    virtual ~btree_point_replacer_t() { }
+    virtual counted_t<const ql::datum_t> replace(
+        const counted_t<const ql::datum_t> &d) const = 0;
+    virtual bool should_return_vals() const = 0;
+};
+
+batched_replace_response_t rdb_batched_replace(
+    const btree_info_t &info,
+    scoped_ptr_t<superblock_t> *superblock,
+    const std::vector<store_key_t> &keys,
+    const btree_batched_replacer_t *replacer,
+    rdb_modification_report_cb_t *sindex_cb);
+
+void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
+             transaction_t *txn, superblock_t *superblock,
+             point_write_response_t *response,
              rdb_modification_info_t *mod_info);
 
 class rdb_backfill_callback_t {
 public:
-    virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_keyvalue(const rdb_protocol_details::backfill_atom_t& atom, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_delete_range(
+        const key_range_t &range,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_deletion(
+        const btree_key_t *key,
+        repli_timestamp_t recency,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_keyvalue(
+        const rdb_protocol_details::backfill_atom_t& atom,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
+    virtual void on_sindexes(
+        const std::map<std::string, secondary_index_t> &sindexes,
+        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 protected:
     virtual ~rdb_backfill_callback_t() { }
 };
@@ -137,7 +181,9 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
         point_delete_response_t *response,
         rdb_modification_info_t *mod_info);
 
-class rdb_value_deleter_t : public value_deleter_t {
+/* A deleter that doesn't actually delete the values. Needed for secondary
+ * indexes which only have references. */
+class rdb_value_non_deleter_t : public value_deleter_t {
     void delete_value(transaction_t *_txn, void *_value);
 };
 
@@ -149,29 +195,24 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      signal_t *interruptor);
 
 /* RGETS */
-size_t estimate_rget_response_size(const boost::shared_ptr<scoped_cJSON_t> &json);
-
-struct rget_response_t {
-    std::vector<std::pair<store_key_t, boost::shared_ptr<scoped_cJSON_t> > > pairs;
-    bool truncated;
-};
+size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
                     ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    direction_t direction,
+                    sorting_t sorting,
                     rget_read_response_t *response);
 
-void rdb_rget_secondary_slice(btree_slice_t *slice, const key_range_t &range,
-                    transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env,
+void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex_range,
+                    transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     const key_range_t &pk_range,
-                    direction_t direction,
-                    const boost::optional<ql::map_wire_func_t> &map_wire_func,
+                    sorting_t sorting,
+                    const ql::map_wire_func_t &sindex_func,
+                    sindex_multi_bool_t sindex_multi,
                     rget_read_response_t *response);
 
 void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
@@ -180,8 +221,10 @@ void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t
 /* Secondary Indexes */
 
 struct rdb_modification_info_t {
-    boost::shared_ptr<scoped_cJSON_t> deleted;
-    boost::shared_ptr<scoped_cJSON_t> added;
+    typedef std::pair<counted_t<const ql::datum_t>,
+                      std::vector<char> > data_pair_t;
+    data_pair_t deleted;
+    data_pair_t added;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -218,11 +261,6 @@ public:
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
             transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
-    void add_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> added);
-    void delete_row(const store_key_t &primary_key, boost::shared_ptr<scoped_cJSON_t> deleted);
-    void replace_row(const store_key_t &primary_key,
-            boost::shared_ptr<scoped_cJSON_t> added,
-            boost::shared_ptr<scoped_cJSON_t> removed);
 
     void on_mod_report(const rdb_modification_report_t &mod_report);
 
@@ -257,5 +295,14 @@ void post_construct_secondary_indexes(
         const std::set<uuid_u> &sindexes_to_post_construct,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
+
+class rdb_value_deleter_t : public value_deleter_t {
+friend void rdb_update_sindexes(
+        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const rdb_modification_report_t *modification, transaction_t *txn);
+
+    void delete_value(transaction_t *_txn, void *_value);
+};
+
 
 #endif /* RDB_PROTOCOL_BTREE_HPP_ */

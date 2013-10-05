@@ -37,7 +37,6 @@
 #include "logger.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
-#include "help.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"
@@ -1423,106 +1422,17 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
     return true;
 }
 
-#if defined(__linux__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    char buffer[PATH_MAX + 1];
-    ssize_t len = readlink("/proc/self/exe", buffer, PATH_MAX);
-
-    if (len == -1) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    buffer[len] = '\0';
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#elif defined(__MACH__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    uint32_t buffer_size = PATH_MAX;
-    char buffer[PATH_MAX + 1];
-
-    if (_NSGetExecutablePath(buffer, &buffer_size) == -1) {
-        buffer[0] = 0;
-
-        if (_NSGetExecutablePath(buffer, &buffer_size) == -1) {
-            fprintf(stderr, "Error when determining rethinkdb directory\n");
-            return false;
-        }
-    }
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#elif defined(__FreeBSD__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    // Taken from http://stackoverflow.com/questions/799679, completely untested
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    char buf[2048];
-    size_t cb = sizeof(buf);
-    int res = sysctl(mib, 4, buf, &cb, NULL, 0);
-
-    if (res != 0) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(res).c_str());
-        return false;
-    }
-
-    char *dir = dirname(buf);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#else
-#error "no implementation for 'get_rethinkdb_exe_directory()' available for this operating system"
-#endif
-
 void run_backup_script(const std::string& script_name, char * const arguments[]) {
-    std::string exe_dir;
-
-    if (!get_rethinkdb_exe_directory(&exe_dir)) {
-        return;
-    }
-
-    // First attempt to launch the script from the same directory as us
-    std::string local_script = exe_dir + "/" + script_name;
-    int res = execvp(local_script.c_str(), arguments);
-
-    fprintf(stderr, "Warning: error when running %s: %s\n",
-            local_script.c_str(), errno_string(errno).c_str());
-    fprintf(stderr, "  attempting to run using PATH\n");
-
-    // If that fails, try to run it from the system path
-    res = execvp(script_name.c_str(), arguments);
+    int res = execvp(script_name.c_str(), arguments);
     if (res == -1) {
-        fprintf(stderr, "Error when launching %s: %s\n",
+        fprintf(stderr,
+                "Error when launching %s: %s\n"
+                "The %s command depends on the RethinkDB Python driver, which must be installed.\n"
+                "Instructions for installing the RethinkDB Python driver are available here:\n"
+                "http://www.rethinkdb.com/docs/install-drivers/python/\n",
                 script_name.c_str(),
-                errno_string(errno).c_str());
+                errno_string(errno).c_str(),
+                script_name.c_str());
     }
 }
 
@@ -1654,22 +1564,21 @@ void help_rethinkdb_porcelain() {
         get_rethinkdb_porcelain_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
-    help.pagef("  and serve as a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
-    help.pagef("\n");
-    help.pagef("There are a number of subcommands for more specific tasks:\n");
-    help.pagef("    'rethinkdb create': prepare files on disk for a new server instance\n");
-    help.pagef("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
-    help.pagef("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
-    help.pagef("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
-    help.pagef("    'rethinkdb export': export data from an existing cluster into a file or directory\n");
-    help.pagef("    'rethinkdb import': import data from from a file or directory into an existing cluster\n");
-    help.pagef("    'rethinkdb dump': export and compress data from an existing cluster\n");
-    help.pagef("    'rethinkdb restore': import compressed data into an existing cluster\n");
-    help.pagef("\n");
-    help.pagef("For more information, run 'rethinkdb help [subcommand]'.\n");
+    printf("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
+    printf("  and serve as a RethinkDB cluster node.\n");
+    printf("%s", format_help(help_sections).c_str());
+    printf("\n");
+    printf("There are a number of subcommands for more specific tasks:\n");
+    printf("    'rethinkdb create': prepare files on disk for a new server instance\n");
+    printf("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
+    printf("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
+    printf("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
+    printf("    'rethinkdb export': export data from an existing cluster into a file or directory\n");
+    printf("    'rethinkdb import': import data from from a file or directory into an existing cluster\n");
+    printf("    'rethinkdb dump': export and compress data from an existing cluster\n");
+    printf("    'rethinkdb restore': import compressed data into an existing cluster\n");
+    printf("\n");
+    printf("For more information, run 'rethinkdb help [subcommand]'.\n");
 }
 
 void help_rethinkdb_create() {
@@ -1679,10 +1588,9 @@ void help_rethinkdb_create() {
         get_rethinkdb_create_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb create' is used to prepare a directory to act"
+    printf("'rethinkdb create' is used to prepare a directory to act"
                 " as the storage location for a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_serve() {
@@ -1692,9 +1600,8 @@ void help_rethinkdb_serve() {
         get_rethinkdb_serve_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_proxy() {
@@ -1704,9 +1611,8 @@ void help_rethinkdb_proxy() {
         get_rethinkdb_proxy_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_export() {

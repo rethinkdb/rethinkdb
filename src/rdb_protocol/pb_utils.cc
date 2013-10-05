@@ -1,62 +1,66 @@
+#include "rdb_protocol/pb_utils.hpp"
+
 #include "rdb_protocol/env.hpp"
 
 namespace ql {
 namespace pb {
+
+sym_t dummy_var_to_sym(dummy_var_t dummy_var) {
+    // dummy_var values are non-negative, we map them to small negative values.
+    return sym_t(-1 - static_cast<int64_t>(dummy_var));
+}
+
 
 Datum *set_datum(Term *d) {
     d->set_type(Term::DATUM);
     return d->mutable_datum();
 }
 
-Term *set_func(Term *f, int varnum) {
+Term *set_func(Term *f, dummy_var_t dummy_var, sym_t *varnum_out) {
     f->set_type(Term::FUNC);
 
     Datum *vars = set_datum(f->add_args());
     vars->set_type(Datum::R_ARRAY);
     Datum *var1 = vars->add_r_array();
     var1->set_type(Datum::R_NUM);
-    var1->set_r_num(varnum);
+    const sym_t varnum = dummy_var_to_sym(dummy_var);
+    var1->set_r_num(varnum.value);
 
+    *varnum_out = varnum;
     return f->add_args();
 }
 
-Term *set_func(Term *f, int varnum1, int varnum2) {
+Term *set_func(Term *f,
+               dummy_var_t dummy_var1, sym_t *varnum1_out,
+               dummy_var_t dummy_var2, sym_t *varnum2_out) {
     f->set_type(Term::FUNC);
 
     Datum *vars = set_datum(f->add_args());
     vars->set_type(Datum::R_ARRAY);
     Datum *var1 = vars->add_r_array();
     var1->set_type(Datum::R_NUM);
-    var1->set_r_num(varnum1);
+    const sym_t varnum1 = dummy_var_to_sym(dummy_var1);
+    var1->set_r_num(varnum1.value);
     Datum *var2 = vars->add_r_array();
     var2->set_type(Datum::R_NUM);
-    var2->set_r_num(varnum2);
+    const sym_t varnum2 = dummy_var_to_sym(dummy_var2);
+    var2->set_r_num(varnum2.value);
 
+    *varnum1_out = varnum1;
+    *varnum2_out = varnum2;
     return f->add_args();
 }
 
-void set_var(Term *v, int varnum) {
+void set_var(Term *v, sym_t varnum) {
     v->set_type(Term::VAR);
     Datum *vn = set_datum(v->add_args());
     vn->set_type(Datum::R_NUM);
-    vn->set_r_num(varnum);
+    vn->set_r_num(varnum.value);
 }
 
 void set_null(Term *t) {
     Datum *d = set_datum(t);
     d->set_type(Datum::R_NULL);
-}
-
-void set_int(Term *t, int num) {
-    Datum *d = set_datum(t);
-    d->set_type(Datum::R_NUM);
-    d->set_r_num(num);
-}
-
-void set_str(Term *t, const std::string &s) {
-    Datum *d = set_datum(t);
-    d->set_type(Datum::R_STR);
-    d->set_r_str(s);
 }
 
 void set(Term *out, Term_TermType type, std::vector<Term *> *args_out, int num_args) {

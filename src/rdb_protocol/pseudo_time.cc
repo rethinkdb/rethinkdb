@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pseudo_time.hpp"
 
 #include <time.h>
@@ -479,13 +480,14 @@ void sanitize_time(datum_t *time) {
             }
         } else if (it->first == timezone_key) {
             if (it->second->get_type() == datum_t::R_STR) {
-                std::string tz, raw_tz = it->second->as_str();
+                const std::string raw_tz = it->second->as_str();
+                std::string tz;
                 if (tz_valid(raw_tz, &tz)) {
                     has_timezone = true;
                     tz = (tz == "Z") ? "+00:00" : tz;
                     if (tz != raw_tz) {
                         bool b = time->add(timezone_key,
-                                           make_counted<const datum_t>(tz),
+                                           make_counted<const datum_t>(std::move(tz)),
                                            CLOBBER);
                         r_sanity_check(b);
                     }
@@ -541,7 +543,7 @@ counted_t<const datum_t> time_in_tz(counted_t<const datum_t> t,
         UNUSED bool b = t2.add(timezone_key, tz, CLOBBER);
     } else {
         UNUSED bool b =
-            t2.add(timezone_key, make_counted<const datum_t>(new_tzs), CLOBBER);
+            t2.add(timezone_key, make_counted<const datum_t>(std::move(new_tzs)), CLOBBER);
     }
     return t2.to_counted();
 }
@@ -551,7 +553,7 @@ counted_t<const datum_t> make_time(double epoch_time, std::string tz) {
     bool clobber = res.add(datum_t::reql_type_string,
                            make_counted<const datum_t>(time_string));
     clobber |= res.add(epoch_time_key, make_counted<const datum_t>(epoch_time));
-    clobber |= res.add(timezone_key, make_counted<const datum_t>(tz));
+    clobber |= res.add(timezone_key, make_counted<const datum_t>(std::move(tz)));
     r_sanity_check(!clobber);
     return res.to_counted();
 }
@@ -627,7 +629,7 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
             // We use the ISO 8601 convention which counts from 1 and starts with Monday.
             int d = ptime.date().day_of_week();
             return d == 0 ? 7 : d;
-        } unreachable();
+        } break;
         case DAY_OF_YEAR: return ptime.date().day_of_year();
         case HOURS: return ptime.time_of_day().hours();
         case MINUTES: return ptime.time_of_day().minutes();
@@ -635,10 +637,9 @@ double time_portion(counted_t<const datum_t> time, time_component_t c) {
             double frac = modf(time->get(epoch_time_key)->as_num(), &frac);
             frac = round(frac * 1000) / 1000;
             return ptime.time_of_day().seconds() + frac;
-        } unreachable();
+        } break;
         default: unreachable();
         }
-        unreachable();
     } HANDLE_BOOST_ERRORS_NO_TARGET;
 }
 

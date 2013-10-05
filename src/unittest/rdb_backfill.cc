@@ -7,10 +7,10 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
-#include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/proto_utils.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -23,14 +23,16 @@
 namespace unittest {
 
 void run_with_broadcaster(
-        boost::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-                              branch_history_manager_t<rdb_protocol_t> *,
-                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
-                              scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-                              test_store_t<rdb_protocol_t> *,
-                              scoped_ptr_t<listener_t<rdb_protocol_t> > *,
-                              rdb_protocol_t::context_t *ctx,
-                              order_source_t *)> fun) {
+    boost::function< void(
+        std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
+        branch_history_manager_t<rdb_protocol_t> *,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<
+            broadcaster_business_card_t<rdb_protocol_t> > > > >,
+        scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
+        test_store_t<rdb_protocol_t> *,
+        scoped_ptr_t<listener_t<rdb_protocol_t> > *,
+        rdb_protocol_t::context_t *ctx,
+        order_source_t *)> fun) {
     order_source_t order_source;
 
     /* Set up a cluster so mailboxes can be created */
@@ -112,18 +114,18 @@ void run_in_thread_pool_with_broadcaster(
 
 /* `PartialBackfill` backfills only in a specific sub-region. */
 
-boost::shared_ptr<scoped_cJSON_t> generate_document(size_t value_padding_length, const std::string &value) {
+counted_t<const ql::datum_t> generate_document(size_t value_padding_length, const std::string &value) {
     // This is a kind of hacky way to add an object to a map but I'm not sure
     // anyone really cares.
-    return boost::make_shared<scoped_cJSON_t>(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
-                                                                    value.c_str(),
-                                                                    std::string(value_padding_length, 'a').c_str()).c_str()));
+    return make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(strprintf("{\"id\" : %s, \"padding\" : \"%s\"}",
+                                                                          value.c_str(),
+                                                                          std::string(value_padding_length, 'a').c_str()).c_str())));
 }
 
 void write_to_broadcaster(size_t value_padding_length,
                           broadcaster_t<rdb_protocol_t> *broadcaster,
-                          const std::string& key,
-                          const std::string& value,
+                          const std::string &key,
+                          const std::string &value,
                           order_token_t otok,
                           signal_t *) {
     rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key),
@@ -216,10 +218,9 @@ void run_backfill_test(size_t value_padding_length,
         broadcaster->get()->read(read, &response, &exiter, order_source->check_in("unittest::(rdb)run_partial_backfill_test").with_read_mode(), &non_interruptor);
         rdb_protocol_t::point_read_response_t get_result = boost::get<rdb_protocol_t::point_read_response_t>(response.response);
         EXPECT_TRUE(get_result.data.get() != NULL);
-        EXPECT_EQ(0, query_language::json_cmp(generate_document(value_padding_length,
-                                                                it->second)->get(),
-                                              get_result.data->get()))
-            << generate_document(value_padding_length, it->second)->Print() << " vs " << get_result.data->Print();
+        EXPECT_EQ(*generate_document(value_padding_length,
+                                     it->second),
+                  *get_result.data);
     }
 }
 
@@ -253,13 +254,14 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     std::string sindex_id("sid");
     {
         /* Create a secondary index object. */
-        Term mapping;
-        Term *arg = ql::pb::set_func(&mapping, 1);
-        N2(GET_FIELD, NVAR(1), NDATUM("id"));
+        const ql::sym_t one(1);
+        ql::protob_t<Term> twrap = ql::make_counted_term();
+        Term *arg = twrap.get();
+        N2(GET_FIELD, NVAR(one), NDATUM("id"));
 
-        ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
+        ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m, SINGLE));
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -322,11 +324,10 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        auto sindex_key_json = boost::make_shared<scoped_cJSON_t>(cJSON_Parse(it->second.c_str()));
+        scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            sindex_id, rdb_protocol_t::sindex_range_t(
-                sindex_key_literal, false, sindex_key_literal, false)));
+            sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
@@ -336,7 +337,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         auto result_stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&get_result.result);
         guarantee(result_stream);
         ASSERT_EQ(1u, result_stream->size());
-        EXPECT_EQ(0, query_language::json_cmp(generate_document(0, it->second)->get(), result_stream->at(0).data->get()));
+        EXPECT_EQ(*generate_document(0, it->second), *result_stream->at(0).data);
     }
 }
 

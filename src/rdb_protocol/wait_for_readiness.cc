@@ -4,6 +4,7 @@
 #include "errors.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include "arch/timing.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/signal.hpp"

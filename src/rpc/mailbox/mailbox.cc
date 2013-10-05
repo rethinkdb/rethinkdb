@@ -53,14 +53,14 @@ raw_mailbox_t::~raw_mailbox_t() {
 raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
     address_t a;
     a.peer = manager->get_connectivity_service()->get_me();
-    a.thread = home_thread();
+    a.thread = home_thread().threadnum;
     a.mailbox_id = mailbox_id;
     return a;
 }
 
 class raw_mailbox_writer_t : public send_message_write_callback_t {
 public:
-    raw_mailbox_writer_t(int _dest_thread, raw_mailbox_t::id_t _dest_mailbox_id, mailbox_write_callback_t *_subwriter) :
+    raw_mailbox_writer_t(int32_t _dest_thread, raw_mailbox_t::id_t _dest_mailbox_id, mailbox_write_callback_t *_subwriter) :
         dest_thread(_dest_thread), dest_mailbox_id(_dest_mailbox_id), subwriter(_subwriter) { }
     virtual ~raw_mailbox_writer_t() { }
 
@@ -93,7 +93,7 @@ mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
     { }
 
 mailbox_manager_t::mailbox_table_t::mailbox_table_t() {
-    next_mailbox_id = (UINT64_MAX / get_num_threads()) * get_thread_id();
+    next_mailbox_id = (UINT64_MAX / get_num_threads()) * get_thread_id().threadnum;
 }
 
 mailbox_manager_t::mailbox_table_t::~mailbox_table_t() {
@@ -110,7 +110,7 @@ raw_mailbox_t *mailbox_manager_t::mailbox_table_t::find_mailbox(raw_mailbox_t::i
 }
 
 void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, string_read_stream_t *stream) {
-    int dest_thread;
+    int32_t dest_thread;
     raw_mailbox_t::id_t dest_mailbox_id;
     {
         archive_result_t res = deserialize(stream, &dest_thread);
@@ -121,14 +121,14 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, string_read_str
 
     if (dest_thread == raw_mailbox_t::address_t::ANY_THREAD) {
         // TODO: this will just run the callback on the current thread, maybe do some load balancing, instead
-        dest_thread = get_thread_id();
+        dest_thread = get_thread_id().threadnum;
     }
 
     coro_t::spawn_now_dangerously(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
-                                              this, dest_thread, dest_mailbox_id, stream));
+                                              this, threadnum_t(dest_thread), dest_mailbox_id, stream));
 }
 
-void mailbox_manager_t::mailbox_read_coroutine(int dest_thread,
+void mailbox_manager_t::mailbox_read_coroutine(threadnum_t dest_thread,
                                                raw_mailbox_t::id_t dest_mailbox_id,
                                                string_read_stream_t *stream) {
     // Take the string from the read stream, so it can be deallocated in the caller

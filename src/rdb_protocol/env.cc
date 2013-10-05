@@ -1,5 +1,8 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/env.hpp"
 
+#include "clustering/administration/database_metadata.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"
@@ -19,168 +22,41 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
-counted_t<func_t> env_t::get_or_compile_func(const wire_func_t *wf) {
-    assert_thread();
-    auto it = cached_funcs.find(wf->uuid);
-    if (it == cached_funcs.end()) {
-        push_scope(&wf->scope);
-        try {
-            it = cached_funcs.insert(
-                std::make_pair(
-                    wf->uuid, compile_term(this, wf->source)->eval()->as_func())).first;
-            if (wf->default_filter_val) {
-                it->second->set_default_filter_val(
-                    make_counted<func_t>(
-                        this, make_counted_term_copy(*wf->default_filter_val)));
-            }
-        } catch (const base_exc_t &e) {
-            // If we have a non-`base_exc_t` exception, we don't want to pop the
-            // scope because we might have corruption, and we might fail a check
-            // and try to throw again while this exception is on the stack.  (We
-            // only need to pop the scope for a `base_exc_t` exception because
-            // that's the only kind of exception that we might recover from in
-            // the ReQL layer, which is the only case where the un-popped scope
-            // might matter.)
-            pop_scope();
-            throw;
-        }
-        pop_scope();
+global_optargs_t::global_optargs_t() { }
+
+global_optargs_t::global_optargs_t(const std::map<std::string, wire_func_t> &_optargs)
+    : optargs(_optargs) { }
+
+bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
+    if (optargs.count(key)) {
+        return true;
     }
-    return it->second;
-}
-
-void env_t::precache_func(const wire_func_t *wf, counted_t<func_t> func) {
-    cached_funcs[wf->uuid] = func;
-}
-
-bool env_t::add_optarg(const std::string &key, const Term &val) {
-    if (optargs.count(key)) return true;
     protob_t<Term> arg = make_counted_term();
     N2(FUNC, N0(MAKE_ARRAY), *arg = val);
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
-    optargs[key] = wire_func_t(*arg, std::map<int64_t, Datum>());
-    counted_t<func_t> force_compilation = optargs[key].compile(this);
-    r_sanity_check(force_compilation != NULL);
+
+    compile_env_t empty_compile_env((var_visibility_t()));
+    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env, arg);
+    counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
+
+    optargs[key] = wire_func_t(func);
     return false;
 }
 
-void env_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
+void global_optargs_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
-    for (auto it = optargs.begin(); it != optargs.end(); ++it) {
-        counted_t<func_t> force_compilation = it->second.compile(this);
-        r_sanity_check(force_compilation != NULL);
-    }
 }
-counted_t<val_t> env_t::get_optarg(const std::string &key){
+counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
     if (!optargs.count(key)) {
         return counted_t<val_t>();
     }
-    return optargs[key].compile(this)->call();
+    return optargs[key].compile_wire_func()->call(env);
 }
-const std::map<std::string, wire_func_t> &env_t::get_all_optargs() {
+const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;
 }
 
-
-static const int min_normal_gensym = -1000000;
-int env_t::gensym(bool allow_implicit) {
-    r_sanity_check(0 > next_gensym_val && next_gensym_val >= min_normal_gensym);
-    int gensym = next_gensym_val--;
-    if (!allow_implicit) {
-        gensym += min_normal_gensym;
-        r_sanity_check(gensym < min_normal_gensym);
-    }
-    return gensym;
-}
-
-bool env_t::var_allows_implicit(int varnum) {
-    return varnum >= min_normal_gensym;
-}
-
-void env_t::push_implicit(counted_t<const datum_t> *val) {
-    implicit_var.push(val);
-}
-counted_t<const datum_t> *env_t::top_implicit(const rcheckable_t *caller) {
-    rcheck_target(caller, base_exc_t::GENERIC, !implicit_var.empty(),
-                  "r.row is not defined in this context.");
-    rcheck_target(caller, base_exc_t::GENERIC, implicit_var.size() == 1,
-                  "Cannot use r.row in nested queries.  Use functions instead.");
-    return implicit_var.top();
-}
-void env_t::pop_implicit() {
-    r_sanity_check(implicit_var.size() > 0);
-    implicit_var.pop();
-}
-
-void env_t::push_var(int var, counted_t<const datum_t> *val) {
-    vars[var].push(val);
-}
-
-static counted_t<const datum_t> sindex_error_dummy_datum;
-void env_t::push_special_var(int var, special_var_t special_var) {
-    switch (special_var) {
-    case SINDEX_ERROR_VAR: {
-        vars[var].push(&sindex_error_dummy_datum);
-    } break;
-    default: unreachable();
-    }
-}
-
-env_t::special_var_shadower_t::special_var_shadower_t(
-    env_t *env, special_var_t special_var) : shadow_env(env) {
-    shadow_env->dump_scope(&current_scope);
-    for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
-        shadow_env->push_special_var(it->first, special_var);
-    }
-}
-
-env_t::special_var_shadower_t::~special_var_shadower_t() {
-    for (auto it = current_scope.begin(); it != current_scope.end(); ++it) {
-        shadow_env->pop_var(it->first);
-    }
-}
-
-counted_t<const datum_t> *env_t::top_var(int var, const rcheckable_t *caller) {
-    rcheck_target(caller, base_exc_t::GENERIC, !vars[var].empty(),
-                  strprintf("Unrecognized variabled %d", var));
-    counted_t<const datum_t> *var_val = vars[var].top();
-    rcheck_target(caller, base_exc_t::GENERIC,
-                  var_val != &sindex_error_dummy_datum,
-                  "Cannot reference external variables from inside an index.");
-    return var_val;
-}
-void env_t::pop_var(int var) {
-    vars[var].pop();
-}
-void env_t::dump_scope(std::map<int64_t, counted_t<const datum_t> *> *out) {
-    for (std::map<int64_t, std::stack<counted_t<const datum_t> *> >::iterator
-             it = vars.begin(); it != vars.end(); ++it) {
-        if (it->second.size() == 0) continue;
-        r_sanity_check(it->second.top());
-        (*out)[it->first] = it->second.top();
-    }
-}
-void env_t::push_scope(const std::map<int64_t, Datum> *in) {
-    scope_stack.push(std::vector<std::pair<int, counted_t<const datum_t> > >());
-
-    for (auto it = in->begin(); it != in->end(); ++it) {
-        scope_stack.top().push_back(
-            std::make_pair(it->first, make_counted<datum_t>(&it->second)));
-    }
-
-    for (size_t i = 0; i < scope_stack.top().size(); ++i) {
-        push_var(scope_stack.top()[i].first, &scope_stack.top()[i].second);
-    }
-}
-void env_t::pop_scope() {
-    r_sanity_check(scope_stack.size() > 0);
-    for (size_t i = 0; i < scope_stack.top().size(); ++i) {
-        pop_var(scope_stack.top()[i].first);
-    }
-    // DO NOT pop the vector off the scope stack.  You might invalidate a
-    // pointer too early.
-}
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
     eval_callback = callback;
@@ -192,8 +68,28 @@ void env_t::do_eval_callback() {
     }
 }
 
-void env_t::join_and_wait_to_propagate(
-    const cluster_semilattice_metadata_t &metadata_to_join)
+cluster_access_t::cluster_access_t(
+        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+
+        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+            _namespaces_semilattice_metadata,
+
+        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+             _databases_semilattice_metadata,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _semilattice_metadata,
+        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+        uuid_u _this_machine)
+    : ns_repo(_ns_repo),
+      namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
+      databases_semilattice_metadata(_databases_semilattice_metadata),
+      semilattice_metadata(_semilattice_metadata),
+      directory_read_manager(_directory_read_manager),
+      this_machine(_this_machine) { }
+
+void cluster_access_t::join_and_wait_to_propagate(
+        const cluster_semilattice_metadata_t &metadata_to_join,
+        signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     cluster_semilattice_metadata_t sl_metadata;
     {
@@ -244,27 +140,27 @@ env_t::env_t(
     signal_t *_interruptor,
     uuid_u _this_machine,
     const std::map<std::string, wire_func_t> &_optargs)
-  : optargs(_optargs),
-    next_gensym_val(-2),
-    implicit_depth(0),
+  : global_optargs(_optargs),
     extproc_pool(_extproc_pool),
-    ns_repo(_ns_repo),
-    namespaces_semilattice_metadata(_namespaces_semilattice_metadata),
-    databases_semilattice_metadata(_databases_semilattice_metadata),
-    semilattice_metadata(_semilattice_metadata),
-    directory_read_manager(_directory_read_manager),
-    DEBUG_ONLY(eval_callback(NULL), )
+    cluster_access(_ns_repo,
+                   _namespaces_semilattice_metadata,
+                   _databases_semilattice_metadata,
+                   _semilattice_metadata,
+                   _directory_read_manager,
+                   _this_machine),
     interruptor(_interruptor),
-    this_machine(_this_machine) { }
+    eval_callback(NULL) { }
 
 env_t::env_t(signal_t *_interruptor)
-  : next_gensym_val(-2),
-    implicit_depth(0),
-    extproc_pool(NULL),
-    ns_repo(NULL),
-    directory_read_manager(NULL),
-    DEBUG_ONLY(eval_callback(NULL), )
-    interruptor(_interruptor) { }
+  : extproc_pool(NULL),
+    cluster_access(NULL,
+                   clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
+                   clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
+                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+                   NULL,
+                   uuid_u()),
+    interruptor(_interruptor),
+    eval_callback(NULL) { }
 
 env_t::~env_t() { }
 

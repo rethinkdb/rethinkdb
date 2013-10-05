@@ -23,8 +23,6 @@ else
   SERVER_EXEC_NAME_VERSIONED := $(SERVER_EXEC_NAME)
 endif
 
-RETHINKDB_PACKAGING_VERSION := $(RETHINKDB_VERSION)
-
 ifeq ($(NAMEVERSIONED),1)
   VERSIONED_QUALIFIED_PACKAGE_NAME := $(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
   VERSIONED_PACKAGE_NAME := $(PACKAGE_NAME)-$(RETHINKDB_SHORT_VERSION)
@@ -69,7 +67,7 @@ else
 endif
 
 .PHONY: install-binaries
-install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME) install-backup-scripts
+install-binaries: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 	$P INSTALL $^ $(DESTDIR)$(bin_dir)
 	install -m755 -d $(DESTDIR)$(bin_dir)
 	install -m755 $(BUILD_DIR)/$(SERVER_EXEC_NAME) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
@@ -77,13 +75,6 @@ ifeq ($(STRIP_ON_INSTALL),1)
 	$P STRIP $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 	$(STRIP_UNNEEDED) $(DESTDIR)$(FULL_SERVER_EXEC_NAME_VERSIONED)
 endif
-
-install-backup-scripts: $(BACKUP_SCRIPTS_REAL) $(BACKUP_SCRIPTS_PROXY)
-	$P INSTALL backup-scripts $(DESTDIR)$(bin_dir)
-	install -m755 -d $(DESTDIR)$(bin_dir)
-	for file in $^; do \
-	  install -m755 $$file $(DESTDIR)$(bin_dir) ; \
-	done
 
 $(BUILD_DIR)/assets/rethinkdb.1: $(ASSETS_DIR)/man/rethinkdb.1 | $(BUILD_DIR)/assets/.
 	$P M4

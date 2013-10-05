@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/namespace_interface_repository.hpp"
 
 #include "errors.hpp"
@@ -7,6 +7,7 @@
 
 #include "arch/timing.hpp"
 #include "clustering/administration/namespace_metadata.hpp"
+#include "clustering/reactor/namespace_interface.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
@@ -141,7 +142,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
             auto_drainer_t::lock_t keepalive)
             THROWS_NOTHING{
     keepalive.assert_is_holding(&cache->drainer);
-    int thread = get_thread_id();
+    threadnum_t thread = get_thread_id();
 
     typename base_namespace_repo_t<protocol_t>::namespace_cache_entry_t *cache_entry = cache->entries.find(namespace_id)->second;
     guarantee(!cache_entry->namespace_if.get_ready_signal()->is_pulsed());

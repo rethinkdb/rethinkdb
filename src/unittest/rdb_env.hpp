@@ -10,21 +10,22 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
-#include "unittest/test_cluster_group.hpp"
-#include "unittest/unittest_utils.hpp"
-#include "unittest/dummy_metadata_controller.hpp"
-#include "concurrency/watchable.hpp"
-#include "concurrency/cross_thread_watchable.hpp"
-#include "rpc/semilattice/watchable.hpp"
-#include "rpc/semilattice/view/field.hpp"
-#include "rpc/directory/read_manager.hpp"
-#include "rpc/directory/write_manager.hpp"
 #include "clustering/administration/main/ports.hpp"
-#include "rpc/connectivity/multiplexer.hpp"
-#include "rdb_protocol/env.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/metadata.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
+#include "concurrency/watchable.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
+#include "rdb_protocol/env.hpp"
+#include "rpc/connectivity/multiplexer.hpp"
+#include "rpc/directory/read_manager.hpp"
+#include "rpc/directory/write_manager.hpp"
+#include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/watchable.hpp"
+#include "unittest/dummy_metadata_controller.hpp"
+#include "unittest/test_cluster_group.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -76,8 +77,8 @@ private:
     };
 
     struct write_visitor_t : public boost::static_visitor<void> {
-        void operator()(const rdb_protocol_t::point_replace_t &r);
-        void NORETURN operator()(const rdb_protocol_t::batched_replaces_t &br);
+        void operator()(const rdb_protocol_t::batched_replace_t &br);
+        void operator()(const rdb_protocol_t::batched_insert_t &br);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_write_t &w);
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);
