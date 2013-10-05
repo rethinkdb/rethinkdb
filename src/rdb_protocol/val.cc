@@ -37,8 +37,7 @@ table_t::table_t(env_t *env,
                               strprintf("Table `%s` does not exist.",
                                         table_name.c_str()), this);
 
-    access.init(new namespace_repo_t<rdb_protocol_t>::access_t(
-                    env->cluster_access.ns_repo, id, env->interruptor));
+    access.init(new rdb_namespace_access_t(id, env));
 
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
@@ -260,7 +259,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
         rdb_protocol_t::write_t write(rdb_protocol_t::batched_replaces_t(point_replaces),
                                       durability_requirement, env->explain());
         rdb_protocol_t::write_response_t response;
-        access->get_namespace_if()->write(write, &response, order_token_t::ignore, env->interruptor);
+        access->get_namespace_if().write(&write, &response, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
             = boost::get<rdb_protocol_t::batched_replaces_response_t>(&response.response);
         r_sanity_check(batched_replaces_response != NULL);
@@ -292,8 +291,8 @@ MUST_USE bool table_t::sindex_create(env_t *env,
             rdb_protocol_t::sindex_create_t(id, wire_func, multi), env->explain());
 
     rdb_protocol_t::write_response_t res;
-    access->get_namespace_if()->write(
-        write, &res, order_token_t::ignore, env->interruptor);
+    access->get_namespace_if().write(
+        &write, &res, order_token_t::ignore, env->interruptor);
 
     rdb_protocol_t::sindex_create_response_t *response =
         boost::get<rdb_protocol_t::sindex_create_response_t>(&res.response);
@@ -305,8 +304,8 @@ MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
     rdb_protocol_t::write_t write(rdb_protocol_t::sindex_drop_t(id), env->explain());
 
     rdb_protocol_t::write_response_t res;
-    access->get_namespace_if()->write(
-        write, &res, order_token_t::ignore, env->interruptor);
+    access->get_namespace_if().write(
+        &write, &res, order_token_t::ignore, env->interruptor);
 
     rdb_protocol_t::sindex_drop_response_t *response =
         boost::get<rdb_protocol_t::sindex_drop_response_t>(&res.response);
@@ -319,8 +318,8 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     rdb_protocol_t::read_t read(sindex_list, env->explain());
     try {
         rdb_protocol_t::read_response_t res;
-        access->get_namespace_if()->read(
-            read, &res, order_token_t::ignore, env->interruptor);
+        access->get_namespace_if().read(
+            &read, &res, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::sindex_list_response_t *s_res =
             boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
         r_sanity_check(s_res);
@@ -363,8 +362,8 @@ counted_t<const datum_t> table_t::do_replace(
         durability_requirement, env->explain());
 
     rdb_protocol_t::write_response_t response;
-    access->get_namespace_if()->write(
-        write, &response, order_token_t::ignore, env->interruptor);
+    access->get_namespace_if().write(
+        &write, &response, order_token_t::ignore, env->interruptor);
     Datum *d = boost::get<Datum>(&response.response);
     return make_counted<datum_t>(d);
 }
@@ -405,10 +404,10 @@ counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> p
             rdb_protocol_t::point_read_t(store_key_t(pks)), env->explain());
     rdb_protocol_t::read_response_t res;
     if (use_outdated) {
-        access->get_namespace_if()->read_outdated(read, &res, env->interruptor);
+        access->get_namespace_if().read_outdated(&read, &res, env->interruptor);
     } else {
-        access->get_namespace_if()->read(
-            read, &res, order_token_t::ignore, env->interruptor);
+        access->get_namespace_if().read(
+            &read, &res, order_token_t::ignore, env->interruptor);
     }
     rdb_protocol_t::point_read_response_t *p_res =
         boost::get<rdb_protocol_t::point_read_response_t>(&res.response);

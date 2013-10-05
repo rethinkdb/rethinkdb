@@ -23,7 +23,10 @@
 
 enum batch_info_t { MID_BATCH, LAST_OF_BATCH, END_OF_STREAM };
 
-namespace ql { class env_t; }
+namespace ql {
+    class rdb_namespace_access_t;
+    class env_t; 
+} //namespace ql 
 
 namespace query_language {
 
@@ -63,7 +66,8 @@ private:
 class batched_rget_stream_t : public json_stream_t {
 public:
     /* Primary key rget. */
-    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+    batched_rget_stream_t(
+        const ql::rdb_namespace_access_t &_ns_access,
         counted_t<const ql::datum_t> left_bound, bool left_bound_open,
         counted_t<const ql::datum_t> right_bound, bool right_bound_open,
         const std::map<std::string, ql::wire_func_t> &_optargs,
@@ -71,8 +75,8 @@ public:
         ql::rcheckable_t *_parent);
 
     /* Sindex rget. */
-    batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-        const std::string &_sindex_id,
+    batched_rget_stream_t(
+        const ql::rdb_namespace_access_t &_ns_access, const std::string &_sindex_id,
         counted_t<const ql::datum_t> _sindex_start_value, bool start_value_open,
         counted_t<const ql::datum_t> _sindex_end_value, bool end_value_open,
         const std::map<std::string, ql::wire_func_t> &_optargs, bool _use_outdated,
@@ -101,7 +105,7 @@ private:
     bool check_and_set_last_key(counted_t<const ql::datum_t>);
 
     rdb_protocol_details::transform_t transform;
-    namespace_repo_t<rdb_protocol_t>::access_t ns_access;
+    scoped_ptr_t<ql::rdb_namespace_access_t> ns_access;
     boost::optional<std::string> sindex_id;
 
     /* This needs to include information about the secondary index key of the object

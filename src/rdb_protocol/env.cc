@@ -89,6 +89,78 @@ const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;
 }
 
+/* rdb_namespace_interface_t methods */
+
+rdb_namespace_interface_t::rdb_namespace_interface_t(
+        namespace_interface_t<rdb_protocol_t> *internal, env_t *env)
+    : internal_(internal), env_(env) { }
+
+void rdb_namespace_interface_t::read(
+        rdb_protocol_t::read_t *read,
+        rdb_protocol_t::read_response_t *response,
+        order_token_t tok,
+        signal_t *interruptor) 
+    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    env_->tracer.checkin("Perform read.");
+    /* propagate whether or not we're doing explains */
+    read->explain = env_->explain();
+    /* Do the actual read. */
+    internal_->read(*read, response, tok, interruptor);
+    /* Append the results of the explain to the current task */
+    env_->tracer.add_task(std::move(response->task));
+}
+ 
+
+void rdb_namespace_interface_t::read_outdated(
+        rdb_protocol_t::read_t *read,
+        rdb_protocol_t::read_response_t *response,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    env_->tracer.checkin("Perform outdated read.");
+    /* propagate whether or not we're doing explains */
+    read->explain = env_->explain();
+    /* Do the actual read. */
+    internal_->read_outdated(*read, response, interruptor);
+    /* Append the results of the explain to the current task */
+    env_->tracer.add_task(std::move(response->task));
+}
+
+void rdb_namespace_interface_t::write(
+        rdb_protocol_t::write_t *write,
+        rdb_protocol_t::write_response_t *response,
+        order_token_t tok,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    env_->tracer.checkin("Perform write.");
+    /* propagate whether or not we're doing explains */
+    write->explain = env_->explain();
+    /* Do the actual read. */
+    internal_->write(*write, response, tok, interruptor);
+    /* Append the results of the explain to the current task */
+    env_->tracer.add_task(std::move(response->task));
+}
+
+std::set<rdb_protocol_t::region_t> rdb_namespace_interface_t::get_sharding_scheme()
+    THROWS_ONLY(cannot_perform_query_exc_t) {
+    return internal_->get_sharding_scheme();
+}
+
+signal_t *rdb_namespace_interface_t::get_initial_ready_signal() {
+    return internal_->get_initial_ready_signal();
+}
+
+bool rdb_namespace_interface_t::has() {
+    return internal_;
+}
+
+rdb_namespace_access_t::rdb_namespace_access_t(uuid_u id, env_t *env)
+    : internal_(env->cluster_access.ns_repo, id, env->interruptor),
+      env_(env)
+{ }
+
+rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
+    return rdb_namespace_interface_t(internal_.get_namespace_if(), env_);
+}
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
     eval_callback = callback;

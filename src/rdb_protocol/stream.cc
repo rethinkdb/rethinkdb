@@ -12,13 +12,13 @@
 namespace query_language {
 
 batched_rget_stream_t::batched_rget_stream_t(
-    const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+    const ql::rdb_namespace_access_t &_ns_access,
     counted_t<const ql::datum_t> left_bound, bool left_bound_open,
     counted_t<const ql::datum_t> right_bound, bool right_bound_open,
     const std::map<std::string, ql::wire_func_t> &_optargs,
     bool _use_outdated, sorting_t _sorting,
     ql::rcheckable_t *_parent)
-    : ns_access(_ns_access),
+    : ns_access(new ql::rdb_namespace_access_t(_ns_access)),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
       range(left_bound_open ? key_range_t::open : key_range_t::closed,
             left_bound.has()
@@ -33,13 +33,12 @@ batched_rget_stream_t::batched_rget_stream_t(
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(
-    const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-    const std::string &_sindex_id,
+    const ql::rdb_namespace_access_t &_ns_access, const std::string &_sindex_id,
     counted_t<const ql::datum_t> _sindex_start_value, bool start_value_open,
     counted_t<const ql::datum_t> _sindex_end_value, bool end_value_open,
     const std::map<std::string, ql::wire_func_t> &_optargs, bool _use_outdated,
     sorting_t _sorting, ql::rcheckable_t *_parent)
-    : ns_access(_ns_access),
+    : ns_access(new ql::rdb_namespace_access_t(_ns_access)),
       sindex_id(_sindex_id),
       finished(false),
       started(false),
@@ -226,10 +225,10 @@ rdb_protocol_t::rget_read_response_t::result_t batched_rget_stream_t::apply_term
     try {
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
-            ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
+            ns_access->get_namespace_if().read_outdated(&read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(
-                read, &res, order_token_t::ignore, env->interruptor);
+            ns_access->get_namespace_if().read(
+                &read, &res, order_token_t::ignore, env->interruptor);
         }
         rdb_protocol_t::rget_read_response_t *p_res
             = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
@@ -268,13 +267,13 @@ void batched_rget_stream_t::read_more(ql::env_t *env) {
     rdb_protocol_t::read_t read(get_rget(),
             env->explain());
     try {
-        guarantee(ns_access.get_namespace_if());
+        guarantee(ns_access->get_namespace_if().has());
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
-            ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
+            ns_access->get_namespace_if().read_outdated(&read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(
-                read, &res, order_token_t::ignore, env->interruptor);
+            ns_access->get_namespace_if().read(
+                &read, &res, order_token_t::ignore, env->interruptor);
         }
         rdb_protocol_t::rget_read_response_t *p_res
             = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);

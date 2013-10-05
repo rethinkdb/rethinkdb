@@ -40,6 +40,37 @@ private:
     std::map<std::string, wire_func_t> optargs;
 };
 
+/* This is like a normal namespace_interface_t except that it properly handles
+ * merging the explain objects. */
+class rdb_namespace_interface_t {
+public:
+    rdb_namespace_interface_t(
+            namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
+
+    void read(rdb_protocol_t::read_t *, rdb_protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read_outdated(rdb_protocol_t::read_t *, rdb_protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(rdb_protocol_t::write_t *, rdb_protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+
+    /* These calls are for the sole purpose of optimizing queries; don't rely
+    on them for correctness. They should not block. */
+    std::set<rdb_protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
+    signal_t *get_initial_ready_signal();
+    /* Check if the internal value is null. */
+    bool has();
+private:
+    namespace_interface_t<rdb_protocol_t> *internal_;
+    env_t *env_;
+};
+
+class rdb_namespace_access_t {
+public:
+    rdb_namespace_access_t(uuid_u id, env_t *env);
+    rdb_namespace_interface_t get_namespace_if();
+private:
+    base_namespace_repo_t<rdb_protocol_t>::access_t internal_;
+    env_t *env_;
+};
+
 class cluster_access_t {
 public:
     typedef namespaces_semilattice_metadata_t<rdb_protocol_t> ns_metadata_t;
