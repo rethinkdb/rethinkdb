@@ -107,7 +107,7 @@ void rdb_namespace_interface_t::read(
     /* Do the actual read. */
     internal_->read(*read, response, tok, interruptor);
     /* Append the results of the explain to the current task */
-    env_->tracer.add_task(std::move(response->task));
+    env_->tracer.merge_task(std::move(response->task));
 }
  
 
@@ -122,7 +122,7 @@ void rdb_namespace_interface_t::read_outdated(
     /* Do the actual read. */
     internal_->read_outdated(*read, response, interruptor);
     /* Append the results of the explain to the current task */
-    env_->tracer.add_task(std::move(response->task));
+    env_->tracer.merge_task(std::move(response->task));
 }
 
 void rdb_namespace_interface_t::write(
@@ -137,7 +137,7 @@ void rdb_namespace_interface_t::write(
     /* Do the actual read. */
     internal_->write(*write, response, tok, interruptor);
     /* Append the results of the explain to the current task */
-    env_->tracer.add_task(std::move(response->task));
+    env_->tracer.merge_task(std::move(response->task));
 }
 
 std::set<rdb_protocol_t::region_t> rdb_namespace_interface_t::get_sharding_scheme()

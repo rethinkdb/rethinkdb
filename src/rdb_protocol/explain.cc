@@ -226,12 +226,31 @@ void trace_t::add_task(task_t &&task) {
     head_ = head_->tail();
 }
 
+void trace_t::merge_task(task_t &&task) {
+    if (!head_) {
+        return;
+    }
+
+    head_->parallel_tasks_ = std::move(task.parallel_tasks_);
+    head_->next_task_ = std::move(task.next_task_);
+    head_ = head_->tail();
+}
+
 void trace_t::add_parallel_task(task_t &&task) {
     if (!head_) {
         return;
     }
 
     *head_->new_parallel_task() = task;
+}
+
+void trace_t::merge_parallel_tasks_from(task_t &&task) {
+    if (!head_) {
+        return;
+    }
+
+    guarantee(head_->parallel_tasks_.empty());
+    head_->parallel_tasks_ = std::move(task.parallel_tasks_);
 }
 
 counted_t<const ql::datum_t> trace_t::as_datum() {

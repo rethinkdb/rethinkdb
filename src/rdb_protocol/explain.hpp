@@ -21,6 +21,8 @@ public:
     explicit task_t(const std::string &description);
     task_t(const task_t &other);
     task_t &operator=(const task_t &other);
+    task_t(task_t &&other);
+    task_t &operator=(task_t &&other);
 
     void init(const std::string &description);
     bool is_initted();
@@ -43,6 +45,7 @@ public:
     /* Just to make serialization easier. */
     enum state_t {UNINITIALIZED, RUNNING, FINISHED};
 private:
+    friend class trace_t;
     state_t state_;
     std::string description_;
     ticks_t start_time_, ticks_;
@@ -62,7 +65,9 @@ public:
     void init(task_t *root);
     void checkin(const std::string &description);
     void add_task(task_t &&task);
+    void merge_task(task_t &&task);
     void add_parallel_task(task_t &&task);
+    void merge_parallel_tasks_from(task_t &&task);
     counted_t<const ql::datum_t> as_datum();
     const task_t *get_task();
 
