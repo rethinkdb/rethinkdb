@@ -3,11 +3,11 @@
 
 #include "clustering/administration/database_metadata.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "extproc/js_runner.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
-#include "extproc/js_runner.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 

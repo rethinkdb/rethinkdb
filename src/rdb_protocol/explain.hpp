@@ -62,6 +62,7 @@ class trace_t {
 public:
     trace_t();
     explicit trace_t(task_t *root);
+    ~trace_t();
     void init(task_t *root);
     void checkin(const std::string &description);
     void add_task(task_t &&task);

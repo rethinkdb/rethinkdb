@@ -89,7 +89,7 @@ task_t *task_t::tail() {
 }
 
 void task_t::finish() {
-    guarantee(state_ == RUNNING,
+    guarantee(state_ == RUNNING || state_ == FINISHED,
             "Can't call finish without calling init (or constructing with a description)");
     state_ = FINISHED;
     ticks_ = get_ticks() - start_time_;
@@ -105,14 +105,6 @@ void task_t::as_datum_helper(
         std::vector<counted_t<const ql::datum_t> > *parent) {
     parent->push_back(get_atom());
 
-    if (!parallel_tasks_.empty()) {
-        std::vector<counted_t<const ql::datum_t> > datum_parallel_tasks;
-        for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
-            datum_parallel_tasks.push_back((*it)->as_datum());
-        }
-        parent->push_back(make_counted<const ql::datum_t>(std::move(datum_parallel_tasks)));
-    }
-
     if (next_task_.has()) {
         next_task_->as_datum_helper(parent);
     }
@@ -126,7 +118,16 @@ counted_t<const ql::datum_t> task_t::get_atom() {
     res["description"] =
         make_counted<const ql::datum_t>(std::move(std::string(description_)));
     guarantee(ticks_ < std::numeric_limits<double>::max());
-    res["time"] = make_counted<const ql::datum_t>(static_cast<double>(ticks_));
+    res["time(ms)"] = make_counted<const ql::datum_t>(static_cast<double>(ticks_) / MILLION);
+
+    if (!parallel_tasks_.empty()) {
+        std::vector<counted_t<const ql::datum_t> > datum_parallel_tasks;
+        for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
+            datum_parallel_tasks.push_back((*it)->as_datum());
+        }
+        res["parallel_tasks"] = make_counted<const ql::datum_t>(std::move(datum_parallel_tasks));
+    }
+
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
@@ -198,6 +199,12 @@ trace_t::trace_t()
 
 trace_t::trace_t(task_t *root) {
     init(root);
+}
+
+trace_t::~trace_t() {
+    if (head_) {
+        head_->finish();
+    }
 }
 
 void trace_t::init(task_t *root) {
