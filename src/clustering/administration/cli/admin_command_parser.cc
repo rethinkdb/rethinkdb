@@ -344,7 +344,8 @@ admin_command_parser_t::admin_term_cap_t::admin_term_cap_t(fd_t fd) {
     }
 
     // Command to disable all formatting
-    char *normal_cstr = tgetstr((char *)"me", NULL);
+    char end_modes[] = "me";
+    char *normal_cstr = tgetstr(end_modes, NULL);
     if (normal_cstr != NULL) {
         normal_str.assign(normal_cstr);
     } else {
@@ -353,13 +354,15 @@ admin_command_parser_t::admin_term_cap_t::admin_term_cap_t(fd_t fd) {
     }
 
     // Command to enable double-bright mode (bold)
-    char *bold_cstr = tgetstr((char *)"md", NULL);
+    char bold_mode[] = "md";
+    char *bold_cstr = tgetstr(bold_mode, NULL);
     if (bold_cstr != NULL) {
         bold_str.assign(bold_cstr);
     }
 
     // Command to enable underline mode
-    char *underline_cstr = tgetstr((char *)"us", NULL);
+    char underline_mode[] = "us";
+    char *underline_cstr = tgetstr(underline_mode, NULL);
     if (underline_cstr != NULL) {
         underline_str.assign(underline_cstr);
     }

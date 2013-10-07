@@ -2,7 +2,7 @@
 import signal
 
 import sys, os, datetime, time, copy, json, traceback, csv, cPickle, string
-import multiprocessing, multiprocessing.queues, subprocess, re
+import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
 from optparse import OptionParser
 
 try:
@@ -316,8 +316,9 @@ def read_json_single_object(json_data, file_in, callback):
                 raise
     return json_data
 
-def read_json_array(json_data, file_in, callback):
+def read_json_array(json_data, file_in, callback, progress_info):
     decoder = json.JSONDecoder()
+    file_offset = 0
     offset = 0
     while True:
         try:
@@ -330,6 +331,7 @@ def read_json_array(json_data, file_in, callback):
             callback(obj)
 
             # Read past whitespace to the next record
+            file_offset += offset
             json_data = json_data[offset:]
             offset = json.decoder.WHITESPACE.match(json_data, 0).end()
 
@@ -346,12 +348,13 @@ def read_json_array(json_data, file_in, callback):
                 offset = json.decoder.WHITESPACE.match(json_data, offset + 1).end()
             elif before_len == len(json_data) or len(json_data) > json_max_buffer_size:
                 raise
+            progress_info[0].value = file_offset
 
     # Read the rest of the file and return it so it can be checked for unexpected data
     json_data += file_in.read()
     return json_data[offset + 1:]
 
-def json_reader(task_queue, filename, db, table, primary_key, fields, exit_event):
+def json_reader(task_queue, filename, db, table, primary_key, fields, progress_info, exit_event):
     object_buffers = []
     buffer_sizes = []
 
@@ -363,9 +366,11 @@ def json_reader(task_queue, filename, db, table, primary_key, fields, exit_event
         callback = lambda x: object_callback(x, db, table, task_queue, object_buffers,
                                              buffer_sizes, fields, exit_event)
 
+        progress_info[1].value = os.path.getsize(filename)
+
         offset = json.decoder.WHITESPACE.match(json_data, 0).end()
         if json_data[offset] == "[":
-            json_data = read_json_array(json_data[offset + 1:], file_in, callback)
+            json_data = read_json_array(json_data[offset + 1:], file_in, callback, progress_info)
         elif json_data[offset] == "{":
             json_data = read_json_single_object(json_data[offset:], file_in, callback)
         else:
@@ -377,12 +382,24 @@ def json_reader(task_queue, filename, db, table, primary_key, fields, exit_event
                 raise RuntimeError("Error: JSON format not recognized - extra characters found after end of data")
             json_data = file_in.read(json_read_chunk_size)
 
+    progress_info[0].value = progress_info[1].value
+
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
 
-def csv_reader(task_queue, filename, db, table, primary_key, options, exit_event):
+def csv_reader(task_queue, filename, db, table, primary_key, options, progress_info, exit_event):
     object_buffers = []
     buffer_sizes = []
+
+    # Count the lines so we can report progress
+    # TODO: this requires us to make two passes on csv files
+    line_count = 0
+    with open(filename, "r") as file_in:
+        for i, l in enumerate(file_in):
+            pass
+        line_count = i + 1
+
+    progress_info[1].value = line_count
 
     with open(filename, "r") as file_in:
         reader = csv.reader(file_in, delimiter=options["delimiter"])
@@ -398,22 +415,22 @@ def csv_reader(task_queue, filename, db, table, primary_key, options, exit_event
         elif options["no_header"]:
             raise RuntimeError("Error: No field name information available")
 
-        row_count = 1
         for row in reader:
+            file_line = reader.line_num
+            progress_info[0].value = file_line
             if len(fields_in) != len(row):
-                raise RuntimeError("Error: File '%s' line %d has an inconsistent number of columns" % (filename, row_count))
+                raise RuntimeError("Error: File '%s' line %d has an inconsistent number of columns" % (filename, file_line))
             # We import all csv fields as strings (since we can't assume the type of the data)
             obj = dict(zip(fields_in, row))
             for key in list(obj.iterkeys()): # Treat empty fields as no entry rather than empty string
                 if len(obj[key]) == 0:
                     del obj[key]
             object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, options["fields"], exit_event)
-            row_count += 1
 
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
 
-def table_reader(options, file_info, task_queue, error_queue, exit_event):
+def table_reader(options, file_info, task_queue, error_queue, progress_info, exit_event):
     try:
         db = file_info["db"]
         table = file_info["table"]
@@ -429,6 +446,7 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
                         db, table,
                         primary_key,
                         options["fields"],
+                        progress_info,
                         exit_event)
         elif file_info["format"] == "csv":
             csv_reader(task_queue,
@@ -436,6 +454,7 @@ def table_reader(options, file_info, task_queue, error_queue, exit_event):
                        db, table,
                        primary_key,
                        options,
+                       progress_info,
                        exit_event)
         else:
             raise RuntimeError("Error: Unknown file format specified")
@@ -459,6 +478,27 @@ def abort_import(signum, frame, parent_pid, exit_event, task_queue, clients, int
                 #   the queue is full and clients aren't reading
                 task_queue.put("exit")
 
+def print_progress(ratio):
+    total_width = 40
+    done_width = int(ratio * total_width)
+    undone_width = total_width - done_width
+    print "\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
+    sys.stdout.flush()
+
+def update_progress(progress_info):
+    lowest_completion = 1.0
+    for (current, max_count) in progress_info:
+        curr_val = current.value
+        max_val = max_count.value
+        if curr_val < 0:
+            lowest_completion = 0.0
+        elif max_val <= 0:
+            lowest_completion = 1.0
+        else:
+            lowest_completion = min(lowest_completion, float(curr_val) / max_val)
+
+    print_progress(lowest_completion)
+
 def spawn_import_clients(options, files_info):
     # Spawn one reader process for each db.table, as well as many client processes
     task_queue = multiprocessing.queues.SimpleQueue()
@@ -473,6 +513,8 @@ def spawn_import_clients(options, files_info):
     signal.signal(signal.SIGINT, lambda a,b: abort_import(a, b, parent_pid, exit_event, task_queue, client_procs, interrupt_event))
 
     try:
+        progress_info = [ ]
+
         for i in range(options["clients"]):
             client_procs.append(multiprocessing.Process(target=client_process,
                                                         args=(options["host"],
@@ -484,11 +526,14 @@ def spawn_import_clients(options, files_info):
             client_procs[-1].start()
 
         for file_info in files_info:
+            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),
+                                  multiprocessing.Value(ctypes.c_longlong, 0)))
             reader_procs.append(multiprocessing.Process(target=table_reader,
                                                         args=(options,
                                                               file_info,
                                                               task_queue,
                                                               error_queue,
+                                                              progress_info[-1],
                                                               exit_event)))
             reader_procs[-1].start()
 
@@ -499,6 +544,7 @@ def spawn_import_clients(options, files_info):
             if not error_queue.empty():
                 exit_event.set()
             reader_procs = [proc for proc in reader_procs if proc.is_alive()]
+            update_progress(progress_info)
 
         # Wait for all clients to finish
         for client in client_procs:
@@ -508,6 +554,13 @@ def spawn_import_clients(options, files_info):
         while len(client_procs) > 0:
             time.sleep(0.1)
             client_procs = [client for client in client_procs if client.is_alive()]
+
+        # If we were successful, make sure 100% progress is reported
+        if error_queue.empty() and not interrupt_event.is_set():
+            print_progress(1.0)
+
+        # Continue past the progress output line
+        print ""
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 

@@ -5,7 +5,7 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import sys, os, datetime, time, copy, json, traceback, csv, string
-import multiprocessing, multiprocessing.queues, subprocess, re
+import multiprocessing, multiprocessing.queues, subprocess, re, ctypes
 from optparse import OptionParser
 
 try:
@@ -17,8 +17,8 @@ except ImportError:
 
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
-  rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-f (csv | json)] [-d DIR]\n\
-      [--fields FIELD,FIELD...] [-e (DB | DB.TABLE)]..."
+  rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-d DIR] [-e (DB | DB.TABLE)]...\n\
+      [--format (csv | json)] [--fields FIELD,FIELD...]"
 
 def print_export_help():
     print info
@@ -159,11 +159,18 @@ def write_table_metadata(conn, db, table, base_path):
     out.write(json.dumps(table_info) + "\n")
     out.close()
 
-def read_table_into_queue(conn, db, table, task_queue, exit_event):
+def read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event):
+    read_rows = 0
     for row in r.db(db).table(table).run(conn, time_format="raw"):
         if exit_event.is_set():
             break
         task_queue.put([row])
+
+        # Update the progress every 20 rows - to reduce locking overhead
+        read_rows += 1
+        if read_rows % 20 == 0:
+            progress_info[0].value += 20
+    progress_info[0].value += read_rows % 20
 
 def json_writer(filename, fields, task_queue, error_queue):
     try:
@@ -217,7 +224,7 @@ def csv_writer(filename, fields, task_queue, error_queue):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, exit_event):
+def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_info, exit_event):
     task_queue = multiprocessing.queues.SimpleQueue()
 
     if format == "json":
@@ -235,9 +242,11 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
 
     try:
         conn = r.connect(host, port, auth_key=auth_key)
+        table_size = r.db(db).table(table).count().run(conn)
+        progress_info[1].value = table_size
         write_table_metadata(conn, db, table, directory)
         writer.start()
-        read_table_into_queue(conn, db, table, task_queue, exit_event)
+        read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event)
     except (r.RqlClientError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
@@ -255,6 +264,27 @@ def abort_export(signum, frame, exit_event, interrupt_event):
     interrupt_event.set()
     exit_event.set()
 
+def print_progress(ratio):
+    total_width = 40
+    done_width = int(ratio * total_width)
+    undone_width = total_width - done_width
+    print "\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
+    sys.stdout.flush()
+
+def update_progress(progress_info):
+    lowest_completion = 1.0
+    for (current, max_count) in progress_info:
+        curr_val = current.value
+        max_val = max_count.value
+        if curr_val < 0:
+            lowest_completion = 0.0
+        elif max_val <= 0:
+            lowest_completion = 1.0
+        else:
+            lowest_completion = min(lowest_completion, float(curr_val) / max_val)
+
+    print_progress(lowest_completion)
+
 def run_clients(options, db_table_set):
     # Spawn one client for each db.table
     exit_event = multiprocessing.Event()
@@ -265,7 +295,11 @@ def run_clients(options, db_table_set):
     signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event, interrupt_event))
 
     try:
+        progress_info = [ ]
+
         for (db, table) in db_table_set:
+            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),
+                                  multiprocessing.Value(ctypes.c_longlong, 0)))
             processes.append(multiprocessing.Process(target=export_table,
                                                      args=(options["host"],
                                                            options["port"],
@@ -275,6 +309,7 @@ def run_clients(options, db_table_set):
                                                            options["fields"],
                                                            options["format"],
                                                            error_queue,
+                                                           progress_info[-1],
                                                            exit_event)))
             processes[-1].start()
 
@@ -284,6 +319,15 @@ def run_clients(options, db_table_set):
             if not error_queue.empty():
                 exit_event.set() # Stop rather immediately if an error occurs
             processes = [process for process in processes if process.is_alive()]
+            update_progress(progress_info)
+
+        # If we were successful, make sure 100% progress is reported
+        # (rows could have been deleted which would result in being done at less than 100%)
+        if error_queue.empty() and not interrupt_event.is_set():
+            print_progress(1.0)
+
+        # Continue past the progress output line
+        print ""
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
