@@ -23,7 +23,9 @@ task_t::task_t(const task_t &other)
         parallel_tasks_.emplace_back(new task_t(**it));
     }
 
-    next_task_.init(new task_t(*other.next_task_));
+    if (other.next_task_.has()) {
+        next_task_.init(new task_t(*other.next_task_));
+    }
 }
 
 task_t &task_t::operator=(const task_t &other) {
@@ -37,7 +39,9 @@ task_t &task_t::operator=(const task_t &other) {
         parallel_tasks_.emplace_back(new task_t(**it));
     }
 
-    next_task_.init(new task_t(*other.next_task_));
+    if (other.next_task_.has()) {
+        next_task_.init(new task_t(*other.next_task_));
+    }
 
     return *this;
 }
@@ -198,7 +202,7 @@ trace_t::trace_t(task_t *root) {
 
 void trace_t::init(task_t *root) {
     root_ = root;
-    head_ = root->tail();
+    head_ = (root ? root->tail() : root);
 }
 
 void trace_t::checkin(const std::string &description) {
