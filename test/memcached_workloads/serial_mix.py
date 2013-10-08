@@ -66,7 +66,7 @@ def random_action(opts, mc, clone, deleted):
             key = random_key(opts)
         verify(opts, mc, clone, deleted, key)
 
-# NOTE: Was: < 0.6, see below
+    # NOTE: Was: < 0.6, see below
     elif what_to_do < 0.95:
         # Set
         if random.random() < 0.3 and clone:
