@@ -3,11 +3,11 @@ commands:
     section: writing_data
     order: 4
     description: |
-      Makes sure that writes on the same connection are written to permanent storage.
+      Makes sure that writes on the given table are written to permanent storage.
       If you perform a write with <code>durability</code> set to <code>'soft'</code>,
       you receive no information on when the write actually gets written to permanent storage.
-      A subsequent call to <code>sync</code> only returns when all previous writes made over
-      the same connection have been persisted.
+      A subsequent call to <code>sync</code> does not return before all previous writes to the table
+      have been persisted.
 
     body: "$PARENT.sync()"
 
@@ -16,43 +16,12 @@ commands:
 
     examples:
       - description: |
-          We have updated stats about both Superman and the Hulk. Now we want to wait
+          After having updated multiple heroes with soft durability, We now want to wait
           until these changes have been persisted.
         code:
           js: |
-            r.table('marvel').get('superman').update({ strength: 42 }, { durability: 'soft' })
-             .run(conn, callback)
-            r.table('marvel').get('hulk').update({ victories: r.row('victories').add(1) }, { durability: 'soft' })
-             .run(conn, callback)
             r.table('marvel').sync().run(conn, callback)
           py: |
-            r.table('marvel').get('superman').update({ 'strength': 42 }, durability='soft').run(conn)
-            r.table('marvel').get('hulk').update(lambda x: {'victories': x['victories'] + 1}, durability='soft').run(conn)
             r.table('marvel').sync().run(conn)
           rb: |
-            r.table('marvel').get('superman').update(:durability => 'soft'){ { :strength => 42 } }.run(conn)
-            r.table('marvel').get('hulk').update(:durability => 'soft'){|x| {:victories => x[:victories] + 1} }.run(conn)
-            r.table('marvel').sync().run(conn)
-      - description: |
-          <code>sync</code> can also be used to wait for <code>no_reply</code> writes to finish.
-          Note that it does not guarantee that the write operation has actually succeeded. For example
-          trying to insert a document with a primary key that already exists in the table
-          will still fail silently if <code>no_reply</code> is set.
-        validate: false
-        code:
-          js: |
-            r.table('marvel')
-             .insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
-             .run({connection:conn, noreply:true, durability: 'soft'},
-                  function (err, cursor) { ... });
-            r.table('marvel').sync().run(conn)
-          py: |
-            r.table('marvel')
-             .insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' })
-             .run(conn, noreply=True, durability='soft')
-            r.table('marvel').sync().run(conn)
-          rb: |
-            r.table('marvel')
-             .insert({ :superhero => 'Iron Man', :superpower => 'Arc Reactor' })
-             .run(conn, :noreply => true, :durability => 'soft')
             r.table('marvel').sync().run(conn)
