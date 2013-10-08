@@ -27,8 +27,8 @@ void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb_out) {
     }
     mb_out->inline_lba_entries_count = 0;
     memset(mb_out->inline_lba_entries,
-            0,
-            LBA_NUM_INLINE_ENTRIES * sizeof(lba_entry_t));
+           0,
+           LBA_NUM_INLINE_ENTRIES * sizeof(lba_entry_t));
 }
 
 void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
@@ -38,12 +38,12 @@ void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
     rassert(inline_lba_entries_count <= LBA_NUM_INLINE_ENTRIES);
     mb_out->inline_lba_entries_count = inline_lba_entries_count;
     memcpy(mb_out->inline_lba_entries,
-            inline_lba_entries,
-            inline_lba_entries_count * sizeof(lba_entry_t));
+           inline_lba_entries,
+           inline_lba_entries_count * sizeof(lba_entry_t));
     // Zero the remaining entries so we don't write uninitialized data to disk.
     memset(&mb_out->inline_lba_entries[inline_lba_entries_count],
-            0,
-            (LBA_NUM_INLINE_ENTRIES - inline_lba_entries_count) * sizeof(lba_entry_t));
+           0,
+           (LBA_NUM_INLINE_ENTRIES - inline_lba_entries_count) * sizeof(lba_entry_t));
 }
 
 class lba_start_fsm_t :
@@ -65,8 +65,8 @@ public:
         guarantee(last_metablock->inline_lba_entries_count <= LBA_NUM_INLINE_ENTRIES);
         owner->inline_lba_entries_count = last_metablock->inline_lba_entries_count;
         memcpy(owner->inline_lba_entries,
-                last_metablock->inline_lba_entries,
-                last_metablock->inline_lba_entries_count * sizeof(lba_entry_t));
+               last_metablock->inline_lba_entries,
+               last_metablock->inline_lba_entries_count * sizeof(lba_entry_t));
         
         cbs_out = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
