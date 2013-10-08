@@ -38,18 +38,7 @@ public:
 };
 
 perfmon_collection_t::perfmon_collection_t() { }
-perfmon_collection_t::~perfmon_collection_t() {
-#ifndef NDEBUG
-    if (!constituents.empty()) {
-        fprintf(stderr, "WARNING: constituents not empty when destructing perfmon_collection_t. The following ones are left:\n");
-        perfmon_membership_t *constituent = constituents.head();
-        while (constituent != NULL) {
-            fprintf(stderr, "  \"%s\"\n", constituent->name.c_str());
-            constituent = constituents.next(constituent);
-        }
-    }
-#endif
-}
+perfmon_collection_t::~perfmon_collection_t() { }
 
 void *perfmon_collection_t::begin_stats() {
     stats_collection_context_t *ctx;
