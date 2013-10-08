@@ -981,7 +981,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp);
+            *write_out = write_t(tmp, durability_requirement);
             return true;
         } else {
             return false;
@@ -997,11 +997,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const sync_t &s) const {
-        // Sync always applied to the whole region.
-        sync_t tmp = s;
-        tmp.region = *region;
-        *write_out = write_t(tmp, durability_requirement);
-        return true;
+        return rangey_write(s);
     }
 
     const region_t *region;
