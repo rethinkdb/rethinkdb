@@ -16,6 +16,7 @@ struct index_write_op_t {
     block_id_t block_id;
     // Buf to write. None if not to be modified. Initialized but a null ptr if to be removed from lba.
     boost::optional<counted_t<standard_block_token_t> > token;
+    // RSI: Shouldn't recency always be modified?
     boost::optional<repli_timestamp_t> recency; // Recency, if it should be modified.
 
     explicit index_write_op_t(block_id_t _block_id,

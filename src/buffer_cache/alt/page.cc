@@ -520,27 +520,40 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
 }
 
 page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_null)
-    : page_cache_(page_cache), flush_started_(false) {
+    : page_cache_(page_cache) {
+    // RSI: Make sure the preceding txn and this txn are only used for "write txns".
     if (preceding_txn_or_null != NULL) {
-        add_preceder(preceding_txn_or_null);
+        connect_preceder(preceding_txn_or_null);
     }
 }
 
-void page_txn_t::add_preceder(page_txn_t *preceder) {
-    // RSI: What if `preceder` is already flushed, some dormant object?  We should
-    // not add it as a preceder, in that case.
-
-    // RSP: performance
-    if (std::find(preceders_.begin(), preceders_.end(), preceder) == preceders_.end()) {
-        preceders_.push_back(preceder);
-        preceder->subseqers_.push_back(this);
+void page_txn_t::connect_preceder(page_txn_t *preceder) {
+    if (!preceder->flush_complete_cond_.is_pulsed()) {
+        // RSP: performance
+        if (std::find(preceders_.begin(), preceders_.end(), preceder)
+            == preceders_.end()) {
+            preceders_.push_back(preceder);
+            preceder->subseqers_.push_back(this);
+        }
     }
+}
+
+void page_txn_t::remove_preceder(page_txn_t *preceder) {
+    auto it = std::find(preceders_.begin(), preceders_.end(), preceder);
+    rassert(it != preceders_.end());
+    preceders_.erase(it);
+
 }
 
 page_txn_t::~page_txn_t() {
+    // RSI: Do we want to wait for this here?  Or should the page_cache_t be the
+    // thing that waits and destroys this object?
+
     // RSI: Make last_modified_pages_ pointees last_modifier_ field be NULL.
-    // RSI: Implement.
-    // Tell the subsequent transactions that you're flushing?
+
+    // RSI: Do whatever else is necessary to implement this.
+
+    flush_complete_cond_.wait();
 }
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {
@@ -555,13 +568,11 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         live_acqs_.erase(it);
     }
 
-    if (!acq->read_cond_.is_pulsed()) {
-        // If we delete the acquirer before we got any kind of access to the block,
-        // then we can't have dirtied the page or touched the page.
-        return;
-    }
+    // We check if acq->read_cond_.is_pulsed() so that if we delete the acquirer
+    // before we got any kind of access to the block, then we can't have dirtied the
+    // page or touched the page.
 
-    if (acq->access_ == alt_access_t::write) {
+    if (acq->read_cond_.is_pulsed() && acq->access_ == alt_access_t::write) {
         // It's not snapshotted because you can't snapshot write acqs.  (We
         // rely on this fact solely because we need to grab the block_id_t
         // and current_page_acq_t currently doesn't know it.)
@@ -570,8 +581,6 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         // Get the block id while current_page_ is non-null.  (It'll become
         // null once we're snapshotted.)
         const block_id_t block_id = acq->current_page_->block_id();
-
-        touched_pages_.push_back(std::make_pair(block_id, repli_timestamp_t::invalid /* RSI: handle recency */));
 
         if (acq->dirtied_page()) {
             // We know we hold an exclusive lock.
@@ -597,7 +606,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
                     rassert(it != previous_modifier->pages_modified_last_.end());
                     previous_modifier->pages_modified_last_.erase(it);
 
-                    add_preceder(previous_modifier);
+                    connect_preceder(previous_modifier);
                 }
             }
 
@@ -610,24 +619,182 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
             rassert(acq->current_page_ == NULL);
             // Steal the snapshotted page_ptr_t.
             page_ptr_t local = std::move(acq->snapshotted_page_);
-            snapshotted_dirtied_pages_.push_back(std::make_pair(block_id,
-                                                                std::move(local)));
+            snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_id,
+                                                                std::move(local),
+                                                                repli_timestamp_t::invalid /* RSI: handle recency */));
+        } else {
+            touched_pages_.push_back(std::make_pair(block_id, repli_timestamp_t::invalid /* RSI: handle recency */));
         }
     }
+
+    // Now, let's flush if we should.
+    announce_waiting_for_flush_if_we_should();
 }
 
-void page_txn_t::start_flush_if_we_should() {
-    if (live_acqs_.empty() && preceders_.empty()) {
-        // Start the flush!
-        // (... if there's things to be flushed.)
-        rassert(!flush_started_);
-        flush_started_ = true;
-
-        // RSI: Actually cause a flush to happen.
-        // page_cache_->nominate_to_be_flushed(this);
+void page_txn_t::announce_waiting_for_flush_if_we_should() {
+    if (live_acqs_.empty()) {
+        rassert(!began_waiting_for_flush_);
+        began_waiting_for_flush_ = true;
+        page_cache_->im_waiting_for_flush(this);
     }
 }
 
+struct block_token_tstamp_t {
+    block_token_tstamp_t(block_id_t _block_id,
+                         counted_t<standard_block_token_t> _block_token,
+                         repli_timestamp_t _tstamp)
+        : block_id(_block_id), block_token(std::move(_block_token)), tstamp(_tstamp) { }
+    block_id_t block_id;
+    counted_t<standard_block_token_t> block_token;
+    repli_timestamp_t tstamp;
+};
+
+void page_cache_t::do_flush_txn(page_txn_t *txn) {
+    // We're going to flush this transaction.  Let's start its flush, then detach
+    // this transaction from its subseqers, then notify its subseqers that
+    // they've lost a preceder.
+
+    // RSI: We shouldn't go through this rigamarole when touched_pages_ and
+    // snapshotted_dirty_pages_ is empty (i.e. for read transactions or write
+    // transactions that didn't do anything).
+
+    // RSP: This implementation is fine, but the strategy of having each txn
+    // snapshot and be flushed independently is suboptimal.
+
+    // RSP: reserve blocks_by_tokens.
+    std::vector<block_token_tstamp_t> blocks_by_tokens;
+    blocks_by_tokens.reserve(txn->touched_pages_.size()
+                             + txn->snapshotted_dirtied_pages_.size());
+
+    // RSI: Add assertions for !began_waiting_for_flush_ anyplace that uses
+    // the variables used here.
+    std::vector<std::pair<block_id_t, repli_timestamp_t> > ancillary_infos;
+    std::vector<buf_write_info_t> write_infos;
+    write_infos.reserve(txn->touched_pages_.size()
+                        + txn->snapshotted_dirtied_pages_.size());
+    ancillary_infos.reserve(txn->touched_pages_.size()
+                            + txn->snapshotted_dirtied_pages_.size());
+
+    for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size(); i < e; ++i) {
+        page_txn_t::dirtied_page_t *dp = &txn->snapshotted_dirtied_pages_[i];
+        // RSI: What about deleted pages?  Will ptr be empty?
+        page_t *page = dp->ptr.get_page_for_read();
+
+
+        // If it's already on disk, we're not going to flush it.
+        if (page->block_token_.has()) {
+            blocks_by_tokens.push_back(block_token_tstamp_t(dp->block_id,
+                                                            page->block_token_,
+                                                            dp->tstamp));
+        } else {
+            // We can't be in the process of loading a block we're going to write
+            // that we don't have a block token for.  That's because we _actually
+            // dirtied the page_.  We had to have acquired the buf, and the only
+            // way to get rid of the buf is for it to be evicted, in which case
+            // the block token would be non-empty.
+            rassert(page->destroy_ptr_ == NULL);
+
+            // RSI: What about deleted pages?  Will ptr have been empty, or will
+            // buf_.has() have been false?
+            rassert(page->buf_.has());
+
+            write_infos.push_back(buf_write_info_t(page->buf_.get(),
+                                                   page->buf_size_,
+                                                   dp->block_id));
+            ancillary_infos.push_back(std::make_pair(dp->block_id, dp->tstamp));
+        }
+    }
+
+    for (auto it = txn->touched_pages_.begin(); it != txn->touched_pages_.end();
+         ++it) {
+        // RSI: We're using an empty counted_t to mean touched pages.
+        blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
+                                                        counted_t<standard_block_token_t>(),
+                                                        it->second));
+    }
+
+    {
+        on_thread_t th(serializer_->home_thread());
+
+        // RSI: What should we use for the io_callback_t?
+        iocallback_t *fake_cb = NULL;
+        std::vector<counted_t<standard_block_token_t> > tokens
+            = serializer_->block_writes(write_infos,
+                                        writes_io_account.get(),
+                                        fake_cb);
+
+        rassert(tokens.size() == write_infos.size());
+        rassert(write_infos.size() == ancillary_infos.size());
+        for (size_t i = 0; i < write_infos.size(); ++i) {
+            blocks_by_tokens.push_back(
+                                       block_token_tstamp_t(ancillary_infos[i].first,
+                                                            std::move(tokens[i]),
+                                                            ancillary_infos[i].second));
+        }
+
+        // RSP: Unnecessary copying between blocks_by_tokens and iw_ops.
+        std::vector<index_write_op_t> write_ops;
+        write_ops.reserve(blocks_by_tokens.size());
+
+        // RSI: Right here there's no way to distinguish between blocks we wanted
+        // deleted and blocks that are touched.  At this time no code supports
+        // deletion.
+        for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end();
+             ++it) {
+            if (it->block_token.has()) {
+                write_ops.push_back(index_write_op_t(it->block_id,
+                                                     std::move(it->block_token),
+                                                     it->tstamp));
+            } else {
+                // RSI: Here we treat as touch, not deletion.
+                write_ops.push_back(index_write_op_t(it->block_id,
+                                                     boost::none,
+                                                     it->tstamp));
+            }
+        }
+
+        // RSI: This blocks?  Is there any way to set the began_index_write_
+        // field?
+        serializer_->index_write(write_ops,
+                                 writes_io_account.get());
+    }
+
+    // Flush complete, and we're back on the page cache's thread.
+
+    // RSI: connect_preceder uses flush_complete_cond_ to see whether it should
+    // connect.  It should probably use began_index_write_, when that variable
+    // exists.
+    ASSERT_NO_CORO_WAITING;
+    std::vector<page_txn_t *> subseqers = std::move(txn->subseqers_);
+    txn->subseqers_.clear();
+
+    for (auto it = subseqers.begin(); it != subseqers.end(); ++it) {
+        (*it)->remove_preceder(txn);
+    }
+
+    txn->flush_complete_cond_.pulse();
+
+    // RSI: We need to flush subseqers that are waiting for flush and ready to
+    // go.
+}
+
+void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
+    rassert(txn->began_waiting_for_flush_);
+    // rassert(!txn->began_index_write_);  // RSI:
+    rassert(txn->live_acqs_.empty());
+
+    // This txn is now waiting to be flushed.  Should we flush it?  Let's look at the
+    // graph of txns.  We may flush this txn if all its preceding txns can be
+    // flushed.
+
+    // RSI: Do we actually want to block the coroutine by flushing in-line here?
+
+    if (txn->preceders_.empty()) {
+
+        // RSI: 'ordered'?  Really?
+        coro_t::spawn_later_ordered(std::bind(&page_cache_t::do_flush_txn, this, txn));
+    }
+}
 
 
 

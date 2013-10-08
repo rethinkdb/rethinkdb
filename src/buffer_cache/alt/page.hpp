@@ -4,6 +4,7 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/segmented_vector.hpp"
+#include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
 class auto_drainer_t;
@@ -52,6 +53,8 @@ private:
 
     static void load_from_copyee(page_t *page, page_t *copyee,
                                  page_cache_t *page_cache);
+
+    friend class page_cache_t;
 
     // One of destroy_ptr_, buf_, or block_token_ is non-null.
     bool *destroy_ptr_;
@@ -152,9 +155,7 @@ private:
     block_id_t block_id_;
     // Either page_ is null or page_cache_ is null (except that page_cache_ is never
     // null).  block_id_ and page_cache_ can be used to construct (and load) the page
-    // when it's null, unless marked_deleted_ is true, in which case page_ptr_t is
-    // null but can't be constructed by loading a block.  RSP: Suboptimal memory
-    // usage.
+    // when it's null.  RSP: Suboptimal memory usage.
     page_cache_t *page_cache_;
     page_ptr_t page_;
 
@@ -228,6 +229,10 @@ public:
 
 private:
     friend class page_t;
+    friend class page_txn_t;
+    // RSI: Make this static?  (The impl goes to serializer thread.)
+    void do_flush_txn(page_txn_t *txn);
+    void im_waiting_for_flush(page_txn_t *txn);
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,
@@ -279,13 +284,21 @@ public:
     ~page_txn_t();
 
 private:
-    void add_preceder(page_txn_t *preceder);
+    // page cache has access to all of this type's innards, including fields.
+    friend class page_cache_t;
 
+    // Adds and connects a preceder.
+    void connect_preceder(page_txn_t *preceder);
+
+    // Removes a preceder, which is already half-way disconnected.
+    void remove_preceder(page_txn_t *preceder);
+
+    // current_page_acq should only call add_acquirer and remove_acquirer.
     friend class current_page_acq_t;
     void add_acquirer(current_page_acq_t *acq);
     void remove_acquirer(current_page_acq_t *acq);
 
-    void start_flush_if_we_should();
+    void announce_waiting_for_flush_if_we_should();
 
     page_cache_t *page_cache_;
 
@@ -305,16 +318,35 @@ private:
     // RSP: Performance?  remove_acquirer takes linear time.
     std::vector<current_page_acq_t *> live_acqs_;
 
+    struct dirtied_page_t {
+        dirtied_page_t()
+            : block_id(NULL_BLOCK_ID),
+              tstamp(repli_timestamp_t::invalid) { }
+        dirtied_page_t(block_id_t _block_id, page_ptr_t &&_ptr,
+                       repli_timestamp_t _tstamp)
+            : block_id(_block_id), ptr(std::move(_ptr)), tstamp(_tstamp) { }
+        block_id_t block_id;
+        page_ptr_t ptr;
+        repli_timestamp_t tstamp;
+    };
+
     // Saved pages (by block id).
-    segmented_vector_t<std::pair<block_id_t, page_ptr_t>, 8> snapshotted_dirtied_pages_;
+    segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
 
     // RSP: Performance?
     std::vector<std::pair<block_id_t, repli_timestamp_t> > touched_pages_;
 
-    // RSI: Dead acqs need to get converted into snapshot buffers or block ids or
-    // something.
+    // Tells whether this page_txn_t has announced itself (to the cache) to be
+    // waiting for a flush.
+    bool began_waiting_for_flush_ = false;  // RSI: compilable
 
-    bool flush_started_;
+    // RSI: Actually use this somehow?
+    // Tells whether this page_txn_t, in the process of being flushed, began its
+    // index write.  If it's a read-only transaction, this remains false.
+    // bool began_index_write_ = false;  // RSI: compilable
+
+    // This gets pulsed when the flush is complete or when the txn has no reason to
+    // exist any more.
     cond_t flush_complete_cond_;
 
     DISABLE_COPYING(page_txn_t);
