@@ -60,7 +60,7 @@ public:
         virtual void on_lba_sync() = 0;
         virtual ~sync_callback_t() {}
     };
-    bool sync(file_account_t *io_account, sync_callback_t *cb);
+    void sync(file_account_t *io_account, sync_callback_t *cb);
 
     void consider_gc(file_account_t *io_account, extent_transaction_t *txn);
 

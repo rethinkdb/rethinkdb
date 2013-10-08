@@ -231,14 +231,7 @@ public:
     {
         structures_unsynced = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-            bool shard_done = owner->disk_structures[i]->sync(io_account, this);
-            if (shard_done) {
-                structures_unsynced--;
-            }
-        }
-        
-        if (structures_unsynced == 0) {
-            done = true;
+            owner->disk_structures[i]->sync(io_account, this);
         }
     }
 
@@ -253,17 +246,16 @@ public:
     }
 };
 
-bool lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
+void lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
     rassert(state == state_ready);
 
     lba_syncer_t *syncer = new lba_syncer_t(this, io_account);
     if (syncer->done) {
         delete syncer;
-        return true;
+        cb->on_lba_sync();
     } else {
         syncer->should_delete_self = true;
         syncer->callback = cb;
-        return false;
     }
 }
 
@@ -312,9 +304,7 @@ public:
 
         /* Sync the new LBA */
 
-        if (owner->disk_structures[i]->sync(io_account, this)) {
-            on_lba_sync();
-        }
+        owner->disk_structures[i]->sync(io_account, this);
     }
 
     void on_lba_sync() {

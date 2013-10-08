@@ -30,7 +30,7 @@ public:
 
     void add_entry(lba_entry_t entry, file_account_t *io_account);
 
-    MUST_USE bool sync(file_account_t *io_account, extent_t::sync_callback_t *cb);
+    void sync(file_account_t *io_account, extent_t::sync_callback_t *cb);
 
     /* To read from an LBA on disk, first call read_step_1(), passing it the address of a
     new read_info_t structure. When it calls the callback you provide, then call

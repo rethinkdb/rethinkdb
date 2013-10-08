@@ -37,7 +37,7 @@ public:
         virtual void on_lba_sync() = 0;
         virtual ~sync_callback_t() {}
     };
-    MUST_USE bool sync(file_account_t *io_account, sync_callback_t *cb);
+    void sync(file_account_t *io_account, sync_callback_t *cb);
 
     // If you call read(), then the in_memory_index_t will be populated and then the read_callback_t
     // will be called when it is done.

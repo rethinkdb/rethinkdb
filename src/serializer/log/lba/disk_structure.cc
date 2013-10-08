@@ -136,32 +136,24 @@ public:
     }
 };
 
-bool lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb) {
+void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb) {
     lba_writer_t *writer = new lba_writer_t(cb);
 
+    /* Count how many things need to be synced */
+    if (last_extent) writer->outstanding_cbs++;
+    if (superblock_extent) writer->outstanding_cbs++;
+    writer->outstanding_cbs += extents_in_superblock.size();
+
     /* Sync the things that need to be synced */
-    if (last_extent != NULL) {
-        if (!last_extent->sync(io_account, writer)) {
-            writer->outstanding_cbs++;
-        }
-    }
-    if (superblock_extent != NULL) {
-        if (!superblock_extent->sync(writer)) {
-            writer->outstanding_cbs++;
-        }
-    }
-    
-    for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
-        if (!e->sync(io_account, writer)) {
-            writer->outstanding_cbs++;
-        }
-    }
-    
     if (writer->outstanding_cbs == 0) {
+        cb->on_lba_sync();
         delete writer;
-        return true;
     } else {
-        return false;
+        if (last_extent) last_extent->sync(io_account, writer);
+        if (superblock_extent) superblock_extent->sync(writer);
+        for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
+            e->sync(io_account, writer);
+        }
     }
 }
 

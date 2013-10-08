@@ -29,9 +29,7 @@ struct extent_block_t :
         waiting_for_prev = true;
         have_finished_sync = false;
 
-        if (parent->sync(this)) {
-            on_extent_sync();
-        }
+        parent->sync(this);
 
         if (parent->last_block) parent->last_block->is_last_block = false;
         parent->last_block = this;
@@ -131,14 +129,13 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
     }
 }
 
-bool extent_t::sync(sync_callback_t *cb) {
+void extent_t::sync(sync_callback_t *cb) {
     rassert(divides(DEVICE_BLOCK_SIZE, amount_filled));
     rassert(!current_block);
     if (last_block) {
         last_block->sync_cbs.push_back(cb);
-        return false;
     } else {
-        return true;
+        cb->on_extent_sync();
     }
 }
 
