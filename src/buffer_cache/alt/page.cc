@@ -713,6 +713,8 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
                                                         it->second));
     }
 
+    // RSI: Take the newly written blocks' block tokens and set their page_t's block
+    // token field to them.
     {
         on_thread_t th(serializer_->home_thread());
 
