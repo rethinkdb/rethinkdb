@@ -411,7 +411,7 @@ message Term {
                            //  -> ARRAY
         // Ensures that previously issued soft-durability writes are complete and 
         // written to disk.
-        SYNC     = 138; // Table -> OBJECT
+        FLUSH     = 138; // Table -> OBJECT
 
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.

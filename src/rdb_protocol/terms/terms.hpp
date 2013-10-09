@@ -59,7 +59,7 @@ counted_t<term_t> make_db_list_term(compile_env_t *env, const protob_t<const Ter
 counted_t<term_t> make_table_create_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_table_drop_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const Term> &term);
-counted_t<term_t> make_sync_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_flush_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // error.cc
 counted_t<term_t> make_error_term(compile_env_t *env, const protob_t<const Term> &term);
