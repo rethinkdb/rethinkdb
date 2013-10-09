@@ -12,6 +12,13 @@ class Workload:
         self.cid_dist = x_stress_util.Pareto(1000)
         self.typ_dist = x_stress_util.Pareto(10)
 
+        # Get the batch size to use
+        self.batch_size = os.getenv("X_WRITE_BATCH_SIZE")
+        if self.batch_size is None:
+            self.batch_size = 1
+        else:
+            self.batch_size = int(self.batch_size)
+
         # Get the current max key from environment variables
         max_key = os.getenv("X_MAX_KEY")
         max_key_file = os.getenv("X_MAX_KEY_FILE")
@@ -82,7 +89,8 @@ class Workload:
         return row
 
     def run(self, conn):
-        rql_res = r.db(self.db).table(self.table).insert(self.generate_row()).run(conn)
+        row_data = [ self.generate_row() for i in xrange(self.batch_size) ]
+        rql_res = r.db(self.db).table(self.table).insert(row_data).run(conn)
 
         result = { }
         if rql_res["errors"] > 0:
