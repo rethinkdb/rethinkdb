@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "containers/uuid.hpp"
+#include "rpc/serialize_macros.hpp"
 
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);
@@ -82,21 +83,6 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     return ARCHIVE_SUCCESS;
 }
 
-write_message_t &operator<<(write_message_t &msg, const in_addr &addr) {
-    msg.append(&addr.s_addr, sizeof(addr.s_addr));
-    return msg;
-}
-
-MUST_USE archive_result_t deserialize(read_stream_t *s, in_addr *addr) {
-    int64_t sz = sizeof(addr->s_addr);
-    int64_t res = force_read(s, &addr->s_addr, sz);
-
-    if (res == -1) { return ARCHIVE_SOCK_ERROR; }
-    if (res < sz) { return ARCHIVE_SOCK_EOF; }
-    rassert(res == sz);
-    return ARCHIVE_SUCCESS;
-}
-
 write_message_t &operator<<(write_message_t &msg, const in6_addr &addr) {
     msg.append(&addr.s6_addr, sizeof(addr.s6_addr));
     return msg;
@@ -111,3 +97,5 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
     rassert(res == sz);
     return ARCHIVE_SUCCESS;
 }
+
+RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);
