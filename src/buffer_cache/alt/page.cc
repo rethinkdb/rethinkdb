@@ -726,8 +726,7 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
         rassert(tokens.size() == write_infos.size());
         rassert(write_infos.size() == ancillary_infos.size());
         for (size_t i = 0; i < write_infos.size(); ++i) {
-            blocks_by_tokens.push_back(
-                                       block_token_tstamp_t(ancillary_infos[i].first,
+            blocks_by_tokens.push_back(block_token_tstamp_t(ancillary_infos[i].first,
                                                             std::move(tokens[i]),
                                                             ancillary_infos[i].second));
         }
