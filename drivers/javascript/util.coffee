@@ -35,6 +35,6 @@ module.exports.aropt = (fun) -> (args...) ->
 module.exports.toArrayBuffer = (node_buffer) ->
     # Convert from node buffer to array buffer
     arr = new Uint8Array new ArrayBuffer node_buffer.length
-    for byte,i in node_buffer
-        arr[i] = byte
+    for value,i in node_buffer
+        arr[i] = value
     return arr.buffer

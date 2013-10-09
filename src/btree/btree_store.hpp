@@ -413,6 +413,8 @@ public:
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
 
     perfmon_collection_t perfmon_collection;
+    // Mind the constructor ordering. We must destruct the cache and btree
+    // before we destruct perfmon_collection
     scoped_ptr_t<cache_t> cache;
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
@@ -424,6 +426,8 @@ public:
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     mutex_t sindex_queue_mutex;
 
+    // Mind the constructor ordering. We must destruct drainer before destructing
+    // many of the other structures.
     auto_drainer_t drainer;
 
 private:
