@@ -14,11 +14,13 @@ def call_ignore_interrupt(fun):
             if ex.errno != errno.EINTR:
                 raise
 
-def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset) :
+def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset, random_seed) :
     host_offset = host_offset % len(options["hosts"])
     host = options["hosts"][host_offset][0]
     port = options["hosts"][host_offset][1]
     ops_per_conn = options["ops_per_conn"]
+
+    random.seed(random_seed)
 
     # Stagger ops_left so not all clients reconnect at once
     ops_done = int(random.random() * ops_per_conn)
@@ -28,12 +30,8 @@ def stress_client_proc(options, start_event, exit_event, stat_queue, host_offset
     else:
         loop_cond = lambda: ops_done < ops_per_conn
 
-    random.seed()
-
     runner = QueryThrottler(options, stat_queue)
     stat_queue.put("ready")
-
-    random.seed()
 
     start_event.wait()
     while not exit_event.is_set():
@@ -50,13 +48,21 @@ def spawn_clients(options, start_event, exit_event, stat_queue):
     client_procs = [ ]
     host_offset = 0
 
+    random_seed = options["seed"]
+    if random_seed is None:
+        random_seed = random.random()
+
+    print >> sys.stderr, "Random seed used: %f" % random_seed
+    random.seed(random_seed)
+
     for i in xrange(num_clients):
         client_procs.append(multiprocessing.Process(target=stress_client_proc,
                                                     args=(options,
                                                           start_event,
                                                           exit_event,
                                                           stat_queue,
-                                                          host_offset)))
+                                                          host_offset,
+                                                          random.random())))
         client_procs[-1].start()
         host_offset += 1
 
@@ -85,14 +91,15 @@ def stop_clients(exit_event, child_procs, num_clients, timeout):
 
     return end_time
 
+# Write stats to stderr, so they don't interfere with parsers
 def print_stats(stats, start_time, end_time, num_clients):
     duration = end_time - start_time
 
-    print "Duration: %0.3f seconds" % duration
+    print >> sys.stderr, "Duration: %0.3f seconds" % duration
 
     # Print stats table
-    print ""
-    print "Operations data: "
+    print >> sys.stderr, ""
+    print >> sys.stderr, "Operations data: "
 
     table = [["total", "per sec", "per sec client avg", "avg latency"]]
 
@@ -118,17 +125,17 @@ def print_stats(stats, start_time, end_time, num_clients):
 
     rql_time_spent = stats["latency"]
     total_client_time = duration * num_clients 
-    print "Percent time clients spent in ReQL space: %.2f" % (100 * rql_time_spent / total_client_time)
+    print >> sys.stderr, "Percent time clients spent in ReQL space: %.2f" % (100 * rql_time_spent / total_client_time)
 
     for row in table:
-        print format_str.format(*row)
+        print >> sys.stderr, format_str.format(*row)
 
     # Print errors
     if len(stats["errors"]) != 0:
-        print ""
-        print "Errors encountered:"
+        print >> sys.stderr, ""
+        print >> sys.stderr, "Errors encountered:"
         for error, count in stats["errors"].iteritems():
-            print "%s: %s" % (error, count)
+            print >> sys.stderr, "%s: %s" % (error, count)
 
 def interrupt_handler(signal, frame, exit_event, parent_pid):
     if os.getpid() == parent_pid:
@@ -236,6 +243,7 @@ def stress_controller(options):
 
 if __name__ == "__main__":
     parser = OptionParser()
+    parser.add_option("--seed", dest="seed", metavar="FLOAT", default=None, type="float")
     parser.add_option("--table", dest="db_table", metavar="DB.TABLE", default=None, type="string")
     parser.add_option("--ops-per-sec", dest="ops_per_sec", metavar="NUMBER", default=100, type="float")
     parser.add_option("--ops-per-conn", dest="ops_per_conn", metavar="NUMBER", default=0, type="int")
@@ -287,5 +295,6 @@ if __name__ == "__main__":
     # Add the stress_workload subdirectory to the import search path
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'stress_workloads')))
     options["workload"] = __import__(parsed_options.workload).Workload(options)
+    options["seed"] = parsed_options.seed
 
     stress_controller(options)

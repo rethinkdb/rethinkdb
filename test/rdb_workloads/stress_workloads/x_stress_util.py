@@ -10,8 +10,10 @@ def perform_ignore_interrupt(f):
 
 # end_date should be of the format YYYY-MM-DD - default is today
 # interval should be of the format NUMBER (day, month, year) - default is 1 month
+# prob is the probability (0...1] of returning a more recent month (by power law)
 class TimeDistribution:
-    def __init__(self, end_date, interval):
+    def __init__(self, end_date, interval, prob=0.8):
+        self.prob = prob
         if end_date is None:
             self.end_date = datetime.date.today()
         else:
@@ -28,17 +30,17 @@ class TimeDistribution:
         if self.interval_type not in ["day", "month", "year"]:
             raise RuntimeError("unrecognized time interval: %s" % self.interval_type)
 
-    def shitty_power_law(self, prob):
+    def shitty_power_law(self):
         res = 1
         r = random.random()
-        d_prob = prob
+        d_prob = self.prob
         while r > d_prob:
             res += 1
-            d_prob += (1 - d_prob) * prob
+            d_prob += (1 - d_prob) * self.prob
         return res
 
     def get(self):
-        delta = self.shitty_power_law(0.8) * self.interval_length
+        delta = self.shitty_power_law() * self.interval_length
 
         if self.interval_type == "day":
             start_date = self.end_date - datetime.timedelta(days=delta)
@@ -63,8 +65,6 @@ class TimeDistribution:
             end_date = datetime.date(start_date.year + self.interval_length, 1, 1)
 
         return (start_date, end_date)
-
-# prob is the probability (0...1] of returning a lower number
 
 class Pareto:
     def __init__(self, num_values, alpha=1.161):
