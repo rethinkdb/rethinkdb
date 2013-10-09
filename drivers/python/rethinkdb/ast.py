@@ -832,6 +832,9 @@ class Table(RqlQuery):
     def index_list(self):
         return IndexList(self)
 
+    def sync(self):
+        return Sync(self)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', args[1], ')')
@@ -991,6 +994,10 @@ class IndexDrop(RqlMethodQuery):
 class IndexList(RqlMethodQuery):
     tt = p.Term.INDEX_LIST
     st = 'index_list'
+
+class Sync(RqlMethodQuery):
+    tt = p.Term.SYNC
+    st = 'sync'
 
 class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH

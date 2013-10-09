@@ -1,0 +1,49 @@
+desc: Tests syncing tables
+tests:
+
+    # Set up our test tables
+    - cd: r.db('test').table_create('test1')
+      ot: ({'created':1})
+    - py: r.db('test').table_create('test1soft', durability='soft')
+      js: r.db('test').table_create('test1soft', {durability:'soft'})
+      rb: r.db('test').table_create('test1soft', {:durability => 'soft'})
+      ot: ({'created':1})
+    - def: tbl = r.db('test').table('test1')
+    - def: tbl_soft = r.db('test').table('test1soft')
+    - cd: tbl.index_create('x')
+      ot: ({'created':1})
+
+    # This is the only way one can use sync legally at the moment
+    - cd: tbl.sync()
+      ot: ({'synced':1})
+    - cd: tbl_soft.sync()
+      ot: ({'synced':1})
+    - cd: tbl.sync()
+      ot: ({'synced':1})
+      runopts:
+        durability: soft
+    - cd: tbl.sync()
+      ot: ({'synced':1})
+      runopts:
+        durability: hard
+
+    # This is of type table, but sync should still fail (because it makes little sense)
+    - cd: tbl.between(1, 2).sync()
+      py: [] # Case handled by native python error
+      ot: err("RqlRuntimeError", 'sync can only be applied directly to a table.', [1])
+
+    # These are not even a table. Sync should fail with a different error message
+    - cd: r.expr(1).sync()
+      py: [] # Case handled by native python error
+      ot: err("RqlRuntimeError", 'Expected type TABLE but found DATUM.', [1])
+    - js: tbl.order_by({index:'x'}).sync()
+      rb: tbl.order_by({:index => 'soft'}).sync()
+      py: [] # Case handled by native python error
+      ot: err("RqlRuntimeError", 'Expected type TABLE but found SELECTION.', [1])
+
+    # clean up
+    - cd: r.db('test').table_drop('test1')
+      ot: "({'dropped':1})"
+    - cd: r.db('test').table_drop('test1soft')
+      ot: "({'dropped':1})"
+
