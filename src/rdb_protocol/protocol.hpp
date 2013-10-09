@@ -487,8 +487,8 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     
-    struct sync_response_t {
-        // sync always succeeds
+    struct flush_response_t {
+        // flush always succeeds
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
@@ -500,7 +500,7 @@ struct rdb_protocol_t {
                        point_delete_response_t,
                        sindex_create_response_t,
                        sindex_drop_response_t,
-                       sync_response_t> response;
+                       flush_response_t> response;
 
         write_response_t() { }
         template<class T>
@@ -618,9 +618,9 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
     
-    class sync_t {
+    class flush_t {
     public:
-        sync_t()
+        flush_t()
             : region(region_t::universe())
         { }
 
@@ -636,7 +636,7 @@ struct rdb_protocol_t {
                        point_delete_t,
                        sindex_create_t,
                        sindex_drop_t,
-                       sync_t> write;
+                       flush_t> write;
 
         durability_requirement_t durability_requirement;
 
@@ -670,12 +670,12 @@ struct rdb_protocol_t {
         explicit write_t(const sindex_drop_t &c,
                          durability_requirement_t = DURABILITY_REQUIREMENT_DEFAULT)
             : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        // Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
+        // Note that for durability != DURABILITY_REQUIREMENT_HARD, flush might
         // not have the desired effect (of writing unsaved data to disk).
-        // However there are cases where we use sync internally (such as when
+        // However there are cases where we use flush internally (such as when
         // splitting up batched replaces/inserts) and want it to only have an
         // effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard durability.
-        explicit write_t(const sync_t &c,
+        explicit write_t(const flush_t &c,
                          durability_requirement_t durability)
             : write(c), durability_requirement(durability) { }
 

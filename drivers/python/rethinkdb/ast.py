@@ -832,8 +832,8 @@ class Table(RqlQuery):
     def index_list(self):
         return IndexList(self)
 
-    def sync(self):
-        return Sync(self)
+    def flush(self):
+        return Flush(self)
 
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
@@ -995,9 +995,9 @@ class IndexList(RqlMethodQuery):
     tt = p.Term.INDEX_LIST
     st = 'index_list'
 
-class Sync(RqlMethodQuery):
-    tt = p.Term.SYNC
-    st = 'sync'
+class Flush(RqlMethodQuery):
+    tt = p.Term.FLUSH
+    st = 'flush'
 
 class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH
