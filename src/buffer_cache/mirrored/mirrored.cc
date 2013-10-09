@@ -252,7 +252,8 @@ mc_inner_buf_t::mc_inner_buf_t(mc_cache_t *_cache, block_id_t _block_id,
 mc_inner_buf_t *mc_inner_buf_t::allocate(mc_cache_t *cache, version_id_t snapshot_version, repli_timestamp_t recency_timestamp) {
     cache->assert_thread();
 
-    rassert (snapshot_version != faux_version_id);
+    if (snapshot_version == faux_version_id)
+        snapshot_version = cache->get_current_version_id();
 
     block_id_t block_id = cache->free_list.gen_block_id();
     mc_inner_buf_t *inner_buf = cache->find_buf(block_id);
