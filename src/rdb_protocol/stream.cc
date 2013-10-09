@@ -28,7 +28,6 @@ batched_rget_stream_t::batched_rget_stream_t(
             right_bound.has()
               ? store_key_t(right_bound->print_primary())
               : store_key_t::max()),
-      table_scan_backtrace(),
       sorting(_sorting),
       parent(_parent)
 { }
@@ -49,13 +48,12 @@ batched_rget_stream_t::batched_rget_stream_t(
       sindex_range(_sindex_start_value, start_value_open,
                    _sindex_end_value, end_value_open),
       range(rdb_protocol_t::sindex_key_range(
-                _sindex_start_value != NULL
+                _sindex_start_value.has()
                   ? _sindex_start_value->truncated_secondary()
                   : store_key_t::min(),
-                _sindex_end_value != NULL
+                _sindex_end_value.has()
                   ? _sindex_end_value->truncated_secondary()
                   : store_key_t::max())),
-      table_scan_backtrace(),
       sorting(_sorting),
       parent(_parent)
 { }
@@ -141,6 +139,11 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
                 break;
             }
 
+            if (!sindex_id) {
+                pop();
+                return hinted_datum_t(START, item->data);
+            }
+
             std::string key = key_to_unescaped_str(item->key);
             std::string skey = ql::datum_t::extract_secondary(key);
 
@@ -184,7 +187,6 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
          * return so we return nothing. */
         return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
     } else {
-        debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
         if (sorting == ASCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
@@ -208,33 +210,32 @@ counted_t<const ql::datum_t> batched_rget_stream_t::next(ql::env_t *env) {
     return sorting_hint_next(env).second;
 }
 
-boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, const backtrace_t &per_op_backtrace) {
+boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(
+    const rdb_protocol_details::transform_variant_t &t) {
     guarantee(!started);
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, per_op_backtrace));
+    transform.push_back(t);
     return shared_from_this();
 }
 
 rdb_protocol_t::rget_read_response_t::result_t batched_rget_stream_t::apply_terminal(
-    const rdb_protocol_details::terminal_variant_t &t,
-    ql::env_t *env,
-    const backtrace_t &per_op_backtrace) {
+    const rdb_protocol_details::terminal_variant_t &t, ql::env_t *env) {
     rdb_protocol_t::rget_read_t rget_read = get_rget();
-    rget_read.terminal = rdb_protocol_details::terminal_t(t, per_op_backtrace);
+    rget_read.terminal = t;
     rdb_protocol_t::read_t read(rget_read);
     try {
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
             ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+            ns_access.get_namespace_if()->read(
+                read, &res, order_token_t::ignore, env->interruptor);
         }
-        rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+        rdb_protocol_t::rget_read_response_t *p_res
+            = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
-            throw *e;
-        } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e2;
         } else if (ql::datum_exc_t *e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
             throw *e3;
@@ -242,13 +243,7 @@ rdb_protocol_t::rget_read_response_t::result_t batched_rget_stream_t::apply_term
 
         return p_res->result;
     } catch (const cannot_perform_query_exc_t &e) {
-        if (table_scan_backtrace) {
-            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
-        } else {
-            // No backtrace for these.
-            rfail_toplevel(ql::base_exc_t::GENERIC,
-                           "cannot perform read: %s", e.what());
-        }
+        rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
     }
 }
 
@@ -276,18 +271,18 @@ void batched_rget_stream_t::read_more(ql::env_t *env) {
         if (use_outdated) {
             ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, env->interruptor);
+            ns_access.get_namespace_if()->read(
+                read, &res, order_token_t::ignore, env->interruptor);
         }
-        rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+        rdb_protocol_t::rget_read_response_t *p_res
+            = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (auto e = boost::get<runtime_exc_t>(&p_res->result)) {
+        if (auto e = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e;
-        } else if (auto e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        } else if (auto e2 = boost::get<ql::datum_exc_t>(&p_res->result)) {
             throw *e2;
-        } else if (auto e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
-            throw *e3;
         }
 
         // todo: just do a straight copy?
@@ -318,13 +313,7 @@ void batched_rget_stream_t::read_more(ql::env_t *env) {
             }
         }
     } catch (const cannot_perform_query_exc_t &e) {
-        if (table_scan_backtrace) {
-            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
-        } else {
-            // No backtrace.
-            rfail_toplevel(ql::base_exc_t::GENERIC,
-                           "cannot perform read: %s", e.what());
-        }
+        rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
     }
 }
 

@@ -420,7 +420,7 @@ tests:
       ot: ({'id':0, 'b':{'c':0}})
 
     - cd: tbl3.pluck(1)
-      ot: err('RqlRuntimeError', 'Invalid path argument of `1` to pluck.', [])
+      ot: err('RqlRuntimeError', 'Invalid path argument `1`.', [])
 
     - py: r.expr([[{"foo":1}]]).pluck("foo")
       js: r.expr([[{"foo":1}]]).pluck("foo")

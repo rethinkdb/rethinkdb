@@ -57,10 +57,8 @@ typedef rdb_protocol_t::sindex_list_response_t sindex_list_response_t;
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
-typedef rdb_protocol_t::point_replace_t point_replace_t;
-typedef rdb_protocol_t::point_replace_response_t point_replace_response_t;
-
-typedef rdb_protocol_t::batched_replaces_t batched_replaces_t;
+typedef rdb_protocol_t::batched_replace_t batched_replace_t;
+typedef rdb_protocol_t::batched_insert_t batched_insert_t;
 
 typedef rdb_protocol_t::point_write_t point_write_t;
 typedef rdb_protocol_t::point_write_response_t point_write_response_t;
@@ -74,15 +72,14 @@ typedef rdb_protocol_t::sindex_create_response_t sindex_create_response_t;
 typedef rdb_protocol_t::sindex_drop_t sindex_drop_t;
 typedef rdb_protocol_t::sindex_drop_response_t sindex_drop_response_t;
 
+typedef rdb_protocol_t::sync_t sync_t;
+typedef rdb_protocol_t::sync_response_t sync_response_t;
+
 typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
 typedef rdb_protocol_t::backfill_progress_t backfill_progress_t;
 
 typedef rdb_protocol_t::rget_read_response_t::stream_t stream_t;
-typedef rdb_protocol_t::rget_read_response_t::groups_t groups_t;
-typedef rdb_protocol_t::rget_read_response_t::atom_t atom_t;
-typedef rdb_protocol_t::rget_read_response_t::length_t length_t;
-typedef rdb_protocol_t::rget_read_response_t::inserted_t inserted_t;
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
 
@@ -94,19 +91,16 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
 
 RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
-RDB_IMPL_SERIALIZABLE_2(range_and_func_filter_transform_t, range_predicate, mapping_func);
 
 namespace rdb_protocol_details {
 
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
-RDB_IMPL_SERIALIZABLE_2(transform_atom_t, variant, backtrace);
-RDB_IMPL_SERIALIZABLE_2(terminal_t, variant, backtrace);
 
 void post_construct_and_drain_queue(
+        auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        auto_drainer_t::lock_t lock)
+        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue)
     THROWS_NOTHING;
 
 /* Creates a queue of operations for the sindex, runs a post construction for
@@ -129,7 +123,9 @@ void bring_sindexes_up_to_date(
     boost::shared_ptr<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
                 store->io_backender_,
-                serializer_filepath_t(store->base_path_, "post_construction_" + uuid_to_str(post_construct_id)),
+                serializer_filepath_t(
+                    store->base_path_,
+                    "post_construction_" + uuid_to_str(post_construct_id)),
                 &store->perfmon_collection));
 
     {
@@ -150,10 +146,10 @@ void bring_sindexes_up_to_date(
 
     coro_t::spawn_sometime(boost::bind(
                 &post_construct_and_drain_queue,
+                auto_drainer_t::lock_t(&store->drainer),
                 sindexes_to_bring_up_to_date_uuid,
                 store,
-                mod_queue,
-                auto_drainer_t::lock_t(&store->drainer)));
+                mod_queue));
 }
 
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
@@ -178,12 +174,16 @@ private:
 
 /* This function is really part of the logic of bring_sindexes_up_to_date
  * however it needs to be in a seperate function so that it can be spawned in a
- * coro. */
+ * coro. 
+ * NOTE: the auto_drainer lock must be in front of the
+ * mod_queue shared pointer, because we must not release
+ * the drainer lock before the mod_queue is released.
+ */
 void post_construct_and_drain_queue(
+        auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        auto_drainer_t::lock_t lock)
+        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue)
     THROWS_NOTHING
 {
     try {
@@ -355,14 +355,14 @@ rdb_protocol_t::context_t::context_t(
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
                                                     clone_ptr_t<semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > > >
                                                         (new semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
-                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces, _cluster_metadata))), threadnum_t(thread)));
 
         cross_thread_database_watchables[thread].init(new cross_thread_watchable_variable_t<databases_semilattice_metadata_t>(
                                                     clone_ptr_t<semilattice_watchable_t<databases_semilattice_metadata_t> >
                                                         (new semilattice_watchable_t<databases_semilattice_metadata_t>(
-                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), thread));
+                                                            metadata_field(&cluster_semilattice_metadata_t::databases, _cluster_metadata))), threadnum_t(thread)));
 
-        signals[thread].init(new cross_thread_signal_t(&interruptor, thread));
+        signals[thread].init(new cross_thread_signal_t(&interruptor, threadnum_t(thread)));
     }
 }
 
@@ -528,9 +528,9 @@ public:
         : responses(_responses), count(_count), response_out(_response_out),
           ql_env(ctx->extproc_pool,
                  ctx->ns_repo,
-                 ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+                 ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                      ->get_watchable(),
-                 ctx->cross_thread_database_watchables[get_thread_id()].get()
+                 ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                      ->get_watchable(),
                  ctx->cluster_metadata,
                  NULL,
@@ -547,38 +547,31 @@ public:
 
     void operator()(const rget_read_t &rg) {
         response_out->response = rget_read_response_t();
-        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
+        rget_read_response_t *rg_response
+            = boost::get<rget_read_response_t>(&response_out->response);
         rg_response->truncated = false;
         rg_response->key_range = read_t(rg).get_region().inner;
         rg_response->last_considered_key = read_t(rg).get_region().inner.left;
 
-        try {
-            /* First check to see if any of the responses we're unsharding threw. */
-            for (size_t i = 0; i < count; ++i) {
-                // TODO: we're ignoring the limit when recombining.
-                const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
-                guarantee(rr != NULL);
+        /* First check to see if any of the responses we're unsharding threw. */
+        for (size_t i = 0; i < count; ++i) {
+            // TODO: we're ignoring the limit when recombining.
+            auto rr = boost::get<rget_read_response_t>(&responses[i].response);
+            guarantee(rr != NULL);
 
-                if (const runtime_exc_t *e = boost::get<runtime_exc_t>(&rr->result)) {
-                    throw *e;
-                } else if (const ql::exc_t *e2 = boost::get<ql::exc_t>(&rr->result)) {
-                    throw *e2;
-                } else if (const ql::datum_exc_t *e3 = boost::get<ql::datum_exc_t>(&rr->result)) {
-                    throw *e3;
-                }
+            if (auto e = boost::get<ql::exc_t>(&rr->result)) {
+                rg_response->result = *e;
+                return;
+            } else if (auto e = boost::get<ql::datum_exc_t>(&rr->result)) {
+                rg_response->result = *e;
+                return;
             }
+        }
 
-            if (!rg.terminal) {
-                unshard_range_get(rg);
-            } else {
-                unshard_reduce(rg);
-            }
-        } catch (const runtime_exc_t &e) {
-            rg_response->result = e;
-        } catch (const ql::exc_t &e) {
-            rg_response->result = e;
-        } catch (const ql::datum_exc_t &e) {
-            rg_response->result = e;
+        if (!rg.terminal) {
+            unshard_range_get(rg);
+        } else {
+            unshard_reduce(rg);
         }
     }
 
@@ -655,7 +648,6 @@ private:
     size_t count;
     read_response_t *response_out;
     ql::env_t ql_env;
-
 
     void unshard_range_get(const rget_read_t &rg) {
         rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
@@ -738,10 +730,11 @@ private:
     }
 
     void unshard_reduce(const rget_read_t &rg) {
-        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
+        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(
+            &response_out->response);
         try {
             if (const ql::reduce_wire_func_t *reduce_func =
-                    boost::get<ql::reduce_wire_func_t>(&rg.terminal->variant)) {
+                    boost::get<ql::reduce_wire_func_t>(&*rg.terminal)) {
                 ql::reduce_wire_func_t local_reduce_func = *reduce_func;
                 rg_response->result = rget_read_response_t::empty_t();
                 for (size_t i = 0; i < count; ++i) {
@@ -753,32 +746,38 @@ private:
                     const counted_t<const ql::datum_t> *rhs =
                         boost::get<counted_t<const ql::datum_t> >(&(_rr->result));
                     if (!rhs) {
-                        guarantee(boost::get<rget_read_response_t::empty_t>(&(_rr->result)));
+                        guarantee(boost::get<rget_read_response_t::empty_t>(
+                                      &(_rr->result)));
                         continue;
                     } else {
                         if (lhs) {
                             counted_t<const ql::datum_t> reduced_val =
-                                local_reduce_func.compile_wire_func()->call(&ql_env, *lhs, *rhs)->as_datum();
+                                local_reduce_func.compile_wire_func()->call(
+                                    &ql_env, *lhs, *rhs)->as_datum();
                             rg_response->result = reduced_val;
                         } else {
-                            guarantee(boost::get<rget_read_response_t::empty_t>(&rg_response->result));
+                            guarantee(boost::get<rget_read_response_t::empty_t>(
+                                          &rg_response->result));
                             rg_response->result = _rr->result;
                         }
                     }
                 }
-            } else if (boost::get<ql::count_wire_func_t>(&rg.terminal->variant)) {
+            } else if (boost::get<ql::count_wire_func_t>(&*rg.terminal)) {
                 rg_response->result = make_counted<const ql::datum_t>(0.0);
 
                 for (size_t i = 0; i < count; ++i) {
                     const rget_read_response_t *_rr =
                         boost::get<rget_read_response_t>(&responses[i].response);
                     guarantee(_rr);
-                    counted_t<const ql::datum_t> lhs = boost::get<counted_t<const ql::datum_t> >(rg_response->result);
-                    counted_t<const ql::datum_t> rhs = boost::get<counted_t<const ql::datum_t> >(_rr->result);
-                    rg_response->result = make_counted<const ql::datum_t>(lhs->as_num() + rhs->as_num());
+                    counted_t<const ql::datum_t> lhs =
+                        boost::get<counted_t<const ql::datum_t> >(rg_response->result);
+                    counted_t<const ql::datum_t> rhs =
+                        boost::get<counted_t<const ql::datum_t> >(_rr->result);
+                    rg_response->result = make_counted<const ql::datum_t>(
+                        lhs->as_num() + rhs->as_num());
                 }
             } else if (const ql::gmr_wire_func_t *gmr_func =
-                    boost::get<ql::gmr_wire_func_t>(&rg.terminal->variant)) {
+                    boost::get<ql::gmr_wire_func_t>(&*rg.terminal)) {
                 ql::gmr_wire_func_t local_gmr_func = *gmr_func;
                 rg_response->result = ql::wire_datum_map_t();
                 ql::wire_datum_map_t *map =
@@ -816,13 +815,14 @@ private:
         } catch (const ql::datum_exc_t &e) {
             /* Evaluation threw so we're not going to be accepting any
                more requests. */
-            terminal_exception(e, rg.terminal->variant, &rg_response->result);
+            terminal_exception(e, *rg.terminal, &rg_response->result);
         }
     }
 };
 
-void read_t::unshard(read_response_t *responses, size_t count, read_response_t
-        *response, context_t *ctx, signal_t *interruptor) const
+void read_t::unshard(read_response_t *responses, size_t count,
+                     read_response_t *response, context_t *ctx,
+                     signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
     rdb_r_unshard_visitor_t v(responses, count, response, ctx, interruptor);
     boost::apply_visitor(v, read);
@@ -830,48 +830,55 @@ void read_t::unshard(read_response_t *responses, size_t count, read_response_t
 
 /* write_t::get_region() implementation */
 
-// TODO: This entire type is suspect, given the performance for batched_replaces_t.  Is it used in
-// anything other than assertions?
+// TODO: This entire type is suspect, given the performance for
+// batched_replaces_t.  Is it used in anything other than assertions?
+region_t region_from_keys(const std::vector<store_key_t> &keys) {
+    // It shouldn't be empty, but we let the places that would break use a
+    // guarantee.
+    rassert(!keys.empty());
+    if (keys.empty()) {
+        return hash_region_t<key_range_t>();
+    }
+
+    store_key_t min_key = store_key_t::max();
+    store_key_t max_key = store_key_t::min();
+    uint64_t min_hash_value = HASH_REGION_HASH_SIZE - 1;
+    uint64_t max_hash_value = 0;
+
+    for (auto it = keys.begin(); it != keys.end(); ++it) {
+        const store_key_t &key = *it;
+        if (key < min_key) {
+            min_key = key;
+        }
+        if (key > max_key) {
+            max_key = key;
+        }
+
+        const uint64_t hash_value = hash_region_hasher(key.contents(), key.size());
+        if (hash_value < min_hash_value) {
+            min_hash_value = hash_value;
+        }
+        if (hash_value > max_hash_value) {
+            max_hash_value = hash_value;
+        }
+    }
+
+    return hash_region_t<key_range_t>(
+        min_hash_value, max_hash_value + 1,
+        key_range_t(key_range_t::closed, min_key, key_range_t::closed, max_key));
+}
+
 struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
-    region_t operator()(const point_replace_t &pr) const {
-        return rdb_protocol_t::monokey_region(pr.key);
+    region_t operator()(const batched_replace_t &br) const {
+        return region_from_keys(br.keys);
     }
-
-    static const store_key_t &point_replace_key(const std::pair<int64_t, point_replace_t> &pair) {
-        return pair.second.key;
-    }
-
-    region_t operator()(const batched_replaces_t &br) const {
-        // It shouldn't be empty, but we let the places that would break use a guarantee.
-        rassert(!br.point_replaces.empty());
-        if (br.point_replaces.empty()) {
-            return hash_region_t<key_range_t>();
+    region_t operator()(const batched_insert_t &bi) const {
+        std::vector<store_key_t> keys;
+        keys.reserve(bi.inserts.size());
+        for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
+            keys.emplace_back((*it)->get(bi.pkey)->print_primary());
         }
-
-        store_key_t minimum_key = store_key_t::max();
-        store_key_t maximum_key = store_key_t::min();
-        uint64_t minimum_hash_value = HASH_REGION_HASH_SIZE - 1;
-        uint64_t maximum_hash_value = 0;
-
-        for (auto pair = br.point_replaces.begin(); pair != br.point_replaces.end(); ++pair) {
-            if (pair->second.key < minimum_key) {
-                minimum_key = pair->second.key;
-            }
-            if (pair->second.key > maximum_key) {
-                maximum_key = pair->second.key;
-            }
-
-            const uint64_t hash_value = hash_region_hasher(pair->second.key.contents(), pair->second.key.size());
-            if (hash_value < minimum_hash_value) {
-                minimum_hash_value = hash_value;
-            }
-            if (hash_value > maximum_hash_value) {
-                maximum_hash_value = hash_value;
-            }
-        }
-
-        return hash_region_t<key_range_t>(minimum_hash_value, maximum_hash_value + 1,
-                                          key_range_t(key_range_t::closed, minimum_key, key_range_t::closed, maximum_key));
+        return region_from_keys(keys);
     }
 
     region_t operator()(const point_write_t &pw) const {
@@ -889,11 +896,18 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const sindex_drop_t &d) const {
         return d.region;
     }
+
+    region_t operator()(const sync_t &s) const {
+        return s.region;
+    }
 };
 
+#ifndef NDEBUG
+// This is slow, and should only be used in debug mode for assertions.
 region_t write_t::get_region() const THROWS_NOTHING {
     return boost::apply_visitor(rdb_w_get_region_visitor(), write);
 }
+#endif // NDEBUG
 
 /* write_t::shard implementation */
 
@@ -915,23 +929,41 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
     }
 
-    bool operator()(const point_replace_t &pr) const {
-        return keyed_write(pr);
-    }
-
-    bool operator()(const batched_replaces_t &br) const {
-        std::vector<std::pair<int64_t, point_replace_t> > sharded_replaces;
-
-        for (auto it = br.point_replaces.begin(); it != br.point_replaces.end(); ++it) {
-            if (region_contains_key(*region, it->second.key)) {
-                sharded_replaces.push_back(*it);
+    bool operator()(const batched_replace_t &br) const {
+        std::vector<store_key_t> shard_keys;
+        for (auto it = br.keys.begin(); it != br.keys.end(); ++it) {
+            if (region_contains_key(*region, *it)) {
+                shard_keys.push_back(*it);
             }
         }
+        if (!shard_keys.empty()) {
+            *write_out = write_t(
+                batched_replace_t(
+                    std::move(shard_keys),
+                    br.pkey,
+                    br.f.compile_wire_func(),
+                    br.optargs,
+                    br.return_vals),
+                durability_requirement);
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-        if (!sharded_replaces.empty()) {
-            *write_out = write_t(batched_replaces_t(), durability_requirement);
-            batched_replaces_t *batched = boost::get<batched_replaces_t>(&write_out->write);
-            batched->point_replaces.swap(sharded_replaces);
+    bool operator()(const batched_insert_t &bi) const {
+        std::vector<counted_t<const ql::datum_t> > shard_inserts;
+        for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
+            store_key_t key((*it)->get(bi.pkey)->print_primary());
+            if (region_contains_key(*region, key)) {
+                shard_inserts.push_back(*it);
+            }
+        }
+        if (!shard_inserts.empty()) {
+            *write_out = write_t(
+                batched_insert_t(
+                    std::move(shard_inserts), bi.pkey, bi.upsert, bi.return_vals),
+                durability_requirement);
             return true;
         } else {
             return false;
@@ -953,7 +985,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp);
+            *write_out = write_t(tmp, durability_requirement);
             return true;
         } else {
             return false;
@@ -966,6 +998,10 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
 
     bool operator()(const sindex_drop_t &d) const {
         return rangey_write(d);
+    }
+
+    bool operator()(const sync_t &s) const {
+        return rangey_write(s);
     }
 
     const region_t *region;
@@ -985,25 +1021,25 @@ bool first_less(const std::pair<int64_t, T> &left, const std::pair<int64_t, T> &
 }
 
 struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
-    void operator()(const point_replace_t &) const { monokey_response(); }
-
-    // The special case here is batched_replaces_response_t, which actually gets sharded into
-    // multiple operations instead of getting sent unsplit in a single direction.
-    void operator()(const batched_replaces_t &) const {
-        std::vector<std::pair<int64_t, point_replace_response_t> > combined;
-
+    // The special case here is batched_replaces_response_t, which actually gets
+    // sharded into multiple operations instead of getting sent unsplit in a
+    // single direction.
+    void merge_stats() const {
+        counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
         for (size_t i = 0; i < count; ++i) {
-            const batched_replaces_response_t *batched_response = boost::get<batched_replaces_response_t>(&responses[i].response);
-            guarantee(batched_response != NULL, "unsharding nonhomogeneous responses");
-
-            combined.insert(combined.end(),
-                            batched_response->point_replace_responses.begin(),
-                            batched_response->point_replace_responses.end());
+            const counted_t<const ql::datum_t> *stats_i =
+                boost::get<counted_t<const ql::datum_t> >(&responses[i].response);
+            guarantee(stats_i != NULL);
+            stats = stats->merge(*stats_i, ql::stats_merge);
         }
+        *response_out = write_response_t(stats);
+    }
+    void operator()(const batched_replace_t &) const {
+        merge_stats();
+    }
 
-        std::sort(combined.begin(), combined.end(), first_less<point_replace_response_t>);
-
-        *response_out = write_response_t(batched_replaces_response_t(combined));
+    void operator()(const batched_insert_t &) const {
+        merge_stats();
     }
 
     void operator()(const point_write_t &) const { monokey_response(); }
@@ -1014,6 +1050,10 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &) const {
+        *response_out = responses[0];
+    }
+
+    void operator()(const sync_t &) const {
         *response_out = responses[0];
     }
 
@@ -1036,7 +1076,9 @@ private:
     write_response_t *const response_out;
 };
 
-void write_t::unshard(const write_response_t *responses, size_t count, write_response_t *response_out, context_t *, signal_t *) const THROWS_NOTHING {
+void write_t::unshard(const write_response_t *responses, size_t count,
+                      write_response_t *response_out, context_t *, signal_t *)
+    const THROWS_NOTHING {
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
     boost::apply_visitor(visitor, write);
 }
@@ -1114,7 +1156,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // Normal rget
             rdb_rget_slice(btree, rget.region.inner, txn, superblock,
                     &ql_env, rget.transform, rget.terminal,
-                    (forward(rget.sorting) ? FORWARD : BACKWARD), res);
+                    rget.sorting, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
@@ -1140,10 +1182,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 return;
             }
 
-            guarantee(rget.sindex_region, "If an rget has an sindex specified, "
-                      "it should also have an sindex_region.");
-            guarantee(rget.sindex_range, "If an rget has an sindex specified, "
-                      "it shoud also have an sindex_range.");
+            guarantee(rget.sindex_range, "If an rget has a sindex specified "
+                      "it should also have a sindex_range.");
+            guarantee(rget.sindex_region, "If an rget has a sindex specified "
+                      "it should also have a sindex_region.");
 
             // This chunk of code puts together a filter so we can exclude any items
             //  that don't fall in the specified range.  Because the secondary index
@@ -1151,26 +1193,19 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
+            sindex_multi_bool_t multi_bool = MULTI;
             vector_read_stream_t read_stream(&sindex_mapping_data);
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+            success = deserialize(&read_stream, &multi_bool);
+            guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
-            range_and_func_filter_transform_t sindex_filter(*rget.sindex_range, sindex_mapping);
-
-            // We then add this new filter to the beginning of the transform stack
-            rdb_protocol_details::transform_t sindex_transform(rget.transform);
-            sindex_transform.push_front(rdb_protocol_details::transform_atom_t(
-                                            sindex_filter, backtrace_t()));
-
-            bool is_ordered = rget.sorting != UNORDERED;
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
-                    rget.sindex_region->inner,
-                    txn, sindex_sb.get(), &ql_env, sindex_transform,
-                    rget.terminal, rget.region.inner,
-                    (forward(rget.sorting) ? FORWARD : BACKWARD),
-                    (is_ordered ? sindex_mapping : boost::optional<ql::map_wire_func_t>()),
-                    res);
+                    *rget.sindex_range, //guaranteed present above
+                    txn, sindex_sb.get(), &ql_env, rget.transform,
+                    rget.terminal, rget.region.inner, rget.sorting,
+                    sindex_mapping, multi_bool, res);
         }
     }
 
@@ -1223,12 +1258,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         txn(_txn),
         superblock(_superblock),
         token_pair(_token_pair),
-        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
+        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[get_thread_id()].get()
+               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
-               ctx->cross_thread_database_watchables[get_thread_id()].get()
+               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()
                    ->get_watchable(),
                ctx->cluster_metadata,
                NULL,
@@ -1255,61 +1290,110 @@ void store_t::protocol_read(const read_t &read,
                             superblock_t *superblock,
                             read_token_pair_t *token_pair,
                             signal_t *interruptor) {
-    rdb_read_visitor_t v(btree, this, txn, superblock, token_pair, ctx, response, interruptor);
+    rdb_read_visitor_t v(
+        btree, this, txn, superblock, token_pair, ctx, response, interruptor);
     boost::apply_visitor(v, read.read);
 }
 
+class func_replacer_t : public btree_batched_replacer_t {
+public:
+    func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, bool _return_vals)
+        : env(_env), f(wf.compile_wire_func()), return_vals(_return_vals) { }
+    counted_t<const ql::datum_t> replace(
+        const counted_t<const ql::datum_t> &d, size_t) const {
+        return f->call(env, d)->as_datum();
+    }
+    bool should_return_vals() const { return return_vals; }
+private:
+    ql::env_t *const env;
+    const counted_t<ql::func_t> f;
+    const bool return_vals;
+};
+
+class datum_replacer_t : public btree_batched_replacer_t {
+public:
+    datum_replacer_t(const std::vector<counted_t<const ql::datum_t> > *_datums,
+                     bool _upsert, const std::string &_pkey, bool _return_vals)
+        : datums(_datums), upsert(_upsert), pkey(_pkey), return_vals(_return_vals) { }
+    counted_t<const ql::datum_t> replace(
+        const counted_t<const ql::datum_t> &d, size_t index) const {
+        guarantee(index < datums->size());
+        counted_t<const ql::datum_t> newd = (*datums)[index];
+        if (d->get_type() == ql::datum_t::R_NULL || upsert) {
+            return newd;
+        } else {
+            rfail_target(d, ql::base_exc_t::GENERIC,
+                         "Duplicate primary key `%s`:\n%s\n%s",
+                         pkey.c_str(), d->print().c_str(), newd->print().c_str());
+        }
+        unreachable();
+    }
+    bool should_return_vals() const { return return_vals; }
+private:
+    const std::vector<counted_t<const ql::datum_t> > *const datums;
+    const bool upsert;
+    const std::string pkey;
+    const bool return_vals;
+};
+
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
-    void operator()(const point_replace_t &r) {
+    void operator()(const batched_replace_t &br) {
         try {
-            ql_env.global_optargs.init_optargs(r.optargs);
+            ql_env.global_optargs.init_optargs(br.optargs);
         } catch (const interrupted_exc_t &) {
             // Clear the sindex_write_token because we didn't have a chance to use it
             token_pair->sindex_write_token.reset();
             throw;
         }
-
-        response->response = point_replace_response_t();
-        point_replace_response_t *res = boost::get<point_replace_response_t>(&response->response);
-        // TODO: modify surrounding code so we can dump this const_cast.
-        ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
-        rdb_modification_report_t mod_report(r.key);
-        rdb_replace(btree, timestamp, txn, superblock->get(),
-                    r.primary_key, r.key, f,
-                    r.return_vals ? RETURN_VALS : NO_RETURN_VALS,
-                    &ql_env, res, &mod_report.info);
-
-        update_sindexes(&mod_report);
+        rdb_modification_report_cb_t sindex_cb(
+            store, token_pair, txn,
+            (*superblock)->get_sindex_block_id(),
+            auto_drainer_t::lock_t(&store->drainer));
+        func_replacer_t replacer(&ql_env, br.f, br.return_vals);
+        response->response =
+            rdb_batched_replace(
+                btree_info_t(btree, timestamp, txn, &br.pkey),
+                superblock, br.keys, &replacer, &sindex_cb);
     }
 
-    void operator()(const batched_replaces_t &br) {
-        response->response = batched_replaces_response_t();
-        batched_replaces_response_t *res = boost::get<batched_replaces_response_t>(&response->response);
-
-        rdb_modification_report_cb_t sindex_cb(store, token_pair, txn,
-                                               (*superblock)->get_sindex_block_id(),
-                                               auto_drainer_t::lock_t(&store->drainer));
-        rdb_batched_replace(br.point_replaces, btree, timestamp, txn, superblock,
-                            &ql_env, res, &sindex_cb);
+    void operator()(const batched_insert_t &bi) {
+        rdb_modification_report_cb_t sindex_cb(
+            store, token_pair, txn,
+            (*superblock)->get_sindex_block_id(),
+            auto_drainer_t::lock_t(&store->drainer));
+        datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey, bi.return_vals);
+        std::vector<store_key_t> keys;
+        keys.reserve(bi.inserts.size());
+        for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
+            keys.emplace_back((*it)->get(bi.pkey)->print_primary());
+        }
+        response->response =
+            rdb_batched_replace(
+                btree_info_t(btree, timestamp, txn, &bi.pkey),
+                superblock, keys, &replacer, &sindex_cb);
     }
 
     void operator()(const point_write_t &w) {
         response->response = point_write_response_t();
-        point_write_response_t *res = boost::get<point_write_response_t>(&response->response);
+        point_write_response_t *res =
+            boost::get<point_write_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(w.key);
-        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
-
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp,
+                txn, superblock->get(), res, &mod_report.info);
+        
         update_sindexes(&mod_report);
     }
 
     void operator()(const point_delete_t &d) {
         response->response = point_delete_response_t();
-        point_delete_response_t *res = boost::get<point_delete_response_t>(&response->response);
+        point_delete_response_t *res =
+            boost::get<point_delete_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(d.key);
-        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
+        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res,
+                   &mod_report.info);
 
         update_sindexes(&mod_report);
     }
@@ -1319,6 +1403,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
         write_message_t wm;
         wm << c.mapping;
+        wm << c.multi;
 
         vector_stream_t stream;
         int write_res = send_write_message(&stream, &wm);
@@ -1359,6 +1444,18 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
         response->response = res;
     }
+    
+    void operator()(const sync_t &) {
+        response->response = sync_response_t();
+
+        /* With our current cache, we can ensure that all previous
+         * write transactions are persisted simply by following them
+         * up with another transaction with hard durability.
+         */
+        
+        token_pair->sindex_write_token.reset();
+    }
+
 
     rdb_write_visitor_t(btree_slice_t *_btree,
                         btree_store_t<rdb_protocol_t> *_store,
@@ -1376,15 +1473,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         superblock(_superblock),
         token_pair(_token_pair),
         timestamp(_timestamp),
-        interruptor(_interruptor, ctx->signals[get_thread_id()].get()),
+        interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->ns_repo,
-               ctx->cross_thread_namespace_watchables[
-                   get_thread_id()].get()->get_watchable(),
-               ctx->cross_thread_database_watchables[
-                   get_thread_id()].get()->get_watchable(),
+               ctx->cross_thread_namespace_watchables[get_thread_id().threadnum].get()->get_watchable(),
+               ctx->cross_thread_database_watchables[get_thread_id().threadnum].get()->get_watchable(),
                ctx->cluster_metadata,
-               0,
+               NULL,
                &interruptor,
                ctx->machine_id,
                std::map<std::string, ql::wire_func_t>()),
@@ -1662,14 +1757,18 @@ hash_region_t<key_range_t> sindex_range_t::to_region() const {
         end != NULL ? end->truncated_secondary() : store_key_t::max()));
 }
 
+bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
+    return (!start || (*start < *value || (*start == *value && !start_open))) &&
+           (!end   || (*value < *end   || (*value == *end && !end_open)));
+}
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::length_t, length);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::rget_read_response_t::inserted_t, inserted);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
-RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::rget_read_response_t,
-                           result, errors, key_range, truncated, last_considered_key);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
+                           result, key_range, truncated, last_considered_key);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
+                           region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
@@ -1681,7 +1780,8 @@ RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_range,
                            transform, terminal, optargs, sorting);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
+                           max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
@@ -1689,19 +1789,21 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
+RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sync_response_t);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_response_t, point_replace_responses);
+RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::batched_replace_t,
+                           keys, pkey, f, optargs, return_vals);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::batched_insert_t,
+                           inserts, pkey, upsert, return_vals);
 
-
-RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::point_replace_t, primary_key, key, f, optargs, return_vals);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_t, point_replaces);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::point_write_t, key, data, overwrite);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_create_t, id, mapping, region);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sync_t, region);
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_t, write, durability_requirement);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);

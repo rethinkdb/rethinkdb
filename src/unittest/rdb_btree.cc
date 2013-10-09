@@ -4,13 +4,14 @@
 #include <boost/bind.hpp>
 
 #include "arch/io/disk.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
+#include "btree/operations.hpp"
 #include "buffer_cache/mirrored/config.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "serializer/config.hpp"
@@ -18,6 +19,7 @@
 #include "unittest/unittest_utils.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
+#define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -31,17 +33,19 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         scoped_ptr_t<real_superblock_t> superblock;
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
-        store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                            1, WRITE_DURABILITY_SOFT,
-                                            &token_pair, &txn, &superblock, &dummy_interruptor);
+        store->acquire_superblock_for_write(
+            rwi_write, repli_timestamp_t::invalid,
+            1, WRITE_DURABILITY_SOFT,
+            &token_pair, &txn, &superblock, &dummy_interruptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
         std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         point_write_response_t response;
 
-        store_key_t pk(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i)).get(), backtrace_t()));
+        store_key_t pk(make_counted<const ql::datum_t>(double(i))->print_primary());
         rdb_modification_report_t mod_report(pk);
-        rdb_set(pk, make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
+        rdb_set(pk,
+                make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
                 superblock.get(), &response, &mod_report.info);
 
@@ -93,9 +97,11 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
     ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
+    sindex_multi_bool_t multi_bool = SINGLE;
 
     write_message_t wm;
     wm << m;
+    wm << multi_bool;
 
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
@@ -171,9 +177,10 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
-    store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                        1, WRITE_DURABILITY_SOFT,
-                                        &token_pair, &txn, &super_block, &dummy_interruptor);
+    store->acquire_superblock_for_write(
+        rwi_write, repli_timestamp_t::invalid,
+        1, WRITE_DURABILITY_SOFT,
+        &token_pair, &txn, &super_block, &dummy_interruptor);
 
     scoped_ptr_t<buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(
@@ -192,7 +199,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
             sindex_block.get(), txn.get());
 }
 
-void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
+void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         std::string sindex_id) {
     cond_t dummy_interruptor;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
@@ -215,13 +222,16 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
+        double ii = i * i;
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
-               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
-                                                store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
-               txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-               boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
+            rdb_protocol_t::sindex_key_range(
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
+            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
 
-        rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+        rdb_protocol_t::rget_read_response_t::stream_t *stream
+            = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(1ul, stream->size());
 
@@ -231,7 +241,20 @@ void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
     }
 }
 
-void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
+void check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
+        std::string sindex_id) {
+    for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
+        try {
+            _check_keys_are_present(store, sindex_id);
+        } catch (const sindex_not_post_constructed_exc_t&) { }
+        /* Unfortunately we don't have an easy way right now to tell if the
+         * sindex has actually been postconstructed so we just need to
+         * check by polling. */
+        nap(100);
+    }
+}
+
+void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         std::string sindex_id) {
     /* Check that we don't have any of the keys (we just deleted them all) */
     cond_t dummy_interruptor;
@@ -255,15 +278,31 @@ void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
+        double ii = i * i;
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
-               rdb_protocol_t::sindex_key_range(store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t())),
-                                                store_key_t(cJSON_print_primary(scoped_cJSON_t(cJSON_CreateNumber(i * i)).get(), backtrace_t()))),
-               txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-               boost::optional<rdb_protocol_details::terminal_t>(), FORWARD, &res);
+            rdb_protocol_t::sindex_key_range(
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
+            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
 
-        rdb_protocol_t::rget_read_response_t::stream_t *stream = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
+        rdb_protocol_t::rget_read_response_t::stream_t *stream
+            = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
         ASSERT_TRUE(stream != NULL);
         ASSERT_EQ(0ul, stream->size());
+    }
+}
+
+void check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
+        std::string sindex_id) {
+    for (int i = 0; i < MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT; ++i) {
+        try {
+            _check_keys_are_NOT_present(store, sindex_id);
+        } catch (const sindex_not_post_constructed_exc_t&) { }
+        /* Unfortunately we don't have an easy way right now to tell if the
+         * sindex has actually been postconstructed so we just need to
+         * check by polling. */
+        nap(100);
     }
 }
 

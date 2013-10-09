@@ -57,7 +57,9 @@ public:
     }
 
     btree_key_t *btree_key() { return reinterpret_cast<btree_key_t *>(buffer); }
-    const btree_key_t *btree_key() const { return reinterpret_cast<const btree_key_t *>(buffer); }
+    const btree_key_t *btree_key() const {
+        return reinterpret_cast<const btree_key_t *>(buffer);
+    }
     void set_size(int s) {
         rassert(s <= MAX_KEY_SIZE);
         btree_key()->size = s;
@@ -257,6 +259,7 @@ RDB_DECLARE_SERIALIZABLE(key_range_t);
 void debug_print(printf_buffer_t *buf, const store_key_t &k);
 void debug_print(printf_buffer_t *buf, const store_key_t *k);
 void debug_print(printf_buffer_t *buf, const key_range_t &kr);
+std::string key_range_to_string(const key_range_t &kr);
 
 bool operator==(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);
 bool operator!=(const key_range_t::right_bound_t &a, const key_range_t::right_bound_t &b);

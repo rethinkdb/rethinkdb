@@ -584,10 +584,12 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             {
                 /* Briefly pass through `write_queue_entrance_sink_` in case we
                 are receiving a mix of writes and write-reads */
-                fifo_enforcer_sink_t::exit_read_t fifo_exit_1(&write_queue_entrance_sink_, fifo_token);
+                fifo_enforcer_sink_t::exit_read_t fifo_exit_1(
+                    &write_queue_entrance_sink_, fifo_token);
             }
 
-            fifo_enforcer_sink_t::exit_read_t fifo_exit_2(&store_entrance_sink_, fifo_token);
+            fifo_enforcer_sink_t::exit_read_t fifo_exit_2(
+                &store_entrance_sink_, fifo_token);
             wait_interruptible(&fifo_exit_2, keepalive.get_drain_signal());
 
             guarantee(current_timestamp_ == expected_timestamp);
@@ -596,8 +598,10 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
         }
 
 #ifndef NDEBUG
-        version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(expected_timestamp);
-        metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs_->get_region());
+        version_leq_metainfo_checker_callback_t<protocol_t> metainfo_checker_callback(
+            expected_timestamp);
+        metainfo_checker_t<protocol_t> metainfo_checker(
+            &metainfo_checker_callback, svs_->get_region());
 #endif
 
         // Perform the operation

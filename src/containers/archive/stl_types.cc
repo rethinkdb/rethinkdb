@@ -3,7 +3,7 @@
 namespace std {
 
 size_t serialized_size(const std::string &s) {
-    return varint_uint64_serialized_size(s.size());
+    return varint_uint64_serialized_size(s.size()) + s.size();
 }
 
 write_message_t &operator<<(write_message_t &msg, const std::string &s) {

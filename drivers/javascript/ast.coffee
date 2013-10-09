@@ -212,14 +212,21 @@ class RDBVal extends TermBase
     # This behavior can be manually overridden with either direct JSON serialization
     # or ReQL datum serialization by first wrapping the argument with `r.expr` or `r.json`.
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.exprJSON(doc)
-    indexCreate: varar(1, 2, (name, defun) ->
-        if defun?
-            new IndexCreate {}, @, name, funcWrap(defun)
+    indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
+        if opts?
+            new IndexCreate opts, @, name, funcWrap(defun_or_opts)
+        else if defun_or_opts?
+            if (defun_or_opts instanceof Object) and not (defun_or_opts instanceof Function) and not (defun_or_opts instanceof TermBase)
+                new IndexCreate defun_or_opts, @, name
+            else
+                new IndexCreate {}, @, name, funcWrap(defun_or_opts)
         else
             new IndexCreate {}, @, name
         )
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
+
+    sync: ar () -> new Sync {}, @
 
     toISO8601: ar () -> new ToISO8601 {}, @
     toEpochTime: ar () -> new ToEpochTime {}, @
@@ -702,6 +709,10 @@ class IndexDrop extends RDBOp
 class IndexList extends RDBOp
     tt: "INDEX_LIST"
     mt: 'indexList'
+
+class Sync extends RDBOp
+    tt: "SYNC"
+    mt: 'sync'
 
 class FunCall extends RDBOp
     tt: "FUNCALL"

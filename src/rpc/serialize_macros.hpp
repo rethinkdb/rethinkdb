@@ -6,7 +6,6 @@
 Please modify '../scripts/generate_serialize_macros.py' instead of modifying this file.*/
 
 #include "containers/archive/archive.hpp"
-#include "containers/archive/stl_types.hpp"
 
 /* The purpose of these macros is to make it easier to serialize and
 unserialize data types that consist of a simple series of fields, each of which
@@ -32,6 +31,7 @@ the class scope. */
     archive_result_t deserialize(read_stream_t *s, type_t *thing)
 
 #define RDB_DECLARE_ME_SERIALIZABLE \
+    friend class write_message_t; \
     void rdb_serialize(write_message_t &msg /* NOLINT */) const; \
     friend class archive_deserializer_t; \
     archive_result_t rdb_deserialize(read_stream_t *s)

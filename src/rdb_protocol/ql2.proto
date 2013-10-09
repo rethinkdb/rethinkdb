@@ -209,12 +209,14 @@ message Term {
         MAKE_OBJ   = 3; // {...} -> OBJECT
 
         // * Compound types
+
         // Takes an integer representing a variable and returns the value stored
         // in that variable.  It's the responsibility of the client to translate
-        // from their local representation of a variable to a unique integer for
-        // that variable.  (We do it this way instead of letting clients provide
-        // variable names as strings to discourage variable-capturing client
-        // libraries, and because it's more efficient on the wire.)
+        // from their local representation of a variable to a unique _non-negative_
+        // integer for that variable.  (We do it this way instead of letting
+        // clients provide variable names as strings to discourage
+        // variable-capturing client libraries, and because it's more efficient
+        // on the wire.)
         VAR          = 10; // !NUMBER -> DATUM
         // Takes some javascript code and executes it.
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
@@ -301,7 +303,10 @@ message Term {
 
         // Sequence Ops
         // Get all elements of a sequence between two values.
-        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {:index:!STRING} -> StreamSelection
+        // Half-open by default, but the openness of either side can be
+        // changed by passing 'closed' or 'open for `right_bound` or
+        // `left_bound`.
+        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
 
@@ -404,10 +409,13 @@ message Term {
         // omit the first argument to use the default database.)
         TABLE_LIST   = 62; // Database -> ARRAY
                            //  -> ARRAY
+        // Ensures that previously issued soft-durability writes are complete and 
+        // written to disk.
+        SYNC     = 138; // Table -> OBJECT
 
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.
-        INDEX_CREATE = 75; // Table, STRING, Function(1) -> OBJECT
+        INDEX_CREATE = 75; // Table, STRING, Function(1), {multi:BOOL} -> OBJECT
         // Drops a secondary index with a particular name from the specified table.
         INDEX_DROP   = 76; // Table, STRING -> OBJECT
         // Lists all secondary indexes on a particular table.

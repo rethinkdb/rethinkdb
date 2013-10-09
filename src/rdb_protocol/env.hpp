@@ -8,8 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "clustering/administration/database_metadata.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "concurrency/one_per_thread.hpp"
 #include "containers/counted.hpp"
 #include "extproc/js_runner.hpp"

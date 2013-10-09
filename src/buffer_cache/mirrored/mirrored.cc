@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"
+#include "arch/runtime/coroutines.hpp"
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
 #include "protocol_api.hpp"
@@ -1085,7 +1086,7 @@ file_account_t *mc_transaction_t::get_io_account() const {
     return (cache_account == NULL ? cache->reads_io_account.get() : cache_account->io_account_);
 }
 
-void get_subtree_recencies_helper(int slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
+void get_subtree_recencies_helper(threadnum_t slice_home_thread, serializer_t *serializer, block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb) {
     serializer->assert_thread();
 
     for (size_t i = 0; i < num_block_ids; ++i) {
@@ -1119,7 +1120,7 @@ void mc_transaction_t::get_subtree_recencies(block_id_t *block_ids, size_t num_b
     }
 }
 
-mc_cache_account_t::mc_cache_account_t(int thread, file_account_t *io_account)
+mc_cache_account_t::mc_cache_account_t(threadnum_t thread, file_account_t *io_account)
     : thread_(thread), io_account_(io_account) { }
 
 mc_cache_account_t::~mc_cache_account_t() {

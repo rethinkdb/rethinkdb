@@ -493,7 +493,7 @@ linux_tcp_conn_t::~linux_tcp_conn_t() THROWS_NOTHING {
     if (is_write_open()) shutdown_write();
 }
 
-void linux_tcp_conn_t::rethread(int new_thread) {
+void linux_tcp_conn_t::rethread(threadnum_t new_thread) {
     if (home_thread() == get_thread_id() && new_thread == INVALID_THREAD) {
         rassert(!read_in_progress);
         rassert(!write_in_progress);
@@ -506,9 +506,10 @@ void linux_tcp_conn_t::rethread(int new_thread) {
 
     } else {
         crash("linux_tcp_conn_t can be rethread()ed from no thread to the current thread or "
-            "from the current thread to no thread, but no other combination is legal. The "
-            "current thread is %d; the old thread is %d; the new thread is %d.\n",
-            get_thread_id(), home_thread(), new_thread);
+              "from the current thread to no thread, but no other combination is legal. The "
+              "current thread is %" PRIi32 "; the old thread is %" PRIi32 "; the new thread "
+              "is %" PRIi32 ".\n",
+              get_thread_id().threadnum, home_thread().threadnum, new_thread.threadnum);
     }
 
     real_home_thread = new_thread;

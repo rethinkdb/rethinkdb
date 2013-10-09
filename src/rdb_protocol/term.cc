@@ -92,6 +92,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::TABLE_CREATE:       return make_table_create_term(env, t);
     case Term::TABLE_DROP:         return make_table_drop_term(env, t);
     case Term::TABLE_LIST:         return make_table_list_term(env, t);
+    case Term::SYNC:               return make_sync_term(env, t);
     case Term::INDEX_CREATE:       return make_sindex_create_term(env, t);
     case Term::INDEX_DROP:         return make_sindex_drop_term(env, t);
     case Term::INDEX_LIST:         return make_sindex_list_term(env, t);
@@ -186,7 +187,8 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 if (ap.key() == "noreply") {
                     bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
                     r_sanity_check(!conflict);
-                    counted_t<val_t> noreply = env->global_optargs.get_optarg(env, "noreply");
+                    counted_t<val_t> noreply
+                        = env->global_optargs.get_optarg(env, "noreply");
                     r_sanity_check(noreply.has());
                     *response_needed_out = !noreply->as_bool();
                     break;

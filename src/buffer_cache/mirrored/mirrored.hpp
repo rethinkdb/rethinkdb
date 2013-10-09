@@ -252,6 +252,7 @@ public:
 
     mc_cache_t *get_cache() const { return cache; }
     access_t get_access() const { return access; }
+    write_durability_t get_durability() const { return durability; }
 
     void get_subtree_recencies(block_id_t *block_ids, size_t num_block_ids, repli_timestamp_t *recencies_out, get_subtree_recencies_callback_t *cb);
 
@@ -261,7 +262,7 @@ public:
     void set_account(mc_cache_account_t *cache_account);
 
     void set_token_pair(write_token_pair_t *_token_pair);
-
+    
 private:
     void register_buf_snapshot(mc_inner_buf_t *inner_buf, mc_inner_buf_t::buf_snapshot_t *snap);
 
@@ -276,6 +277,7 @@ private:
 
     ticks_t start_time;
     const int expected_change_count;
+    scoped_ptr_t<adjustable_semaphore_acq_t> throttling_acq;
     access_t access;
     repli_timestamp_t recency_timestamp;
     mc_inner_buf_t::version_id_t snapshot_version;
@@ -302,8 +304,8 @@ public:
 private:
     friend class mc_cache_t;
     friend class mc_transaction_t;
-    mc_cache_account_t(int thread, file_account_t *io_account);
-    int thread_;
+    mc_cache_account_t(threadnum_t thread, file_account_t *io_account);
+    threadnum_t thread_;
     file_account_t *io_account_;
     DISABLE_COPYING(mc_cache_account_t);
 };

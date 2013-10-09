@@ -6,6 +6,7 @@
 
 #include "arch/runtime/runtime.hpp"
 #include "config/args.hpp"
+#include "containers/archive/stl_types.hpp"
 
 #ifndef NDEBUG
 
@@ -61,11 +62,15 @@ const std::string &order_token_t::tag() const { return tag_; }
 bool order_token_t::is_invalid() const { return !bucket_.valid() && value_ == ORDER_INVALID; }
 bool order_token_t::is_ignore() const { return !bucket_.valid() && value_ == ORDER_IGNORE; }
 
+#ifndef NDEBUG
+RDB_IMPL_ME_SERIALIZABLE_4(order_token_t, bucket_, read_mode_, value_, tag_);
+#endif
 
 
 order_source_t::order_source_t() : bucket_(order_bucket_t::create()), counter_(0) { }
-order_source_t::order_source_t(int specified_home_thread)
-    : home_thread_mixin_debug_only_t(specified_home_thread), bucket_(order_bucket_t::create()), counter_(0) { }
+order_source_t::order_source_t(threadnum_t specified_home_thread)
+    : home_thread_mixin_debug_only_t(specified_home_thread),
+      bucket_(order_bucket_t::create()), counter_(0) { }
 
 order_source_t::~order_source_t() { }
 

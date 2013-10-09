@@ -45,7 +45,7 @@ public:
         guarantee(draining.is_pulsed());
     }
 
-    void rethread(int new_thread) {
+    void rethread(threadnum_t new_thread) {
         rassert(refcount == 0);
         real_home_thread = new_thread;
         draining.rethread(new_thread);

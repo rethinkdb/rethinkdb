@@ -313,6 +313,12 @@ class RqlQuery(object):
         elif isinstance(index, types.StringTypes):
             return GetField(self, index)
 
+    def __iter__(self):
+        raise RqlDriverError(
+                "__iter__ called on an RqlQuery object.\n"+
+                "To iterate over the results of a query, call run first.\n"+
+                "To iterate inside a query, use map or for_each.")
+
     def nth(self, index):
         return Nth(self, index)
 
@@ -496,7 +502,7 @@ class RqlTzinfo(datetime.tzinfo):
         return self.delta
 
     def tzname(self, dt):
-        return offsetstr
+        return self.offsetstr
 
     def dst(self, dt):
         return datetime.timedelta(0)
@@ -584,7 +590,7 @@ class Datum(RqlQuery):
                     else:
                         raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
                 else:
-                    raise RqlDriverError("Unknown psudo-type %" % obj['$reql_type$'])
+                    raise RqlDriverError("Unknown psudo-type %s" % obj['$reql_type$'])
 
             return obj
         else:
@@ -631,7 +637,7 @@ class UserError(RqlTopLevelQuery):
     tt = p.Term.ERROR
     st = "error"
 
-class Default(RqlQuery):
+class Default(RqlMethodQuery):
     tt = p.Term.DEFAULT
     st = "default"
 
@@ -815,17 +821,19 @@ class Table(RqlQuery):
     def get_all(self, *keys, **kwargs):
         return GetAll(self, *keys, **kwargs)
 
-    def index_create(self, name, fundef=None):
-        if fundef:
-            return IndexCreate(self, name, func_wrap(fundef))
-        else:
-            return IndexCreate(self, name)
+    def index_create(self, name, fundef=(), multi=()):
+        args = [self, name] + ([func_wrap(fundef)] if fundef else [])
+        kwargs = {"multi" : multi} if multi else {}
+        return IndexCreate(*args, **kwargs)
 
     def index_drop(self, name):
         return IndexDrop(self, name)
 
     def index_list(self):
         return IndexList(self)
+
+    def sync(self):
+        return Sync(self)
 
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
@@ -890,10 +898,6 @@ class IndexesOf(RqlMethodQuery):
 class IsEmpty(RqlMethodQuery):
     tt = p.Term.IS_EMPTY
     st = 'is_empty'
-
-class IndexesOf(RqlMethodQuery):
-    tt = p.Term.INDEXES_OF
-    st = 'indexes_of'
 
 class GroupedMapReduce(RqlMethodQuery):
     tt = p.Term.GROUPED_MAP_REDUCE
@@ -990,6 +994,10 @@ class IndexDrop(RqlMethodQuery):
 class IndexList(RqlMethodQuery):
     tt = p.Term.INDEX_LIST
     st = 'index_list'
+
+class Sync(RqlMethodQuery):
+    tt = p.Term.SYNC
+    st = 'sync'
 
 class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH

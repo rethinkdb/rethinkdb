@@ -27,7 +27,7 @@ module RethinkDB
       :get_all => -1, :eq_join => -1,
       :javascript => -1, :filter => {:with_block => 0, :without => 1},
       :slice => -1, :during => -1, :orderby => -1,
-      :iso8601 => -1
+      :iso8601 => -1, :index_create => -1
     }
     @@rewrites = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
@@ -58,8 +58,13 @@ module RethinkDB
         }
       end
 
+      old_m = m
       m = @@rewrites[m] || m
-      termtype = Term::TermType.const_get(m.to_s.upcase)
+      begin
+        termtype = Term::TermType.const_get(m.to_s.upcase)
+      rescue NameError => e
+        unbound_if(true, old_m)
+      end
       unbound_if(!termtype, m)
 
       if (opt_offset = @@optarg_offsets[m])

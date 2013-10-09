@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_ADDRESS_HPP_
 #define ARCH_ADDRESS_HPP_
 
@@ -12,6 +12,7 @@
 #include <set>
 
 #include "containers/archive/archive.hpp"
+#include "containers/archive/stl_types.hpp"
 #include "errors.hpp"
 #include "utils.hpp"
 #include "rpc/serialize_macros.hpp"
