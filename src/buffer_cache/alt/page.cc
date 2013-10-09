@@ -49,7 +49,8 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     block_id_t block_id = free_list_.acquire_block_id();
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
-            new current_page_t(serializer_->get_block_size(),
+            new current_page_t(block_id,
+                               serializer_->get_block_size(),
                                serializer_->malloc(),
                                this);
     }
@@ -216,8 +217,8 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                     // need to put it into a non-deleted state.  We initialize the
                     // page to a full-sized page.
                     // TODO: We should consider whether we really want this behavior.
-                    page_.init(new page_t(page_cache_->serializer_->get_block_size(),
-                                          page_cache_->serializer_->malloc()));
+                    page_.init(new page_t(page_cache_->serializer()->get_block_size(),
+                                          page_cache_->serializer()->malloc()));
                     is_deleted_ = false;
                 }
                 cur->write_cond_.pulse_if_not_already_pulsed();
@@ -726,7 +727,7 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
             blocks_by_tokens.push_back(block_token_tstamp_t(dp->block_id,
                                                             true,
                                                             counted_t<standard_block_token_t>(),
-                                                            dp->tstamp);
+                                                            dp->tstamp));
         } else {
             page_t *page = dp->ptr.get_page_for_read();
 
@@ -749,7 +750,6 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
                 rassert(page->buf_.has());
 
                 write_infos.push_back(buf_write_info_t(page->buf_.get(),
-                                                       false,
                                                        page->buf_size_,
                                                        dp->block_id));
                 ancillary_infos.push_back(std::make_pair(dp->block_id, dp->tstamp));
@@ -783,6 +783,7 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
         rassert(write_infos.size() == ancillary_infos.size());
         for (size_t i = 0; i < write_infos.size(); ++i) {
             blocks_by_tokens.push_back(block_token_tstamp_t(ancillary_infos[i].first,
+                                                            false,
                                                             std::move(tokens[i]),
                                                             ancillary_infos[i].second));
         }

@@ -132,7 +132,8 @@ private:
 class current_page_t {
 public:
     // Constructs a fresh, empty page.
-    current_page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+    current_page_t(block_id_t block_id,
+                   block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
     current_page_t(block_id_t block_id, page_cache_t *page_cache);
@@ -250,6 +251,9 @@ private:
     // RSI: Make this static?  (The impl goes to serializer thread.)
     void do_flush_txn(page_txn_t *txn);
     void im_waiting_for_flush(page_txn_t *txn);
+
+    friend class current_page_t;
+    serializer_t *serializer() { return serializer_; }
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,
