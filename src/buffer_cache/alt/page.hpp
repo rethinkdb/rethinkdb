@@ -20,6 +20,9 @@ class page_txn_t;
 
 enum class alt_access_t { read, write };
 
+// A page_t represents a page (a byte buffer of a specific size), having a definite
+// value known at the construction of the page_t (and possibly later modified
+// in-place, but still a definite known value).
 class page_t {
 public:
     page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf);
@@ -38,6 +41,8 @@ private:
     void *get_page_buf();
     void reset_block_token();
     uint32_t get_page_buf_size();
+
+    bool is_deleted();
 
     friend class page_ptr_t;
     void add_snapshotter();
@@ -85,6 +90,8 @@ public:
 
     page_t *get_page_for_read();
     page_t *get_page_for_write(page_cache_t *page_cache);
+
+    void reset();
 
     bool has() {
         return page_ != NULL;
@@ -144,6 +151,8 @@ private:
 
     void convert_from_serializer_if_necessary();
 
+    void mark_deleted();
+
     // page_txn_t should not access our fields directly.
     friend class page_txn_t;
     block_id_t block_id() const { return block_id_; }
@@ -151,14 +160,19 @@ private:
     // last-modifying previous txn).
     page_txn_t *change_last_modifier(page_txn_t *new_last_modifier);
 
+    // Returns NULL if the page was deleted.
+    page_t *the_page_for_read_or_deleted();
+
     // Our block id.
     block_id_t block_id_;
-    // Either page_ is null or page_cache_ is null (except that page_cache_ is never
-    // null).  block_id_ and page_cache_ can be used to construct (and load) the page
-    // when it's null.  RSP: Suboptimal memory usage.
+    // block_id_ and page_cache_ can be used to construct (and load) the page
+    // when it's null, if it's not deleted.  RSP: Suboptimal memory usage.
     page_cache_t *page_cache_;
     page_ptr_t page_;
+    // True if the block is in a deleted state.  page_ will be null.
+    bool is_deleted_;
 
+    // The last txn that modified the page, or marked it deleted.
     page_txn_t *last_modifier_ = NULL;
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
@@ -195,7 +209,9 @@ private:
     page_txn_t *txn_;
     alt_access_t access_;
     bool declared_snapshotted_;
-    // At most one of current_page_ is NULL or snapshotted_page_ is NULL.
+    // At most one of current_page_ is null or snapshotted_page_ is null, unless the
+    // acquired page has been deleted, in which case both are null.
+    // RSI: Code doesn't yet handle case where both could be null.
     current_page_t *current_page_;
     page_ptr_t snapshotted_page_;
     cond_t read_cond_;
@@ -211,6 +227,7 @@ public:
     ~free_list_t();
 
     block_id_t acquire_block_id();
+    // RSI: Presumably somebody should be calling this from somewhere.
     void release_block_id(block_id_t block_id);
 
 private:
@@ -325,8 +342,12 @@ private:
         dirtied_page_t(block_id_t _block_id, page_ptr_t &&_ptr,
                        repli_timestamp_t _tstamp)
             : block_id(_block_id), ptr(std::move(_ptr)), tstamp(_tstamp) { }
+        // The block id of the dirty page.
         block_id_t block_id;
+        // The pointer to the snapshotted dirty page value.  (If empty, the page was
+        // deleted.)
         page_ptr_t ptr;
+        // The timestamp of the modification.
         repli_timestamp_t tstamp;
     };
 

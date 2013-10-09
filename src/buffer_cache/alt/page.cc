@@ -47,16 +47,17 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
 
 current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     block_id_t block_id = free_list_.acquire_block_id();
-    current_page_t *ret = new current_page_t(serializer_->get_block_size(),
-                                             serializer_->malloc(),
-                                             this);
-
-    // RSI: Is this really guaranteed to be NULL?  (RSI: Implement deletion.)
-    rassert(current_pages_[block_id] == NULL);
-    current_pages_[block_id] = ret;
+    if (current_pages_[block_id] == NULL) {
+        current_pages_[block_id] =
+            new current_page_t(serializer_->get_block_size(),
+                               serializer_->malloc(),
+                               this);
+    }
+    // RSI: Maybe this is where we should reinitialize the current_page_t to
+    // non-deleted.
 
     *block_id_out = block_id;
-    return ret;
+    return current_pages_[block_id];
 }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
@@ -131,16 +132,19 @@ bool current_page_acq_t::dirtied_page() const {
 current_page_t::current_page_t(block_id_t block_id, page_cache_t *page_cache)
     : block_id_(block_id),
       page_cache_(page_cache),
+      is_deleted_(false),
       last_modifier_(NULL) {
     // RSI: Is the last modifier null when constructing a page for a new block?
 }
 
-current_page_t::current_page_t(block_size_t block_size,
+current_page_t::current_page_t(block_id_t block_id,
+                               block_size_t block_size,
                                scoped_malloc_t<ser_buffer_t> buf,
                                page_cache_t *page_cache)
-    : block_id_(NULL_BLOCK_ID),
+    : block_id_(block_id),
       page_cache_(page_cache),
       page_(new page_t(block_size, std::move(buf))),
+      is_deleted_(false),
       last_modifier_(NULL) {
     // RSI: Is the last modifier null when constructing a page for a new block?
 }
@@ -191,7 +195,12 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
             if (cur->declared_snapshotted_) {
                 // Snapshotters get kicked out of the queue, to make way for
                 // write-acquirers.
-                cur->snapshotted_page_.init(the_page_for_read());
+
+                // We treat deleted pages this way because a write-acquirer may
+                // downgrade itself to readonly and snapshotted for the sake of
+                // flushing its version of the page -- and if it deleted the page,
+                // this is how it learns.
+                cur->snapshotted_page_.init(the_page_for_read_or_deleted());
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
             }
@@ -202,6 +211,15 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
             // write-acquirer might modify the value.
             if (acquirers_.prev(cur) == NULL) {
                 // (It gets exclusive write access if there's no preceding reader.)
+                if (is_deleted_) {
+                    // Also, if the block is in an "is_deleted_" state right now, we
+                    // need to put it into a non-deleted state.  We initialize the
+                    // page to a full-sized page.
+                    // TODO: We should consider whether we really want this behavior.
+                    page_.init(new page_t(page_cache_->serializer_->get_block_size(),
+                                          page_cache_->serializer_->malloc()));
+                    is_deleted_ = false;
+                }
                 cur->write_cond_.pulse_if_not_already_pulsed();
             }
             break;
@@ -209,19 +227,35 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     }
 }
 
+void current_page_t::mark_deleted() {
+    rassert(!is_deleted_);
+    is_deleted_ = true;
+    page_.reset();
+}
+
 void current_page_t::convert_from_serializer_if_necessary() {
+    rassert(!is_deleted_);
     if (!page_.has()) {
         page_.init(new page_t(block_id_, page_cache_));
-        block_id_ = NULL_BLOCK_ID;
     }
 }
 
 page_t *current_page_t::the_page_for_read() {
+    rassert(!is_deleted_);
     convert_from_serializer_if_necessary();
     return page_.get_page_for_read();
 }
 
+page_t *current_page_t::the_page_for_read_or_deleted() {
+    if (is_deleted_) {
+        return NULL;
+    } else {
+        return the_page_for_read();
+    }
+}
+
 page_t *current_page_t::the_page_for_write() {
+    rassert(!is_deleted_);
     convert_from_serializer_if_necessary();
     return page_.get_page_for_write(page_cache_);
 }
@@ -323,7 +357,6 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
         serializer_t *const serializer = page_cache->serializer_;
         on_thread_t th(serializer->home_thread());
         block_token = serializer->index_read(block_id);
-        // RSI: Figure out if block_token can be empty (if a page is deleted?).
         rassert(block_token.has());
         buf = serializer->malloc();
         serializer->block_read(block_token,
@@ -485,9 +518,7 @@ page_ptr_t::page_ptr_t() : page_(NULL) {
 }
 
 page_ptr_t::~page_ptr_t() {
-    if (page_ != NULL) {
-        page_->remove_snapshotter();
-    }
+    reset();
 }
 
 page_ptr_t::page_ptr_t(page_ptr_t &&movee) : page_(movee.page_) {
@@ -503,7 +534,17 @@ page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
 void page_ptr_t::init(page_t *page) {
     rassert(page_ == NULL);
     page_ = page;
-    page_->add_snapshotter();
+    if (page_ != NULL) {
+        page_->add_snapshotter();
+    }
+}
+
+void page_ptr_t::reset() {
+    if (page_ != NULL) {
+        page_t *ptr = page_;
+        page_ = NULL;
+        ptr->remove_snapshotter();
+    }
 }
 
 page_t *page_ptr_t::get_page_for_read() {
@@ -641,10 +682,13 @@ void page_txn_t::announce_waiting_for_flush_if_we_should() {
 
 struct block_token_tstamp_t {
     block_token_tstamp_t(block_id_t _block_id,
+                         bool _is_deleted,
                          counted_t<standard_block_token_t> _block_token,
                          repli_timestamp_t _tstamp)
-        : block_id(_block_id), block_token(std::move(_block_token)), tstamp(_tstamp) { }
+        : block_id(_block_id), is_deleted(_is_deleted),
+          block_token(std::move(_block_token)), tstamp(_tstamp) { }
     block_id_t block_id;
+    bool is_deleted;
     counted_t<standard_block_token_t> block_token;
     repli_timestamp_t tstamp;
 };
@@ -677,38 +721,48 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
 
     for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size(); i < e; ++i) {
         page_txn_t::dirtied_page_t *dp = &txn->snapshotted_dirtied_pages_[i];
-        // RSI: What about deleted pages?  Will ptr be empty?
-        page_t *page = dp->ptr.get_page_for_read();
-
-
-        // If it's already on disk, we're not going to flush it.
-        if (page->block_token_.has()) {
+        if (!dp->ptr.has()) {
+            // The page is deleted.
             blocks_by_tokens.push_back(block_token_tstamp_t(dp->block_id,
-                                                            page->block_token_,
-                                                            dp->tstamp));
+                                                            true,
+                                                            counted_t<standard_block_token_t>(),
+                                                            dp->tstamp);
         } else {
-            // We can't be in the process of loading a block we're going to write
-            // that we don't have a block token for.  That's because we _actually
-            // dirtied the page_.  We had to have acquired the buf, and the only
-            // way to get rid of the buf is for it to be evicted, in which case
-            // the block token would be non-empty.
-            rassert(page->destroy_ptr_ == NULL);
+            page_t *page = dp->ptr.get_page_for_read();
 
-            // RSI: What about deleted pages?  Will ptr have been empty, or will
-            // buf_.has() have been false?
-            rassert(page->buf_.has());
+            // If it's already on disk, we're not going to flush it.
+            if (page->block_token_.has()) {
+                blocks_by_tokens.push_back(block_token_tstamp_t(dp->block_id,
+                                                                false,
+                                                                page->block_token_,
+                                                                dp->tstamp));
+            } else {
+                // We can't be in the process of loading a block we're going to write
+                // that we don't have a block token for.  That's because we _actually
+                // dirtied the page_.  We had to have acquired the buf, and the only
+                // way to get rid of the buf is for it to be evicted, in which case
+                // the block token would be non-empty.
+                rassert(page->destroy_ptr_ == NULL);
 
-            write_infos.push_back(buf_write_info_t(page->buf_.get(),
-                                                   page->buf_size_,
-                                                   dp->block_id));
-            ancillary_infos.push_back(std::make_pair(dp->block_id, dp->tstamp));
+                // RSI: What about deleted pages?  Will ptr have been empty, or will
+                // buf_.has() have been false?
+                rassert(page->buf_.has());
+
+                write_infos.push_back(buf_write_info_t(page->buf_.get(),
+                                                       false,
+                                                       page->buf_size_,
+                                                       dp->block_id));
+                ancillary_infos.push_back(std::make_pair(dp->block_id, dp->tstamp));
+            }
         }
     }
 
     for (auto it = txn->touched_pages_.begin(); it != txn->touched_pages_.end();
          ++it) {
-        // RSI: We're using an empty counted_t to mean touched pages.
+        // "is_deleted == false and !block_token.has()" means the page is just
+        // touched.
         blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
+                                                        false,
                                                         counted_t<standard_block_token_t>(),
                                                         it->second));
     }
@@ -733,21 +787,22 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
                                                             ancillary_infos[i].second));
         }
 
-        // RSP: Unnecessary copying between blocks_by_tokens and iw_ops.
+        // RSP: Unnecessary copying between blocks_by_tokens and write_ops, inelegant
+        // representation of deletion/touched blocks in blocks_by_tokens.
         std::vector<index_write_op_t> write_ops;
         write_ops.reserve(blocks_by_tokens.size());
 
-        // RSI: Right here there's no way to distinguish between blocks we wanted
-        // deleted and blocks that are touched.  At this time no code supports
-        // deletion.
         for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end();
              ++it) {
-            if (it->block_token.has()) {
+            if (it->is_deleted) {
+                write_ops.push_back(index_write_op_t(it->block_id,
+                                                     counted_t<standard_block_token_t>(),
+                                                     repli_timestamp_t::invalid));
+            } else if (it->block_token.has()) {
                 write_ops.push_back(index_write_op_t(it->block_id,
                                                      std::move(it->block_token),
                                                      it->tstamp));
             } else {
-                // RSI: Here we treat as touch, not deletion.
                 write_ops.push_back(index_write_op_t(it->block_id,
                                                      boost::none,
                                                      it->tstamp));
