@@ -110,7 +110,7 @@ def print_stats(stats, start_time, end_time, num_clients):
         per_sec = "inf"
         per_sec_per_client = "inf"
 
-    if stats["count"] != 0: 
+    if stats["count"] != 0:
         latency = "%0.6f" % (stats["latency"] / stats["count"])
     else:
         latency = "%0.6f" % (0.0)
@@ -124,7 +124,7 @@ def print_stats(stats, start_time, end_time, num_clients):
     format_str = ("{:<%d}" + ("{:>%d}" * (len(column_widths) - 1))) % tuple(column_widths)
 
     rql_time_spent = stats["latency"]
-    total_client_time = duration * num_clients 
+    total_client_time = duration * num_clients
     print >> sys.stderr, "Percent time clients spent in ReQL space: %.2f" % (100 * rql_time_spent / total_client_time)
 
     for row in table:
