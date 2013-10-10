@@ -778,12 +778,15 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
     {
         on_thread_t th(page_cache->serializer_->home_thread());
 
-        // RSI: What should we use for the io_callback_t?
-        iocallback_t *fake_cb = NULL;
+        struct : public iocallback_t, public cond_t {
+            void on_io_complete() {
+                pulse();
+            }
+        } blocks_releasable_cb;
         std::vector<counted_t<standard_block_token_t> > tokens
             = page_cache->serializer_->block_writes(write_infos,
                                                     page_cache->writes_io_account.get(),
-                                                    fake_cb);
+                                                    &blocks_releasable_cb);
 
         rassert(tokens.size() == write_infos.size());
         rassert(write_infos.size() == ancillary_infos.size());
@@ -815,6 +818,8 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
                                                      it->tstamp));
             }
         }
+
+        blocks_releasable_cb.wait();
 
         // RSI: This blocks?  Is there any way to set the began_index_write_
         // field?
