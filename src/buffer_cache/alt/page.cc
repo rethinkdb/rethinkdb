@@ -833,12 +833,13 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
 
     for (auto it = subseqers.begin(); it != subseqers.end(); ++it) {
         (*it)->remove_preceder(txn);
+        // Flush subseqers that are ready to go.
+        if ((*it)->began_waiting_for_flush_) {
+            page_cache->im_waiting_for_flush(*it);
+        }
     }
 
     txn->flush_complete_cond_.pulse();
-
-    // RSI: We need to flush subseqers that are waiting for flush and ready to
-    // go.
 }
 
 void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
