@@ -106,7 +106,7 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
-        case Term::FLUSH:
+        case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
         case Term::INDEX_LIST:
@@ -324,7 +324,7 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
-        case Term::FLUSH:
+        case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
         case Term::INDEX_LIST:

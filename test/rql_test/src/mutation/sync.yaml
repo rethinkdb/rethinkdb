@@ -1,4 +1,4 @@
-desc: Tests flushing tables
+desc: Tests syncing tables
 tests:
 
     # Set up our test tables
@@ -13,31 +13,31 @@ tests:
     - cd: tbl.index_create('x')
       ot: ({'created':1})
 
-    # This is the only way one can use flush legally at the moment
-    - cd: tbl.flush()
-      ot: ({'flushed':1})
-    - cd: tbl_soft.flush()
-      ot: ({'flushed':1})
-    - cd: tbl.flush()
-      ot: ({'flushed':1})
+    # This is the only way one can use sync legally at the moment
+    - cd: tbl.sync()
+      ot: ({'synced':1})
+    - cd: tbl_soft.sync()
+      ot: ({'synced':1})
+    - cd: tbl.sync()
+      ot: ({'synced':1})
       runopts:
         durability: soft
-    - cd: tbl.flush()
-      ot: ({'flushed':1})
+    - cd: tbl.sync()
+      ot: ({'synced':1})
       runopts:
         durability: hard
 
-    # This is of type table, but flush should still fail (because it makes little sense)
-    - cd: tbl.between(1, 2).flush()
+    # This is of type table, but sync should still fail (because it makes little sense)
+    - cd: tbl.between(1, 2).sync()
       py: [] # Case handled by native python error
-      ot: err("RqlRuntimeError", 'flush can only be applied directly to a table.', [1])
+      ot: err("RqlRuntimeError", 'sync can only be applied directly to a table.', [1])
 
-    # These are not even a table. Flush should fail with a different error message
-    - cd: r.expr(1).flush()
+    # These are not even a table. Sync should fail with a different error message
+    - cd: r.expr(1).sync()
       py: [] # Case handled by native python error
       ot: err("RqlRuntimeError", 'Expected type TABLE but found DATUM.', [1])
-    - js: tbl.order_by({index:'x'}).flush()
-      rb: tbl.order_by({:index => 'soft'}).flush()
+    - js: tbl.order_by({index:'x'}).sync()
+      rb: tbl.order_by({:index => 'soft'}).sync()
       py: [] # Case handled by native python error
       ot: err("RqlRuntimeError", 'Expected type TABLE but found SELECTION.', [1])
 

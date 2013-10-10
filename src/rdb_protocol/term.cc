@@ -92,7 +92,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::TABLE_CREATE:       return make_table_create_term(env, t);
     case Term::TABLE_DROP:         return make_table_drop_term(env, t);
     case Term::TABLE_LIST:         return make_table_list_term(env, t);
-    case Term::FLUSH:              return make_flush_term(env, t);
+    case Term::SYNC:               return make_sync_term(env, t);
     case Term::INDEX_CREATE:       return make_sindex_create_term(env, t);
     case Term::INDEX_DROP:         return make_sindex_drop_term(env, t);
     case Term::INDEX_LIST:         return make_sindex_list_term(env, t);

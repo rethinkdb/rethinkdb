@@ -72,8 +72,8 @@ typedef rdb_protocol_t::sindex_create_response_t sindex_create_response_t;
 typedef rdb_protocol_t::sindex_drop_t sindex_drop_t;
 typedef rdb_protocol_t::sindex_drop_response_t sindex_drop_response_t;
 
-typedef rdb_protocol_t::flush_t flush_t;
-typedef rdb_protocol_t::flush_response_t flush_response_t;
+typedef rdb_protocol_t::sync_t sync_t;
+typedef rdb_protocol_t::sync_response_t sync_response_t;
 
 typedef rdb_protocol_t::backfill_chunk_t backfill_chunk_t;
 
@@ -897,7 +897,7 @@ struct rdb_w_get_region_visitor : public boost::static_visitor<region_t> {
         return d.region;
     }
 
-    region_t operator()(const flush_t &s) const {
+    region_t operator()(const sync_t &s) const {
         return s.region;
     }
 };
@@ -1000,7 +1000,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         return rangey_write(d);
     }
 
-    bool operator()(const flush_t &s) const {
+    bool operator()(const sync_t &s) const {
         return rangey_write(s);
     }
 
@@ -1053,7 +1053,7 @@ struct rdb_w_unshard_visitor_t : public boost::static_visitor<void> {
         *response_out = responses[0];
     }
 
-    void operator()(const flush_t &) const {
+    void operator()(const sync_t &) const {
         *response_out = responses[0];
     }
 
@@ -1445,8 +1445,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response = res;
     }
     
-    void operator()(const flush_t &) {
-        response->response = flush_response_t();
+    void operator()(const sync_t &) {
+        response->response = sync_response_t();
 
         /* With our current cache, we can ensure that all previous
          * write transactions are persisted simply by following them
@@ -1789,7 +1789,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
-RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::flush_response_t);
+RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sync_response_t);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
 
@@ -1803,7 +1803,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::flush_t, region);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sync_t, region);
 
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_t, write, durability_requirement);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);

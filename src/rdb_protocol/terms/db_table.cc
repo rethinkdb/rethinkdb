@@ -403,21 +403,21 @@ private:
     virtual const char *name() const { return "table_list"; }
 };
 
-class flush_term_t : public meta_write_op_t {
+class sync_term_t : public meta_write_op_t {
 public:
-    flush_term_t(compile_env_t *env, const protob_t<const Term> &term)
+    sync_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : meta_write_op_t(env, term, argspec_t(1)) { }
 
 private:
     
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> t = arg(env, 0)->as_table();
-        bool success = t->flush(env->env, this);
+        bool success = t->sync(env->env, this);
         r_sanity_check(success);
         
-        return "flushed";
+        return "synced";
     }
-    virtual const char *name() const { return "flush"; }
+    virtual const char *name() const { return "sync"; }
 };
 
 class table_term_t : public op_term_t {
@@ -535,8 +535,8 @@ counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const 
     return make_counted<table_list_term_t>(env, term);
 }
 
-counted_t<term_t> make_flush_term(compile_env_t *env, const protob_t<const Term> &term) {
-    return make_counted<flush_term_t>(env, term);
+counted_t<term_t> make_sync_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sync_term_t>(env, term);
 }
 
 

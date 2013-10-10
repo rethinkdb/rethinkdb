@@ -226,7 +226,7 @@ class RDBVal extends TermBase
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
 
-    flush: ar () -> new Flush {}, @
+    sync: ar () -> new Sync {}, @
 
     toISO8601: ar () -> new ToISO8601 {}, @
     toEpochTime: ar () -> new ToEpochTime {}, @
@@ -710,9 +710,9 @@ class IndexList extends RDBOp
     tt: "INDEX_LIST"
     mt: 'indexList'
 
-class Flush extends RDBOp
-    tt: "FLUSH"
-    mt: 'flush'
+class Sync extends RDBOp
+    tt: "SYNC"
+    mt: 'sync'
 
 class FunCall extends RDBOp
     tt: "FUNCALL"

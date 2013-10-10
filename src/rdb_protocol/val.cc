@@ -228,29 +228,29 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     }
 }
 
-MUST_USE bool table_t::flush(env_t *env, const rcheckable_t *parent) {
+MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
     rcheck_target(parent, base_exc_t::GENERIC, !bounds && !sorting,
-            "flush can only be applied directly to a table.");
+            "sync can only be applied directly to a table.");
     
     // In order to get the guarantees that we expect from a user-facing command,
-    // we always have to use hard durability in combination with flush.
-    return flush_depending_on_durability(env, DURABILITY_REQUIREMENT_HARD);
+    // we always have to use hard durability in combination with sync.
+    return sync_depending_on_durability(env, DURABILITY_REQUIREMENT_HARD);
 }
 
-MUST_USE bool table_t::flush_depending_on_durability(env_t *env,
+MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
     
     rdb_protocol_t::write_t write(
-            rdb_protocol_t::flush_t(), durability_requirement);
+            rdb_protocol_t::sync_t(), durability_requirement);
     
     rdb_protocol_t::write_response_t res;
     access->get_namespace_if()->write(
         write, &res, order_token_t::ignore, env->interruptor);
 
-    rdb_protocol_t::flush_response_t *response =
-        boost::get<rdb_protocol_t::flush_response_t>(&res.response);
+    rdb_protocol_t::sync_response_t *response =
+        boost::get<rdb_protocol_t::sync_response_t>(&res.response);
     r_sanity_check(response);
-    return true; // With our current implementation, a flush can never fail.
+    return true; // With our current implementation, a sync can never fail.
 }
 
 const std::string &table_t::get_pkey() { return pkey; }
