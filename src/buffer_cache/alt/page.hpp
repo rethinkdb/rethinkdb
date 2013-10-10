@@ -251,16 +251,16 @@ private:
     friend class page_t;
     friend class page_txn_t;
     // RSI: Make this static?  (The impl goes to serializer thread.)
-    void do_flush_txn(page_txn_t *txn);
+    static void do_flush_txn(page_cache_t *page_cache, page_txn_t *txn);
     void im_waiting_for_flush(page_txn_t *txn);
 
     friend class current_page_t;
     serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
 
-    // We use a separate IO account for reads and writes, so reads can pass ahead
-    // of active writebacks. Otherwise writebacks could badly block out readers,
-    // thereby blocking user queries.
+    // We use a separate IO account for reads and writes, so reads can pass ahead of
+    // active writebacks. Otherwise writebacks could badly block out readers, thereby
+    // blocking user queries.
     scoped_ptr_t<file_account_t> reads_io_account;
     scoped_ptr_t<file_account_t> writes_io_account;
 

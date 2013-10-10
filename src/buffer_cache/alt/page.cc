@@ -700,7 +700,7 @@ struct block_token_tstamp_t {
     repli_timestamp_t tstamp;
 };
 
-void page_cache_t::do_flush_txn(page_txn_t *txn) {
+void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
     // We're going to flush this transaction.  Let's start its flush, then detach
     // this transaction from its subseqers, then notify its subseqers that
     // they've lost a preceder.
@@ -776,14 +776,14 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
     // RSI: Take the newly written blocks' block tokens and set their page_t's block
     // token field to them.
     {
-        on_thread_t th(serializer_->home_thread());
+        on_thread_t th(page_cache->serializer_->home_thread());
 
         // RSI: What should we use for the io_callback_t?
         iocallback_t *fake_cb = NULL;
         std::vector<counted_t<standard_block_token_t> > tokens
-            = serializer_->block_writes(write_infos,
-                                        writes_io_account.get(),
-                                        fake_cb);
+            = page_cache->serializer_->block_writes(write_infos,
+                                                    page_cache->writes_io_account.get(),
+                                                    fake_cb);
 
         rassert(tokens.size() == write_infos.size());
         rassert(write_infos.size() == ancillary_infos.size());
@@ -818,8 +818,8 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
 
         // RSI: This blocks?  Is there any way to set the began_index_write_
         // field?
-        serializer_->index_write(write_ops,
-                                 writes_io_account.get());
+        page_cache->serializer_->index_write(write_ops,
+                                             page_cache->writes_io_account.get());
     }
 
     // Flush complete, and we're back on the page cache's thread.
