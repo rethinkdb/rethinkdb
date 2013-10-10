@@ -209,11 +209,26 @@ module RethinkDB
       self
     end
 
-    def close
+    # TODO (daniel): Add wait option
+    def close(noreply_wait=true)
+      noreply_wait() if noreply_wait
       @listener.terminate if @listener
       @listener = nil
       @socket.close
       @socket = nil
+    end
+
+    def noreply_wait
+      # TODO (daniel): Should we do something if auto_reconnect is one?
+      raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
+      q = Query.new
+      q.type = Query::QueryType::NOREPLY_WAIT
+      q.token = @@token_cnt += 1
+      res = run_internal(q)
+      # res should be null
+      if res.type != Response::ResponseType::SUCCESS_ATOM || res.response[0].type != Datum::DatumType::R_NULL
+        raise RqlRuntimeError, "Unexpected response to noreply_wait: #{res}."
+      end
     end
 
     def self.last
