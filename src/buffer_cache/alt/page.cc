@@ -135,7 +135,6 @@ current_page_t::current_page_t(block_id_t block_id, page_cache_t *page_cache)
       page_cache_(page_cache),
       is_deleted_(false),
       last_modifier_(NULL) {
-    // RSI: Is the last modifier null when constructing a page for a new block?
 }
 
 current_page_t::current_page_t(block_id_t block_id,
@@ -147,7 +146,6 @@ current_page_t::current_page_t(block_id_t block_id,
       page_(new page_t(block_size, std::move(buf))),
       is_deleted_(false),
       last_modifier_(NULL) {
-    // RSI: Is the last modifier null when constructing a page for a new block?
 }
 
 current_page_t::~current_page_t() {
@@ -563,7 +561,7 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
 
 page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_null)
     : page_cache_(page_cache) {
-    // RSI: Make sure the preceding txn and this txn are only used for "write txns".
+    // RSI: Make sure the preceding txn and this txn are only used for "write txns".  (Why?)
     if (preceding_txn_or_null != NULL) {
         connect_preceder(preceding_txn_or_null);
     }
@@ -837,14 +835,12 @@ void page_cache_t::do_flush_txn(page_txn_t *txn) {
 
 void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
     rassert(txn->began_waiting_for_flush_);
-    // rassert(!txn->began_index_write_);  // RSI:
+    // rassert(!txn->began_index_write_);  // RSI: This variable doesn't exist.
     rassert(txn->live_acqs_.empty());
 
     // This txn is now waiting to be flushed.  Should we flush it?  Let's look at the
     // graph of txns.  We may flush this txn if all its preceding txns can be
     // flushed.
-
-    // RSI: Do we actually want to block the coroutine by flushing in-line here?
 
     if (txn->preceders_.empty()) {
 
