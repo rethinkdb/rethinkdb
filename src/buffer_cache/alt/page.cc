@@ -40,11 +40,14 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
 
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] = new current_page_t(block_id, this);
-   }
+    } else {
+        rassert(!current_pages_[block_id]->is_deleted_);
+    }
 
     return current_pages_[block_id];
 }
 
+// RSI: Nobody calls this function.
 current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     block_id_t block_id = free_list_.acquire_block_id();
     if (current_pages_[block_id] == NULL) {
@@ -53,9 +56,10 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
                                serializer_->get_block_size(),
                                serializer_->malloc(),
                                this);
+    } else {
+        rassert(current_pages_[block_id]->is_deleted_);
+        current_pages_[block_id]->is_deleted_ = false;
     }
-    // RSI: Maybe this is where we should reinitialize the current_page_t to
-    // non-deleted.
 
     *block_id_out = block_id;
     return current_pages_[block_id];
@@ -163,6 +167,10 @@ void current_page_t::remove_acquirer(current_page_acq_t *acq) {
     acquirers_.remove(acq);
     if (next != NULL) {
         pulse_pulsables(next);
+    } else {
+        if (is_deleted_) {
+            page_cache_->free_list()->release_block_id(block_id_);
+        }
     }
 }
 

@@ -164,6 +164,9 @@ private:
     // Returns NULL if the page was deleted.
     page_t *the_page_for_read_or_deleted();
 
+    // Has access to our fields.
+    friend class page_cache_t;
+
     // Our block id.
     block_id_t block_id_;
     // block_id_ and page_cache_ can be used to construct (and load) the page
@@ -183,7 +186,6 @@ private:
 
 class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t> {
 public:
-    // RSI: Maybe get the current_page_t from the cache instead of exposing it.
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
                        alt_access_t access);
@@ -212,7 +214,6 @@ private:
     bool declared_snapshotted_;
     // At most one of current_page_ is null or snapshotted_page_ is null, unless the
     // acquired page has been deleted, in which case both are null.
-    // RSI: Code doesn't yet handle case where both could be null.
     current_page_t *current_page_;
     page_ptr_t snapshotted_page_;
     cond_t read_cond_;
@@ -227,8 +228,9 @@ public:
     explicit free_list_t(serializer_t *serializer);
     ~free_list_t();
 
+    // Returns a block id.  The current_page_t for this block id, if present, has no
+    // acquirers.
     block_id_t acquire_block_id();
-    // RSI: Presumably somebody should be calling this from somewhere.
     void release_block_id(block_id_t block_id);
 
 private:
@@ -254,6 +256,7 @@ private:
 
     friend class current_page_t;
     serializer_t *serializer() { return serializer_; }
+    free_list_t *free_list() { return &free_list_; }
 
     // We use a separate IO account for reads and writes, so reads can pass ahead
     // of active writebacks. Otherwise writebacks could badly block out readers,
