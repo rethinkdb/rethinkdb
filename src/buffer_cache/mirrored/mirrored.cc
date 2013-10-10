@@ -722,7 +722,29 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
             break;
         }
         case rwi_write: {
-            rassert(inner_buf->version_id <= version_to_access, "%lu > %lu. It seems that one write transaction bypassed another one after acquiring their first locks.", inner_buf->version_id, version_to_access);
+            
+            // `another_write_transaction_bypassed_us` should never be true
+            // for btree nodes and similar structures for which the locking scheme
+            // guarantees that a write can never bypass another one.
+            // However we currently have the stat node which is acquired out-of-order
+            // and we have to handle that.
+            const bool another_write_transaction_bypassed_us = inner_buf->version_id > version_to_access;
+            if (another_write_transaction_bypassed_us) {
+                // Luckily, this is not dramatic. The reason for that is that
+                // the version of a write transaction is purely an internal
+                // state. It is not registered anywhere outside of the transaction.
+                // (in contrast to snapshotted read transactions, which have to
+                // register themselves with the cache).
+                // As a consequence, we can just temporarily increase our version
+                // to the one used by the bypassing transaction.
+                //
+                // NOTE: This *does* violate the usual semantics of a snapshot.
+                // Namely, snapshotted read transactions which were started
+                // after us, can *not* see the changes we make. This is as if the
+                // (younger) write transaction that bypassed us had made these
+                // changes for us.
+                version_to_access = inner_buf->version_id;
+            }
 
             inner_buf->snapshot_if_needed(version_to_access, true);
 
