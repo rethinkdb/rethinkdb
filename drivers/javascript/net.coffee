@@ -343,7 +343,7 @@ class TcpConnection extends Connection
         super(host, callback)
 
         if @rawSocket?
-            @close(false)
+            @close({noreplyWait: false})
 
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
