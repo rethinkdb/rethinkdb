@@ -180,8 +180,49 @@ class Connection extends events.EventEmitter
             # Unexpected token
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
-    close: ar () ->
-        @open = false
+    close: (varar 0, 2, (noreply_wait=true, callback=null) ->
+        unless typeof noreply_wait is 'boolean'
+            throw new err.RqlDriverError "First argument to close must be the boolean noreply_wait flag."
+        unless not callback? or typeof callback is 'function'
+            throw new err.RqlDriverError "Second argument to close must be a callback function."
+
+        cb = (args...) =>
+            @open = false
+            if callback?
+                callback(args...)
+
+        if noreply_wait
+            @noreplyWait(cb)
+        else
+            cb()
+    )
+
+    noreplyWait: ar (callback) ->
+        unless typeof callback is 'function'
+            throw new err.RqlDriverError "First argument to noreplyWait must be a callback function."
+        unless @open then throw new err.RqlDriverError "Connection is closed."
+        
+        # Assign token
+        token = @nextToken++
+
+        # Construct query
+        query = {'global_optargs':[]}
+        query.type = "NOREPLY_WAIT"
+        query.token = token
+        
+        # Construct callback that checks response message
+        cb = (e, data) =>
+            if e?
+                callback(e)
+            else if data?
+                callback(new err.RqlDriverError "Unexpected response to noreplyWait from server: " + cursor)
+            else
+                callback(null)
+
+        # Save callback
+        @outstandingCallbacks[token] = {cb:cb, root:null, opts:null}
+
+        @_sendQuery(query)
 
     cancel: ar () ->
         @outstandingCallbacks = {}
@@ -281,7 +322,7 @@ class TcpConnection extends Connection
         super(host, callback)
 
         if @rawSocket?
-            @close()
+            @close(false)
 
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
@@ -329,11 +370,18 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
-        @rawSocket.on 'close', => @open = false; @emit 'close'
+        @rawSocket.on 'close', => @open = false; @emit 'close', false
+    
+    close: (noreply_wait=true, callback=null, args...) ->
+        unless not callback? or typeof callback is 'function'
+            throw new err.RqlDriverError "Second argument to close must be a callback function."
 
-    close: () ->
-        super()
-        @rawSocket.end()
+        cb = (args...) =>
+            @rawSocket.end()
+            if callback?
+                callback(args...)
+
+        super(noreply_wait, cb, args...)
 
     cancel: () ->
         @rawSocket.destroy()
