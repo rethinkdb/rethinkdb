@@ -180,21 +180,32 @@ class Connection extends events.EventEmitter
             # Unexpected token
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
-    close: (varar 0, 2, (noreply_wait=true, callback=null) ->
-        unless typeof noreply_wait is 'boolean'
-            throw new err.RqlDriverError "First argument to close must be the boolean noreply_wait flag."
-        unless not callback? or typeof callback is 'function'
-            throw new err.RqlDriverError "Second argument to close must be a callback function."
-
-        cb = (args...) =>
-            @open = false
-            if callback?
-                callback(args...)
-
-        if noreply_wait
-            @noreplyWait(cb)
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
         else
-            cb()
+            opts = {}
+            cb = optsOrCallback
+
+        unless Object::toString.call(opts) is '[object Object]'
+            throw new err.RqlDriverError "First argument to two-argument `close` must be a dictionary."
+        for own key of opts
+            unless key in ['noreplyWait']
+                throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function."
+
+        wrappedCb = (args...) =>
+            @open = false
+            if cb?
+                cb(args...)
+
+        noreplyWait = (not opts.noreplyWait?) or opts.noreplyWait
+        if noreplyWait
+            @noreplyWait(wrappedCb)
+        else
+            wrappedCb()
     )
 
     noreplyWait: ar (callback) ->
@@ -206,30 +217,37 @@ class Connection extends events.EventEmitter
         token = @nextToken++
 
         # Construct query
-        query = {'global_optargs':[]}
+        query = {}
         query.type = "NOREPLY_WAIT"
         query.token = token
-        
-        # Construct callback that checks response message
-        cb = (e, data) =>
-            if e?
-                callback(e)
-            else if data?
-                callback(new err.RqlDriverError "Unexpected response to noreplyWait from server: " + cursor)
-            else
-                callback(null)
 
         # Save callback
-        @outstandingCallbacks[token] = {cb:cb, root:null, opts:null}
+        @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
 
         @_sendQuery(query)
 
     cancel: ar () ->
         @outstandingCallbacks = {}
 
-    reconnect: ar (callback) ->
-        cb = => @constructor.call(@, {host:@host, port:@port}, callback)
-        setTimeout(cb, 0)
+    reconnect: (varar 1, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
+        else
+            opts = {}
+            cb = optsOrCallback
+
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `reconnect` must be a callback function."
+
+        closeCb = (err) =>
+            if err?
+                cb(err)
+            else
+                constructCb = => @constructor.call(@, {host:@host, port:@port}, cb)
+                setTimeout(constructCb, 0)
+        @close(opts, closeCb)
+    )
 
     use: ar (db) ->
         @db = db
@@ -370,18 +388,27 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
-        @rawSocket.on 'close', => @open = false; @emit 'close', false
+        @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
     
-    close: (noreply_wait=true, callback=null, args...) ->
-        unless not callback? or typeof callback is 'function'
-            throw new err.RqlDriverError "Second argument to close must be a callback function."
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
+        else
+            opts = {}
+            cb = optsOrCallback
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function."
 
-        cb = (args...) =>
+        wrappedCb = (args...) =>
             @rawSocket.end()
-            if callback?
-                callback(args...)
+            if cb?
+                cb(args...)
 
-        super(noreply_wait, cb, args...)
+        # This would simply be super(opts, wrappedCb), if we were not in the varar
+        # anonymous function
+        TcpConnection.__super__.close.apply(this, opts, wrappedCb)
+    )
 
     cancel: () ->
         @rawSocket.destroy()
