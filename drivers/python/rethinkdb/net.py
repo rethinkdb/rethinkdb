@@ -84,13 +84,13 @@ class Connection(object):
         return self
 
     def __exit__(self, type, value, traceback):
-        self.close()
+        self.close(false)
 
     def use(self, db):
         self.db = db
 
-    def reconnect(self):
-        self.close()
+    def reconnect(self, noreply_wait=true):
+        self.close(noreply_wait)
 
         try:
             self.socket = socket.create_connection((self.host, self.port), self.timeout)
@@ -117,11 +117,25 @@ class Connection(object):
         # Clear timeout so we don't timeout on long running queries
         self.socket.settimeout(None)
 
-    def close(self):
+    def close(self, noreply_wait=true):
         if self.socket:
+            if noreply_wait
+                self.noreply_wait()
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.socket = None
+
+    def noreply_wait(self):
+        token = self.next_token
+        self.next_token += 1
+
+        # Construct query
+        query = p.Query()
+        query.type = p.Query.NOREPLY_WAIT
+        query.token = token
+
+        # Send the request
+        return self._send_query(query, None)
 
     # Not thread safe. Sets this connection as global state that will be used
     # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
