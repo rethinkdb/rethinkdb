@@ -186,7 +186,7 @@ class Connection extends events.EventEmitter
             unless Object::toString.call(opts) is '[object Object]'
                 throw new err.RqlDriverError "First argument to two-argument `close` must be a dictionary."
             cb = callback
-        else if Object::toString.call(opts) is '[object Object]'
+        else if Object::toString.call(optsOrCallback) is '[object Object]'
             opts = optsOrCallback
             cb = null
         else
@@ -397,7 +397,7 @@ class TcpConnection extends Connection
         if callback?
             opts = optsOrCallback
             cb = callback
-        else if Object::toString.call(opts) is '[object Object]'
+        else if Object::toString.call(optsOrCallback) is '[object Object]'
             opts = optsOrCallback
             cb = null
         else
