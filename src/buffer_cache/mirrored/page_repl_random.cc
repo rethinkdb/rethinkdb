@@ -71,10 +71,8 @@ size_t randsize(size_t n) {
 void page_repl_random_t::make_space(size_t space_needed) {
     cache->assert_thread();
     size_t target;
-    // TODO(rntz): why, if more space is needed than unload_threshold, do we set the target number
-    // of pages in cache to unload_threshold rather than 0? (note: git blames this on tim)
     if (space_needed > unload_threshold) {
-        target = unload_threshold;
+        target = 0;
     } else {
         target = unload_threshold - space_needed;
     }
