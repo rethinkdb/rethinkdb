@@ -189,7 +189,7 @@ describe('Javascript connection API', function(){
             c.noreplyWait(function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
-                assert(duration > 500);
+                assert(duration >= 500);
                 done();
             });
         }));
@@ -200,7 +200,7 @@ describe('Javascript connection API', function(){
             c.close(function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
-                assert(duration > 500);
+                assert(duration >= 500);
                 done();
             });
         }));
@@ -211,7 +211,7 @@ describe('Javascript connection API', function(){
             c.reconnect(function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
-                assert(duration > 500);
+                assert(duration >= 500);
                 done();
             });
         }));
@@ -222,7 +222,7 @@ describe('Javascript connection API', function(){
             c.close({'noreplyWait': false}, function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
-                assert(duration <= 500);
+                assert(duration < 500);
                 done();
             });
         }));
@@ -233,7 +233,7 @@ describe('Javascript connection API', function(){
             c.reconnect({'noreplyWait': false}, function (err) {
                 assertNull(err);
                 var duration = new Date().getTime() - t;
-                assert(duration <= 500);
+                assert(duration < 500);
                 done();
             });
         }));
