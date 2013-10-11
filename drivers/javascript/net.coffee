@@ -204,7 +204,7 @@ class Connection extends events.EventEmitter
             if cb?
                 cb(args...)
 
-        noreplyWait = (not opts.noreplyWait?) or opts.noreplyWait
+        noreplyWait = ((not opts.noreplyWait?) or opts.noreplyWait) and @open
         if noreplyWait
             @noreplyWait(wrappedCb)
         else
@@ -413,7 +413,7 @@ class TcpConnection extends Connection
 
         # This would simply be super(opts, wrappedCb), if we were not in the varar
         # anonymous function
-        TcpConnection.__super__.close.apply(this, opts, wrappedCb)
+        TcpConnection.__super__.close.call(this, opts, wrappedCb)
     )
 
     cancel: () ->
