@@ -183,18 +183,21 @@ class Connection extends events.EventEmitter
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
             opts = optsOrCallback
+            unless Object::toString.call(opts) is '[object Object]'
+                throw new err.RqlDriverError "First argument to two-argument `close` must be a dictionary."
             cb = callback
+        else if Object::toString.call(opts) is '[object Object]'
+            opts = optsOrCallback
+            cb = null
         else
             opts = {}
-            cb = optsOrCallback
+            cb = callback
 
-        unless Object::toString.call(opts) is '[object Object]'
-            throw new err.RqlDriverError "First argument to two-argument `close` must be a dictionary."
         for own key of opts
             unless key in ['noreplyWait']
                 throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
         unless not cb? or typeof cb is 'function'
-            throw new err.RqlDriverError "Final argument to `close` must be a callback function."
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or dictionary."
 
         wrappedCb = (args...) =>
             @open = false
@@ -237,7 +240,7 @@ class Connection extends events.EventEmitter
             opts = {}
             cb = optsOrCallback
 
-        unless not cb? or typeof cb is 'function'
+        unless typeof cb is 'function'
             throw new err.RqlDriverError "Final argument to `reconnect` must be a callback function."
 
         closeCb = (err) =>
@@ -394,11 +397,14 @@ class TcpConnection extends Connection
         if callback?
             opts = optsOrCallback
             cb = callback
+        else if Object::toString.call(opts) is '[object Object]'
+            opts = optsOrCallback
+            cb = null
         else
             opts = {}
-            cb = optsOrCallback
+            cb = callback
         unless not cb? or typeof cb is 'function'
-            throw new err.RqlDriverError "Final argument to `close` must be a callback function."
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or dictionary."
 
         wrappedCb = (args...) =>
             @rawSocket.end()
