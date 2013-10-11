@@ -191,7 +191,7 @@ class Connection extends events.EventEmitter
             cb = null
         else
             opts = {}
-            cb = callback
+            cb = optsOrCallback
 
         for own key of opts
             unless key in ['noreplyWait']
@@ -402,7 +402,7 @@ class TcpConnection extends Connection
             cb = null
         else
             opts = {}
-            cb = callback
+            cb = optsOrCallback
         unless not cb? or typeof cb is 'function'
             throw new err.RqlDriverError "Final argument to `close` must be a callback function or dictionary."
 
