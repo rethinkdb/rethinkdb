@@ -105,7 +105,7 @@ module RethinkDB
       @@last = self
       @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
       @conn_id = 0
-      reconnect
+      reconnect(false)
     end
     attr_reader :default_db, :conn_id
 
@@ -174,7 +174,7 @@ module RethinkDB
         return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
-        reconnect
+        reconnect(false)
         raise e
       end
     end
@@ -200,7 +200,7 @@ module RethinkDB
     # server (if noreply_wait = false) and invalidate all outstanding
     # enumerables on the client.
     def reconnect(noreply_wait=true)
-      noreply_wait() if noreply_wait
+      noreply_wait if noreply_wait
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
@@ -212,7 +212,7 @@ module RethinkDB
     end
 
     def close(noreply_wait=true)
-      noreply_wait() if noreply_wait
+      noreply_wait if noreply_wait
       @listener.terminate if @listener
       @listener = nil
       @socket.close
