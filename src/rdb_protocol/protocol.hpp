@@ -217,10 +217,21 @@ struct rdb_protocol_t {
     };
 
     struct point_read_response_t {
-        counted_t<const ql::datum_t> data;
         point_read_response_t() { }
         explicit point_read_response_t(counted_t<const ql::datum_t> _data)
             : data(_data) { }
+
+        counted_t<const ql::datum_t> data;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    struct batched_read_response_t {
+        batched_read_response_t() { }
+        explicit batched_read_response_t(
+            std::vector<counted_t<const ql::datum_t> > &&_data)
+            : data(std::move(_data)) { }
+
+        std::vector<counted_t<const ql::datum_t> > data;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
@@ -283,6 +294,7 @@ struct rdb_protocol_t {
 
     struct read_response_t {
         boost::variant<point_read_response_t,
+                       batched_read_response_t,
                        rget_read_response_t,
                        distribution_read_response_t,
                        sindex_list_response_t> response;
@@ -290,6 +302,7 @@ struct rdb_protocol_t {
         read_response_t() { }
         explicit read_response_t(
             const boost::variant<point_read_response_t,
+                                 batched_read_response_t,
                                  rget_read_response_t,
                                  distribution_read_response_t> &r)
             : response(r) { }
@@ -297,13 +310,20 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    class point_read_t {
-    public:
+    struct point_read_t {
         point_read_t() { }
-        explicit point_read_t(const store_key_t& _key) : key(_key) { }
+        explicit point_read_t(const store_key_t &_key) : key(_key) { }
 
         store_key_t key;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
 
+    struct batched_read_t {
+        batched_read_t() { }
+        explicit batched_read_t(std::vector<store_key_t> && _keys)
+            : keys(std::move(_keys)) { }
+
+        std::vector<store_key_t> keys;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
@@ -424,6 +444,7 @@ struct rdb_protocol_t {
 
     struct read_t {
         boost::variant<point_read_t,
+                       batched_read_t,
                        rget_read_t,
                        distribution_read_t,
                        sindex_list_t> read;
@@ -441,6 +462,7 @@ struct rdb_protocol_t {
 
         read_t() { }
         explicit read_t(const boost::variant<point_read_t,
+                                             batched_read_t,
                                              rget_read_t,
                                              distribution_read_t,
                                              sindex_list_t> &r)

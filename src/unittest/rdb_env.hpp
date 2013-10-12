@@ -66,6 +66,7 @@ private:
 
     struct read_visitor_t : public boost::static_visitor<void> {
         void operator()(const rdb_protocol_t::point_read_t &get);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::batched_read_t &br);
         void NORETURN operator()(UNUSED const rdb_protocol_t::rget_read_t &rget);
         void NORETURN operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_list_t &sl);

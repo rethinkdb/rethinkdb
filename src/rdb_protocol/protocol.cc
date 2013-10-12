@@ -43,7 +43,9 @@ typedef rdb_protocol_t::read_t read_t;
 typedef rdb_protocol_t::read_response_t read_response_t;
 
 typedef rdb_protocol_t::point_read_t point_read_t;
+typedef rdb_protocol_t::batched_read_t batched_read_t;
 typedef rdb_protocol_t::point_read_response_t point_read_response_t;
+typedef rdb_protocol_t::batched_read_response_t batched_read_response_t;
 
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
@@ -401,9 +403,14 @@ store_key_t sindex_list_region_key() {
 }
 
 /* read_t::get_region implementation */
+region_t region_from_keys(const std::vector<store_key_t> &keys);
 struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(const point_read_t &pr) const {
         return rdb_protocol_t::monokey_region(pr.key);
+    }
+
+    region_t operator()(const batched_read_t &br) const {
+        return region_from_keys(br.keys);
     }
 
     region_t operator()(const rget_read_t &rg) const {
@@ -441,6 +448,18 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
 
     bool operator()(const point_read_t &pr) const {
         return keyed_read(pr, pr.key);
+    }
+
+    bool operator()(const batched_read_t &br) const {
+        read_out->read = batched_read_t();
+        std::vector<store_key_t> *keys_out
+            = &boost::get<batched_read_t>(&read_out->read)->keys;
+        for (auto it = br.keys.begin(); it != br.keys.end(); ++it) {
+            if (region_contains_key(*region, *it)) {
+                keys_out->push_back(*it);
+            }
+        }
+        return keys_out->size() > 0;
     }
 
     template <class T>
@@ -543,6 +562,17 @@ public:
         guarantee(count == 1);
         guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
         *response_out = responses[0];
+    }
+
+    void operator()(const batched_read_t &) {
+        response_out->response = batched_read_response_t();
+        std::vector<counted_t<const ql::datum_t> > *data_out
+            = &boost::get<batched_read_response_t>(&response_out->response)->data;
+        for (size_t i = 0; i < count; ++i) {
+            auto resp = boost::get<batched_read_response_t>(&responses[i].response);
+            guarantee(resp != NULL);
+            data_out->insert(data_out->end(), resp->data.begin(), resp->data.end());
+        }
     }
 
     void operator()(const rget_read_t &rg) {
@@ -1141,6 +1171,18 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
         rdb_get(get.key, btree, txn, superblock, res);
+    }
+
+    void operator()(const batched_read_t &br) {
+        response->response = batched_read_response_t();
+        std::vector<counted_t<const ql::datum_t> > *data_out
+            = &boost::get<batched_read_response_t>(&response->response)->data;
+        data_out->reserve(br.keys.size());
+        for (auto it = br.keys.begin(); it != br.keys.end(); ++it) {
+            point_read_response_t point_res;
+            rdb_get(*it, btree, txn, superblock, &point_res);
+            data_out->push_back(std::move(point_res.data));
+        }
     }
 
     void operator()(const rget_read_t &rget) {
@@ -1765,6 +1807,7 @@ bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
                            result, key_range, truncated, last_considered_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
@@ -1773,6 +1816,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_read_t, keys);
 
 RDB_IMPL_ME_SERIALIZABLE_4(sindex_range_t,
                            empty_ok(start), empty_ok(end), start_open, end_open);
