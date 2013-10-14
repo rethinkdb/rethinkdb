@@ -718,8 +718,6 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
     blocks_by_tokens.reserve(txn->touched_pages_.size()
                              + txn->snapshotted_dirtied_pages_.size());
 
-    // RSI: Add assertions for !began_waiting_for_flush_ anyplace that uses
-    // the variables used here.
     std::vector<std::pair<block_id_t, repli_timestamp_t> > ancillary_infos;
     std::vector<buf_write_info_t> write_infos;
     write_infos.reserve(txn->touched_pages_.size()
@@ -752,8 +750,6 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
                 // the block token would be non-empty.
                 rassert(page->destroy_ptr_ == NULL);
 
-                // RSI: What about deleted pages?  Will ptr have been empty, or will
-                // buf_.has() have been false?
                 rassert(page->buf_.has());
 
                 write_infos.push_back(buf_write_info_t(page->buf_.get(),
