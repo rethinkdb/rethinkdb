@@ -50,6 +50,18 @@ TEST(PageTest, OneTxn) {
     run_in_thread_pool(run_OneTxn, 4);
 }
 
+void run_TwoTxn() {
+    mock_ser_t mock;
+    page_cache_t page_cache(mock.ser.get());
+    page_txn_t txn1(&page_cache, NULL);
+    page_txn_t txn2(&page_cache, NULL);
+}
+
+TEST(PageTest, TwoTxn) {
+    run_in_thread_pool(run_TwoTxn, 4);
+}
+
+
 
 
 
