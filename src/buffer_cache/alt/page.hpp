@@ -250,7 +250,6 @@ public:
 private:
     friend class page_t;
     friend class page_txn_t;
-    // RSI: Make this static?  (The impl goes to serializer thread.)
     static void do_flush_txn(page_cache_t *page_cache, page_txn_t *txn);
     void im_waiting_for_flush(page_txn_t *txn);
 
