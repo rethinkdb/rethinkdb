@@ -6,6 +6,10 @@
 #include "concurrency/auto_drainer.hpp"
 #include "serializer/serializer.hpp"
 
+// RSI: temporary debugging macro
+// #define pagef debugf
+#define pagef(...) do { } while (0)
+
 namespace alt {
 
 page_cache_t::page_cache_t(serializer_t *serializer)
@@ -595,12 +599,21 @@ void page_txn_t::remove_preceder(page_txn_t *preceder) {
 }
 
 page_txn_t::~page_txn_t() {
+    rassert(live_acqs_.empty(), "current_page_acq_t lifespan exceeds its page_txn_t's");
+
+    if (!began_waiting_for_flush_) {
+        pagef("in ~page_txn_t, going to announce waiting for flush\n");
+        // This transaction didn't do anything!
+        announce_waiting_for_flush_if_we_should();
+    }
     // RSI: Do we want to wait for this here?  Or should the page_cache_t be the
     // thing that waits and destroys this object?
 
     // RSI: Do whatever else is necessary to implement this.
 
+    pagef("in ~page_txn_t, waiting for flush cond\n");
     flush_complete_cond_.wait();
+    pagef("in ~page_txn_t, flush cond complete\n");
 }
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {
@@ -700,6 +713,7 @@ struct block_token_tstamp_t {
 };
 
 void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
+    pagef("do_flush_txn (pc=%p, txn=%p)\n", page_cache, txn);
     // We're going to flush this transaction.  Let's start its flush, then detach
     // this transaction from its subseqers, then notify its subseqers that
     // they've lost a preceder.
@@ -771,8 +785,11 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
     // RSI: Take the newly written blocks' block tokens and set their page_t's block
     // token field to them.
     {
+        pagef("do_flush_txn about to thread switch (pc=%p, txn=%p)\n", page_cache, txn);
+
         on_thread_t th(page_cache->serializer_->home_thread());
 
+        pagef("do_flush_txn switched threads (pc=%p, txn=%p)\n", page_cache, txn);
         struct : public iocallback_t, public cond_t {
             void on_io_complete() {
                 pulse();
@@ -814,12 +831,17 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
             }
         }
 
+        pagef("do_flush_txn blocks_releasable_cb.wait() (pc=%p, txn=%p)\n", page_cache, txn);
+
         blocks_releasable_cb.wait();
+
+        pagef("do_flush_txn blocks_releasable_cb waited (pc=%p, txn=%p)\n", page_cache, txn);
 
         // RSI: This blocks?  Is there any way to set the began_index_write_
         // field?
         page_cache->serializer_->index_write(write_ops,
                                              page_cache->writes_io_account.get());
+        pagef("do_flush_txn index write returned (pc=%p, txn=%p)\n", page_cache, txn);
     }
 
     // Flush complete, and we're back on the page cache's thread.
@@ -852,6 +874,7 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
 }
 
 void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
+    pagef("im_waiting_for_flush (txn=%p)\n", txn);
     rassert(txn->began_waiting_for_flush_);
     // rassert(!txn->began_index_write_);  // RSI: This variable doesn't exist.
     rassert(txn->live_acqs_.empty());
@@ -861,6 +884,7 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
     // flushed.
 
     if (txn->preceders_.empty()) {
+        pagef("preceders empty, flushing (txn=%p).\n", txn);
 
         // RSI: 'ordered'?  Really?
         coro_t::spawn_later_ordered(std::bind(&page_cache_t::do_flush_txn, this, txn));

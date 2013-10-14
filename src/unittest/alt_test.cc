@@ -7,6 +7,7 @@
 namespace unittest {
 
 using alt::page_cache_t;
+using alt::page_txn_t;
 
 struct mock_ser_t {
     mock_file_opener_t opener;
@@ -19,7 +20,6 @@ struct mock_ser_t {
         ser = make_scoped<standard_serializer_t>(log_serializer_t::dynamic_config_t(),
                                                  &opener,
                                                  &get_global_perfmon_collection());
-
     }
 };
 
@@ -40,6 +40,15 @@ TEST(PageTest, CreateDestroy) {
     run_in_thread_pool(run_CreateDestroy, 4);
 }
 
+void run_OneTxn() {
+    mock_ser_t mock;
+    page_cache_t page_cache(mock.ser.get());
+    page_txn_t txn(&page_cache, NULL);
+}
+
+TEST(PageTest, OneTxn) {
+    run_in_thread_pool(run_OneTxn, 4);
+}
 
 
 
