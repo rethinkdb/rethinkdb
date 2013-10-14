@@ -43,22 +43,34 @@ TEST(PageTest, CreateDestroy) {
 void run_OneTxn() {
     mock_ser_t mock;
     page_cache_t page_cache(mock.ser.get());
-    page_txn_t txn(&page_cache, NULL);
+    page_txn_t txn(&page_cache);
 }
 
 TEST(PageTest, OneTxn) {
     run_in_thread_pool(run_OneTxn, 4);
 }
 
-void run_TwoTxn() {
+void run_TwoIndependentTxn() {
     mock_ser_t mock;
     page_cache_t page_cache(mock.ser.get());
-    page_txn_t txn1(&page_cache, NULL);
-    page_txn_t txn2(&page_cache, NULL);
+    page_txn_t txn1(&page_cache);
+    page_txn_t txn2(&page_cache);
 }
 
-TEST(PageTest, TwoTxn) {
-    run_in_thread_pool(run_TwoTxn, 4);
+TEST(PageTest, TwoIndependentTxn) {
+    run_in_thread_pool(run_TwoIndependentTxn, 4);
+}
+
+void run_TwoIndependentTxnSwitch() {
+    mock_ser_t mock;
+    page_cache_t page_cache(mock.ser.get());
+    auto txn1 = make_scoped<page_txn_t>(&page_cache);
+    page_txn_t txn2(&page_cache, NULL);
+    txn1.reset();
+}
+
+TEST(PageTest, TwoIndependentTxnSwitch) {
+    run_in_thread_pool(run_TwoIndependentTxnSwitch, 4);
 }
 
 
