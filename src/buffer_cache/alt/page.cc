@@ -598,8 +598,6 @@ page_txn_t::~page_txn_t() {
     // RSI: Do we want to wait for this here?  Or should the page_cache_t be the
     // thing that waits and destroys this object?
 
-    // RSI: Make last_modified_pages_ pointees last_modifier_ field be NULL.
-
     // RSI: Do whatever else is necessary to implement this.
 
     flush_complete_cond_.wait();
@@ -840,6 +838,15 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
             page_cache->im_waiting_for_flush(*it);
         }
     }
+
+    for (auto it = txn->pages_modified_last_.begin();
+         it != txn->pages_modified_last_.end();
+         ++it) {
+        current_page_t *current_page = *it;
+        rassert(current_page->last_modifier_ == txn);
+        current_page->last_modifier_ = NULL;
+    }
+    txn->pages_modified_last_.clear();
 
     txn->flush_complete_cond_.pulse();
 }
