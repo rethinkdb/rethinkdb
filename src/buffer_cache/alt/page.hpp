@@ -365,7 +365,7 @@ private:
 
     // Tells whether this page_txn_t has announced itself (to the cache) to be
     // waiting for a flush.
-    bool began_waiting_for_flush_ = false;  // RSI: compilable
+    bool began_waiting_for_flush_;
 
     // RSI: Actually use this somehow?
     // Tells whether this page_txn_t, in the process of being flushed, began its
