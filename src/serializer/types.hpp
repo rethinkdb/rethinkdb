@@ -14,6 +14,7 @@
 
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
+#include "arch/types.hpp"
 #include "errors.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
@@ -312,11 +313,13 @@ public:
 
 struct buf_write_info_t {
     buf_write_info_t(ser_buffer_t *_buf, block_size_t _block_size,
-                     block_id_t _block_id)
-        : buf(_buf), block_size(_block_size), block_id(_block_id) { }
+                     block_id_t _block_id,
+                     iocallback_t *_cb)
+        : buf(_buf), block_size(_block_size), block_id(_block_id), callback(_cb) { }
     ser_buffer_t *buf;
     block_size_t block_size;
     block_id_t block_id;
+    iocallback_t *callback;
 };
 
 

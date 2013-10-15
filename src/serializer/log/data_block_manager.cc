@@ -665,6 +665,21 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     // extent.
     std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > token_groups
         = gimme_some_new_offsets(writes);
+    
+    // Collect the callbacks for each token group
+    std::vector<std::vector<iocallback_t *> > token_group_callbacks(token_groups.size());
+    {
+        size_t write_number = 0;
+        for (size_t i = 0; i < token_groups.size(); ++i) {
+            token_group_callbacks[i].reserve(token_groups[i].size());
+            for (size_t j = 0; j < token_groups[i].size(); ++j) {
+                if (writes[write_number].callback != NULL) {
+                    token_group_callbacks[i].push_back(writes[write_number].callback);
+                }
+                ++write_number;
+            }
+        }
+    }
 
     for (auto it = writes.begin(); it != writes.end(); ++it) {
         it->buf->ser_header.block_id = it->block_id;
@@ -696,6 +711,28 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
 
     size_t write_number = 0;
     for (size_t i = 0; i < token_groups.size(); ++i) {
+        
+        // We install another intermediate callback on a per token group basis
+        // so we can call the individual writes' on_io_complete callbacks earlier.
+        // This is important because our throttling in the cache is based on
+        // the assumption that on_io_complete() callbacks are called gradually
+        // while individual writes complete.
+        struct token_group_intermediate_cb_t : public iocallback_t {
+            virtual void on_io_complete() {
+                for (auto it = individual_write_cbs.begin(); it != individual_write_cbs.end(); ++it) {
+                    (*it)->on_io_complete();
+                }
+                iocallback_t *local_cb = group_cb;
+                delete this;
+                local_cb->on_io_complete();
+            }
+
+            std::vector<iocallback_t *> individual_write_cbs;
+            iocallback_t *group_cb;
+        };
+        token_group_intermediate_cb_t *const token_group_intermediate_cb = new token_group_intermediate_cb_t;
+        token_group_intermediate_cb->group_cb = intermediate_cb;
+        token_group_intermediate_cb->individual_write_cbs = std::move(token_group_callbacks[i]);
 
         const int64_t front_offset = token_groups[i].front()->offset();
         const int64_t back_offset = token_groups[i].back()->offset()
@@ -729,7 +766,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
         guarantee(last_written_offset == back_offset);
 
         dbfile->writev_async(front_offset, write_size,
-                             std::move(iovecs), io_account, intermediate_cb);
+                             std::move(iovecs), io_account, token_group_intermediate_cb);
     }
 
     std::vector<counted_t<ls_block_token_pointee_t> > ret;
@@ -901,7 +938,8 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
 
                 the_writes.push_back(buf_write_info_t(writes[i].buf,
                                                       writes[i].block_size,
-                                                      writes[i].buf->ser_header.block_id));
+                                                      writes[i].buf->ser_header.block_id,
+                                                      NULL));
             }
 
             new_block_tokens

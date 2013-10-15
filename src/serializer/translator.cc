@@ -223,7 +223,8 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
     for (auto it = write_infos.begin(); it != write_infos.end(); ++it) {
         guarantee(it->block_id != NULL_BLOCK_ID);
         tmp.push_back(buf_write_info_t(it->buf, it->block_size,
-                                       translate_block_id(it->block_id)));
+                                       translate_block_id(it->block_id),
+                                       it->callback));
     }
 
     return inner->block_writes(tmp, io_account, cb);

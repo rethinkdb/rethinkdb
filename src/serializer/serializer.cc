@@ -63,7 +63,8 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
         if (writes[i].action_type == serializer_write_t::UPDATE) {
             write_infos.push_back(buf_write_info_t(convert_buffer_cache_buf_to_ser_buffer(writes[i].action.update.buf),
                                                    block_size_t::unsafe_make(writes[i].action.update.ser_block_size),
-                                                   writes[i].block_id));
+                                                   writes[i].block_id,
+                                                   writes[i].action.update.io_callback));
         }
     }
 
@@ -111,13 +112,6 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     // Step 2: Wait on all writes to finish
     block_write_cond.wait();
 
-    // Step 2.5: Call these annoying io_callbacks.
-    for (size_t i = 0; i < writes.size(); ++i) {
-        if (writes[i].action_type == serializer_write_t::UPDATE) {
-            writes[i].action.update.io_callback->on_io_complete();
-        }
-    }
-
     // Step 3: Commit the transaction to the serializer
     ser->index_write(index_write_ops, io_account);
 }
@@ -146,7 +140,7 @@ counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_
     } cb;
 
     std::vector<counted_t<standard_block_token_t> > tokens
-        = ser->block_writes({ buf_write_info_t(buf, block_size, block_id) },
+        = ser->block_writes({ buf_write_info_t(buf, block_size, block_id, NULL) },
                             io_account, &cb);
     guarantee(tokens.size() == 1);
     cb.wait();
