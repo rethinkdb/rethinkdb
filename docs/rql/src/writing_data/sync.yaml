@@ -1,0 +1,27 @@
+commands:
+  - tag: sync
+    section: writing_data
+    order: 4
+    description: |
+      Makes sure that writes on the given table are written to permanent storage.
+      If you perform a write with <code>durability</code> set to <code>'soft'</code>,
+      you receive no information on when the write actually gets written to permanent storage.
+      A subsequent call to <code>sync</code> does not return before all previous writes to the table
+      have been persisted.
+
+    body: "$PARENT.sync()"
+
+    io:
+      - - table
+
+    examples:
+      - description: |
+          After having updated multiple heroes with soft durability, We now want to wait
+          until these changes have been persisted.
+        code:
+          js: |
+            r.table('marvel').sync().run(conn, callback)
+          py: |
+            r.table('marvel').sync().run(conn)
+          rb: |
+            r.table('marvel').sync().run(conn)
