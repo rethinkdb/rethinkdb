@@ -175,17 +175,19 @@ bool lba_list_t::check_inline_lba_full() const {
 }
 
 void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, extent_transaction_t *txn) {
-    // TODO (daniel): Regarding garbage collection and inline LBA entries:
+    // Note that there are two slight inefficiencies (w.r.t. i/o) in this code:
+    // 1. Regarding garbage collection and inline LBA entries:
     //   The GC will write LBA entries to an extent which are also still in the inline LBA.
     //   When we move those entries over to the extents in this function, we write them again.
     //   This is not necessary, because the GC has already written them.
     //   It's probably not a big deal, but we do sometimes write a few redundant
     //   LBA entries due to this.
-    // TODO (daniel): Also, if an entry which is still in the inline LBA has already
+    // 2. Also, if an entry which is still in the inline LBA has already
     //   been deprecated by a more recent inlined entry, we are still going to write
-    //   the already deprecated entry to the LBA extent first. We could probably check
-    //   whether whether an entry still matches the in-memory LBA before we move
-    //   it to disc_structures.
+    //   the already deprecated entry to the LBA extent first. We could check
+    //   whether an entry still matches the in-memory LBA before we move
+    //   it to disc_structures. On the other hand that would mean more complicated code
+    //   and a little more CPU overhead.
 
     // Note that the order is important here. The oldest inline entries have to be
     // written first, because they might have been superseded by newer inline entries.

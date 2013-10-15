@@ -192,7 +192,6 @@
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
 #define LBA_READ_BUFFER_SIZE                      GIGABYTE
-// TODO (daniel): Is this per serializer or what? Might be way too much.
 
 #define COROUTINE_STACK_SIZE                      131072
 

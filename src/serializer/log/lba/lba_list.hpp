@@ -90,8 +90,9 @@ private:
     in_memory_index_t in_memory_index;
 
     // This is a set of inlined LBA entries which are written directly into the
-    // metablock. When the array gets full, all inline lba entries are moved
-    // to one of the LBA extents (through one of disk_structures).
+    // metablock. When the array gets full, all inlined LBA entries are moved
+    // to the active LBA extent of their respective LBA shards, as computed from
+    // their block ids.
     lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
     int32_t inline_lba_entries_count;
     bool check_inline_lba_full() const;
