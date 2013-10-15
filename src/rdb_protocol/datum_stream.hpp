@@ -142,7 +142,7 @@ protected:
     const counted_t<datum_stream_t> source;
 };
 
-class map_datum_stream_t : public eager_datum_stream_t {
+class map_datum_stream_t : public wrapper_datum_stream_t {
 public:
     map_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
@@ -153,7 +153,7 @@ private:
     counted_t<datum_stream_t> source;
 };
 
-class indexes_of_datum_stream_t : public eager_datum_stream_t {
+class indexes_of_datum_stream_t : public wrapper_datum_stream_t {
 public:
     indexes_of_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
@@ -166,7 +166,7 @@ private:
     int64_t index;
 };
 
-class filter_datum_stream_t : public eager_datum_stream_t {
+class filter_datum_stream_t : public wrapper_datum_stream_t {
 public:
     filter_datum_stream_t(counted_t<func_t> _f,
                           counted_t<func_t> _default_filter_val,
@@ -180,7 +180,7 @@ private:
     counted_t<datum_stream_t> source;
 };
 
-class concatmap_datum_stream_t : public eager_datum_stream_t {
+class concatmap_datum_stream_t : public wrapper_datum_stream_t {
 public:
     concatmap_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
