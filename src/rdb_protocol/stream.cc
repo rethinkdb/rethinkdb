@@ -167,10 +167,13 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
                  * one. Put the data in to the sorting buffer. */
                 pop();
                 sorting_buffer.push_back(*item);
-                rcheck_target(parent, ql::base_exc_t::GENERIC,
-                        sorting_buffer.size() < ql::sort_el_limit,
-                        strprintf("In memory sort limit exceeded. This is due to having over "
-                        "%zd index values with a common, long prefix.",  ql::sort_el_limit));
+                rcheck_target(
+                    parent, ql::base_exc_t::GENERIC,
+                    sorting_buffer.size() < ql::sort_el_limit,
+                    strprintf("In memory sort limit exceeded.  "
+                              "This is due to having over "
+                              "%zd index values with a common, long prefix.",
+                              ql::sort_el_limit));
             } else {
                 /* We have a truncated key and things in the sorting_buffer but
                  * the things in the sorting buffer don't have the same
