@@ -40,27 +40,7 @@ struct hinted_datum_t {
     counted_t<const ql::datum_t> second;
 };
 
-class json_stream_t : public boost::enable_shared_from_this<json_stream_t> {
-public:
-    json_stream_t() { }
-    // Returns a null value when end of stream is reached.
-    virtual counted_t<const ql::datum_t> next(ql::env_t *env) = 0;
-    virtual hinted_datum_t sorting_hint_next(ql::env_t *env) = 0;
-
-    virtual MUST_USE boost::shared_ptr<json_stream_t>
-    add_transformation(const rdb_protocol_details::transform_variant_t &) = 0;
-
-    virtual rdb_protocol_t::rget_read_response_t::result_t
-    apply_terminal(const rdb_protocol_details::terminal_variant_t &,
-                   ql::env_t *env) = 0;
-
-    virtual ~json_stream_t() { }
-
-private:
-    DISABLE_COPYING(json_stream_t);
-};
-
-class batched_rget_stream_t : public json_stream_t {
+class batched_rget_stream_t : public slow_atomic_countable_t<batched_rget_stream_t> {
 public:
     /* Primary key rget. */
     batched_rget_stream_t(const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
@@ -82,8 +62,7 @@ public:
 
     hinted_datum_t sorting_hint_next(ql::env_t *env);
 
-    boost::shared_ptr<json_stream_t> add_transformation(
-        const rdb_protocol_details::transform_variant_t &t);
+    void add_transformation(const rdb_protocol_details::transform_variant_t &t);
 
     rdb_protocol_t::rget_read_response_t::result_t
     apply_terminal(const rdb_protocol_details::terminal_variant_t &t,

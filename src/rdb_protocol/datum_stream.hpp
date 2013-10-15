@@ -11,7 +11,7 @@
 #include "rdb_protocol/stream.hpp"
 
 namespace query_language {
-class json_stream_t;
+class batched_rget_stream_t;
 }
 
 namespace ql {
@@ -240,7 +240,7 @@ private:
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
     // between the datum logic and the original json streams.
-    boost::shared_ptr<query_language::json_stream_t> json_stream;
+    counted_t<query_language::batched_rget_stream_t> json_stream;
 
     rdb_protocol_t::rget_read_response_t::result_t run_terminal(
             env_t *env,

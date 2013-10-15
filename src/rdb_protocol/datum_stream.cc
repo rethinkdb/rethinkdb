@@ -176,14 +176,16 @@ lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
 
 counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
-    out->json_stream = json_stream->add_transformation(
+    out->json_stream = json_stream;
+    out->json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(map_wire_func_t(f)));
     return counted_t<datum_stream_t>(out.release());
 }
 
 counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
-    out->json_stream = json_stream->add_transformation(
+    out->json_stream = json_stream;
+    out->json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(f)));
     return counted_t<datum_stream_t>(out.release());
 }
@@ -191,7 +193,8 @@ counted_t<datum_stream_t>
 lazy_datum_stream_t::filter(counted_t<func_t> f,
                             counted_t<func_t> default_filter_val) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
-    out->json_stream = json_stream->add_transformation(
+    out->json_stream = json_stream;
+    out->json_stream->add_transformation(
         rdb_protocol_details::transform_variant_t(filter_transform_t(
             wire_func_t(f),
             default_filter_val.has()
