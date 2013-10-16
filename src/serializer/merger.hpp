@@ -9,7 +9,16 @@
 #include "buffer_cache/types.hpp"
 #include "serializer/serializer.hpp"
 
-/* The translator serializer is a wrapper around another serializer. TODO (daniel) */
+/* 
+ * The merger serializer is a wrapper around another serializer. It limits
+ * the number of active index_writes. If more index_writes come in while
+ * `max_active_writes` index_writes are already going on, the new index 
+ * writes are queued up.
+ * The advantage of this is that multiple index writes (e.g. coming from different
+ * hash shards) can be merged together, improving efficiency and significantly
+ * reducing the number of disk seeks on rotational drives.
+ * 
+ */
 
 class merger_serializer_t : public serializer_t {
 
