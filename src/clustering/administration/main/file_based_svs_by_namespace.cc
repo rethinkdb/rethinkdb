@@ -5,6 +5,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
+#include "serializer/merger.hpp"
 #include "utils.hpp"
 
 /* This object serves mostly as a container for arguments to the
@@ -106,7 +107,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         store_threads.push_back(next_thread(num_db_threads));
     }
 
-    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<serializer_t> serializer;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
     scoped_ptr_t<multistore_ptr_t<protocol_t> > mptr;
     {
@@ -121,13 +122,14 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
             // TODO: Could we handle failure when loading the serializer?  Right
-            // now, we don't.
-            // TODO (daniel): Search for places where we create a standard serializer_t,
-            //   and wrap it into a merger_serializer_t
-            serializer.init(new standard_serializer_t(
-                                standard_serializer_t::dynamic_config_t(),
-                                &file_opener,
-                                serializers_perfmon_collection));
+            // now, we don't.new merger_serializer_t(
+
+            serializer.init(new merger_serializer_t(
+                                new standard_serializer_t(
+                                    standard_serializer_t::dynamic_config_t(),
+                                    &file_opener,
+                                    serializers_perfmon_collection),
+                                MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
 
             std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
@@ -144,10 +146,12 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         } else {
             standard_serializer_t::create(&file_opener,
                                           standard_serializer_t::static_config_t());
-            serializer.init(new standard_serializer_t(
+            serializer.init(new merger_serializer_t(
+                                new standard_serializer_t(
                                 standard_serializer_t::dynamic_config_t(),
                                 &file_opener,
-                                serializers_perfmon_collection));
+                                serializers_perfmon_collection),
+                            MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
 
             std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());

@@ -11,7 +11,7 @@
 
 /* The translator serializer is a wrapper around another serializer. TODO (daniel) */
 
-class merger_serializer_t : public serializer_t, public serializer_read_ahead_callback_t {
+class merger_serializer_t : public serializer_t {
 
 private:
     serializer_t *inner;
@@ -40,7 +40,8 @@ public:
 
 
 
-    /* serializer_t interface below */
+
+    /* serializer_t interface */
 
     scoped_malloc_t<ser_buffer_t> malloc() { return inner->malloc(); }
     scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *b) { return inner->clone(b); }

@@ -5,9 +5,8 @@
 
 #include "serializer/types.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "config/args.hpp"
 
-// TODO (daniel)
-#define MERGED_INDEX_WRITE_IO_PRIORITY 128
 
 
 merger_serializer_t::merger_serializer_t(serializer_t *_inner, int _max_active_writes) :
