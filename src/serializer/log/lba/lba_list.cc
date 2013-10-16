@@ -11,19 +11,39 @@
 
 lba_list_t::lba_list_t(extent_manager_t *em)
     : shutdown_callback(NULL), gc_count(0), extent_manager(em),
-      state(state_unstarted)
+      state(state_unstarted),
+      inline_lba_entries_count(0)
 {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) disk_structures[i] = NULL;
 }
 
-void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb) {
+void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb_out) {
 
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-        mb->shards[i].lba_superblock_offset = NULL_OFFSET;
-        mb->shards[i].lba_superblock_entries_count = 0;
-        mb->shards[i].last_lba_extent_offset = NULL_OFFSET;
-        mb->shards[i].last_lba_extent_entries_count = 0;
+        mb_out->shards[i].lba_superblock_offset = NULL_OFFSET;
+        mb_out->shards[i].lba_superblock_entries_count = 0;
+        mb_out->shards[i].last_lba_extent_offset = NULL_OFFSET;
+        mb_out->shards[i].last_lba_extent_entries_count = 0;
     }
+    mb_out->inline_lba_entries_count = 0;
+    memset(mb_out->inline_lba_entries,
+           0,
+           LBA_NUM_INLINE_ENTRIES * sizeof(lba_entry_t));
+}
+
+void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
+    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
+        disk_structures[i]->prepare_metablock(&mb_out->shards[i]);
+    }
+    rassert(inline_lba_entries_count <= LBA_NUM_INLINE_ENTRIES);
+    mb_out->inline_lba_entries_count = inline_lba_entries_count;
+    memcpy(mb_out->inline_lba_entries,
+           inline_lba_entries,
+           inline_lba_entries_count * sizeof(lba_entry_t));
+    // Zero the remaining entries so we don't write uninitialized data to disk.
+    memset(&mb_out->inline_lba_entries[inline_lba_entries_count],
+           0,
+           (LBA_NUM_INLINE_ENTRIES - inline_lba_entries_count) * sizeof(lba_entry_t));
 }
 
 class lba_start_fsm_t :
@@ -40,7 +60,14 @@ public:
     {
         rassert(owner->state == lba_list_t::state_unstarted);
         owner->state = lba_list_t::state_starting_up;
-
+        
+        // Copy the current set of inline LBA entries from the metablock
+        guarantee(last_metablock->inline_lba_entries_count <= LBA_NUM_INLINE_ENTRIES);
+        owner->inline_lba_entries_count = last_metablock->inline_lba_entries_count;
+        memcpy(owner->inline_lba_entries,
+               last_metablock->inline_lba_entries,
+               last_metablock->inline_lba_entries_count * sizeof(lba_entry_t));
+        
         cbs_out = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
             owner->disk_structures[i] = new lba_disk_structure_t(
@@ -61,10 +88,22 @@ public:
         }
     }
 
-    void on_lba_read() {
+    void on_lba_extents_read() {
         rassert(cbs_out > 0);
         cbs_out--;
         if (cbs_out == 0) {
+            // All LBA entries from the LBA extents have been read.
+            // Now we can load the (more recent) inlined entries from
+            // the metablock into the index:
+            for (int32_t i = 0; i < owner->inline_lba_entries_count; ++i) {
+                lba_entry_t *e = &owner->inline_lba_entries[i];
+                owner->in_memory_index.set_block_info(
+                        e->block_id,
+                        e->recency,
+                        e->offset,
+                        e->ser_block_size);
+            }
+            
             owner->state = lba_list_t::state_ready;
             if (callback) callback->on_lba_ready();
             delete this;
@@ -120,13 +159,64 @@ void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
 
     in_memory_index.set_block_info(block, recency, offset, ser_block_size);
 
-    /* Strangely enough, this works even with the GC. Here's the reasoning: If the GC is
-    waiting for the disk structure lock, then sync() will never be called again on the
-    current disk_structure, so it's meaningless but harmless to call add_entry(). However,
-    since our changes are also being put into the in_memory_index, they will be
-    incorporated into the new disk_structure that the GC creates, so they won't get lost. */
-    disk_structures[block % LBA_SHARD_FACTOR]->add_entry(block, recency, offset, ser_block_size,
-                                                         io_account, txn);
+    // If the inline LBA is full, free it up first by moving its entries to
+    // the LBA extents
+    if (check_inline_lba_full()) {
+        move_inline_entries_to_extents(io_account, txn);
+        rassert(!check_inline_lba_full());
+    }
+    // Then store the entry inline
+    add_inline_entry(block, recency, offset, ser_block_size);
+}
+
+bool lba_list_t::check_inline_lba_full() const {
+    rassert(inline_lba_entries_count <= LBA_NUM_INLINE_ENTRIES);
+    return inline_lba_entries_count == LBA_NUM_INLINE_ENTRIES;
+}
+
+void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, extent_transaction_t *txn) {
+    // Note that there are two slight inefficiencies (w.r.t. i/o) in this code:
+    // 1. Regarding garbage collection and inline LBA entries:
+    //   The GC will write LBA entries to an extent which are also still in the inline LBA.
+    //   When we move those entries over to the extents in this function, we write them again.
+    //   This is not necessary, because the GC has already written them.
+    //   It's probably not a big deal, but we do sometimes write a few redundant
+    //   LBA entries due to this.
+    // 2. Also, if an entry which is still in the inline LBA has already
+    //   been deprecated by a more recent inlined entry, we are still going to write
+    //   the already deprecated entry to the LBA extent first. We could check
+    //   whether an entry still matches the in-memory LBA before we move
+    //   it to disc_structures. On the other hand that would mean more complicated code
+    //   and a little more CPU overhead.
+
+    // Note that the order is important here. The oldest inline entries have to be
+    // written first, because they might have been superseded by newer inline entries.
+    for (int32_t i = 0; i < inline_lba_entries_count; ++i) {
+        const lba_entry_t &e = inline_lba_entries[i];
+
+        /* Strangely enough, this works even with the GC. Here's the reasoning: If the GC is
+        waiting for the disk structure lock, then sync() will never be called again on the
+        current disk_structure, so it's meaningless but harmless to call add_entry(). However,
+        since our changes are also being put into the in_memory_index, they will be
+        incorporated into the new disk_structure that the GC creates, so they won't get lost. */
+        disk_structures[e.block_id % LBA_SHARD_FACTOR]->add_entry(
+                e.block_id,
+                e.recency,
+                e.offset,
+                e.ser_block_size,
+                io_account,
+                txn);
+    }
+
+    inline_lba_entries_count = 0;
+}
+
+void lba_list_t::add_inline_entry(block_id_t block, repli_timestamp_t recency,
+                                flagged_off64_t offset, uint32_t ser_block_size) {
+    
+    rassert(!check_inline_lba_full());
+    inline_lba_entries[inline_lba_entries_count++] =
+            lba_entry_t::make(block, recency, offset, ser_block_size);
 }
 
 class lba_syncer_t :
@@ -158,23 +248,16 @@ public:
     }
 };
 
-bool lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
+void lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
     rassert(state == state_ready);
 
     lba_syncer_t *syncer = new lba_syncer_t(this, io_account);
     if (syncer->done) {
         delete syncer;
-        return true;
+        cb->on_lba_sync();
     } else {
         syncer->should_delete_self = true;
         syncer->callback = cb;
-        return false;
-    }
-}
-
-void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
-    for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-        disk_structures[i]->prepare_metablock(&mb_out->shards[i]);
     }
 }
 
