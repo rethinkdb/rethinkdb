@@ -12,6 +12,7 @@
 merger_serializer_t::merger_serializer_t(serializer_t *_inner, int _max_active_writes) :
     inner(_inner),
     index_writes_io_account(make_io_account(MERGED_INDEX_WRITE_IO_PRIORITY)),
+    on_index_writes_complete(new cond_t()),
     num_active_writes(0),
     max_active_writes(_max_active_writes) {
 }
