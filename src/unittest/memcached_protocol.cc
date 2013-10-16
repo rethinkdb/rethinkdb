@@ -38,7 +38,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
 
-    std::vector<standard_serializer_t *> ptrs;
+    std::vector<serializer_t *> ptrs;
     ptrs.push_back(serializer.get());
     serializer_multiplexer_t::create(ptrs, shards.size());
     multiplexer.init(new serializer_multiplexer_t(ptrs));

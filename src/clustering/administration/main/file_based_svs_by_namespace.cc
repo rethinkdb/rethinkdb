@@ -122,12 +122,14 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         if (res == 0) {
             // TODO: Could we handle failure when loading the serializer?  Right
             // now, we don't.
+            // TODO (daniel): Search for places where we create a standard serializer_t,
+            //   and wrap it into a merger_serializer_t
             serializer.init(new standard_serializer_t(
                                 standard_serializer_t::dynamic_config_t(),
                                 &file_opener,
                                 serializers_perfmon_collection));
 
-            std::vector<standard_serializer_t *> ptrs;
+            std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
             multiplexer.init(new serializer_multiplexer_t(ptrs));
 
@@ -147,7 +149,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                 &file_opener,
                                 serializers_perfmon_collection));
 
-            std::vector<standard_serializer_t *> ptrs;
+            std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
             serializer_multiplexer_t::create(ptrs, num_stores);
             multiplexer.init(new serializer_multiplexer_t(ptrs));
