@@ -40,10 +40,10 @@ void do_getaddrinfo(const char *node,
 }
 
 /* Format an `in_addr` in dotted deciaml notation. */
-template <class addr_type>
-std::string ip_to_string(const addr_type &addr, int address_family) {
-    char buffer[INET6_ADDRSTRLEN + 1] = { 0 };
-    const char *result = inet_ntop(address_family, reinterpret_cast<const void*>(&addr),
+template <class addr_t>
+std::string ip_to_string(const addr_t &addr, int address_family) {
+    char buffer[INET6_ADDRSTRLEN] = { 0 };
+    const char *result = inet_ntop(address_family, &addr,
                                    buffer, INET6_ADDRSTRLEN);
     guarantee(result == buffer, "Could not format IP address");
     return std::string(buffer);
@@ -137,13 +137,30 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter, bool 
     return filtered_ips;
 }
 
+addr_type_t sanitize_address_family(int address_family) {
+    addr_type_t result;
+
+    switch (address_family) {
+    case AF_INET:
+        result = RDB_IPV4_ADDR;
+        break;
+    case AF_INET6:
+        result = RDB_IPV6_ADDR;
+        break;
+    default:
+        crash("ip_address_t constructed with unexpected address family: %d", address_family);
+    }
+
+    return result;
+}
+
 ip_address_t ip_address_t::any(int address_family) {
     ip_address_t result;
-    result.addr_family = address_family;
+    result.addr_type = sanitize_address_family(address_family);
 
-    if (address_family == AF_INET) {
+    if (result.is_ipv4()) {
         result.ipv4_addr.s_addr = INADDR_ANY;
-    } else if (address_family == AF_INET6) {
+    } else if (result.is_ipv6()) {
         result.ipv6_addr = in6addr_any;
     } else {
         throw invalid_address_exc_t("unknown address family");
@@ -153,11 +170,11 @@ ip_address_t ip_address_t::any(int address_family) {
 }
 
 ip_address_t::ip_address_t(const sockaddr *sa) {
-    addr_family = sa->sa_family;
+    addr_type = sanitize_address_family(sa->sa_family);
 
-    if (addr_family == AF_INET) {
+    if (is_ipv4()) {
         ipv4_addr = reinterpret_cast<const sockaddr_in *>(sa)->sin_addr;
-    } else if (addr_family == AF_INET6) {
+    } else if (is_ipv6()) {
         ipv6_addr = reinterpret_cast<const sockaddr_in6 *>(sa)->sin6_addr;
         ipv6_scope_id = reinterpret_cast<const sockaddr_in6*>(sa)->sin6_scope_id;
     } else {
@@ -168,12 +185,32 @@ ip_address_t::ip_address_t(const sockaddr *sa) {
 ip_address_t::ip_address_t(const std::string &addr_str) {
     // First attempt to parse as IPv4, then try IPv6
     if (inet_pton(AF_INET, addr_str.c_str(), &ipv4_addr) == 1) {
-        addr_family = AF_INET;
+        addr_type = RDB_IPV4_ADDR;
     } else if (inet_pton(AF_INET6, addr_str.c_str(), &ipv6_addr) == 1) {
-        addr_family = AF_INET6;
+        addr_type = RDB_IPV6_ADDR;
     } else {
         throw invalid_address_exc_t(strprintf("could not parse IP address from string: '%s'", addr_str.c_str()));
     }
+}
+
+int ip_address_t::get_address_family() const {
+    int result;
+
+    switch (addr_type) {
+    case RDB_UNSPEC_ADDR:
+        result = AF_UNSPEC;
+        break;
+    case RDB_IPV4_ADDR:
+        result = AF_INET;
+        break;
+    case RDB_IPV6_ADDR:
+        result = AF_INET6;
+        break;
+    default :
+        crash("unknown ip_address_t address type: %d", addr_type);
+    }
+
+    return result;
 }
 
 const struct in_addr &ip_address_t::get_ipv4_addr() const {
@@ -205,14 +242,14 @@ std::string ip_address_t::to_string() const {
     } else if (is_ipv6()) {
         result = ip_to_string(ipv6_addr, AF_INET6);
     } else {
-        crash("to_string called on an uninitialized ip_address_t, addr_family: %d", addr_family);
+        crash("to_string called on an uninitialized ip_address_t, addr_type: %d", addr_type);
     }
 
     return result;
 }
 
 bool ip_address_t::operator == (const ip_address_t &x) const {
-    if (addr_family == x.addr_family) {
+    if (addr_type == x.addr_type) {
         if (is_ipv4()) {
             return ipv4_addr.s_addr == x.ipv4_addr.s_addr;
         } else if (is_ipv6()) {
@@ -224,7 +261,7 @@ bool ip_address_t::operator == (const ip_address_t &x) const {
 }
 
 bool ip_address_t::operator < (const ip_address_t &x) const {
-    if (addr_family == x.addr_family) {
+    if (addr_type == x.addr_type) {
         if (is_ipv4()) {
             return ipv4_addr.s_addr < x.ipv4_addr.s_addr;
         } else if (is_ipv6()) {
@@ -233,7 +270,7 @@ bool ip_address_t::operator < (const ip_address_t &x) const {
             return false;
         }
     }
-    return addr_family < x.addr_family;
+    return addr_type < x.addr_type;
 }
 
 bool ip_address_t::is_loopback() const {

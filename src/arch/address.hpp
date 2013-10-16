@@ -47,39 +47,49 @@ public:
     const std::string info;
 };
 
+// Used for internal representation of address family, especially for serialization,
+//  since the AF_* constants can't be guaranteed to be the same across architectures
+enum addr_type_t {
+    RDB_UNSPEC_ADDR = 0,
+    RDB_IPV4_ADDR = 1,
+    RDB_IPV6_ADDR = 2
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(addr_type_t, int8_t, RDB_UNSPEC_ADDR, RDB_IPV6_ADDR);
+
 /* ip_address_t represents an IPv4 address. */
 class ip_address_t {
 public:
-    ip_address_t() : addr_family(AF_UNSPEC) { } // for deserialization
+    ip_address_t() : addr_type(RDB_UNSPEC_ADDR) { } // for deserialization
 
     explicit ip_address_t(const sockaddr *sa);
     explicit ip_address_t(const std::string &addr_str);
 
     static ip_address_t any(int address_family);
 
-    bool operator < (const ip_address_t &x) const;
-    bool operator == (const ip_address_t &x) const;
-    bool operator != (const ip_address_t &x) const { return !(*this == x); }
+    bool operator<(const ip_address_t &x) const;
+    bool operator==(const ip_address_t &x) const;
+    bool operator!=(const ip_address_t &x) const { return !(*this == x); }
 
     std::string to_string() const;
     bool is_loopback() const;
     bool is_any() const;
 
-    int get_address_family() const { return addr_family; }
-    bool is_ipv4() const { return addr_family == AF_INET; }
-    bool is_ipv6() const { return addr_family == AF_INET6; }
+    int get_address_family() const;
+    bool is_ipv4() const { return addr_type == RDB_IPV4_ADDR; }
+    bool is_ipv6() const { return addr_type == RDB_IPV6_ADDR; }
 
     const struct in_addr &get_ipv4_addr() const;
     const struct in6_addr &get_ipv6_addr() const;
     uint32_t get_ipv6_scope_id() const;
 
 private:
-    int addr_family;
+    addr_type_t addr_type;
     in_addr ipv4_addr;
     in6_addr ipv6_addr;
     uint32_t ipv6_scope_id;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(addr_family, ipv4_addr, ipv6_addr, ipv6_scope_id);
+    RDB_MAKE_ME_SERIALIZABLE_4(addr_type, ipv4_addr, ipv6_addr, ipv6_scope_id);
 };
 
 std::set<ip_address_t> hostname_to_ips(const std::string &host);
