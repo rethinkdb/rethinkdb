@@ -266,5 +266,13 @@ struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
 write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid);
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid);
 
+struct in_addr;
+struct in6_addr;
+
+write_message_t &operator<<(write_message_t &msg, const in_addr &addr);
+MUST_USE archive_result_t deserialize(read_stream_t *s, in_addr *addr);
+
+write_message_t &operator<<(write_message_t &msg, const in6_addr &addr);
+MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

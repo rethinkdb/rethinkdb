@@ -82,6 +82,8 @@ public:
         cluster. May only be called on home thread. Returns immediately (it does
         its work in the background). */
         void join(const peer_address_t &address) THROWS_NOTHING;
+
+        std::set<ip_and_port_t> get_ips() const;
         int get_port();
 
     private:
