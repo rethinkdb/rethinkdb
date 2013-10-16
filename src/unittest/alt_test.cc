@@ -65,7 +65,7 @@ void run_TwoIndependentTxnSwitch() {
     mock_ser_t mock;
     page_cache_t page_cache(mock.ser.get());
     auto txn1 = make_scoped<page_txn_t>(&page_cache);
-    page_txn_t txn2(&page_cache, NULL);
+    page_txn_t txn2(&page_cache);
     txn1.reset();
 }
 
@@ -73,7 +73,17 @@ TEST(PageTest, TwoIndependentTxnSwitch) {
     run_in_thread_pool(run_TwoIndependentTxnSwitch, 4);
 }
 
+void run_TwoSequentialTxnSwitch() {
+    mock_ser_t mock;
+    page_cache_t page_cache(mock.ser.get());
+    auto txn1 = make_scoped<page_txn_t>(&page_cache);
+    page_txn_t txn2(&page_cache, txn1.get());
+    txn1.reset();
+}
 
+TEST(PageTest, TwoSequentialTxnSwitch) {
+    run_in_thread_pool(run_TwoSequentialTxnSwitch, 4);
+}
 
 
 
