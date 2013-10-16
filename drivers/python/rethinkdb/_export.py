@@ -125,7 +125,7 @@ def parse_options():
 def get_tables(host, port, auth_key, tables):
     try:
         conn = r.connect(host, port, auth_key=auth_key)
-    except r.RqlDriverError as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         raise RuntimeError(ex.message)
 
     dbs = r.db_list().run(conn)
@@ -247,7 +247,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
         write_table_metadata(conn, db, table, directory)
         writer.start()
         read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event)
-    except (r.RqlClientError, r.RqlDriverError) as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
