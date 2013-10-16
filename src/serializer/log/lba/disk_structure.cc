@@ -255,7 +255,7 @@ struct reader_t
     }
 
     void done() {
-        rcb->on_lba_read();
+        rcb->on_lba_extents_read();
         delete this;
     }
 };
