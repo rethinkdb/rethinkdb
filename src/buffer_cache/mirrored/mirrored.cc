@@ -530,22 +530,46 @@ mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction,
         }
     }
 
-    initialize(transaction->snapshot_version, transaction->get_io_account(), call_when_in_line);
+    // The versions must be assigned in the same order as the transactions
+    // acquire their first block. We use this callback to guarantee
+    // this.
+    // (before this was introduced, maybe_finalize_version() was simply called
+    // after initialize returned. However that only works if certain
+    // assumptions can be made, and I found it difficult to verify those.
+    // ~daniel)
+    struct version_finalizer_t : public lock_in_line_callback_t {
+        void on_in_line() {
+            trx->maybe_finalize_version();
+            if (other_callback != NULL) {
+                other_callback->on_in_line();
+            }
+        }
+        mc_transaction_t *trx;
+        lock_in_line_callback_t *other_callback;
+    } on_in_line;
+    on_in_line.trx = transaction;
+    on_in_line.other_callback = call_when_in_line;
+    
+    initialize(transaction->get_io_account(), &on_in_line);
 
     if (is_write_mode(mode)) {
         touch_recency(transaction->recency_timestamp);
     }
 
-    transaction->maybe_finalize_version();
     transaction->assert_thread();
 }
 
-void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
-                               file_account_t *io_account,
+void mc_buf_lock_t::initialize(file_account_t *io_account,
                                lock_in_line_callback_t *call_when_in_line)
 {
     inner_buf->cache->assert_thread();
     inner_buf->refcount++;
+
+    mc_inner_buf_t::version_id_t version_to_access = parent_transaction->snapshot_version;
+    // The first block that a transaction acquires always goes through the regular
+    // locking process, no matter whether the transaction is snapshotted or not.
+    // This is important to guarantee a correct ordering of versions.
+    const bool this_is_transactions_first_lock = version_to_access == mc_inner_buf_t::faux_version_id;
 
     if (snapshotted) {
         rassert(is_read_mode(mode), "Only read access is allowed to block snapshots");
@@ -562,13 +586,27 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
 
     // If the top version is less or equal to snapshot_version, then we need to acquire
     // a read lock first (otherwise we may get the data of the unfinished write on top).
-    if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
+    if (!this_is_transactions_first_lock && snapshotted && version_to_access < inner_buf->version_id) {
+        // we do not need to get in line, so just call the function straight-up to ensure it gets called.
+        // Note that we call it in the same order as in the case where we do acquire
+        // a lock, that is before the potentially blocking acquire_snapshot_data()
+        // and acquire_block() respectively.
+        if (call_when_in_line) call_when_in_line->on_in_line();
+        
+        // If the version was changed by the on_in_line callback, chances are
+        // that something fishy is going on. The dangerous part here is that
+        // this means that we registered a snapshot without going through the
+        // lock queue, potentially bypassing write transactions.
+        // In the current implementation, this cannot happen because
+        // we only get here is version_to_access has already been set (i.e.
+        // version_to_access != mc_inner_buf_t::faux_version_id) and
+        // once it is set it is never changed again.
+        rassert(version_to_access == parent_transaction->snapshot_version);
+
         // acquire the snapshotted block; no need to lock
+        // Note that this can block.
         data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency, &block_size);
         guarantee(data != NULL);
-
-        // we never needed to get in line, so just call the function straight-up to ensure it gets called.
-        if (call_when_in_line) call_when_in_line->on_in_line();
     } else {
         ticks_t lock_start_time;
         // the top version is the right one for us; acquire a lock of the appropriate type first
@@ -576,14 +614,21 @@ void mc_buf_lock_t::initialize(mc_inner_buf_t::version_id_t version_to_access,
         inner_buf->lock.co_lock(mode == rwi_read_outdated_ok ? rwi_read : mode, call_when_in_line);
         inner_buf->cache->stats->pm_bufs_acquiring.end(&lock_start_time);
 
-        // It's possible that, now that we've acquired the lock, that
+        // Update version_to_access since the callback might have modified it:
+        version_to_access = parent_transaction->snapshot_version;
+        // At this point we assume that maybe_finalize_version() has been called and
+        // initialized our version id.
+        rassert(version_to_access != mc_inner_buf_t::faux_version_id);
+
+        // It's possible that, now that we've acquired the lock,
         // the inner buf's version id has changed, and that we should
         // get a snapshotted version.
 
-        if (snapshotted && version_to_access != mc_inner_buf_t::faux_version_id && version_to_access < inner_buf->version_id) {
+        if (snapshotted && version_to_access < inner_buf->version_id) {
             inner_buf->lock.unlock();
 
-            // acquire the snapshotted block; no need to lock
+            // acquire the snapshotted block; no need to hold the lock any longer
+            // Note that this can block.
             data = inner_buf->acquire_snapshot_data(version_to_access, io_account, &subtree_recency, &block_size);
             guarantee(data != NULL);
 
@@ -624,7 +669,7 @@ mc_buf_lock_t::mc_buf_lock_t(mc_transaction_t *transaction) THROWS_NOTHING :
     transaction->assert_thread();
 
     // This must pass since no one else holds references to this block.
-    initialize(transaction->snapshot_version, transaction->get_io_account(), 0);
+    initialize(transaction->get_io_account(), 0);
 
     transaction->assert_thread();
 }
@@ -644,6 +689,7 @@ void mc_buf_lock_t::release_if_acquired() {
 void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access) {
     inner_buf->cache->assert_thread();
     rassert(!inner_buf->do_delete);
+    rassert(version_to_access != mc_inner_buf_t::faux_version_id);
 
     subtree_recency = inner_buf->subtree_recency;
 
@@ -651,7 +697,7 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
         case rwi_read_sync:
         case rwi_read: {
             if (snapshotted) {
-                rassert(version_to_access == mc_inner_buf_t::faux_version_id || inner_buf->version_id <= version_to_access);
+                rassert(inner_buf->version_id <= version_to_access);
                 ++inner_buf->snap_refcount;
             }
             // TODO (sam): Obviously something's f'd up about this.
@@ -673,9 +719,29 @@ void mc_buf_lock_t::acquire_block(mc_inner_buf_t::version_id_t version_to_access
             break;
         }
         case rwi_write: {
-            if (version_to_access == mc_inner_buf_t::faux_version_id)
-                version_to_access = inner_buf->cache->get_current_version_id();
-            rassert(inner_buf->version_id <= version_to_access);
+            
+            // `another_write_transaction_bypassed_us` should never be true
+            // for btree nodes and similar structures for which the locking scheme
+            // guarantees that a write can never bypass another one.
+            // However we currently have the stat node which is acquired out-of-order
+            // and we have to handle that.
+            const bool another_write_transaction_bypassed_us = inner_buf->version_id > version_to_access;
+            if (another_write_transaction_bypassed_us) {
+                // Luckily, this is not dramatic. The reason for that is that
+                // the version of a write transaction is purely an internal
+                // state. It is not registered anywhere outside of the transaction.
+                // (in contrast to snapshotted read transactions, which have to
+                // register themselves with the cache).
+                // As a consequence, we can just temporarily increase our version
+                // to the one used by the bypassing transaction.
+                //
+                // NOTE: This *does* violate the usual semantics of a snapshot.
+                // Namely, snapshotted read transactions which were started
+                // after us, can *not* see the changes we make. This is as if the
+                // (younger) write transaction that bypassed us had made these
+                // changes for us.
+                version_to_access = inner_buf->version_id;
+            }
 
             inner_buf->snapshot_if_needed(version_to_access, true);
 
