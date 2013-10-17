@@ -259,7 +259,7 @@ std::vector<counted_t<const datum_t> >
 lazy_datum_stream_t::next_batch_impl(env_t *env) {
     static_assert(false, "unimplemented");
 }
-std::vector<counted_t<const datum_t> > lazy_datum_stream_t::next_impl(env_t *env) {
+counted_t<const datum_t> lazy_datum_stream_t::next_impl(env_t *env) {
     static_assert(false, "unimplemented");
 }
 
@@ -272,11 +272,11 @@ counted_t<const datum_t> array_datum_stream_t::next_impl(UNUSED env_t *env) {
     return arr->get(index++, NOTHROW);
 }
 
-std::vector<counted_t<const datum_t> > eager_datum_stream_t::next_batch_impl(
-    UNUSED env_t *env) {
+std::vector<counted_t<const datum_t> >
+eager_datum_stream_t::next_batch_impl(env_t *env) {
     std::vector<counted_t<const datum_t> > ret;
     size_t acc = 0;
-    while (counted_t<const datum_t> datum = next()) {
+    while (counted_t<const datum_t> datum = next(env)) {
         ret.push_back(datum);
         acc += serialized_size(datum);
         if (acc >= ql::batch_size) {
@@ -532,7 +532,7 @@ union_datum_stream_t::next_batch_impl(env_t *env) {
         std::vector<counted_t<const datum_t> > batch
             = streams[streams_index]->next_batch(env);
         if (batch.size() != 0) {
-            return datum;
+            return batch;
         }
     }
     return std::vector<counted_t<const datum_t> >();
