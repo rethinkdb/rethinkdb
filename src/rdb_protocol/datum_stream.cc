@@ -15,6 +15,34 @@ namespace ql {
 const char *const empty_stream_msg =
     "Cannot reduce over an empty stream with no base.";
 
+// RANGE/READGEN STUFF
+datum_range_t::datum_range_t(
+    counted_t<const datum_t> _left_bound, datum_bound_type_t _left_bound_type,
+    counted_t<const datum_t> _right_bound, datum_bound_type_t _right_bound_type)
+    : left_bound(_left_bound), right_bound(_right_bound),
+      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type)
+{ }
+
+static datum_range_t datum_range_t::universe()  {
+    return datum_range_t(counted_t<const datum_t>(), OPEN,
+                         counted_t<const datum_t>(), OPEN);
+}
+
+explicit readgen_t::readgen_t(key_range_t &&initial_range)
+    : started(false), finished(false), active_range(std::move(initial_range)) { }
+void readgen_t::add_transformation(transform_atom_t &&atom) {
+    r_sanity_check(!started);
+    transform.push_back(std::move(atom));
+}
+
+// TODO: this is how we did it before, but it sucks.
+rget_read_t readgen_t::terminal_read(terminal_t &&_terminal) {
+    r_sanity_check(!started);
+    started = finished = true;
+    rget_read_t read = next_read(env);
+    read.terminal = std::move(_terminal);
+    return read;
+}
 
 // DATUM_STREAM_T
 counted_t<datum_stream_t> datum_stream_t::slice(size_t l, size_t r) {
@@ -110,57 +138,17 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
 }
 
 // LAZY_DATUM_STREAM_T
-lazy_datum_stream_t::lazy_datum_stream_t(
-    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    sorting_t sorting, const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(bt_src),
-      json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access,
-                      counted_t<datum_t>(), false, counted_t<const datum_t>(), false,
-                      env->global_optargs.get_all_optargs(), use_outdated, sorting, this))
-{ }
-
-lazy_datum_stream_t::lazy_datum_stream_t(
-        env_t *env, bool use_outdated,
-        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-        const std::string &sindex_id, sorting_t sorting,
-        const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(bt_src),
-      json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, sindex_id,
-                      counted_t<datum_t>(), false, counted_t<datum_t>(), false,
-                      env->global_optargs.get_all_optargs(), use_outdated,
-                      sorting, this))
-{ }
-
-lazy_datum_stream_t::lazy_datum_stream_t(
-    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    counted_t<const datum_t> left_bound, bool left_bound_open,
-    counted_t<const datum_t> right_bound, bool right_bound_open,
-    sorting_t sorting, const protob_t<const Backtrace> &bt_src)
-    : datum_stream_t(bt_src),
-      json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access,
-                      left_bound, left_bound_open, right_bound, right_bound_open,
-                      env->global_optargs.get_all_optargs(), use_outdated, sorting,
-                      this))
-{ }
-
-lazy_datum_stream_t::lazy_datum_stream_t(
-    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-    counted_t<const datum_t> left_bound, bool left_bound_open,
-    counted_t<const datum_t> right_bound, bool right_bound_open,
-    const std::string &sindex_id, sorting_t sorting,
+lazy_datum_stream_t(
+    namespace_repo_t<rdb_protocol_t>::access_t *_ns_access,
+    bool _use_outdated,
+    const std::map<std::string, wire_func_t> _global_optargs,
+    scoped_ptr_t<readgen_t> &&_readgen,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
-      json_stream(new query_language::batched_rget_stream_t(
-                      *ns_access, sindex_id,
-                      left_bound, left_bound_open, right_bound, right_bound_open,
-                      env->global_optargs.get_all_optargs(), use_outdated, sorting, this))
-{ }
-
-lazy_datum_stream_t::lazy_datum_stream_t(const lazy_datum_stream_t *src)
-    : datum_stream_t(src->backtrace()), json_stream(src->json_stream) { }
+      ns_access(*_ns_access),
+      use_outdated(_use_outdated),
+      global_optargs(_global_optargs),
+      readgen(std::move(_readgen)) { }
 
 counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
     scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));

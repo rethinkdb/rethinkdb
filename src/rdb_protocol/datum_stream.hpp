@@ -163,10 +163,65 @@ private:
     counted_t<datum_stream_t> subsource;
 };
 
+enum datum_bound_type_t { CLOSED = 0, OPEN = 1 };
+
+class datum_range_t {
+public:
+    datum_range_t(
+        counted_t<const datum_t> left_bound, datum_bound_type_t left_bound_type,
+        counted_t<const datum_t> right_bound, datum_bound_type_t right_bound_type);
+    static datum_range_t universe();
+private:
+    counted_t<const datum_t> left_bound, right_bound;
+    datum_bound_type_t left_bound_type, right_bound_type;
+};
+
+class readgen_t {
+    typedef rdb_protocol_details::transform_t transform_t;
+    typedef rdb_protocol_details::terminal_t terminal_t;
+public:
+    explicit readgen_t(key_range_t &&initial_range);
+    void add_transformation(transform_atom_t &&atom);
+    rget_read_t terminal_read(terminal_t &&_terminal);
+    virtual rget_read_t next_read() = 0;
+
+    bool started, finished;
+    transform_t transform;
+    key_range_t active_range;
+};
+
+class primary_readgen_t {
+public:
+    primary_readgen_t(
+        datum_range_t range = datum_range_t::universe(),
+        sorting_t sorting = UNORDERED);
+private:
+    const sorting_t sorting;
+    virtual rget_read_t next_read();
+};
+
+class sindex_readgen_t {
+public:
+    sindex_readgen_t(
+        const std::string &sindex,
+        datum_range_t sindex_range = datum_range_t::universe(),
+        sorting_t sorting = UNORDERED);
+private:
+    const std::string sindex;
+    const datum_range_t original_sindex_range;
+    const sorting_t sorting;
+    virtual rget_read_t next_read();
+};
+
 class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+                        const protob_t<const Backtrace> &bt_src);
+
+    /*
+    lazy_datum_stream_t(env_t *env, bool use_outdated,
+                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         sorting_t sorting, const protob_t<const Backtrace> &bt_src);
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
@@ -183,6 +238,8 @@ public:
                         counted_t<const datum_t> right_bound, bool right_bound_open,
                         const std::string &sindex_id, sorting_t sorting,
                         const protob_t<const Backtrace> &bt_src);
+    */
+
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
@@ -202,25 +259,21 @@ public:
         return counted_t<const datum_t>();  // Cannot be converted implicitly.
     }
 
-protected:
-    virtual hinted_datum_t sorting_hint_next(env_t *env);
-
 private:
     counted_t<const datum_t> next_impl(env_t *env);
     std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
 
-    explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
-    // To make the 1.4 release, this class was basically made into a shim
-    // between the datum logic and the original json streams.
-    counted_t<query_language::batched_rget_stream_t> json_stream;
-
     rdb_protocol_t::rget_read_response_t::result_t run_terminal(
-            env_t *env,
-            const rdb_protocol_details::terminal_variant_t &t);
+        env_t *env, const rdb_protocol_details::terminal_variant_t &t);
 
     void maybe_load_batch(env_t *env);
     size_t current_batch_offset;
     std::vector<counted_t<const datum_t> > current_batch;
+
+    namespace_repo_t<rdb_protocol_t>::access_t ns_access;
+    const bool use_oudated;
+    const std::map<std::string, wire_func_t> global_optargs;
+    scoped_ptr_t<readgen_t> readgen;
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
