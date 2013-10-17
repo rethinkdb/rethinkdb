@@ -189,6 +189,8 @@ public:
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
                        alt_access_t access);
+    current_page_acq_t(page_txn_t *txn,
+                       alt_access_t access);  // access must be write.
     ~current_page_acq_t();
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)

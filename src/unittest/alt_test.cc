@@ -6,6 +6,9 @@
 
 namespace unittest {
 
+using alt::alt_access_t;
+using alt::current_page_acq_t;
+using alt::page_acq_t;
 using alt::page_cache_t;
 using alt::page_txn_t;
 
@@ -85,6 +88,46 @@ TEST(PageTest, TwoSequentialTxnSwitch) {
     run_in_thread_pool(run_TwoSequentialTxnSwitch, 4);
 }
 
+void run_OneReadAcq() {
+    mock_ser_t mock;
+    page_cache_t page_cache(mock.ser.get());
+    page_txn_t txn(&page_cache);
+    current_page_acq_t acq(&txn, 0, alt_access_t::read);
+    // Do nothing with the acq.
+}
+
+TEST(PageTest, OneReadAcq) {
+    run_in_thread_pool(run_OneReadAcq, 4);
+}
+
+void run_OneWriteAcq() {
+    mock_ser_t mock;
+    page_cache_t page_cache(mock.ser.get());
+    page_txn_t txn(&page_cache);
+    current_page_acq_t acq(&txn, 0, alt_access_t::write);
+    // Do nothing with the acq.
+}
+
+TEST(PageTest, OneWriteAcq) {
+    run_in_thread_pool(run_OneWriteAcq, 4);
+}
+
+void run_OneWriteAcqWait() {
+    mock_ser_t mock;
+    page_cache_t page_cache(mock.ser.get());
+    page_txn_t txn(&page_cache);
+    current_page_acq_t acq(&txn, 0, alt_access_t::write);
+    page_acq_t page_acq;
+    page_acq.init(acq.current_page_for_write());
+    ASSERT_TRUE(page_acq.buf_ready_signal()->is_pulsed());
+    debugf("buf size: %" PRIu32 "\n", page_acq.get_buf_size());
+    void *buf = page_acq.get_buf_write();
+    ASSERT_TRUE(buf != NULL);
+}
+
+TEST(PageTest, OneWriteAcqWait) {
+    run_in_thread_pool(run_OneWriteAcqWait, 4);
+}
 
 
 }  // namespace unittest
