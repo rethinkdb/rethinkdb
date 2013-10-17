@@ -8,6 +8,8 @@
 #include "config/args.hpp"
 
 
+#define LBA_NUM_INLINE_ENTRIES                    (static_cast<int32_t>(LBA_INLINE_SIZE / sizeof(lba_entry_t)))
+
 
 // Contains an int64_t, or a "padding" value, or a "unused" value.  I
 // don't think we really need separate padding and unused values.
@@ -52,28 +54,6 @@ inline bool operator==(flagged_off64_t x, flagged_off64_t y) {
     return x.the_value_ == y.the_value_;
 }
 
-struct lba_shard_metablock_t {
-    /* Reference to the last lba extent (that's currently being
-     * written to). Once the extent is filled, the reference is
-     * moved to the lba superblock, and the next block gets a
-     * reference to the clean extent. */
-    int64_t last_lba_extent_offset;
-    int32_t last_lba_extent_entries_count;
-    int32_t padding1;
-
-    /* Reference to the LBA superblock and its size */
-    int64_t lba_superblock_offset;
-    int32_t lba_superblock_entries_count;
-    int32_t padding2;
-};
-
-struct lba_metablock_mixin_t {
-    lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
-};
-
-
-
-
 // PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA list only exists to fill
 // out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 
@@ -117,6 +97,35 @@ struct lba_entry_t {
 } __attribute__((__packed__));
 
 
+struct lba_shard_metablock_t {
+    /* Reference to the last lba extent (that's currently being
+     * written to). Once the extent is filled, the reference is
+     * moved to the lba superblock, and the next block gets a
+     * reference to the clean extent. */
+    int64_t last_lba_extent_offset;
+    int32_t last_lba_extent_entries_count;
+    int32_t padding1;
+
+    /* Reference to the LBA superblock and its size */
+    int64_t lba_superblock_offset;
+    int32_t lba_superblock_entries_count;
+    int32_t padding2;
+};
+
+struct lba_metablock_mixin_t {
+    lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
+    
+    /* Note that inline_lba_entries is not sharded into LBA_SHARD_FACTOR shards.
+     * Instead it contains entries from all shards. Sharding is not necessary
+     * for the inlined entries, because we do not perform any blocking operations
+     * on those (especially no garbage collection).
+     * You can assign an entry from the inline LBA to its respective LBA shard
+     * by taking the LBA_SHARD_FACTOR modulo of its block id.
+     */
+    lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
+    int32_t inline_lba_entries_count;
+    int32_t padding;
+};
 
 
 #define LBA_MAGIC_SIZE 8
