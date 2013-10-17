@@ -52,46 +52,15 @@ public:
     virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array(env_t *env) = 0;
 
-    // Gets the next element from the stream.  (Wrapper around `next_impl`.)
-    counted_t<const datum_t> next(env_t *env);
-
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
     // element.)  (Wrapper around `next_batch_impl`.)
     std::vector<counted_t<const datum_t> > next_batch(env_t *env);
 
-    /* sorting_hint_next returns that same value that next would but in
-     * addition it tells you whether or not this is part of a batch which
-     * compare equal with respect to an index sorting. For example suppose you
-     * have data like so (ommitting the id field):
-     *
-     * {id: 0, sid: 1}, {id: 1, sid : 1}, {id: 2, sid : 2}, {id: 3, sid : 3} {id: 4, sid : 3}
-     *
-     * with a secondary index on the attribute "sid" this function will return:
-     * (START,    {id: 0, sid : 1})--+
-     * (CONTINUE, {id: 1, sid : 1})--+-- These 2 could be swapped
-     * (START,    {id: 2, sid : 2})
-     * (START,    {id: 3, sid : 3})--+
-     * (CONTINUE, {id: 4, sid : 3})--+-- These 2 could be swapped
-     * (CONTINUE, NULL)
-     *
-     * Why is this needed:
-     * This is needed in the case where you are sorting by an index but using a
-     * second attribute as a tiebreaker. For example:
-     *
-     * table.order_by("id", index="sid")
-     *
-     * the sort_datum_stream_t above us needs to get batches which have the
-     * same "sid" and then, only within those batches does it order by "id".
-     *
-     * Note: The only datum_stream_t that implements a meaningful version of
-     * this functions is lazy_datum_stream_t, that's because that's the only
-     * stream which could be used to do an indexed sort. Other implementations
-     * of datum_stream_t always return CONTINUE this is because there data is
-     * equivalent to data which has all compared equally and should all be
-     * sorted together by sort_datum_stream_t. */
-    virtual hinted_datum_t sorting_hint_next(env_t *env);
+    // Returns empty `counted_t` at end of stream.  Prefer `next_batch`.
+    counted_t<const datum_t> next(env_t *env);
 
+    hinted_datum_t sorting_hint_next(env_t *env); // UNIMPLEMENTED
 protected:
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
         : pb_rcheckable_t(bt_src) { }
@@ -99,7 +68,7 @@ protected:
 private:
     static const size_t MAX_BATCH_SIZE = 100;
 
-    // Returns NULL upon end of stream.
+    virtual std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env) = 0;
     virtual counted_t<const datum_t> next_impl(env_t *env) = 0;
 };
 
@@ -125,6 +94,8 @@ protected:
 
     virtual bool is_array() { return true; }
     virtual counted_t<const datum_t> as_array(env_t *env);
+private:
+    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
 };
 
 class wrapper_datum_stream_t : public eager_datum_stream_t {
@@ -236,6 +207,7 @@ protected:
 
 private:
     counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
 
     explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
     // To make the 1.4 release, this class was basically made into a shim
@@ -355,7 +327,8 @@ private:
             }
         }
 
-        std::sort(data.begin(), data.end(), std::bind(lt_cmp, env, std::placeholders::_1, std::placeholders::_2));
+        std::sort(data.begin(), data.end(),
+                  std::bind(lt_cmp, env, std::placeholders::_1, std::placeholders::_2));
     }
     std::function<bool(env_t *,
                        const counted_t<const datum_t> &,
@@ -394,6 +367,7 @@ public:
 
 private:
     counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;

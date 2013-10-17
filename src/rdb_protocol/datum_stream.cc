@@ -4,6 +4,7 @@
 #include <map>
 
 #include "clustering/administration/metadata.hpp"
+#include "rdb_protocol/constants.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/term.hpp"
@@ -26,8 +27,18 @@ counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
     return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
 }
 
+std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(env_t *env) {
+    DEBUG_ONLY_CODE(env->do_eval_callback());
+    env->throw_if_interruptor_pulsed();
+    try {
+        return next_batch_impl(env);
+    } catch (const datum_exc_t &e) {
+        rfail(e.get_type(), "%s", e.what());
+        unreachable();
+    }
+}
+
 counted_t<const datum_t> datum_stream_t::next(env_t *env) {
-    // This is a hook for unit tests to change things mid-query.
     DEBUG_ONLY_CODE(env->do_eval_callback());
     env->throw_if_interruptor_pulsed();
     try {
@@ -38,37 +49,12 @@ counted_t<const datum_t> datum_stream_t::next(env_t *env) {
     }
 }
 
-std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(env_t *env) {
-    env->throw_if_interruptor_pulsed();
-    try {
-        std::vector<counted_t<const datum_t> > batch;
-        for (;;) {
-            counted_t<const datum_t> datum = next_impl(env);
-            if (datum.has()) {
-                batch.push_back(datum);
-            }
-            if (!datum.has() || batch.size() == MAX_BATCH_SIZE) {
-                return batch;
-            }
-        }
-    } catch (const datum_exc_t &e) {
-        rfail(e.get_type(), "%s", e.what());
-        unreachable();
-    }
-}
-
-hinted_datum_t datum_stream_t::sorting_hint_next(env_t *env) {
-    return hinted_datum_t(query_language::CONTINUE, next(env));
-}
-
 counted_t<const datum_t> eager_datum_stream_t::count(env_t *env) {
-    int64_t i = 0;
-    for (;;) {
-        counted_t<const datum_t> value = next(env);
-        if (!value.has()) { break; }
-        ++i;
+    size_t acc = 0;
+    while (counted_t<const datum_t> d = next(env)) {
+        acc += 1;
     }
-    return make_counted<datum_t>(static_cast<double>(i));
+    return make_counted<datum_t>(static_cast<double>(acc));
 }
 
 counted_t<const datum_t> eager_datum_stream_t::reduce(env_t *env,
@@ -102,9 +88,11 @@ counted_t<const datum_t> eager_datum_stream_t::gmr(env_t *env,
     return wd_map.to_arr();
 }
 
-counted_t<datum_stream_t> eager_datum_stream_t::filter(counted_t<func_t> f,
-                                                       counted_t<func_t> default_filter_val) {
-    return make_counted<filter_datum_stream_t>(f, default_filter_val, this->counted_from_this());
+counted_t<datum_stream_t> eager_datum_stream_t::filter(
+    counted_t<func_t> f,
+    counted_t<func_t> default_filter_val) {
+    return make_counted<filter_datum_stream_t>(
+        f, default_filter_val, this->counted_from_this());
 }
 counted_t<datum_stream_t> eager_datum_stream_t::map(counted_t<func_t> f) {
     return make_counted<map_datum_stream_t>(f, this->counted_from_this());
@@ -267,12 +255,12 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
     }
 }
 
-hinted_datum_t lazy_datum_stream_t::sorting_hint_next(env_t *env) {
-    return json_stream->sorting_hint_next(env);
+std::vector<counted_t<const datum_t> >
+lazy_datum_stream_t::next_batch_impl(env_t *env) {
+    static_assert(false, "unimplemented");
 }
-
-counted_t<const datum_t> lazy_datum_stream_t::next_impl(env_t *env) {
-    return json_stream->next(env);
+std::vector<counted_t<const datum_t> > lazy_datum_stream_t::next_impl(env_t *env) {
+    static_assert(false, "unimplemented");
 }
 
 // ARRAY_DATUM_STREAM_T
@@ -281,13 +269,21 @@ array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
     : eager_datum_stream_t(bt_source), index(0), arr(_arr) { }
 
 counted_t<const datum_t> array_datum_stream_t::next_impl(UNUSED env_t *env) {
-    counted_t<const datum_t> datum = arr->get(index, NOTHROW);
-    if (!datum.has()) {
-        return counted_t<const datum_t>();
-    } else {
-        ++index;
-        return datum;
+    return arr->get(index++, NOTHROW);
+}
+
+std::vector<counted_t<const datum_t> > eager_datum_stream_t::next_batch_impl(
+    UNUSED env_t *env) {
+    std::vector<counted_t<const datum_t> > ret;
+    size_t acc = 0;
+    while (counted_t<const datum_t> datum = next()) {
+        ret.push_back(datum);
+        acc += serialized_size(datum);
+        if (acc >= ql::batch_size) {
+            break;
+        }
     }
+    return ret;
 }
 
 // MAP_DATUM_STREAM_T
@@ -528,6 +524,18 @@ counted_t<const datum_t> union_datum_stream_t::next_impl(env_t *env) {
         }
     }
     return counted_t<const datum_t>();
+}
+
+std::vector<counted_t<const datum_t> >
+union_datum_stream_t::next_batch_impl(env_t *env) {
+    for (; streams_index < streams.size(); ++streams_index) {
+        std::vector<counted_t<const datum_t> > batch
+            = streams[streams_index]->next_batch(env);
+        if (batch.size() != 0) {
+            return datum;
+        }
+    }
+    return std::vector<counted_t<const datum_t> >();
 }
 
 } // namespace ql

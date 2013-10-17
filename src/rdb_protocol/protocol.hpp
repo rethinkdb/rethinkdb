@@ -28,6 +28,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/wire_func.hpp"
+#include "rdb_protocol/constants.hpp"
 #include "utils.hpp"
 
 class extproc_pool_t;

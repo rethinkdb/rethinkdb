@@ -45,7 +45,7 @@ typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
 class parallel_traversal_progress_t;
 
-static const size_t rget_max_chunk_size = MEGABYTE;
+static const size_t rget_max_chunk_size = ql::batch_size;
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value);
 
