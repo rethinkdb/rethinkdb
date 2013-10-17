@@ -115,7 +115,7 @@ module RethinkDB
       noreply ? nil : wait(q.token)
     end
     def run(msg, opts)
-      reconnect if @auto_reconnect && (!@socket || !@listener)
+      reconnect(false) if @auto_reconnect && (!@socket || !@listener)
       raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = Query.new
       q.type = Query::QueryType::START
@@ -200,7 +200,7 @@ module RethinkDB
     # server (if noreply_wait = false) and invalidate all outstanding
     # enumerables on the client.
     def reconnect(noreply_wait=true)
-      noreply_wait if noreply_wait
+      self.noreply_wait() if noreply_wait
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
@@ -212,7 +212,7 @@ module RethinkDB
     end
 
     def close(noreply_wait=true)
-      noreply_wait if noreply_wait
+      self.noreply_wait() if noreply_wait
       @listener.terminate if @listener
       @listener = nil
       @socket.close
