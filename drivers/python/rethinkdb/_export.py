@@ -160,6 +160,7 @@ def write_table_metadata(conn, db, table, base_path):
     out.close()
 
 def read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event):
+    progress_info[0].value = 0
     read_rows = 0
     for row in r.db(db).table(table).run(conn, time_format="raw"):
         if exit_event.is_set():
