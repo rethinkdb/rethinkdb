@@ -217,6 +217,10 @@ private:
     rdb_protocol_t::rget_read_response_t::result_t run_terminal(
             env_t *env,
             const rdb_protocol_details::terminal_variant_t &t);
+
+    void maybe_load_batch(env_t *env);
+    size_t current_batch_offset;
+    std::vector<counted_t<const datum_t> > current_batch;
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {

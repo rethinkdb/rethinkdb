@@ -257,10 +257,21 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
 
 std::vector<counted_t<const datum_t> >
 lazy_datum_stream_t::next_batch_impl(env_t *env) {
-    static_assert(false, "unimplemented");
+    maybe_load_batch(env);
+    // Should never mix `next` with `next_batch`.
+    r_sanity_check(current_batch_offset == 0);
+    std::vector<counted_t<const datum_t> > toret;
+    toret.swap(current_batch);
+    return toret;
 }
+
 counted_t<const datum_t> lazy_datum_stream_t::next_impl(env_t *env) {
-    static_assert(false, "unimplemented");
+    maybe_load_batch(env);
+    if (current_batch_offset >= current_batch.size()) {
+        return counted_t<const datum_t>();
+    } else {
+        return std::move(current_batch[current_batch_offset++]);
+    }
 }
 
 // ARRAY_DATUM_STREAM_T
