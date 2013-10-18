@@ -129,6 +129,10 @@ private:
     DISABLE_COPYING(page_acq_t);
 };
 
+// Has information necessary for the current_page_t to do certain things -- it's
+// known by the current_page_acq_t.
+struct current_page_help_t;
+
 class current_page_t {
 public:
     // Constructs a fresh, empty page.
@@ -147,31 +151,30 @@ private:
     void remove_acquirer(current_page_acq_t *acq);
     void pulse_pulsables(current_page_acq_t *acq);
 
-    page_t *the_page_for_write();
-    page_t *the_page_for_read();
+    page_t *the_page_for_write(current_page_help_t help);
+    page_t *the_page_for_read(current_page_help_t help);
 
-    void convert_from_serializer_if_necessary();
+    void convert_from_serializer_if_necessary(current_page_help_t help);
 
     void mark_deleted();
 
     // page_txn_t should not access our fields directly.
     friend class page_txn_t;
-    block_id_t block_id() const { return block_id_; }
     // Returns the previous last modifier (or NULL, if there's no active
     // last-modifying previous txn).
     page_txn_t *change_last_modifier(page_txn_t *new_last_modifier);
 
     // Returns NULL if the page was deleted.
-    page_t *the_page_for_read_or_deleted();
+    page_t *the_page_for_read_or_deleted(current_page_help_t help);
 
     // Has access to our fields.
     friend class page_cache_t;
 
-    // Our block id.
-    block_id_t block_id_;
-    // block_id_ and page_cache_ can be used to construct (and load) the page
-    // when it's null, if it's not deleted.  RSP: Suboptimal memory usage.
-    page_cache_t *page_cache_;
+    // page_ can be null if we haven't tried loading the page yet.  We don't want to
+    // prematurely bother loading the page if it's going to be deleted.
+    // the_page_for_write, the_page_for_read, or the_page_for_read_or_deleted should
+    // be used to access this variable.
+    // RSI: Could we encapsulate that rule?
     page_ptr_t page_;
     // True if the block is in a deleted state.  page_ will be null.
     bool is_deleted_;
@@ -202,6 +205,8 @@ public:
     page_t *current_page_for_read();
     page_t *current_page_for_write();
 
+    block_id_t block_id() const { return block_id_; }
+
 private:
     friend class page_txn_t;
     friend class current_page_t;
@@ -211,9 +216,14 @@ private:
     // Declares ourself readonly.  Only page_txn_t::remove_acquirer can do this!
     void declare_readonly();
 
+    current_page_help_t help() const;
+    page_cache_t *page_cache() const;
+
     page_txn_t *txn_;
     alt_access_t access_;
     bool declared_snapshotted_;
+    // The block id of the page we acquired.
+    block_id_t block_id_;
     // At most one of current_page_ is null or snapshotted_page_ is null, unless the
     // acquired page has been deleted, in which case both are null.
     current_page_t *current_page_;

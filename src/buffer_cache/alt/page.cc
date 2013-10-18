@@ -51,7 +51,6 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     return current_pages_[block_id];
 }
 
-// RSI: Nobody calls this function.
 current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     block_id_t block_id = free_list_.acquire_block_id();
     if (current_pages_.size() <= block_id) {
@@ -72,12 +71,20 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     return current_pages_[block_id];
 }
 
+struct current_page_help_t {
+    current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
+        : block_id(_block_id), page_cache(_page_cache) { }
+    block_id_t block_id;
+    page_cache_t *page_cache;
+};
+
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        block_id_t block_id,
                                        alt_access_t access)
     : txn_(txn),
       access_(access),
       declared_snapshotted_(false),
+      block_id_(block_id),
       current_page_(txn->page_cache_->page_for_block_id(block_id)),
       dirtied_page_(false) {
     txn_->add_acquirer(this);
@@ -89,11 +96,10 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
     : txn_(txn),
       access_(access),
       declared_snapshotted_(false),
+      block_id_(NULL_BLOCK_ID),  // This gets overwritten vvv.
+      current_page_(txn->page_cache_->page_for_new_block_id(&block_id_)),
       dirtied_page_(false) {
     rassert(access == alt_access_t::write);
-    // RSI: Presumably we need some way of returning the block id to the user.
-    block_id_t block_id;
-    current_page_ = txn->page_cache_->page_for_new_block_id(&block_id);
     txn_->add_acquirer(this);
     current_page_->add_acquirer(this);
 }
@@ -140,7 +146,7 @@ page_t *current_page_acq_t::current_page_for_read() {
         return snapshotted_page_.get_page_for_read();
     }
     rassert(current_page_ != NULL);
-    return current_page_->the_page_for_read();
+    return current_page_->the_page_for_read(help());
 }
 
 page_t *current_page_acq_t::current_page_for_write() {
@@ -149,27 +155,33 @@ page_t *current_page_acq_t::current_page_for_write() {
     write_cond_.wait();
     rassert(current_page_ != NULL);
     dirtied_page_ = true;
-    return current_page_->the_page_for_write();
+    return current_page_->the_page_for_write(help());
 }
 
 bool current_page_acq_t::dirtied_page() const {
     return dirtied_page_;
 }
 
-current_page_t::current_page_t(block_id_t block_id, page_cache_t *page_cache)
-    : block_id_(block_id),
-      page_cache_(page_cache),
-      is_deleted_(false),
+page_cache_t *current_page_acq_t::page_cache() const {
+    return txn_->page_cache_;
+}
+
+current_page_help_t current_page_acq_t::help() const {
+    return current_page_help_t(block_id(), page_cache());
+}
+
+// RSI: Unused!
+current_page_t::current_page_t(UNUSED block_id_t block_id, UNUSED page_cache_t *page_cache)
+    : is_deleted_(false),
       last_modifier_(NULL) {
 }
 
-current_page_t::current_page_t(block_id_t block_id,
+// RSI: Unused!
+current_page_t::current_page_t(UNUSED block_id_t block_id,
                                block_size_t block_size,
                                scoped_malloc_t<ser_buffer_t> buf,
-                               page_cache_t *page_cache)
-    : block_id_(block_id),
-      page_cache_(page_cache),
-      page_(new page_t(block_size, std::move(buf))),
+                               UNUSED page_cache_t *page_cache)
+    : page_(new page_t(block_size, std::move(buf))),
       is_deleted_(false),
       last_modifier_(NULL) {
 }
@@ -191,12 +203,14 @@ void current_page_t::remove_acquirer(current_page_acq_t *acq) {
         pulse_pulsables(next);
     } else {
         if (is_deleted_) {
-            page_cache_->free_list()->release_block_id(block_id_);
+            acq->page_cache()->free_list()->release_block_id(acq->block_id());
         }
     }
 }
 
 void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
+    const current_page_help_t help = acq->help();
+
     // First, avoid pulsing when there's nothing to pulse.
     {
         current_page_acq_t *prev = acquirers_.prev(acq);
@@ -229,7 +243,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                 // downgrade itself to readonly and snapshotted for the sake of
                 // flushing its version of the page -- and if it deleted the page,
                 // this is how it learns.
-                cur->snapshotted_page_.init(the_page_for_read_or_deleted());
+                cur->snapshotted_page_.init(the_page_for_read_or_deleted(help));
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
             }
@@ -245,8 +259,8 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                     // need to put it into a non-deleted state.  We initialize the
                     // page to a full-sized page.
                     // TODO: We should consider whether we really want this behavior.
-                    page_.init(new page_t(page_cache_->serializer()->get_block_size(),
-                                          page_cache_->serializer()->malloc()));
+                    page_.init(new page_t(help.page_cache->serializer()->get_block_size(),
+                                          help.page_cache->serializer()->malloc()));
                     is_deleted_ = false;
                 }
                 cur->write_cond_.pulse_if_not_already_pulsed();
@@ -262,31 +276,31 @@ void current_page_t::mark_deleted() {
     page_.reset();
 }
 
-void current_page_t::convert_from_serializer_if_necessary() {
+void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(block_id_, page_cache_));
+        page_.init(new page_t(help.block_id, help.page_cache));
     }
 }
 
-page_t *current_page_t::the_page_for_read() {
+page_t *current_page_t::the_page_for_read(current_page_help_t help) {
     rassert(!is_deleted_);
-    convert_from_serializer_if_necessary();
+    convert_from_serializer_if_necessary(help);
     return page_.get_page_for_read();
 }
 
-page_t *current_page_t::the_page_for_read_or_deleted() {
+page_t *current_page_t::the_page_for_read_or_deleted(current_page_help_t help) {
     if (is_deleted_) {
         return NULL;
     } else {
-        return the_page_for_read();
+        return the_page_for_read(help);
     }
 }
 
-page_t *current_page_t::the_page_for_write() {
+page_t *current_page_t::the_page_for_write(current_page_help_t help) {
     rassert(!is_deleted_);
-    convert_from_serializer_if_necessary();
-    return page_.get_page_for_write(page_cache_);
+    convert_from_serializer_if_necessary(help);
+    return page_.get_page_for_write(help.page_cache);
 }
 
 page_txn_t *current_page_t::change_last_modifier(page_txn_t *new_last_modifier) {
@@ -657,7 +671,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
 
         // Get the block id while current_page_ is non-null.  (It'll become
         // null once we're snapshotted.)
-        const block_id_t block_id = acq->current_page_->block_id();
+        const block_id_t block_id = acq->block_id();
 
         if (acq->dirtied_page()) {
             // We know we hold an exclusive lock.
