@@ -101,13 +101,14 @@ void rdb_namespace_interface_t::read(
         order_token_t tok,
         signal_t *interruptor) 
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    env_->tracer.checkin("Perform read.");
+    explain::starter_t starter("Perform read.", &env_->trace);
+    explain::splitter_t splitter(&env_->trace);
     /* propagate whether or not we're doing explains */
-    read->explain = env_->explain();
+    read->explain = env_->explain;
     /* Do the actual read. */
     internal_->read(*read, response, tok, interruptor);
-    /* Append the results of the explain to the current task */
-    env_->tracer.merge_task(std::move(response->task));
+    /* Append the results of the parallel tasks to the current trace */
+    splitter.give_splits(response->n_shards, response->event_log);
 }
  
 
@@ -116,13 +117,14 @@ void rdb_namespace_interface_t::read_outdated(
         rdb_protocol_t::read_response_t *response,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    env_->tracer.checkin("Perform outdated read.");
+    explain::starter_t starter("Perform outdated read.", &env_->trace);
+    explain::splitter_t splitter(&env_->trace);
     /* propagate whether or not we're doing explains */
-    read->explain = env_->explain();
+    read->explain = env_->explain;
     /* Do the actual read. */
     internal_->read_outdated(*read, response, interruptor);
     /* Append the results of the explain to the current task */
-    env_->tracer.merge_task(std::move(response->task));
+    splitter.give_splits(response->n_shards, response->event_log);
 }
 
 void rdb_namespace_interface_t::write(
@@ -131,13 +133,14 @@ void rdb_namespace_interface_t::write(
         order_token_t tok,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    env_->tracer.checkin("Perform write.");
+    explain::starter_t starter("Perform write", &env_->trace);
+    explain::splitter_t splitter(&env_->trace);
     /* propagate whether or not we're doing explains */
-    write->explain = env_->explain();
+    write->explain = env_->explain;
     /* Do the actual read. */
     internal_->write(*write, response, tok, interruptor);
     /* Append the results of the explain to the current task */
-    env_->tracer.merge_task(std::move(response->task));
+    splitter.give_splits(response->n_shards, response->event_log);
 }
 
 std::set<rdb_protocol_t::region_t> rdb_namespace_interface_t::get_sharding_scheme()
@@ -170,10 +173,6 @@ void env_t::do_eval_callback() {
     if (eval_callback != NULL) {
         eval_callback->eval_callback();
     }
-}
-
-explain_bool_t env_t::explain() {
-    return tracer.get_task() ? explain_bool_t::EXPLAIN : explain_bool_t::DONT_EXPLAIN;
 }
 
 cluster_access_t::cluster_access_t(
@@ -247,8 +246,7 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
-    protob_t<Query> query,
-    explain::task_t *_task)
+    protob_t<Query> query)
   : global_optargs(query),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
@@ -260,11 +258,10 @@ env_t::env_t(
     interruptor(_interruptor),
     eval_callback(NULL)
 {
-    counted_t<val_t> explain = global_optargs.get_optarg(this, "explain");
-    if (explain.has() && explain->as_bool()) {
-        tracer.init(_task);
-    }
-    tracer.checkin("Start query");
+    counted_t<val_t> explain_arg = global_optargs.get_optarg(this, "explain");
+    explain = (explain_arg.has() && explain_arg->as_bool() ? 
+              explain_bool_t::EXPLAIN :
+              explain_bool_t::DONT_EXPLAIN);
 }
 
 env_t::env_t(
@@ -281,7 +278,7 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
-    explain::task_t *_task)
+    explain_bool_t _explain)
   : global_optargs(protob_t<Query>()),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
@@ -291,11 +288,9 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    tracer(_task),
+    explain(_explain),
     eval_callback(NULL)
-{
-    tracer.checkin("Start query");
-}
+{ }
 
 env_t::env_t(signal_t *_interruptor)
   : extproc_pool(NULL),
@@ -306,7 +301,9 @@ env_t::env_t(signal_t *_interruptor)
                    NULL,
                    uuid_u()),
     interruptor(_interruptor),
-    eval_callback(NULL) { }
+    explain(explain_bool_t::DONT_EXPLAIN),
+    eval_callback(NULL)
+{ }
 
 env_t::~env_t() { }
 

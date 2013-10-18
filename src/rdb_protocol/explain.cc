@@ -5,267 +5,128 @@
 
 namespace explain {
 
-task_t::task_t()
-    : state_(UNINITIALIZED), next_task_(NULL) { }
+event_t::event_t()
+    : type_(STOP), when_(get_ticks()) { }
 
-task_t::task_t(const std::string &description)
-    : next_task_(NULL)
-{
-    init(description);
-}
+event_t::event_t(event_t::type_t type)
+    : type_(type), when_(get_ticks()) { }
 
-task_t::task_t(const task_t &other)
-    : state_(other.state_), description_(other.description_),
-      start_time_(other.start_time_), ticks_(other.ticks_)
-{
-    for (auto it = other.parallel_tasks_.begin();
-            it != other.parallel_tasks_.end(); ++it) {
-        parallel_tasks_.emplace_back(new task_t(**it));
-    }
+event_t::event_t(const std::string &description)
+    : type_(START), description_(description),
+      when_(get_ticks()) { }
 
-    if (other.next_task_.has()) {
-        next_task_.init(new task_t(*other.next_task_));
-    }
-}
-
-task_t &task_t::operator=(const task_t &other) {
-    state_ = other.state_;
-    description_ = other.description_;
-    start_time_ = other.start_time_;
-    ticks_ = other.ticks_;
-
-    for (auto it = other.parallel_tasks_.begin();
-            it != other.parallel_tasks_.end(); ++it) {
-        parallel_tasks_.emplace_back(new task_t(**it));
-    }
-
-    if (other.next_task_.has()) {
-        next_task_.init(new task_t(*other.next_task_));
-    }
-
-    return *this;
-}
-
-void task_t::init(const std::string &description) {
-    state_ = RUNNING;
-    description_ = description;
-    start_time_ = get_ticks();
-}
-
-bool task_t::is_initted() {
-    return state_ != UNINITIALIZED;
-}
-
-task_t *task_t::new_task() {
-    guarantee(!next_task_.has());
-    finish();
-    next_task_.init(new task_t());
-    return next_task_.get();
-}
-
-task_t *task_t::new_task(const std::string &description) {
-    guarantee(!next_task_.has());
-    finish();
-    next_task_.init(new task_t(description));
-    return next_task_.get();
-}
-
-task_t *task_t::new_parallel_task() {
-    parallel_tasks_.emplace_back(new task_t());
-    return parallel_tasks_.back().get();
-}
-
-task_t *task_t::new_parallel_task(const std::string &description) {
-    parallel_tasks_.emplace_back(new task_t(description));
-    return parallel_tasks_.back().get();
-}
-
-task_t *task_t::tail() {
-    if (!next_task_.has()) {
-        return this;
-    } else {
-        return next_task_->tail();
-    }
-}
-
-void task_t::finish() {
-    guarantee(state_ == RUNNING || state_ == FINISHED,
-            "Can't call finish without calling init (or constructing with a description)");
-    state_ = FINISHED;
-    ticks_ = get_ticks() - start_time_;
-}
-
-counted_t<const ql::datum_t> task_t::as_datum() {
-    std::vector<counted_t<const ql::datum_t> > res;
-    as_datum_helper(&res);
-    return make_counted<const ql::datum_t>(std::move(res));
-}
-
-void task_t::as_datum_helper(
-        std::vector<counted_t<const ql::datum_t> > *parent) {
-    parent->push_back(get_atom());
-
-    if (next_task_.has()) {
-        next_task_->as_datum_helper(parent);
-    }
-}
-
-counted_t<const ql::datum_t> task_t::get_atom() {
-    if (state_ != FINISHED) {
-        finish();
-    }
+counted_t<const ql::datum_t> construct_start(
+        ticks_t duration, std::string &&description,
+        counted_t<const ql::datum_t> sub_tasks) {
     std::map<std::string, counted_t<const ql::datum_t> > res;
-    res["description"] =
-        make_counted<const ql::datum_t>(std::move(std::string(description_)));
-    guarantee(ticks_ < std::numeric_limits<double>::max());
-    res["time(ms)"] = make_counted<const ql::datum_t>(static_cast<double>(ticks_) / MILLION);
+    guarantee(duration < std::numeric_limits<double>::max());
+    res["duration(ms)"] = make_counted<const ql::datum_t>(static_cast<double>(duration) / MILLION);
+    res["description"] = make_counted<const ql::datum_t>(std::move(description));
+    res["sub_tasks"] = sub_tasks;
+    return make_counted<const ql::datum_t>(std::move(res));
+}
 
-    if (!parallel_tasks_.empty()) {
-        std::vector<counted_t<const ql::datum_t> > datum_parallel_tasks;
-        for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
-            datum_parallel_tasks.push_back((*it)->as_datum());
+counted_t<const ql::datum_t> construct_split(
+        ticks_t duration, counted_t<const ql::datum_t> par_tasks) {
+    std::map<std::string, counted_t<const ql::datum_t> > res;
+    guarantee(duration < std::numeric_limits<double>::max());
+    res["duration(ms)"] = make_counted<const ql::datum_t>(static_cast<double>(duration) / MILLION);
+    res["parallel_tasks"] = par_tasks;
+    return make_counted<const ql::datum_t>(std::move(res));
+}
+
+counted_t<const ql::datum_t> construct_datum(
+        event_log_t::const_iterator *begin,
+        event_log_t::const_iterator end) {
+    std::vector<counted_t<const ql::datum_t> > res;
+
+    while (*begin != end || (*begin)->type_ == event_t::STOP) {
+        switch ((*begin)->type_) {
+            case event_t::START: {
+                event_t start = **begin;
+                (*begin)++;
+                counted_t<const ql::datum_t> sub_tasks = construct_datum(begin, end);
+                if ((*begin)->type_ != event_t::STOP) {
+                    sub_tasks = construct_datum(begin, end);
+                }
+
+                guarantee((*begin)->type_ == event_t::STOP);
+                res.push_back(construct_start(
+                    (*begin)->when_ - start.when_, std::move(start.description_), sub_tasks));
+                (*begin)++;
+            } break;
+            case event_t::SPLIT: {
+                event_t split = **begin;
+                (*begin)++;
+                std::vector<counted_t<const ql::datum_t> > parallel_tasks;
+                for (size_t i = 0; i < split.n_parallel_jobs_; ++i) {
+                    parallel_tasks.push_back(construct_datum(begin, end));
+                    guarantee((*begin)->type_ == event_t::STOP);
+                    (*begin)++;
+                }
+                res.push_back(construct_split(
+                    (*begin)->when_ - split.when_,
+                    make_counted<const ql::datum_t>(std::move(parallel_tasks))));
+            } break;
+            case event_t::STOP:
+                break;
+            default:
+                unreachable();
         }
-        res["parallel_tasks"] = make_counted<const ql::datum_t>(std::move(datum_parallel_tasks));
     }
 
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
-enum class has_next_bool_t { HAS_NEXT, NO_NEXT };
-
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        has_next_bool_t, int8_t,
-        has_next_bool_t::HAS_NEXT, has_next_bool_t::NO_NEXT);
-
-void task_t::rdb_serialize(write_message_t &msg) const {
-    /* serialize the simple fields. */
-    msg << state_ << description_ << start_time_ << ticks_;
-
-    /* serialize the parallel tasks if the exist */
-    msg << parallel_tasks_.size();
-
-    for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
-        msg << **it;
-    }
-
-    /* serialize the next task */
-    if (next_task_.has()) {
-        msg << has_next_bool_t::HAS_NEXT;
-        msg << *next_task_;
-    } else {
-        msg << has_next_bool_t::NO_NEXT;
-    }
+starter_t::starter_t(const std::string &description, trace_t *parent) 
+    : parent_(parent)
+{
+    parent_->start(description);
 }
 
-#define RETURN_IF_NOT_SUCCESS(val) \
-{ \
-    archive_result_t res = (val); \
-    if (res != ARCHIVE_SUCCESS) { \
-        return res; \
-    } \
+starter_t::~starter_t() {
+    parent_->stop();
 }
 
-MUST_USE archive_result_t task_t::rdb_deserialize(read_stream_t *s) {
-    /* deserialize the simple fields */
-    RETURN_IF_NOT_SUCCESS(deserialize(s, &state_));
-    RETURN_IF_NOT_SUCCESS(deserialize(s, &description_));
-    RETURN_IF_NOT_SUCCESS(deserialize(s, &start_time_));
-    RETURN_IF_NOT_SUCCESS(deserialize(s, &ticks_));
-    size_t array_size;
-    RETURN_IF_NOT_SUCCESS(deserialize(s, &array_size));
-    parallel_tasks_.resize(array_size);
-
-    /* deserialize the parallel_tasks */
-    for (auto it = parallel_tasks_.begin(); it != parallel_tasks_.end(); ++it) {
-        it->init(new task_t());
-        RETURN_IF_NOT_SUCCESS(deserialize(s, it->get()));
-    }
-
-    /* deserialize the next_task_ */
-    has_next_bool_t has_next;
-    RETURN_IF_NOT_SUCCESS(deserialize(s, &has_next));
-
-    if (has_next == has_next_bool_t::HAS_NEXT) {
-        next_task_.init(new task_t);
-        RETURN_IF_NOT_SUCCESS(deserialize(s, next_task_.get()));
-    }
-
-    return ARCHIVE_SUCCESS;
+splitter_t::splitter_t(trace_t *parent)
+    : parent_(parent), received_splits_(false)
+{
+    parent_->start_split();
 }
 
-trace_t::trace_t()
-    : root_(NULL), head_(NULL)
-{ }
-
-trace_t::trace_t(task_t *root) {
-    init(root);
+void splitter_t::give_splits(
+    size_t n_parallel_jobs, const event_log_t &event_log) {
+    n_parallel_jobs_ = n_parallel_jobs;
+    event_log_ = event_log;
+    received_splits_ = true;
 }
 
-trace_t::~trace_t() {
-    if (head_) {
-        head_->finish();
-    }
+splitter_t::~splitter_t() {
+    guarantee(received_splits_);
+    parent_->stop_split(n_parallel_jobs_, event_log_);
 }
 
-void trace_t::init(task_t *root) {
-    root_ = root;
-    head_ = (root ? root->tail() : root);
+counted_t<const ql::datum_t> trace_t::as_datum() const {
+    event_log_t::const_iterator begin = event_log_.begin();
+    return construct_datum(&begin, event_log_.end());
 }
 
-void trace_t::checkin(const std::string &description) {
-    if (!head_) {
-        return;
-    }
-
-    if (head_->is_initted()) {
-        head_ = head_->new_task(description);
-    } else {
-        head_->init(description);
-    }
+void trace_t::start(const std::string &description) {
+    event_log_.push_back(event_t(description));
 }
 
-void trace_t::add_task(task_t &&task) {
-    if (!head_) {
-        return;
-    }
-
-    *head_->new_task() = task;
-    head_ = head_->tail();
+void trace_t::stop() {
+    event_log_.push_back(event_t());
 }
 
-void trace_t::merge_task(task_t &&task) {
-    if (!head_) {
-        return;
-    }
-
-    head_->parallel_tasks_ = std::move(task.parallel_tasks_);
-    head_->next_task_ = std::move(task.next_task_);
-    head_ = head_->tail();
+void trace_t::start_split() {
+    event_log_.push_back(event_t(event_t::SPLIT));
 }
 
-void trace_t::add_parallel_task(task_t &&task) {
-    if (!head_) {
-        return;
-    }
-
-    *head_->new_parallel_task() = task;
-}
-
-void trace_t::merge_parallel_tasks_from(task_t &&task) {
-    if (!head_) {
-        return;
-    }
-
-    guarantee(head_->parallel_tasks_.empty());
-    head_->parallel_tasks_ = std::move(task.parallel_tasks_);
-}
-
-counted_t<const ql::datum_t> trace_t::as_datum() {
-    return root_->as_datum();
-}
-
-const task_t *trace_t::get_task() {
-    return root_;
+void trace_t::stop_split(size_t n_parallel_jobs_, const event_log_t &par_event_log) {
+    guarantee(event_log_.back().type_ == event_t::SPLIT);
+    event_log_.back().n_parallel_jobs_ = n_parallel_jobs_;
+    event_log_.insert(event_log_.end(), par_event_log.begin(), par_event_log.end());
 }
 
 

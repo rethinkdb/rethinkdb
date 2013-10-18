@@ -530,8 +530,7 @@ public:
                  NULL,
                  interruptor,
                  ctx->machine_id,
-                 ql::protob_t<Query>(),
-                 &response_out->task)
+                 ql::protob_t<Query>())
     { }
 
     void operator()(const point_read_t &) {
@@ -817,18 +816,20 @@ private:
 };
 
 void read_t::unshard(read_response_t *responses, size_t count,
-                     read_response_t *response, context_t *ctx,
+                     read_response_t *response_out, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
     /* We've got some explaining to do. */
-    explain::trace_t trace(&response->task);
-    trace.checkin("Perform read.");
-    for (size_t i = 0; i < count; ++i) {
-        trace.add_parallel_task(std::move(responses[i].task));
+    if (explain == explain_bool_t::EXPLAIN) {
+        for (size_t i = 0; i < count; ++i) {
+            response_out->event_log.insert(
+                response_out->event_log.end(),
+                responses[i].event_log.begin(),
+                responses[i].event_log.end());
+        }
     }
-    trace.checkin("Unshard the reads.");
-
-    rdb_r_unshard_visitor_t v(responses, count, response, ctx, interruptor);
+    response_out->n_shards = count;
+    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
     boost::apply_visitor(v, read);
 
 }
@@ -1042,9 +1043,19 @@ private:
     write_response_t *const response_out;
 };
 
-void write_t::unshard(const write_response_t *responses, size_t count,
+void write_t::unshard(write_response_t *responses, size_t count,
                       write_response_t *response_out, context_t *, signal_t *)
     const THROWS_NOTHING {
+    /* We've got some explaining to do. */
+    if (explain == explain_bool_t::EXPLAIN) {
+        for (size_t i = 0; i < count; ++i) {
+            response_out->event_log.insert(
+                response_out->event_log.end(),
+                responses[i].event_log.begin(),
+                responses[i].event_log.end());
+        }
+    }
+    response_out->n_shards = count;
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
     boost::apply_visitor(visitor, write);
 }
@@ -1236,7 +1247,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               (explain == explain_bool_t::EXPLAIN ? &response->task : NULL))
+               explain)
     { }
 
 private:
@@ -1390,8 +1401,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               ql::protob_t<Query>(),
-               &response->task),
+               ql::protob_t<Query>()),
         sindex_block_id((*superblock)->get_sindex_block_id())
     { }
 
@@ -1678,7 +1688,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
                            result, key_range, truncated, last_considered_key);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t, region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_response_t, response, task);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::read_response_t, response, event_log, n_shards);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
@@ -1697,7 +1707,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_response_t, response, task);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_response_t, response, event_log, n_shards);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::batched_replaces_response_t, point_replace_responses);
 

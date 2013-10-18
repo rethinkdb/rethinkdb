@@ -302,7 +302,8 @@ struct rdb_protocol_t {
                        rget_read_response_t,
                        distribution_read_response_t,
                        sindex_list_response_t> response;
-        explain::task_t task;
+        explain::event_log_t event_log;
+        size_t n_shards;
 
         read_response_t() { }
         explicit read_response_t(const boost::variant<point_read_response_t, rget_read_response_t, distribution_read_response_t> &r)
@@ -518,7 +519,8 @@ struct rdb_protocol_t {
                        point_delete_response_t,
                        sindex_create_response_t,
                        sindex_drop_response_t> response;
-        explain::task_t task;
+        explain::event_log_t event_log;
+        size_t n_shards;
 
         write_response_t() { }
         explicit write_response_t(const point_replace_response_t& r) : response(r) { }
@@ -631,7 +633,7 @@ struct rdb_protocol_t {
         // non-empty write was written to write_out.
         bool shard(const region_t &region,
                    write_t *write_out) const THROWS_NOTHING;
-        void unshard(const write_response_t *responses, size_t count,
+        void unshard(write_response_t *responses, size_t count,
                      write_response_t *response, context_t *cache, signal_t *)
             const THROWS_NOTHING;
 

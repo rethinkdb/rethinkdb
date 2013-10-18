@@ -48,18 +48,18 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
     try {
         threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
-        explain::task_t task;
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
                 ctx->extproc_pool, ctx->ns_repo,
                 ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
                 ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
-                interruptor, ctx->machine_id, q, &task));
+                interruptor, ctx->machine_id, q));
         // `ql::run` will set the status code
         ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
-        if (task.is_initted()) {
-            task.as_datum()->write_to_protobuf(response_out->mutable_explain());
+        counted_t<const ql::datum_t> trace = env->trace.as_datum();
+        if (trace) {
+            trace->write_to_protobuf(response_out->mutable_explain());
         }
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,

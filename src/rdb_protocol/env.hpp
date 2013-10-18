@@ -18,10 +18,6 @@
 
 class extproc_pool_t;
 
-namespace explain {
-class task_t;
-} //namespace explain
-
 namespace ql {
 class datum_t;
 class term_t;
@@ -128,8 +124,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine,
-        protob_t<Query> query,
-        explain::task_t *_task);
+        protob_t<Query> query);
 
     env_t(
         extproc_pool_t *_extproc_pool,
@@ -145,7 +140,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine,
-        explain::task_t *_task);
+        explain_bool_t _explain);
 
     explicit env_t(signal_t *);
 
@@ -184,9 +179,9 @@ public:
     // The interruptor signal while a query evaluates.  This can get overwritten!
     signal_t *interruptor;
 
-    explain::trace_t tracer;
+    explain::trace_t trace;
 
-    explain_bool_t explain();
+    explain_bool_t explain;
 
 private:
     js_runner_t js_runner;

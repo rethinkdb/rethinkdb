@@ -266,7 +266,6 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
     test_cluster(0),
     rdb_ns_repo()
 {
-    explain::task_t task;
     env.init(new ql::env_t(&extproc_pool,
                            &rdb_ns_repo,
                            namespaces_metadata,
@@ -275,8 +274,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            NULL,
                            &interruptor,
                            test_env->machine_id,
-                           ql::protob_t<Query>(),
-                           &task));
+                           ql::protob_t<Query>()));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas
