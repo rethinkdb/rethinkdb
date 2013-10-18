@@ -9,8 +9,10 @@ namespace unittest {
 
 using alt::alt_access_t;
 using alt::current_page_acq_t;
+using alt::current_page_t;
 using alt::page_acq_t;
 using alt::page_cache_t;
+using alt::page_t;
 using alt::page_txn_t;
 
 struct mock_ser_t {
@@ -28,7 +30,6 @@ struct mock_ser_t {
 };
 
 void run_Control() {
-    nap(50);  // RSI: This silences a valgrind error related to thread pools.
     mock_ser_t ser;
 }
 
@@ -119,14 +120,11 @@ void run_OneWriteAcqWait() {
     page_cache_t page_cache(mock.ser.get());
     page_txn_t txn(&page_cache);
     current_page_acq_t acq(&txn, alt_access_t::write);
-    debugf("acq constructed\n");
     page_acq_t page_acq;
-    page_acq.init(acq.current_page_for_write());
-    debugf("page_acq initted\n");
+    page_t *page = acq.current_page_for_write();
+    page_acq.init(page);
     ASSERT_TRUE(page_acq.buf_ready_signal()->is_pulsed());
-    debugf("buf size: %" PRIu32 "\n", page_acq.get_buf_size());
     void *buf = page_acq.get_buf_write();
-    debugf("page_acq got buf write\n");
     ASSERT_TRUE(buf != NULL);
 }
 

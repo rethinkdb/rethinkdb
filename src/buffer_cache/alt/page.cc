@@ -94,6 +94,8 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
     // RSI: Presumably we need some way of returning the block id to the user.
     block_id_t block_id;
     current_page_ = txn->page_cache_->page_for_new_block_id(&block_id);
+    txn_->add_acquirer(this);
+    current_page_->add_acquirer(this);
 }
 
 
@@ -460,7 +462,6 @@ void *page_t::get_page_buf() {
 }
 
 void page_t::reset_block_token() {
-    rassert(block_token_.has());
     block_token_.reset();
 }
 
