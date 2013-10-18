@@ -820,15 +820,16 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
     /* We've got some explaining to do. */
+    response_out->n_shards = 0;
     if (explain == explain_bool_t::EXPLAIN) {
         for (size_t i = 0; i < count; ++i) {
             response_out->event_log.insert(
                 response_out->event_log.end(),
                 responses[i].event_log.begin(),
                 responses[i].event_log.end());
+            response_out->n_shards += responses[i].n_shards;
         }
     }
-    response_out->n_shards = count;
     rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
     boost::apply_visitor(v, read);
 
@@ -1047,15 +1048,16 @@ void write_t::unshard(write_response_t *responses, size_t count,
                       write_response_t *response_out, context_t *, signal_t *)
     const THROWS_NOTHING {
     /* We've got some explaining to do. */
+    response_out->n_shards = 0;
     if (explain == explain_bool_t::EXPLAIN) {
         for (size_t i = 0; i < count; ++i) {
             response_out->event_log.insert(
                 response_out->event_log.end(),
                 responses[i].event_log.begin(),
                 responses[i].event_log.end());
+            response_out->n_shards += responses[i].n_shards;
         }
     }
-    response_out->n_shards = count;
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
     boost::apply_visitor(visitor, write);
 }
@@ -1405,6 +1407,14 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         sindex_block_id((*superblock)->get_sindex_block_id())
     { }
 
+    ql::env_t *get_env() {
+        return &ql_env;
+    }
+
+    explain::event_log_t &&get_event_log() {
+        return ql_env.trace.get_event_log();
+    }
+
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
         scoped_ptr_t<buf_lock_t> sindex_block;
@@ -1447,7 +1457,15 @@ void store_t::protocol_write(const write_t &write,
                              signal_t *interruptor) {
     rdb_write_visitor_t v(btree, this, txn, superblock, token_pair,
             timestamp.to_repli_timestamp(), ctx, response, interruptor);
-    boost::apply_visitor(v, write.write);
+    {
+        explain::starter_t start_write("Perform write on shard.", &v.get_env()->trace);
+        boost::apply_visitor(v, write.write);
+    }
+
+    response->n_shards = 1;
+    response->event_log = std::move(v.get_event_log());
+    //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
+    response->event_log.push_back(explain::event_t());
 }
 
 struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {

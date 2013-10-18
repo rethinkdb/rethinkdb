@@ -5,6 +5,8 @@
 
 namespace explain {
 
+RDB_IMPL_ME_SERIALIZABLE_4(event_t, type_, description_, n_parallel_jobs_, when_);
+
 event_t::event_t()
     : type_(STOP), when_(get_ticks()) { }
 
@@ -78,6 +80,26 @@ counted_t<const ql::datum_t> construct_datum(
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
+void print_event_log(const event_log_t &event_log) {
+    for (auto it = event_log.begin(); it != event_log.end(); ++it) {
+        switch (it->type_) {
+            case event_t::START:
+                debugf("Start.\n");
+                break;
+            case event_t::SPLIT:
+                debugf("Split: %zu.\n", it->n_parallel_jobs_);
+                break;
+            case event_t::STOP:
+                debugf("Stop.\n");
+                break;
+            default:
+                unreachable();
+                break;
+        }
+    }
+}
+
+
 starter_t::starter_t(const std::string &description, trace_t *parent) 
     : parent_(parent)
 {
@@ -111,6 +133,10 @@ counted_t<const ql::datum_t> trace_t::as_datum() const {
     return construct_datum(&begin, event_log_.end());
 }
 
+event_log_t &&trace_t::get_event_log() {
+    return std::move(event_log_);
+}
+
 void trace_t::start(const std::string &description) {
     event_log_.push_back(event_t(description));
 }
@@ -128,6 +154,5 @@ void trace_t::stop_split(size_t n_parallel_jobs_, const event_log_t &par_event_l
     event_log_.back().n_parallel_jobs_ = n_parallel_jobs_;
     event_log_.insert(event_log_.end(), par_event_log.begin(), par_event_log.end());
 }
-
 
 } //namespace explain

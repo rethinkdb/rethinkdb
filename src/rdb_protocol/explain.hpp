@@ -22,16 +22,18 @@ public:
         START,      //The start of a task
         SPLIT,      //A task splitting in to parallel sub tasks
         STOP        //The end of a task
-    } type_;
-public:
+    };
+
     event_t();
     event_t(event_t::type_t type);
     event_t(const std::string &description);
+
+    type_t type_;
     std::string description_; //used in START
     size_t n_parallel_jobs_; // used in SPLIT
     ticks_t when_; // used in START, SPLIT, STOP
 
-    RDB_MAKE_ME_SERIALIZABLE_3(description_, n_parallel_jobs_, when_);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
@@ -44,6 +46,7 @@ typedef std::vector<event_t> event_log_t;
 class trace_t {
 public:
     counted_t<const ql::datum_t> as_datum() const;
+    event_log_t &&get_event_log();
 private:
     friend class starter_t;
     friend class splitter_t;
@@ -75,6 +78,8 @@ private:
     event_log_t event_log_;
     bool received_splits_;
 };
+
+void print_event_log(const event_log_t &event_log);
 
 } //namespace explain
 #endif
