@@ -12,13 +12,6 @@ using alt::page_acq_t;
 using alt::page_cache_t;
 using alt::page_txn_t;
 
-void run_Nothing() {
-}
-
-TEST(PageTest, Nothing) {
-    run_in_thread_pool(run_Nothing, 4);
-}
-
 struct mock_ser_t {
     mock_file_opener_t opener;
     scoped_ptr_t<standard_serializer_t> ser;
