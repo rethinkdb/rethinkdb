@@ -515,7 +515,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     struct : public cond_t, public lba_list_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
     } on_lba_sync;
-    const bool offsets_were_written = lba_index->sync(io_account, &on_lba_sync);
+    lba_index->sync(io_account, &on_lba_sync);
 
     /* Prepare metablock now instead of in when we write it so that we will have the correct
     metablock information for this write even if another write starts before we finish writing
@@ -537,7 +537,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     }
     last_write = context;
 
-    if (!offsets_were_written) on_lba_sync.wait();
+    on_lba_sync.wait();
     if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
 
     struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
