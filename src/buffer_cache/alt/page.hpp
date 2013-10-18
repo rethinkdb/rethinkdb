@@ -81,7 +81,7 @@ private:
 // A page_ptr_t holds a pointer to a page_t.
 class page_ptr_t {
 public:
-    explicit page_ptr_t(page_t *page) { init(page); }
+    explicit page_ptr_t(page_t *page) : page_(NULL) { init(page); }
     page_ptr_t();
     ~page_ptr_t();
     page_ptr_t(page_ptr_t &&movee);
@@ -267,7 +267,7 @@ private:
 
     serializer_t *serializer_;
 
-    // RSP: std::vector bad growth performance
+    // RSP: Array growth slow.
     std::vector<current_page_t *> current_pages_;
 
     free_list_t free_list_;

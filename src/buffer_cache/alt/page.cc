@@ -54,6 +54,9 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
 // RSI: Nobody calls this function.
 current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     block_id_t block_id = free_list_.acquire_block_id();
+    if (current_pages_.size() <= block_id) {
+        current_pages_.resize(block_id + 1, NULL);
+    }
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
             new current_page_t(block_id,
@@ -80,6 +83,19 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
     txn_->add_acquirer(this);
     current_page_->add_acquirer(this);
 }
+
+current_page_acq_t::current_page_acq_t(page_txn_t *txn,
+                                       alt_access_t access)
+    : txn_(txn),
+      access_(access),
+      declared_snapshotted_(false),
+      dirtied_page_(false) {
+    rassert(access == alt_access_t::write);
+    // RSI: Presumably we need some way of returning the block id to the user.
+    block_id_t block_id;
+    current_page_ = txn->page_cache_->page_for_new_block_id(&block_id);
+}
+
 
 current_page_acq_t::~current_page_acq_t() {
     txn_->remove_acquirer(this);
