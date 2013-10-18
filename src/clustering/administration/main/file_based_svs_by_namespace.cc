@@ -122,13 +122,14 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
             // TODO: Could we handle failure when loading the serializer?  Right
-            // now, we don't.new merger_serializer_t(
+            // now, we don't.
 
             serializer.init(new merger_serializer_t(
-                                new standard_serializer_t(
-                                    standard_serializer_t::dynamic_config_t(),
-                                    &file_opener,
-                                    serializers_perfmon_collection),
+                                scoped_ptr_t<serializer_t>(
+                                    new standard_serializer_t(
+                                        standard_serializer_t::dynamic_config_t(),
+                                        &file_opener,
+                                        serializers_perfmon_collection)),
                                 MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
 
             std::vector<serializer_t *> ptrs;
@@ -147,10 +148,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             standard_serializer_t::create(&file_opener,
                                           standard_serializer_t::static_config_t());
             serializer.init(new merger_serializer_t(
-                                new standard_serializer_t(
-                                standard_serializer_t::dynamic_config_t(),
-                                &file_opener,
-                                serializers_perfmon_collection),
+                                scoped_ptr_t<serializer_t>(
+                                    new standard_serializer_t(
+                                    standard_serializer_t::dynamic_config_t(),
+                                    &file_opener,
+                                    serializers_perfmon_collection)),
                             MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
 
             std::vector<serializer_t *> ptrs;

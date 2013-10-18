@@ -208,7 +208,7 @@ file_account_t *translator_serializer_t::make_io_account(int priority, int outst
     return inner->make_io_account(priority, outstanding_requests_limit);
 }
 
-void translator_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+void translator_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) {
     std::vector<index_write_op_t> translated_ops(write_ops);
     for (std::vector<index_write_op_t>::iterator it = translated_ops.begin(); it < translated_ops.end(); ++it)
         it->block_id = translate_block_id(it->block_id);
@@ -230,7 +230,7 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
 }
 
 
-void translator_serializer_t::block_read(const counted_t<standard_block_token_t>& token, ser_buffer_t *buf, file_account_t *io_account) {
+void translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token, ser_buffer_t *buf, file_account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
 

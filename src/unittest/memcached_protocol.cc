@@ -33,9 +33,10 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
                                   standard_serializer_t::static_config_t());
 
     serializer.init(new merger_serializer_t(
-                        new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
-                                                  &file_opener,
-                                                  &get_global_perfmon_collection()),
+                        scoped_ptr_t<serializer_t>(
+                            new standard_serializer_t(standard_serializer_t::dynamic_config_t(),
+                                                      &file_opener,
+                                                      &get_global_perfmon_collection())),
                         MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
 
 

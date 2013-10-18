@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "buffer_cache/types.hpp"
+#include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 
 /* 
@@ -21,33 +22,9 @@
  */
 
 class merger_serializer_t : public serializer_t {
-
-private:
-    serializer_t *inner;
-
-    file_account_t *index_writes_io_account;
-
-    // A map of outstanding index writes, indexed by block id
-    std::map<block_id_t, index_write_op_t> outstanding_index_writes;
-
-    // This merges to_be_merged in-place into into_out.
-    void merge_index_write(const index_write_op_t &to_be_merged, index_write_op_t *into_out) const;
-    void push_index_write(const index_write_op_t &op);
-
-    // Index writes which are currently outstanding keep a pointer to this condition.
-    // It is pulsed once the write completes.
-    std::shared_ptr<cond_t> on_index_writes_complete;
-
-    int num_active_writes;
-    int max_active_writes;
-
-    void do_index_write();
-
 public:
-    merger_serializer_t(serializer_t *_inner, int _max_active_writes);
+    merger_serializer_t(scoped_ptr_t<serializer_t> _inner, int _max_active_writes);
     ~merger_serializer_t();
-
-
 
 
     /* serializer_t interface */
@@ -100,7 +77,7 @@ public:
 
     /* index_write() applies all given index operations in an atomic way */
     /* This is where merger_serializer_t merges operations */
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
+    void index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account);
 
     // Returns block tokens in the same order as write_infos.
     std::vector<counted_t<standard_block_token_t> >
@@ -116,6 +93,30 @@ public:
 
     /* Return true if no other processes have the file locked */
     bool coop_lock_and_check() { return inner->coop_lock_and_check(); }
+
+
+private:
+    // Adds `op` to `outstanding_index_write_ops`, using `merge_index_write_op()` if necessary
+    void push_index_write_op(const index_write_op_t &op);
+    // This merges to_be_merged in-place into into_out.
+    void merge_index_write_op(const index_write_op_t &to_be_merged, index_write_op_t *into_out) const;
+
+    const scoped_ptr_t<serializer_t> inner;
+    const scoped_ptr_t<file_account_t> index_writes_io_account;
+
+    // A map of outstanding index write operations, indexed by block id
+    std::map<block_id_t, index_write_op_t> outstanding_index_write_ops;
+
+    // Index writes which are currently outstanding keep a pointer to this condition.
+    // It is pulsed once the write completes.
+    std::shared_ptr<cond_t> on_inner_index_write_complete;
+
+    int num_active_writes;
+    int max_active_writes;
+
+    void do_index_write();
+    
+    DISABLE_COPYING(merger_serializer_t);
 };
 
 #endif /* SERIALIZER_MERGER_HPP_ */
