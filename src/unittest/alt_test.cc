@@ -132,5 +132,21 @@ TEST(PageTest, OneWriteAcqWait) {
     run_in_thread_pool(run_OneWriteAcqWait, 4);
 }
 
+void run_OneReadAcqWait() {
+    mock_ser_t mock;
+    page_cache_t page_cache(mock.ser.get());
+    page_txn_t txn(&page_cache);
+    current_page_acq_t acq(&txn, alt_access_t::read);
+    page_acq_t page_acq;
+    page_t *page = acq.current_page_for_read();
+    page_acq.init(page);
+    ASSERT_TRUE(page_acq.buf_ready_signal()->is_pulsed());
+    const void *buf = page_acq.get_buf_read();
+    ASSERT_TRUE(buf != NULL);
+}
+
+TEST(PageTest, OneReadAcqWait) {
+    run_in_thread_pool(run_OneReadAcqWait, 4);
+}
 
 }  // namespace unittest
