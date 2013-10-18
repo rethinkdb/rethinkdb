@@ -152,25 +152,23 @@ private:
     DISABLE_COPYING(addr2line_t);
 };
 
-static bool run_addr2line(boost::ptr_map<std::string, addr2line_t> *procs, const char *executable, const char *address, char *line, int line_size) {
-    std::string exe(executable);
-
+static bool run_addr2line(boost::ptr_map<const std::string, addr2line_t> *procs, const std::string &executable, const void *address, char *line, int line_size) {
     addr2line_t* proc;
 
-    boost::ptr_map<std::string, addr2line_t>::iterator iter = procs->find(exe);
+    boost::ptr_map<std::string, addr2line_t>::iterator iter = procs->find(executable);
 
     if (iter != procs->end()) {
         proc = iter->second;
     } else {
-        proc = new addr2line_t(executable);
-        procs->insert(exe, proc);
+        proc = new addr2line_t(executable.c_str());
+        procs->insert(executable, proc);
     }
 
     if (proc->bad) {
         return false;
     }
 
-    fprintf(proc->input, "%s\n", address);
+    fprintf(proc->input, "%p\n", address);
     fflush(proc->input);
 
     char *result = fgets(line, line_size, proc->output);
@@ -193,73 +191,111 @@ static bool run_addr2line(boost::ptr_map<std::string, addr2line_t> *procs, const
 }
 
 std::string format_backtrace(bool use_addr2line) {
-    lazy_backtrace_t bt;
+    lazy_backtrace_formatter_t bt;
     return use_addr2line ? bt.lines() : bt.addrs();
 }
 
-std::string print_frames(void **stack_frames, int size, bool use_addr2line) {
-    boost::ptr_map<std::string, addr2line_t> procs;
-    char **symbols = backtrace_symbols(stack_frames, size);
-    std::string output;
-    if (symbols) {
-        for (int i = 0; i < size; i ++) {
-            // Parse each line of the backtrace
-            scoped_malloc_t<char> line(symbols[i], symbols[i] + (strlen(symbols[i]) + 1));
-            char *executable, *function, *offset, *address;
+backtrace_t::backtrace_t() {
+    void **stack_frames = new void*[max_frames]; // Allocate on heap in case stack space is scarce
+    int size = rethinkdb_backtrace(stack_frames, max_frames);
+    frames.reserve(static_cast<size_t>(size));
+    for (int i = 0; i < size; ++i) {
+        frames.push_back(backtrace_frame_t(stack_frames[i]));
+    }
+    delete[] stack_frames;
+}
 
-            output.append(strprintf("%d: ", i+1));
-
-            if (!parse_backtrace_line(line.get(), &executable, &function, &offset, &address)) {
-                output.append(strprintf("%s\n", symbols[i]));
-            } else {
-                if (function) {
-                    try {
-                        std::string demangled = demangle_cpp_name(function);
-                        output.append(demangled);
-                    } catch (const demangle_failed_exc_t &) {
-                        output.append(strprintf("%s+%s", function, offset));
-                    }
-                } else {
-                    output.append("?");
-                }
-
-                output.append(" at ");
-
-                char some_other_line[255] = {0};
-                if (use_addr2line && run_addr2line(&procs, executable, address, some_other_line, sizeof(some_other_line))) {
-                    output.append(some_other_line);
-                } else {
-                    output.append(strprintf("%s (%s)", address, executable));
-                }
-
-                output.append("\n");
+backtrace_frame_t::backtrace_frame_t(void* _addr) : addr(_addr) {
+    filename = "?";
+    function = "?";
+    offset = "?";
+    
+    char **symbols = backtrace_symbols(&addr, 1);
+    if (symbols != NULL) {
+        char *c_filename;
+        char *c_function;
+        char *c_offset;
+        char *c_address;
+        if (parse_backtrace_line(symbols[0], &c_filename, &c_function, &c_offset, &c_address)) {
+            if (c_filename != NULL) {
+                filename = std::string(c_filename);
+            }
+            if (c_function != NULL) {
+                function = std::string(c_function);
+            }
+            if (c_offset != NULL) {
+                offset = std::string(c_offset);
             }
         }
-
         free(symbols);
-
-        return output;
-    } else {
-        output = "(too little memory for backtrace)";
-
-        return output;
     }
 }
 
-lazy_backtrace_t::lazy_backtrace_t() : timestamp(time(0)), timestr(time2str(timestamp)) {
-    size = rethinkdb_backtrace(stack_frames, max_frames);
+std::string backtrace_frame_t::get_name() const {
+    return function;
 }
 
-std::string lazy_backtrace_t::addrs() {
+std::string backtrace_frame_t::get_demangled_name() const {
+    return demangle_cpp_name(function.c_str());
+}
+
+std::string backtrace_frame_t::get_filename() const {
+    return filename;
+}
+
+std::string backtrace_frame_t::get_offset() const {
+    return offset;
+}
+
+void *backtrace_frame_t::get_addr() const {
+    return addr;
+}
+
+lazy_backtrace_formatter_t::lazy_backtrace_formatter_t() :
+    backtrace_t(),
+    timestamp(time(0)),
+    timestr(time2str(timestamp)) {
+}
+
+std::string lazy_backtrace_formatter_t::addrs() {
     if (cached_addrs == "") {
-        cached_addrs = timestr + "\n" + print_frames(stack_frames, size, false);
+        cached_addrs = timestr + "\n" + print_frames(false);
     }
     return cached_addrs;
 }
 
-std::string lazy_backtrace_t::lines() {
+std::string lazy_backtrace_formatter_t::lines() {
     if (cached_lines == "") {
-        cached_lines = timestr + "\n" + print_frames(stack_frames, size, true);
+        cached_lines = timestr + "\n" + print_frames(true);
     }
     return cached_lines;
+}
+
+std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
+    boost::ptr_map<const std::string, addr2line_t> procs;
+    std::string output;
+    for (size_t i = 0; i < get_num_frames(); i++) {
+        const backtrace_frame_t &current_frame = get_frame(i);
+
+        output.append(strprintf("%d: ", static_cast<int>(i+1)));
+
+        try {
+            output.append(current_frame.get_demangled_name());
+        } catch (const demangle_failed_exc_t &) {
+            output.append(current_frame.get_name() + "+" + current_frame.get_offset());
+        }
+
+        output.append(" at ");
+
+        char some_other_line[255] = {0};
+        if (use_addr2line && run_addr2line(&procs, current_frame.get_filename(), current_frame.get_addr(), some_other_line, sizeof(some_other_line))) {
+            output.append(some_other_line);
+        } else {
+            output.append(strprintf("%p", current_frame.get_addr()) + " (" + current_frame.get_filename() + ")");
+        }
+
+        output.append("\n");
+    }
+
+    return output;
 }

@@ -6,6 +6,7 @@
 #include <time.h>
 
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 
@@ -19,25 +20,49 @@ struct demangle_failed_exc_t : public std::exception {
 };
 std::string demangle_cpp_name(const char *mangled_name);
 
-std::string print_frames(void **stack_frames, int size, bool use_addr2line);
 std::string format_backtrace(bool use_addr2line = true);
 
-// Stores the backtrace from when it was constructed for later printing.
-class lazy_backtrace_t {
+// An individual backtrace frame
+class backtrace_frame_t {
 public:
-    lazy_backtrace_t();
+    std::string get_filename() const;
+    std::string get_name() const;
+    std::string get_demangled_name() const;
+    std::string get_offset() const;
+    void *get_addr() const;
+private:
+    friend class backtrace_t;
+    explicit backtrace_frame_t(void *_addr);
+    std::string filename, function, offset;
+    void *addr;
+};
+
+// A backtrace, consisting of backtrace_frame_t
+class backtrace_t {
+public:
+    backtrace_t();
+    size_t get_num_frames() const { return frames.size(); }
+    const backtrace_frame_t &get_frame(const size_t i) const { return frames[i]; }
+private:
+    static const int max_frames = 100;
+    std::vector<backtrace_frame_t> frames;
+};
+
+// Stores the backtrace from when it was constructed for later printing.
+class lazy_backtrace_formatter_t : public backtrace_t {
+public:
+    lazy_backtrace_formatter_t();
     std::string addrs(); // A well-formatted backtrace with source lines (slow)
     std::string lines(); // A raw backtrace with assembly addresses (fast)
 private:
-    static const int max_frames = 100;
-    void *stack_frames[max_frames];
-    int size;
     std::string cached_addrs, cached_lines;
 
     time_t timestamp;
     std::string timestr;
+    
+    std::string print_frames(bool use_addr2line);
 
-    DISABLE_COPYING(lazy_backtrace_t);
+    DISABLE_COPYING(lazy_backtrace_formatter_t);
 };
 
 #endif /* BACKTRACE_HPP_ */
