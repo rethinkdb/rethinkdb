@@ -105,7 +105,7 @@ module RethinkDB
       @@last = self
       @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
       @conn_id = 0
-      reconnect(false)
+      reconnect(:noreply_wait => false)
     end
     attr_reader :default_db, :conn_id
 
@@ -115,7 +115,7 @@ module RethinkDB
       noreply ? nil : wait(q.token)
     end
     def run(msg, opts)
-      reconnect(false) if @auto_reconnect && (!@socket || !@listener)
+      reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
       raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = Query.new
       q.type = Query::QueryType::START
@@ -174,7 +174,7 @@ module RethinkDB
         return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
-        reconnect(false)
+        reconnect(:noreply_wait => false)
         raise e
       end
     end
@@ -197,10 +197,13 @@ module RethinkDB
     def debug_socket; @socket; end
 
     # Reconnect to the server.  This will interrupt all queries on the
-    # server (if noreply_wait = false) and invalidate all outstanding
+    # server (if :noreply_wait => false) and invalidate all outstanding
     # enumerables on the client.
-    def reconnect(noreply_wait=true)
-      self.noreply_wait() if noreply_wait
+    def reconnect(opts={})
+      raise RuntimeError, "Argument to reconnect must be a hash." if opts.class != Hash
+      raise RuntimeError, "reconnect does not understand these options: " + (opts.keys - [:noreply_wait]).to_s if not (opts.keys - [:noreply_wait]).empty?
+      
+      self.noreply_wait() if not opts.keys.include?(:noreply_wait) or opts[:noreply_wait]
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
@@ -211,8 +214,11 @@ module RethinkDB
       self
     end
 
-    def close(noreply_wait=true)
-      self.noreply_wait() if noreply_wait
+    def close(opts={})
+      raise RuntimeError, "Argument to close must be a hash." if opts.class != Hash
+      raise RuntimeError, "close does not understand these options: " + (opts.keys - [:noreply_wait]).to_s if not (opts.keys - [:noreply_wait]).empty?
+      
+      self.noreply_wait() if not opts.keys.include?(:noreply_wait) or opts[:noreply_wait]
       @listener.terminate if @listener
       @listener = nil
       @socket.close
