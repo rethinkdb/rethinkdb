@@ -288,6 +288,7 @@ void term_t::prop_bt(Term *t) const {
 
 counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
+    explain::starter_t starter(strprintf("Evaluating %s.", name()), &env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->env->throw_if_interruptor_pulsed();

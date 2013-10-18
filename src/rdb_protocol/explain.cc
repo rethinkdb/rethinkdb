@@ -40,7 +40,7 @@ counted_t<const ql::datum_t> construct_datum(
         event_log_t::const_iterator end) {
     std::vector<counted_t<const ql::datum_t> > res;
 
-    while (*begin != end || (*begin)->type_ == event_t::STOP) {
+    while (*begin != end && (*begin)->type_ != event_t::STOP) {
         switch ((*begin)->type_) {
             case event_t::START: {
                 event_t start = **begin;
