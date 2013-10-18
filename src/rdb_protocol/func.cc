@@ -2,7 +2,7 @@
 
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/term_walker.hpp"
@@ -315,9 +315,7 @@ bool func_t::filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<fun
 
 counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
                                     const protob_t<const Backtrace> &bt_src) {
-    protob_t<Term> twrap = make_counted_term();
-    Term *const arg = twrap.get();
-    N2(FUNC, N0(MAKE_ARRAY), NDATUM(obj));
+    protob_t<Term> twrap = r::fun(r::expr(obj)).release_counted();
     propagate_backtrace(twrap.get(), bt_src.get());
 
     compile_env_t empty_compile_env((var_visibility_t()));
@@ -328,11 +326,9 @@ counted_t<func_t> new_constant_func(counted_t<const datum_t> obj,
 
 counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
                                      const protob_t<const Backtrace> &bt_src) {
-    protob_t<Term> twrap = make_counted_term();
-    Term *arg = twrap.get();
-    sym_t obj;
-    arg = pb::set_func(arg, pb::dummy_var_t::FUNC_GETFIELD, &obj);
-    N2(GET_FIELD, NVAR(obj), NDATUM(key));
+    pb::dummy_var_t obj = pb::dummy_var_t::FUNC_GETFIELD;
+    protob_t<Term> twrap = r::fun(obj, r::var(obj)[key]).release_counted();
+
     propagate_backtrace(twrap.get(), bt_src.get());
 
     compile_env_t empty_compile_env((var_visibility_t()));
@@ -343,10 +339,8 @@ counted_t<func_t> new_get_field_func(counted_t<const datum_t> key,
 
 counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
                                  const protob_t<const Backtrace> &bt_src) {
-    protob_t<Term> twrap = make_counted_term();
-    sym_t var;
-    Term *const arg = pb::set_func(twrap.get(), pb::dummy_var_t::FUNC_PLUCK, &var);
-    N2(PLUCK, NVAR(var), NDATUM(obj));
+    pb::dummy_var_t var = pb::dummy_var_t::FUNC_PLUCK;
+    protob_t<Term> twrap = r::fun(var, r::var(var).pluck(obj)).release_counted();
     propagate_backtrace(twrap.get(), bt_src.get());
 
     compile_env_t empty_compile_env((var_visibility_t()));
@@ -357,10 +351,8 @@ counted_t<func_t> new_pluck_func(counted_t<const datum_t> obj,
 
 counted_t<func_t> new_eq_comparison_func(counted_t<const datum_t> obj,
                                          const protob_t<const Backtrace> &bt_src) {
-    protob_t<Term> twrap = make_counted_term();
-    sym_t var;
-    Term *const arg = pb::set_func(twrap.get(), pb::dummy_var_t::FUNC_EQCOMPARISON, &var);
-    N2(EQ, NDATUM(obj), NVAR(var));
+    pb::dummy_var_t var = pb::dummy_var_t::FUNC_EQCOMPARISON;
+    protob_t<Term> twrap = r::fun(var, r::var(var) == obj).release_counted();
     propagate_backtrace(twrap.get(), bt_src.get());
 
     compile_env_t empty_compile_env((var_visibility_t()));
