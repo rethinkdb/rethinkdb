@@ -1,3 +1,4 @@
+#include "arch/timing.hpp"
 #include "buffer_cache/alt/page.hpp"
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
@@ -27,6 +28,7 @@ struct mock_ser_t {
 };
 
 void run_Control() {
+    nap(50);  // RSI: This silences a valgrind error related to thread pools.
     mock_ser_t ser;
 }
 
@@ -128,11 +130,9 @@ void run_OneWriteAcqWait() {
     ASSERT_TRUE(buf != NULL);
 }
 
-#if 0
 TEST(PageTest, OneWriteAcqWait) {
     run_in_thread_pool(run_OneWriteAcqWait, 4);
 }
-#endif
 
 
 }  // namespace unittest
