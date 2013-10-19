@@ -34,34 +34,42 @@ from .errors import *
 from .ast import Datum, DB, expr
 
 class Cursor(object):
-    def __init__(self, conn, opts, query, term, chunk, complete):
+    def __init__(self, conn, query, term, opts):
         self.conn = conn
-        self.opts = opts
         self.query = query
         self.term = term
-        self.chunks = [chunk]
-        self.end_flag = complete
+        self.opts = opts
+        self.chunks = [ ]
+        self.end_flag = False
 
-    def _read_more(self):
-        if self.end_flag:
-            return False
-        other = self.conn._continue(self.query, self.term, self.opts)
-        self.chunks.extend(other.chunks)
-        self.end_flag = other.end_flag
-        return True
+        self.time_format = 'native'
+        if 'time_format' in self.opts:
+            self.time_format = self.opts['time_format']
+
+    def _extend(self, response):
+        self.end_flag = response.type == p.Response.SUCCESS_SEQUENCE
+        self.chunks.append([Datum.deconstruct(datum, self.time_format) for datum in response.response])
+
+        if len(self.chunks) == 1 and not self.end_flag:
+            self.conn._async_continue_cursor(self)
 
     def __iter__(self):
-        while len(self.chunks) > 0 or not self.end_flag:
+        while True:
+            if len(self.chunks) == 0 and not self.end_flag:
+                self.conn._continue_cursor(self)
+            if len(self.chunks) == 1 and not self.end_flag:
+                self.conn._async_continue_cursor(self)
 
-            if len(self.chunks) == 0:
-                self._read_more()
+            if len(self.chunks) == 0 and self.end_flag:
+                break
 
             for row in self.chunks[0]:
                 yield row
             del self.chunks[0]
 
     def close(self):
-        self.conn._end(self.query, self.term)
+        self.conn._end_cursor(self)
+        self.end_flag = True
 
 class Connection(object):
     def __init__(self, host, port, db, auth_key, timeout):
@@ -71,6 +79,7 @@ class Connection(object):
         self.db = db
         self.auth_key = auth_key
         self.timeout = timeout
+        self.cursor_cache = { }
 
         # Try to convert the port to an integer
         try:
@@ -109,7 +118,7 @@ class Connection(object):
             response += char
 
         if response != b"SUCCESS":
-            self.socket.close()
+            self.close()
             raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
 
         # Connection is now initialized
@@ -118,6 +127,7 @@ class Connection(object):
         self.socket.settimeout(None)
 
     def close(self):
+        self.cursor_cache = { }
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
@@ -158,20 +168,78 @@ class Connection(object):
         term.build(query.query)
         return self._send_query(query, term, global_opt_args)
 
-    def _continue(self, orig_query, orig_term, opts):
+    def _continue_cursor(self, cursor):
+        self._async_continue_cursor(cursor)
+        self._update_cursor(self._read_response(cursor.query.token))
+
+    def _async_continue_cursor(self, cursor):
+        if cursor.query.token in self.cursor_cache:
+            # Already a continue on the line
+            return
+
+        self.cursor_cache[cursor.query.token] = cursor
+
         query = p.Query()
         query.type = p.Query.CONTINUE
-        query.token = orig_query.token
-        return self._send_query(query, orig_term, opts)
+        query.token = cursor.query.token
+        self._send_query(query, cursor.term, cursor.opts, async=True)
 
-    def _end(self, orig_query, orig_term):
+    def _end_cursor(self, cursor):
+        if cursor.query.token in self.cursor_cache:
+            del self.cursor_cache[cursor.query.token]
+
         query = p.Query()
         query.type = p.Query.STOP
-        query.token = orig_query.token
-        return self._send_query(query, orig_term)
+        query.token = cursor.query.token
+        return self._send_query(cursor.query, cursor.term)
 
-    def _send_query(self, query, term, opts={}):
+    def _update_cursor(self, response):
+        if response.type != p.Response.SUCCESS_PARTIAL and response.type != p.Response.SUCCESS_SEQUENCE:
+            raise RqlDriverError("Unexpected response type received for cursor token")
+        cursor = self.cursor_cache[response.token]
+        del self.cursor_cache[response.token]
+        cursor._extend(response)
 
+    def _read_response(self, token):
+        # We may get an async continue result, in which case we save it and read the next response
+        while True:
+            response_buf = b''
+            try:
+                response_header = b''
+                while len(response_header) < 4:
+                    chunk = self.socket.recv(4)
+                    if len(chunk) == 0:
+                        raise RqlDriverError("Connection is closed.")
+                    response_header += chunk
+
+                # The first 4 bytes give the expected length of this response
+                (response_len,) = struct.unpack("<L", response_header)
+
+                while len(response_buf) < response_len:
+                    chunk = self.socket.recv(response_len - len(response_buf))
+                    if len(chunk) == 0:
+                        raise RqlDriverError("Connection is broken.")
+                    response_buf += chunk
+            except KeyboardInterrupt as err:
+                # When interrupted while waiting for a response cancel the outstanding
+                # requests by resetting this connection
+                self.reconnect()
+                raise err
+
+            # Construct response
+            response = p.Response()
+            response.ParseFromString(response_buf)
+
+            # Check that this is the response we were expecting
+            if response.token == token:
+                return response
+            elif response.token in self.cursor_cache:
+                self._update_cursor(response)
+            else:
+                # This response is corrupted or not intended for us.
+                raise RqlDriverError("Unexpected response received.")
+
+    def _send_query(self, query, term, opts={}, async=False):
         # Error if this connection has closed
         if not self.socket:
             raise RqlDriverError("Connection is closed.")
@@ -183,39 +251,11 @@ class Connection(object):
 
         if 'noreply' in opts and opts['noreply']:
             return None
+        elif async:
+            return None
 
         # Get response
-        response_buf = b''
-        try:
-            response_header = b''
-            while len(response_header) < 4:
-                chunk = self.socket.recv(4)
-                if len(chunk) == 0:
-                    raise RqlDriverError("Connection is closed.")
-                response_header += chunk
-
-            # The first 4 bytes give the expected length of this response
-            (response_len,) = struct.unpack("<L", response_header)
-
-            while len(response_buf) < response_len:
-                chunk = self.socket.recv(response_len - len(response_buf))
-                if len(chunk) == 0:
-                    raise RqlDriverError("Connection is broken.")
-                response_buf += chunk
-        except KeyboardInterrupt as err:
-            # When interrupted while waiting for a response cancel the outstanding
-            # requests by resetting this connection
-            self.reconnect()
-            raise err
-
-        # Construct response
-        response = p.Response()
-        response.ParseFromString(response_buf)
-
-        # Check that this is the response we were expecting
-        if response.token != query.token:
-            # This response is corrupted or not intended for us.
-            raise RqlDriverError("Unexpected response received.")
+        response = self._read_response(query.token)
 
         time_format = 'native'
         if 'time_format' in opts:
@@ -240,8 +280,9 @@ class Connection(object):
 
         # Sequence responses
         elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
-            chunk = [Datum.deconstruct(datum, time_format) for datum in response.response]
-            return Cursor(self, opts, query, term, chunk, response.type == p.Response.SUCCESS_SEQUENCE)
+            new_cursor = Cursor(self, query, term, opts)
+            new_cursor._extend(response)
+            return new_cursor
 
         # Atom response
         elif response.type == p.Response.SUCCESS_ATOM:
