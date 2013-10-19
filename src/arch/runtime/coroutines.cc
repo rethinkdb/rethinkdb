@@ -233,12 +233,15 @@ void coro_t::wait() {   /* class method */
         // Pet the watchdog to reset it before execution moves
         pet_watchdog();
 #endif
-
+        
+    PROFILER_CORO_YIELD
+    //PROFILER_RECORD_SAMPLE_STRIP_FRAMES(1)
     if (cglobals->prev_coro) {
         context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
     } else {
         context_switch(&self()->stack.context, &cglobals->scheduler);
     }
+    PROFILER_CORO_RESUME
 
     rassert(self());
     rassert(self()->waiting_);
