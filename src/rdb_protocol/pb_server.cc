@@ -57,10 +57,6 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 interruptor, ctx->machine_id, q));
         // `ql::run` will set the status code
         ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
-        counted_t<const ql::datum_t> trace = env->trace.as_datum();
-        if (trace) {
-            trace->write_to_protobuf(response_out->mutable_explain());
-        }
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");

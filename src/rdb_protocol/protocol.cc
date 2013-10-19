@@ -1252,6 +1252,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                explain)
     { }
 
+    ql::env_t *get_env() {
+        return &ql_env;
+    }
+
+    explain::event_log_t &&get_event_log() {
+        return ql_env.trace.get_event_log();
+    }
+
 private:
     read_response_t *response;
     btree_slice_t *btree;
@@ -1273,7 +1281,15 @@ void store_t::protocol_read(const read_t &read,
     rdb_read_visitor_t v(
         btree, this, txn, superblock, token_pair,
         ctx, response, read.explain, interruptor);
-    boost::apply_visitor(v, read.read);
+    {
+        explain::starter_t start_write("Perform read on shard.", &v.get_env()->trace);
+        boost::apply_visitor(v, read.read);
+    }
+
+    response->n_shards = 1;
+    response->event_log = std::move(v.get_event_log());
+    //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
+    response->event_log.push_back(explain::event_t());
 }
 
 // TODO: get rid of this extra response_t copy on the stack
