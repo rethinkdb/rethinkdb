@@ -8,6 +8,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "backtrace.hpp"
+#include "thread_stack_pcs.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 
@@ -57,17 +58,20 @@ void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
         }
         
         // Generate call trace
-        backtrace_t full_backtrace;
-        small_trace_t trace;
         // We strip ourselves, and the frames that are inside of the backtrace_t constructor.
         levels_to_strip_from_backtrace += 1 + NUM_FRAMES_INSIDE_BACKTRACE_T;
+        const size_t max_frames = CORO_PROFILER_CALLTREE_DEPTH + levels_to_strip_from_backtrace;
+        void **stack_frames = new void*[max_frames];
+        size_t backtrace_size = rethinkdb_backtrace(stack_frames, max_frames);
+        small_trace_t trace;
         for (size_t i = 0; i < CORO_PROFILER_CALLTREE_DEPTH; ++i) {
-            if (i + levels_to_strip_from_backtrace < full_backtrace.get_num_frames()) {
-                trace[i] = full_backtrace.get_frame(i + levels_to_strip_from_backtrace).get_addr();
+            if (i + levels_to_strip_from_backtrace < backtrace_size) {
+                trace[i] = stack_frames[i + levels_to_strip_from_backtrace];
             } else {
                 trace[i] = NULL;
             }
         }
+        delete[] stack_frames;
         
         // Record the sample
         per_trace_samples_t &trace_samples = thread_samples.per_trace_samples[trace];
@@ -123,24 +127,7 @@ void coro_profiler_t::record_coro_yield() {
     record_sample(1);
 }
 
-// TODO!
-#include <iostream>
 void coro_profiler_t::generate_report() {
-    // We assume that the global report_interval_spinlock has already been locked by our callee.
-    // Proceed to locking all thread sample structures
-    std::vector<scoped_ptr_t<spinlock_acq_t> > thread_locks;
-    for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
-        thread_locks.push_back(scoped_ptr_t<spinlock_acq_t>(new spinlock_acq_t(&thread_samples->spinlock)));
-    }
-    
-    // Reset report ticks
-    const ticks_t ticks = get_ticks();
-    ticks_at_last_report = ticks;
-    for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
-        thread_samples->ticks_at_last_report = ticks;
-    }
-    
-    // Generate the actual report
     struct per_trace_collected_report_t {
         per_trace_collected_report_t() :
             num_samples(0),
@@ -164,18 +151,37 @@ void coro_profiler_t::generate_report() {
         double total_time_since_previous;
         double total_time_since_resume;
     };
-    
-    // Collect data for each trace over all threads
     std::map<small_trace_t, per_trace_collected_report_t> trace_reports;
-    for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
-        for (auto trace_samples = thread_samples->per_trace_samples.begin(); trace_samples != thread_samples->per_trace_samples.end(); ++trace_samples) {
-            for (auto sample = trace_samples->second.samples.begin(); sample != trace_samples->second.samples.end(); ++sample) {
-                trace_reports[trace_samples->first].collect(*sample);
-            }
-            
-            // Reset samples
-            trace_samples->second.samples.clear();
+    
+    // We assume that the global report_interval_spinlock has already been locked by our callee.
+    {
+        // Proceed to locking all thread sample structures
+        std::vector<scoped_ptr_t<spinlock_acq_t> > thread_locks;
+        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+            thread_locks.push_back(scoped_ptr_t<spinlock_acq_t>(new spinlock_acq_t(&thread_samples->spinlock)));
         }
+
+        // Reset report ticks
+        const ticks_t ticks = get_ticks();
+        ticks_at_last_report = ticks;
+        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+            thread_samples->ticks_at_last_report = ticks;
+        }
+
+        // Generate the actual report:
+        // Collect data for each trace over all threads
+        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+            for (auto trace_samples = thread_samples->per_trace_samples.begin(); trace_samples != thread_samples->per_trace_samples.end(); ++trace_samples) {
+                for (auto sample = trace_samples->second.samples.begin(); sample != trace_samples->second.samples.end(); ++sample) {
+                    trace_reports[trace_samples->first].collect(*sample);
+                }
+
+                // Reset samples
+                trace_samples->second.samples.clear();
+            }
+        }
+        
+        // Release per-thread locks
     }
     
     // TODO: Sort the output
@@ -213,9 +219,7 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
     // TODO: Would be nice if we could also use addr2line here
     std::string demangled_name;
     try {
-        // TODO: Just for testing, use the mangled name. It's much faster.
-        //demangled_name = frame.get_demangled_name();
-        demangled_name = frame.get_name();
+        demangled_name = frame.get_demangled_name();
     } catch (demangle_failed_exc_t &e) {
         demangled_name = "?";
     }
