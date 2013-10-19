@@ -13,7 +13,7 @@
 #include "config/args.hpp"
 
 #define CORO_PROFILER_CALLTREE_DEPTH            1
-#define CORO_PROFILER_REPORTING_INTERVAL        1000
+#define CORO_PROFILER_REPORTING_INTERVAL        (secs_to_ticks(1) * 10)
 
 
 /* TODO!
@@ -36,7 +36,7 @@ class coro_profiler_t {
 public:
     // Should you ever want to make this a true singleton, just make the
     // constructor private.
-    coro_profiler_t() { }
+    coro_profiler_t();
     
     static coro_profiler_t &get_global_profiler();
     
@@ -72,6 +72,7 @@ private:
     
     // Would be nice if we could use one_per_thread here. However
     // that makes the construction order tricky.
+    // TODO: These should be padded so they have different cache lines.
     std::array<per_thread_samples_t, MAX_THREADS> per_thread_samples;
     
     // TODO: Document

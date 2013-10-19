@@ -2,10 +2,13 @@
 #include "arch/runtime/coro_profiler.hpp"
 
 #include <string>
+#include <vector>
 
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "backtrace.hpp"
+#include "containers/scoped.hpp"
+#include "logger.hpp"
 
 
 #ifdef ENABLE_CORO_PROFILER
@@ -16,6 +19,10 @@ coro_profiler_t &coro_profiler_t::get_global_profiler() {
     // http://stackoverflow.com/questions/1661529/is-meyers-implementation-of-singleton-pattern-thread-safe?lq=1
     static coro_profiler_t profiler;
     return profiler;
+}
+
+coro_profiler_t::coro_profiler_t() {
+    logINF("Coro profiler activated.");
 }
 
 void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
@@ -104,8 +111,27 @@ void coro_profiler_t::record_coro_yield() {
     record_sample(1);
 }
 
+// TODO!
+#include <iostream>
 void coro_profiler_t::generate_report() {
-    // TODO!
+    // We assume that the global report_interval_spinlock has already been locked by our callee.
+    // Proceed to locking all thread sample structures
+    std::vector<scoped_ptr_t<spinlock_acq_t> > thread_locks;
+    for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+        thread_locks.push_back(scoped_ptr_t<spinlock_acq_t>(new spinlock_acq_t(&thread_samples->spinlock)));
+    }
+    
+    // Reset report ticks
+    const ticks_t ticks = get_ticks();
+    ticks_at_last_report = ticks;
+    for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+        thread_samples->ticks_at_last_report = ticks;
+    }
+    
+    // Generate the actual report
+    // TODO: Walk over all threads and merge the results. Sum up the samples to generate
+    //   sums and averages. Sort by average time and print. Reset samples on all threads.
+    std::cerr << "Reporting\n";
 }
 
 #endif /* ENABLE_CORO_PROFILER */
