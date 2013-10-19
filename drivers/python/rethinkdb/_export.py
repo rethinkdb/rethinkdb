@@ -92,9 +92,12 @@ def parse_options():
     else:
         dirname = options.directory
     res["directory"] = os.path.abspath(dirname)
+    res["directory_partial"] = os.path.abspath(dirname + "_part")
 
     if os.path.exists(res["directory"]):
         raise RuntimeError("Error: Output directory already exists: %s" % res["directory"])
+    if os.path.exists(res["directory_partial"]):
+        raise RuntimeError("Error: Partial output directory already exists: %s" % res["directory_partial"])
 
     # Verify valid --export options
     res["tables"] = []
@@ -148,10 +151,18 @@ def get_tables(host, port, auth_key, tables):
     # Remove duplicates by making results a set
     return set(res)
 
-def prepare_directories(base_path, db_table_set):
+# Make sure the output directory doesn't exist and create the temporary directory structure
+def prepare_directories(base_path, base_path_partial, db_table_set):
     db_set = set([db for (db, table) in db_table_set])
     for db in db_set:
-        os.makedirs(base_path + "/%s" % db)
+        os.makedirs(base_path_partial + "/%s" % db)
+
+# Move the temporary directory structure over to the original output directory
+def finalize_directory(base_path, base_path_partial):
+    try:
+        os.rename(base_path_partial, base_path)
+    except OSError as ex:
+        raise RuntimeError("Failed to move temporary directory to output directory (%s): %s" % (base_path, ex.strerror))
 
 def write_table_metadata(conn, db, table, base_path):
     out = open(base_path + "/%s/%s.info" % (db, table), "w")
@@ -306,7 +317,7 @@ def run_clients(options, db_table_set):
                                                            options["port"],
                                                            options["auth_key"],
                                                            db, table,
-                                                           options["directory"],
+                                                           options["directory_partial"],
                                                            options["fields"],
                                                            options["format"],
                                                            error_queue,
@@ -354,9 +365,10 @@ def main():
     try:
         db_table_set = get_tables(options["host"], options["port"], options["auth_key"], options["tables"])
         del options["tables"] # This is not needed anymore, db_table_set is more useful
-        prepare_directories(options["directory"], db_table_set)
+        prepare_directories(options["directory"], options["directory_partial"], db_table_set)
         start_time = time.time()
         run_clients(options, db_table_set)
+        finalize_directory(options["directory"], options["directory_partial"])
     except RuntimeError as ex:
         print >> sys.stderr, ex
         return 1
