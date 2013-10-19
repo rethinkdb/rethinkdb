@@ -19,6 +19,7 @@
 
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
@@ -166,6 +167,7 @@ void coro_t::run() {
         rassert(coro->waiting_ == true);
         coro->waiting_ = false;
 
+PROFILER_CORO_RESUME
 #ifndef NDEBUG
         // Keep track of how many coroutines of each type ran
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]++;
@@ -179,6 +181,7 @@ void coro_t::run() {
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
         cglobals->active_coroutines.erase(coro);
 #endif
+PROFILER_CORO_YIELD
 
         rassert(coro->current_thread_ == get_thread_id());
 

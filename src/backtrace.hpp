@@ -25,14 +25,13 @@ std::string format_backtrace(bool use_addr2line = true);
 // An individual backtrace frame
 class backtrace_frame_t {
 public:
+    explicit backtrace_frame_t(void *_addr);
     std::string get_filename() const;
     std::string get_name() const;
     std::string get_demangled_name() const;
     std::string get_offset() const;
     void *get_addr() const;
 private:
-    friend class backtrace_t;
-    explicit backtrace_frame_t(void *_addr);
     std::string filename, function, offset;
     void *addr;
 };
