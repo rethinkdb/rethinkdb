@@ -2,7 +2,6 @@
 #include "rdb_protocol/stream.hpp"
 
 #include "btree/keys.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 #include "rdb_protocol/datum_stream.hpp"

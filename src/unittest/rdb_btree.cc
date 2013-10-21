@@ -17,6 +17,7 @@
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
 #define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
@@ -90,13 +91,10 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
                                         1, WRITE_DURABILITY_SOFT,
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
-    Term mapping;
-    const ql::sym_t one(1);
-    ql::protob_t<Term> twrap = ql::make_counted_term();
-    Term *arg = twrap.get();
-    N2(GET_FIELD, NVAR(one), NDATUM("sid"));
+    ql::sym_t one(1);
+    ql::protob_t<const Term> mapping = ql::r::var(one)["sid"].release_counted();
+    ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
-    ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
     sindex_multi_bool_t multi_bool = SINGLE;
 
     write_message_t wm;
