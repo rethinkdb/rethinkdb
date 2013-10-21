@@ -96,6 +96,13 @@ public:
         snapshotted = true;
         inner_transaction.snapshot();
     }
+    
+    access_t get_access() const {
+        return inner_transaction.get_access();
+    }
+    write_durability_t get_durability() const {
+        return inner_transaction.get_durability();
+    }
 
     void set_account(typename inner_cache_t::cache_account_type *cache_account);
 

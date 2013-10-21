@@ -1,7 +1,7 @@
 #include "rdb_protocol/term_walker.hpp"
 
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/ql2_extensions.pb.h"
@@ -37,8 +37,7 @@ public:
         add_bt(t, parent, frame);
 
         if (t->type() == Term::NOW && t->args_size() == 0) {
-            Term *arg = t;
-            NDATUM(curtime);
+            *t = r::expr(*curtime.get()).get();
         }
 
         if (t->type() == Term::ASC || t->type() == Term::DESC) {
@@ -106,6 +105,7 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
+        case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
         case Term::INDEX_LIST:
@@ -323,6 +323,7 @@ private:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
         case Term::TABLE_LIST:
+        case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
         case Term::INDEX_LIST:

@@ -97,8 +97,20 @@ TEST(UtilsTest, SizedStrcmp) {
 new file just for it. */
 
 void run_ip_address_test() {
-    std::set<ip_address_t> ips = ip_address_t::from_hostname("111.112.113.114");
-    EXPECT_EQ("111.112.113.114", ips.begin()->as_dotted_decimal());
+    std::set<ip_address_t> ips = hostname_to_ips("111.112.113.114");
+    EXPECT_EQ(static_cast<size_t>(1), ips.size());
+    EXPECT_EQ("111.112.113.114", ips.begin()->to_string());
+
+    ips = hostname_to_ips("::DEAD:0:BEEF");
+    EXPECT_EQ(static_cast<size_t>(1), ips.size());
+    EXPECT_EQ("::dead:0:beef", ips.begin()->to_string());
+
+    ips = hostname_to_ips("::FFFF:111.112.113.114");
+    EXPECT_EQ(static_cast<size_t>(2), ips.size());
+    auto ip_it = ips.begin();
+    EXPECT_EQ("111.112.113.114", ip_it->to_string());
+    ++ip_it;
+    EXPECT_EQ("::ffff:111.112.113.114", ip_it->to_string());
 }
 
 TEST(UtilsTest, IPAddress) {

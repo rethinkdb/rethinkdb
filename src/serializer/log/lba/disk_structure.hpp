@@ -42,7 +42,7 @@ public:
     // If you call read(), then the in_memory_index_t will be populated and then the read_callback_t
     // will be called when it is done.
     struct read_callback_t {
-        virtual void on_lba_read() = 0;
+        virtual void on_lba_extents_read() = 0;
         virtual ~read_callback_t() {}
     };
     void read(in_memory_index_t *index, read_callback_t *cb);

@@ -28,7 +28,7 @@ the class scope. */
 
 #define RDB_DECLARE_SERIALIZABLE(type_t) \
     write_message_t &operator<<(write_message_t &, const type_t &); \
-    archive_result_t deserialize(read_stream_t *s, type_t *thing)
+    MUST_USE archive_result_t deserialize(read_stream_t *s, type_t *thing)
 
 #define RDB_DECLARE_ME_SERIALIZABLE \
     friend class write_message_t; \
