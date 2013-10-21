@@ -610,6 +610,15 @@ concatmap_datum_stream_t::concatmap_datum_stream_t(counted_t<func_t> _f,
 
 std::vector<counted_t<const datum_t> >
 concatmap_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
+    for (;;) {
+        if (!subsource.has()) {
+            counted_t<const datum_t> arg = source->next(env);
+            if (!arg.has()) {
+                return counted_t<const datum_t>();
+            }
+            subsource = f->call(env, arg)->as_seq(env);
+        }
+
 }
 
 counted_t<const datum_t> concatmap_datum_stream_t::next_impl(env_t *env) {
