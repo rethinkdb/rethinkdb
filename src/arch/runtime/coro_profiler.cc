@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <cmath>
 
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
@@ -33,10 +34,14 @@ coro_profiler_t &coro_profiler_t::get_global_profiler() {
 
 coro_profiler_t::coro_profiler_t() {
     logINF("Coro profiler activated.");
-    reql_output_file.open("coro_profiler_out.py");
+    
+    const std::string reql_output_filename = "coro_profiler_out.py";
+    reql_output_file.open(reql_output_filename);
     if (reql_output_file.is_open()) {
-        logINF("Writing output to reql_output_file");
+        logINF("Writing profiler reports to '%s'", reql_output_filename.c_str());
         write_reql_header();
+    } else {
+        logWRN("Could not open '%s' for writing profiler reports.", reql_output_filename.c_str());
     }
 }
 
@@ -172,9 +177,12 @@ void coro_profiler_t::generate_report() {
         // Collect data for each trace over all threads
         for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
             for (auto execution_point_samples = thread_samples->value.per_execution_point_samples.begin(); execution_point_samples != thread_samples->value.per_execution_point_samples.end(); ++execution_point_samples) {
-                for (auto sample = execution_point_samples->second.samples.begin(); sample != execution_point_samples->second.samples.end(); ++sample) {
-                    execution_point_reports[execution_point_samples->first].collect(*sample);
-                }
+                // Collect samples
+                std::vector<coro_sample_t> &sample_collection =
+                    execution_point_reports[execution_point_samples->first].collected_samples;
+                sample_collection.insert(sample_collection.end(),
+                                         execution_point_samples->second.samples.begin(),
+                                         execution_point_samples->second.samples.end());
 
                 // Reset samples
                 execution_point_samples->second.samples.clear();
@@ -184,25 +192,47 @@ void coro_profiler_t::generate_report() {
         // Release per-thread locks
     }
     
+    // Compute statistics
+    for (auto report =  execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
+        report->second.compute_stats();
+    }
+    
     if (reql_output_file.is_open()) {
         print_to_reql(execution_point_reports);
-    } else {
-        print_to_console(execution_point_reports);
     }
 }
 
-void coro_profiler_t::print_to_console(
-    const std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> &execution_point_reports) {
+void coro_profiler_t::per_execution_point_collected_report_t::compute_stats() {
+    rassert(num_samples == 0); // `per_execution_point_collected_report_t` is not re-usable.
     
-    printf("\nNUM\tTIME_PREV\tTIME_RES\n");
-    for (auto report = execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
-        std::string formatted_execution_point = format_execution_point(report->first);
-        printf("%i\t%f\t%f\n%s",
-               report->second.num_samples,
-               report->second.get_avg_time_since_previous(),
-               report->second.get_avg_time_since_resume(),
-               formatted_execution_point.c_str());
-    } 
+    // Pass 1: Compute min, max, mean
+    for (auto sample = collected_samples.begin(); sample != collected_samples.end(); ++sample) {
+        if (num_samples == 0) {
+            time_since_previous.min = time_since_previous.max = ticks_to_secs(sample->ticks_since_previous);
+            time_since_resume.min = time_since_resume.max = ticks_to_secs(sample->ticks_since_resume);
+        } else {
+            time_since_previous.min = std::min(time_since_previous.min, ticks_to_secs(sample->ticks_since_previous));
+            time_since_previous.max = std::max(time_since_previous.max, ticks_to_secs(sample->ticks_since_previous));
+            time_since_resume.min = std::min(time_since_resume.min, ticks_to_secs(sample->ticks_since_resume));
+            time_since_resume.max = std::max(time_since_resume.max, ticks_to_secs(sample->ticks_since_resume));
+        }
+        time_since_previous.mean += ticks_to_secs(sample->ticks_since_previous);
+        time_since_resume.mean += ticks_to_secs(sample->ticks_since_resume);
+        ++num_samples;
+    }
+    time_since_previous.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
+    time_since_resume.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
+    
+    // Pass 2: Compute standard deviation
+    for (auto sample = collected_samples.begin(); sample != collected_samples.end(); ++sample) {
+        time_since_previous.stddev += std::pow(ticks_to_secs(sample->ticks_since_previous) - time_since_previous.mean, 2);
+        time_since_resume.stddev += std::pow(ticks_to_secs(sample->ticks_since_resume) - time_since_resume.mean, 2);
+    }
+    // Use the unbiased estimate of the standard deviation, hence division by num_samples-1
+    time_since_previous.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
+    time_since_resume.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
+    time_since_previous.stddev = std::sqrt(time_since_previous.stddev);
+    time_since_resume.stddev = std::sqrt(time_since_resume.stddev);
 }
 
 void coro_profiler_t::print_to_reql(
@@ -211,27 +241,43 @@ void coro_profiler_t::print_to_reql(
     const double time = ticks_to_secs(get_ticks());
     
     for (auto report = execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
-        std::string trace_array_str = "[";
-        for (size_t i = 0; i < CORO_PROFILER_CALLTREE_DEPTH; ++i) {
-            if (report->first.second[i] == NULL) {
-                break;
-            }
-            if (i > 0) {
-                trace_array_str += ", ";
-            }
-            trace_array_str += "'" + get_frame_description(report->first.second[i]) + "'";
-        }
-        trace_array_str += "]";
-        
         reql_output_file << "print t.insert({" << std::endl;
         reql_output_file << "\t\t'time': " << time << "," << std::endl;
         reql_output_file << "\t\t'coro_type': '" << report->first.first << "'," << std::endl;
-        reql_output_file << "\t\t'trace': " << trace_array_str << "," << std::endl;
+        reql_output_file << "\t\t'trace': " << trace_to_array_str(report->first.second) << "," << std::endl;
         reql_output_file << "\t\t'num_samples': " << report->second.num_samples << "," << std::endl;
-        reql_output_file << "\t\t'since_previous_avg': " << report->second.get_avg_time_since_previous() << "," << std::endl;
-        reql_output_file << "\t\t'since_resume_avg': " << report->second.get_avg_time_since_resume() << "" << std::endl;
+        reql_output_file << "\t\t'since_previous': " << distribution_to_object_str(report->second.time_since_previous) << "," << std::endl;
+        reql_output_file << "\t\t'since_resume': " << distribution_to_object_str(report->second.time_since_resume) << "" << std::endl;
         reql_output_file << "\t}).run(conn, durability='soft')" << std::endl;
     }
+}
+
+std::string coro_profiler_t::trace_to_array_str(const small_trace_t &trace) {
+    std::string trace_array_str = "[";
+    for (size_t i = 0; i < CORO_PROFILER_CALLTREE_DEPTH; ++i) {
+        if (trace[i] == NULL) {
+            break;
+        }
+        if (i > 0) {
+            trace_array_str += ", ";
+        }
+        trace_array_str += "'" + get_frame_description(trace[i]) + "'";
+    }
+    trace_array_str += "]";
+    
+    return trace_array_str;
+}
+
+std::string coro_profiler_t::distribution_to_object_str(const data_distribution_t &distribution) {
+    std::stringstream format_stream;
+    format_stream << "{";
+    format_stream << "'min': "  << distribution.min << ", ";
+    format_stream << "'max': "  << distribution.max << ", ";
+    format_stream << "'mean': "  << distribution.mean << ", ";
+    format_stream << "'stddev': "  << distribution.stddev;
+    format_stream << "}";
+    
+    return format_stream.str();
 }
 
 void coro_profiler_t::write_reql_header() {
@@ -241,17 +287,6 @@ void coro_profiler_t::write_reql_header() {
     reql_output_file << "conn = r.connect() # Modify this as needed" << std::endl;
     reql_output_file << "t = r.table(\"coro_prof\") # Modify this as needed" << std::endl;
     reql_output_file << std::endl;
-}
-
-std::string coro_profiler_t::format_execution_point(const coro_execution_point_key_t &execution_point) {
-    std::stringstream format_stream;
-    // This output could be nicer...
-    format_stream << "\t: " << execution_point.first << "\n";
-    for (auto frame = execution_point.second.begin(); frame != execution_point.second.end(); ++frame) {
-        if (*frame == NULL) break;
-        format_stream << "\t| " << get_frame_description(*frame) << "\n";
-    }
-    return format_stream.str();
 }
 
 const std::string &coro_profiler_t::get_frame_description(void *addr) {

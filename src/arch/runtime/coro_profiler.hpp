@@ -2,6 +2,10 @@
 #ifndef ARCH_RUNTIME_CORO_PROFILER_HPP_
 #define	ARCH_RUNTIME_CORO_PROFILER_HPP_
 
+// TODO!!
+#ifndef ENABLE_CORO_PROFILER
+#define ENABLE_CORO_PROFILER
+#endif
 
 #ifdef ENABLE_CORO_PROFILER
 
@@ -20,7 +24,9 @@
 /* 
  * The `coro_profiler_t` collects information about where coroutines spend time.
  * In order to turn it on, `ENABLE_CORO_PROFILER` must be defined at compile time.
- * It will only work reliably in debug mode.
+ * It will only work reliably in debug mode, even though it can provide some
+ * data in release mode as well.
+ * You should compile as follows: `make CORO_PROFILING=1 DEBUG=1`
  * 
  * The coro profiler records a sample whenever it encounters a `PROFILER_RECORD_SAMPLE`
  * and also every time a coroutine yields.
@@ -85,37 +91,27 @@ private:
         ticks_t ticks_at_last_report;
     };
     
+    // Represents the distribution of data points as a normal distribution,
+    // plus minimum and maximum values.
+    struct data_distribution_t {
+        data_distribution_t() : min(0.0), max(0.0), mean(0.0), stddev(0.0) { }
+        double min, max;
+        double mean, stddev;
+    };
     struct per_execution_point_collected_report_t {
-        per_execution_point_collected_report_t() :
-            num_samples(0),
-            total_time_since_previous(0.0),
-            total_time_since_resume(0.0) {
-        }
-        double get_avg_time_since_previous() const {
-            return total_time_since_previous / std::max(1.0, static_cast<double>(num_samples));
-        }
-        double get_avg_time_since_resume() const {
-            return total_time_since_resume / std::max(1.0, static_cast<double>(num_samples));
-        }
-        void collect(const coro_sample_t &sample) {
-            total_time_since_previous += ticks_to_secs(sample.ticks_since_previous);
-            total_time_since_resume += ticks_to_secs(sample.ticks_since_resume);
-            ++num_samples;
-        }
-
-        int num_samples;
-        // TODO: Also report total count
-        // TODO: Also calculate standard deviation, min, max, mean.
-        //  That will require a bit of refactoring.
-        double total_time_since_previous;
-        double total_time_since_resume;
+        per_execution_point_collected_report_t() : num_samples(0) { }
+        void compute_stats();
+        std::vector<coro_sample_t> collected_samples;
+        size_t num_samples;
+        data_distribution_t time_since_previous;
+        data_distribution_t time_since_resume;
     };
     
     void generate_report();
-    void print_to_console(const std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> &execution_point_reports);
     void print_to_reql(const std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> &execution_point_reports);
     void write_reql_header();
-    std::string format_execution_point(const coro_execution_point_key_t &execution_point);
+    std::string distribution_to_object_str(const data_distribution_t &distribution);
+    std::string trace_to_array_str(const small_trace_t &trace);
     const std::string &get_frame_description(void *addr);
     coro_execution_point_key_t get_current_execution_point(size_t levels_to_strip_from_backtrace);
     
