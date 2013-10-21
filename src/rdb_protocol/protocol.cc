@@ -1644,6 +1644,14 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
+hash_region_t<key_range_t> sindex_range_t::to_region() const {
+    return hash_region_t<key_range_t>(
+        rdb_protocol_t::sindex_key_range(
+            start != NULL ? start->truncated_secondary() : store_key_t::min(),
+            end != NULL ? end->truncated_secondary() : store_key_t::max()));
+}
+
+
 bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
     return (!start || (*start < *value || (*start == *value && !start_open))) &&
            (!end   || (*value < *end   || (*value == *end && !end_open)));

@@ -84,6 +84,7 @@ public:
                    counted_t<const ql::datum_t> _end, bool _end_open)
         : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
     // Constructs some kind of region out of truncated_secondary values.
+    hash_region_t<key_range_t> to_region() const;
     bool contains(counted_t<const ql::datum_t> value) const;
 
     counted_t<const ql::datum_t> start, end;
@@ -318,15 +319,7 @@ struct rdb_protocol_t {
                     sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
-              sindex_region(
-                  hash_region_t<key_range_t>(
-                      rdb_protocol_t::sindex_key_range(
-                          _sindex_range.start != NULL
-                              ? _sindex_range.start->truncated_secondary()
-                              : store_key_t::min(),
-                          _sindex_range.end != NULL
-                              ? _sindex_range.end->truncated_secondary()
-                              : store_key_t::max()))),
+              sindex_region(sindex_range->to_region()),
               sorting(_sorting) { }
 
         rget_read_t(const region_t &_sindex_region,
