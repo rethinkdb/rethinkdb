@@ -33,14 +33,6 @@ typedef linux_thread_message_t thread_message_t;
 
 int get_cpu_count();
 
-#ifndef NDEBUG
-// Functions to keep track of running thread_message_t routines using get_clock_cycles
-void enable_watchdog(); // Enables watchdog printouts (off by default to avoid command-line spam)
-void start_watchdog(); // Starts time supervision
-void disarm_watchdog(); // Suspends time supervision until the next pet or start
-void pet_watchdog(); // Checks for long-running routines and restarts time supervision
-#endif
-
 // More pollution of runtime_utils.hpp.
 #ifndef NDEBUG
 

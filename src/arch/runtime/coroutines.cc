@@ -176,8 +176,6 @@ PROFILER_CORO_RESUME
 #endif
         coro->action_wrapper.run();
 #ifndef NDEBUG
-        // Pet the watchdog to reset it before execution moves
-        pet_watchdog();
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
         cglobals->active_coroutines.erase(coro);
 #endif
@@ -228,11 +226,6 @@ void coro_t::wait() {   /* class method */
 
     rassert(!self()->waiting_);
     self()->waiting_ = true;
-
-#ifndef NDEBUG
-        // Pet the watchdog to reset it before execution moves
-        pet_watchdog();
-#endif
         
     PROFILER_CORO_YIELD(1)
     if (cglobals->prev_coro) {
@@ -272,11 +265,6 @@ void coro_t::notify_now_deprecated() {
     coro_t *prev_prev_coro = cglobals->prev_coro;
     cglobals->prev_coro = cglobals->current_coro;
     cglobals->current_coro = this;
-
-#ifndef NDEBUG
-    // Pet the watchdog to reset it before execution moves
-    pet_watchdog();
-#endif
 
     if (cglobals->prev_coro) {
         context_switch(&cglobals->prev_coro->stack.context, &this->stack.context);
