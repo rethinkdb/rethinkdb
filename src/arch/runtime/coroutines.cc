@@ -181,7 +181,7 @@ PROFILER_CORO_RESUME
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
         cglobals->active_coroutines.erase(coro);
 #endif
-PROFILER_CORO_YIELD
+PROFILER_CORO_YIELD(0)
 
         rassert(coro->current_thread_ == get_thread_id());
 
@@ -234,8 +234,7 @@ void coro_t::wait() {   /* class method */
         pet_watchdog();
 #endif
         
-    PROFILER_CORO_YIELD
-    //PROFILER_RECORD_SAMPLE_STRIP_FRAMES(1)
+    PROFILER_CORO_YIELD(1)
     if (cglobals->prev_coro) {
         context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
     } else {
