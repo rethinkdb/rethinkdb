@@ -662,7 +662,7 @@ public:
         sorting_t _sorting,
         ql::map_wire_func_t _sindex_function,
         sindex_multi_bool_t _sindex_multi,
-        sindex_range_t _sindex_range,
+        datum_range_t _sindex_range,
         rget_read_response_t *_response)
         : bad_init(false),
           transaction(txn),
@@ -796,7 +796,8 @@ public:
 
                     cumulative_size += estimate_rget_response_size(datum);
                 }
-                return cumulative_size < rget_max_chunk_size;
+                // RSI: make correct
+                return !ql::should_send_batch(0, cumulative_size, 0);
             } else {
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
@@ -829,7 +830,7 @@ public:
 
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
-    boost::optional<sindex_range_t> sindex_range;
+    boost::optional<datum_range_t> sindex_range;
     counted_t<ql::func_t> sindex_function;
     boost::optional<sindex_multi_bool_t> sindex_multi;
 };
@@ -841,7 +842,6 @@ public:
     void operator()(const ql::datum_exc_t &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
-    void operator()(const rget_read_response_t::vec_t &) const { }
     void operator()(const counted_t<const ql::datum_t> &) const { }
 
     void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
@@ -861,18 +861,15 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
             (forward(sorting) ? FORWARD : BACKWARD));
 
-    if (callback.cumulative_size >= rget_max_chunk_size) {
-        response->truncated = true;
-    } else {
-        response->truncated = false;
-    }
+    // RSI: fix
+    response->truncated = ql::should_send_batch(0, callback.cumulative_size, 0);
 
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const sindex_range_t &sindex_range,
+    const datum_range_t &sindex_range,
     const rdb_protocol_t::region_t &sindex_region,
     transaction_t *txn,
     superblock_t *superblock,
@@ -893,11 +890,8 @@ void rdb_rget_secondary_slice(
         slice, txn, superblock, sindex_region.inner, &callback,
         (forward(sorting) ? FORWARD : BACKWARD));
 
-    if (callback.cumulative_size >= rget_max_chunk_size) {
-        response->truncated = true;
-    } else {
-        response->truncated = false;
-    }
+    // RSI: fix
+    response->truncated = ql::should_send_batch(0, callback.cumulative_size, 0);
 
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }

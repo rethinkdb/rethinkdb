@@ -13,7 +13,7 @@
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/stream.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/val.hpp"
 
 class extproc_pool_t;

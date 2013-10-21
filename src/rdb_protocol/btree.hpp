@@ -45,8 +45,6 @@ typedef rdb_protocol_t::point_delete_response_t point_delete_response_t;
 
 class parallel_traversal_progress_t;
 
-static const size_t rget_max_chunk_size = ql::batch_size;
-
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value);
 
 template <>
@@ -207,7 +205,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const sindex_range_t &sindex_range,
+    const datum_range_t &datum_range,
     const rdb_protocol_t::region_t &sindex_region,
     transaction_t *txn,
     superblock_t *superblock,

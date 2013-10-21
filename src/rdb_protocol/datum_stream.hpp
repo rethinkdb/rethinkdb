@@ -4,21 +4,32 @@
 
 #include <algorithm>
 #include <deque>
+#include <list>
+#include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "rdb_protocol/stream.hpp"
+#include "errors.hpp"
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/variant/get.hpp>
 
-namespace query_language {
-class batched_rget_stream_t;
-}
+#include "clustering/administration/namespace_interface_repository.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 namespace ql {
-typedef query_language::sorting_hint_t sorting_hint_t;
-typedef query_language::hinted_datum_t hinted_datum_t;
 
 class scope_env_t;
+
+enum batch_type_t {
+    NORMAL = 0,
+    // We sometimes need a batch with constant sindex for sorting.
+    SINDEX_CONSTANT = 1
+};
 
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
@@ -55,12 +66,9 @@ public:
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
     // element.)  (Wrapper around `next_batch_impl`.)
-    std::vector<counted_t<const datum_t> > next_batch(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch(env_t *env, batch_type_t batch_type = NORMAL);
 
-    // Returns empty `counted_t` at end of stream.  Prefer `next_batch`.
-    counted_t<const datum_t> next(env_t *env);
-
-    hinted_datum_t sorting_hint_next(env_t *env); // UNIMPLEMENTED
 protected:
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
         : pb_rcheckable_t(bt_src) { }
@@ -68,8 +76,8 @@ protected:
 private:
     static const size_t MAX_BATCH_SIZE = 100;
 
-    virtual std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env) = 0;
-    virtual counted_t<const datum_t> next_impl(env_t *env) = 0;
+    virtual std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type) = 0;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
@@ -95,7 +103,8 @@ protected:
     virtual bool is_array() { return true; }
     virtual counted_t<const datum_t> as_array(env_t *env);
 private:
-    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    virtual next_batch_impl(env_t *env, batch_type_t batch_type);
 };
 
 class wrapper_datum_stream_t : public eager_datum_stream_t {
@@ -113,104 +122,170 @@ protected:
     const counted_t<datum_stream_t> source;
 };
 
-class map_datum_stream_t : public eager_datum_stream_t {
+class map_datum_stream_t : public wrapper_datum_stream_t {
 public:
     map_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
 
     counted_t<func_t> f;
-    counted_t<datum_stream_t> source;
 };
 
-class indexes_of_datum_stream_t : public eager_datum_stream_t {
+class indexes_of_datum_stream_t : public wrapper_datum_stream_t {
 public:
     indexes_of_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
 
     counted_t<func_t> f;
-    counted_t<datum_stream_t> source;
-
     int64_t index;
 };
 
-class filter_datum_stream_t : public eager_datum_stream_t {
+class filter_datum_stream_t : public wrapper_datum_stream_t {
 public:
     filter_datum_stream_t(counted_t<func_t> _f,
                           counted_t<func_t> _default_filter_val,
                           counted_t<datum_stream_t> _source);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
 
     counted_t<func_t> f;
     counted_t<func_t> default_filter_val;
-    counted_t<datum_stream_t> source;
 };
 
-class concatmap_datum_stream_t : public eager_datum_stream_t {
+class concatmap_datum_stream_t : public wrapper_datum_stream_t {
 public:
     concatmap_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
 
     counted_t<func_t> f;
-    counted_t<datum_stream_t> source;
-    counted_t<datum_stream_t> subsource;
+    std::vector<counted_t<datum_stream_t> > subsources;
+    size_t index;
 };
-
-enum datum_bound_type_t { CLOSED = 0, OPEN = 1 };
 
 class datum_range_t {
 public:
     datum_range_t(
-        counted_t<const datum_t> left_bound, datum_bound_type_t left_bound_type,
-        counted_t<const datum_t> right_bound, datum_bound_type_t right_bound_type);
+        counted_t<const datum_t> left_bound, key_range_t::bound_t left_bound_type,
+        counted_t<const datum_t> right_bound, key_range_t::bound_t right_bound_type);
     static datum_range_t universe();
 private:
-    counted_t<const datum_t> left_bound, right_bound;
-    datum_bound_type_t left_bound_type, right_bound_type;
+    friend class readgen_t;
+    friend class primary_readgen_t;
+    friend class secondary_readgen_t;
+    key_range_t to_primary_keyrange() const;
+    key_range_t to_secondary_keyrange() const;
+    const counted_t<const datum_t> left_bound, right_bound;
+    const key_range_t::bound_t left_bound_type, right_bound_type;
 };
+
+// RSI: remove?
+typedef rdb_protocol_details::transform_t transform_t;
+typedef rdb_protocol_details::terminal_t terminal_t;
+typedef rdb_protocol_details::rget_item_t rget_item_t;
+typedef rdb_protocol_details::transform_variant_t transform_variant_t;
+typedef rdb_protocol_t::read_t read_t;
+typedef rdb_protocol_t::rget_read_t rget_read_t;
+typedef rdb_protocol_t::read_response_t read_response_t;
+typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
+typedef rdb_protocol_t::region_t region_t;
 
 class readgen_t {
-    typedef rdb_protocol_details::transform_t transform_t;
-    typedef rdb_protocol_details::terminal_t terminal_t;
 public:
-    explicit readgen_t(key_range_t &&initial_range);
-    void add_transformation(transform_atom_t &&atom);
-    rget_read_t terminal_read(terminal_t &&_terminal);
-    virtual rget_read_t next_read() = 0;
+    explicit readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
+        const datum_range_t &original_datum_range,
+        sorting_t sorting);
+    virtual ~readgen_t() { }
+    rget_read_t terminal_read(const transform_t &transform, terminal_t &&_terminal);
+    // This has to be on `readgen_t` because we sort differently depending on
+    // the kinds of reads we're doing.
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) = 0;
 
-    bool started, finished;
-    transform_t transform;
-    key_range_t active_range;
+    virtual rget_read_t next_read(
+        const key_range_t &active_range, const transform_t &transform);
+    virtual boost::optional<rget_read_t> sindex_sort_read(
+        const std::vector<rget_item_t> &items) = 0;
+    virtual key_range_t original_keyrange() = 0;
+
+    // Returns `true` if there is no more to read.
+    bool update_range(key_range_t *active_range,
+                      const store_key_t &last_considered_key);
+protected:
+    const std::map<std::string, wire_func_t> global_optargs;
+    const datum_range_t original_datum_range;
+    const sorting_t sorting;
+
+private:
+    virtual rget_read_t next_read_impl(
+        const key_range_t &active_range, const transform_t &transform) = 0;
 };
 
-class primary_readgen_t {
+class primary_readgen_t : public readgen_t {
 public:
     primary_readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
         datum_range_t range = datum_range_t::universe(),
         sorting_t sorting = UNORDERED);
 private:
-    const sorting_t sorting;
-    virtual rget_read_t next_read();
+    virtual rget_read_t next_read_impl(
+        const key_range_t &active_range, const transform_t &transform);
+    virtual boost::optional<rget_read_t> sindex_sort_read(
+        const std::vector<rget_item_t> &items);
+    virtual void sindex_sort(std::vector<rget_item_t> *vec);
+    virtual key_range_t original_keyrange();
 };
 
-class sindex_readgen_t {
+class sindex_readgen_t : public readgen_t {
 public:
     sindex_readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
         const std::string &sindex,
         datum_range_t sindex_range = datum_range_t::universe(),
         sorting_t sorting = UNORDERED);
 private:
     const std::string sindex;
-    const datum_range_t original_sindex_range;
-    const sorting_t sorting;
-    virtual rget_read_t next_read();
+    virtual rget_read_t next_read_impl(
+        const key_range_t &active_range, const transform_t &transform);
+    virtual boost::optional<rget_read_t> sindex_sort_read(
+        const std::vector<rget_item_t> &items);
+    virtual void sindex_sort(std::vector<rget_item_t> *vec);
+    virtual key_range_t original_keyrange();
+};
+
+// RSI: prefetching
+class reader_t {
+public:
+    explicit reader_t(
+        const namespace_repo_t<rdb_protocol_t>::access_t &ns_access,
+        bool use_outdated,
+        scoped_ptr_t<readgen_t> &&readgen);
+    void add_transformation(transform_variant_t &&tv);
+    std::vector<counted_t<const datum_t> >
+    next_batch(env_t *env, batch_type_t batch_type);
+private:
+    // Returns `true` if there's data in `items`.
+    bool load_items(env_t *env);
+    read_response_t do_read(env_t *env, const read_t &read);
+    std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
+
+    namespace_repo_t<rdb_protocol_t>::access_t ns_access;
+    const bool use_outdated;
+    transform_t transform;
+
+    bool started, finished;
+    // RSI: make const?
+    scoped_ptr_t<readgen_t> readgen;
+    key_range_t active_range;
+
+    // We need this to handle the SINDEX_CONSTANT case.
+    std::vector<rget_item_t> items;
+    size_t items_index;
 };
 
 class lazy_datum_stream_t : public datum_stream_t {
@@ -218,27 +293,6 @@ public:
     lazy_datum_stream_t(env_t *env, bool use_outdated,
                         namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
                         const protob_t<const Backtrace> &bt_src);
-
-    /*
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        sorting_t sorting, const protob_t<const Backtrace> &bt_src);
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        const std::string &sindex_id, sorting_t sorting,
-                        const protob_t<const Backtrace> &bt_src);
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        counted_t<const datum_t> left_bound, bool left_bound_open,
-                        counted_t<const datum_t> right_bound, bool right_bound_open,
-                        sorting_t sorting, const protob_t<const Backtrace> &bt_src);
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        counted_t<const datum_t> left_bound, bool left_bound_open,
-                        counted_t<const datum_t> right_bound, bool right_bound_open,
-                        const std::string &sindex_id, sorting_t sorting,
-                        const protob_t<const Backtrace> &bt_src);
-    */
 
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val);
@@ -261,19 +315,16 @@ public:
 
 private:
     counted_t<const datum_t> next_impl(env_t *env);
-    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type);
 
     rdb_protocol_t::rget_read_response_t::result_t run_terminal(
         env_t *env, const rdb_protocol_details::terminal_variant_t &t);
 
-    void maybe_load_batch(env_t *env);
     size_t current_batch_offset;
     std::vector<counted_t<const datum_t> > current_batch;
 
-    namespace_repo_t<rdb_protocol_t>::access_t ns_access;
-    const bool use_oudated;
-    const std::map<std::string, wire_func_t> global_optargs;
-    scoped_ptr_t<readgen_t> readgen;
+    reader_t reader;
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
@@ -308,93 +359,45 @@ private:
 // remember exactly what it was.
 static const size_t sort_el_limit = 1000000; // maximum number of elements we'll sort
 template<class T>
-class sort_datum_stream_t : public eager_datum_stream_t {
+class sort_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    sort_datum_stream_t(env_t *env,
-                        const T &_lt_cmp, counted_t<datum_stream_t> _src,
-                        const protob_t<const Backtrace> &bt_src)
-        : eager_datum_stream_t(bt_src),
-        lt_cmp(_lt_cmp), src(_src), is_arr_(false) {
-        r_sanity_check(src.has());
-        load_data(env);
-    }
+    sort_datum_stream_t(const T &_lt_cmp, counted_t<datum_stream_t> src)
+        : wrapper_datum_stream_t(src), lt_cmp(_lt_cmp), index(0) { }
 
-    counted_t<const datum_t> next_impl(env_t *env) {
-        if (data.empty()) {
-            load_data(env);
-            if (data.empty()) {
-                return counted_t<const datum_t>();
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type) {
+        std::vector<counted_t<const datum_t> > ret;
+        size_t total_size = 0;
+        while (!should_send_batch(ret.size(), total_size, 0)) {
+            if (index >= data.size()) {
+                if (ret.size() != 0 && batch_type == SINDEX_CONSTANT) {
+                    // We can only load one batch of SINDEX_CONSTANT data if we
+                    // want to keep the sindex constant (this should only matter
+                    // if you call `.orderby(...).orderby(...)`.
+                    break;
+                }
+                index = 0;
+                data = source->next_batch(env, SINDEX_CONSTANT);
+                if (data.empty()) {
+                    return ret;
+                }
+                std::sort(data.begin(), data.end(),
+                          std::bind(lt_cmp, env,
+                                    std::placeholders::_1, std::placeholders::_2));
             }
+            total_size += serialized_size(data[index]);
+            ret.push_back(std::move(data[index]));
+            index += 1;
         }
-
-        counted_t<const datum_t> res = data.front();
-        data.pop_front();
-        return res;
+        return ret;
     }
-
 private:
-    counted_t<const datum_t> as_array(env_t *env) {
-        return is_arr()
-            ? eager_datum_stream_t::as_array(env)
-            : counted_t<const datum_t>();
-    }
-    bool is_arr() {
-        return is_arr_;
-    }
-    void load_data(env_t *env) {
-        r_sanity_check(data.empty());
-
-        if (counted_t<const datum_t> arr = src->as_array(env)) {
-            if (is_arr_) {
-                /* We already loaded data from the array which means there's no
-                 * more data. */
-                return;
-            }
-            is_arr_ = true;
-            rcheck(arr->size() <= sort_el_limit,
-                   base_exc_t::GENERIC,
-                   strprintf("Can only sort at most %zu elements.",
-                             sort_el_limit));
-            for (size_t i = 0; i < arr->size(); ++i) {
-                data.push_back(arr->get(i));
-            }
-        } else {
-            if (next_element) {
-                data.push_back(next_element);
-                next_element = counted_t<const datum_t>();
-            }
-
-            for (;;) {
-                const hinted_datum_t d = src->sorting_hint_next(env);
-                if (!d.second) {
-                    break;
-                }
-
-                if (d.first == query_language::START && !data.empty()) {
-                    //debugf("Got a new value:\n %s\n", d.second->print().c_str());
-                    next_element = d.second;
-                    break;
-                } else {
-                    data.push_back(d.second);
-                    rcheck(data.size() <= sort_el_limit,
-                           base_exc_t::GENERIC,
-                           strprintf("Can only sort at most %zu elements.",
-                                     sort_el_limit));
-                }
-            }
-        }
-
-        std::sort(data.begin(), data.end(),
-                  std::bind(lt_cmp, env, std::placeholders::_1, std::placeholders::_2));
-    }
     std::function<bool(env_t *,
                        const counted_t<const datum_t> &,
                        const counted_t<const datum_t> &)> lt_cmp;
-    counted_t<datum_stream_t> src;
 
-    std::deque<counted_t<const datum_t> > data;
-    counted_t<const datum_t> next_element;
-    bool is_arr_;
+    size_t index;
+    std::vector<counted_t<const datum_t> > data;
 };
 
 class union_datum_stream_t : public datum_stream_t {
@@ -424,7 +427,8 @@ public:
 
 private:
     counted_t<const datum_t> next_impl(env_t *env);
-    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type);
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;

@@ -69,28 +69,22 @@ enum sorting_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
 
-inline bool forward(sorting_t sorting) {
-    return sorting == ASCENDING || sorting == UNORDERED;
-}
-
-inline bool backward(sorting_t sorting) {
-    return !forward(sorting);
-}
-
-class sindex_range_t {
+class datum_range_t {
 public:
-    sindex_range_t() { }
-    // These counted_t<const ql::datum_t>'s may be empty, indicating +/- infinity.
-    sindex_range_t(counted_t<const ql::datum_t> _start, bool _start_open,
-                   counted_t<const ql::datum_t> _end, bool _end_open)
-        : start(_start), end(_end), start_open(_start_open), end_open(_end_open) { }
-    // Constructs some kind of region out of truncated_secondary values.
-    bool contains(counted_t<const ql::datum_t> value) const;
-
-    counted_t<const ql::datum_t> start, end;
-    bool start_open, end_open;
-
-    RDB_DECLARE_ME_SERIALIZABLE;
+    datum_range_t(
+        counted_t<const ql::datum_t> left_bound,
+        key_range_t::bound_t left_bound_type,
+        counted_t<const ql::datum_t> right_bound,
+        key_range_t::bound_t right_bound_type);
+    static datum_range_t universe();
+private:
+    friend class readgen_t;
+    friend class primary_readgen_t;
+    friend class secondary_readgen_t;
+    key_range_t to_primary_keyrange() const;
+    key_range_t to_secondary_keyrange() const;
+    const counted_t<const ql::datum_t> left_bound, right_bound;
+    const key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
 struct filter_transform_t {
@@ -228,7 +222,6 @@ struct rdb_protocol_t {
          // Present if there was no terminal
         typedef std::vector<rdb_protocol_details::rget_item_t> stream_t;
 
-        typedef std::vector<counted_t<const ql::datum_t> > vec_t;
         class empty_t { RDB_MAKE_ME_SERIALIZABLE_0() };
 
         typedef boost::variant<
@@ -316,26 +309,9 @@ struct rdb_protocol_t {
             : region(_region), sorting(_sorting) {
         }
 
-
-        rget_read_t(const std::string &_sindex,
-                    sindex_range_t _sindex_range,
-                    sorting_t _sorting = UNORDERED)
-            : region(region_t::universe()), sindex(_sindex),
-              sindex_range(_sindex_range),
-              sindex_region(
-                  hash_region_t<key_range_t>(
-                      rdb_protocol_t::sindex_key_range(
-                          _sindex_range.start != NULL
-                              ? _sindex_range.start->truncated_secondary()
-                              : store_key_t::min(),
-                          _sindex_range.end != NULL
-                              ? _sindex_range.end->truncated_secondary()
-                              : store_key_t::max()))),
-              sorting(_sorting) { }
-
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    sindex_range_t _sindex_range,
+                    datum_range_t _sindex_range,
                     sorting_t _sorting = UNORDERED)
             : region(region_t::universe()), sindex(_sindex),
               sindex_range(_sindex_range),
@@ -343,7 +319,7 @@ struct rdb_protocol_t {
 
         rget_read_t(const region_t &_sindex_region,
                     const std::string &_sindex,
-                    sindex_range_t _sindex_range,
+                    datum_range_t _sindex_range,
                     const rdb_protocol_details::transform_t &_transform,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
                     sorting_t _sorting = UNORDERED)
@@ -392,7 +368,7 @@ struct rdb_protocol_t {
 
         /* The actual sindex range to use for bounds, since the sindex key may
         have been truncated due to excessive length */
-        boost::optional<sindex_range_t> sindex_range;
+        boost::optional<datum_range_t> sindex_range;
 
         /* The region of that sindex we're reading use `sindex_key_range` to
         read a single key. */

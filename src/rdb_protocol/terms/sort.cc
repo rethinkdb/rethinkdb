@@ -173,13 +173,18 @@ public:
     distinct_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    static bool lt_cmp(env_t *, counted_t<const datum_t> l, counted_t<const datum_t> r) { return *l < *r; }
+    static bool lt_cmp(env_t *,
+                       counted_t<const datum_t> l,
+                       counted_t<const datum_t> r) {
+        return *l < *r;
+    }
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         scoped_ptr_t<datum_stream_t> s(
             new sort_datum_stream_t<
                 bool (*)(env_t *,
                          counted_t<const datum_t>,
-                         counted_t<const datum_t>) >(env->env, lt_cmp, arg(env, 0)->as_seq(env->env), backtrace()));
+                         counted_t<const datum_t>) >(
+                             lt_cmp, arg(env, 0)->as_seq(env->env)));
         datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
         while (counted_t<const datum_t> d = s->next(env->env)) {

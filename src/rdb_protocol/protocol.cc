@@ -478,6 +478,7 @@ bool read_t::shard(const hash_region_t<key_range_t> &region,
     return boost::apply_visitor(rdb_r_shard_visitor_t(&region, read_out), read);
 }
 
+// RSI: remove?
 /* read_t::unshard implementation */
 bool read_response_cmp(const read_response_t &l, const read_response_t &r) {
     const rget_read_response_t *lr = boost::get<rget_read_response_t>(&l.response);

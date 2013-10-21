@@ -9,7 +9,6 @@
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/ql2.pb.h"
-#include "rdb_protocol/stream.hpp"
 
 namespace ql {
 class datum_t;
