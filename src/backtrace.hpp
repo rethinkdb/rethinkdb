@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "errors.hpp"
+#include <boost/ptr_container/ptr_map.hpp>
+
 
 /* `demangle_cpp_name()` attempts to de-mangle the given symbol name. If it
 succeeds, it returns the result as a `std::string`. If it fails, it throws
@@ -20,20 +22,50 @@ struct demangle_failed_exc_t : public std::exception {
 };
 std::string demangle_cpp_name(const char *mangled_name);
 
+class address_to_line_t {
+public:
+    address_to_line_t() { }
+    
+    /* Returns an empty string if the line could not be found */
+    std::string address_to_line(const std::string &executable, const void *address);
+    
+private:
+    bool run_addr2line(const std::string &executable, const void *address, char *line, int line_size);
+    
+    // Internal helper class:
+    class addr2line_t {
+    public:
+        explicit addr2line_t(const char *executable);
+        ~addr2line_t();
+
+        FILE *input, *output;
+        bool bad;
+    private:
+        int child_in[2], child_out[2];
+        pid_t pid;
+        DISABLE_COPYING(addr2line_t);
+    };
+    
+    // "Cache" to re-use addr2line processes
+    boost::ptr_map<const std::string, addr2line_t> procs;
+    
+    DISABLE_COPYING(address_to_line_t);
+};
+
 std::string format_backtrace(bool use_addr2line = true);
 
 // An individual backtrace frame
 class backtrace_frame_t {
 public:
-    explicit backtrace_frame_t(void *_addr);
+    explicit backtrace_frame_t(const void *_addr);
     std::string get_filename() const;
     std::string get_name() const;
     std::string get_demangled_name() const;
     std::string get_offset() const;
-    void *get_addr() const;
+    const void *get_addr() const;
 private:
     std::string filename, function, offset;
-    void *addr;
+    const void *addr;
 };
 
 // A backtrace, consisting of backtrace_frame_t

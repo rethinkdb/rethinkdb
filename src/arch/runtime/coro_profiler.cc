@@ -8,7 +8,6 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "backtrace.hpp"
 #include "thread_stack_pcs.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
@@ -106,7 +105,7 @@ void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
      * Captain: Can we compensate?
      * Ensign:  Positive.
      * Captain: Do it!
-     * Ensign:  I'm reconfiguring the shield er yield timings. That should block its interference.
+     * Ensign:  I'm reconfiguring the shield timings er yield timings. That should block its interference.
      */
     const ticks_t ticks_on_exit = get_ticks();
     rassert(ticks_on_exit >= ticks_on_entry);
@@ -297,14 +296,18 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
     
     backtrace_frame_t frame(addr);
     std::stringstream description_stream;
-    // TODO: Would be nice if we could also use addr2line here
+#if CORO_PROFILER_ADDRESS_TO_LINE
+    std::string line = address_to_line.address_to_line(frame.get_filename(), frame.get_addr()) + "  |  ";
+#else
+    std::string line = "";
+#endif
     std::string demangled_name;
     try {
         demangled_name = frame.get_demangled_name();
     } catch (demangle_failed_exc_t &e) {
         demangled_name = "?";
     }
-    description_stream << frame.get_addr() << "\t" << demangled_name;
+    description_stream << frame.get_addr() << "\t" << line << demangled_name;
     
     return frame_description_cache.insert(std::pair<void *, std::string>(addr, description_stream.str())).first->second;
 }
