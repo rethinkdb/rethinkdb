@@ -45,16 +45,26 @@ typedef std::vector<event_t> event_log_t;
 /* A trace_t wraps a task and makes it a bit easier to use. */
 class trace_t {
 public:
+    trace_t();
     counted_t<const ql::datum_t> as_datum() const;
     event_log_t &&get_event_log();
 private:
     friend class starter_t;
     friend class splitter_t;
+    friend class sampler_t;
     void start(const std::string &description);
     void stop();
     void start_split();
     void stop_split(size_t n_parallel_jobs_, const event_log_t &event_log);
+    void start_redirect(event_log_t *event_log);
+    void stop_redirect();
+
+    /* returns the event_log_t that we should put events in */
+    event_log_t *event_log_target();
     event_log_t event_log_;
+    /* redirected_event_log_ is used during sampling to send the events to the
+     * sampler to be processed. */
+    event_log_t *redirected_event_log_;
 };
 
 class starter_t {
@@ -77,6 +87,20 @@ private:
     size_t n_parallel_jobs_;
     event_log_t event_log_;
     bool received_splits_;
+};
+
+class sampler_t {
+public:
+    sampler_t(const std::string &description, trace_t *parent);
+    void new_sample();
+    ~sampler_t();
+private:
+    trace_t *parent_;
+    starter_t starter_;
+    event_log_t event_log_;
+
+    ticks_t total_time;
+    size_t n_samples;
 };
 
 void print_event_log(const event_log_t &event_log);

@@ -142,31 +142,108 @@ splitter_t::~splitter_t() {
     }
 }
 
+trace_t::trace_t()
+    : redirected_event_log_(NULL) { }
+
 counted_t<const ql::datum_t> trace_t::as_datum() const {
+    guarantee(!redirected_event_log_);
     event_log_t::const_iterator begin = event_log_.begin();
     return construct_datum(&begin, event_log_.end());
 }
 
 event_log_t &&trace_t::get_event_log() {
+    guarantee(!redirected_event_log_);
     return std::move(event_log_);
 }
 
 void trace_t::start(const std::string &description) {
-    event_log_.push_back(event_t(description));
+    event_log_target()->push_back(event_t(description));
 }
 
 void trace_t::stop() {
-    event_log_.push_back(event_t());
+    event_log_target()->push_back(event_t());
 }
 
 void trace_t::start_split() {
-    event_log_.push_back(event_t(event_t::SPLIT));
+    event_log_target()->push_back(event_t(event_t::SPLIT));
 }
 
 void trace_t::stop_split(size_t n_parallel_jobs_, const event_log_t &par_event_log) {
     guarantee(event_log_.back().type_ == event_t::SPLIT);
-    event_log_.back().n_parallel_jobs_ = n_parallel_jobs_;
-    event_log_.insert(event_log_.end(), par_event_log.begin(), par_event_log.end());
+    event_log_target()->back().n_parallel_jobs_ = n_parallel_jobs_;
+    event_log_target()->insert(event_log_.end(), par_event_log.begin(), par_event_log.end());
+}
+
+void trace_t::start_redirect(event_log_t *event_log) {
+    redirected_event_log_ = event_log;
+}
+
+void trace_t::stop_redirect() {
+    redirected_event_log_ = NULL;
+}
+
+event_log_t *trace_t::event_log_target() {
+    if (redirected_event_log_) {
+        return redirected_event_log_;
+    } else {
+        return &event_log_;
+    }
+}
+
+sampler_t::sampler_t(const std::string &description, trace_t *parent)
+    : parent_(parent), starter_(description, parent),
+      total_time(0), n_samples(0)
+{
+    if (parent_) {
+        parent_->start_redirect(&event_log_);
+    }
+}
+
+ticks_t duration(const event_log_t &event_log) {
+    guarantee(!event_log.empty());
+    if (event_log.at(0).type_ == event_t::START) {
+        guarantee(event_log.back().type_ == event_t::STOP);
+        return event_log.back().when_ - event_log.at(0).when_;
+    } else {
+        guarantee(event_log.at(0).type_ == event_t::SPLIT);
+        ticks_t start = event_log.at(0).when_, res = 0;
+        size_t jobs_counter = event_log.at(0).n_parallel_jobs_;
+        auto it = event_log.begin() + 1;
+
+        size_t depth = 0;
+        for (;it != event_log.end(); ++it) {
+            guarantee(jobs_counter != 0);
+            if (it->type_ == event_t::STOP) {
+                if (depth == 0) {
+                    res += (it->when_ - start) / event_log.at(0).n_parallel_jobs_;
+                    jobs_counter--;
+                } else {
+                    depth--;
+                }
+            } else if (it->type_ == event_t::START) {
+                depth++;
+            } else if (it->type_ == event_t::SPLIT) {
+                depth += it->n_parallel_jobs_;
+            }
+        }
+        guarantee(jobs_counter == 0);
+        return res;
+    }
+}
+
+void sampler_t::new_sample() {
+    if (!event_log_.empty()) {
+        n_samples++;
+        total_time += duration(event_log_);
+    }
+
+    event_log_.clear();
+}
+
+sampler_t::~sampler_t() {
+    if (parent_) {
+        parent_->stop_redirect();
+    }
 }
 
 } //namespace explain
