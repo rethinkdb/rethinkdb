@@ -28,14 +28,32 @@ reql_t::reql_t(std::vector<reql_t> &&val) : term(make_scoped<Term>()) {
     }
 }
 
-reql_t reql_t::copy() { return reql_t(make_scoped<Term>(get())); }
+reql_t reql_t::copy() const { return reql_t(make_scoped<Term>(get())); }
 
 reql_t::reql_t(reql_t &&other) : term(std::move(other.term)) {
     guarantee(term.has());
 }
 
+reql_t::reql_t(pb::dummy_var_t var) : term(make_scoped<Term>()) {
+    term->set_type(Term::VAR);
+    add_arg(static_cast<double>(dummy_var_to_sym(var).value));
+}
+
 reql_t boolean(bool b) {
     return reql_t(datum_t(datum_t::R_BOOL, b));
+}
+
+void reql_t::copy_optargs_from_term(const Term &from){
+    for (int i = 0; i < from.optargs_size(); ++i) {
+        const Term_AssocPair &o = from.optargs(i);
+        add_arg(r::optarg(o.key(), o.val()));
+    }
+}
+
+void reql_t::copy_args_from_term(const Term &from, size_t start_index){
+    for (int i = start_index; i < from.args_size(); ++i) {
+        add_arg(from.args(i));
+    }
 }
 
 reql_t &reql_t::operator=(reql_t &&other) {
@@ -67,10 +85,6 @@ reql_t null() {
     return reql_t(std::move(t));
 }
 
-std::pair<std::string, reql_t> optarg(const std::string &key, reql_t &&value) {
-    return std::pair<std::string, reql_t>(key, std::move(value));
-}
-
 Term *reql_t::release() {
     guarantee(term.has());
     return term.release();
@@ -96,6 +110,14 @@ protob_t<Term> reql_t::release_counted() {
 
 void reql_t::swap(Term &t) {
     t.Swap(term.get());
+}
+
+reql_t reql_t::operator !() RVALUE_THIS {
+    return std::move(*this).call(Term::NOT);
+}
+
+reql_t reql_t::do_(pb::dummy_var_t arg, reql_t &&body) RVALUE_THIS {
+        return fun(arg, std::move(body))(std::move(*this));
 }
 
 void reql_t::set_datum(const datum_t &d) {
