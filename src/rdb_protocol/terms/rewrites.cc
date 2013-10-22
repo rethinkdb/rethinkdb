@@ -61,15 +61,13 @@ public:
                                   const protob_t<Term> out,
                                   const pb_rcheckable_t *bt_src) {
         std::string dc;
-        Term dc_arg;
-        parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
-        Term *arg = out.get();
-        arg = final_wrap(arg, dc, &dc_arg);
-        N4(GROUPED_MAP_REDUCE,
-           *arg = in->args(0),
-           *arg = in->args(1),
-           map_fn(arg, dc, &dc_arg),
-           reduce_fn(arg, dc, &dc_arg));
+        r::reql_t dc_arg = parse_dc(&in->args(2), &dc, bt_src);
+        reql_t gmr = r::expr(in->args(0))
+                         .grouped_map_reduce(
+                            in->args(1),
+                            map_fn(dc, &dc_arg),
+                            reduce_fn(dc, &dc_arg));
+        out = final_wrap(std::move(gmr), dc, &dc_arg).release_counted();
         return out;
     }
 
@@ -78,8 +76,8 @@ private:
     // This logic is ugly because we need to handle both MAKE_OBJ and R_OBJECT
     // as syntax rather than just parsing them both into an object (since we're
     // doing this at compile-time rather than runtime).
-    static void parse_dc(const Term *t, std::string *dc_out,
-                         Term *dc_arg_out, const pb_rcheckable_t *bt_src) {
+    static reql_t parse_dc(const Term *t, std::string *dc_out,
+                         const pb_rcheckable_t *bt_src) {
         std::string errmsg = "Invalid aggregator for GROUPBY.";
         if (t->type() == Term::MAKE_OBJ) {
             rcheck_target(bt_src, base_exc_t::GENERIC,
@@ -90,7 +88,7 @@ private:
                 bt_src, base_exc_t::GENERIC,
                 *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                 strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
-            *dc_arg_out = ap->val();
+            return ap->val();
         } else if (t->type() == Term::DATUM) {
             rcheck_target(bt_src, base_exc_t::GENERIC, t->has_datum(), errmsg);
             const Datum *d = &t->datum();
@@ -104,8 +102,7 @@ private:
                 bt_src, base_exc_t::GENERIC,
                 *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                 strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
-            dc_arg_out->set_type(Term::DATUM);
-            *dc_arg_out->mutable_datum() = ap->val();
+            return ap->val();
         } else {
             rcheck_target(bt_src, base_exc_t::GENERIC,
                           t->type() == Term::MAKE_OBJ, errmsg);
@@ -113,70 +110,60 @@ private:
         }
     }
 
-    static void map_fn(Term *arg,
-                       const std::string &dc, const Term *dc_arg) {
-        sym_t obj;
-        arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_OBJ, &obj);
+    static reql_t map_fn(const std::string &dc, const reql_t *dc_arg) {
+        auto obj = pb::dummy_var_t::GROUPBY_MAP_OBJ;
         if (dc == "COUNT") {
-            NDATUM(1.0);
+            return r::fun(arg, 1.0);
         } else if (dc == "SUM") {
-            sym_t attr;
-            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_ATTR, &attr);
-               N3(BRANCH,
-                  N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-                  N2(GET_FIELD, NVAR(obj), NVAR(attr)),
-                  NDATUM(0.0)),
-               *arg = *dc_arg);
+            auto attr = pb::dummy_var_t::GROUPBY_MAP_ATTR;
+            return r::fun(obj,
+                     r::fun(attr,
+                       r::branch(
+                         r::var(obj).has_attr(r::var(attr))
+                         r::var(obj)[attr],
+                         0.0)
+                     )(dc_arg->copy()));
         } else if (dc == "AVG") {
-            sym_t attr;
-            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_ATTR, &attr);
-               N3(BRANCH,
-                  N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-                  N2(MAKE_ARRAY, N2(GET_FIELD, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
-                  N2(MAKE_ARRAY, NDATUM(0.0), NDATUM(0.0))),
-               *arg = *dc_arg);
-        } else if (dc == "AVG") {
+            auto attr = pb::dummy_var_t::GROUPBY_MAP_ATTR;
+            return r::fun(obj,
+                     r::fun(attr,
+                       r::branch(
+                         r::var(obj).has_fields(r::var(attr)),
+                         r::array(r::var(obj)[r::var(attr)], 1.0)
+                         r::array(0.0, 0.0))
+                      )(dc_arg->copy());
         } else { unreachable(); }
     }
-    static void reduce_fn(Term *arg,
-                          const std::string &dc, UNUSED const Term *dc_arg) {
-        sym_t a;
-        sym_t b;
-        arg = pb::set_func(arg,
-                           pb::dummy_var_t::GROUPBY_REDUCE_A, &a,
-                           pb::dummy_var_t::GROUPBY_REDUCE_B, &b);
+    static reql_t reduce_fn(const std::string &dc, UNUSED const Term *dc_arg) {
+        auto a = pb::dummy_var_t::GROUPBY_REDUCE_A;
+        auto b = pb::dummy_var_t::GROUPBY_REDUCE_A;
         if (dc == "COUNT" || dc == "SUM") {
-            N2(ADD, NVAR(a), NVAR(b));
+            return r::fun(a, b, r::var(a) + r::var(b));
         } else if (dc == "AVG") {
-            N2(MAKE_ARRAY,
-               N2(ADD, N2(NTH, NVAR(a), NDATUM(0.0)),
-                       N2(NTH, NVAR(b), NDATUM(0.0))),
-               N2(ADD, N2(NTH, NVAR(a), NDATUM(1.0)),
-                       N2(NTH, NVAR(b), NDATUM(1.0))));
+            return r::fun(a, b,
+                          r::array(r::var(a).nth(0) + r::var(b).nth(0),
+                                   r::var(a).nth(1) + r::var(b).nth(1)));
         } else { unreachable(); }
     }
-    static Term *final_wrap(Term *arg,
-                            const std::string &dc, UNUSED const Term *dc_arg) {
+    static reql_t final_wrap(reql_t arg,
+                             const std::string &dc, UNUSED const Term *dc_arg) {
         if (dc == "COUNT" || dc == "SUM") {
             return arg;
         }
 
-        Term *argout = NULL;
         if (dc == "AVG") {
-            sym_t obj;
-            sym_t val;
-            N2(MAP, argout = arg, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_FINAL_OBJ, &obj);
-               OPT2(MAKE_OBJ,
-                    "group", N2(GET_FIELD, NVAR(obj), NDATUM("group")),
-                    "reduction",
-                    N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_FINAL_VAL, &val);
-                       N2(DIV, N2(NTH, NVAR(val), NDATUM(0.0)),
-                               N2(NTH, NVAR(val), NDATUM(1.0))),
-                       N2(GET_FIELD, NVAR(obj), NDATUM("reduction")))));
+            auto obj = pb::dummy_var_t::GROUPBY_FINAL_OBJ;
+            auto val = pb::dummy_var_t::GROUPBY_FINAL_VAL;
+            arg.map(r::fun(obj,
+                      r::make_obj(
+                        r::optarg("group", r::var(obj)["group"]),
+                        r::optarg("reduction",
+                                  r::fun(val,
+                                         r::var(val).nth(0) / r::var(val).nth(1)
+                                         )(r::var(obj)["reduction"])))));
         } else {
             unreachable();
         }
-        return argout;
     }
     virtual const char *name() const { return "groupby"; }
 };
