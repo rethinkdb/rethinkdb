@@ -52,7 +52,6 @@ private:
     friend class splitter_t;
     void start(const std::string &description);
     void stop();
-    //void merge(const event_log_t &event_log);
     void start_split();
     void stop_split(size_t n_parallel_jobs_, const event_log_t &event_log);
     event_log_t event_log_;
@@ -61,7 +60,7 @@ private:
 class starter_t {
 public:
     starter_t(const std::string &description, trace_t *parent);
-    //void merge(const event_log_t &event_log);
+    starter_t(const std::string &description, const scoped_ptr_t<trace_t> &parent);
     ~starter_t();
 private:
     trace_t *parent_;
@@ -70,6 +69,7 @@ private:
 class splitter_t {
 public:
     splitter_t(trace_t *parent);
+    splitter_t(const scoped_ptr_t<trace_t> &parent);
     void give_splits(size_t n_parallel_jobs_, const event_log_t &event_log);
     ~splitter_t();
 private:

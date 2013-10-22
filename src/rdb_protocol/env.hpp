@@ -179,9 +179,9 @@ public:
     // The interruptor signal while a query evaluates.  This can get overwritten!
     signal_t *interruptor;
 
-    explain::trace_t trace;
+    scoped_ptr_t<explain::trace_t> trace;
 
-    explain_bool_t explain;
+    explain_bool_t explain();
 
 private:
     js_runner_t js_runner;

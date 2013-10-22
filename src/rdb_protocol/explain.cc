@@ -103,18 +103,30 @@ void print_event_log(const event_log_t &event_log) {
 starter_t::starter_t(const std::string &description, trace_t *parent) 
     : parent_(parent)
 {
-    parent_->start(description);
+    if (parent_) {
+        parent_->start(description);
+    }
 }
 
+starter_t::starter_t(const std::string &description, const scoped_ptr_t<trace_t> &parent) 
+    : starter_t(description, parent.get_or_null()) { }
+
 starter_t::~starter_t() {
-    parent_->stop();
+    if (parent_) {
+        parent_->stop();
+    }
 }
 
 splitter_t::splitter_t(trace_t *parent)
     : parent_(parent), received_splits_(false)
 {
-    parent_->start_split();
+    if (parent_) {
+        parent_->start_split();
+    }
 }
+
+splitter_t::splitter_t(const scoped_ptr_t<trace_t> &parent)
+    : splitter_t(parent.get_or_null()) { }
 
 void splitter_t::give_splits(
     size_t n_parallel_jobs, const event_log_t &event_log) {
@@ -124,8 +136,10 @@ void splitter_t::give_splits(
 }
 
 splitter_t::~splitter_t() {
-    guarantee(received_splits_);
-    parent_->stop_split(n_parallel_jobs_, event_log_);
+    if (parent_) {
+        guarantee(received_splits_);
+        parent_->stop_split(n_parallel_jobs_, event_log_);
+    }
 }
 
 counted_t<const ql::datum_t> trace_t::as_datum() const {

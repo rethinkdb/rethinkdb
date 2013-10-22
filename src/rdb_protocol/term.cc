@@ -213,18 +213,16 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
-                counted_t<const datum_t> trace = env->trace.as_datum();
-                if (trace) {
-                    trace->write_to_protobuf(res->mutable_explain());
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(res->mutable_explain());
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(res->mutable_explain());
+                }
                 stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
-                counted_t<const datum_t> trace = env->trace.as_datum();
-                if (trace) {
-                    trace->write_to_protobuf(res->mutable_explain());
-                }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
                                "Query result must be of type DATUM or STREAM (got %s).",
@@ -296,7 +294,7 @@ void term_t::prop_bt(Term *t) const {
 
 counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
-    explain::starter_t starter(strprintf("Evaluating %s.", name()), &env->env->trace);
+    explain::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->env->throw_if_interruptor_pulsed();

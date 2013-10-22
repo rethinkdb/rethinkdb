@@ -1257,7 +1257,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     explain::event_log_t &&get_event_log() {
-        return ql_env.trace.get_event_log();
+        if (ql_env.trace.has()) {
+            return ql_env.trace->get_event_log();
+        } else {
+            static explain::event_log_t event_log;
+            return std::move(event_log);
+        }
     }
 
 private:
@@ -1282,7 +1287,7 @@ void store_t::protocol_read(const read_t &read,
         btree, this, txn, superblock, token_pair,
         ctx, response, read.explain, interruptor);
     {
-        explain::starter_t start_write("Perform read on shard.", &v.get_env()->trace);
+        explain::starter_t start_write("Perform read on shard.", v.get_env()->trace);
         boost::apply_visitor(v, read.read);
     }
 
@@ -1428,7 +1433,12 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     explain::event_log_t &&get_event_log() {
-        return ql_env.trace.get_event_log();
+        if (ql_env.trace.has()) {
+            return ql_env.trace->get_event_log();
+        } else {
+            static explain::event_log_t event_log;
+            return std::move(event_log);
+        }
     }
 
 private:
@@ -1474,7 +1484,7 @@ void store_t::protocol_write(const write_t &write,
     rdb_write_visitor_t v(btree, this, txn, superblock, token_pair,
             timestamp.to_repli_timestamp(), ctx, response, interruptor);
     {
-        explain::starter_t start_write("Perform write on shard.", &v.get_env()->trace);
+        explain::starter_t start_write("Perform write on shard.", v.get_env()->trace);
         boost::apply_visitor(v, write.write);
     }
 

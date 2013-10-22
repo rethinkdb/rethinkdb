@@ -101,10 +101,10 @@ void rdb_namespace_interface_t::read(
         order_token_t tok,
         signal_t *interruptor) 
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    explain::starter_t starter("Perform read.", &env_->trace);
-    explain::splitter_t splitter(&env_->trace);
+    explain::starter_t starter("Perform read.", env_->trace);
+    explain::splitter_t splitter(env_->trace);
     /* propagate whether or not we're doing explains */
-    read->explain = env_->explain;
+    read->explain = env_->explain();
     /* Do the actual read. */
     internal_->read(*read, response, tok, interruptor);
     /* Append the results of the parallel tasks to the current trace */
@@ -117,10 +117,10 @@ void rdb_namespace_interface_t::read_outdated(
         rdb_protocol_t::read_response_t *response,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    explain::starter_t starter("Perform outdated read.", &env_->trace);
-    explain::splitter_t splitter(&env_->trace);
+    explain::starter_t starter("Perform outdated read.", env_->trace);
+    explain::splitter_t splitter(env_->trace);
     /* propagate whether or not we're doing explains */
-    read->explain = env_->explain;
+    read->explain = env_->explain();
     /* Do the actual read. */
     internal_->read_outdated(*read, response, interruptor);
     /* Append the results of the explain to the current task */
@@ -133,10 +133,10 @@ void rdb_namespace_interface_t::write(
         order_token_t tok,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    explain::starter_t starter("Perform write", &env_->trace);
-    explain::splitter_t splitter(&env_->trace);
+    explain::starter_t starter("Perform write", env_->trace);
+    explain::splitter_t splitter(env_->trace);
     /* propagate whether or not we're doing explains */
-    write->explain = env_->explain;
+    write->explain = env_->explain();
     /* Do the actual read. */
     internal_->write(*write, response, tok, interruptor);
     /* Append the results of the explain to the current task */
@@ -173,6 +173,10 @@ void env_t::do_eval_callback() {
     if (eval_callback != NULL) {
         eval_callback->eval_callback();
     }
+}
+
+explain_bool_t env_t::explain() {
+    return trace.has() ? explain_bool_t::EXPLAIN : explain_bool_t::DONT_EXPLAIN;
 }
 
 cluster_access_t::cluster_access_t(
@@ -259,9 +263,9 @@ env_t::env_t(
     eval_callback(NULL)
 {
     counted_t<val_t> explain_arg = global_optargs.get_optarg(this, "explain");
-    explain = (explain_arg.has() && explain_arg->as_bool() ? 
-              explain_bool_t::EXPLAIN :
-              explain_bool_t::DONT_EXPLAIN);
+    if (explain_arg.has() && explain_arg->as_bool()) {
+        trace.init(new explain::trace_t());
+    }
 }
 
 env_t::env_t(
@@ -288,9 +292,12 @@ env_t::env_t(
                    _directory_read_manager,
                    _this_machine),
     interruptor(_interruptor),
-    explain(_explain),
     eval_callback(NULL)
-{ }
+{
+    if (_explain == explain_bool_t::EXPLAIN) {
+        trace.init(new explain::trace_t());
+    }
+}
 
 env_t::env_t(signal_t *_interruptor)
   : extproc_pool(NULL),
@@ -301,7 +308,6 @@ env_t::env_t(signal_t *_interruptor)
                    NULL,
                    uuid_u()),
     interruptor(_interruptor),
-    explain(explain_bool_t::DONT_EXPLAIN),
     eval_callback(NULL)
 { }
 
