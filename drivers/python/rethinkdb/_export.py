@@ -179,7 +179,6 @@ def write_table_metadata(conn, db, table, base_path):
     out.close()
 
 def read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event):
-    progress_info[0].value = 0
     read_rows = 0
     for row in r.db(db).table(table).run(conn, time_format="raw"):
         if exit_event.is_set():
@@ -265,6 +264,7 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
 
         table_size = r.db(db).table(table).count().run(conn)
         progress_info[1].value = table_size
+        progress_info[0].value = 0
         write_table_metadata(conn, db, table, directory)
 
         acquired_semaphore = True
@@ -302,19 +302,25 @@ def print_progress(ratio):
     print "\r[%s%s] %3d%%" % ("=" * done_width, " " * undone_width, int(100 * ratio)),
     sys.stdout.flush()
 
+# We sum up the row count from all tables for total percentage completion
+#  This is because table exports can be staggered when there are not enough clients
+#  to export all of them at once.  As a result, the progress bar will not necessarily
+#  move at the same rate for different tables.
 def update_progress(progress_info):
-    lowest_completion = 1.0
+    rows_done = 0
+    total_rows = 1
     for (current, max_count) in progress_info:
         curr_val = current.value
         max_val = max_count.value
         if curr_val < 0:
-            lowest_completion = 0.0
-        elif max_val <= 0:
-            lowest_completion = 1.0
+            # There is a table that hasn't finished counting yet, we can't report progress
+            rows_done = 0
+            break
         else:
-            lowest_completion = min(lowest_completion, float(curr_val) / max_val)
+            rows_done += curr_val
+            total_rows += max_val
 
-    print_progress(lowest_completion)
+    print_progress(float(rows_done) / total_rows)
 
 def run_clients(options, db_table_set):
     # Spawn one client for each db.table
