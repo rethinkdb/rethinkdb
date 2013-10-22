@@ -239,6 +239,7 @@ void coro_profiler_t::print_to_reql(
     
     const double time = ticks_to_secs(get_ticks());
     
+    reql_output_file.precision(std::numeric_limits<double>::digits10);
     for (auto report = execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
         reql_output_file << "print t.insert({" << std::endl;
         reql_output_file << "\t\t'time': " << time << "," << std::endl;
