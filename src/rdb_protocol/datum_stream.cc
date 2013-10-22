@@ -68,7 +68,8 @@ bool reader_t::load_items(env_t *env) {
         // RSI: Enforce sort limit.
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
-        while (boost::optional<rget_read_t> read = readgen->sindex_sort_read(items)) {
+        while (boost::optional<rget_read_t> read
+               = readgen->sindex_sort_read(items, transform)) {
             std::vector<rget_item_t> new_items = do_range_read(env, read_t(*read));
             if (new_items.size() == 0) {
                 break;
@@ -192,7 +193,7 @@ rget_read_t primary_readgen_t::next_read_impl(
 
 // We never need to do an sindex sort when indexing by a primary key.
 boost::optional<rget_read_t> primary_readgen_t::sindex_sort_read(
-    UNUSED const std::vector<rget_item_t> &items) {
+    UNUSED const std::vector<rget_item_t> &items, UNUSED const transform_t &transform) {
     return boost::optional<rget_read_t>();
 }
 void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) {
@@ -237,12 +238,25 @@ rget_read_t sindex_readgen_t::next_read_impl(
                        transform, global_optargs, sorting);
 }
 
+// RSI: test this shit
 boost::optional<rget_read_t> sindex_readgen_t::sindex_sort_read(
-    const std::vector<rget_item_t> &items) {
-    if (items.size() == 0) {
-        return boost::optional<rget_read_t>();
+    const std::vector<rget_item_t> &items, const transform_t &transform) {
+    if (sorting != UNORDERED && items.size() > 0) {
+        const store_key_t &key = items[items.size() - 1].key;
+        if (datum_t::key_is_truncated(key)) {
+            std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
+            // Generate the right bound by filling to the end with 0xFF.  This
+            // lets us produce a range that's "everything after the last row we
+            // read with the same truncated sindex value".
+            store_key_t rbound(skey + std::string(MAX_KEY_SIZE - skey.size(), 0xFF));
+            key_range_t rng(key_range_t::open, key, key_range_t::closed, rbound);
+            return boost::optional<rget_read_t>(
+                rget_read_t(region_t(key_range_t(rng)), sindex, original_datum_range,
+                            transform, global_optargs, sorting));
+
+        }
     }
-    DO_ME; // RSI: DO ME
+    return boost::optional<rget_read_t>();
 }
 
 key_range_t sindex_readgen_t::original_keyrange() {
@@ -347,45 +361,34 @@ counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
 }
 
 // LAZY_DATUM_STREAM_T
-lazy_datum_stream_t(
-    namespace_repo_t<rdb_protocol_t>::access_t *_ns_access,
-    bool _use_outdated,
-    const std::map<std::string, wire_func_t> _global_optargs,
-    scoped_ptr_t<readgen_t> &&_readgen,
+lazy_datum_stream_t::lazy_datum_stream_t(
+    namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+    bool use_outdated,
+    scoped_ptr_t<readgen_t> &&readgen,
     const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
-      ns_access(*_ns_access),
-      use_outdated(_use_outdated),
-      global_optargs(_global_optargs),
-      readgen(std::move(_readgen)) { }
+      current_batch_offset(0),
+      reader(*ns_access, use_outdated, std::move(readgen)) { }
 
 counted_t<datum_stream_t> lazy_datum_stream_t::map(counted_t<func_t> f) {
-    scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
-    out->json_stream = json_stream;
-    out->json_stream->add_transformation(
-        rdb_protocol_details::transform_variant_t(map_wire_func_t(f)));
-    return counted_t<datum_stream_t>(out.release());
+    reader.add_transformation(map_wire_func_t(f));
+    return counted_from_this();
 }
 
 counted_t<datum_stream_t> lazy_datum_stream_t::concatmap(counted_t<func_t> f) {
-    scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
-    out->json_stream = json_stream;
-    out->json_stream->add_transformation(
-        rdb_protocol_details::transform_variant_t(concatmap_wire_func_t(f)));
-    return counted_t<datum_stream_t>(out.release());
+    reader.add_transformation(concatmap_wire_func_t(f));
+    return counted_from_this();
 }
-counted_t<datum_stream_t>
-lazy_datum_stream_t::filter(counted_t<func_t> f,
-                            counted_t<func_t> default_filter_val) {
-    scoped_ptr_t<lazy_datum_stream_t> out(new lazy_datum_stream_t(this));
-    out->json_stream = json_stream;
-    out->json_stream->add_transformation(
-        rdb_protocol_details::transform_variant_t(filter_transform_t(
+
+counted_t<datum_stream_t> lazy_datum_stream_t::filter(
+    counted_t<func_t> f, counted_t<func_t> default_filter_val) {
+    reader.add_transformation(
+        filter_transform_t(
             wire_func_t(f),
             default_filter_val.has()
                 ? boost::make_optional(wire_func_t(default_filter_val))
-                : boost::none)));
-    return counted_t<datum_stream_t>(out.release());
+                : boost::none));
+    return counted_from_this();
 }
 
 // This applies a terminal to the JSON stream, evaluates it, and pulls out the

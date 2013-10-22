@@ -125,7 +125,7 @@ key_range_t datum_range_t::to_primary_keyrange() const {
             : store_key_t::max());
 }
 
-key_range_t datum_range_t::to_secondary_keyrange() const {
+key_range_t datum_range_t::to_sindex_keyrange() const {
     return rdb_protocol_t::sindex_key_range(
         left_bound.has()
             ? store_key_t(left_bound->truncated_secondary())

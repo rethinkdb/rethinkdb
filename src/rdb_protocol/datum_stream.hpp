@@ -198,8 +198,12 @@ public:
 
     virtual rget_read_t next_read(
         const key_range_t &active_range, const transform_t &transform);
+    // This generates a read that will read as many rows as we need to be able
+    // to do an sindex sort, or nothing if no such read is necessary.  Such a
+    // read should only be necessary when we're ordering by a secondary index
+    // and the last element read has a truncated value for that secondary index.
     virtual boost::optional<rget_read_t> sindex_sort_read(
-        const std::vector<rget_item_t> &items) = 0;
+        const std::vector<rget_item_t> &items, const transform_t &transform) = 0;
     virtual key_range_t original_keyrange() = 0;
 
     // Returns `true` if there is no more to read.
@@ -225,7 +229,7 @@ private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range, const transform_t &transform);
     virtual boost::optional<rget_read_t> sindex_sort_read(
-        const std::vector<rget_item_t> &items);
+        const std::vector<rget_item_t> &items, const transform_t &transform);
     virtual void sindex_sort(std::vector<rget_item_t> *vec);
     virtual key_range_t original_keyrange();
 };
@@ -242,7 +246,7 @@ private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range, const transform_t &transform);
     virtual boost::optional<rget_read_t> sindex_sort_read(
-        const std::vector<rget_item_t> &items);
+        const std::vector<rget_item_t> &items, const transform_t &transform);
     virtual void sindex_sort(std::vector<rget_item_t> *vec);
     virtual key_range_t original_keyrange();
 };
@@ -279,9 +283,11 @@ private:
 
 class lazy_datum_stream_t : public datum_stream_t {
 public:
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
-                        const protob_t<const Backtrace> &bt_src);
+    lazy_datum_stream_t(
+        namespace_repo_t<rdb_protocol_t>::access_t *_ns_access,
+        bool _use_outdated,
+        scoped_ptr_t<readgen_t> &&_readgen,
+        const protob_t<const Backtrace> &bt_src);
 
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val);
@@ -310,6 +316,9 @@ private:
     rdb_protocol_t::rget_read_response_t::result_t run_terminal(
         env_t *env, const rdb_protocol_details::terminal_variant_t &t);
 
+    // We use these to cache a batch so that `next` works.  There are a lot of
+    // things that are most easily written in terms of `next` that would
+    // otherwise have to do this caching themselves.
     size_t current_batch_offset;
     std::vector<counted_t<const datum_t> > current_batch;
 

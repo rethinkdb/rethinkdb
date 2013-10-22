@@ -72,7 +72,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
 namespace ql {
 class readgen_t;
 class primary_readgen_t;
-class secondary_readgen_t;
+class sindex_readgen_t;
 }
 
 class datum_range_t {
@@ -88,11 +88,11 @@ public:
 private:
     friend class ql::readgen_t;
     friend class ql::primary_readgen_t;
-    friend class ql::secondary_readgen_t;
+    friend class ql::sindex_readgen_t;
     friend void run_create_drop_sindex_test(
         namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource);
     key_range_t to_primary_keyrange() const;
-    key_range_t to_secondary_keyrange() const;
+    key_range_t to_sindex_keyrange() const;
     counted_t<const ql::datum_t> left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };
