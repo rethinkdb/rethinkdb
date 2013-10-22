@@ -35,6 +35,8 @@ def print_export_help():
     print "                                   (required for CSV format)"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
     print "                                   be specified multiple times)"
+    print "  --clients NUM                    number of tables to export simultaneously (defaults"
+    print "                                   to 3, max is 128)"
     print ""
     print "EXAMPLES:"
     print "rethinkdb export -c mnemosyne:39500"
@@ -60,6 +62,7 @@ def parse_options():
     parser.add_option("-d", "--directory", dest="directory", metavar="DIRECTORY", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="DB | DB.TABLE", default=[], action="append", type="string")
     parser.add_option("--fields", dest="fields", metavar="<FIELD>,<FIELD>...", default=None, type="string")
+    parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -121,6 +124,11 @@ def parse_options():
         raise RuntimeError("Error: Can only use the --fields option when exporting a single table")
     else:
         res["fields"] = options.fields.split(",")
+
+    # Get number of clients
+    if options.clients < 1 or options.clients > 128:
+       raise RuntimeError("Error: invalid number of clients (%d), must be between 0 and 128" % options.clients)
+    res["clients"] = options.clients
 
     res["auth_key"] = options.auth_key
     return res
@@ -236,28 +244,36 @@ def csv_writer(filename, fields, task_queue, error_queue):
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
 
-def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_info, exit_event):
-    task_queue = multiprocessing.queues.SimpleQueue()
-
+def launch_writer(format, directory, db, table, fields, task_queue, error_queue):
     if format == "json":
         filename = directory + "/%s/%s.json" % (db, table)
-        writer = multiprocessing.Process(target=json_writer,
-                                         args=(filename, fields, task_queue, error_queue))
+        return multiprocessing.Process(target=json_writer,
+                                       args=(filename, fields, task_queue, error_queue))
     elif format == "csv":
         filename = directory + "/%s/%s.csv" % (db, table)
-        writer = multiprocessing.Process(target=csv_writer,
-                                         args=(filename, fields, task_queue, error_queue))
+        return multiprocessing.Process(target=csv_writer,
+                                       args=(filename, fields, task_queue, error_queue))
     else:
-        error_queue.put((RuntimeError, RuntimeError("unknown format type: %s" % format),
-                         traceback.extract_tb(sys.exc_info()[2])))
-        return
+        raise RuntimeError("unknown format type: %s" % format)
+
+def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_info, stream_semaphore, exit_event):
+    acquired_semaphore = False
+    writer = None
 
     try:
         conn = r.connect(host, port, auth_key=auth_key)
+
         table_size = r.db(db).table(table).count().run(conn)
         progress_info[1].value = table_size
         write_table_metadata(conn, db, table, directory)
+
+        acquired_semaphore = True
+        stream_semaphore.acquire()
+
+        task_queue = multiprocessing.queues.SimpleQueue()
+        writer = launch_writer(format, directory, db, table, fields, task_queue, error_queue)
         writer.start()
+
         read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event)
     except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
@@ -265,7 +281,10 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
     finally:
-        if writer.is_alive():
+        if acquired_semaphore:
+            stream_semaphore.release()
+
+        if writer is not None and writer.is_alive():
             task_queue.put(("exit", "event")) # Exit is triggered by sending a message with two objects
             writer.join()
         else:
@@ -303,6 +322,7 @@ def run_clients(options, db_table_set):
     processes = []
     error_queue = multiprocessing.queues.SimpleQueue()
     interrupt_event = multiprocessing.Event()
+    stream_semaphore = multiprocessing.BoundedSemaphore(options["clients"])
 
     signal.signal(signal.SIGINT, lambda a,b: abort_export(a, b, exit_event, interrupt_event))
 
@@ -322,6 +342,7 @@ def run_clients(options, db_table_set):
                                                            options["format"],
                                                            error_queue,
                                                            progress_info[-1],
+                                                           stream_semaphore,
                                                            exit_event)))
             processes[-1].start()
 
@@ -365,6 +386,10 @@ def main():
     try:
         db_table_set = get_tables(options["host"], options["port"], options["auth_key"], options["tables"])
         del options["tables"] # This is not needed anymore, db_table_set is more useful
+
+        # Determine the actual number of client processes we'll have
+        options["clients"] = min(options["clients"], len(db_table_set))
+
         prepare_directories(options["directory"], options["directory_partial"], db_table_set)
         start_time = time.time()
         run_clients(options, db_table_set)
