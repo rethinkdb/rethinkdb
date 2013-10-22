@@ -16,40 +16,6 @@ const char *const empty_stream_msg =
     "Cannot reduce over an empty stream with no base.";
 
 // RANGE/READGEN STUFF
-datum_range_t::datum_range_t(
-    counted_t<const datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
-    counted_t<const datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
-    : left_bound(_left_bound), right_bound(_right_bound),
-      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type)
-{ }
-
-datum_range_t datum_range_t::universe()  {
-    return datum_range_t(counted_t<const datum_t>(), key_range_t::open,
-                         counted_t<const datum_t>(), key_range_t::open);
-}
-
-key_range_t datum_range_t::to_primary_keyrange() const {
-    return key_range_t(
-        left_bound_type,
-        left_bound.has()
-            ? store_key_t(left_bound->print_primary())
-            : store_key_t::min(),
-        right_bound_type,
-        right_bound.has()
-            ? store_key_t(right_bound->print_primary())
-            : store_key_t::max());
-}
-
-key_range_t datum_range_t::to_secondary_keyrange() const {
-    return rdb_protocol_t::sindex_key_range(
-        left_bound.has()
-            ? store_key_t(left_bound->truncated_secondary())
-            : store_key_t::min(),
-        right_bound.has()
-            ? store_key_t(right_bound->truncated_secondary())
-            : store_key_t::max());
-}
-
 reader_t::reader_t(
     const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
     bool _use_outdated,
@@ -135,11 +101,15 @@ reader_t::next_batch(env_t *env, batch_type_t batch_type) {
         }
     } break;
     case SINDEX_CONSTANT: {
-        toret.push_back(items[items_index++]);
+        boost::optional<counted_t<const ql::datum_t> > sindex
+            = std::move(items[items_index].sindex_key);
+        toret.push_back(std::move(items[items_index].data));
+        items_index += 1;
+
         for (; items_index < items.size(); ++items_index) {
-            if (toret[0].sindex_key) {
+            if (sindex) {
                 r_sanity_check(items[items_index].sindex_key);
-                if (items[items_index].sindex_key != toret[0].sindex_key) {
+                if (*items[items_index].sindex_key != *sindex) {
                     break; // batch is done
                 }
             } else {
@@ -272,7 +242,7 @@ boost::optional<rget_read_t> sindex_readgen_t::sindex_sort_read(
     if (items.size() == 0) {
         return boost::optional<rget_read_t>();
     }
-    DO_ME;
+    DO_ME; // RSI: DO ME
 }
 
 key_range_t sindex_readgen_t::original_keyrange() {
@@ -290,22 +260,14 @@ counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
     return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
 }
 
-std::vector<counted_t<const datum_t> > datum_stream_t::next_batch(env_t *env) {
+std::vector<counted_t<const datum_t> >
+datum_stream_t::next_batch(env_t *env, batch_type_t batch_type) {
     DEBUG_ONLY_CODE(env->do_eval_callback());
     env->throw_if_interruptor_pulsed();
+    // Cannot mix `next` and `next_batch`.
+    r_sanity_check(batch_cache_index == 0 && batch_cache.size() == 0);
     try {
-        return next_batch_impl(env);
-    } catch (const datum_exc_t &e) {
-        rfail(e.get_type(), "%s", e.what());
-        unreachable();
-    }
-}
-
-std::vector<counted_t<const datum_t> > datum_stream_t::next_sortable_batch(env_t *env) {
-    DEBUG_ONLY_CODE(env->do_eval_callback());
-    env->throw_if_interruptor_pulsed();
-    try {
-        return next_sortable_batch_impl(env);
+        return next_batch_impl(env, batch_type);
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
         unreachable();
@@ -313,14 +275,15 @@ std::vector<counted_t<const datum_t> > datum_stream_t::next_sortable_batch(env_t
 }
 
 counted_t<const datum_t> datum_stream_t::next(env_t *env) {
-    DEBUG_ONLY_CODE(env->do_eval_callback());
-    env->throw_if_interruptor_pulsed();
-    try {
-        return next_impl(env);
-    } catch (const datum_exc_t &e) {
-        rfail(e.get_type(), "%s", e.what());
-        unreachable();
+    if (batch_cache_index >= batch_cache.size()) {
+        batch_cache_index = 0;
+        batch_cache = next_batch(env, NORMAL);
+        if (batch_cache_index >= batch_cache.size()) {
+            return counted_t<const datum_t>();
+        }
     }
+    r_sanity_check(batch_cache_index < batch_cache.size());
+    return std::move(batch_cache[batch_cache_index++]);
 }
 
 counted_t<const datum_t> eager_datum_stream_t::count(env_t *env) {
@@ -518,8 +481,26 @@ array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
                                            const protob_t<const Backtrace> &bt_source)
     : eager_datum_stream_t(bt_source), index(0), arr(_arr) { }
 
-counted_t<const datum_t> array_datum_stream_t::next_impl(UNUSED env_t *env) {
+counted_t<const datum_t> array_datum_stream_t::next(UNUSED env_t *env) {
     return arr->get(index++, NOTHROW);
+}
+
+virtual std::vector<counted_t<const datum_t> >
+array_datum_stream_t::next_batch_impl(env_t *env, UNUSED batch_type_t batch_type) {
+    std::vector<counted_t<const datum_t> > v;
+    size_t total_size;
+    while (counted_t<const datum_t> d = next(env)) {
+        total_size += serialized_size(d);
+        v.push_back(std::move(d));
+        if (should_send_batch(v.size(), total_size, 0)) {
+            break;
+        }
+    }
+    return v;
+}
+
+virtual bool array_datum_stream_t::is_array() {
+    return true;
 }
 
 std::vector<counted_t<const datum_t> >
@@ -611,32 +592,21 @@ concatmap_datum_stream_t::concatmap_datum_stream_t(counted_t<func_t> _f,
 std::vector<counted_t<const datum_t> >
 concatmap_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
     for (;;) {
-        if (!subsource.has()) {
-            counted_t<const datum_t> arg = source->next(env);
-            if (!arg.has()) {
-                return counted_t<const datum_t>();
+        if (index >= subsources.size()) {
+            index = 0;
+            subsources = source->next(env, NORMAL);
+        }
+        if (index >= subsources.size()) {
+            return std::vector<counted_t<const datum_t> >();
+        }
+
+        for (; index < subsources.size(); index++) {
+            std::vector<counted_t<const datum_t> > v
+                = subsources[index]->next_batch(env, batch_type);
+            if (v.size() != 0) {
+                return v;
             }
-            subsource = f->call(env, arg)->as_seq(env);
         }
-
-}
-
-counted_t<const datum_t> concatmap_datum_stream_t::next_impl(env_t *env) {
-    for (;;) {
-        if (!subsource.has()) {
-            counted_t<const datum_t> arg = source->next(env);
-            if (!arg.has()) {
-                return counted_t<const datum_t>();
-            }
-            subsource = f->call(env, arg)->as_seq(env);
-        }
-
-        counted_t<const datum_t> datum = subsource->next(env);
-        if (datum.has()) {
-            return datum;
-        }
-
-        subsource.reset();
     }
 }
 
@@ -646,46 +616,56 @@ slice_datum_stream_t::slice_datum_stream_t(size_t _left, size_t _right,
     : wrapper_datum_stream_t(_src), index(0),
       left(_left), right(_right) { }
 
-counted_t<const datum_t> slice_datum_stream_t::next_impl(env_t *env) {
-    if (left >= right || index >= right) {
-        return counted_t<const datum_t>();
+std::vector<counted_t<const datum_t> >
+slice_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
+    if (left >= right) {
+        return std::vector<counted_t<const datum_t> >();
     }
 
     while (index < left) {
-        counted_t<const datum_t> discard = source->next(env);
-        if (!discard.has()) {
-            return counted_t<const datum_t>();
+        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batch_type);
+        index += v.size();
+        if (index > left) {
+            std::vector<counted_t<const datum_t> > ret;
+            ret.reserve(index - left);
+            std::move(v.end() - (index - left), v.end(), std::back_inserter(ret));
+            return ret;
         }
-        ++index;
     }
 
-    counted_t<const datum_t> datum = source->next(env);
-    if (datum.has()) {
-        ++index;
+    while (index < right) {
+        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batch_type);
+        index += v.size();
+        if (index > right) {
+            v.resize(v.size() - (index - right));
+        }
+        return v;
     }
-    return datum;
+
+    return std::vector<counted_t<const datum_t> >();
 }
 
 // ZIP_DATUM_STREAM_T
 zip_datum_stream_t::zip_datum_stream_t(counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src) { }
 
-counted_t<const datum_t> zip_datum_stream_t::next_impl(env_t *env) {
-    counted_t<const datum_t> datum = source->next(env);
-    if (!datum.has()) {
-        return counted_t<const datum_t>();
+std::vector<counted_t<const datum_t> >
+zip_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
+    std::vector<counted_t<const datum_t> > v = source->next_batch(env, batch_type);
+    for (auto it = v.begin(); it != v.end(); ++it) {
+        auto left = (*it)->get("left", NOTHROW);
+        auto right = (*it)->get("right", NOTHROW);
+        rcheck(left.has(), base_exc_t::GENERIC,
+               "ZIP can only be called on the result of a join.");
+        *it = right.has() ? left->merge(right) : left;
     }
-
-    counted_t<const datum_t> left = datum->get("left", NOTHROW);
-    counted_t<const datum_t> right = datum->get("right", NOTHROW);
-    rcheck(left.has(), base_exc_t::GENERIC,
-           "ZIP can only be called on the result of a join.");
-    return right.has() ? left->merge(right) : left;
+    return v;
 }
 
 // UNION_DATUM_STREAM_T
-counted_t<datum_stream_t> union_datum_stream_t::filter(counted_t<func_t> f,
-                                                       counted_t<func_t> default_filter_val) {
+counted_t<datum_stream_t> union_datum_stream_t::filter(
+    counted_t<func_t> f,
+    counted_t<func_t> default_filter_val) {
     for (auto it = streams.begin(); it != streams.end(); ++it) {
         *it = (*it)->filter(f, default_filter_val);
     }
@@ -759,7 +739,8 @@ counted_t<const datum_t> union_datum_stream_t::gmr(
             if (!dm.has(el_group)) {
                 dm.set(el_group, el_reduction);
             } else {
-                dm.set(el_group, r->call(env, dm.get(el_group), el_reduction)->as_datum());
+                dm.set(el_group,
+                       r->call(env, dm.get(el_group), el_reduction)->as_datum());
             }
         }
     }
@@ -783,16 +764,6 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
         arr.add(d);
     }
     return arr.to_counted();
-}
-
-counted_t<const datum_t> union_datum_stream_t::next_impl(env_t *env) {
-    for (; streams_index < streams.size(); ++streams_index) {
-        counted_t<const datum_t> datum = streams[streams_index]->next(env);
-        if (datum.has()) {
-            return datum;
-        }
-    }
-    return counted_t<const datum_t>();
 }
 
 std::vector<counted_t<const datum_t> >

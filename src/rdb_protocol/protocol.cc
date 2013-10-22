@@ -92,6 +92,49 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
 RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
 
+datum_range_t::datum_range_t(
+    counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
+    counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
+    : left_bound(_left_bound), right_bound(_right_bound),
+      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type)
+{ }
+
+datum_range_t datum_range_t::universe()  {
+    return datum_range_t(counted_t<const ql::datum_t>(), key_range_t::open,
+                         counted_t<const ql::datum_t>(), key_range_t::open);
+}
+
+bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
+    return (!left_bound.has()
+            || *left_bound < *val
+            || (*left_bound == *val && left_bound_type == key_range_t::closed))
+        && (!right_bound.has()
+            || *right_bound > *val
+            || (*right_bound == *val && right_bound_type == key_range_t::closed));
+}
+
+key_range_t datum_range_t::to_primary_keyrange() const {
+    return key_range_t(
+        left_bound_type,
+        left_bound.has()
+            ? store_key_t(left_bound->print_primary())
+            : store_key_t::min(),
+        right_bound_type,
+        right_bound.has()
+            ? store_key_t(right_bound->print_primary())
+            : store_key_t::max());
+}
+
+key_range_t datum_range_t::to_secondary_keyrange() const {
+    return rdb_protocol_t::sindex_key_range(
+        left_bound.has()
+            ? store_key_t(left_bound->truncated_secondary())
+            : store_key_t::min(),
+        right_bound.has()
+            ? store_key_t(right_bound->truncated_secondary())
+            : store_key_t::max());
+}
+
 namespace rdb_protocol_details {
 
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
@@ -654,14 +697,17 @@ private:
         rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
         // A vanilla range get
         // First we need to determine the cutoff key:
-        rg_response->last_considered_key = forward(rg.sorting) ? store_key_t::max() : store_key_t::min();
+        rg_response->last_considered_key =
+            rg.sorting != DESCENDING ? store_key_t::max() : store_key_t::min();
         for (size_t i = 0; i < count; ++i) {
-            const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+            auto rr = boost::get<rget_read_response_t>(&responses[i].response);
             guarantee(rr != NULL);
 
-            if (rr->truncated &&
-                    ((rg_response->last_considered_key > rr->last_considered_key && forward(rg.sorting)) ||
-                     (rg_response->last_considered_key < rr->last_considered_key && backward(rg.sorting)))) {
+            if (rr->truncated
+                && ((rg_response->last_considered_key > rr->last_considered_key
+                     && rg.sorting != DESCENDING)
+                    || (rg_response->last_considered_key < rr->last_considered_key
+                        && rg.sorting == DESCENDING))) {
                 rg_response->last_considered_key = rr->last_considered_key;
             }
         }
@@ -672,14 +718,16 @@ private:
         if (rg.sorting == UNORDERED) {
             for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
-                const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                auto rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(rr != NULL);
 
                 const stream_t *stream = boost::get<stream_t>(&(rr->result));
 
-                for (stream_t::const_iterator it = stream->begin(); it != stream->end(); ++it) {
-                    if ((it->key <= rg_response->last_considered_key && forward(rg.sorting)) ||
-                            (it->key >= rg_response->last_considered_key && backward(rg.sorting))) {
+                for (auto it = stream->begin(); it != stream->end(); ++it) {
+                    if ((it->key <= rg_response->last_considered_key
+                         && rg.sorting != DESCENDING)
+                        || (it->key >= rg_response->last_considered_key
+                            && rg.sorting == DESCENDING)) {
                         res_stream->push_back(*it);
                     }
                 }
@@ -687,11 +735,12 @@ private:
                 rg_response->truncated = rg_response->truncated || rr->truncated;
             }
         } else {
-            std::vector<std::pair<stream_t::const_iterator, stream_t::const_iterator> > iterators;
+            std::vector<std::pair<stream_t::const_iterator, stream_t::const_iterator> >
+                iterators;
 
             for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
-                const rget_read_response_t *rr = boost::get<rget_read_response_t>(&responses[i].response);
+                auto rr = boost::get<rget_read_response_t>(&responses[i].response);
                 guarantee(rr != NULL);
 
                 const stream_t *stream = boost::get<stream_t>(&(rr->result));
@@ -699,7 +748,8 @@ private:
             }
 
             while (true) {
-                store_key_t key_to_beat = (forward(rg.sorting) ? store_key_t::max() : store_key_t::min());
+                store_key_t key_to_beat =
+                    rg.sorting != DESCENDING ? store_key_t::max() : store_key_t::min();
                 bool found_value = false;
                 stream_t::const_iterator *value = NULL;
 
@@ -708,12 +758,12 @@ private:
                         continue;
                     }
 
-                    if ((forward(rg.sorting) &&
-                                it->first->key <= key_to_beat &&
-                                it->first->key <= rg_response->last_considered_key) ||
-                            (backward(rg.sorting) &&
-                             it->first->key >= key_to_beat &&
-                             it->first->key >= rg_response->last_considered_key)) {
+                    if ((rg.sorting != DESCENDING
+                         && it->first->key <= key_to_beat
+                         && it->first->key <= rg_response->last_considered_key)
+                        || (rg.sorting == DESCENDING
+                            && it->first->key >= key_to_beat
+                            && it->first->key >= rg_response->last_considered_key)) {
                         key_to_beat = it->first->key;
                         found_value = true;
                         value = &it->first;
@@ -1752,11 +1802,6 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     return region_t(beg, end, key_range_t::universe());
 }
 
-bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
-    return (!start || (*start < *value || (*start == *value && !start_open))) &&
-           (!end   || (*value < *end   || (*value == *end && !end_open)));
-}
-
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
@@ -1769,8 +1814,9 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
-RDB_IMPL_ME_SERIALIZABLE_4(sindex_range_t,
-                           empty_ok(start), empty_ok(end), start_open, end_open);
+RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
+                           empty_ok(left_bound), empty_ok(right_bound),
+                           left_bound_type, right_bound_type);
 RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
                            sindex_region, sindex_range,
                            transform, terminal, optargs, sorting);

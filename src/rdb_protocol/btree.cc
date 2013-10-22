@@ -682,10 +682,9 @@ public:
 
     void init(const key_range_t &range) {
         try {
-            if (forward(sorting)) {
+            if (sorting != DESCENDING) {
                 response->last_considered_key = range.left;
             } else {
-                guarantee(backward(sorting));
                 if (!range.right.unbounded) {
                     response->last_considered_key = range.right.key;
                 } else {
@@ -730,8 +729,8 @@ public:
 
             waiter.wait_interruptible();
 
-            if ((response->last_considered_key < store_key && forward(sorting)) ||
-                (response->last_considered_key > store_key && backward(sorting))) {
+            if ((response->last_considered_key < store_key && sorting != DESCENDING) ||
+                (response->last_considered_key > store_key && sorting == DESCENDING)) {
                 response->last_considered_key = store_key;
             }
 
@@ -859,7 +858,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     rdb_rget_depth_first_traversal_callback_t callback(
             txn, ql_env, transform, terminal, range, sorting, response);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
-            (forward(sorting) ? FORWARD : BACKWARD));
+            (sorting != DESCENDING ? FORWARD : BACKWARD));
 
     // RSI: fix
     response->truncated = ql::should_send_batch(0, callback.cumulative_size, 0);
@@ -888,7 +887,7 @@ void rdb_rget_secondary_slice(
 
     btree_concurrent_traversal(
         slice, txn, superblock, sindex_region.inner, &callback,
-        (forward(sorting) ? FORWARD : BACKWARD));
+        (sorting != DESCENDING ? FORWARD : BACKWARD));
 
     // RSI: fix
     response->truncated = ql::should_send_batch(0, callback.cumulative_size, 0);

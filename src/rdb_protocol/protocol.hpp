@@ -69,6 +69,12 @@ enum sorting_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
 
+namespace ql {
+class readgen_t;
+class primary_readgen_t;
+class secondary_readgen_t;
+}
+
 class datum_range_t {
 public:
     datum_range_t(
@@ -77,14 +83,18 @@ public:
         counted_t<const ql::datum_t> right_bound,
         key_range_t::bound_t right_bound_type);
     static datum_range_t universe();
+    bool contains(counted_t<const ql::datum_t> val) const;
+    RDB_DECLARE_ME_SERIALIZABLE;
 private:
-    friend class readgen_t;
-    friend class primary_readgen_t;
-    friend class secondary_readgen_t;
+    friend class ql::readgen_t;
+    friend class ql::primary_readgen_t;
+    friend class ql::secondary_readgen_t;
+    friend void run_create_drop_sindex_test(
+        namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource);
     key_range_t to_primary_keyrange() const;
     key_range_t to_secondary_keyrange() const;
-    const counted_t<const ql::datum_t> left_bound, right_bound;
-    const key_range_t::bound_t left_bound_type, right_bound_type;
+    counted_t<const ql::datum_t> left_bound, right_bound;
+    key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
 struct filter_transform_t {
@@ -300,6 +310,7 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    // RSI: get rid of some of these constructors?
     class rget_read_t {
     public:
         rget_read_t() { }

@@ -27,7 +27,9 @@ class scope_env_t;
 
 enum batch_type_t {
     NORMAL = 0,
-    // We sometimes need a batch with constant sindex for sorting.
+    // If we're ordering by an sindex, get a batch with a constant value for
+    // that sindex.  We sometimes need a batch with that invariant for sorting.
+    // (This replaces that SORTING_HINT_NEXT stuff.)
     SINDEX_CONSTANT = 1
 };
 
@@ -67,17 +69,19 @@ public:
     // the end of the stream has been reached.  Otherwise, returns at least one
     // element.)  (Wrapper around `next_batch_impl`.)
     std::vector<counted_t<const datum_t> >
-    next_batch(env_t *env, batch_type_t batch_type = NORMAL);
+    next_batch(env_t *env, batch_type_t batch_type /*= NORMAL*/);
+    // Prefer `next_batch`.  Cannot be used in conjunction with `next_batch`.
+    virtual counted_t<const datum_t> next(env_t *env);
 
 protected:
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
         : pb_rcheckable_t(bt_src) { }
 
 private:
-    static const size_t MAX_BATCH_SIZE = 100;
-
     virtual std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, batch_type_t batch_type) = 0;
+    std::vector<counted_t<const datum_t> > batch_cache;
+    size_t batch_cache_index;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
@@ -100,11 +104,8 @@ protected:
                                          counted_t<const datum_t> d,
                                          counted_t<func_t> r);
 
-    virtual bool is_array() { return true; }
+    virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array(env_t *env);
-private:
-    std::vector<counted_t<const datum_t> >
-    virtual next_batch_impl(env_t *env, batch_type_t batch_type);
 };
 
 class wrapper_datum_stream_t : public eager_datum_stream_t {
@@ -127,7 +128,8 @@ public:
     map_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type);
 
     counted_t<func_t> f;
 };
@@ -137,7 +139,8 @@ public:
     indexes_of_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type);
 
     counted_t<func_t> f;
     int64_t index;
@@ -150,7 +153,8 @@ public:
                           counted_t<datum_stream_t> _source);
 
 private:
-    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type);
 
     counted_t<func_t> f;
     counted_t<func_t> default_filter_val;
@@ -161,27 +165,12 @@ public:
     concatmap_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    std::vector<counted_t<const datum_t> > next_batch_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type);
 
     counted_t<func_t> f;
     std::vector<counted_t<datum_stream_t> > subsources;
     size_t index;
-};
-
-class datum_range_t {
-public:
-    datum_range_t(
-        counted_t<const datum_t> left_bound, key_range_t::bound_t left_bound_type,
-        counted_t<const datum_t> right_bound, key_range_t::bound_t right_bound_type);
-    static datum_range_t universe();
-private:
-    friend class readgen_t;
-    friend class primary_readgen_t;
-    friend class secondary_readgen_t;
-    key_range_t to_primary_keyrange() const;
-    key_range_t to_secondary_keyrange() const;
-    const counted_t<const datum_t> left_bound, right_bound;
-    const key_range_t::bound_t left_bound_type, right_bound_type;
 };
 
 // RSI: remove?
@@ -333,7 +322,10 @@ public:
                          const protob_t<const Backtrace> &bt_src);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    virtual bool is_array();
+    virtual std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, UNUSED batch_type_t batch_type);
+    counted_t<const datum_t> next(env_t *env);
 
     size_t index;
     counted_t<const datum_t> arr;
@@ -426,7 +418,6 @@ public:
     virtual counted_t<const datum_t> as_array(env_t *env);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, batch_type_t batch_type);
 

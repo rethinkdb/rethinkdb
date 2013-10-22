@@ -102,7 +102,7 @@ private:
 
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = datum_stream->next_batch(env->env);
+                    = datum_stream->next_batch(env->env, NORMAL);
                 if (datums.empty()) {
                     break;
                 }
@@ -185,7 +185,7 @@ private:
 
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = ds->next_batch(env->env);
+                    = ds->next_batch(env->env, NORMAL);
                 if (datums.empty()) {
                     break;
                 }

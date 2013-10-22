@@ -156,7 +156,7 @@ private:
         }
 
         if (!comparisons.empty()) {
-            seq = make_counted<sort_datum_stream_t<lt_cmp_t> >(env->env, lt_cmp, seq, backtrace());
+            seq = make_counted<sort_datum_stream_t<lt_cmp_t> >(lt_cmp, seq);
         }
 
         return tbl.has() ? new_val(seq, tbl) : new_val(env->env, seq);
