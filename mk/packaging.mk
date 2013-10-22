@@ -58,7 +58,11 @@ ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
   DEB_BUILD_DEPENDS += , nodejs-legacy
 endif
 ifneq (1,$(STATIC_V8))
-  DEB_BUILD_DEPENDS += , libv8-dev
+  ifeq ($(UBUNTU_RELEASE),saucy)
+    DEB_BUILD_DEPENDS += , libv8-3.14-dev
+  else
+    DEB_BUILD_DEPENDS += , libv8-dev
+  endif
 endif
 ifneq (1,$(BUILD_PORTABLE))
   DEB_BUILD_DEPENDS += , protobuf-compiler, protobuf-c-compiler, libprotobuf-dev
