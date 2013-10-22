@@ -180,7 +180,7 @@ private:
     bool is_deleted_;
 
     // The last txn that modified the page, or marked it deleted.
-    page_txn_t *last_modifier_ = NULL;
+    page_txn_t *last_modifier_;
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
