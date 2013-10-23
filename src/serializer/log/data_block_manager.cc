@@ -320,7 +320,7 @@ private:
                 num_garbage_blocks_stat += 1;
             } else {
                 // Not garbage
-                garbage_bytes_stat += aligned_value(new_block->block_size);
+                garbage_bytes_stat -= aligned_value(new_block->block_size);
             }
         }
     }
