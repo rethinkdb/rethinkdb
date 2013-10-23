@@ -319,7 +319,8 @@ void backfillee(
 
         chunk_callback_t<protocol_t> chunk_callback(svs, &chunk_queue, mailbox_manager, allocation_mailbox);
 
-        coro_pool_t<backfill_queue_entry_t<protocol_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
+        // TODO! (was 10)
+        coro_pool_t<backfill_queue_entry_t<protocol_t> > backfill_workers(1, &chunk_queue, &chunk_callback);
 
         /* Now wait for the backfill to be over */
         {

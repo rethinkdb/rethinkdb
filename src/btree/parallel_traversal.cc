@@ -84,7 +84,7 @@ public:
           helper(_helper),
           interruptor(_interruptor),
           interrupted(false),
-          coro_pool(4, &pending_acquires, this)
+          coro_pool(1, &pending_acquires, this) // TODO!
     {
         interruptor_watcher.parent = this;
         interruptor_watcher.reset(_interruptor);

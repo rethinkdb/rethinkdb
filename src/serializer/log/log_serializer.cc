@@ -9,6 +9,7 @@
 #include "arch/io/disk.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 #include "buffer_cache/types.hpp"
 #include "logger.hpp"
 #include "perfmon/perfmon.hpp"
@@ -444,8 +445,10 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
     stats->pm_serializer_index_writes_size.record(write_ops.size());
 
     index_write_context_t context;
+    PROFILER_RECORD_SAMPLE
     index_write_prepare(&context, io_account);
 
+    PROFILER_RECORD_SAMPLE
     {
         // The in-memory index updates, at least due to the needs of
         // data_block_manager_t garbage collection, needs to be
@@ -490,8 +493,10 @@ void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_op
                                       io_account, &context.extent_txn);
         }
     }
+    PROFILER_RECORD_SAMPLE
 
     index_write_finish(&context, io_account);
+    PROFILER_RECORD_SAMPLE
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }

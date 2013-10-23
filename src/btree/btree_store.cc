@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/btree_store.hpp"
 
+#include "arch/runtime/coroutines.hpp"
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
 #include "concurrency/wait_any.hpp"
@@ -896,6 +897,7 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo, 
                                 static_cast<const char*>(i->second.data()) + i->second.size());
 
         set_superblock_metainfo(txn, sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
+        coro_t::yield();
     }
 }
 

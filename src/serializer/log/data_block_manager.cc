@@ -11,6 +11,7 @@
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 #include "concurrency/mutex.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/log_serializer.hpp"
@@ -935,6 +936,7 @@ struct block_write_cond_t : public cond_t, public iocallback_t {
 };
 
 void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num_writes) {
+    PROFILER_RECORD_SAMPLE
     if (parent->gc_state.current_entry != NULL) {
         block_write_cond_t block_write_cond;
 
@@ -950,6 +952,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
         // created token and causing the extent or block to be collected.
         std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
 
+        PROFILER_RECORD_SAMPLE
         {
             // Step 1: Write buffers to disk and assemble index operations
             ASSERT_NO_CORO_WAITING;
@@ -971,6 +974,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
 
             guarantee(new_block_tokens.size() == num_writes);
         }
+        PROFILER_RECORD_SAMPLE
 
         // Step 2: Wait on all writes to finish
         block_write_cond.wait();
@@ -984,6 +988,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
         // Step 3: Figure out index ops.  It's important that we do this
         // now, right before the index_write, so that the updates to the
         // index are done atomically.
+        PROFILER_RECORD_SAMPLE
         {
             ASSERT_NO_CORO_WAITING;
 
@@ -1017,14 +1022,16 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
             for (size_t i = 0; i < num_writes; ++i) {
                 parent->serializer->remap_block_to_new_offset(writes[i].old_offset, new_block_tokens[i]->offset());
             }
-
-            // Step 4A-2: Now that the block tokens have been remapped
-            // to a new offset, destroying these tokens will update
-            // the bits in the t_array of the new offset (if they're
-            // the last token).
-            old_block_tokens.clear();
-            new_block_tokens.clear();
         }
+        coro_t::yield();
+        // Step 4A-2: Now that the block tokens have been remapped
+        // to a new offset, destroying these tokens will update
+        // the bits in the t_array of the new offset (if they're
+        // the last token).
+        old_block_tokens.clear();
+        coro_t::yield();
+        new_block_tokens.clear();
+        PROFILER_RECORD_SAMPLE
 
         // Step 4B: Commit the transaction to the serializer, emptying
         // out all the i_array bits.

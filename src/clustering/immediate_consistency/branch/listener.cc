@@ -12,7 +12,7 @@
 
 /* `WRITE_QUEUE_CORO_POOL_SIZE` is the number of coroutines that will be used
 when draining the write queue after completing a backfill. */
-#define WRITE_QUEUE_CORO_POOL_SIZE 1000
+#define WRITE_QUEUE_CORO_POOL_SIZE 10 // TODO!
 
 /* When we have caught up to the master to within
 `WRITE_QUEUE_SEMAPHORE_LONG_TERM_CAPACITY` elements, then we consider ourselves

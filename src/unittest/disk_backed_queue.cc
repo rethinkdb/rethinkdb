@@ -85,7 +85,7 @@ void run_concurrent_test() {
 
     disk_backed_queue_wrapper_t<int> queue(&io_backender, serializer_path, &get_global_perfmon_collection());
     boost_function_callback_t<int> callback(&randomly_delay);
-    coro_pool_t<int> coro_pool(10, &queue, &callback);
+    coro_pool_t<int> coro_pool(1, &queue, &callback);
     for (int i = 0; i < 1000; i++) {
         queue.push(i);
         nap(randint(10));

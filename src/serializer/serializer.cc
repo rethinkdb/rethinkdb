@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "serializer/serializer.hpp"
 #include "arch/arch.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 
 file_account_t *serializer_t::make_io_account(int priority) {
     assert_thread();
@@ -46,6 +47,7 @@ ser_buffer_t *convert_buffer_cache_buf_to_ser_buffer(const void *buf) {
 
 void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes, file_account_t *io_account) {
     ser->assert_thread();
+    PROFILER_RECORD_SAMPLE
     std::vector<index_write_op_t> index_write_ops;
     index_write_ops.reserve(writes.size());
 
@@ -66,6 +68,7 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
                                                    writes[i].block_id));
         }
     }
+    PROFILER_RECORD_SAMPLE
 
     std::vector<counted_t<standard_block_token_t> > tokens;
     if (!write_infos.empty()) {
@@ -75,6 +78,7 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     }
     guarantee(tokens.size() == write_infos.size());
 
+    PROFILER_RECORD_SAMPLE
     size_t tokens_index = 0;
     for (size_t i = 0; i < writes.size(); ++i) {
         switch (writes[i].action_type) {
@@ -109,6 +113,7 @@ void do_writes(serializer_t *ser, const std::vector<serializer_write_t> &writes,
     guarantee(index_write_ops.size() == writes.size());
 
     // Step 2: Wait on all writes to finish
+    PROFILER_RECORD_SAMPLE
     block_write_cond.wait();
 
     // Step 2.5: Call these annoying io_callbacks.

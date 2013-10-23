@@ -89,6 +89,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
 
         default: unreachable();
     }
+    coro_t::yield();
 }
 
 template<class metadata_t>
@@ -167,6 +168,7 @@ template<class metadata_t>
 void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid_u session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
+    PROFILER_RECORD_SAMPLE
 
     /* Check to make sure that the peer didn't die while we were coming from the
     thread on which `on_message()` was run */
@@ -175,6 +177,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         /* The peer disconnected since we got the message; ignore. */
         return;
     }
+    PROFILER_RECORD_SAMPLE
     session_t *session = it->second;
     if (session->session_id != session_id) {
         /* The peer disconnected and then reconnected since we got the message;
@@ -182,6 +185,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         return;
     }
     auto_drainer_t::lock_t session_keepalive(&session->drainer);
+    PROFILER_RECORD_SAMPLE
 
     try {
         /* Wait until we got an initialization message from this peer */
@@ -192,15 +196,19 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
                 throw interrupted_exc_t();
             }
         }
+        PROFILER_RECORD_SAMPLE
 
         /* Exit this peer's `metadata_fifo_sink` so that we perform the updates
         in the same order as they were performed at the source. */
         fifo_enforcer_sink_t::exit_write_t fifo_exit(session->metadata_fifo_sink.get(),
                                                      metadata_fifo_token);
+        PROFILER_RECORD_SAMPLE
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
+        PROFILER_RECORD_SAMPLE
 
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
+            PROFILER_RECORD_SAMPLE
             std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
             typename std::map<peer_id_t, metadata_t>::iterator var_it = map.find(peer);
@@ -212,6 +220,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
             var_it->second = new_value;
             variable.set_value(map);
         }
+        PROFILER_RECORD_SAMPLE
     } catch (const interrupted_exc_t &) {
         /* Here's what happened: `on_disconnect()` was called for the peer. It
         spawned `interrupt_updates_and_free_session()`, which deleted the
@@ -223,6 +232,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         The peer has disconnected, so we can safely ignore this update; its
         entry in the thread-local peer table will be deleted soon anyway. */
     }
+    PROFILER_RECORD_SAMPLE
 }
 
 template<class metadata_t>

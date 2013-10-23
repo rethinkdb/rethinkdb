@@ -212,7 +212,7 @@ public:
         queue_count_membership(&c->broadcaster_collection, &queue_count, uuid_to_str(d.write_mailbox.get_peer().get_uuid()) + "_broadcast_queue_count"),
         background_write_queue(&queue_count),
         // TODO magic constant
-        background_write_workers(100, &background_write_queue, &background_write_caller),
+        background_write_workers(1, &background_write_queue, &background_write_caller), // TODO!!
         controller(c),
         upgrade_mailbox(controller->mailbox_manager,
             boost::bind(&dispatchee_t::upgrade, this, _1, _2, auto_drainer_t::lock_t(&drainer))),
