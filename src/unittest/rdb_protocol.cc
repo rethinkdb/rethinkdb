@@ -2,6 +2,9 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
+// These unit tests need to access some private methods.
+#define private public
+
 #include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/iterators.hpp"
@@ -248,7 +251,8 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         datum_range_t rng(sindex_key_literal, key_range_t::closed,
                           sindex_key_literal, key_range_t::closed);
         rdb_protocol_t::read_t read(
-            rdb_protocol_t::rget_read_t(region_t(rng.to_primary_keyrange()), id, rng));
+            rdb_protocol_t::rget_read_t(
+                rdb_protocol_t::region_t(rng.to_primary_keyrange()), id, rng));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -282,8 +286,11 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)));
+        datum_range_t rng(sindex_key_literal, key_range_t::closed,
+                          sindex_key_literal, key_range_t::closed);
+        rdb_protocol_t::read_t read(
+            rdb_protocol_t::rget_read_t(
+                rdb_protocol_t::region_t(rng.to_primary_keyrange()), id, rng));
 
         rdb_protocol_t::read_response_t response;
 
@@ -409,8 +416,11 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
             {
                 /* Access the data using the secondary index. */
+                datum_range_t rng(sindex_key_literal, key_range_t::closed,
+                                  sindex_key_literal, key_range_t::closed);
                 rdb_protocol_t::rget_read_t rget(
-                    sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false));
+                    rdb_protocol_t::region_t(
+                        rng.to_primary_keyrange()), sindex_id, rng);
                 rdb_protocol_t::read_t read(rget);
                 rdb_protocol_t::read_response_t response;
 

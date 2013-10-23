@@ -31,7 +31,16 @@ void reader_t::add_transformation(transform_variant_t &&tv) {
     transform.push_back(std::move(tv));
 }
 
-read_response_t reader_t::do_read(env_t *env, const read_t &read) {
+rget_read_response_t::result_t
+reader_t::run_terminal(env_t *env, terminal_variant_t &&tv) {
+    r_sanity_check(!started);
+    started = finished = true;
+    rget_read_response_t res
+        = do_read(env, readgen->terminal_read(transform, std::move(tv)));
+    return std::move(res.result);
+}
+
+rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     try {
         if (use_outdated) {
@@ -43,34 +52,36 @@ read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     } catch (const cannot_perform_query_exc_t &e) {
         rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
     }
-    return res;
+    auto rget_res = boost::get<rget_read_response_t>(&res.response);
+    r_sanity_check(rget_res != NULL);
+    /* Re-throw an exception if we got one. */
+    if (auto e = boost::get<ql::exc_t>(&rget_res->result)) {
+        throw *e;
+    } else if (auto e2 = boost::get<ql::datum_exc_t>(&rget_res->result)) {
+        throw *e2;
+    }
+    return std::move(*rget_res);
 }
 
 std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read) {
-    read_response_t res = do_read(env, read);
-    auto p_res = boost::get<rget_read_response_t>(&res.response);
-    r_sanity_check(p_res);
-    finished = readgen->update_range(&active_range, p_res->last_considered_key);
-    /* Re throw an exception if we got one. */
-    if (auto e = boost::get<ql::exc_t>(&p_res->result)) {
-        throw *e;
-    } else if (auto e2 = boost::get<ql::datum_exc_t>(&p_res->result)) {
-        throw *e2;
-    }
-    return boost::get<std::vector<rget_item_t> >(p_res->result);
+    rget_read_response_t res = do_read(env, read);
+    finished = readgen->update_range(&active_range, res.last_considered_key);
+    auto v = boost::get<std::vector<rget_item_t> >(&res.result);
+    r_sanity_check(v);
+    return std::move(*v);
 }
 
 bool reader_t::load_items(env_t *env) {
     started = true;
     if (items_index >= items.size() && !finished) { // read some more
         items_index = 0;
-        items = do_range_read(env, read_t(readgen->next_read(active_range, transform)));
+        items = do_range_read(env, readgen->next_read(active_range, transform));
         // RSI: Enforce sort limit.
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
-        while (boost::optional<rget_read_t> read
+        while (boost::optional<read_t> read
                = readgen->sindex_sort_read(items, transform)) {
-            std::vector<rget_item_t> new_items = do_range_read(env, read_t(*read));
+            std::vector<rget_item_t> new_items = do_range_read(env, *read);
             if (new_items.size() == 0) {
                 break;
             }
@@ -167,17 +178,17 @@ bool readgen_t::update_range(key_range_t *active_range,
 }
 
 // RSI: remove if one line
-rget_read_t readgen_t::next_read(
+read_t readgen_t::next_read(
     const key_range_t &active_range, const transform_t &transform) {
-    return next_read_impl(active_range, transform);
+    return read_t(next_read_impl(active_range, transform));
 }
 
 // TODO: this is how we did it before, but it sucks.
-rget_read_t readgen_t::terminal_read(
+read_t readgen_t::terminal_read(
     const transform_t &transform, terminal_t &&_terminal) {
-    rget_read_t read = next_read(original_keyrange(), transform);
+    rget_read_t read = next_read_impl(original_keyrange(), transform);
     read.terminal = std::move(_terminal);
-    return read;
+    return read_t(read);
 }
 
 primary_readgen_t::primary_readgen_t(
@@ -192,9 +203,9 @@ rget_read_t primary_readgen_t::next_read_impl(
 }
 
 // We never need to do an sindex sort when indexing by a primary key.
-boost::optional<rget_read_t> primary_readgen_t::sindex_sort_read(
+boost::optional<read_t> primary_readgen_t::sindex_sort_read(
     UNUSED const std::vector<rget_item_t> &items, UNUSED const transform_t &transform) {
-    return boost::optional<rget_read_t>();
+    return boost::optional<read_t>();
 }
 void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) {
     return;
@@ -239,7 +250,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
 }
 
 // RSI: test this shit
-boost::optional<rget_read_t> sindex_readgen_t::sindex_sort_read(
+boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     const std::vector<rget_item_t> &items, const transform_t &transform) {
     if (sorting != UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
@@ -250,13 +261,12 @@ boost::optional<rget_read_t> sindex_readgen_t::sindex_sort_read(
             // read with the same truncated sindex value".
             store_key_t rbound(skey + std::string(MAX_KEY_SIZE - skey.size(), 0xFF));
             key_range_t rng(key_range_t::open, key, key_range_t::closed, rbound);
-            return boost::optional<rget_read_t>(
-                rget_read_t(region_t(key_range_t(rng)), sindex, original_datum_range,
-                            transform, global_optargs, sorting));
-
+            return boost::optional<read_t>(read_t(rget_read_t(
+                region_t(key_range_t(rng)), sindex, original_datum_range,
+                transform, global_optargs, sorting)));
         }
     }
-    return boost::optional<rget_read_t>();
+    return boost::optional<read_t>();
 }
 
 key_range_t sindex_readgen_t::original_keyrange() {
@@ -391,25 +401,15 @@ counted_t<datum_stream_t> lazy_datum_stream_t::filter(
     return counted_from_this();
 }
 
-// This applies a terminal to the JSON stream, evaluates it, and pulls out the
-// shard data.
-rdb_protocol_t::rget_read_response_t::result_t lazy_datum_stream_t::run_terminal(
-        env_t *env,
-        const rdb_protocol_details::terminal_variant_t &t) {
-    return json_stream->apply_terminal(t, env);
-}
-
 counted_t<const datum_t> lazy_datum_stream_t::count(env_t *env) {
-    rdb_protocol_t::rget_read_response_t::result_t res =
-        run_terminal(env, count_wire_func_t());
+    rget_read_response_t::result_t res = reader.run_terminal(env, count_wire_func_t());
     return boost::get<counted_t<const datum_t> >(res);
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::reduce(env_t *env,
-                                                     counted_t<val_t> base_val,
-                                                     counted_t<func_t> f) {
-    rdb_protocol_t::rget_read_response_t::result_t res
-        = run_terminal(env, reduce_wire_func_t(f));
+counted_t<const datum_t> lazy_datum_stream_t::reduce(
+    env_t *env, counted_t<val_t> base_val, counted_t<func_t> f) {
+    rget_read_response_t::result_t res
+        = reader.run_terminal(env, reduce_wire_func_t(f));
 
     if (counted_t<const datum_t> *d = boost::get<counted_t<const datum_t> >(&res)) {
         counted_t<const datum_t> datum = *d;
@@ -428,14 +428,11 @@ counted_t<const datum_t> lazy_datum_stream_t::reduce(env_t *env,
     }
 }
 
-counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
-                                                  counted_t<func_t> g,
-                                                  counted_t<func_t> m,
-                                                  counted_t<const datum_t> base,
-                                                  counted_t<func_t> r) {
-    rdb_protocol_t::rget_read_response_t::result_t res =
-        json_stream->apply_terminal(
-            rdb_protocol_details::terminal_variant_t(gmr_wire_func_t(g, m, r)), env);
+counted_t<const datum_t> lazy_datum_stream_t::gmr(
+    env_t *env, counted_t<func_t> g, counted_t<func_t> m,
+    counted_t<const datum_t> base, counted_t<func_t> r) {
+    rget_read_response_t::result_t res =
+        reader.run_terminal(env, gmr_wire_func_t(g, m, r));
     wire_datum_map_t *dm = boost::get<wire_datum_map_t>(&res);
     r_sanity_check(dm);
     dm->compile();
@@ -456,22 +453,16 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(env_t *env,
 }
 
 std::vector<counted_t<const datum_t> >
-lazy_datum_stream_t::next_batch_impl(env_t *env) {
+lazy_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
     // Should never mix `next` with `next_batch`.
     r_sanity_check(current_batch_offset == 0 && current_batch.size() == 0);
-    return reader->next_batch(env);
-}
-std::vector<counted_t<const datum_t> >
-lazy_datum_stream_t::next_sortable_batch_impl(env_t *env) {
-    // Should never mix `next` with `next_batch`.
-    r_sanity_check(current_batch_offset == 0 && current_batch.size() == 0);
-    return reader->next_batch(env);
+    return reader.next_batch(env, batch_type);
 }
 
 counted_t<const datum_t> lazy_datum_stream_t::next_impl(env_t *env) {
     if (current_batch_offset >= current_batch.size()) {
         current_batch_offset = 0;
-        current_batch = reader->next_batch(env);
+        current_batch = reader.next_batch(env, NORMAL);
         if (current_batch_offset >= current_batch.size()) {
             return counted_t<const datum_t>();
         }
@@ -488,10 +479,10 @@ counted_t<const datum_t> array_datum_stream_t::next(UNUSED env_t *env) {
     return arr->get(index++, NOTHROW);
 }
 
-virtual std::vector<counted_t<const datum_t> >
+std::vector<counted_t<const datum_t> >
 array_datum_stream_t::next_batch_impl(env_t *env, UNUSED batch_type_t batch_type) {
     std::vector<counted_t<const datum_t> > v;
-    size_t total_size;
+    size_t total_size = 0;
     while (counted_t<const datum_t> d = next(env)) {
         total_size += serialized_size(d);
         v.push_back(std::move(d));
@@ -502,22 +493,8 @@ array_datum_stream_t::next_batch_impl(env_t *env, UNUSED batch_type_t batch_type
     return v;
 }
 
-virtual bool array_datum_stream_t::is_array() {
+bool array_datum_stream_t::is_array() {
     return true;
-}
-
-std::vector<counted_t<const datum_t> >
-eager_datum_stream_t::next_batch_impl(env_t *env) {
-    std::vector<counted_t<const datum_t> > ret;
-    size_t acc = 0;
-    while (counted_t<const datum_t> datum = next(env)) {
-        ret.push_back(datum);
-        acc += serialized_size(datum);
-        if (acc >= ql::batch_size) {
-            break;
-        }
-    }
-    return ret;
 }
 
 // MAP_DATUM_STREAM_T
@@ -552,7 +529,7 @@ indexes_of_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) 
         }
         for (auto it = v.begin(); it != v.end(); ++it, ++index) {
             if (f->filter_call(env, *it, counted_t<func_t>())) {
-                ret->push_back(make_counted<datum_t>(static_cast<double>(index)));
+                ret.push_back(make_counted<datum_t>(static_cast<double>(index)));
             }
         }
     }
@@ -572,13 +549,13 @@ std::vector<counted_t<const datum_t> >
 filter_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
     std::vector<counted_t<const datum_t> > ret;
     while (ret.size() == 0) {
-        std::vector<counted_t<const datum_t> > v = source->next_bach(env, batch_type);
+        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batch_type);
         if (v.size() == 0) {
             break;
         }
         for (auto it = v.begin(); it != v.end(); ++it) {
             if (f->filter_call(env, *it, default_filter_val)) {
-                ret->push_back(std::move(*it));
+                ret.push_back(std::move(*it));
             }
         }
     }
@@ -595,20 +572,20 @@ concatmap_datum_stream_t::concatmap_datum_stream_t(counted_t<func_t> _f,
 std::vector<counted_t<const datum_t> >
 concatmap_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
     for (;;) {
-        if (index >= subsources.size()) {
-            index = 0;
-            subsources = source->next(env, NORMAL);
-        }
-        if (index >= subsources.size()) {
-            return std::vector<counted_t<const datum_t> >();
-        }
-
-        for (; index < subsources.size(); index++) {
-            std::vector<counted_t<const datum_t> > v
-                = subsources[index]->next_batch(env, batch_type);
-            if (v.size() != 0) {
-                return v;
+        if (!subsource.has()) {
+            // We can use `next` here because the `batch_type` comes into play below.
+            counted_t<const datum_t> arg = source->next(env);
+            if (!arg.has()) {
+                return std::vector<counted_t<const datum_t> >();
             }
+            subsource = f->call(env, arg)->as_seq(env);
+        }
+        std::vector<counted_t<const datum_t> > v
+            = subsource->next_batch(env, batch_type);
+        if (v.size() != 0) {
+            return v;
+        } else {
+            subsource.reset();
         }
     }
 }

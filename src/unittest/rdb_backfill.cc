@@ -1,6 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+// These unit tests need to access some private methods.
+#define private public
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -326,8 +329,11 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)));
+        datum_range_t rng(sindex_key_literal, key_range_t::closed,
+                          sindex_key_literal, key_range_t::closed);
+        rdb_protocol_t::read_t read(
+            rdb_protocol_t::rget_read_t(
+                rdb_protocol_t::region_t(rng.to_primary_keyrange()), sindex_id, rng));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

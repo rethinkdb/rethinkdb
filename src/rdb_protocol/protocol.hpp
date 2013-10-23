@@ -86,11 +86,10 @@ public:
     bool contains(counted_t<const ql::datum_t> val) const;
     RDB_DECLARE_ME_SERIALIZABLE;
 private:
+    // Only `readgen_t` and its subclasses should do anything fancy with a range.
     friend class ql::readgen_t;
     friend class ql::primary_readgen_t;
     friend class ql::sindex_readgen_t;
-    friend void run_create_drop_sindex_test(
-        namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource);
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
     counted_t<const ql::datum_t> left_bound, right_bound;
