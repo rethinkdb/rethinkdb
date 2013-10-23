@@ -177,14 +177,16 @@ void coro_profiler_t::generate_report() {
         for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
             for (auto execution_point_samples = thread_samples->value.per_execution_point_samples.begin(); execution_point_samples != thread_samples->value.per_execution_point_samples.end(); ++execution_point_samples) {
                 // Collect samples
-                std::vector<coro_sample_t> &sample_collection =
-                    execution_point_reports[execution_point_samples->first].collected_samples;
-                sample_collection.insert(sample_collection.end(),
-                                         execution_point_samples->second.samples.begin(),
-                                         execution_point_samples->second.samples.end());
+                if (!execution_point_samples->second.samples.empty()) {
+                    std::vector<coro_sample_t> &sample_collection =
+                        execution_point_reports[execution_point_samples->first].collected_samples;
+                    sample_collection.insert(sample_collection.end(),
+                                             execution_point_samples->second.samples.begin(),
+                                             execution_point_samples->second.samples.end());
 
-                // Reset samples
-                execution_point_samples->second.samples.clear();
+                    // Reset samples
+                    execution_point_samples->second.samples.clear();
+                }
             }
         }
         
