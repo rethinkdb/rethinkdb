@@ -40,16 +40,20 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
             ++chunk_size;
             entry->next_datum.reset();
         }
-        while (counted_t<const datum_t> d = entry->stream->next(entry->env.get())) {
-            d->write_to_protobuf(res->add_response());
-            if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                if (counted_t<const datum_t> next_d = entry->stream->next(entry->env.get())) {
-                    r_sanity_check(!entry->next_datum.has());
-                    entry->next_datum.init(new Datum());
-                    next_d->write_to_protobuf(entry->next_datum.get());
-                    res->set_type(Response::SUCCESS_PARTIAL);
+        {
+            explain::sampler_t sampler("Evaluating stream elements.", entry->env->trace);
+            while (counted_t<const datum_t> d = entry->stream->next(entry->env.get())) {
+                d->write_to_protobuf(res->add_response());
+                if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
+                    if (counted_t<const datum_t> next_d = entry->stream->next(entry->env.get())) {
+                        r_sanity_check(!entry->next_datum.has());
+                        entry->next_datum.init(new Datum());
+                        next_d->write_to_protobuf(entry->next_datum.get());
+                        res->set_type(Response::SUCCESS_PARTIAL);
+                    }
+                    break;
                 }
-                break;
+                sampler.new_sample();
             }
         }
     } catch (const std::exception &e) {

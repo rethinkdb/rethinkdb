@@ -182,12 +182,16 @@ private:
                          counted_t<const datum_t>) >(env->env, lt_cmp, arg(env, 0)->as_seq(env->env), backtrace()));
         datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
-        while (counted_t<const datum_t> d = s->next(env->env)) {
-            if (last.has() && *last == *d) {
-                continue;
+        {
+            explain::sampler_t sampler("Evaluating elements in distinct.", env->env->trace);
+            while (counted_t<const datum_t> d = s->next(env->env)) {
+                if (last.has() && *last == *d) {
+                    continue;
+                }
+                last = d;
+                arr.add(last);
+                sampler.new_sample();
             }
-            last = d;
-            arr.add(last);
         }
         counted_t<datum_stream_t> out =
             make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());

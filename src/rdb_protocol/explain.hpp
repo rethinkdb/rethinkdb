@@ -16,22 +16,34 @@ class datum_t;
 
 namespace explain {
 
+struct sample_info_t {
+    sample_info_t();
+    sample_info_t(ticks_t mean_duration_, size_t n_samples_);
+    ticks_t mean_duration_;
+    size_t n_samples_;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
 class event_t {
 public:
     enum type_t {
         START,      //The start of a task
         SPLIT,      //A task splitting in to parallel sub tasks
+        SAMPLE,     //Sampling of repeated process
         STOP        //The end of a task
     };
 
     event_t();
     event_t(event_t::type_t type);
     event_t(const std::string &description);
+    event_t(const sample_info_t sample_info);
 
     type_t type_;
     std::string description_; //used in START
     size_t n_parallel_jobs_; // used in SPLIT
     ticks_t when_; // used in START, SPLIT, STOP
+    sample_info_t sample_info_; // used in SAMPLE
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
@@ -56,8 +68,8 @@ private:
     void stop();
     void start_split();
     void stop_split(size_t n_parallel_jobs_, const event_log_t &event_log);
-    void start_redirect(event_log_t *event_log);
-    void stop_redirect();
+    void start_sample(event_log_t *sample_event_log);
+    void stop_sample(const sample_info_t &sample_info);
 
     /* returns the event_log_t that we should put events in */
     event_log_t *event_log_target();
@@ -92,6 +104,7 @@ private:
 class sampler_t {
 public:
     sampler_t(const std::string &description, trace_t *parent);
+    sampler_t(const std::string &description, const scoped_ptr_t<trace_t> &parent);
     void new_sample();
     ~sampler_t();
 private:

@@ -208,8 +208,12 @@ private:
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
-                while (counted_t<const datum_t> el = ds->next(env->env)) {
-                    arr.add(el);
+                {
+                    explain::sampler_t sampler("Coercing to array.", env->env->trace);
+                    while (counted_t<const datum_t> el = ds->next(env->env)) {
+                        arr.add(el);
+                        sampler.new_sample();
+                    }
                 }
                 return new_val(arr.to_counted());
             }
@@ -218,16 +222,20 @@ private:
             if (end_type == R_OBJECT_TYPE) {
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                     datum_ptr_t obj(datum_t::R_OBJECT);
-                    while (counted_t<const datum_t> pair = ds->next(env->env)) {
-                        std::string key = pair->get(0)->as_str();
-                        counted_t<const datum_t> keyval = pair->get(1);
-                        bool b = obj.add(key, keyval);
-                        rcheck(!b, base_exc_t::GENERIC,
-                               strprintf("Duplicate key %s in coerced object.  "
-                                         "(got %s and %s as values)",
-                                         key.c_str(),
-                                         obj->get(key)->print().c_str(),
-                                         keyval->print().c_str()));
+                    {
+                        explain::sampler_t sampler("Coercing to array.", env->env->trace);
+                        while (counted_t<const datum_t> pair = ds->next(env->env)) {
+                            std::string key = pair->get(0)->as_str();
+                            counted_t<const datum_t> keyval = pair->get(1);
+                            bool b = obj.add(key, keyval);
+                            rcheck(!b, base_exc_t::GENERIC,
+                                   strprintf("Duplicate key %s in coerced object.  "
+                                             "(got %s and %s as values)",
+                                             key.c_str(),
+                                             obj->get(key)->print().c_str(),
+                                             keyval->print().c_str()));
+                            sampler.new_sample();
+                        }
                     }
                     return new_val(obj.to_counted());
                 }

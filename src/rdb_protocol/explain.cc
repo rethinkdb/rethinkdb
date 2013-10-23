@@ -5,7 +5,16 @@
 
 namespace explain {
 
-RDB_IMPL_ME_SERIALIZABLE_4(event_t, type_, description_, n_parallel_jobs_, when_);
+RDB_IMPL_ME_SERIALIZABLE_2(sample_info_t, mean_duration_, n_samples_);
+
+sample_info_t::sample_info_t()
+    : mean_duration_(0), n_samples_(0) { }
+
+sample_info_t::sample_info_t(ticks_t mean_duration, size_t n_samples)
+    : mean_duration_(mean_duration), n_samples_(n_samples) { }
+
+RDB_IMPL_ME_SERIALIZABLE_5(event_t, type_, description_,
+        n_parallel_jobs_, when_, sample_info_);
 
 event_t::event_t()
     : type_(STOP), when_(get_ticks()) { }
@@ -16,6 +25,9 @@ event_t::event_t(event_t::type_t type)
 event_t::event_t(const std::string &description)
     : type_(START), description_(description),
       when_(get_ticks()) { }
+
+event_t::event_t(const sample_info_t sample_info)
+    : type_(SAMPLE), sample_info_(sample_info) { }
 
 counted_t<const ql::datum_t> construct_start(
         ticks_t duration, std::string &&description,
@@ -34,6 +46,18 @@ counted_t<const ql::datum_t> construct_split(
     guarantee(duration < std::numeric_limits<double>::max());
     res["duration(ms)"] = make_counted<const ql::datum_t>(static_cast<double>(duration) / MILLION);
     res["parallel_tasks"] = par_tasks;
+    return make_counted<const ql::datum_t>(std::move(res));
+}
+
+counted_t<const ql::datum_t> construct_sample(
+        const sample_info_t &sample_info) {
+    std::map<std::string, counted_t<const ql::datum_t> > res;
+    guarantee(sample_info.mean_duration_ < std::numeric_limits<double>::max());
+    guarantee(sample_info.n_samples_< std::numeric_limits<double>::max());
+    double mean_duration = static_cast<double>(sample_info.mean_duration_) / MILLION;
+    double n_samples = static_cast<double>(sample_info.n_samples_);
+    res["mean_duration(ms)"] = make_counted<const ql::datum_t>(mean_duration);
+    res["n_samples"] = make_counted<const ql::datum_t>(n_samples);
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
@@ -70,6 +94,11 @@ counted_t<const ql::datum_t> construct_datum(
                     (*begin)->when_ - split.when_,
                     make_counted<const ql::datum_t>(std::move(parallel_tasks))));
             } break;
+            case event_t::SAMPLE: {
+                event_t sample = **begin;
+                (*begin)++;
+                res.push_back(construct_sample(sample.sample_info_));
+            } break;
             case event_t::STOP:
                 break;
             default:
@@ -88,6 +117,9 @@ void print_event_log(const event_log_t &event_log) {
                 break;
             case event_t::SPLIT:
                 debugf("Split: %zu.\n", it->n_parallel_jobs_);
+                break;
+            case event_t::SAMPLE:
+                debugf("Sample.");
                 break;
             case event_t::STOP:
                 debugf("Stop.\n");
@@ -142,62 +174,17 @@ splitter_t::~splitter_t() {
     }
 }
 
-trace_t::trace_t()
-    : redirected_event_log_(NULL) { }
-
-counted_t<const ql::datum_t> trace_t::as_datum() const {
-    guarantee(!redirected_event_log_);
-    event_log_t::const_iterator begin = event_log_.begin();
-    return construct_datum(&begin, event_log_.end());
-}
-
-event_log_t &&trace_t::get_event_log() {
-    guarantee(!redirected_event_log_);
-    return std::move(event_log_);
-}
-
-void trace_t::start(const std::string &description) {
-    event_log_target()->push_back(event_t(description));
-}
-
-void trace_t::stop() {
-    event_log_target()->push_back(event_t());
-}
-
-void trace_t::start_split() {
-    event_log_target()->push_back(event_t(event_t::SPLIT));
-}
-
-void trace_t::stop_split(size_t n_parallel_jobs_, const event_log_t &par_event_log) {
-    guarantee(event_log_.back().type_ == event_t::SPLIT);
-    event_log_target()->back().n_parallel_jobs_ = n_parallel_jobs_;
-    event_log_target()->insert(event_log_.end(), par_event_log.begin(), par_event_log.end());
-}
-
-void trace_t::start_redirect(event_log_t *event_log) {
-    redirected_event_log_ = event_log;
-}
-
-void trace_t::stop_redirect() {
-    redirected_event_log_ = NULL;
-}
-
-event_log_t *trace_t::event_log_target() {
-    if (redirected_event_log_) {
-        return redirected_event_log_;
-    } else {
-        return &event_log_;
-    }
-}
-
 sampler_t::sampler_t(const std::string &description, trace_t *parent)
     : parent_(parent), starter_(description, parent),
       total_time(0), n_samples(0)
 {
     if (parent_) {
-        parent_->start_redirect(&event_log_);
+        parent_->start_sample(&event_log_);
     }
 }
+
+sampler_t::sampler_t(const std::string &description, const scoped_ptr_t<trace_t> &parent)
+    : sampler_t(description, parent.get_or_null()) { }
 
 ticks_t duration(const event_log_t &event_log) {
     guarantee(!event_log.empty());
@@ -241,8 +228,58 @@ void sampler_t::new_sample() {
 }
 
 sampler_t::~sampler_t() {
+    new_sample();
     if (parent_) {
-        parent_->stop_redirect();
+        parent_->stop_sample(sample_info_t(total_time / n_samples, n_samples));
+    }
+}
+
+trace_t::trace_t()
+    : redirected_event_log_(NULL) { }
+
+counted_t<const ql::datum_t> trace_t::as_datum() const {
+    guarantee(!redirected_event_log_);
+    event_log_t::const_iterator begin = event_log_.begin();
+    return construct_datum(&begin, event_log_.end());
+}
+
+event_log_t &&trace_t::get_event_log() {
+    guarantee(!redirected_event_log_);
+    return std::move(event_log_);
+}
+
+void trace_t::start(const std::string &description) {
+    event_log_target()->push_back(event_t(description));
+}
+
+void trace_t::stop() {
+    event_log_target()->push_back(event_t());
+}
+
+void trace_t::start_split() {
+    event_log_target()->push_back(event_t(event_t::SPLIT));
+}
+
+void trace_t::stop_split(size_t n_parallel_jobs_, const event_log_t &par_event_log) {
+    guarantee(event_log_.back().type_ == event_t::SPLIT);
+    event_log_target()->back().n_parallel_jobs_ = n_parallel_jobs_;
+    event_log_target()->insert(event_log_.end(), par_event_log.begin(), par_event_log.end());
+}
+
+void trace_t::start_sample(event_log_t *event_log) {
+    redirected_event_log_ = event_log;
+}
+
+void trace_t::stop_sample(const sample_info_t &sample_info) {
+    redirected_event_log_ = NULL;
+    event_log_target()->push_back(event_t(sample_info));
+}
+
+event_log_t *trace_t::event_log_target() {
+    if (redirected_event_log_) {
+        return redirected_event_log_;
+    } else {
+        return &event_log_;
     }
 }
 

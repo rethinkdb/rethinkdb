@@ -35,17 +35,22 @@ public:
         std::vector<counted_t<const datum_t> > result;
         result.reserve(num);
         size_t element_number = 0;
-        while (counted_t<const datum_t> row = seq->next(env->env)) {
-            element_number++;
-            if (result.size() < num) {
-                result.push_back(row);
-            } else {
-                /* We have a limitation on the size of arrays that makes
-                 * sure they are less than the size of an integer. */
-                size_t new_index = randint(element_number);
-                if (new_index < num) {
-                    result[new_index] = row;
+
+        {
+            explain::sampler_t sampler("Sampling elements.", env->env->trace);
+            while (counted_t<const datum_t> row = seq->next(env->env)) {
+                element_number++;
+                if (result.size() < num) {
+                    result.push_back(row);
+                } else {
+                    /* We have a limitation on the size of arrays that makes
+                     * sure they are less than the size of an integer. */
+                    size_t new_index = randint(element_number);
+                    if (new_index < num) {
+                        result[new_index] = row;
+                    }
                 }
+                sampler.new_sample();
             }
         }
 

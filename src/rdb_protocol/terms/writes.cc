@@ -241,21 +241,25 @@ private:
 
         counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
-        while (counted_t<const datum_t> row = ds->next(env->env)) {
-            counted_t<val_t> v = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
-            try {
-                counted_t<const datum_t> d = v->as_datum();
-                if (d->get_type() == datum_t::R_OBJECT) {
-                    stats = stats->merge(d, stats_merge);
-                } else {
-                    for (size_t i = 0; i < d->size(); ++i) {
-                        stats = stats->merge(d->get(i), stats_merge);
+        {
+            explain::sampler_t sampler("Evaluating elements in for each.", env->env->trace);
+            while (counted_t<const datum_t> row = ds->next(env->env)) {
+                counted_t<val_t> v = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
+                try {
+                    counted_t<const datum_t> d = v->as_datum();
+                    if (d->get_type() == datum_t::R_OBJECT) {
+                        stats = stats->merge(d, stats_merge);
+                    } else {
+                        for (size_t i = 0; i < d->size(); ++i) {
+                            stats = stats->merge(d->get(i), stats_merge);
+                        }
                     }
+                } catch (const exc_t &e) {
+                    throw exc_t(e.get_type(), fail_msg, e.backtrace());
+                } catch (const datum_exc_t &de) {
+                    rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
                 }
-            } catch (const exc_t &e) {
-                throw exc_t(e.get_type(), fail_msg, e.backtrace());
-            } catch (const datum_exc_t &de) {
-                rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
+                sampler.new_sample();
             }
         }
         return new_val(stats);
