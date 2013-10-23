@@ -18,7 +18,7 @@ except ImportError:
 info = "'rethinkdb export` exports data from a RethinkDB cluster into a directory"
 usage = "\
   rethinkdb export [-c HOST:PORT] [-a AUTH_KEY] [-d DIR] [-e (DB | DB.TABLE)]...\n\
-      [--format (csv | json)] [--fields FIELD,FIELD...]"
+      [--format (csv | json)] [--fields FIELD,FIELD...] [--clients NUM]"
 
 def print_export_help():
     print info
@@ -36,7 +36,7 @@ def print_export_help():
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
     print "                                   be specified multiple times)"
     print "  --clients NUM                    number of tables to export simultaneously (defaults"
-    print "                                   to 3, max is 128)"
+    print "                                   to 3)"
     print ""
     print "EXAMPLES:"
     print "rethinkdb export -c mnemosyne:39500"
@@ -126,8 +126,8 @@ def parse_options():
         res["fields"] = options.fields.split(",")
 
     # Get number of clients
-    if options.clients < 1 or options.clients > 128:
-       raise RuntimeError("Error: invalid number of clients (%d), must be between 0 and 128" % options.clients)
+    if options.clients < 1:
+       raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
     res["clients"] = options.clients
 
     res["auth_key"] = options.auth_key
