@@ -115,10 +115,12 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     /* Notify that the peer has disconnected */
     if (got_initialization) {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-        std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-        size_t num_erased = map.erase(peer);
-        guarantee(num_erased == 1);
-        variable.set_value(map);
+        auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
+            size_t num_erased = map->erase(peer);
+            guarantee(num_erased == 1);
+            return true;
+        };
+        variable.apply_atomic_op(op);
     }
 }
 
@@ -145,13 +147,13 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     /* Notify that the peer has connected */
     {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-        std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-
-        std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
-            = map.insert(std::make_pair(peer, initial_value));
-        guarantee(res.second);
-
-        variable.set_value(map);
+        auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
+            std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
+                = map->insert(std::make_pair(peer, initial_value));
+            guarantee(res.second);
+            return true;
+        };
+        variable.apply_atomic_op(op);
     }
 
     /* Create a metadata FIFO sink and pulse the `got_initial_message` cond so
@@ -201,16 +203,17 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-            std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-
-            typename std::map<peer_id_t, metadata_t>::iterator var_it = map.find(peer);
-            if (var_it == map.end()) {
-                guarantee(!std_contains(sessions, peer));
-                //The session was deleted we can ignore this update.
-                return;
-            }
-            var_it->second = new_value;
-            variable.set_value(map);
+            auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
+                typename std::map<peer_id_t, metadata_t>::iterator var_it = map->find(peer);
+                if (var_it == map->end()) {
+                    guarantee(!std_contains(sessions, peer));
+                    //The session was deleted we can ignore this update.
+                    return false;
+                }
+                var_it->second = new_value;
+                return true;
+            };
+            variable.apply_atomic_op(op);
         }
     } catch (const interrupted_exc_t &) {
         /* Here's what happened: `on_disconnect()` was called for the peer. It
