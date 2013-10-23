@@ -39,6 +39,8 @@ public:
           timestamp(current_microtime()),
           was_written(false),
           state(state_active),
+          garbage_bytes_stat(_parent->static_config->extent_size()),
+          num_garbage_blocks_stat(0),
           extent_offset(extent_ref.offset()) {
         add_self_to_parent_entries();
     }
@@ -51,6 +53,8 @@ public:
           timestamp(current_microtime()),
           was_written(false),
           state(state_reconstructing),
+          garbage_bytes_stat(_parent->static_config->extent_size()),
+          num_garbage_blocks_stat(0),
           extent_offset(extent_ref.offset()) {
         add_self_to_parent_entries();
     }
@@ -133,6 +137,7 @@ public:
             *relative_offset_out = offset;
             *block_index_out = block_infos.size();
             block_infos.push_back(block_info_t{offset, block_size, false, false});
+            update_stats(NULL, &block_infos.back());
             return true;
         }
     }
@@ -147,13 +152,8 @@ public:
     }
 
     unsigned int num_garbage_blocks() const {
-        unsigned int count = 0;
-        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-            if (!it->token_referenced && !it->index_referenced) {
-                ++count;
-            }
-        }
-        return count;
+        rassert(compute_num_garbage_blocks() == num_garbage_blocks_stat);
+        return num_garbage_blocks_stat;
     }
 
     unsigned int num_live_blocks() const { return num_blocks() - num_garbage_blocks(); }
@@ -161,13 +161,8 @@ public:
     bool all_garbage() const { return num_live_blocks() == 0; }
 
     uint32_t garbage_bytes() const {
-        uint32_t b = parent->static_config->extent_size();
-        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
-            if (it->token_referenced || it->index_referenced) {
-                b -= aligned_value(it->block_size);
-            }
-        }
-        return b;
+        rassert(compute_garbage_bytes() == garbage_bytes_stat);
+        return garbage_bytes_stat;
     }
 
     bool block_is_garbage(unsigned int block_index) const {
@@ -179,13 +174,17 @@ public:
     void mark_live_tokenwise(unsigned int block_index) {
         guarantee(state != state_reconstructing);
         guarantee(block_index < block_infos.size());
+        const block_info_t old_info = block_infos[block_index];
         block_infos[block_index].token_referenced = true;
+        update_stats(&old_info, &block_infos[block_index]);
     }
 
     void mark_garbage_tokenwise(unsigned int block_index) {
         guarantee(state != state_reconstructing);
         guarantee(block_index < block_infos.size());
+        const block_info_t old_info = block_infos[block_index];
         block_infos[block_index].token_referenced = false;
+        update_stats(&old_info, &block_infos[block_index]);
     }
 
     uint32_t token_bytes() const {
@@ -206,10 +205,6 @@ public:
         return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
     }
 
-    std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
-        return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
-    }
-
     void mark_live_indexwise_with_offset(int64_t offset, block_size_t block_size) {
         guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
 
@@ -218,20 +213,26 @@ public:
         auto it = find_lower_bound_iter(relative_offset);
         if (it == block_infos.end()) {
             block_infos.push_back(block_info_t{relative_offset, block_size, false, true});
+            update_stats(NULL, &block_infos.back());
         } else if (it->relative_offset > relative_offset) {
             guarantee(it->relative_offset >= relative_offset + aligned_value(block_size));
-            block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
+            auto new_block = block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
+            update_stats(NULL, &*new_block);
         } else {
             guarantee(it->relative_offset == relative_offset);
             guarantee(it->block_size == block_size);
+            const block_info_t old_info = *it;
             it->index_referenced = true;
+            update_stats(&old_info, &*it);
         }
     }
 
     void mark_garbage_indexwise(unsigned int block_index) {
         guarantee(state != state_reconstructing);
         guarantee(block_infos[block_index].index_referenced);
+        const block_info_t old_info = block_infos[block_index];
         block_infos[block_index].index_referenced = false;
+        update_stats(&old_info, &block_infos[block_index]);
     }
 
     bool block_referenced_by_index(unsigned int block_index) const {
@@ -268,6 +269,62 @@ public:
     }
 
 private:
+    // Private because we cannot guarantee that our stats remain consistent if somebody
+    // gets a non-const iterator.
+    std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
+        return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
+    }
+    
+#ifndef NDEBUG
+    uint32_t compute_garbage_bytes() const {
+        uint32_t b = parent->static_config->extent_size();
+        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
+            if (it->token_referenced || it->index_referenced) {
+                b -= aligned_value(it->block_size);
+            }
+        }
+        return b;
+    }
+    unsigned int compute_num_garbage_blocks() const {
+        unsigned int count = 0;
+        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
+            if (!it->token_referenced && !it->index_referenced) {
+                ++count;
+            }
+        }
+        return count;
+    }
+#endif
+    
+    // Either old_block or new_block can be NULL if a block_info was freshly added
+    // or deleted (<- the latter is not used right now)
+    void update_stats(const block_info_t *old_block, const block_info_t *new_block) {
+        // Note (daniel): We seem to assume that unused space is garbage when
+        //     calculating garbage_bytes. That seems to be inconsistent with
+        //     num_garbage_blocks. I wonder if we could change the definition
+        //     of garbage_bytes?
+        if (old_block != NULL) {
+            // Undo old_block
+            if (!old_block->token_referenced && !old_block->index_referenced) {
+                // Is garbage
+                num_garbage_blocks_stat -= 1;
+            } else {
+                // Not garbage
+                garbage_bytes_stat += aligned_value(old_block->block_size);
+            }
+        }
+        if (new_block != NULL) {
+            // Apply new_block
+            if (!new_block->token_referenced && !new_block->index_referenced) {
+                // Is garbage
+                num_garbage_blocks_stat += 1;
+            } else {
+                // Not garbage
+                garbage_bytes_stat += aligned_value(new_block->block_size);
+            }
+        }
+    }
+    
     // Used by constructors.
     void add_self_to_parent_entries() {
         uint64_t extent_id = parent->static_config->extent_index(extent_offset);
@@ -309,6 +366,10 @@ public:
 private:
     // Block information, ordered by relative offset.
     std::vector<block_info_t> block_infos;
+    
+    // Some stats we maintain to make certain operations faster
+    uint32_t garbage_bytes_stat;
+    unsigned int num_garbage_blocks_stat;
 
     // Only to be used by the destructor, used to look up the gc entry in the
     // parent's entries array.
