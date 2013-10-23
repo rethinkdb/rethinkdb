@@ -22,7 +22,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
@@ -97,10 +97,10 @@ namespace rdb_protocol_details {
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
 
 void post_construct_and_drain_queue(
+        auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        auto_drainer_t::lock_t lock)
+        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue)
     THROWS_NOTHING;
 
 /* Creates a queue of operations for the sindex, runs a post construction for
@@ -146,10 +146,10 @@ void bring_sindexes_up_to_date(
 
     coro_t::spawn_sometime(boost::bind(
                 &post_construct_and_drain_queue,
+                auto_drainer_t::lock_t(&store->drainer),
                 sindexes_to_bring_up_to_date_uuid,
                 store,
-                mod_queue,
-                auto_drainer_t::lock_t(&store->drainer)));
+                mod_queue));
 }
 
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
@@ -174,12 +174,16 @@ private:
 
 /* This function is really part of the logic of bring_sindexes_up_to_date
  * however it needs to be in a seperate function so that it can be spawned in a
- * coro. */
+ * coro. 
+ * NOTE: the auto_drainer lock must be in front of the
+ * mod_queue shared pointer, because we must not release
+ * the drainer lock before the mod_queue is released.
+ */
 void post_construct_and_drain_queue(
+        auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        auto_drainer_t::lock_t lock)
+        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue)
     THROWS_NOTHING
 {
     try {
@@ -981,7 +985,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp);
+            *write_out = write_t(tmp, durability_requirement);
             return true;
         } else {
             return false;
@@ -997,11 +1001,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const sync_t &s) const {
-        // Sync always applied to the whole region.
-        sync_t tmp = s;
-        tmp.region = *region;
-        *write_out = write_t(tmp, durability_requirement);
-        return true;
+        return rangey_write(s);
     }
 
     const region_t *region;
@@ -1202,7 +1202,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
-                    *rget.sindex_range, //guaranteed present above
+                    *rget.sindex_range, *rget.sindex_region, // guaranteed present above
                     txn, sindex_sb.get(), &ql_env, rget.transform,
                     rget.terminal, rget.region.inner, rget.sorting,
                     sindex_mapping, multi_bool, res);
@@ -1752,10 +1752,12 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
 }
 
 hash_region_t<key_range_t> sindex_range_t::to_region() const {
-    return hash_region_t<key_range_t>(rdb_protocol_t::sindex_key_range(
-        start != NULL ? start->truncated_secondary() : store_key_t::min(),
-        end != NULL ? end->truncated_secondary() : store_key_t::max()));
+    return hash_region_t<key_range_t>(
+        rdb_protocol_t::sindex_key_range(
+            start != NULL ? start->truncated_secondary() : store_key_t::min(),
+            end != NULL ? end->truncated_secondary() : store_key_t::max()));
 }
+
 
 bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
     return (!start || (*start < *value || (*start == *value && !start_open))) &&

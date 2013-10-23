@@ -194,7 +194,7 @@ private:
     friend class writeback_t::buf_writer_t;
 
     // Internal functions used during construction
-    void initialize(mc_inner_buf_t::version_id_t version, file_account_t *io_account, lock_in_line_callback_t *call_when_in_line);
+    void initialize(file_account_t *io_account, lock_in_line_callback_t *call_when_in_line);
     void acquire_block(mc_inner_buf_t::version_id_t version_to_access);
 
     // True if this is an mc_buf_lock_t for a snapshotted view of the buf.
@@ -277,6 +277,7 @@ private:
 
     ticks_t start_time;
     const int expected_change_count;
+    scoped_ptr_t<adjustable_semaphore_acq_t> throttling_acq;
     access_t access;
     repli_timestamp_t recency_timestamp;
     mc_inner_buf_t::version_id_t snapshot_version;

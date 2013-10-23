@@ -112,7 +112,7 @@ commands:
   - tag: order_by
     section: transformations
     description: Sort the sequence by document values of the given key(s).<br /><br />
-      <code>order by</code> defaults to ascending ordering. To explicitly specify
+      <code>order_by</code> defaults to ascending ordering. To explicitly specify
       the ordering, wrap the attribute with either <code>r.asc</code> or <code>r.desc</code>.
 
     name:

@@ -216,6 +216,9 @@ void btree_store_t<protocol_t>::reset_data(
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
+        token_destroyer(&token_pair->sindex_write_token);
+
     // We're passing 2 for the expected_change_count based on the
     // reasoning that we're probably going to touch a leaf-node-sized
     // range of keys and that it won't be aligned right on a leaf node

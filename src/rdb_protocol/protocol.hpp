@@ -664,9 +664,11 @@ struct rdb_protocol_t {
         explicit write_t(const point_delete_t &d,
                          durability_requirement_t durability)
             : write(d), durability_requirement(durability) { }
-        explicit write_t(const sindex_create_t &c)
+        explicit write_t(const sindex_create_t &c,
+                         durability_requirement_t = DURABILITY_REQUIREMENT_DEFAULT)
             : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const sindex_drop_t &c)
+        explicit write_t(const sindex_drop_t &c,
+                         durability_requirement_t = DURABILITY_REQUIREMENT_DEFAULT)
             : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
         // Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
         // not have the desired effect (of writing unsaved data to disk).
