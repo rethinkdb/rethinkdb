@@ -12,7 +12,7 @@
 merger_serializer_t::merger_serializer_t(scoped_ptr_t<serializer_t> _inner, int _max_active_writes) :
     inner(std::move(_inner)),
     index_writes_io_account(make_io_account(MERGED_INDEX_WRITE_IO_PRIORITY)),
-    on_inner_index_write_complete(new cond_t()),
+    on_inner_index_write_complete(new counted_cond_t()),
     num_active_writes(0),
     max_active_writes(_max_active_writes) {
 }
@@ -27,14 +27,14 @@ void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write
     rassert(coro_t::self() != NULL);
     assert_thread();
     
-    std::shared_ptr<cond_t> write_complete;
+    counted_t<counted_cond_t> write_complete;
     {
         // Our set of write ops must be processed atomically...
         ASSERT_NO_CORO_WAITING;
         for (auto op = write_ops.begin(); op != write_ops.end(); ++op) {
             push_index_write_op(*op);
         }
-        // ... and we also take a copy of the on_index_writes_complete signal
+        // ... and we also take a copy of the on_inner_index_write_complete signal
         // so we get notified exactly when all of our write ops have
         // been completed.
         write_complete = on_inner_index_write_complete;
@@ -57,7 +57,7 @@ void merger_serializer_t::do_index_write() {
     
     // Assemble the currently outstanding index writes into
     // a vector of index_write_op_t-s.
-    std::shared_ptr<cond_t> write_complete;
+    counted_t<counted_cond_t> write_complete;
     std::vector<index_write_op_t> write_ops;
     write_ops.reserve(outstanding_index_write_ops.size());
     {
@@ -67,10 +67,10 @@ void merger_serializer_t::do_index_write() {
         }
         outstanding_index_write_ops.clear();
         
-        // Swap out the on_index_writes_complete signal so subsequent index
+        // Swap out the on_inner_index_write_complete signal so subsequent index
         // writes can be captured by the next round of do_index_write().
-        write_complete = std::move(on_inner_index_write_complete);
-        on_inner_index_write_complete.reset(new cond_t());
+        write_complete.reset(new counted_cond_t());
+        write_complete.swap(on_inner_index_write_complete);
     }
     
     inner->index_write(write_ops, index_writes_io_account.get());

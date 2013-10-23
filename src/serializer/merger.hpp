@@ -109,7 +109,8 @@ private:
 
     // Index writes which are currently outstanding keep a pointer to this condition.
     // It is pulsed once the write completes.
-    std::shared_ptr<cond_t> on_inner_index_write_complete;
+    class counted_cond_t : public cond_t, public single_threaded_countable_t<counted_cond_t> { };
+    counted_t<counted_cond_t> on_inner_index_write_complete;
 
     int num_active_writes;
     int max_active_writes;
