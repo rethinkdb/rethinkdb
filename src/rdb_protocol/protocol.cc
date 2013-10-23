@@ -819,6 +819,9 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
+    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
+    boost::apply_visitor(v, read);
+
     /* We've got some explaining to do. */
     response_out->n_shards = 0;
     if (explain == explain_bool_t::EXPLAIN) {
@@ -830,9 +833,6 @@ void read_t::unshard(read_response_t *responses, size_t count,
             response_out->n_shards += responses[i].n_shards;
         }
     }
-    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
-    boost::apply_visitor(v, read);
-
 }
 
 /* write_t::get_region() implementation */
@@ -1047,6 +1047,9 @@ private:
 void write_t::unshard(write_response_t *responses, size_t count,
                       write_response_t *response_out, context_t *, signal_t *)
     const THROWS_NOTHING {
+    const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
+    boost::apply_visitor(visitor, write);
+
     /* We've got some explaining to do. */
     response_out->n_shards = 0;
     if (explain == explain_bool_t::EXPLAIN) {
@@ -1058,8 +1061,6 @@ void write_t::unshard(write_response_t *responses, size_t count,
             response_out->n_shards += responses[i].n_shards;
         }
     }
-    const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
-    boost::apply_visitor(visitor, write);
 }
 
 store_t::store_t(serializer_t *serializer,
