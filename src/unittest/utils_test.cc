@@ -97,20 +97,27 @@ TEST(UtilsTest, SizedStrcmp) {
 new file just for it. */
 
 void run_ip_address_test() {
-    std::set<ip_address_t> ips = hostname_to_ips("111.112.113.114");
+    std::set<ip_address_t> ips = hostname_to_ips("203.0.113.59");
     EXPECT_EQ(static_cast<size_t>(1), ips.size());
-    EXPECT_EQ("111.112.113.114", ips.begin()->to_string());
+    EXPECT_EQ("203.0.113.59", ips.begin()->to_string());
 
     ips = hostname_to_ips("::DEAD:0:BEEF");
     EXPECT_EQ(static_cast<size_t>(1), ips.size());
     EXPECT_EQ("::dead:0:beef", ips.begin()->to_string());
 
-    ips = hostname_to_ips("::FFFF:111.112.113.114");
-    EXPECT_EQ(static_cast<size_t>(2), ips.size());
-    auto ip_it = ips.begin();
-    EXPECT_EQ("111.112.113.114", ip_it->to_string());
-    ++ip_it;
-    EXPECT_EQ("::ffff:111.112.113.114", ip_it->to_string());
+    ips = hostname_to_ips("::FFFF:203.0.113.59");
+
+    std::set<std::string> ip_strings;
+    for (auto ip_it = ips.begin(); ip_it != ips.end(); ++ip_it) {
+        ip_strings.insert(ip_it->to_string());
+    }
+
+    // Some platforms may give us the IPv4 and IPv6 address, so handle both cases
+    EXPECT_TRUE(ip_strings.find("::ffff:203.0.113.59") != ip_strings.end());
+    if (ip_strings.size() > 1) {
+        EXPECT_EQ(static_cast<size_t>(2), ips.size());
+        EXPECT_TRUE(ip_strings.find("203.0.113.59") != ip_strings.end());
+    }
 }
 
 TEST(UtilsTest, IPAddress) {
