@@ -167,19 +167,19 @@ void coro_t::run() {
         rassert(coro->waiting_ == true);
         coro->waiting_ = false;
 
-PROFILER_CORO_RESUME
 #ifndef NDEBUG
         // Keep track of how many coroutines of each type ran
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]++;
         cglobals->total_coroutine_counts[coro->coroutine_type.c_str()]++;
         cglobals->active_coroutines.insert(coro);
 #endif
+        PROFILER_CORO_RESUME
         coro->action_wrapper.run();
+        PROFILER_CORO_YIELD(0)
 #ifndef NDEBUG
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
         cglobals->active_coroutines.erase(coro);
 #endif
-PROFILER_CORO_YIELD(0)
 
         rassert(coro->current_thread_ == get_thread_id());
 
@@ -262,6 +262,9 @@ void coro_t::notify_now_deprecated() {
     cglobals->assert_finite_coro_waiting_counter = 0;
 #endif
 
+    if (coro_t::self() != NULL) {
+        PROFILER_CORO_YIELD(1)
+    }
     coro_t *prev_prev_coro = cglobals->prev_coro;
     cglobals->prev_coro = cglobals->current_coro;
     cglobals->current_coro = this;
@@ -275,6 +278,9 @@ void coro_t::notify_now_deprecated() {
     rassert(cglobals->current_coro == this);
     cglobals->current_coro = cglobals->prev_coro;
     cglobals->prev_coro = prev_prev_coro;
+    if (coro_t::self() != NULL) {
+        PROFILER_CORO_RESUME
+    }
 
 #ifndef NDEBUG
     /* Restore old value of `assert_finite_coro_waiting_counter`. */
