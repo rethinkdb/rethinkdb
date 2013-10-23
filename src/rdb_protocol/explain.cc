@@ -26,8 +26,9 @@ event_t::event_t(const std::string &description)
     : type_(START), description_(description),
       when_(get_ticks()) { }
 
-event_t::event_t(const sample_info_t sample_info)
-    : type_(SAMPLE), sample_info_(sample_info) { }
+event_t::event_t(const std::string &description, const sample_info_t sample_info)
+    : type_(SAMPLE), description_(description),
+      sample_info_(sample_info) { }
 
 counted_t<const ql::datum_t> construct_start(
         ticks_t duration, std::string &&description,
@@ -50,6 +51,7 @@ counted_t<const ql::datum_t> construct_split(
 }
 
 counted_t<const ql::datum_t> construct_sample(
+        std::string &&description,
         const sample_info_t &sample_info) {
     std::map<std::string, counted_t<const ql::datum_t> > res;
     guarantee(sample_info.mean_duration_ < std::numeric_limits<double>::max());
@@ -58,6 +60,7 @@ counted_t<const ql::datum_t> construct_sample(
     double n_samples = static_cast<double>(sample_info.n_samples_);
     res["mean_duration(ms)"] = make_counted<const ql::datum_t>(mean_duration);
     res["n_samples"] = make_counted<const ql::datum_t>(n_samples);
+    res["description"] = make_counted<const ql::datum_t>(std::move(description));
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
@@ -97,7 +100,7 @@ counted_t<const ql::datum_t> construct_datum(
             case event_t::SAMPLE: {
                 event_t sample = **begin;
                 (*begin)++;
-                res.push_back(construct_sample(sample.sample_info_));
+                res.push_back(construct_sample(std::move(sample.description_), sample.sample_info_));
             } break;
             case event_t::STOP:
                 break;
@@ -175,8 +178,8 @@ splitter_t::~splitter_t() {
 }
 
 sampler_t::sampler_t(const std::string &description, trace_t *parent)
-    : parent_(parent), starter_(description, parent),
-      total_time(0), n_samples(0)
+    : parent_(parent), description_(description),
+      total_time_(0), n_samples_(0)
 {
     if (parent_) {
         parent_->start_sample(&event_log_);
@@ -220,8 +223,8 @@ ticks_t duration(const event_log_t &event_log) {
 
 void sampler_t::new_sample() {
     if (!event_log_.empty()) {
-        n_samples++;
-        total_time += duration(event_log_);
+        n_samples_++;
+        total_time_ += duration(event_log_);
     }
 
     event_log_.clear();
@@ -230,7 +233,11 @@ void sampler_t::new_sample() {
 sampler_t::~sampler_t() {
     new_sample();
     if (parent_) {
-        parent_->stop_sample(sample_info_t(total_time / n_samples, n_samples));
+        if (n_samples_ > 0) {
+            parent_->stop_sample(description_, sample_info_t(total_time_ / n_samples_, n_samples_));
+        } else {
+            parent_->stop_sample(description_, sample_info_t(0, 0));
+        }
     }
 }
 
@@ -270,9 +277,9 @@ void trace_t::start_sample(event_log_t *event_log) {
     redirected_event_log_ = event_log;
 }
 
-void trace_t::stop_sample(const sample_info_t &sample_info) {
+void trace_t::stop_sample(const std::string &description, const sample_info_t &sample_info) {
     redirected_event_log_ = NULL;
-    event_log_target()->push_back(event_t(sample_info));
+    event_log_target()->push_back(event_t(description, sample_info));
 }
 
 event_log_t *trace_t::event_log_target() {

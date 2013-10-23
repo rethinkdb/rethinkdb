@@ -115,10 +115,12 @@ counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
     datum_ptr_t arr(datum_t::R_ARRAY);
-    explain::sampler_t sampler("Evaluating as_array elements.", env->trace);
-    while (counted_t<const datum_t> d = next(env)) {
-        arr.add(d);
-        sampler.new_sample();
+    {
+        explain::sampler_t sampler("Evaluating as_array elements.", env->trace);
+        while (counted_t<const datum_t> d = next(env)) {
+            arr.add(d);
+            sampler.new_sample();
+        }
     }
     return arr.to_counted();
 }
@@ -513,10 +515,12 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
         return counted_t<const datum_t>();
     }
     datum_ptr_t arr(datum_t::R_ARRAY);
-    explain::sampler_t sampler("Evaluating as_array elements.", env->trace);
-    while (counted_t<const datum_t> d = next(env)) {
-        arr.add(d);
-        sampler.new_sample();
+    {
+        explain::sampler_t sampler("Evaluating as_array elements.", env->trace);
+        while (counted_t<const datum_t> d = next(env)) {
+            arr.add(d);
+            sampler.new_sample();
+        }
     }
     return arr.to_counted();
 }

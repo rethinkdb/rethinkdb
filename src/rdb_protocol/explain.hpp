@@ -37,10 +37,10 @@ public:
     event_t();
     event_t(event_t::type_t type);
     event_t(const std::string &description);
-    event_t(const sample_info_t sample_info);
+    event_t(const std::string &description, const sample_info_t sample_info);
 
     type_t type_;
-    std::string description_; //used in START
+    std::string description_; //used in START, SAMPLE
     size_t n_parallel_jobs_; // used in SPLIT
     ticks_t when_; // used in START, SPLIT, STOP
     sample_info_t sample_info_; // used in SAMPLE
@@ -69,7 +69,7 @@ private:
     void start_split();
     void stop_split(size_t n_parallel_jobs_, const event_log_t &event_log);
     void start_sample(event_log_t *sample_event_log);
-    void stop_sample(const sample_info_t &sample_info);
+    void stop_sample(const std::string &description, const sample_info_t &sample_info);
 
     /* returns the event_log_t that we should put events in */
     event_log_t *event_log_target();
@@ -109,11 +109,11 @@ public:
     ~sampler_t();
 private:
     trace_t *parent_;
-    starter_t starter_;
     event_log_t event_log_;
 
-    ticks_t total_time;
-    size_t n_samples;
+    std::string description_;
+    ticks_t total_time_;
+    size_t n_samples_;
 };
 
 void print_event_log(const event_log_t &event_log);
