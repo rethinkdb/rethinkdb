@@ -256,7 +256,6 @@ def launch_writer(format, directory, db, table, fields, task_queue, error_queue)
         raise RuntimeError("unknown format type: %s" % format)
 
 def export_table(host, port, auth_key, db, table, directory, fields, format, error_queue, progress_info, stream_semaphore, exit_event):
-    acquired_semaphore = False
     writer = None
 
     try:
@@ -267,23 +266,18 @@ def export_table(host, port, auth_key, db, table, directory, fields, format, err
         progress_info[0].value = 0
         write_table_metadata(conn, db, table, directory)
 
-        acquired_semaphore = True
-        stream_semaphore.acquire()
+        with stream_semaphore:
+            task_queue = multiprocessing.queues.SimpleQueue()
+            writer = launch_writer(format, directory, db, table, fields, task_queue, error_queue)
+            writer.start()
 
-        task_queue = multiprocessing.queues.SimpleQueue()
-        writer = launch_writer(format, directory, db, table, fields, task_queue, error_queue)
-        writer.start()
-
-        read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event)
+            read_table_into_queue(conn, db, table, task_queue, progress_info, exit_event)
     except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
     finally:
-        if acquired_semaphore:
-            stream_semaphore.release()
-
         if writer is not None and writer.is_alive():
             task_queue.put(("exit", "event")) # Exit is triggered by sending a message with two objects
             writer.join()
