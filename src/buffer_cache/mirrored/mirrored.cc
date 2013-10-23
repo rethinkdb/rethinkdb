@@ -427,9 +427,6 @@ void *mc_inner_buf_t::acquire_snapshot_data(version_id_t version_to_access, file
 
 // TODO (sam): Look at who's passing this void pointer.
 void mc_inner_buf_t::release_snapshot_data(void *_data) {
-    // This should never be called in non-coroutine context, since it could release the last
-    // reference to a block_token_t, whose destructor switches to the serializer thread.
-    rassert(coro_t::self());
     cache->assert_thread();
     rassert(_data, "tried to release NULL snapshot data");
     for (buf_snapshot_t *snap = snapshots.head(); snap; snap = snapshots.next(snap)) {
