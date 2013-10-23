@@ -5,7 +5,7 @@
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rdb_protocol/explain.hpp"
+#include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 

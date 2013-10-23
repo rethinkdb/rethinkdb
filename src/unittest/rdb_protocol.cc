@@ -129,7 +129,7 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
                 rdb_protocol_t::point_write_t(store_key_t("a"),
                     make_counted<ql::datum_t>(ql::datum_t::R_NULL)),
                 DURABILITY_REQUIREMENT_DEFAULT,
-                explain_bool_t::EXPLAIN);
+                profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -144,7 +144,7 @@ void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t
 
     {
         rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t("a")),
-                explain_bool_t::EXPLAIN);
+                profile_bool_t::PROFILE);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -178,7 +178,7 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
 
     ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
-    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE), explain_bool_t::EXPLAIN);
+    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE), profile_bool_t::PROFILE);
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;
@@ -195,7 +195,7 @@ bool drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
                  order_source_t *osource,
                  const std::string &id) {
     rdb_protocol_t::sindex_drop_t d(id);
-    rdb_protocol_t::write_t write(d, explain_bool_t::EXPLAIN);
+    rdb_protocol_t::write_t write(d, profile_bool_t::PROFILE);
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;
@@ -229,7 +229,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         rdb_protocol_t::write_t write(
             rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
             DURABILITY_REQUIREMENT_DEFAULT,
-            explain_bool_t::EXPLAIN);
+            profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -251,7 +251,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         /* Access the data using the secondary index. */
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
             id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)),
-                explain_bool_t::EXPLAIN);
+                profile_bool_t::PROFILE);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -271,7 +271,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         /* Delete the data. */
         rdb_protocol_t::point_delete_t d(pk);
         rdb_protocol_t::write_t write(
-                d, DURABILITY_REQUIREMENT_DEFAULT, explain_bool_t::EXPLAIN);
+                d, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -289,7 +289,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         rdb_protocol_t::read_t read(
                 rdb_protocol_t::rget_read_t(
                     id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)),
-                explain_bool_t::EXPLAIN);
+                profile_bool_t::PROFILE);
 
         rdb_protocol_t::read_response_t response;
 
@@ -318,7 +318,7 @@ TEST(RDBProtocol, OvershardedSindexCreateDrop) {
 
 std::set<std::string> list_sindexes(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     rdb_protocol_t::sindex_list_t l;
-    rdb_protocol_t::read_t read(l, explain_bool_t::EXPLAIN);
+    rdb_protocol_t::read_t read(l, profile_bool_t::PROFILE);
     rdb_protocol_t::read_response_t response;
 
     cond_t interruptor;
@@ -394,7 +394,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                 rdb_protocol_t::write_t write(
                     rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
                     DURABILITY_REQUIREMENT_DEFAULT,
-                    explain_bool_t::EXPLAIN);
+                    profile_bool_t::PROFILE);
                 rdb_protocol_t::write_response_t response;
 
                 cond_t interruptor;
@@ -418,7 +418,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                 /* Access the data using the secondary index. */
                 rdb_protocol_t::rget_read_t rget(
                     sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false));
-                rdb_protocol_t::read_t read(rget, explain_bool_t::EXPLAIN);
+                rdb_protocol_t::read_t read(rget, profile_bool_t::PROFILE);
                 rdb_protocol_t::read_response_t response;
 
                 cond_t interruptor;
@@ -460,7 +460,7 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
         rdb_protocol_t::write_t write(
             rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
             DURABILITY_REQUIREMENT_DEFAULT,
-            explain_bool_t::EXPLAIN);
+            profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;

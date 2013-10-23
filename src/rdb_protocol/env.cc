@@ -101,10 +101,10 @@ void rdb_namespace_interface_t::read(
         order_token_t tok,
         signal_t *interruptor) 
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    explain::starter_t starter("Perform read.", env_->trace);
-    explain::splitter_t splitter(env_->trace);
-    /* propagate whether or not we're doing explains */
-    read->explain = env_->explain();
+    profile::starter_t starter("Perform read.", env_->trace);
+    profile::splitter_t splitter(env_->trace);
+    /* propagate whether or not we're doing profiles */
+    read->profile = env_->profile();
     /* Do the actual read. */
     internal_->read(*read, response, tok, interruptor);
     /* Append the results of the parallel tasks to the current trace */
@@ -117,13 +117,13 @@ void rdb_namespace_interface_t::read_outdated(
         rdb_protocol_t::read_response_t *response,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    explain::starter_t starter("Perform outdated read.", env_->trace);
-    explain::splitter_t splitter(env_->trace);
-    /* propagate whether or not we're doing explains */
-    read->explain = env_->explain();
+    profile::starter_t starter("Perform outdated read.", env_->trace);
+    profile::splitter_t splitter(env_->trace);
+    /* propagate whether or not we're doing profiles */
+    read->profile = env_->profile();
     /* Do the actual read. */
     internal_->read_outdated(*read, response, interruptor);
-    /* Append the results of the explain to the current task */
+    /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }
 
@@ -133,13 +133,13 @@ void rdb_namespace_interface_t::write(
         order_token_t tok,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    explain::starter_t starter("Perform write", env_->trace);
-    explain::splitter_t splitter(env_->trace);
-    /* propagate whether or not we're doing explains */
-    write->explain = env_->explain();
+    profile::starter_t starter("Perform write", env_->trace);
+    profile::splitter_t splitter(env_->trace);
+    /* propagate whether or not we're doing profiles */
+    write->profile = env_->profile();
     /* Do the actual read. */
     internal_->write(*write, response, tok, interruptor);
-    /* Append the results of the explain to the current task */
+    /* Append the results of the profile to the current task */
     splitter.give_splits(response->n_shards, response->event_log);
 }
 
@@ -175,8 +175,8 @@ void env_t::do_eval_callback() {
     }
 }
 
-explain_bool_t env_t::explain() {
-    return trace.has() ? explain_bool_t::EXPLAIN : explain_bool_t::DONT_EXPLAIN;
+profile_bool_t env_t::profile() {
+    return trace.has() ? profile_bool_t::PROFILE : profile_bool_t::DONT_PROFILE;
 }
 
 cluster_access_t::cluster_access_t(
@@ -262,9 +262,9 @@ env_t::env_t(
     interruptor(_interruptor),
     eval_callback(NULL)
 {
-    counted_t<val_t> explain_arg = global_optargs.get_optarg(this, "explain");
-    if (explain_arg.has() && explain_arg->as_bool()) {
-        trace.init(new explain::trace_t());
+    counted_t<val_t> profile_arg = global_optargs.get_optarg(this, "profile");
+    if (profile_arg.has() && profile_arg->as_bool()) {
+        trace.init(new profile::trace_t());
     }
 }
 
@@ -282,7 +282,7 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
-    explain_bool_t _explain)
+    profile_bool_t _profile)
   : global_optargs(protob_t<Query>()),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
@@ -294,8 +294,8 @@ env_t::env_t(
     interruptor(_interruptor),
     eval_callback(NULL)
 {
-    if (_explain == explain_bool_t::EXPLAIN) {
-        trace.init(new explain::trace_t());
+    if (_profile == profile_bool_t::PROFILE) {
+        trace.init(new profile::trace_t());
     }
 }
 

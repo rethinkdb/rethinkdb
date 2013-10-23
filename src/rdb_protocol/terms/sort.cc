@@ -183,7 +183,7 @@ private:
         datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
         {
-            explain::sampler_t sampler("Evaluating elements in distinct.", env->env->trace);
+            profile::sampler_t sampler("Evaluating elements in distinct.", env->env->trace);
             while (counted_t<const datum_t> d = s->next(env->env)) {
                 if (last.has() && *last == *d) {
                     continue;

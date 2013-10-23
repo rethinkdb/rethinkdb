@@ -134,7 +134,7 @@ void write_to_broadcaster(size_t value_padding_length,
                 generate_document(value_padding_length, value),
                 true),
             DURABILITY_REQUIREMENT_DEFAULT,
-            explain_bool_t::EXPLAIN);
+            profile_bool_t::PROFILE);
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -214,7 +214,7 @@ void run_backfill_test(size_t value_padding_length,
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
         rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)),
-                explain_bool_t::EXPLAIN);
+                profile_bool_t::PROFILE);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
@@ -266,7 +266,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
         rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(
-                    sindex_id, m, sindex_multi_bool_t::SINGLE), explain_bool_t::EXPLAIN);
+                    sindex_id, m, sindex_multi_bool_t::SINGLE), profile_bool_t::PROFILE);
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -333,7 +333,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
             sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)),
-                explain_bool_t::EXPLAIN);
+                profile_bool_t::PROFILE);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

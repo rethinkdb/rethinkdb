@@ -214,11 +214,11 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
                 if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(res->mutable_explain());
+                    env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(res->mutable_explain());
+                    env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
                 }
                 stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
                 bool b = stream_cache2->serve(token, res, env->interruptor);
@@ -294,7 +294,7 @@ void term_t::prop_bt(Term *t) const {
 
 counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
-    explain::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
+    profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->env->throw_if_interruptor_pulsed();

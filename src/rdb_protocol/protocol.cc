@@ -418,14 +418,14 @@ region_t read_t::get_region() const THROWS_NOTHING {
 
 struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
-                                   explain_bool_t _explain, read_t *_read_out)
-        : region(_region), explain(_explain), read_out(_read_out) { }
+                                   profile_bool_t _profile, read_t *_read_out)
+        : region(_region), profile(_profile), read_out(_read_out) { }
 
     // The key was somehow already extracted from the arg.
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
         if (region_contains_key(*region, key)) {
-            *read_out = read_t(arg, explain);
+            *read_out = read_t(arg, profile);
             return true;
         } else {
             return false;
@@ -443,7 +443,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *read_out = read_t(tmp, explain);
+            *read_out = read_t(tmp, profile);
             return true;
         } else {
             return false;
@@ -463,13 +463,13 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     const hash_region_t<key_range_t> *region;
-    explain_bool_t explain;
+    profile_bool_t profile;
     read_t *read_out;
 };
 
 bool read_t::shard(const hash_region_t<key_range_t> &region,
                    read_t *read_out) const THROWS_NOTHING {
-    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, explain, read_out), read);
+    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, profile, read_out), read);
 }
 
 /* read_t::unshard implementation */
@@ -544,9 +544,9 @@ public:
         rget_read_response_t *rg_response
             = boost::get<rget_read_response_t>(&response_out->response);
         rg_response->truncated = false;
-        rg_response->key_range = read_t(rg, explain_bool_t::DONT_EXPLAIN).get_region().inner;
+        rg_response->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
         rg_response->last_considered_key =
-            read_t(rg, explain_bool_t::DONT_EXPLAIN).get_region().inner.left;
+            read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner.left;
 
         /* First check to see if any of the responses we're unsharding threw. */
         for (size_t i = 0; i < count; ++i) {
@@ -822,9 +822,9 @@ void read_t::unshard(read_response_t *responses, size_t count,
     rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
     boost::apply_visitor(v, read);
 
-    /* We've got some explaining to do. */
+    /* We've got some profileing to do. */
     response_out->n_shards = 0;
-    if (explain == explain_bool_t::EXPLAIN) {
+    if (profile == profile_bool_t::PROFILE) {
         for (size_t i = 0; i < count; ++i) {
             response_out->event_log.insert(
                 response_out->event_log.end(),
@@ -907,15 +907,15 @@ region_t write_t::get_region() const THROWS_NOTHING {
 struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     rdb_w_shard_visitor_t(const region_t *_region,
                           durability_requirement_t _durability_requirement,
-                          explain_bool_t _explain, write_t *_write_out)
+                          profile_bool_t _profile, write_t *_write_out)
         : region(_region),
           durability_requirement(_durability_requirement),
-          explain(_explain), write_out(_write_out) {}
+          profile(_profile), write_out(_write_out) {}
 
     template <class T>
     bool keyed_write(const T &arg) const {
         if (region_contains_key(*region, arg.key)) {
-            *write_out = write_t(arg, durability_requirement, explain);
+            *write_out = write_t(arg, durability_requirement, profile);
             return true;
         } else {
             return false;
@@ -936,7 +936,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
 
         if (!sharded_replaces.empty()) {
-            *write_out = write_t(batched_replaces_t(), durability_requirement, explain);
+            *write_out = write_t(batched_replaces_t(), durability_requirement, profile);
             batched_replaces_t *batched = boost::get<batched_replaces_t>(&write_out->write);
             batched->point_replaces.swap(sharded_replaces);
             return true;
@@ -960,7 +960,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp, explain);
+            *write_out = write_t(tmp, profile);
             return true;
         } else {
             return false;
@@ -977,13 +977,13 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
 
     const region_t *region;
     durability_requirement_t durability_requirement;
-    explain_bool_t explain;
+    profile_bool_t profile;
     write_t *write_out;
 };
 
 bool write_t::shard(const region_t &region,
                     write_t *write_out) const THROWS_NOTHING {
-    const rdb_w_shard_visitor_t v(&region, durability_requirement, explain, write_out);
+    const rdb_w_shard_visitor_t v(&region, durability_requirement, profile, write_out);
     return boost::apply_visitor(v, write);
 }
 
@@ -1050,9 +1050,9 @@ void write_t::unshard(write_response_t *responses, size_t count,
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
     boost::apply_visitor(visitor, write);
 
-    /* We've got some explaining to do. */
+    /* We've got some profileing to do. */
     response_out->n_shards = 0;
-    if (explain == explain_bool_t::EXPLAIN) {
+    if (profile == profile_bool_t::PROFILE) {
         for (size_t i = 0; i < count; ++i) {
             response_out->event_log.insert(
                 response_out->event_log.end(),
@@ -1231,7 +1231,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        read_token_pair_t *_token_pair,
                        rdb_protocol_t::context_t *ctx,
                        read_response_t *_response,
-                       explain_bool_t explain,
+                       profile_bool_t profile,
                        signal_t *_interruptor) :
         response(_response),
         btree(_btree),
@@ -1250,18 +1250,18 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               explain)
+               profile)
     { }
 
     ql::env_t *get_env() {
         return &ql_env;
     }
 
-    explain::event_log_t &&get_event_log() {
+    profile::event_log_t &&get_event_log() {
         if (ql_env.trace.has()) {
             return ql_env.trace->get_event_log();
         } else {
-            static explain::event_log_t event_log;
+            static profile::event_log_t event_log;
             return std::move(event_log);
         }
     }
@@ -1286,16 +1286,16 @@ void store_t::protocol_read(const read_t &read,
                             signal_t *interruptor) {
     rdb_read_visitor_t v(
         btree, this, txn, superblock, token_pair,
-        ctx, response, read.explain, interruptor);
+        ctx, response, read.profile, interruptor);
     {
-        explain::starter_t start_write("Perform read on shard.", v.get_env()->trace);
+        profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
         boost::apply_visitor(v, read.read);
     }
 
     response->n_shards = 1;
     response->event_log = std::move(v.get_event_log());
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
-    response->event_log.push_back(explain::event_t());
+    response->event_log.push_back(profile::event_t());
 }
 
 // TODO: get rid of this extra response_t copy on the stack
@@ -1433,11 +1433,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         return &ql_env;
     }
 
-    explain::event_log_t &&get_event_log() {
+    profile::event_log_t &&get_event_log() {
         if (ql_env.trace.has()) {
             return ql_env.trace->get_event_log();
         } else {
-            static explain::event_log_t event_log;
+            static profile::event_log_t event_log;
             return std::move(event_log);
         }
     }
@@ -1485,14 +1485,14 @@ void store_t::protocol_write(const write_t &write,
     rdb_write_visitor_t v(btree, this, txn, superblock, token_pair,
             timestamp.to_repli_timestamp(), ctx, response, interruptor);
     {
-        explain::starter_t start_write("Perform write on shard.", v.get_env()->trace);
+        profile::starter_t start_write("Perform write on shard.", v.get_env()->trace);
         boost::apply_visitor(v, write.write);
     }
 
     response->n_shards = 1;
     response->event_log = std::move(v.get_event_log());
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
-    response->event_log.push_back(explain::event_t());
+    response->event_log.push_back(profile::event_t());
 }
 
 struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
@@ -1745,7 +1745,7 @@ RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t, max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, explain);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
@@ -1765,7 +1765,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_t, key);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region, multi);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_t, write, durability_requirement, explain);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_t, write, durability_requirement, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);

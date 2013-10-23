@@ -43,7 +43,7 @@ private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         datum_ptr_t acc(datum_t::R_ARRAY);
         {
-            explain::sampler_t sampler("Evaluating elements in make_array.", env->env->trace);
+            profile::sampler_t sampler("Evaluating elements in make_array.", env->env->trace);
             for (size_t i = 0; i < num_args(); ++i) {
                 acc.add(arg(env, i)->as_datum());
                 sampler.new_sample();
@@ -64,7 +64,7 @@ private:
         eval_flags_t new_flags = literal_ok ? LITERAL_OK : NO_FLAGS;
         datum_ptr_t acc(datum_t::R_OBJECT);
         {
-            explain::sampler_t sampler("Evaluating elements in make_obj.", env->env->trace);
+            profile::sampler_t sampler("Evaluating elements in make_obj.", env->env->trace);
             for (auto it = optargs.begin(); it != optargs.end(); ++it) {
                 bool dup = acc.add(it->first, it->second->eval(env, new_flags)->as_datum());
                 rcheck(!dup, base_exc_t::GENERIC,

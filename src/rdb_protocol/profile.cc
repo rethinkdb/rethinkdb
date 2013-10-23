@@ -1,9 +1,9 @@
 #include <limits>
 
-#include "rdb_protocol/explain.hpp"
+#include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/datum.hpp"
 
-namespace explain {
+namespace profile {
 
 RDB_IMPL_ME_SERIALIZABLE_2(sample_info_t, mean_duration_, n_samples_);
 
@@ -290,4 +290,4 @@ event_log_t *trace_t::event_log_target() {
     }
 }
 
-} //namespace explain
+} //namespace profile 

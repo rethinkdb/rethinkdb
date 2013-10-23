@@ -242,7 +242,7 @@ private:
         counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
         {
-            explain::sampler_t sampler("Evaluating elements in for each.", env->env->trace);
+            profile::sampler_t sampler("Evaluating elements in for each.", env->env->trace);
             while (counted_t<const datum_t> row = ds->next(env->env)) {
                 counted_t<val_t> v = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
                 try {

@@ -37,7 +37,7 @@ public:
         size_t element_number = 0;
 
         {
-            explain::sampler_t sampler("Sampling elements.", env->env->trace);
+            profile::sampler_t sampler("Sampling elements.", env->env->trace);
             while (counted_t<const datum_t> row = seq->next(env->env)) {
                 element_number++;
                 if (result.size() < num) {

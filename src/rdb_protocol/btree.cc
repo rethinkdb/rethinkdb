@@ -685,7 +685,7 @@ public:
                 query_language::terminal_initialize(&*terminal, &response->result);
             }
 
-            sampler.init(new explain::sampler_t("Range traversal doc evaluation.", ql_env->trace));
+            sampler.init(new profile::sampler_t("Range traversal doc evaluation.", ql_env->trace));
         } catch (const ql::exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e2;
@@ -824,7 +824,7 @@ public:
     counted_t<ql::func_t> sindex_function;
     boost::optional<sindex_multi_bool_t> sindex_multi;
 
-    scoped_ptr_t<explain::sampler_t> sampler;
+    scoped_ptr_t<profile::sampler_t> sampler;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -849,7 +849,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     sorting_t sorting,
                     rget_read_response_t *response) {
-    explain::starter_t starter("Do range scan on primary index.", ql_env->trace);
+    profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(
             txn, ql_env, transform, terminal, range, sorting, response);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
@@ -873,7 +873,7 @@ void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex
                     const ql::map_wire_func_t &sindex_func,
                     sindex_multi_bool_t sindex_multi,
                     rget_read_response_t *response) {
-    explain::starter_t starter("Do range scan on secondary index.", ql_env->trace);
+    profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
             sindex_range.to_region().inner, pk_range,
             sorting, sindex_func, sindex_multi, sindex_range, response);

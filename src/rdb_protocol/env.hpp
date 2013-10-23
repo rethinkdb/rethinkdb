@@ -37,7 +37,7 @@ private:
 };
 
 /* This is like a normal namespace_interface_t except that it properly handles
- * merging the explain objects. */
+ * merging the profile objects. */
 class rdb_namespace_interface_t {
 public:
     rdb_namespace_interface_t(
@@ -140,7 +140,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine,
-        explain_bool_t _explain);
+        profile_bool_t _profile);
 
     explicit env_t(signal_t *);
 
@@ -179,9 +179,9 @@ public:
     // The interruptor signal while a query evaluates.  This can get overwritten!
     signal_t *interruptor;
 
-    scoped_ptr_t<explain::trace_t> trace;
+    scoped_ptr_t<profile::trace_t> trace;
 
-    explain_bool_t explain();
+    profile_bool_t profile();
 
 private:
     js_runner_t js_runner;

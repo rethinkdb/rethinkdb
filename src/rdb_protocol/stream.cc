@@ -220,7 +220,7 @@ rdb_protocol_t::rget_read_response_t::result_t batched_rget_stream_t::apply_term
     const rdb_protocol_details::terminal_variant_t &t, ql::env_t *env) {
     rdb_protocol_t::rget_read_t rget_read = get_rget();
     rget_read.terminal = t;
-    rdb_protocol_t::read_t read(rget_read, env->explain());
+    rdb_protocol_t::read_t read(rget_read, env->profile());
     try {
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
@@ -263,7 +263,7 @@ rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
 }
 
 void batched_rget_stream_t::read_more(ql::env_t *env) {
-    rdb_protocol_t::read_t read(get_rget(), env->explain());
+    rdb_protocol_t::read_t read(get_rget(), env->profile());
     try {
         guarantee(ns_access->get_namespace_if().has());
         rdb_protocol_t::read_response_t res;

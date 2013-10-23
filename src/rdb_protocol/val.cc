@@ -257,7 +257,7 @@ std::vector<counted_t<const datum_t> > table_t::batch_replace(
 
     if (!point_replaces.empty()) {
         rdb_protocol_t::write_t write(rdb_protocol_t::batched_replaces_t(point_replaces),
-                                      durability_requirement, env->explain());
+                                      durability_requirement, env->profile());
         rdb_protocol_t::write_response_t response;
         access->get_namespace_if().write(&write, &response, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::batched_replaces_response_t *batched_replaces_response
@@ -288,7 +288,7 @@ MUST_USE bool table_t::sindex_create(env_t *env,
     index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(index_func);
     rdb_protocol_t::write_t write(
-            rdb_protocol_t::sindex_create_t(id, wire_func, multi), env->explain());
+            rdb_protocol_t::sindex_create_t(id, wire_func, multi), env->profile());
 
     rdb_protocol_t::write_response_t res;
     access->get_namespace_if().write(
@@ -301,7 +301,7 @@ MUST_USE bool table_t::sindex_create(env_t *env,
 }
 
 MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
-    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_drop_t(id), env->explain());
+    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_drop_t(id), env->profile());
 
     rdb_protocol_t::write_response_t res;
     access->get_namespace_if().write(
@@ -315,7 +315,7 @@ MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
 
 counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     rdb_protocol_t::sindex_list_t sindex_list;
-    rdb_protocol_t::read_t read(sindex_list, env->explain());
+    rdb_protocol_t::read_t read(sindex_list, env->profile());
     try {
         rdb_protocol_t::read_response_t res;
         access->get_namespace_if().read(
@@ -359,7 +359,7 @@ counted_t<const datum_t> table_t::do_replace(
     rdb_protocol_t::write_t write(
         rdb_protocol_t::point_replace_t(
             pk, store_key, mwf, env->global_optargs.get_all_optargs(), return_vals),
-        durability_requirement, env->explain());
+        durability_requirement, env->profile());
 
     rdb_protocol_t::write_response_t response;
     access->get_namespace_if().write(
@@ -401,7 +401,7 @@ const std::string &table_t::get_pkey() { return pkey; }
 counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> pval) {
     std::string pks = pval->print_primary();
     rdb_protocol_t::read_t read(
-            rdb_protocol_t::point_read_t(store_key_t(pks)), env->explain());
+            rdb_protocol_t::point_read_t(store_key_t(pks)), env->profile());
     rdb_protocol_t::read_response_t res;
     if (use_outdated) {
         access->get_namespace_if().read_outdated(&read, &res, env->interruptor);

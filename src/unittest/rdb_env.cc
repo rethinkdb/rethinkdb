@@ -2,7 +2,6 @@
 #include "unittest/rdb_env.hpp"
 
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/explain.hpp"
 
 namespace unittest {
 

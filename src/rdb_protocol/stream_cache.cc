@@ -41,7 +41,7 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
             entry->next_datum.reset();
         }
         {
-            explain::sampler_t sampler("Evaluating stream elements.", entry->env->trace);
+            profile::sampler_t sampler("Evaluating stream elements.", entry->env->trace);
             while (counted_t<const datum_t> d = entry->stream->next(entry->env.get())) {
                 d->write_to_protobuf(res->add_response());
                 if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {

@@ -26,7 +26,7 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/explain.hpp"
+#include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/wire_func.hpp"
 #include "utils.hpp"
@@ -45,13 +45,13 @@ class traversal_progress_combiner_t;
 
 using query_language::shared_scoped_less_t;
 
-enum class explain_bool_t {
-    EXPLAIN,
-    DONT_EXPLAIN
+enum class profile_bool_t {
+    PROFILE,
+    DONT_PROFILE
 };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        explain_bool_t, int8_t,
-        explain_bool_t::EXPLAIN, explain_bool_t::DONT_EXPLAIN);
+        profile_bool_t, int8_t,
+        profile_bool_t::PROFILE, profile_bool_t::DONT_PROFILE);
 
 enum class point_write_result_t {
     STORED,
@@ -302,7 +302,7 @@ struct rdb_protocol_t {
                        rget_read_response_t,
                        distribution_read_response_t,
                        sindex_list_response_t> response;
-        explain::event_log_t event_log;
+        profile::event_log_t event_log;
         size_t n_shards;
 
         read_response_t() { }
@@ -440,7 +440,7 @@ struct rdb_protocol_t {
 
     struct read_t {
         boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> read;
-        explain_bool_t explain;
+        profile_bool_t profile;
 
         region_t get_region() const THROWS_NOTHING;
         // Returns true if the read has any operation for this region.  Returns false if
@@ -455,8 +455,8 @@ struct rdb_protocol_t {
 
         read_t() { }
         read_t(const boost::variant<point_read_t, rget_read_t, distribution_read_t, sindex_list_t> &r,
-               explain_bool_t _explain)
-            : read(r), explain(_explain) { }
+               profile_bool_t _profile)
+            : read(r), profile(_profile) { }
 
         // Only use snapshotting if we're doing a range get.
         bool use_snapshot() const { return boost::get<rget_read_t>(&read); }
@@ -519,7 +519,7 @@ struct rdb_protocol_t {
                        point_delete_response_t,
                        sindex_create_response_t,
                        sindex_drop_response_t> response;
-        explain::event_log_t event_log;
+        profile::event_log_t event_log;
         size_t n_shards;
 
         write_response_t() { }
@@ -626,7 +626,7 @@ struct rdb_protocol_t {
                        sindex_drop_t> write;
 
         durability_requirement_t durability_requirement;
-        explain_bool_t explain;
+        profile_bool_t profile;
 
         region_t get_region() const THROWS_NOTHING;
         // Returns true if the write had any side effects applicable to the region, and a
@@ -641,23 +641,23 @@ struct rdb_protocol_t {
 
         write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
         write_t(const point_replace_t &r, durability_requirement_t durability,
-                explain_bool_t _explain)
-            : write(r), durability_requirement(durability), explain(_explain) { }
+                profile_bool_t _profile)
+            : write(r), durability_requirement(durability), profile(_profile) { }
         write_t(const batched_replaces_t &br, durability_requirement_t durability,
-                explain_bool_t _explain)
-            : write(br), durability_requirement(durability), explain(_explain) { }
+                profile_bool_t _profile)
+            : write(br), durability_requirement(durability), profile(_profile) { }
         write_t(const point_write_t &w, durability_requirement_t durability,
-                explain_bool_t _explain)
-            : write(w), durability_requirement(durability), explain(_explain) { }
+                profile_bool_t _profile)
+            : write(w), durability_requirement(durability), profile(_profile) { }
         write_t(const point_delete_t &d, durability_requirement_t durability,
-                explain_bool_t _explain)
-            : write(d), durability_requirement(durability), explain(_explain) { }
-        write_t(const sindex_create_t &c, explain_bool_t _explain)
+                profile_bool_t _profile)
+            : write(d), durability_requirement(durability), profile(_profile) { }
+        write_t(const sindex_create_t &c, profile_bool_t _profile)
             : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-              explain(_explain) { }
-        write_t(const sindex_drop_t &c, explain_bool_t _explain)
+              profile(_profile) { }
+        write_t(const sindex_drop_t &c, profile_bool_t _profile)
             : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
-              explain(_explain) { }
+              profile(_profile) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };

@@ -209,7 +209,7 @@ private:
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
                 {
-                    explain::sampler_t sampler("Coercing to array.", env->env->trace);
+                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
                     while (counted_t<const datum_t> el = ds->next(env->env)) {
                         arr.add(el);
                         sampler.new_sample();
@@ -223,7 +223,7 @@ private:
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                     datum_ptr_t obj(datum_t::R_OBJECT);
                     {
-                        explain::sampler_t sampler("Coercing to array.", env->env->trace);
+                        profile::sampler_t sampler("Coercing to array.", env->env->trace);
                         while (counted_t<const datum_t> pair = ds->next(env->env)) {
                             std::string key = pair->get(0)->as_str();
                             counted_t<const datum_t> keyval = pair->get(1);

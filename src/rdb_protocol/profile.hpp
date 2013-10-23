@@ -1,6 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef RDB_PROTOCOL_EXPLAIN_HPP_
-#define RDB_PROTOCOL_EXPLAIN_HPP_
+#ifndef RDB_PROTOCOL_PROFILE_HPP_
+#define RDB_PROTOCOL_PROFILE_HPP_
 
 #include <vector>
 
@@ -14,7 +14,7 @@ namespace ql {
 class datum_t;
 } //namespace ql
 
-namespace explain {
+namespace profile {
 
 struct sample_info_t {
     sample_info_t();
@@ -118,5 +118,5 @@ private:
 
 void print_event_log(const event_log_t &event_log);
 
-} //namespace explain
+} //namespace profile
 #endif

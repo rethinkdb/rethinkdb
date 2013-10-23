@@ -87,7 +87,7 @@ private:
             counted_t<const datum_t> last_d;
 
             {
-                explain::sampler_t sampler("Find nth element.", env->env->trace);
+                profile::sampler_t sampler("Find nth element.", env->env->trace);
                 for (int32_t i = 0; ; ++i) {
                     sampler.new_sample();
                     counted_t<const datum_t> d = s->next(env->env);
@@ -439,7 +439,7 @@ private:
             }
         }
         {
-            explain::sampler_t sampler("Evaluating elements in contains.", env->env->trace);
+            profile::sampler_t sampler("Evaluating elements in contains.", env->env->trace);
             while (counted_t<const datum_t> el = seq->next(env->env)) {
                 for (auto it = required_els.begin(); it != required_els.end(); ++it) {
                     if (**it == *el) {

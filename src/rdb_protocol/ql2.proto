@@ -128,7 +128,7 @@ message Response {
 
     optional Backtrace backtrace = 4; // Contains n [Frame]s when you get back an error.
 
-    optional Datum explain = 5;
+    optional Datum profile = 5;
 }
 
 // A [Datum] is a chunk of data that can be serialized to disk or returned to
