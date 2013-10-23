@@ -70,8 +70,14 @@ size_t randsize(size_t n) {
 // 'space_needed' less than the user-specified memory limit.
 void page_repl_random_t::make_space(size_t space_needed) {
     cache->assert_thread();
+    // `target` is how many free blocks we want to have when we return.
     size_t target;
     if (space_needed > unload_threshold) {
+        // We cannot accomplish our goal of having at least `space_needed` less
+        // blocks in memory than the memory limit (`unload_threshold`), because
+        // `space_needed` is too large.
+        // However we try to get as close as possible by unloading as many blocks
+        // as we can.
         target = 0;
     } else {
         target = unload_threshold - space_needed;
