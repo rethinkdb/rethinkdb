@@ -36,6 +36,20 @@ auto_drainer_t::lock_t &auto_drainer_t::lock_t::operator=(const lock_t &l) {
     return *this;
 }
 
+auto_drainer_t::lock_t::lock_t(lock_t &&l) : parent(l.parent) {
+    l.parent = NULL;
+}
+
+auto_drainer_t::lock_t &auto_drainer_t::lock_t::operator=(lock_t &&l) {
+    lock_t tmp(std::move(l));
+    std::swap(parent, tmp.parent);
+    return *this;
+}
+
+auto_drainer_t::lock_t auto_drainer_t::lock() {
+    return auto_drainer_t::lock_t(this);
+}
+
 void auto_drainer_t::lock_t::reset() {
     if (parent) parent->decref();
     parent = NULL;
