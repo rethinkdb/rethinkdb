@@ -196,6 +196,11 @@ primary_readgen_t::primary_readgen_t(
     datum_range_t range,
     sorting_t sorting)
     : readgen_t(global_optargs, range, sorting) { }
+scoped_ptr_t<readgen_t> primary_readgen_t::make(
+    env_t *env, datum_range_t range, sorting_t sorting) {
+    return scoped_ptr_t<readgen_t>(
+        new primary_readgen_t(env->global_optargs.get_all_optargs(), range, sorting));
+}
 
 rget_read_t primary_readgen_t::next_read_impl(
     const key_range_t &active_range, const transform_t &transform) {
@@ -221,6 +226,13 @@ sindex_readgen_t::sindex_readgen_t(
     datum_range_t range,
     sorting_t sorting)
     : readgen_t(global_optargs, range, sorting), sindex(_sindex) { }
+
+scoped_ptr_t<readgen_t> sindex_readgen_t::make(
+    env_t *env, const std::string &sindex, datum_range_t range, sorting_t sorting) {
+    return scoped_ptr_t<readgen_t>(
+        new sindex_readgen_t(
+            env->global_optargs.get_all_optargs(), sindex, range, sorting));
+}
 
 void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) {
     if (vec->size() == 0) {

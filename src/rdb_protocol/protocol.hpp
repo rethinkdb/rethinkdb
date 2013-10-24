@@ -77,13 +77,18 @@ class sindex_readgen_t;
 
 class datum_range_t {
 public:
+    datum_range_t();
     datum_range_t(
         counted_t<const ql::datum_t> left_bound,
         key_range_t::bound_t left_bound_type,
         counted_t<const ql::datum_t> right_bound,
         key_range_t::bound_t right_bound_type);
+    // Range that includes just one value.
+    explicit datum_range_t(counted_t<const ql::datum_t> val);
     static datum_range_t universe();
+
     bool contains(counted_t<const ql::datum_t> val) const;
+    bool is_universe() const;
     RDB_DECLARE_ME_SERIALIZABLE;
 private:
     // Only `readgen_t` and its subclasses should do anything fancy with a range.

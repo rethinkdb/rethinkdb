@@ -92,16 +92,24 @@ RDB_IMPL_PROTOB_SERIALIZABLE(Backtrace);
 
 RDB_IMPL_SERIALIZABLE_2(filter_transform_t, filter_func, default_filter_val);
 
+datum_range_t::datum_range_t()
+    : left_bound_type(key_range_t::none), right_bound_type(key_range_t::none) { }
 datum_range_t::datum_range_t(
     counted_t<const ql::datum_t> _left_bound, key_range_t::bound_t _left_bound_type,
     counted_t<const ql::datum_t> _right_bound, key_range_t::bound_t _right_bound_type)
     : left_bound(_left_bound), right_bound(_right_bound),
-      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type)
-{ }
+      left_bound_type(_left_bound_type), right_bound_type(_right_bound_type) { }
+datum_range_t::datum_range_t(counted_t<const ql::datum_t> val)
+    : left_bound(val), right_bound(val),
+      left_bound_type(key_range_t::closed), right_bound_type(key_range_t::closed) { }
 
 datum_range_t datum_range_t::universe()  {
     return datum_range_t(counted_t<const ql::datum_t>(), key_range_t::open,
                          counted_t<const ql::datum_t>(), key_range_t::open);
+}
+bool datum_range_t::is_universe() const {
+    return !left_bound.has() && !right_bound.has()
+        && left_bound_type == key_range_t::open && right_bound_type == key_range_t::open;
 }
 
 bool datum_range_t::contains(counted_t<const ql::datum_t> val) const {
@@ -1814,6 +1822,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
+                                      key_range_t::open, key_range_t::none);
 RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
                            empty_ok(left_bound), empty_ok(right_bound),
                            left_bound_type, right_bound_type);

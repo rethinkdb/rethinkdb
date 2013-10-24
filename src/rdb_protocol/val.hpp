@@ -43,10 +43,9 @@ public:
     void add_sorting(
         const std::string &sindex_id, sorting_t sorting,
         const rcheckable_t *parent);
-    void add_bounds(
-        counted_t<const datum_t> left_bound, bool left_bound_open,
-        counted_t<const datum_t> right_bound, bool right_bound_open,
-        const std::string &sindex_id, const rcheckable_t *parent);
+    void add_bounds(datum_range_t &&new_bounds,
+                    const std::string &new_sindex_id,
+                    const rcheckable_t *parent);
 
     counted_t<const datum_t> make_error_datum(const base_exc_t &exception);
 
@@ -113,16 +112,9 @@ private:
     scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
 
     boost::optional<std::string> sindex_id;
+
+    datum_range_t bounds;
     sorting_t sorting;
-
-    struct bound_t {
-        bound_t(counted_t<const datum_t> _value, bool _bound_open)
-            : value(_value), bound_open(_bound_open) { }
-        counted_t<const datum_t> value;
-        bool bound_open;
-    };
-
-    boost::optional<std::pair<bound_t, bound_t> > bounds;
 };
 
 

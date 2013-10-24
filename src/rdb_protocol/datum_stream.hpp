@@ -221,11 +221,13 @@ private:
 
 class primary_readgen_t : public readgen_t {
 public:
-    primary_readgen_t(
-        const std::map<std::string, wire_func_t> &global_optargs,
+    static scoped_ptr_t<readgen_t> make(
+        env_t *env,
         datum_range_t range = datum_range_t::universe(),
         sorting_t sorting = UNORDERED);
 private:
+    primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
+                      datum_range_t range, sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range, const transform_t &transform);
     virtual boost::optional<read_t> sindex_sort_read(
@@ -236,19 +238,23 @@ private:
 
 class sindex_readgen_t : public readgen_t {
 public:
-    sindex_readgen_t(
-        const std::map<std::string, wire_func_t> &global_optargs,
+    static scoped_ptr_t<readgen_t> make(
+        env_t *env,
         const std::string &sindex,
-        datum_range_t sindex_range = datum_range_t::universe(),
+        datum_range_t range = datum_range_t::universe(),
         sorting_t sorting = UNORDERED);
 private:
-    const std::string sindex;
+    sindex_readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
+        const std::string &sindex, datum_range_t sindex_range, sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range, const transform_t &transform);
     virtual boost::optional<read_t> sindex_sort_read(
         const std::vector<rget_item_t> &items, const transform_t &transform);
     virtual void sindex_sort(std::vector<rget_item_t> *vec);
     virtual key_range_t original_keyrange();
+
+    const std::string sindex;
 };
 
 // RSI: prefetching
