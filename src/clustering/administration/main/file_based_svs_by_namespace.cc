@@ -116,7 +116,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
         int res = access(serializer_filepath.permanent_path().c_str(), R_OK | W_OK);
         store_args_t<protocol_t> store_args(io_backender_, base_path_,
-                                            namespace_id, cache_size,
+                                            namespace_id, cache_size / num_stores,
                                             serializers_perfmon_collection, ctx);
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
