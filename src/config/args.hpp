@@ -83,6 +83,19 @@
 // TODO: DEFAULT_MAX_CACHE_RATIO is unused. Should it be deleted?
 #define DEFAULT_MAX_CACHE_RATIO                   0.5
 
+// The maximum number of concurrently active
+// index writes per merger serializer.
+// The smaller the number, the more effective
+// the merger serializer is in merging index writes
+// together. This is favorable especially on rotational drives.
+// There is a theoretic chance of increased latencies on SSDs for
+// small values of this variable.
+#define MERGER_SERIALIZER_MAX_ACTIVE_WRITES       1
+
+// I/O priority of (merged) index writes used by the
+// merger serializer.
+#define MERGED_INDEX_WRITE_IO_PRIORITY            128
+
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
