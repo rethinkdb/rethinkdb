@@ -79,6 +79,19 @@ private:
     event_log_t *redirected_event_log_;
 };
 
+/* These are the instruments for adding profiling to code. You construct this
+ * objects at various places in your code such that their lifetimes correspond
+ * to the period of time during which you are performing an operation. */
+
+/* starter_t is used to record a task. It records events when it is constructed
+ * and when it is destroyed. Example:
+ *
+ *  {
+ *      starter_t starter("Performing task foo.", trace);
+ *
+ *      Perform the task foo in here
+ *  }
+ */
 class starter_t {
 public:
     starter_t(const std::string &description, trace_t *parent);
@@ -88,6 +101,23 @@ private:
     trace_t *parent_;
 };
 
+/* splitter_t is used to record several tasks happening in parallel. For each
+ * parallel task you get back you need to get their event logs back,
+ * concatenate them and pass them to the give_splits method. Example:
+ * {
+ *     splitter_t splitter(trace);
+ *     event_log_t log1, log2;
+ *     coro_t::spawn(&perform_task_1, &log1);
+ *     coro_t::spawn(&perform_task_2, &log2);
+ *
+ *     wait_for_tasks_to_complete();
+ *     log1.insert(log2.begin(), log2.end(), log1.end());
+ *     splitter.give_splits(2, log1);
+ * }
+ *
+ * This is used for reads and writes from and to the shards in the query
+ * language layer.
+ */
 class splitter_t {
 public:
     splitter_t(trace_t *parent);
@@ -100,6 +130,26 @@ private:
     event_log_t event_log_;
     bool received_splits_;
 };
+
+/* sampler_t is used when you want to record a repeated event that would
+ * otherwise swamp the event log. When it is constructed it begins sampling,
+ * between samples you should call the new_sample method. Example:
+ * {
+ *     sampler_t sampler("Reduce elements", trace);
+ *     counted_t<const datum_t> res = stream.next();
+ *
+ *     while (auto v = stream.next()) {
+ *         res = reduce(res, v);
+ *         new_sample();
+ *     }
+ * }
+ *
+ * This is used for map and reduce type things in the query language.
+ *
+ * Note: the sampler tries to be a bit flexible with where you put calls to
+ * new_sample(). You need to call it between when the things you sample want to
+ * happen. Calling it before the first sample and after the last sample is
+ * acceptable but optional. */
 
 class sampler_t {
 public:
