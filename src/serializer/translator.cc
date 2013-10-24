@@ -27,12 +27,12 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
 }
 
 void prep_serializer(
-        const std::vector<standard_serializer_t *>& serializers,
+        const std::vector<serializer_t *>& serializers,
         creation_timestamp_t creation_timestamp,
         int n_proxies,
         int i) {
 
-    standard_serializer_t *ser = serializers[i];
+    serializer_t *ser = serializers[i];
 
     /* Go to the thread the serializer is running on because it can only be accessed safely from
     that thread */
@@ -58,7 +58,7 @@ void prep_serializer(
 }
 
 /* static */
-void serializer_multiplexer_t::create(const std::vector<standard_serializer_t *>& underlying, int n_proxies) {
+void serializer_multiplexer_t::create(const std::vector<serializer_t *>& underlying, int n_proxies) {
     /* Choose a more-or-less unique ID so that we can hopefully catch the case where files are
     mixed and mismatched. */
     creation_timestamp_t creation_timestamp = time(NULL);
@@ -68,10 +68,10 @@ void serializer_multiplexer_t::create(const std::vector<standard_serializer_t *>
         underlying, creation_timestamp, n_proxies, _1));
 }
 
-void create_proxies(const std::vector<standard_serializer_t *>& underlying,
+void create_proxies(const std::vector<serializer_t *>& underlying,
     creation_timestamp_t creation_timestamp, std::vector<translator_serializer_t *> *proxies, int i) {
 
-    standard_serializer_t *ser = underlying[i];
+    serializer_t *ser = underlying[i];
 
     /* Go to the thread the serializer is running on because it is only safe to access on that
     thread and because the pseudoserializers must be created on that thread */
@@ -124,7 +124,7 @@ void create_proxies(const std::vector<standard_serializer_t *>& underlying,
     }
 }
 
-serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<standard_serializer_t *>& underlying) {
+serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_t *>& underlying) {
     rassert(!underlying.empty());
     for (int i = 0; i < static_cast<int>(underlying.size()); ++i) {
         rassert(underlying[i]);
@@ -189,7 +189,7 @@ block_id_t translator_serializer_t::translate_block_id(block_id_t id) const {
     return translate_block_id(id, mod_count, mod_id, cfgid);
 }
 
-translator_serializer_t::translator_serializer_t(standard_serializer_t *_inner, int _mod_count, int _mod_id, config_block_id_t _cfgid)
+translator_serializer_t::translator_serializer_t(serializer_t *_inner, int _mod_count, int _mod_id, config_block_id_t _cfgid)
     : inner(_inner), mod_count(_mod_count), mod_id(_mod_id), cfgid(_cfgid), read_ahead_callback(NULL) {
     rassert(mod_count > 0);
     rassert(mod_id >= 0);
@@ -208,7 +208,7 @@ file_account_t *translator_serializer_t::make_io_account(int priority, int outst
     return inner->make_io_account(priority, outstanding_requests_limit);
 }
 
-void translator_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+void translator_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) {
     std::vector<index_write_op_t> translated_ops(write_ops);
     for (std::vector<index_write_op_t>::iterator it = translated_ops.begin(); it < translated_ops.end(); ++it)
         it->block_id = translate_block_id(it->block_id);
@@ -230,7 +230,7 @@ translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write
 }
 
 
-void translator_serializer_t::block_read(const counted_t<standard_block_token_t>& token, ser_buffer_t *buf, file_account_t *io_account) {
+void translator_serializer_t::block_read(const counted_t<standard_block_token_t> &token, ser_buffer_t *buf, file_account_t *io_account) {
     return inner->block_read(token, buf, io_account);
 }
 

@@ -14,11 +14,11 @@ class serializer_multiplexer_t {
 public:
     /* Blocking call. Assumes the given serializers are empty; initializes them such that they can
     be treated as 'n_proxies' proxy-serializers. */
-    static void create(const std::vector<standard_serializer_t *> &underlying, int n_proxies);
+    static void create(const std::vector<serializer_t *> &underlying, int n_proxies);
 
     /* Blocking call. Must give the same set of underlying serializers you gave to create(). (It
     will abort if this is not the case.) */
-    explicit serializer_multiplexer_t(const std::vector<standard_serializer_t *> &underlying);
+    explicit serializer_multiplexer_t(const std::vector<serializer_t *> &underlying);
 
     /* proxies.size() is the same as 'n_proxies' you passed to create(). Please do not mutate
     'proxies'. */
@@ -85,7 +85,7 @@ public:
     void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
 
 private:
-    standard_serializer_t *inner;
+    serializer_t *inner;
     int mod_count, mod_id;
     config_block_id_t cfgid;
 
@@ -108,7 +108,7 @@ public:
 public:
     /* The translator serializer will only use block IDs on the inner serializer that
     are greater than or equal to 'min' and such that ((id - min) % mod_count) == mod_id. */
-    translator_serializer_t(standard_serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
+    translator_serializer_t(serializer_t *inner, int mod_count, int mod_id, config_block_id_t cfgid);
 
     scoped_malloc_t<ser_buffer_t> malloc();
     scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
