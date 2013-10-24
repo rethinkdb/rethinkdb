@@ -7,7 +7,6 @@ Bug fix update.
 * Server
   * `r.js` no longer fails when interrupted too early (#1553)
   * Data for some `get_all` queries is no longer duplicated (#1541)
-  * Older versions of RethinkDB no longer crash when connecting to them (#1483)
   * Fixed crash `Guarantee failed: [!token_pair->sindex_write_token.has()]` (#1380)
   * Fixed crash caused by rapid resharding (#728)
 * ReQL
