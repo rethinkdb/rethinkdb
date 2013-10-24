@@ -24,7 +24,7 @@
 /* If you set CORO_PROFILER_ADDRESS_TO_LINE to 1, the coro profiler prints
  * the filename and line number of the source file in/at which a sample was recorded.
  * Unfortunately that conversion is pretty slow. */
-#define CORO_PROFILER_ADDRESS_TO_LINE           1
+#define CORO_PROFILER_ADDRESS_TO_LINE           0
 
 
 /* 

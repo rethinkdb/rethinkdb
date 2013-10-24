@@ -918,6 +918,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         guarantee(dest == me);
         // We could be on any thread here! Oh no!
         string_read_stream_t read_stream(std::move(buffer.str()), 0);
+        coro_t::yield();
         current_run->message_handler->on_message(me, &read_stream);
     } else {
         guarantee(dest != me);

@@ -315,6 +315,7 @@ struct region_tree_filler_t {
 
             int64_t suboffset, subsize;
             shrink(txn->get_cache()->get_block_size(), levels, offset, size, lo + i, &suboffset, &subsize);
+            coro_t::yield(); // Is this it? No.
             nodes[i].child = blob::make_tree_from_block_ids(txn, mode, levels - 1, suboffset, subsize, sub_ids);
         } else {
             nodes[i].buf = new buf_lock_t(txn, block_ids[lo + i], mode);

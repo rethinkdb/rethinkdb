@@ -367,6 +367,7 @@ void writeback_t::do_concurrent_flush() {
         cache->stats->pm_flushes_writing.begin(&start_time);
         flush_acquire_bufs(transaction, &state);
     }
+    coro_t::yield();
 
     // Now that preparations are complete, send the writes to the serializer
     if (!state.serializer_writes.empty()) {
@@ -388,6 +389,7 @@ void writeback_t::do_concurrent_flush() {
 
         // Also we are now allowed to reuse the block id without further conflicts
         cache->free_list.release_block_id(write.block_id);
+        if ((i+1) % 50 == 0) coro_t::yield();
     }
     state.serializer_writes.clear();
 
@@ -461,6 +463,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
 
     unsigned int really_dirty = 0;
 
+    coro_t::yield();
     while (local_buf_t *lbuf = dirty_bufs.head()) {
         mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
@@ -514,6 +517,7 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
                                                 buf_data,
                                                 buf_writer,
                                                 &buf_writer->launch_cb));
+            coro_t::yield();
         } else {
             rassert(recency_dirty);
             // No need to acquire the block, since we're only writing its recency & don't need its contents.
