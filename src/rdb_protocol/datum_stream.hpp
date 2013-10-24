@@ -75,7 +75,7 @@ public:
 
 protected:
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
-        : pb_rcheckable_t(bt_src) { }
+        : pb_rcheckable_t(bt_src), batch_cache_index(0) { }
 
 private:
     virtual std::vector<counted_t<const datum_t> >
