@@ -336,7 +336,12 @@ temporary_acq_tree_node_t *make_tree_from_block_ids(transaction_t *txn, access_t
 
     filler.nodes = new temporary_acq_tree_node_t[filler.hi - filler.lo];
 
-    pmap(filler.hi - filler.lo, filler);
+    for (int i = 0; i < filler.hi - filler.lo; ++i) {
+        filler(i);
+        coro_t::yield();
+    }
+    //pmap(filler.hi - filler.lo, filler);
+
 
     return filler.nodes;
 }

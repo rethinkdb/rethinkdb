@@ -7,6 +7,7 @@
 
 #include <algorithm>
 
+#include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "btree/node.hpp"
 
@@ -1468,6 +1469,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
 
         entry_iter_t iter = entry_iter_t::make(node);
         while (!iter.done(sizer) && iter.offset < node->tstamp_cutpoint) {
+//            coro_t::yield(); // TODO (just for testing)
             repli_timestamp_t tstamp = get_timestamp(node, iter.offset);
             rassert(earliest_so_far >= tstamp, "asserted earliest_so_far (%" PRIu64 ") >= tstamp (%" PRIu64 ")", earliest_so_far.longtime, tstamp.longtime);
             earliest_so_far = tstamp;
@@ -1478,6 +1480,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
             }
 
             iter.step(sizer, node);
+            coro_t::yield();
         }
     }
 

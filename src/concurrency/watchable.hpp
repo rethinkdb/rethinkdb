@@ -166,8 +166,11 @@ public:
     // `op` must return true if the value was modified,
     // and should return false otherwise.
     void apply_atomic_op(std::function<bool(value_t*)> op) {
-        ASSERT_NO_CORO_WAITING;
-        const bool was_modified = op(&value);
+        bool was_modified;
+        {
+            ASSERT_NO_CORO_WAITING;
+            was_modified = op(&value);
+        }
         if (was_modified) {
             publisher_controller.publish(&call_function);
         }

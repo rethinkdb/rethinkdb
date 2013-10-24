@@ -990,9 +990,9 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
         // index are done atomically.
         PROFILER_RECORD_SAMPLE
         {
-            ASSERT_NO_CORO_WAITING;
 
             for (size_t i = 0; i < num_writes; ++i) {
+                if ((i+1) % 10 == 0) coro_t::yield();
                 unsigned int block_index
                     = parent->gc_state.current_entry->block_index(writes[i].old_offset);
 
@@ -1020,6 +1020,7 @@ void data_block_manager_t::gc_writer_t::write_gcs(gc_write_t *writes, size_t num
             // that point to the current entry.  This should empty out
             // all the t_array bits.
             for (size_t i = 0; i < num_writes; ++i) {
+                if ((i+1) % 10 == 0) coro_t::yield();
                 parent->serializer->remap_block_to_new_offset(writes[i].old_offset, new_block_tokens[i]->offset());
             }
         }

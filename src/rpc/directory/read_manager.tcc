@@ -7,6 +7,7 @@
 #include <map>
 #include <utility>
 
+#include "arch/runtime/coro_profiler.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 
@@ -34,6 +35,7 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, string_read_stream_t *s) THROWS_NOTHING {
+    PROFILER_RECORD_SAMPLE
     uint8_t code = 0;
     {
         int res = deserialize(s, &code);
@@ -54,11 +56,13 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
 
             /* Spawn a new coroutine because we might not be on the home thread
             and `on_message()` isn't supposed to block very long */
+            PROFILER_RECORD_SAMPLE
             coro_t::spawn_sometime(boost::bind(
                 &directory_read_manager_t::propagate_initialization, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
                 initial_value, metadata_fifo_state,
                 auto_drainer_t::lock_t(per_thread_drainers.get())));
+            PROFILER_RECORD_SAMPLE
 
             break;
         }
@@ -76,6 +80,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
                 // TODO Don't fail catastrophically just because there's bad data on the stream.
             }
 
+PROFILER_RECORD_SAMPLE
             /* Spawn a new coroutine because we might not be on the home thread
             and `on_message()` isn't supposed to block very long */
             coro_t::spawn_sometime(boost::bind(
@@ -83,6 +88,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
                 new_value, metadata_fifo_token,
                 auto_drainer_t::lock_t(per_thread_drainers.get())));
+PROFILER_RECORD_SAMPLE
 
             break;
         }
@@ -211,7 +217,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
             PROFILER_RECORD_SAMPLE
-                auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
+            auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
                 typename std::map<peer_id_t, metadata_t>::iterator var_it = map->find(peer);
                 if (var_it == map->end()) {
                     guarantee(!std_contains(sessions, peer));

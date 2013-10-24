@@ -76,6 +76,7 @@ private:
 
 
     void on_blueprint_changed() THROWS_NOTHING;
+    void on_blueprint_changed_later() THROWS_NOTHING;
     void try_spawn_roles() THROWS_NOTHING;
     void run_cpu_sharded_role(
             int cpu_shard_number,

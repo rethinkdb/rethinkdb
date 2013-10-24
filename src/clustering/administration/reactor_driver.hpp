@@ -110,6 +110,7 @@ private:
             typename reactor_map_t::auto_type *thing_to_delete,
             namespace_id_t namespace_id);
     void on_change();
+    void on_change_later();
 
     const base_path_t base_path;
     io_backender_t *const io_backender;

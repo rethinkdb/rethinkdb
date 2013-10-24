@@ -3,6 +3,7 @@
 #define CONCURRENCY_PUBSUB_HPP_
 
 #include "arch/runtime/runtime_utils.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 #include "concurrency/mutex_assertion.hpp"
 #include "containers/intrusive_list.hpp"
 #include "utils.hpp"

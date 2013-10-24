@@ -21,6 +21,7 @@ last_seen_tracker_t::last_seen_tracker_t(
 }
 
 void last_seen_tracker_t::update() {
+    PROFILER_RECORD_SAMPLE
     std::set<machine_id_t> visible;
     std::map<peer_id_t, machine_id_t> machine_ids = machine_id_map->get();
     for (std::map<peer_id_t, machine_id_t>::iterator it = machine_ids.begin();
@@ -39,6 +40,7 @@ void last_seen_tracker_t::update() {
             last_seen.erase(it->first);
         }
     }
+    PROFILER_RECORD_SAMPLE
 }
 
 void last_seen_tracker_t::on_machines_view_change() {

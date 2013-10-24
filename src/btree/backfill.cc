@@ -7,6 +7,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/runtime/coroutines.hpp"
+#include "arch/timing.hpp"
 #include "btree/node.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
@@ -41,6 +42,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
             void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
                 if (range.contains_key(k->contents, k->size)) {
+                    coro_t::yield();
                     cb->on_pair(txn, tstamp, k, value, interruptor);
                 }
             }

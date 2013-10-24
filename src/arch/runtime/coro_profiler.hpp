@@ -19,7 +19,7 @@
 #define CORO_PROFILER_CALLTREE_DEPTH            16
 
 /* How frequently should the coro profiler aggregate data and generate a report? */
-#define CORO_PROFILER_REPORTING_INTERVAL        (secs_to_ticks(1.0) * 5)
+#define CORO_PROFILER_REPORTING_INTERVAL        (secs_to_ticks(1.0) * 2)
 
 /* If you set CORO_PROFILER_ADDRESS_TO_LINE to 1, the coro profiler prints
  * the filename and line number of the source file in/at which a sample was recorded.

@@ -7,6 +7,7 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 template<class key_t, class value_t>
 std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
@@ -43,7 +44,7 @@ reactor_t<protocol_t>::reactor_t(
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
-    blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
+    blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed_later, this)),
     ctx(_ctx)
 {
     {
@@ -116,6 +117,12 @@ reactor_t<protocol_t>::directory_entry_t::~directory_entry_t() {
 }
 
 template<class protocol_t>
+void reactor_t<protocol_t>::on_blueprint_changed_later() THROWS_NOTHING {
+//    coro_t::spawn_sometime(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this));
+    on_blueprint_changed();
+}
+
+template<class protocol_t>
 void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     blueprint_t<protocol_t> blueprint = blueprint_watchable->get();
     blueprint.guarantee_valid();
@@ -126,6 +133,7 @@ void reactor_t<protocol_t>::on_blueprint_changed() THROWS_NOTHING {
     std::map<typename protocol_t::region_t, blueprint_role_t> blueprint_roles = role_it->second;
     for (typename std::map<typename protocol_t::region_t, current_role_t *>::iterator it = current_roles.begin();
          it != current_roles.end(); ++it) {
+//        coro_t::yield();
         typename std::map<typename protocol_t::region_t, blueprint_role_t>::iterator it2 =
             blueprint_roles.find(it->first);
         if (it2 == blueprint_roles.end()) {

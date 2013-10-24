@@ -19,6 +19,7 @@
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "utils.hpp"
+#include "arch/runtime/coroutines.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
@@ -384,8 +385,8 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
       svs_by_namespace(_svs_by_namespace),
       ack_info(new ack_info_t<protocol_t>(machine_id_translation_table, machines_view, namespaces_view)),
       watchable_variable(namespaces_directory_metadata_t<protocol_t>()),
-      semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this), namespaces_view),
-      translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
+      semilattice_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change_later, this), namespaces_view),
+      translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change_later, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
 {
     watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
@@ -411,11 +412,19 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
 }
 
 template<class protocol_t>
+void reactor_driver_t<protocol_t>::on_change_later() {
+    coro_t::spawn_sometime(boost::bind(
+        &reactor_driver_t<protocol_t>::on_change,
+        this));
+}
+
+template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator
              it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
+        coro_t::yield();
         if (it->second.is_deleted() && std_contains(reactor_data, it->first)) {
             /* on_change cannot block because it is called as part of
              * semilattice subscription, however the

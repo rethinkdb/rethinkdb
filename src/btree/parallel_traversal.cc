@@ -148,7 +148,7 @@ public:
         // i/o account of ourselves). If this number is high and disks are slow,
         // the latency of that i/o queue can be in the area of seconds though,
         // and the query blocks for that time).
-        return 16;
+        return 1;
     }
 
     void consider_pulsing() {
@@ -193,6 +193,7 @@ public:
 
     void coro_pool_callback(acquisition_waiter_callback_t *waiter_cb, UNUSED signal_t *pool_interruptor) {
         waiter_cb->you_may_acquire();
+        coro_t::yield();
     }
 
     void interrupt() {
@@ -271,6 +272,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
         rassert(coro_t::self());
         node_ready_callback_t *local_cb = node_ready_cb;
         delete this;
+        coro_t::yield();
         local_cb->on_node_ready(&block);
     }
 
@@ -288,6 +290,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
 
 
 void acquire_a_node(traversal_state_t *state, int level, block_id_t block_id, lock_in_line_callback_t *acq_start_cb, node_ready_callback_t *node_ready_cb) {
+    // TODO! Add throttling here?
     rassert(coro_t::self());
     acquire_a_node_fsm_t *fsm = new acquire_a_node_fsm_t;
     fsm->state = state;
@@ -453,6 +456,7 @@ void process_a_internal_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> 
 
     boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(state->slice->cache()->get_block_size(), node, left_exclusive_or_null, right_inclusive_or_null, level));
 
+    coro_t::yield();
     subtrees_traverse(state, new internal_node_releaser_t(buf, state), level + 1, ids_source);
 }
 
@@ -464,6 +468,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
     //
     //
     int population_change = 0;
+    coro_t::yield();
 
     try {
         state->helper->process_a_leaf(state->transaction_ptr, buf->get(), left_exclusive_or_null, right_inclusive_or_null, state->interruptor, &population_change);
@@ -519,10 +524,10 @@ void interesting_children_callback_t::decr_acquisition_countdown() {
     --acquisition_countdown;
     if (acquisition_countdown == 0) {
         releaser->release();
-        state->level_count(level - 1) -= 1;
         if (state->helper->progress) {
             state->helper->progress->inform(level - 1, parallel_traversal_progress_t::RELEASE, parallel_traversal_progress_t::INTERNAL);
         }
+        state->level_count(level - 1) -= 1;
         state->consider_pulsing();
         delete this;
     }

@@ -6,6 +6,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "arch/io/disk.hpp"
 #include "btree/erase_range.hpp"
 #include "btree/parallel_traversal.hpp"
@@ -1644,12 +1645,14 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                    txn, superblock, &response, &mod_report.info);
 
         update_sindexes(&mod_report);
+        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock,
                 store, token_pair, interruptor);
+        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
@@ -1662,6 +1665,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                 &mod_report.info);
 
         update_sindexes(&mod_report);
+        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
@@ -1682,6 +1686,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
             rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
                     sindex_block.get(), txn);
         }
+        coro_t::yield();
     }
 
 private:
