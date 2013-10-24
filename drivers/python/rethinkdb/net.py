@@ -39,7 +39,7 @@ class Cursor(object):
         self.query = query
         self.term = term
         self.opts = opts
-        self.chunks = [ ]
+        self.responses = [ ]
         self.end_flag = False
 
         self.time_format = 'native'
@@ -48,24 +48,26 @@ class Cursor(object):
 
     def _extend(self, response):
         self.end_flag = response.type == p.Response.SUCCESS_SEQUENCE
-        self.chunks.append([Datum.deconstruct(datum, self.time_format) for datum in response.response])
+        self.responses.append(response)
 
-        if len(self.chunks) == 1 and not self.end_flag:
+        if len(self.responses) == 1 and not self.end_flag:
             self.conn._async_continue_cursor(self)
 
     def __iter__(self):
+        time_format = self.time_format
+        deconstruct = Datum.deconstruct
         while True:
-            if len(self.chunks) == 0 and not self.end_flag:
+            if len(self.responses) == 0 and not self.end_flag:
                 self.conn._continue_cursor(self)
-            if len(self.chunks) == 1 and not self.end_flag:
+            if len(self.responses) == 1 and not self.end_flag:
                 self.conn._async_continue_cursor(self)
 
-            if len(self.chunks) == 0 and self.end_flag:
+            if len(self.responses) == 0 and self.end_flag:
                 break
 
-            for row in self.chunks[0]:
-                yield row
-            del self.chunks[0]
+            for datum in self.responses[0].response:
+                yield deconstruct(datum, time_format)
+            del self.responses[0]
 
     def close(self):
         self.conn._end_cursor(self)
