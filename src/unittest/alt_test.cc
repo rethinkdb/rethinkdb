@@ -276,7 +276,15 @@ private:
 
         acq3->declare_snapshotted();
 
+        check_value(acq3, "t2");
+
+        condL.wait();
+
+        check_value(acq3, "t2");
+
         condK.wait();
+
+        check_value(acq3, "t2");
 
         acq3.reset();
     }
@@ -291,8 +299,7 @@ private:
         condH.pulse();
 
         acq1->read_acq_signal()->wait();
-
-        // RSI: Actually read the page (everywhere).
+        check_value(acq1, "t1t2");
 
         ASSERT_FALSE(acq1->write_acq_signal()->is_pulsed());
         condI.pulse();
@@ -302,6 +309,7 @@ private:
         auto acq2 = make_scoped<current_page_acq_t>(&txn4, b[2], W);
         acq1.reset();
 
+        check_value(acq2, "t2");
         acq2->write_acq_signal()->wait();
         ASSERT_NE(NULL_BLOCK_ID, b[3]);
         auto acq3 = make_scoped<current_page_acq_t>(&txn4, b[3], W);
@@ -311,9 +319,9 @@ private:
         ASSERT_FALSE(acq3->write_acq_signal()->is_pulsed());
         condJ.pulse();
 
-        acq3->write_acq_signal()->wait();
-
-        // RSI: Actually check and write this page.
+        check_and_append(acq3, "t2", "t4");
+        ASSERT_TRUE(acq3->write_acq_signal()->is_pulsed());
+        condL.pulse();
 
         acq3.reset();
     }
@@ -436,7 +444,7 @@ private:
     block_id_t b[b_len];
 
     cond_t condA, condB, condC, condD, condE, condF, condG;
-    cond_t condH, condI, condJ, condK;
+    cond_t condH, condI, condJ, condK, condL;
 
     cond_t t678cond;
 
