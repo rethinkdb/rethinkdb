@@ -347,8 +347,8 @@ page_t::~page_t() {
 void page_t::load_from_copyee(page_t *page, page_t *copyee,
                               page_cache_t *page_cache) {
     // This is called using spawn_now_dangerously.  We need to atomically set
-    // destroy_ptr_ (and add a snapshotter, why not).
-    page_ptr_t page_ptr(page);
+    // destroy_ptr_.
+    page_ptr_t copyee_ptr(copyee);
     bool page_destroyed = false;
     rassert(page->destroy_ptr_ == NULL);
     page->destroy_ptr_ = &page_destroyed;
@@ -448,7 +448,8 @@ size_t page_t::num_snapshot_references() {
 }
 
 page_t *page_t::make_copy(page_cache_t *page_cache) {
-    return new page_t(this, page_cache);
+    page_t *ret = new page_t(this, page_cache);
+    return ret;
 }
 
 void page_t::pulse_waiters() {
@@ -597,7 +598,8 @@ page_t *page_ptr_t::get_page_for_read() {
 page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
     rassert(page_ != NULL);
     if (page_->num_snapshot_references() > 1) {
-        page_ = page_->make_copy(page_cache);
+        page_ptr_t tmp(page_->make_copy(page_cache));
+        *this = std::move(tmp);
     }
     return page_;
 }

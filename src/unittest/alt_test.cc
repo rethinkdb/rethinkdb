@@ -191,6 +191,9 @@ private:
         acq1->read_acq_signal()->wait();
         ASSERT_TRUE(acq1->write_acq_signal()->is_pulsed());
 
+        make_empty(acq1);
+        check_and_append(acq1, "", "t1");
+
         condB.wait();
         acq1.reset();
     }
@@ -209,7 +212,7 @@ private:
         acq1->read_acq_signal()->wait();
         ASSERT_TRUE(acq1->write_acq_signal()->is_pulsed());
 
-        // RSI: Actually make a modification here.
+        check_and_append(acq1, "t1", "t2");
 
         condE.wait();
 
@@ -221,6 +224,9 @@ private:
 
         acq2->write_acq_signal()->wait();
 
+        make_empty(acq2);
+        check_and_append(acq2, "", "t2");
+
         condF.wait();
 
         auto acq3 = make_scoped<current_page_acq_t>(&txn2, W);
@@ -229,7 +235,9 @@ private:
 
         acq2.reset();
 
-        acq3->write_acq_signal()->wait();
+        make_empty(acq3);
+        check_and_append(acq3, "", "t2");
+        ASSERT_TRUE(acq3->write_acq_signal()->is_pulsed());
 
         condG.wait();
 
@@ -246,6 +254,7 @@ private:
         condD.pulse();
 
         acq1->read_acq_signal()->wait();
+        check_value(acq1, "t1t2");
 
         condI.wait();
 
@@ -253,12 +262,15 @@ private:
         auto acq2 = make_scoped<current_page_acq_t>(&txn3, b[2], R);
         acq1.reset();
 
-        acq2->read_acq_signal()->wait();
+        check_value(acq2, "t2");
+        ASSERT_TRUE(acq2->read_acq_signal()->is_pulsed());
+
         ASSERT_NE(NULL_BLOCK_ID, b[3]);
         auto acq3 = make_scoped<current_page_acq_t>(&txn3, b[3], R);
         acq2.reset();
 
         acq3->read_acq_signal()->wait();
+        check_value(acq3, "t2");
 
         condJ.wait();
 
@@ -372,6 +384,50 @@ private:
             }
         }
     }
+
+    void make_empty(const scoped_ptr_t<current_page_acq_t> &acq) {
+        page_acq_t page_acq;
+        page_acq.init(acq->current_page_for_write());
+        const uint32_t n = page_acq.get_buf_size();
+        ASSERT_EQ(4080u, n);
+        memset(page_acq.get_buf_write(), 0, n);
+    }
+
+    void check_page_acq(page_acq_t *page_acq, const std::string &expected) {
+        const uint32_t n = page_acq->get_buf_size();
+        ASSERT_EQ(4080u, n);
+        const char *const p = static_cast<const char *>(page_acq->get_buf_read());
+
+        ASSERT_LE(expected.size() + 1, n);
+        ASSERT_EQ(0, strncmp(p, expected.data(), expected.size()));
+        ASSERT_EQ(0, p[expected.size()]);
+    }
+
+    void check_value(const scoped_ptr_t<current_page_acq_t> &acq,
+                     const std::string &expected) {
+        page_acq_t page_acq;
+        page_acq.init(acq->current_page_for_read());
+        check_page_acq(&page_acq, expected);
+    }
+
+    void check_and_append(const scoped_ptr_t<current_page_acq_t> &acq,
+                          const std::string &expected,
+                          const std::string &append) {
+        check_value(acq, expected);
+
+        {
+            page_acq_t page_acq;
+            page_t *page_for_write = acq->current_page_for_write();
+            page_acq.init(page_for_write);
+            check_page_acq(&page_acq, expected);
+
+            char *const p = static_cast<char *>(page_acq.get_buf_write());
+            ASSERT_EQ(4080u, page_acq.get_buf_size());
+            ASSERT_LE(expected.size() + append.size() + 1, page_acq.get_buf_size());
+            memcpy(p + expected.size(), append.c_str(), append.size() + 1);
+        }
+    }
+
 
     mock_ser_t mock;
     page_cache_t c;

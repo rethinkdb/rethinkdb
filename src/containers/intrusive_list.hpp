@@ -157,7 +157,9 @@ private:
                                intrusive_list_node_t<T> *after) {
         intrusive_list_node_t<T> *node = item;
         guarantee(!node->in_a_list());
+        rassert(before != NULL);
         rassert(before->in_a_list());
+        rassert(after != NULL);
         rassert(after->in_a_list());
         before->next_ = node;
         after->prev_ = node;
