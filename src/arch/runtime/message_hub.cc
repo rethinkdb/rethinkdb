@@ -120,6 +120,13 @@ void linux_message_hub_t::on_event(int events) {
         // TODO! Maybe refactor part below (put it into a function):
         // Pull new messages
         {
+            // Other threads will automatically push their messages
+            // for us into the incoming queue, even while
+            // we are in this loop. However we still have to pick up
+            // our local messages, since we are not calling push_messages()
+            // while we are still in on_event()
+            deliver_local_messages();
+            
             // We do this in two steps to release the spinlock faster.
             // append_and_clear is a very cheap operation, while
             // assigning each message to a different priority queue
@@ -194,6 +201,13 @@ void linux_message_hub_t::on_event(int events) {
     } while (std::any_of(num_initial_msgs_left_to_process,
                          num_initial_msgs_left_to_process + num_priorities,
                          [] (int msgs_left) -> bool { return msgs_left > 0; } ));
+}
+
+void linux_message_hub_t::deliver_local_messages() {
+    const int local_thread = thread_pool_->thread_id;
+    
+    spinlock_acq_t acq(&incoming_messages_lock_);
+    incoming_messages_.append_and_clear(&queues_[local_thread].msg_local_list);
 }
 
 // Pushes messages collected locally global lists available to all
