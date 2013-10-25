@@ -4,6 +4,10 @@
 
 #include <vector>
 
+#include "errors.hpp"
+#include <boost/variant.hpp>
+
+#include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
@@ -16,41 +20,43 @@ class datum_t;
 
 namespace profile {
 
-struct sample_info_t {
-    sample_info_t();
-    sample_info_t(ticks_t mean_duration_, size_t n_samples_);
+struct start_t {
+    start_t();
+    start_t(const std::string &description);
+    std::string description_;
+    ticks_t when_;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct split_t {
+    split_t();
+    split_t(size_t n_parallel_jobs);
+
+    size_t n_parallel_jobs_;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
+struct sample_t {
+    sample_t();
+    sample_t(const std::string &description, ticks_t mean_duration, size_t n_samples);
+
+    std::string description_;
     ticks_t mean_duration_;
     size_t n_samples_;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-class event_t {
-public:
-    enum type_t {
-        START,      //The start of a task
-        SPLIT,      //A task splitting in to parallel sub tasks
-        SAMPLE,     //Sampling of repeated process
-        STOP        //The end of a task
-    };
-
-    event_t();
-    event_t(event_t::type_t type);
-    event_t(const std::string &description);
-    event_t(const std::string &description, const sample_info_t sample_info);
-
-    type_t type_;
-    std::string description_; //used in START, SAMPLE
-    size_t n_parallel_jobs_; // used in SPLIT
-    ticks_t when_; // used in START, SPLIT, STOP
-    sample_info_t sample_info_; // used in SAMPLE
+struct stop_t {
+    stop_t();
+    ticks_t when_;
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
-        event_t::type_t, int8_t,
-        event_t::START, event_t::STOP);
+typedef boost::variant<start_t, split_t, sample_t, stop_t> event_t;
 
 typedef std::vector<event_t> event_log_t;
 
@@ -59,7 +65,7 @@ typedef std::vector<event_t> event_log_t;
 class trace_t {
 public:
     trace_t();
-    counted_t<const ql::datum_t> as_datum() const;
+    counted_t<const ql::datum_t> as_datum();
     event_log_t &&get_event_log();
 private:
     friend class starter_t;
@@ -70,7 +76,7 @@ private:
     void start_split();
     void stop_split(size_t n_parallel_jobs_, const event_log_t &event_log);
     void start_sample(event_log_t *sample_event_log);
-    void stop_sample(const std::string &description, const sample_info_t &sample_info);
+    void stop_sample(const std::string &description, ticks_t mean_duration, size_t n_samples);
 
     /* returns the event_log_t that we should put events in */
     event_log_t *event_log_target();
