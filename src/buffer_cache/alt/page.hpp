@@ -136,11 +136,9 @@ struct current_page_help_t;
 class current_page_t {
 public:
     // Constructs a fresh, empty page.
-    current_page_t(block_id_t block_id,
-                   block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
-                   page_cache_t *page_cache);
+    current_page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf);
     // Constructs a page to be loaded from the serializer.
-    current_page_t(block_id_t block_id, page_cache_t *page_cache);
+    current_page_t();
     ~current_page_t();
 
 

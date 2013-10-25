@@ -43,7 +43,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     }
 
     if (current_pages_[block_id] == NULL) {
-        current_pages_[block_id] = new current_page_t(block_id, this);
+        current_pages_[block_id] = new current_page_t();
     } else {
         rassert(!current_pages_[block_id]->is_deleted_);
     }
@@ -58,10 +58,8 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     }
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
-            new current_page_t(block_id,
-                               serializer_->get_block_size(),
-                               serializer_->malloc(),
-                               this);
+            new current_page_t(serializer_->get_block_size(),
+                               serializer_->malloc());
     } else {
         current_pages_[block_id]->make_non_deleted(serializer_->get_block_size(),
                                                    serializer_->malloc());
@@ -179,17 +177,13 @@ current_page_help_t current_page_acq_t::help() const {
     return current_page_help_t(block_id(), page_cache());
 }
 
-// RSI: Unused!
-current_page_t::current_page_t(UNUSED block_id_t block_id, UNUSED page_cache_t *page_cache)
+current_page_t::current_page_t()
     : is_deleted_(false),
       last_modifier_(NULL) {
 }
 
-// RSI: Unused!
-current_page_t::current_page_t(UNUSED block_id_t block_id,
-                               block_size_t block_size,
-                               scoped_malloc_t<ser_buffer_t> buf,
-                               UNUSED page_cache_t *page_cache)
+current_page_t::current_page_t(block_size_t block_size,
+                               scoped_malloc_t<ser_buffer_t> buf)
     : page_(new page_t(block_size, std::move(buf))),
       is_deleted_(false),
       last_modifier_(NULL) {
