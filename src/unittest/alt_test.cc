@@ -158,10 +158,10 @@ public:
         spawn_ordered(std::bind(&bigger_test_t::run_txn3, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn4, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn5, this, drainer.lock()));
+        spawn_ordered(std::bind(&bigger_test_t::run_txn9, this, drainer.lock()));
 
         // RSI: if 0
 #if 0
-        spawn_ordered(std::bind(&bigger_test_t::run_txn9, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn10, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn11, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn12, this, drainer.lock()));
@@ -177,9 +177,7 @@ public:
         condK.pulse();
 
         // RSI: These shouldn't be here.
-        condN.pulse();
         condP.wait();
-        condM.wait();
 
         t678cond.pulse();
     }
@@ -339,7 +337,7 @@ private:
             ASSERT_NE(NULL_BLOCK_ID, b[1]);
             auto acq1 = make_scoped<current_page_acq_t>(&txn5, b[1], W);
 
-            condM.pulse();  // RSI: no waiter
+            condM.pulse();
             acq1->write_acq_signal()->wait();
             check_value(acq1, "t1t2");
             ASSERT_NE(NULL_BLOCK_ID, b[2]);
@@ -354,11 +352,19 @@ private:
             acq2.reset();
 
             acq5->write_acq_signal()->wait();
+
+            make_empty(acq5);
+            check_and_append(acq5, "", "t5");
+
             auto acq11 = make_scoped<current_page_acq_t>(&txn5, W);
             ASSERT_EQ(NULL_BLOCK_ID, b[11]);
             b[11] = acq11->block_id();
 
             acq5.reset();
+
+            acq11->write_acq_signal()->wait();
+            make_empty(acq11);
+            check_and_append(acq11, "", "t5");
 
             condN.wait();
         }
@@ -419,6 +425,147 @@ private:
 
         // Idk, wait after releasing block.
         t678cond.wait();
+    }
+
+    void run_txn9(auto_drainer_t::lock_t) {
+        page_txn_t txn9(&c);
+        auto_drainer_t subdrainer;
+
+        condM.wait();
+        auto acq1 = make_scoped<current_page_acq_t>(&txn9, b[1], W);
+
+        acq1->write_acq_signal()->wait();
+
+        spawn_ordered(std::bind(&bigger_test_t::run_txn9A, this, &txn9,
+                                subdrainer.lock()));
+        spawn_ordered(std::bind(&bigger_test_t::run_txn9B, this, &txn9,
+                                subdrainer.lock()));
+
+        condQ1.wait();
+        condQ2.wait();
+
+        check_and_append(acq1, "t1t2", "t9");
+        acq1.reset();
+    }
+
+    void run_txn9A(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
+        auto acq6 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[6]);
+        b[6] = acq6->block_id();
+
+        condQ1.pulse();
+
+        make_empty(acq6);
+        check_and_append(acq6, "", "t9");
+
+        spawn_ordered(std::bind(&bigger_test_t::run_txn9C, this, txn9, lock));
+        spawn_ordered(std::bind(&bigger_test_t::run_txn9D, this, txn9, lock));
+
+        condR1.pulse();
+        condS1.wait();
+        acq6.reset();
+    }
+
+    void run_txn9B(page_txn_t *txn9, auto_drainer_t::lock_t) {
+        auto acq2 = make_scoped<current_page_acq_t>(txn9, b[2], W);
+
+        condQ2.pulse();
+
+        acq2->write_acq_signal()->wait();
+        check_value(acq2, "t2t5");
+        auto acq5 = make_scoped<current_page_acq_t>(txn9, b[5], W);
+        acq2.reset();
+        acq5->write_acq_signal()->wait();
+        check_value(acq5, "t5");
+
+        condR2.pulse();
+        condS2.wait();
+
+        acq5.reset();
+    }
+
+    void run_txn9C(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
+        auto acq7 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[7]);
+        b[7] = acq7->block_id();
+
+        make_empty(acq7);
+        check_and_append(acq7, "", "t9");
+
+        spawn_ordered(std::bind(&bigger_test_t::run_txn9E, this, txn9, lock));
+        spawn_ordered(std::bind(&bigger_test_t::run_txn9F, this, txn9, lock));
+
+        condT1.wait();
+        condT2.wait();
+        acq7.reset();
+    }
+
+    void run_txn9D(page_txn_t *txn9, auto_drainer_t::lock_t) {
+        auto acq8 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[8]);
+        b[8] = acq8->block_id();
+
+        make_empty(acq8);
+        check_and_append(acq8, "", "t9");
+
+        condU.pulse();
+        condT3.wait();
+        acq8.reset();
+    }
+
+    void run_txn9E(page_txn_t *txn9, auto_drainer_t::lock_t) {
+        auto acq9 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[9]);
+        b[9] = acq9->block_id();
+
+        condT1.pulse();
+
+        make_empty(acq9);
+        check_and_append(acq9, "", "t9");
+        acq9.reset();
+    }
+
+    void run_txn9F(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
+        condU.wait();
+
+        auto acq10 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[10]);
+        b[10] = acq10->block_id();
+
+        condT2.pulse();
+        condT3.pulse();
+
+        make_empty(acq10);
+        check_and_append(acq10, "", "t10");
+
+        spawn_ordered(std::bind(&bigger_test_t::run_txn9G, this, txn9, lock));
+
+        condR3.pulse();
+        condS3.wait();
+        acq10.reset();
+    }
+
+    void run_txn9G(page_txn_t *txn9, auto_drainer_t::lock_t) {
+        condR1.wait();
+        condR2.wait();
+        condR3.wait();
+
+        ASSERT_NE(NULL_BLOCK_ID, b[11]);
+        auto acq11 = make_scoped<current_page_acq_t>(txn9, b[11], W);
+
+        condS1.pulse();
+        condS2.pulse();
+        condS3.pulse();
+
+        ASSERT_FALSE(acq11->read_acq_signal()->is_pulsed());
+        ASSERT_FALSE(acq11->write_acq_signal()->is_pulsed());
+
+        condN.pulse();
+        condP.wait();
+
+        acq11->write_acq_signal()->wait();
+        check_and_append(acq11, "t5", "t9");
+        acq11.reset();
     }
 
     void assert_unique_ids() {
@@ -486,6 +633,8 @@ private:
     cond_t condA, condB, condC, condD, condE, condF, condG;
     cond_t condH, condI, condJ, condK, condL, condM, condN;
     cond_t condP;
+    cond_t condQ1, condQ2, condR1, condR2, condR3, condS1, condS2, condS3;
+    cond_t condT1, condT2, condT3, condU;
 
     cond_t t678cond;
 
