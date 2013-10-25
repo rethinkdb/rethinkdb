@@ -157,10 +157,10 @@ public:
         spawn_ordered(std::bind(&bigger_test_t::run_txn2, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn3, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn4, this, drainer.lock()));
+        spawn_ordered(std::bind(&bigger_test_t::run_txn5, this, drainer.lock()));
 
         // RSI: if 0
 #if 0
-        spawn_ordered(std::bind(&bigger_test_t::run_txn5, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn9, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn10, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn11, this, drainer.lock()));
@@ -175,6 +175,11 @@ public:
         condF.pulse();
         condG.pulse();
         condK.pulse();
+
+        // RSI: These shouldn't be here.
+        condN.pulse();
+        condP.wait();
+        condM.wait();
 
         t678cond.pulse();
     }
@@ -326,6 +331,41 @@ private:
         acq3.reset();
     }
 
+    void run_txn5(auto_drainer_t::lock_t) {
+        {
+            page_txn_t txn5(&c);
+
+            condH.wait();
+            ASSERT_NE(NULL_BLOCK_ID, b[1]);
+            auto acq1 = make_scoped<current_page_acq_t>(&txn5, b[1], W);
+
+            condM.pulse();  // RSI: no waiter
+            acq1->write_acq_signal()->wait();
+            check_value(acq1, "t1t2");
+            ASSERT_NE(NULL_BLOCK_ID, b[2]);
+            auto acq2 = make_scoped<current_page_acq_t>(&txn5, b[2], W);
+            acq1.reset();
+            acq2->write_acq_signal()->wait();
+            check_and_append(acq2, "t2", "t5");
+            auto acq5 = make_scoped<current_page_acq_t>(&txn5, W);
+            ASSERT_EQ(NULL_BLOCK_ID, b[5]);
+            b[5] = acq5->block_id();
+
+            acq2.reset();
+
+            acq5->write_acq_signal()->wait();
+            auto acq11 = make_scoped<current_page_acq_t>(&txn5, W);
+            ASSERT_EQ(NULL_BLOCK_ID, b[11]);
+            b[11] = acq11->block_id();
+
+            acq5.reset();
+
+            condN.wait();
+        }
+        // Pulsed after txn5 is destroyed.
+        condP.pulse();
+    }
+
     void run_txn6(auto_drainer_t::lock_t) {
         page_txn_t txn6(&c);
         auto acq12 = make_scoped<current_page_acq_t>(&txn6, W);
@@ -444,7 +484,8 @@ private:
     block_id_t b[b_len];
 
     cond_t condA, condB, condC, condD, condE, condF, condG;
-    cond_t condH, condI, condJ, condK, condL;
+    cond_t condH, condI, condJ, condK, condL, condM, condN;
+    cond_t condP;
 
     cond_t t678cond;
 
