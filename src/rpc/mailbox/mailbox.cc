@@ -8,6 +8,7 @@
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/pmap.hpp"
 #include "logger.hpp"
 
@@ -132,6 +133,8 @@ void mailbox_manager_t::mailbox_read_coroutine(threadnum_t dest_thread,
     int64_t data_offset = 0;
     stream->swap(&stream_data, &data_offset);
 
+//    coro_t::self()->set_priority(-2);
+//    coro_t::yield();
     on_thread_t rethreader(dest_thread);
 
     // Construct a new stream to use

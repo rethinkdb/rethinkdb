@@ -225,6 +225,8 @@ void reactor_t<protocol_t>::run_role(
         current_role_t *role,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
 
+    with_priority_t priority(-2);
+
     //A store_view_t derived object that acts as a store for the specified region
     multistore_ptr_t<protocol_t> svs_subview(underlying_svs, region);
 

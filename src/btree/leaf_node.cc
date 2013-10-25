@@ -1514,6 +1514,7 @@ void dump_entries_since_time(value_sizer_t<void> *sizer, const leaf_node_t *node
             } else if (entry_is_deletion(ent) && include_deletions) {
                 cb->deletion(entry_key(ent), tstamp);
             }
+            coro_t::yield();
 
             iter.step(sizer, node);
         }
