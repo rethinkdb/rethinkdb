@@ -37,12 +37,15 @@ public:
         get_and_init_coro(action)->notify_sometime();
     }
 
-    // TODO: spawn_later_ordered is usually what naive people want,
-    // but it's such a long and onerous name.  It should have the
-    // shortest name.
+    // DEPRECATED:  Use spawn_ordered.  It's the same thing, only its name is shorter!
     template<class Callable>
     static void spawn_later_ordered(const Callable &action) {
         get_and_init_coro(action)->notify_later_ordered();
+    }
+
+    template<class Callable>
+    static void spawn_ordered(const Callable &action) {
+        spawn_later_ordered(action);
     }
 
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
