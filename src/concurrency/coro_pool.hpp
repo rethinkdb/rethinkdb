@@ -67,13 +67,13 @@ private:
         assert_thread();
         try {
             while (!coro_drain_semaphore_lock.get_drain_signal()->is_pulsed()) {
-                coro_t::yield();
                 callback->coro_pool_callback(object, coro_drain_semaphore_lock.get_drain_signal());
                 if (source->available->get()) {
                     object = source->pop();
                 } else {
                     break;
                 }
+                coro_t::yield();
             }
         } catch (const interrupted_exc_t &) {
             rassert(coro_drain_semaphore_lock.get_drain_signal()->is_pulsed());

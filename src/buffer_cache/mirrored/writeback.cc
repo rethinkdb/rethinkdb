@@ -390,6 +390,7 @@ void writeback_t::do_concurrent_flush() {
     // Wait for block sequence ids to be updated.
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
         state.buf_writers[i]->launch_cb.wait_until_sequence_ids_updated();
+        if ((i+1) % 50 == 0) coro_t::yield();
     }
 
     // Allow new concurrent flushes to start from now on
@@ -404,6 +405,7 @@ void writeback_t::do_concurrent_flush() {
     // Wait for the buf_writers to finish running their io callbacks
     for (size_t i = 0; i < state.buf_writers.size(); ++i) {
         delete state.buf_writers[i];
+        if ((i+1) % 50 == 0) coro_t::yield();
     }
     state.buf_writers.clear();
     delete transaction;
@@ -452,12 +454,13 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
     // Write deleted block_ids.
     for (size_t i = 0; i < deleted_blocks.size(); i++) {
         state->serializer_writes.push_back(serializer_write_t::make_delete(deleted_blocks[i]));
+        if ((i+1) % 50 == 0) coro_t::yield();
     }
     deleted_blocks.clear();
 
     unsigned int really_dirty = 0;
 
-    coro_t::yield();
+    size_t i = 0;
     while (local_buf_t *lbuf = dirty_bufs.head()) {
         mc_inner_buf_t *inner_buf = static_cast<mc_inner_buf_t *>(lbuf);
 
@@ -511,13 +514,14 @@ void writeback_t::flush_acquire_bufs(mc_transaction_t *transaction, flush_state_
                                                 buf_data,
                                                 buf_writer,
                                                 &buf_writer->launch_cb));
-            coro_t::yield();
         } else {
             rassert(recency_dirty);
             // No need to acquire the block, since we're only writing its recency & don't need its contents.
             state->serializer_writes.push_back(serializer_write_t::make_touch(inner_buf->block_id, inner_buf->subtree_recency));
         }
 
+        if ((i+1) % 50 == 0) coro_t::yield();
+	++i;
     }
 
     cache->stats->pm_flushes_blocks_dirty.record(really_dirty);

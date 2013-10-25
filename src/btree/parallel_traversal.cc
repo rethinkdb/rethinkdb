@@ -86,7 +86,6 @@ public:
           interrupted(false),
           coro_pool(1, &pending_acquires, this) // TODO!
     {
-        coro_t::yield();
         interruptor_watcher.parent = this;
         interruptor_watcher.reset(_interruptor);
     }
@@ -193,8 +192,8 @@ public:
     }
 
     void coro_pool_callback(acquisition_waiter_callback_t *waiter_cb, UNUSED signal_t *pool_interruptor) {
+//        coro_t::self()->set_priority(-2);
         waiter_cb->you_may_acquire();
-	coro_t::yield();
     }
 
     void interrupt() {
