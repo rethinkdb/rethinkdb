@@ -115,17 +115,21 @@ reader_t::next_batch(env_t *env, batch_type_t batch_type) {
     case SINDEX_CONSTANT: {
         boost::optional<counted_t<const ql::datum_t> > sindex
             = std::move(items[items_index].sindex_key);
+        store_key_t key = std::move(items[items_index].key);
         toret.push_back(std::move(items[items_index].data));
         items_index += 1;
 
         for (; items_index < items.size(); ++items_index) {
             if (sindex) {
                 r_sanity_check(items[items_index].sindex_key);
-                if (*items[items_index].sindex_key != *sindex) {
+                if (**items[items_index].sindex_key != **sindex) {
                     break; // batch is done
                 }
             } else {
                 r_sanity_check(!items[items_index].sindex_key);
+                if (items[items_index].key != key) {
+                    break;
+                }
             }
             toret.push_back(std::move(items[items_index].data));
         }
@@ -296,6 +300,11 @@ counted_t<datum_stream_t> datum_stream_t::indexes_of(counted_t<func_t> f) {
     return make_counted<indexes_of_datum_stream_t>(f, counted_from_this());
 }
 
+datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
+    : pb_rcheckable_t(bt_src), batch_cache_index(0) {
+}
+
+
 std::vector<counted_t<const datum_t> >
 datum_stream_t::next_batch(env_t *env, batch_type_t batch_type) {
     DEBUG_ONLY_CODE(env->do_eval_callback());
@@ -312,14 +321,22 @@ datum_stream_t::next_batch(env_t *env, batch_type_t batch_type) {
 
 counted_t<const datum_t> datum_stream_t::next(env_t *env) {
     if (batch_cache_index >= batch_cache.size()) {
-        batch_cache_index = 0;
+        r_sanity_check(batch_cache_index == 0);
         batch_cache = next_batch(env, NORMAL);
         if (batch_cache_index >= batch_cache.size()) {
             return counted_t<const datum_t>();
         }
     }
     r_sanity_check(batch_cache_index < batch_cache.size());
-    return std::move(batch_cache[batch_cache_index++]);
+    counted_t<const datum_t> d = std::move(batch_cache[batch_cache_index++]);
+    if (batch_cache_index >= batch_cache.size()) {
+        // Free the vector as soon as we're done with it.  This also keeps the
+        // assert in `next_batch` happy.
+        batch_cache_index = 0;
+        std::vector<counted_t<const datum_t> > tmp;
+        tmp.swap(batch_cache);
+    }
+    return d;
 }
 
 counted_t<const datum_t> eager_datum_stream_t::count(env_t *env) {
@@ -509,6 +526,42 @@ bool array_datum_stream_t::is_array() {
     return true;
 }
 
+// INDEXED_SORT_DATUM_STREAM_T
+indexed_sort_datum_stream_t::indexed_sort_datum_stream_t(
+    counted_t<datum_stream_t> stream,
+    std::function<bool(env_t *,
+                       const counted_t<const datum_t> &,
+                       const counted_t<const datum_t> &)> _lt_cmp)
+    : wrapper_datum_stream_t(stream), lt_cmp(_lt_cmp), index(0) { }
+
+std::vector<counted_t<const datum_t> >
+indexed_sort_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
+    std::vector<counted_t<const datum_t> > ret;
+    size_t sz = 0;
+    while (!should_send_batch(ret.size(), sz, 0)) {
+        if (index >= data.size()) {
+            if (ret.size() > 0 && batch_type == SINDEX_CONSTANT) {
+                // Never read more than one SINDEX_CONSTANT batch if we need to
+                // return an SINDEX_CONSTANT batch.
+                return ret;
+            }
+            index = 0;
+            data = source->next_batch(env, SINDEX_CONSTANT);
+            if (index >= data.size()) {
+                return ret;
+            }
+            std::sort(data.begin(), data.end(),
+                      std::bind(lt_cmp, env,
+                                std::placeholders::_1, std::placeholders::_2));
+        }
+        for (; index < data.size() && !should_send_batch(ret.size(), sz, 0); ++index) {
+            sz += serialized_size(data[index]);
+            ret.push_back(std::move(data[index]));
+        }
+    }
+    return ret;
+}
+
 // MAP_DATUM_STREAM_T
 map_datum_stream_t::map_datum_stream_t(counted_t<func_t> _f,
                                        counted_t<datum_stream_t> _source)
@@ -610,13 +663,20 @@ slice_datum_stream_t::slice_datum_stream_t(size_t _left, size_t _right,
 
 std::vector<counted_t<const datum_t> >
 slice_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
-    if (left >= right) {
+    if (left >= right || index >= right) {
         return std::vector<counted_t<const datum_t> >();
     }
 
     while (index < left) {
         std::vector<counted_t<const datum_t> > v = source->next_batch(env, batch_type);
+        if (v.size() == 0) {
+            return v;
+        }
         index += v.size();
+        if (index > right) {
+            v.resize(v.size() - (index - right));
+            index = right;
+        }
         if (index > left) {
             std::vector<counted_t<const datum_t> > ret;
             ret.reserve(index - left);
@@ -627,6 +687,9 @@ slice_datum_stream_t::next_batch_impl(env_t *env, batch_type_t batch_type) {
 
     while (index < right) {
         std::vector<counted_t<const datum_t> > v = source->next_batch(env, batch_type);
+        if (v.size() == 0) {
+            return v;
+        }
         index += v.size();
         if (index > right) {
             v.resize(v.size() - (index - right));

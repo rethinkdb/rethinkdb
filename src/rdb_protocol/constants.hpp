@@ -20,6 +20,11 @@ static inline bool should_send_batch(
 }
 #endif // NDEBUG
 
+template<class T>
+static inline bool past_array_limit(T t) {
+    return t.size() > 10000;
+}
+
 }
 
 #endif  // RDB_PROTOCOL_CONSTANTS_HPP_

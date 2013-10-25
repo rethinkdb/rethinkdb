@@ -74,8 +74,7 @@ public:
     virtual counted_t<const datum_t> next(env_t *env);
 
 protected:
-    explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
-        : pb_rcheckable_t(bt_src), batch_cache_index(0) { }
+    explicit datum_stream_t(const protob_t<const Backtrace> &bt_src);
 
 private:
     virtual std::vector<counted_t<const datum_t> >
@@ -364,48 +363,20 @@ private:
     next_batch_impl(env_t *env, batch_type_t batch_type);
 };
 
-// This has to be constructed explicitly rather than invoking `.sort()`.  There
-// was a good reason for this involving header dependencies, but I don't
-// remember exactly what it was.
-static const size_t sort_el_limit = 1000000; // maximum number of elements we'll sort
-template<class T>
-class sort_datum_stream_t : public wrapper_datum_stream_t {
+class indexed_sort_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    sort_datum_stream_t(const T &_lt_cmp, counted_t<datum_stream_t> src)
-        : wrapper_datum_stream_t(src), lt_cmp(_lt_cmp), index(0) { }
-
-    std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, batch_type_t batch_type) {
-        std::vector<counted_t<const datum_t> > ret;
-        size_t total_size = 0;
-        while (!should_send_batch(ret.size(), total_size, 0)) {
-            if (index >= data.size()) {
-                if (ret.size() != 0 && batch_type == SINDEX_CONSTANT) {
-                    // We can only load one batch of SINDEX_CONSTANT data if we
-                    // want to keep the sindex constant (this should only matter
-                    // if you call `.orderby(...).orderby(...)`.
-                    break;
-                }
-                index = 0;
-                data = source->next_batch(env, SINDEX_CONSTANT);
-                if (data.empty()) {
-                    return ret;
-                }
-                std::sort(data.begin(), data.end(),
-                          std::bind(lt_cmp, env,
-                                    std::placeholders::_1, std::placeholders::_2));
-            }
-            total_size += serialized_size(data[index]);
-            ret.push_back(std::move(data[index]));
-            index += 1;
-        }
-        return ret;
-    }
+    indexed_sort_datum_stream_t(
+        counted_t<datum_stream_t> stream, // Must be a table with a sorting applied.
+        std::function<bool(env_t *,
+                           const counted_t<const datum_t> &,
+                           const counted_t<const datum_t> &)> lt_cmp);
 private:
+    virtual std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, batch_type_t batch_type);
+
     std::function<bool(env_t *,
                        const counted_t<const datum_t> &,
                        const counted_t<const datum_t> &)> lt_cmp;
-
     size_t index;
     std::vector<counted_t<const datum_t> > data;
 };

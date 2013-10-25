@@ -41,7 +41,6 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                  str.c_str());
 }
 
-
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -118,7 +117,7 @@ private:
 
                 counted_t<const datum_t> replace_stats = t->batched_insert(
                     env->env, std::move(datums), upsert, durability_requirement, false);
-                stats = stats->merge(replace_stats);
+                stats = stats->merge(replace_stats, stats_merge);
             }
         }
 

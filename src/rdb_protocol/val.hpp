@@ -69,29 +69,14 @@ public:
         counted_t<func_t> index_func, sindex_multi_bool_t multi);
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
     counted_t<const datum_t> sindex_list(env_t *env);
-    
+
     MUST_USE bool sync(env_t *env, const rcheckable_t *parent);
 
     counted_t<const db_t> db;
     const std::string name;
 
 private:
-    struct datum_func_pair_t {
-        datum_func_pair_t()
-            : original_value(NULL), replacer(NULL), error_value(NULL) { }
-        datum_func_pair_t(counted_t<const datum_t> _original_value,
-                          const map_wire_func_t *_replacer)
-            : original_value(_original_value),
-              replacer(_replacer), error_value(NULL) { }
-
-        explicit datum_func_pair_t(counted_t<const datum_t> _error_value)
-            : original_value(NULL), replacer(NULL), error_value(_error_value) { }
-
-        // One of these counted_t<const datum_t>'s is empty.
-        counted_t<const datum_t> original_value;
-        const map_wire_func_t *replacer;
-        counted_t<const datum_t> error_value;
-    };
+    friend class distinct_term_t;
 
     template<class T>
     counted_t<const datum_t> do_batched_write(
@@ -104,8 +89,8 @@ private:
         bool upsert,
         durability_requirement_t durability_requirement);
 
-    MUST_USE bool sync_depending_on_durability(env_t *env,
-                durability_requirement_t durability_requirement);
+    MUST_USE bool sync_depending_on_durability(
+        env_t *env, durability_requirement_t durability_requirement);
 
     bool use_outdated;
     std::string pkey;
