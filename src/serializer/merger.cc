@@ -42,6 +42,7 @@ void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write
     
     // Check if we can initiate a new index write
     if (num_active_writes < max_active_writes) {
+        ++num_active_writes;
         do_index_write();
     }
     
@@ -51,9 +52,7 @@ void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write
 
 void merger_serializer_t::do_index_write() {
     assert_thread();
-    rassert(num_active_writes < max_active_writes);
-    
-    ++num_active_writes;
+    rassert(num_active_writes <= max_active_writes);
     
     // Assemble the currently outstanding index writes into
     // a vector of index_write_op_t-s.
@@ -81,6 +80,7 @@ void merger_serializer_t::do_index_write() {
     
     // Check if we should start another index write
     if (num_active_writes < max_active_writes && !outstanding_index_write_ops.empty()) {
+        ++num_active_writes;
         coro_t::spawn_sometime(std::bind(&merger_serializer_t::do_index_write, this));
     }
 }
