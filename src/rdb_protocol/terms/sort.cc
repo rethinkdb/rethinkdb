@@ -45,6 +45,7 @@ private:
     virtual const char *name() const { return "desc"; }
 };
 
+// RSI: typeof, send back array for selection
 class orderby_term_t : public op_term_t {
 public:
     orderby_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -170,6 +171,8 @@ private:
                     break;
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
+                rcheck(!past_array_limit(to_sort), base_exc_t::GENERIC,
+                       array_size_error(to_sort));
             }
             auto fn = std::bind(lt_cmp, env->env,
                                 std::placeholders::_1, std::placeholders::_2);
@@ -206,14 +209,19 @@ private:
         std::vector<counted_t<const datum_t> > arr;
         counted_t<const datum_t> last;
         while (counted_t<const datum_t> d = s->next(env->env)) {
-            if (arr.size() == 0 || *d != *arr[arr.size() - 1]) {
-                arr.push_back(std::move(d));
-            }
+            arr.push_back(std::move(d));
+            rcheck(!past_array_limit(arr), base_exc_t::GENERIC, array_size_error(arr));
         }
         std::sort(arr.begin(), arr.end(),
                   std::bind(lt_cmp, env->env,
                             std::placeholders::_1, std::placeholders::_2));
-        return new_val(make_counted<const datum_t>(std::move(arr)));
+        std::vector<counted_t<const datum_t> > toret;
+        for (auto it = arr.begin(); it != arr.end(); ++it) {
+            if (toret.size() == 0 || **it != *toret[toret.size()-1]) {
+                toret.push_back(std::move(*it));
+            }
+        }
+        return new_val(make_counted<const datum_t>(std::move(toret)));
     }
     virtual const char *name() const { return "distinct"; }
 };

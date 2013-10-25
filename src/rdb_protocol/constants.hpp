@@ -21,10 +21,15 @@ static inline bool should_send_batch(
 #endif // NDEBUG
 
 template<class T>
-static inline bool past_array_limit(T t) {
-    return t.size() > 10000;
+static inline bool past_array_limit(const T &t) {
+    return t.size() > 100000;
 }
 
+template<class T>
+std::string array_size_error(UNUSED const T &t) {
+    return strprintf("Array size limit of 100000 exceeded.");
 }
 
-#endif  // RDB_PROTOCOL_CONSTANTS_HPP_
+} // namespace ql
+
+#endif // RDB_PROTOCOL_CONSTANTS_HPP_

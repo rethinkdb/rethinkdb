@@ -73,6 +73,7 @@ namespace ql {
 class readgen_t;
 class primary_readgen_t;
 class sindex_readgen_t;
+class datum_t;
 }
 
 class datum_range_t {
