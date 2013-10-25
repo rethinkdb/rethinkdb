@@ -178,20 +178,20 @@ public:
 private:
     void run_txn1(auto_drainer_t::lock_t) {
         page_txn_t txn1(&c);
-        auto acq1 = make_scoped<current_page_acq_t>(&txn1, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[1]);
-        b[1] = acq1->block_id();
+        auto acq6 = make_scoped<current_page_acq_t>(&txn1, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[6]);
+        b[6] = acq6->block_id();
 
         condA.pulse();
 
-        acq1->read_acq_signal()->wait();
-        ASSERT_TRUE(acq1->write_acq_signal()->is_pulsed());
+        acq6->read_acq_signal()->wait();
+        ASSERT_TRUE(acq6->write_acq_signal()->is_pulsed());
 
-        make_empty(acq1);
-        check_and_append(acq1, "", "t1");
+        make_empty(acq6);
+        check_and_append(acq6, "", "t1");
 
         condB.wait();
-        acq1.reset();
+        acq6.reset();
 
         condCR1.pulse();
     }
@@ -200,54 +200,54 @@ private:
         page_txn_t txn2(&c);
 
         condA.wait();
-        ASSERT_NE(NULL_BLOCK_ID, b[1]);
-        auto acq1 = make_scoped<current_page_acq_t>(&txn2, b[1], W);
+        ASSERT_NE(NULL_BLOCK_ID, b[6]);
+        auto acq6 = make_scoped<current_page_acq_t>(&txn2, b[6], W);
 
         condC.pulse();
 
-        ASSERT_FALSE(acq1->read_acq_signal()->is_pulsed());
+        ASSERT_FALSE(acq6->read_acq_signal()->is_pulsed());
 
-        acq1->read_acq_signal()->wait();
-        ASSERT_TRUE(acq1->write_acq_signal()->is_pulsed());
+        acq6->read_acq_signal()->wait();
+        ASSERT_TRUE(acq6->write_acq_signal()->is_pulsed());
 
-        check_and_append(acq1, "t1", "t2");
+        check_and_append(acq6, "t1", "t2");
 
         condE.wait();
 
-        auto acq2 = make_scoped<current_page_acq_t>(&txn2, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[2]);
-        b[2] = acq2->block_id();
+        auto acq7 = make_scoped<current_page_acq_t>(&txn2, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[7]);
+        b[7] = acq7->block_id();
 
-        acq1.reset();
+        acq6.reset();
 
-        acq2->write_acq_signal()->wait();
+        acq7->write_acq_signal()->wait();
 
-        make_empty(acq2);
-        check_and_append(acq2, "", "t2");
+        make_empty(acq7);
+        check_and_append(acq7, "", "t2");
 
         condF.wait();
 
-        auto acq3 = make_scoped<current_page_acq_t>(&txn2, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[3]);
-        b[3] = acq3->block_id();
+        auto acq8 = make_scoped<current_page_acq_t>(&txn2, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[8]);
+        b[8] = acq8->block_id();
 
-        auto acq4 = make_scoped<current_page_acq_t>(&txn2, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[4]);
-        b[4] = acq4->block_id();
+        auto acq9 = make_scoped<current_page_acq_t>(&txn2, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[9]);
+        b[9] = acq9->block_id();
 
-        acq2.reset();
+        acq7.reset();
 
-        make_empty(acq3);
-        check_and_append(acq3, "", "t2");
-        ASSERT_TRUE(acq3->write_acq_signal()->is_pulsed());
+        make_empty(acq8);
+        check_and_append(acq8, "", "t2");
+        ASSERT_TRUE(acq8->write_acq_signal()->is_pulsed());
 
-        make_empty(acq4);
-        check_and_append(acq4, "", "t2");
-        acq4.reset();
+        make_empty(acq9);
+        check_and_append(acq9, "", "t2");
+        acq9.reset();
 
         condG.wait();
 
-        acq3.reset();
+        acq8.reset();
 
         condCR2.pulse();
     }
@@ -256,119 +256,119 @@ private:
         page_txn_t txn3(&c);
 
         condC.wait();
-        ASSERT_NE(NULL_BLOCK_ID, b[1]);
-        auto acq1 = make_scoped<current_page_acq_t>(&txn3, b[1], R);
+        ASSERT_NE(NULL_BLOCK_ID, b[6]);
+        auto acq6 = make_scoped<current_page_acq_t>(&txn3, b[6], R);
 
         condD.pulse();
 
-        acq1->read_acq_signal()->wait();
-        check_value(acq1, "t1t2");
+        acq6->read_acq_signal()->wait();
+        check_value(acq6, "t1t2");
 
         condI.wait();
 
-        ASSERT_NE(NULL_BLOCK_ID, b[2]);
-        auto acq2 = make_scoped<current_page_acq_t>(&txn3, b[2], R);
-        acq1.reset();
+        ASSERT_NE(NULL_BLOCK_ID, b[7]);
+        auto acq7 = make_scoped<current_page_acq_t>(&txn3, b[7], R);
+        acq6.reset();
 
-        check_value(acq2, "t2");
-        ASSERT_TRUE(acq2->read_acq_signal()->is_pulsed());
+        check_value(acq7, "t2");
+        ASSERT_TRUE(acq7->read_acq_signal()->is_pulsed());
 
-        ASSERT_NE(NULL_BLOCK_ID, b[3]);
-        auto acq3 = make_scoped<current_page_acq_t>(&txn3, b[3], R);
-        acq2.reset();
+        ASSERT_NE(NULL_BLOCK_ID, b[8]);
+        auto acq8 = make_scoped<current_page_acq_t>(&txn3, b[8], R);
+        acq7.reset();
 
-        acq3->read_acq_signal()->wait();
-        check_value(acq3, "t2");
+        acq8->read_acq_signal()->wait();
+        check_value(acq8, "t2");
 
         condJ.wait();
 
-        acq3->declare_snapshotted();
+        acq8->declare_snapshotted();
 
-        check_value(acq3, "t2");
+        check_value(acq8, "t2");
 
         condL.wait();
 
-        check_value(acq3, "t2");
+        check_value(acq8, "t2");
 
         condK.wait();
 
-        check_value(acq3, "t2");
+        check_value(acq8, "t2");
 
-        acq3.reset();
+        acq8.reset();
     }
 
     void run_txn4(auto_drainer_t::lock_t) {
         page_txn_t txn4(&c);
 
         condD.wait();
-        ASSERT_NE(NULL_BLOCK_ID, b[1]);
-        auto acq1 = make_scoped<current_page_acq_t>(&txn4, b[1], W);
+        ASSERT_NE(NULL_BLOCK_ID, b[6]);
+        auto acq6 = make_scoped<current_page_acq_t>(&txn4, b[6], W);
 
         condH.pulse();
 
-        acq1->read_acq_signal()->wait();
-        check_value(acq1, "t1t2");
+        acq6->read_acq_signal()->wait();
+        check_value(acq6, "t1t2");
 
-        ASSERT_FALSE(acq1->write_acq_signal()->is_pulsed());
+        ASSERT_FALSE(acq6->write_acq_signal()->is_pulsed());
         condI.pulse();
 
-        acq1->write_acq_signal()->wait();
-        ASSERT_NE(NULL_BLOCK_ID, b[2]);
-        auto acq2 = make_scoped<current_page_acq_t>(&txn4, b[2], W);
-        acq1.reset();
+        acq6->write_acq_signal()->wait();
+        ASSERT_NE(NULL_BLOCK_ID, b[7]);
+        auto acq7 = make_scoped<current_page_acq_t>(&txn4, b[7], W);
+        acq6.reset();
 
-        check_value(acq2, "t2");
-        acq2->write_acq_signal()->wait();
-        ASSERT_NE(NULL_BLOCK_ID, b[3]);
-        auto acq3 = make_scoped<current_page_acq_t>(&txn4, b[3], W);
-        acq2.reset();
+        check_value(acq7, "t2");
+        acq7->write_acq_signal()->wait();
+        ASSERT_NE(NULL_BLOCK_ID, b[8]);
+        auto acq8 = make_scoped<current_page_acq_t>(&txn4, b[8], W);
+        acq7.reset();
 
-        acq3->read_acq_signal()->wait();
-        ASSERT_FALSE(acq3->write_acq_signal()->is_pulsed());
+        acq8->read_acq_signal()->wait();
+        ASSERT_FALSE(acq8->write_acq_signal()->is_pulsed());
         condJ.pulse();
 
-        check_and_append(acq3, "t2", "t4");
-        ASSERT_TRUE(acq3->write_acq_signal()->is_pulsed());
+        check_and_append(acq8, "t2", "t4");
+        ASSERT_TRUE(acq8->write_acq_signal()->is_pulsed());
         condL.pulse();
 
-        acq3.reset();
+        acq8.reset();
     }
 
     void run_txn5(auto_drainer_t::lock_t) {
         page_txn_t txn5(&c);
 
         condH.wait();
-        ASSERT_NE(NULL_BLOCK_ID, b[1]);
-        auto acq1 = make_scoped<current_page_acq_t>(&txn5, b[1], W);
+        ASSERT_NE(NULL_BLOCK_ID, b[6]);
+        auto acq6 = make_scoped<current_page_acq_t>(&txn5, b[6], W);
 
         condM.pulse();
-        acq1->write_acq_signal()->wait();
-        check_value(acq1, "t1t2");
-        ASSERT_NE(NULL_BLOCK_ID, b[2]);
-        auto acq2 = make_scoped<current_page_acq_t>(&txn5, b[2], W);
-        acq1.reset();
-        acq2->write_acq_signal()->wait();
-        check_and_append(acq2, "t2", "t5");
-        auto acq5 = make_scoped<current_page_acq_t>(&txn5, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[5]);
-        b[5] = acq5->block_id();
+        acq6->write_acq_signal()->wait();
+        check_value(acq6, "t1t2");
+        ASSERT_NE(NULL_BLOCK_ID, b[7]);
+        auto acq7 = make_scoped<current_page_acq_t>(&txn5, b[7], W);
+        acq6.reset();
+        acq7->write_acq_signal()->wait();
+        check_and_append(acq7, "t2", "t5");
+        auto acq10 = make_scoped<current_page_acq_t>(&txn5, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[10]);
+        b[10] = acq10->block_id();
 
-        acq2.reset();
+        acq7.reset();
 
-        acq5->write_acq_signal()->wait();
+        acq10->write_acq_signal()->wait();
 
-        make_empty(acq5);
-        check_and_append(acq5, "", "t5");
+        make_empty(acq10);
+        check_and_append(acq10, "", "t5");
 
-        auto acq11 = make_scoped<current_page_acq_t>(&txn5, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[11]);
-        b[11] = acq11->block_id();
+        auto acq16 = make_scoped<current_page_acq_t>(&txn5, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[16]);
+        b[16] = acq16->block_id();
 
-        acq5.reset();
+        acq10.reset();
 
-        acq11->write_acq_signal()->wait();
-        make_empty(acq11);
-        check_and_append(acq11, "", "t5");
+        acq16->write_acq_signal()->wait();
+        make_empty(acq16);
+        check_and_append(acq16, "", "t5");
 
         condN.wait();
 
@@ -377,42 +377,42 @@ private:
 
     void run_txn6(auto_drainer_t::lock_t) {
         page_txn_t txn6(&c);
-        auto acq12 = make_scoped<current_page_acq_t>(&txn6, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[12]);
-        b[12] = acq12->block_id();
-        acq12->write_acq_signal()->wait();
-        auto acq13 = make_scoped<current_page_acq_t>(&txn6, W);
-        acq12.reset();
-        ASSERT_EQ(NULL_BLOCK_ID, b[13]);
-        b[13] = acq13->block_id();
-        acq13->write_acq_signal()->wait();
-        auto acq14 = make_scoped<current_page_acq_t>(&txn6, W);
-        acq13.reset();
-        ASSERT_EQ(NULL_BLOCK_ID, b[14]);
-        b[14] = acq14->block_id();
-        ASSERT_NE(NULL_BLOCK_ID, b[12]);
-        ASSERT_NE(NULL_BLOCK_ID, b[13]);
-        ASSERT_NE(NULL_BLOCK_ID, b[14]);
+        auto acqA0 = make_scoped<current_page_acq_t>(&txn6, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[0+0]);
+        b[0+0] = acqA0->block_id();
+        acqA0->write_acq_signal()->wait();
+        auto acqA1 = make_scoped<current_page_acq_t>(&txn6, W);
+        acqA0.reset();
+        ASSERT_EQ(NULL_BLOCK_ID, b[0+1]);
+        b[0+1] = acqA1->block_id();
+        acqA1->write_acq_signal()->wait();
+        auto acqA2 = make_scoped<current_page_acq_t>(&txn6, W);
+        acqA1.reset();
+        ASSERT_EQ(NULL_BLOCK_ID, b[0+2]);
+        b[0+2] = acqA2->block_id();
+        ASSERT_NE(NULL_BLOCK_ID, b[0+0]);
+        ASSERT_NE(NULL_BLOCK_ID, b[0+1]);
+        ASSERT_NE(NULL_BLOCK_ID, b[0+2]);
         assert_unique_ids();
-        acq14->write_acq_signal()->wait();
+        acqA2->write_acq_signal()->wait();
 
         // Wait while holding block.
         t678cond.wait();
-        acq14.reset();
+        acqA2.reset();
     }
 
     void run_txn7(auto_drainer_t::lock_t) {
         page_txn_t txn7(&c);
-        auto acq15 = make_scoped<current_page_acq_t>(&txn7, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[15]);
-        b[15] = acq15->block_id();
-        acq15->write_acq_signal()->wait();
-        auto acq16 = make_scoped<current_page_acq_t>(&txn7, W);
-        acq15.reset();
-        ASSERT_EQ(NULL_BLOCK_ID, b[16]);
-        b[16] = acq16->block_id();
-        acq16->write_acq_signal()->wait();
-        acq16.reset();
+        auto acqA3 = make_scoped<current_page_acq_t>(&txn7, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[0+3]);
+        b[0+3] = acqA3->block_id();
+        acqA3->write_acq_signal()->wait();
+        auto acqA4 = make_scoped<current_page_acq_t>(&txn7, W);
+        acqA3.reset();
+        ASSERT_EQ(NULL_BLOCK_ID, b[0+4]);
+        b[0+4] = acqA4->block_id();
+        acqA4->write_acq_signal()->wait();
+        acqA4.reset();
 
         // Wait after releasing block, to be different than run_txn6.
         t678cond.wait();
@@ -420,11 +420,11 @@ private:
 
     void run_txn8(auto_drainer_t::lock_t) {
         page_txn_t txn8(&c);
-        auto acq17 = make_scoped<current_page_acq_t>(&txn8, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[17]);
-        b[17] = acq17->block_id();
-        acq17->write_acq_signal()->wait();
-        acq17.reset();
+        auto acqA5 = make_scoped<current_page_acq_t>(&txn8, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[0+5]);
+        b[0+5] = acqA5->block_id();
+        acqA5->write_acq_signal()->wait();
+        acqA5.reset();
 
         // Idk, wait after releasing block.
         t678cond.wait();
@@ -436,11 +436,11 @@ private:
             auto_drainer_t subdrainer;
 
             condM.wait();
-            auto acq1 = make_scoped<current_page_acq_t>(&txn9, b[1], W);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn9, b[6], W);
 
             condP.pulse();
 
-            acq1->write_acq_signal()->wait();
+            acq6->write_acq_signal()->wait();
 
             spawn_ordered(std::bind(&bigger_test_t::run_txn9A, this, &txn9,
                                     subdrainer.lock()));
@@ -450,106 +450,106 @@ private:
             condQ1.wait();
             condQ2.wait();
 
-            check_and_append(acq1, "t1t2", "t9");
-            acq1.reset();
+            check_and_append(acq6, "t1t2", "t9");
+            acq6.reset();
         }
     }
 
     void run_txn9A(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
-        auto acq6 = make_scoped<current_page_acq_t>(txn9, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[6]);
-        b[6] = acq6->block_id();
+        auto acq11 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[11]);
+        b[11] = acq11->block_id();
 
         condQ1.pulse();
 
-        make_empty(acq6);
-        check_and_append(acq6, "", "t9");
+        make_empty(acq11);
+        check_and_append(acq11, "", "t9");
 
         spawn_ordered(std::bind(&bigger_test_t::run_txn9C, this, txn9, lock));
         spawn_ordered(std::bind(&bigger_test_t::run_txn9D, this, txn9, lock));
 
         condR1.pulse();
         condS1.wait();
-        acq6.reset();
+        acq11.reset();
     }
 
     void run_txn9B(page_txn_t *txn9, auto_drainer_t::lock_t) {
-        auto acq2 = make_scoped<current_page_acq_t>(txn9, b[2], W);
+        auto acq7 = make_scoped<current_page_acq_t>(txn9, b[7], W);
 
         condQ2.pulse();
 
-        acq2->write_acq_signal()->wait();
-        check_value(acq2, "t2t5");
-        auto acq5 = make_scoped<current_page_acq_t>(txn9, b[5], W);
-        acq2.reset();
-        acq5->write_acq_signal()->wait();
-        check_value(acq5, "t5");
+        acq7->write_acq_signal()->wait();
+        check_value(acq7, "t2t5");
+        auto acq10 = make_scoped<current_page_acq_t>(txn9, b[10], W);
+        acq7.reset();
+        acq10->write_acq_signal()->wait();
+        check_value(acq10, "t5");
 
         condR2.pulse();
         condS2.wait();
 
-        acq5.reset();
+        acq10.reset();
     }
 
     void run_txn9C(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
-        auto acq7 = make_scoped<current_page_acq_t>(txn9, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[7]);
-        b[7] = acq7->block_id();
+        auto acq12 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[12]);
+        b[12] = acq12->block_id();
 
-        make_empty(acq7);
-        check_and_append(acq7, "", "t9");
+        make_empty(acq12);
+        check_and_append(acq12, "", "t9");
 
         spawn_ordered(std::bind(&bigger_test_t::run_txn9E, this, txn9, lock));
         spawn_ordered(std::bind(&bigger_test_t::run_txn9F, this, txn9, lock));
 
         condT1.wait();
         condT2.wait();
-        acq7.reset();
+        acq12.reset();
     }
 
     void run_txn9D(page_txn_t *txn9, auto_drainer_t::lock_t) {
-        auto acq8 = make_scoped<current_page_acq_t>(txn9, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[8]);
-        b[8] = acq8->block_id();
+        auto acq13 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[13]);
+        b[13] = acq13->block_id();
 
-        make_empty(acq8);
-        check_and_append(acq8, "", "t9");
+        make_empty(acq13);
+        check_and_append(acq13, "", "t9");
 
         condU.pulse();
         condT3.wait();
-        acq8.reset();
+        acq13.reset();
     }
 
     void run_txn9E(page_txn_t *txn9, auto_drainer_t::lock_t) {
-        auto acq9 = make_scoped<current_page_acq_t>(txn9, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[9]);
-        b[9] = acq9->block_id();
+        auto acq14 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[14]);
+        b[14] = acq14->block_id();
 
         condT1.pulse();
 
-        make_empty(acq9);
-        check_and_append(acq9, "", "t9");
-        acq9.reset();
+        make_empty(acq14);
+        check_and_append(acq14, "", "t9");
+        acq14.reset();
     }
 
     void run_txn9F(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
         condU.wait();
 
-        auto acq10 = make_scoped<current_page_acq_t>(txn9, W);
-        ASSERT_EQ(NULL_BLOCK_ID, b[10]);
-        b[10] = acq10->block_id();
+        auto acq15 = make_scoped<current_page_acq_t>(txn9, W);
+        ASSERT_EQ(NULL_BLOCK_ID, b[15]);
+        b[15] = acq15->block_id();
 
         condT2.pulse();
         condT3.pulse();
 
-        make_empty(acq10);
-        check_and_append(acq10, "", "t10");
+        make_empty(acq15);
+        check_and_append(acq15, "", "t10");
 
         spawn_ordered(std::bind(&bigger_test_t::run_txn9G, this, txn9, lock));
 
         condR3.pulse();
         condS3.wait();
-        acq10.reset();
+        acq15.reset();
     }
 
     void run_txn9G(page_txn_t *txn9, auto_drainer_t::lock_t) {
@@ -557,21 +557,21 @@ private:
         condR2.wait();
         condR3.wait();
 
-        ASSERT_NE(NULL_BLOCK_ID, b[11]);
-        auto acq11 = make_scoped<current_page_acq_t>(txn9, b[11], W);
+        ASSERT_NE(NULL_BLOCK_ID, b[16]);
+        auto acq16 = make_scoped<current_page_acq_t>(txn9, b[16], W);
 
         condS1.pulse();
         condS2.pulse();
         condS3.pulse();
 
-        ASSERT_FALSE(acq11->read_acq_signal()->is_pulsed());
-        ASSERT_FALSE(acq11->write_acq_signal()->is_pulsed());
+        ASSERT_FALSE(acq16->read_acq_signal()->is_pulsed());
+        ASSERT_FALSE(acq16->write_acq_signal()->is_pulsed());
 
         condN.pulse();
 
-        acq11->write_acq_signal()->wait();
-        check_and_append(acq11, "t5", "t9");
-        acq11.reset();
+        acq16->write_acq_signal()->wait();
+        check_and_append(acq16, "t5", "t9");
+        acq16.reset();
 
         condCR4.pulse();
     }
@@ -581,52 +581,52 @@ private:
         page_txn_t txn10(&c);
         auto_drainer_t subdrainer;
 
-        auto acq1 = make_scoped<current_page_acq_t>(&txn10, b[1], R);
+        auto acq6 = make_scoped<current_page_acq_t>(&txn10, b[6], R);
         condV.pulse();
-        check_value(acq1, "t1t2t9");
+        check_value(acq6, "t1t2t9");
 
-        auto acq2 = make_scoped<current_page_acq_t>(&txn10, b[2], R);
-        acq1.reset();
+        auto acq7 = make_scoped<current_page_acq_t>(&txn10, b[7], R);
+        acq6.reset();
 
-        check_value(acq2, "t2t5");
+        check_value(acq7, "t2t5");
 
-        auto acq3 = make_scoped<current_page_acq_t>(&txn10, b[3], R);
-        auto acq4 = make_scoped<current_page_acq_t>(&txn10, b[4], R);
-        auto acq5 = make_scoped<current_page_acq_t>(&txn10, b[5], R);
+        auto acq8 = make_scoped<current_page_acq_t>(&txn10, b[8], R);
+        auto acq9 = make_scoped<current_page_acq_t>(&txn10, b[9], R);
+        auto acq10 = make_scoped<current_page_acq_t>(&txn10, b[10], R);
 
-        acq2->declare_snapshotted();
+        acq7->declare_snapshotted();
 
-        acq3->declare_snapshotted();
-        acq4->read_acq_signal()->wait();
-        acq4->declare_snapshotted();
-        acq5->declare_snapshotted();
+        acq8->declare_snapshotted();
+        acq9->read_acq_signal()->wait();
+        acq9->declare_snapshotted();
+        acq10->declare_snapshotted();
 
-        check_value(acq3, "t2t4");
-        check_value(acq4, "t2");
-        check_value(acq5, "t5");
+        check_value(acq8, "t2t4");
+        check_value(acq9, "t2");
+        check_value(acq10, "t5");
 
         condX1.wait();
-        check_value(acq3, "t2t4");
+        check_value(acq8, "t2t4");
 
         condZ1.wait();
-        check_value(acq3, "t2t4");
+        check_value(acq8, "t2t4");
 
         condZ2.wait();
-        check_value(acq3, "t2t4");
+        check_value(acq8, "t2t4");
 
         condZ3.wait();
-        check_value(acq3, "t2t4");
+        check_value(acq8, "t2t4");
 
         condZ4.wait();
-        check_value(acq3, "t2t4");
+        check_value(acq8, "t2t4");
 
         condZ5.wait();
-        check_value(acq3, "t2t4");
+        check_value(acq8, "t2t4");
 
-        acq3.reset();
-        acq4.reset();
-        acq5.reset();
-        acq2.reset();
+        acq8.reset();
+        acq9.reset();
+        acq10.reset();
+        acq7.reset();
     }
 
     void run_txn11(auto_drainer_t::lock_t) {
@@ -638,22 +638,22 @@ private:
             page_txn_t txn11(&c);
             condV.wait();
 
-            auto acq1 = make_scoped<current_page_acq_t>(&txn11, b[1], W);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn11, b[6], W);
             condW.pulse();
 
-            check_value(acq1, "t1t2t9");
-            acq1->write_acq_signal()->wait();
-            auto acq2 = make_scoped<current_page_acq_t>(&txn11, b[2], W);
-            acq1.reset();
-            check_value(acq2, "t2t5");
-            acq2->write_acq_signal()->wait();
-            auto acq3 = make_scoped<current_page_acq_t>(&txn11, b[3], W);
-            acq2.reset();
+            check_value(acq6, "t1t2t9");
+            acq6->write_acq_signal()->wait();
+            auto acq7 = make_scoped<current_page_acq_t>(&txn11, b[7], W);
+            acq6.reset();
+            check_value(acq7, "t2t5");
+            acq7->write_acq_signal()->wait();
+            auto acq8 = make_scoped<current_page_acq_t>(&txn11, b[8], W);
+            acq7.reset();
 
-            acq3->mark_deleted();
+            acq8->mark_deleted();
 
             condX1.pulse();
-            acq3.reset();
+            acq8.reset();
         }
         condX2.pulse();
     }
@@ -663,28 +663,28 @@ private:
             page_txn_t txn12(&c);
             condW.wait();
 
-            auto acq1 = make_scoped<current_page_acq_t>(&txn12, b[1], W);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn12, b[6], W);
             condY.pulse();
 
-            check_value(acq1, "t1t2t9");
-            acq1->write_acq_signal()->wait();
-            auto acq2 = make_scoped<current_page_acq_t>(&txn12, b[2], W);
-            check_value(acq2, "t2t5");
-            acq2->write_acq_signal()->wait();
+            check_value(acq6, "t1t2t9");
+            acq6->write_acq_signal()->wait();
+            auto acq7 = make_scoped<current_page_acq_t>(&txn12, b[7], W);
+            check_value(acq7, "t2t5");
+            acq7->write_acq_signal()->wait();
 
             condX2.wait();
 
             // Thanks to predictable free list behavior, we expect this new block to have
-            // the same block id as the block id b[3], which was deleted by run_txn11
+            // the same block id as the block id b[8], which was deleted by run_txn11
             // just before condX2 got pulsed.
-            auto acq3 = make_scoped<current_page_acq_t>(&txn12, W);
-            ASSERT_EQ(b[3], acq3->block_id());
-            acq2.reset();
+            auto acq8 = make_scoped<current_page_acq_t>(&txn12, W);
+            ASSERT_EQ(b[8], acq8->block_id());
+            acq7.reset();
 
-            make_empty(acq3);
-            check_and_append(acq3, "", "t12");
+            make_empty(acq8);
+            check_and_append(acq8, "", "t12");
             condZ1.pulse();
-            acq3.reset();
+            acq8.reset();
             condZ2.pulse();
         }
         condZ3.pulse();
@@ -695,18 +695,18 @@ private:
             page_txn_t txn13(&c);
             condY.wait();
 
-            auto acq1 = make_scoped<current_page_acq_t>(&txn13, b[1], W);
-            check_value(acq1, "t1t2t9");
-            acq1->write_acq_signal()->wait();
-            auto acq2 = make_scoped<current_page_acq_t>(&txn13, b[2], W);
-            acq1.reset();
-            check_value(acq2, "t2t5");
-            acq2->write_acq_signal()->wait();
-            auto acq3 = make_scoped<current_page_acq_t>(&txn13, b[3], W);
-            acq2.reset();
-            check_and_append(acq3, "t12", "t13");
+            auto acq6 = make_scoped<current_page_acq_t>(&txn13, b[6], W);
+            check_value(acq6, "t1t2t9");
+            acq6->write_acq_signal()->wait();
+            auto acq7 = make_scoped<current_page_acq_t>(&txn13, b[7], W);
+            acq6.reset();
+            check_value(acq7, "t2t5");
+            acq7->write_acq_signal()->wait();
+            auto acq8 = make_scoped<current_page_acq_t>(&txn13, b[8], W);
+            acq7.reset();
+            check_and_append(acq8, "t12", "t13");
             condZ4.pulse();
-            acq3.reset();
+            acq8.reset();
         }
         condZ5.pulse();
     }
@@ -769,7 +769,7 @@ private:
     mock_ser_t mock;
     page_cache_t c;
 
-    static const int b_len = 18;
+    static const int b_len = 17;
     block_id_t b[b_len];
 
     cond_t condA, condB, condC, condD, condE, condF, condG;
