@@ -39,7 +39,7 @@ void mock_file_t::read_async(int64_t offset, size_t length, void *buf,
                 || offset + length > data_->size()));
     memcpy(buf, data_->data() + offset, length);
 
-    if (randint(2) == 0) {
+    for (int i = 0, n = randint(5); i < n; ++i) {
         coro_t::yield();
     }
 
