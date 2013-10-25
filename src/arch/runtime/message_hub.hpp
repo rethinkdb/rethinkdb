@@ -49,8 +49,12 @@ private:
     // Does store_message or store_message_sometime, only without setting the reloop_count_ in
     // debug mode.
     void do_store_message(threadnum_t nthread, linux_thread_message_t *msg);
+    
+    // TODO! Document
+    void deliver_local_messages();
 
 
+    // TODO! Remove? This doesn't seem to be implemented.
     /* pull_messages should be called on thread N with N as its argument. (The argument is
     partially redundant.) It will cause the actual delivery of messages that originated
     on this->current_thread and are destined for thread N. It is (almost) the only method on
