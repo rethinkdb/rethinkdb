@@ -27,30 +27,30 @@
 #define CORO_PROFILER_ADDRESS_TO_LINE           0
 
 
-/* 
+/*
  * The `coro_profiler_t` collects information about where coroutines spend time.
  * In order to turn it on, `ENABLE_CORO_PROFILER` must be defined at compile time.
  * It will only work reliably in debug mode, even though it can provide some
  * data in release mode as well.
  * You should compile as follows: `make CORO_PROFILING=1 DEBUG=1`
- * 
+ *
  * The coro profiler records a sample whenever it encounters a `PROFILER_RECORD_SAMPLE`
  * and also every time a coroutine yields.
- * 
+ *
  * The following data is aggregated:
  *      - How often a certain recording point has been reached within the past
  *        `CORO_PROFILER_REPORTING_INTERVAL`.
  *      - How much time has passed since the coroutine has resumed running
- *        (this is useful to identify coroutines that run for long 
+ *        (this is useful to identify coroutines that run for long
  *        periods of time without yielding control)
  *      - How much time has passed on a coroutine since the previous recording
  *        point
- * 
+ *
  * A combination of coro_type (signature of the function that spawned the coroutine)
  * and a limited-depth backtrace (compare `CORO_PROFILER_CALLTREE_DEPTH`) is used to
  * identify an "execution point". Data is recorded and reported for each such
  * execution point.
- * 
+ *
  * The aggregated data is written to the file "coro_profiler_out.py" in the working
  * directory. Data is written every `CORO_PROFILER_REPORTING_INTERVAL` ticks.
  */
@@ -60,27 +60,30 @@ public:
     // constructor private.
     coro_profiler_t();
     ~coro_profiler_t();
-    
+
     static coro_profiler_t &get_global_profiler();
-    
+
     void record_sample(size_t levels_to_strip_from_backtrace = 0);
-    
+
     // coroutine execution is resumed
     void record_coro_resume();
     // coroutine execution yields
     void record_coro_yield(size_t levels_to_strip_from_backtrace);
-    
+
 private:
     typedef std::array<void *, CORO_PROFILER_CALLTREE_DEPTH> small_trace_t;
-    // Identify an execution point of a coroutine by a pair of 
+    // Identify an execution point of a coroutine by a pair of
     // the coro's coroutine_type (the function which spawned it) and
     // a small_trace_t of its current execution point.
     typedef std::pair<std::string, small_trace_t> coro_execution_point_key_t;
     struct coro_sample_t {
-        coro_sample_t(ticks_t _ticks_since_resume, ticks_t _ticks_since_previous) :
-            ticks_since_resume(_ticks_since_resume), ticks_since_previous(_ticks_since_previous) { }
+        coro_sample_t(ticks_t _ticks_since_resume, ticks_t _ticks_since_previous, int _priority) :
+            ticks_since_resume(_ticks_since_resume),
+            ticks_since_previous(_ticks_since_previous),
+            priority(_priority) { }
         ticks_t ticks_since_resume;
         ticks_t ticks_since_previous;
+        int priority;
     };
     struct per_execution_point_samples_t {
         per_execution_point_samples_t() : num_samples_total(0) { }
@@ -96,7 +99,7 @@ private:
         // to lock and access the global field from different threads.
         ticks_t ticks_at_last_report;
     };
-    
+
     // Represents the distribution of data points as a normal distribution,
     // plus minimum and maximum values.
     struct data_distribution_t {
@@ -111,8 +114,9 @@ private:
         size_t num_samples;
         data_distribution_t time_since_previous;
         data_distribution_t time_since_resume;
+        data_distribution_t priority;
     };
-    
+
     void generate_report();
     void print_to_reql(const std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> &execution_point_reports);
     void write_reql_header();
@@ -120,25 +124,25 @@ private:
     std::string trace_to_array_str(const small_trace_t &trace);
     const std::string &get_frame_description(void *addr);
     coro_execution_point_key_t get_current_execution_point(size_t levels_to_strip_from_backtrace);
-    
+
     // Would be nice if we could use one_per_thread here. However
     // that makes the construction order tricky.
     std::array<cache_line_padded_t<per_thread_samples_t >, MAX_THREADS> per_thread_samples;
-    
+
     ticks_t ticks_at_last_report;
-    /* Locking order is always: 
+    /* Locking order is always:
      * 1. report_interval_spinlock
      * 2. per_thread_samples.spinlock in ascending order of thread num
      * You can safely skip some of the locks in this order.
      * Acquiring locks in different orders can dead-lock.
      */
     spinlock_t report_interval_spinlock;
-    
+
     std::map<void *, std::string> frame_description_cache;
     address_to_line_t address_to_line;
-    
+
     std::ofstream reql_output_file;
-    
+
     DISABLE_COPYING(coro_profiler_t);
 };
 

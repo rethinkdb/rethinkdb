@@ -33,7 +33,7 @@ coro_profiler_t &coro_profiler_t::get_global_profiler() {
 
 coro_profiler_t::coro_profiler_t() {
     logINF("Coro profiler activated.");
-    
+
     const std::string reql_output_filename = "coro_profiler_out.py";
     reql_output_file.open(reql_output_filename);
     if (reql_output_file.is_open()) {
@@ -52,15 +52,15 @@ coro_profiler_t::~coro_profiler_t() {
 
 void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
     if (coro_t::self() == NULL) return;
-    
+
     const ticks_t ticks_on_entry = get_ticks();
-    
+
     coro_profiler_mixin_t &coro_mixin = static_cast<coro_profiler_mixin_t&>(*coro_t::self());
     bool might_have_to_generate_report = false;
     per_thread_samples_t &thread_samples = per_thread_samples[get_thread_id().threadnum].value;
-    {        
+    {
         const spinlock_acq_t thread_lock(&thread_samples.spinlock);
-        
+
         // See if we might have to generate a report
         if (thread_samples.ticks_at_last_report + CORO_PROFILER_REPORTING_INTERVAL <= ticks_on_entry) {
             // There is a chance that we have to generate a report (unless another
@@ -69,13 +69,13 @@ void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
             // not to dead-lock.
             might_have_to_generate_report = true;
         }
-        
+
         // Figure out from where we were called.
         // We strip ourselves from the backtrace, hence the +1 in the argument to
         // `get_current_execution_point().`
         const coro_execution_point_key_t execution_point =
             get_current_execution_point(levels_to_strip_from_backtrace + 1);
-        
+
         // Record the sample
         per_execution_point_samples_t &execution_point_samples = thread_samples.per_execution_point_samples[execution_point];
         ++execution_point_samples.num_samples_total;
@@ -87,18 +87,20 @@ void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
         rassert(coro_mixin.last_resumed_at <= ticks_on_entry);
         rassert(coro_mixin.last_resumed_at > 0);
         ticks_t ticks_since_resume = ticks_on_entry - coro_mixin.last_resumed_at;
-        execution_point_samples.samples.push_back(coro_sample_t(ticks_since_resume, ticks_since_previous));
+        execution_point_samples.samples.push_back(coro_sample_t(ticks_since_resume,
+                                                                ticks_since_previous,
+                                                                coro_t::self()->get_priority()));
         coro_mixin.last_sample_at = ticks_on_entry;
     }
-    
+
     if (might_have_to_generate_report) {
         const spinlock_acq_t report_interval_lock(&report_interval_spinlock);
         if (ticks_at_last_report + CORO_PROFILER_REPORTING_INTERVAL <= ticks_on_entry) {
             generate_report();
         }
     }
-    
-    /* 
+
+    /*
      * Ensign:  Captain, we are no longer in warp.
      * Captain: What happened?
      * Ensign:  The profiler is stealing our time and makes us appear slower than we actually are!
@@ -205,42 +207,51 @@ void coro_profiler_t::generate_report() {
 
 void coro_profiler_t::per_execution_point_collected_report_t::compute_stats() {
     rassert(num_samples == 0); // `per_execution_point_collected_report_t` is not re-usable.
-    
+
+    // TODO (daniel): Refactor
     // Pass 1: Compute min, max, mean
     for (auto sample = collected_samples.begin(); sample != collected_samples.end(); ++sample) {
         if (num_samples == 0) {
             time_since_previous.min = time_since_previous.max = ticks_to_secs(sample->ticks_since_previous);
             time_since_resume.min = time_since_resume.max = ticks_to_secs(sample->ticks_since_resume);
+            priority.min = priority.max = static_cast<double>(sample->priority);
         } else {
             time_since_previous.min = std::min(time_since_previous.min, ticks_to_secs(sample->ticks_since_previous));
             time_since_previous.max = std::max(time_since_previous.max, ticks_to_secs(sample->ticks_since_previous));
             time_since_resume.min = std::min(time_since_resume.min, ticks_to_secs(sample->ticks_since_resume));
             time_since_resume.max = std::max(time_since_resume.max, ticks_to_secs(sample->ticks_since_resume));
+            priority.min = std::min(priority.min, static_cast<double>(sample->priority));
+            priority.max = std::max(priority.max, static_cast<double>(sample->priority));
         }
         time_since_previous.mean += ticks_to_secs(sample->ticks_since_previous);
         time_since_resume.mean += ticks_to_secs(sample->ticks_since_resume);
+        priority.mean += static_cast<double>(sample->priority);
         ++num_samples;
     }
     time_since_previous.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
     time_since_resume.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
-    
+    priority.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
+
     // Pass 2: Compute standard deviation
     for (auto sample = collected_samples.begin(); sample != collected_samples.end(); ++sample) {
         time_since_previous.stddev += std::pow(ticks_to_secs(sample->ticks_since_previous) - time_since_previous.mean, 2);
         time_since_resume.stddev += std::pow(ticks_to_secs(sample->ticks_since_resume) - time_since_resume.mean, 2);
+        priority.stddev += std::pow(static_cast<double>(sample->priority) - priority.mean, 2);
     }
     // Use the unbiased estimate of the standard deviation, hence division by num_samples-1
     time_since_previous.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
     time_since_resume.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
+    priority.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
     time_since_previous.stddev = std::sqrt(time_since_previous.stddev);
     time_since_resume.stddev = std::sqrt(time_since_resume.stddev);
+    priority.stddev = std::sqrt(priority.stddev);
 }
 
 void coro_profiler_t::print_to_reql(
     const std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> &execution_point_reports) {
-    
+
     const double time = ticks_to_secs(get_ticks());
-    
+
     reql_output_file.precision(std::numeric_limits<double>::digits10);
     for (auto report = execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
         reql_output_file << "print t.insert({" << std::endl;
@@ -250,6 +261,7 @@ void coro_profiler_t::print_to_reql(
         reql_output_file << "\t\t'num_samples': " << report->second.num_samples << "," << std::endl;
         reql_output_file << "\t\t'since_previous': " << distribution_to_object_str(report->second.time_since_previous) << "," << std::endl;
         reql_output_file << "\t\t'since_resume': " << distribution_to_object_str(report->second.time_since_resume) << "" << std::endl;
+        reql_output_file << "\t\t'priority': " << distribution_to_object_str(report->second.priority) << "" << std::endl;
         reql_output_file << "\t}).run(conn, durability='soft')" << std::endl;
     }
 }
@@ -266,7 +278,7 @@ std::string coro_profiler_t::trace_to_array_str(const small_trace_t &trace) {
         trace_array_str += "'" + get_frame_description(trace[i]) + "'";
     }
     trace_array_str += "]";
-    
+
     return trace_array_str;
 }
 
@@ -278,7 +290,7 @@ std::string coro_profiler_t::distribution_to_object_str(const data_distribution_
     format_stream << "'mean': "  << distribution.mean << ", ";
     format_stream << "'stddev': "  << distribution.stddev;
     format_stream << "}";
-    
+
     return format_stream.str();
 }
 
@@ -296,7 +308,7 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
     if (cache_it != frame_description_cache.end()) {
         return cache_it->second;
     }
-    
+
     backtrace_frame_t frame(addr);
     std::stringstream description_stream;
 #if CORO_PROFILER_ADDRESS_TO_LINE
@@ -311,7 +323,7 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
         demangled_name = "?";
     }
     description_stream << frame.get_addr() << "\t" << line << demangled_name;
-    
+
     return frame_description_cache.insert(std::pair<void *, std::string>(addr, description_stream.str())).first->second;
 }
 
