@@ -128,6 +128,11 @@ private:
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->action_wrapper.reset(action);
+        // If we were called from a coroutine, the new coroutine inherits our
+        // caller's priority.
+        if (self() != NULL) {
+            coro->set_priority(self()->get_priority());
+        }
         return coro;
     }
 

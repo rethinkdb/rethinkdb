@@ -33,7 +33,7 @@ public:
 
     /* Schedules the given message to be sent to the given thread by pushing it onto our
     msg_local_list for that thread */
-    void store_message(threadnum_t nthread, linux_thread_message_t *msg);
+    void store_message_ordered(threadnum_t nthread, linux_thread_message_t *msg);
 
     // Schedules the given message to be sent to the given thread.  However, these are not
     // guaranteed to be called in the same order relative to one another.
@@ -56,6 +56,8 @@ private:
     on this->current_thread and are destined for thread N. It is (almost) the only method on
     linux_message_hub_t that is not called on the thread that the message hub belongs to. */
     void pull_messages(threadnum_t thread);
+    
+    msg_list_t &get_priority_msg_list(int priority);
 
     linux_event_queue_t *const queue_;
     linux_thread_pool_t *const thread_pool_;
@@ -71,6 +73,10 @@ private:
 
     msg_list_t incoming_messages_;
     spinlock_t incoming_messages_lock_;
+    
+    // TODO! Document
+    msg_list_t priority_msg_lists_[
+            MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1];
 
     void on_event(int events);
 

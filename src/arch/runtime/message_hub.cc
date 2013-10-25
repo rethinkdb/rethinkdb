@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <unistd.h>
+#include <algorithm>
 
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
@@ -26,6 +27,12 @@ linux_message_hub_t::~linux_message_hub_t() {
     for (int i = 0; i < thread_pool_->n_threads; i++) {
         guarantee(queues_[i].msg_local_list.empty());
     }
+    for (int p = MESSAGE_SCHEDULER_MIN_PRIORITY;
+         p <= MESSAGE_SCHEDULER_MAX_PRIORITY;
+         ++p) {
+        
+        guarantee(get_priority_msg_list(p).empty());
+    }
 
     guarantee(incoming_messages_.empty());
 }
@@ -36,7 +43,10 @@ void linux_message_hub_t::do_store_message(threadnum_t nthread, linux_thread_mes
 }
 
 // Collects a message for a given thread onto a local list.
-void linux_message_hub_t::store_message(threadnum_t nthread, linux_thread_message_t *msg) {
+void linux_message_hub_t::store_message_ordered(threadnum_t nthread,
+                                                linux_thread_message_t *msg) {
+    rassert(!msg->is_ordered); // Each message object can only be enqueued once,
+                               // and once it is removed, is_ordered is reset to false.
 #ifndef NDEBUG
 #if RDB_RELOOP_MESSAGES
     // We default to 1, not zero, to allow store_message_sometime messages to sometimes jump ahead of
@@ -46,6 +56,7 @@ void linux_message_hub_t::store_message(threadnum_t nthread, linux_thread_messag
     msg->reloop_count_ = 0;
 #endif
 #endif  // NDEBUG
+    msg->is_ordered = true;
     do_store_message(nthread, msg);
 }
 
@@ -83,6 +94,12 @@ void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
     }
 }
 
+linux_message_hub_t::msg_list_t &linux_message_hub_t::get_priority_msg_list(int priority) {
+    rassert(priority >= MESSAGE_SCHEDULER_MIN_PRIORITY);
+    rassert(priority <= MESSAGE_SCHEDULER_MAX_PRIORITY);
+    return priority_msg_lists_[priority - MESSAGE_SCHEDULER_MIN_PRIORITY];
+}
+
 void linux_message_hub_t::on_event(int events) {
     if (events != poll_event_in) {
         logERR("Unexpected event mask: %d", events);
@@ -92,34 +109,99 @@ void linux_message_hub_t::on_event(int events) {
     // up and so that poll-based event triggering doesn't infinite-loop.
     event_.consume_wakey_wakeys();
 
-    msg_list_t msg_list;
-
-    // Pull the messages
-    {
-        spinlock_acq_t acq(&incoming_messages_lock_);
-        msg_list.append_and_clear(&incoming_messages_);
-    }
-
 #ifndef NDEBUG
     start_watchdog(); // Initialize watchdog before handling messages
 #endif
 
-    while (linux_thread_message_t *m = msg_list.head()) {
-        msg_list.remove(m);
-#ifndef NDEBUG
-        if (m->reloop_count_ > 0) {
-            --m->reloop_count_;
-            do_store_message(current_thread_, m);
-            continue;
+    // We loop until we have processed at least the initial batch of events.
+    // Note that we let new messages in while we do this, which might be
+    // scheduled ahead of the initial messages based on their priority.
+
+    const int num_priorities = MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1;
+    size_t num_initial_msgs_left_to_process[num_priorities];
+    bool initial_pass = true;
+    do {
+        // TODO! Maybe refactor part below (put it into a function):
+        // Pull new messages
+        {
+            // We do this in two steps to release the spinlock faster.
+            // append_and_clear is a very cheap operation, while
+            // assigning each message to a different priority queue
+            // is more expensive.
+            msg_list_t new_messages;
+            // Pull the messages
+            {
+                spinlock_acq_t acq(&incoming_messages_lock_);
+                new_messages.append_and_clear(&incoming_messages_);
+            }
+            // Sort the messages into their respective priority queues
+            while (linux_thread_message_t *m = new_messages.head()) {
+                new_messages.remove(m);
+                int effective_priority = m->priority;
+                if (m->is_ordered) {
+                    // Ordered messages are treated as if they had
+                    // priority MESSAGE_SCHEDULER_ORDERED_PRIORITY.
+                    // This ensures that they can never bypass another
+                    // ordered message.
+                    effective_priority = MESSAGE_SCHEDULER_ORDERED_PRIORITY;
+                    m->is_ordered = false;
+                }
+                get_priority_msg_list(effective_priority).push_back(m);
+            }
         }
-#endif
+        // TODO! Comment more
+        if (initial_pass) {
+            for (int i = 0; i < num_priorities; ++i) {
+                num_initial_msgs_left_to_process[i] = priority_msg_lists_[i].size();
+            }
+            initial_pass = false;
+        }
 
-        m->on_thread_switch();
+        // TODO! Maybe optimize
+        size_t total_pending_msgs = 0;
+        for (int i = 0; i < num_priorities; ++i) {
+            total_pending_msgs += priority_msg_lists_[i].size();
+        }
+
+        // TODO! Explain
+        const size_t effective_granularity = std::min(total_pending_msgs, MESSAGE_SCHEDULER_GRANULARITY);
+
+        // Process a certain number of messages from each priority
+        for (int current_priority = MESSAGE_SCHEDULER_MAX_PRIORITY;
+             current_priority >= MESSAGE_SCHEDULER_MIN_PRIORITY; --current_priority) {
+
+            // TODO! Explain how this is computed and why
+            int priority_exponent = MESSAGE_SCHEDULER_MAX_PRIORITY - current_priority;
+            size_t to_process_from_priority = std::max(1ul, effective_granularity >> priority_exponent);
+            
+            while (linux_thread_message_t *m = get_priority_msg_list(current_priority).head()) {
+                if (to_process_from_priority == 0) break;
+                
+                get_priority_msg_list(current_priority).remove(m);
+                --to_process_from_priority;
+                if (num_initial_msgs_left_to_process[current_priority - MESSAGE_SCHEDULER_MIN_PRIORITY] > 0) {
+                    // About to process one of the initial messages
+                    --num_initial_msgs_left_to_process[current_priority - MESSAGE_SCHEDULER_MIN_PRIORITY];
+                }
 
 #ifndef NDEBUG
-        pet_watchdog(); // Verify that each message completes in the acceptable time range
+                if (m->reloop_count_ > 0) {
+                    --m->reloop_count_;
+                    do_store_message(current_thread_, m);
+                    continue;
+                }
 #endif
-    }
+
+                m->on_thread_switch();
+
+#ifndef NDEBUG
+                pet_watchdog(); // Verify that each message completes in the acceptable time range
+#endif
+            }
+        }
+    } while (std::any_of(num_initial_msgs_left_to_process,
+                         num_initial_msgs_left_to_process + num_priorities,
+                         [] (int msgs_left) -> bool { return msgs_left > 0; } ));
 }
 
 // Pushes messages collected locally global lists available to all

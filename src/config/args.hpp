@@ -214,5 +214,15 @@
 // Size of a cache line (used in cache_line_padded_t).
 #define CACHE_LINE_SIZE                           64
 
+/**
+ * Message scheduler configuration
+ */
+// TODO! Document. Especially the granularity.
+#define MESSAGE_SCHEDULER_MIN_PRIORITY          (-2)
+#define MESSAGE_SCHEDULER_MAX_PRIORITY          2
+#define MESSAGE_SCHEDULER_DEFAULT_PRIORITY      0
+#define MESSAGE_SCHEDULER_ORDERED_PRIORITY      0
+#define MESSAGE_SCHEDULER_GRANULARITY           32ul
+
 #endif  // CONFIG_ARGS_HPP_
 

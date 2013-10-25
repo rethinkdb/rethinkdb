@@ -33,13 +33,15 @@ bool continue_on_thread(threadnum_t thread, linux_thread_message_t *msg) {
         // The thread to continue on is the thread we are already on
         return true;
     } else {
-        linux_thread_pool_t::thread->message_hub.store_message(thread, msg);
+        linux_thread_pool_t::thread->message_hub.store_message_ordered(thread, msg);
         return false;
     }
 }
 
 void call_later_on_this_thread(linux_thread_message_t *msg) {
-    linux_thread_pool_t::thread->message_hub.store_message(threadnum_t(linux_thread_pool_t::thread_id), msg);
+    linux_thread_pool_t::thread->message_hub.store_message_ordered(
+        threadnum_t(linux_thread_pool_t::thread_id),
+        msg);
 }
 
 struct starter_t : public thread_message_t {
