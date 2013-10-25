@@ -139,6 +139,9 @@ private:
         // caller's priority.
         if (self() != NULL) {
             coro->set_priority(self()->get_priority());
+        } else {
+            // Otherwise, just reset to the default.
+            coro->set_priority(MESSAGE_SCHEDULER_DEFAULT_PRIORITY);
         }
         return coro;
     }
