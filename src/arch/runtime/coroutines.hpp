@@ -95,7 +95,13 @@ public:
     Returns immediately. If you call `notify_later_ordered()` on two coroutines
     that are on the same thread, they will run in the same order you call
     `notify_later_ordered()` in. */
+    // DEPRECATED:  Call notify_ordered, its name is shorter.
     void notify_later_ordered();
+
+    void notify_ordered() {
+        notify_later_ordered();
+    }
+
 
 #ifndef NDEBUG
     // A unique identifier for this particular instance of coro_t over
