@@ -118,9 +118,9 @@ void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
 
 void coro_profiler_t::record_coro_resume() {
     rassert(coro_t::self());
-    
+
     const ticks_t ticks = get_ticks();
-    
+
     coro_profiler_mixin_t &coro_mixin = static_cast<coro_profiler_mixin_t&>(*coro_t::self());
     coro_mixin.last_sample_at = ticks;
     coro_mixin.last_resumed_at = ticks;
@@ -128,7 +128,7 @@ void coro_profiler_t::record_coro_resume() {
 
 void coro_profiler_t::record_coro_yield(size_t levels_to_strip_from_backtrace) {
     rassert(coro_t::self());
-    
+
     record_sample(1 + levels_to_strip_from_backtrace);
 }
 
@@ -159,7 +159,7 @@ coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_executi
 
 void coro_profiler_t::generate_report() {
     std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> execution_point_reports;
-    
+
     // We assume that the global report_interval_spinlock has already been locked by our callee.
     {
         // Proceed to locking all thread sample structures
@@ -191,15 +191,15 @@ void coro_profiler_t::generate_report() {
                 }
             }
         }
-        
+ 
         // Release per-thread locks
     }
-    
+
     // Compute statistics
     for (auto report =  execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
         report->second.compute_stats();
     }
-    
+
     if (reql_output_file.is_open()) {
         print_to_reql(execution_point_reports);
     }
@@ -260,7 +260,7 @@ void coro_profiler_t::print_to_reql(
         reql_output_file << "\t\t'trace': " << trace_to_array_str(report->first.second) << "," << std::endl;
         reql_output_file << "\t\t'num_samples': " << report->second.num_samples << "," << std::endl;
         reql_output_file << "\t\t'since_previous': " << distribution_to_object_str(report->second.time_since_previous) << "," << std::endl;
-        reql_output_file << "\t\t'since_resume': " << distribution_to_object_str(report->second.time_since_resume) << "" << std::endl;
+        reql_output_file << "\t\t'since_resume': " << distribution_to_object_str(report->second.time_since_resume) << "," << std::endl;
         reql_output_file << "\t\t'priority': " << distribution_to_object_str(report->second.priority) << "" << std::endl;
         reql_output_file << "\t}).run(conn, durability='soft')" << std::endl;
     }
