@@ -160,10 +160,10 @@ public:
         spawn_ordered(std::bind(&bigger_test_t::run_txn5, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn9, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn10, this, drainer.lock()));
+        spawn_ordered(std::bind(&bigger_test_t::run_txn11, this, drainer.lock()));
 
         // RSI: if 0
 #if 0
-        spawn_ordered(std::bind(&bigger_test_t::run_txn11, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn12, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn13, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn14, this, drainer.lock()));
@@ -177,7 +177,7 @@ public:
         condK.pulse();
 
         // RSI: These shouldn't be here.
-        condV.wait();
+        condW.wait();
 
         condX1.pulse();
         condZ1.pulse();
@@ -635,6 +635,27 @@ private:
         acq2.reset();
     }
 
+    void run_txn11(auto_drainer_t::lock_t) {
+        page_txn_t txn11(&c);
+        condV.wait();
+
+        auto acq1 = make_scoped<current_page_acq_t>(&txn11, b[1], W);
+        condW.pulse();
+
+        check_value(acq1, "t1t2t9");
+        acq1->write_acq_signal()->wait();
+        auto acq2 = make_scoped<current_page_acq_t>(&txn11, b[2], W);
+        acq1.reset();
+        check_value(acq2, "t2t5");
+        acq2->write_acq_signal()->wait();
+        auto acq3 = make_scoped<current_page_acq_t>(&txn11, b[3], W);
+        acq2.reset();
+
+        acq3->mark_deleted();
+
+        acq3.reset();
+    }
+
     void assert_unique_ids() {
         for (size_t i = 0; i < b_len; ++i) {
             if (b[i] != NULL_BLOCK_ID) {
@@ -701,7 +722,7 @@ private:
     cond_t condP;
     cond_t condQ1, condQ2, condR1, condR2, condR3, condS1, condS2, condS3;
     cond_t condT1, condT2, condT3, condU;
-    cond_t condV;
+    cond_t condV, condW;
     cond_t condX1, condZ1, condZ2, condZ3, condZ4, condZ5;
 
     cond_t t678cond;
