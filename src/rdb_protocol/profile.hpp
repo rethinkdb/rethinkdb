@@ -54,7 +54,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 
 typedef std::vector<event_t> event_log_t;
 
-/* A trace_t wraps a task and makes it a bit easier to use. */
+/* A trace_t contains an event_log_t and provides private methods for adding
+ * events to it. These methods are leveraged by the instruments. */
 class trace_t {
 public:
     trace_t();
