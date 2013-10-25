@@ -15,9 +15,9 @@ except ImportError:
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
-      [-i (DB | DB.TABLE)]\n\
+      [-i (DB | DB.TABLE)] [--clients NUM]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
-      [--force] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():

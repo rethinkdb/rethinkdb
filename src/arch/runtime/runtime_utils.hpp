@@ -7,6 +7,7 @@
 
 #include <string>
 
+#include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
 typedef int fd_t;
@@ -14,16 +15,30 @@ typedef int fd_t;
 
 class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {
 public:
-    linux_thread_message_t()
+    linux_thread_message_t(int _priority)
+        : priority(_priority),
+        is_ordered(false)
 #ifndef NDEBUG
-        : reloop_count_(0)
+        , reloop_count_(0)
+#endif
+        { }
+    linux_thread_message_t()
+        : priority(MESSAGE_SCHEDULER_DEFAULT_PRIORITY),
+        is_ordered(false)
+#ifndef NDEBUG
+        , reloop_count_(0)
 #endif
         { }
     virtual void on_thread_switch() = 0;
+    
+    void set_priority(int _priority) { priority = _priority; }
+    int get_priority() const { return priority; }
 protected:
     virtual ~linux_thread_message_t() {}
 private:
     friend class linux_message_hub_t;
+    int priority;
+    bool is_ordered; // Used internally by the message hub
 #ifndef NDEBUG
     int reloop_count_;
 #endif

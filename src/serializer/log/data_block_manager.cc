@@ -41,7 +41,7 @@ public:
           was_written(false),
           state(state_active),
           garbage_bytes_stat(_parent->static_config->extent_size()),
-          num_garbage_blocks_stat(0),
+          num_live_blocks_stat(0),
           extent_offset(extent_ref.offset()) {
         add_self_to_parent_entries();
     }
@@ -55,7 +55,7 @@ public:
           was_written(false),
           state(state_reconstructing),
           garbage_bytes_stat(_parent->static_config->extent_size()),
-          num_garbage_blocks_stat(0),
+          num_live_blocks_stat(0),
           extent_offset(extent_ref.offset()) {
         add_self_to_parent_entries();
     }
@@ -152,12 +152,10 @@ public:
         return block_infos.size();
     }
 
-    unsigned int num_garbage_blocks() const {
-        rassert(compute_num_garbage_blocks() == num_garbage_blocks_stat);
-        return num_garbage_blocks_stat;
+    unsigned int num_live_blocks() const {
+        rassert(compute_num_live_blocks() == num_live_blocks_stat);
+        return num_live_blocks_stat;
     }
-
-    unsigned int num_live_blocks() const { return num_blocks() - num_garbage_blocks(); }
 
     bool all_garbage() const { return num_live_blocks() == 0; }
 
@@ -286,10 +284,10 @@ private:
         }
         return b;
     }
-    unsigned int compute_num_garbage_blocks() const {
+    unsigned int compute_num_live_blocks() const {
         unsigned int count = 0;
         for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-            if (!it->token_referenced && !it->index_referenced) {
+            if (it->token_referenced || it->index_referenced) {
                 ++count;
             }
         }
@@ -297,32 +295,22 @@ private:
     }
 #endif
     
-    // Either old_block or new_block can be NULL if a block_info was freshly added
-    // or deleted (<- the latter is not used right now)
+    // old_block can be NULL if a block_info was freshly added
     void update_stats(const block_info_t *old_block, const block_info_t *new_block) {
-        // Note (daniel): We seem to assume that unused space is garbage when
-        //     calculating garbage_bytes. That seems to be inconsistent with
-        //     num_garbage_blocks. I wonder if we could change the definition
-        //     of garbage_bytes?
+        rassert(new_block != NULL);
         if (old_block != NULL) {
             // Undo old_block
-            if (!old_block->token_referenced && !old_block->index_referenced) {
-                // Is garbage
-                num_garbage_blocks_stat -= 1;
-            } else {
-                // Not garbage
+            if (old_block->token_referenced || old_block->index_referenced) {
+                // Block is live
+                num_live_blocks_stat -= 1;
                 garbage_bytes_stat += aligned_value(old_block->block_size);
             }
         }
-        if (new_block != NULL) {
-            // Apply new_block
-            if (!new_block->token_referenced && !new_block->index_referenced) {
-                // Is garbage
-                num_garbage_blocks_stat += 1;
-            } else {
-                // Not garbage
-                garbage_bytes_stat -= aligned_value(new_block->block_size);
-            }
+        // Apply new_block
+        if (new_block->token_referenced || new_block->index_referenced) {
+            // Block is live
+            num_live_blocks_stat += 1;
+            garbage_bytes_stat -= aligned_value(new_block->block_size);
         }
     }
     
@@ -370,7 +358,7 @@ private:
     
     // Some stats we maintain to make certain operations faster
     uint32_t garbage_bytes_stat;
-    unsigned int num_garbage_blocks_stat;
+    unsigned int num_live_blocks_stat;
 
     // Only to be used by the destructor, used to look up the gc entry in the
     // parent's entries array.

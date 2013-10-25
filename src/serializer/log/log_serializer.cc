@@ -405,7 +405,7 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token,
+void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
                                   ser_buffer_t *buf, file_account_t *io_account) {
     assert_thread();
     guarantee(token.has());
@@ -438,7 +438,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
 
-void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+void log_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
