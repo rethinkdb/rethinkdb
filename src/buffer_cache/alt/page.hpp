@@ -167,8 +167,11 @@ private:
     // Returns NULL if the page was deleted.
     page_t *the_page_for_read_or_deleted(current_page_help_t help);
 
-    // Has access to our fields.
+    // Has access to our fields.  RSI: Is this still true?
     friend class page_cache_t;
+
+    void make_non_deleted(block_size_t block_size,
+                          scoped_malloc_t<ser_buffer_t> buf);
 
     // page_ can be null if we haven't tried loading the page yet.  We don't want to
     // prematurely bother loading the page if it's going to be deleted.

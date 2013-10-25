@@ -63,8 +63,8 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
                                serializer_->malloc(),
                                this);
     } else {
-        rassert(current_pages_[block_id]->is_deleted_);
-        current_pages_[block_id]->is_deleted_ = false;
+        current_pages_[block_id]->make_non_deleted(serializer_->get_block_size(),
+                                                   serializer_->malloc());
     }
 
     *block_id_out = block_id;
@@ -200,6 +200,14 @@ current_page_t::~current_page_t() {
     rassert(last_modifier_ == NULL);
 }
 
+void current_page_t::make_non_deleted(block_size_t block_size,
+                                      scoped_malloc_t<ser_buffer_t> buf) {
+    rassert(is_deleted_);
+    rassert(!page_.has());
+    is_deleted_ = false;
+    page_.init(new page_t(block_size, std::move(buf)));
+}
+
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
     acquirers_.push_back(acq);
     pulse_pulsables(acq);
@@ -255,6 +263,10 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                 cur->snapshotted_page_.init(the_page_for_read_or_deleted(help));
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
+                // RSI: Dedup this with remove_acquirer.
+                if (is_deleted_) {
+                    cur->page_cache()->free_list()->release_block_id(acq->block_id());
+                }
             }
             cur = next;
         } else {

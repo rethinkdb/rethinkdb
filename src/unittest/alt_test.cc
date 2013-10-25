@@ -161,10 +161,10 @@ public:
         spawn_ordered(std::bind(&bigger_test_t::run_txn9, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn10, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn11, this, drainer.lock()));
+        spawn_ordered(std::bind(&bigger_test_t::run_txn12, this, drainer.lock()));
 
         // RSI: if 0
 #if 0
-        spawn_ordered(std::bind(&bigger_test_t::run_txn12, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn13, this, drainer.lock()));
         spawn_ordered(std::bind(&bigger_test_t::run_txn14, this, drainer.lock()));
 #endif
@@ -177,12 +177,8 @@ public:
         condK.pulse();
 
         // RSI: These shouldn't be here.
-        condW.wait();
+        condY.wait();
 
-        condX1.pulse();
-        condZ1.pulse();
-        condZ2.pulse();
-        condZ3.pulse();
         condZ4.pulse();
         condZ5.pulse();
 
@@ -206,6 +202,8 @@ private:
 
         condB.wait();
         acq1.reset();
+
+        condCR1.pulse();
     }
 
     void run_txn2(auto_drainer_t::lock_t) {
@@ -260,6 +258,8 @@ private:
         condG.wait();
 
         acq3.reset();
+
+        condCR2.pulse();
     }
 
     void run_txn3(auto_drainer_t::lock_t) {
@@ -381,6 +381,8 @@ private:
         check_and_append(acq11, "", "t5");
 
         condN.wait();
+
+        condCR3.pulse();
     }
 
     void run_txn6(auto_drainer_t::lock_t) {
@@ -580,6 +582,8 @@ private:
         acq11->write_acq_signal()->wait();
         check_and_append(acq11, "t5", "t9");
         acq11.reset();
+
+        condCR4.pulse();
     }
 
     void run_txn10(auto_drainer_t::lock_t) {
@@ -636,24 +640,64 @@ private:
     }
 
     void run_txn11(auto_drainer_t::lock_t) {
-        page_txn_t txn11(&c);
-        condV.wait();
+        condCR1.wait();
+        condCR2.wait();
+        condCR3.wait();
+        condCR4.wait();
+        {
+            page_txn_t txn11(&c);
+            condV.wait();
 
-        auto acq1 = make_scoped<current_page_acq_t>(&txn11, b[1], W);
-        condW.pulse();
+            auto acq1 = make_scoped<current_page_acq_t>(&txn11, b[1], W);
+            condW.pulse();
 
-        check_value(acq1, "t1t2t9");
-        acq1->write_acq_signal()->wait();
-        auto acq2 = make_scoped<current_page_acq_t>(&txn11, b[2], W);
-        acq1.reset();
-        check_value(acq2, "t2t5");
-        acq2->write_acq_signal()->wait();
-        auto acq3 = make_scoped<current_page_acq_t>(&txn11, b[3], W);
-        acq2.reset();
+            check_value(acq1, "t1t2t9");
+            acq1->write_acq_signal()->wait();
+            auto acq2 = make_scoped<current_page_acq_t>(&txn11, b[2], W);
+            acq1.reset();
+            check_value(acq2, "t2t5");
+            acq2->write_acq_signal()->wait();
+            auto acq3 = make_scoped<current_page_acq_t>(&txn11, b[3], W);
+            acq2.reset();
 
-        acq3->mark_deleted();
+            acq3->mark_deleted();
 
-        acq3.reset();
+            condX1.pulse();
+            acq3.reset();
+        }
+        condX2.pulse();
+    }
+
+    void run_txn12(auto_drainer_t::lock_t) {
+        {
+            page_txn_t txn12(&c);
+            condW.wait();
+
+            auto acq1 = make_scoped<current_page_acq_t>(&txn12, b[1], W);
+            condY.pulse();
+
+            check_value(acq1, "t1t2t9");
+            acq1->write_acq_signal()->wait();
+            auto acq2 = make_scoped<current_page_acq_t>(&txn12, b[2], W);
+            check_value(acq2, "t2t5");
+            acq2->write_acq_signal()->wait();
+
+            condX2.wait();
+
+            // Thanks to predictable free list behavior, we expect this new block to have
+            // the same block id as the block id b[3], which was deleted by run_txn11
+            // just before condX2 got pulsed.
+            auto acq3 = make_scoped<current_page_acq_t>(&txn12, W);
+            ASSERT_EQ(b[3], acq3->block_id());
+            acq2.reset();
+
+            make_empty(acq3);
+            check_and_append(acq3, "", "t12");
+            condZ1.pulse();
+            acq3.reset();
+            condZ2.pulse();
+        }
+        condZ3.pulse();
     }
 
     void assert_unique_ids() {
@@ -723,7 +767,11 @@ private:
     cond_t condQ1, condQ2, condR1, condR2, condR3, condS1, condS2, condS3;
     cond_t condT1, condT2, condT3, condU;
     cond_t condV, condW;
-    cond_t condX1, condZ1, condZ2, condZ3, condZ4, condZ5;
+    cond_t condX1, condX2;
+    cond_t condY;
+    cond_t condZ1, condZ2, condZ3, condZ4, condZ5;
+
+    cond_t condCR1, condCR2, condCR3, condCR4;
 
     cond_t t678cond;
 
