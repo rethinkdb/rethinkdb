@@ -158,6 +158,15 @@ page_t *current_page_acq_t::current_page_for_write() {
     return current_page_->the_page_for_write(help());
 }
 
+void current_page_acq_t::mark_deleted() {
+    rassert(access_ == alt_access_t::write);
+    rassert(current_page_ != NULL);
+    write_cond_.wait();
+    rassert(current_page_ != NULL);
+    dirtied_page_ = true;
+    current_page_->mark_deleted();
+}
+
 bool current_page_acq_t::dirtied_page() const {
     return dirtied_page_;
 }

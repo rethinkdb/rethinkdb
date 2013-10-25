@@ -207,6 +207,8 @@ public:
 
     block_id_t block_id() const { return block_id_; }
 
+    void mark_deleted();
+
 private:
     friend class page_txn_t;
     friend class current_page_t;
