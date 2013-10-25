@@ -36,8 +36,14 @@ private:
     std::map<std::string, wire_func_t> optargs;
 };
 
-/* This is like a normal namespace_interface_t except that it properly handles
- * merging the profile objects. */
+/* This wraps a namespace_interface_t and makes it automatically handle getting
+ * profiling information from them. It acheives this by doing the following in its methods:
+ * 
+ * - Set the explain field in the read_t/write_t object so that the shards know whether or not to do profiling
+ * - Construct a splitter_t
+ * - Call the corresponding method on internal_
+ * - splitter_t::give_splits with the event logs from the shards
+ */
 class rdb_namespace_interface_t {
 public:
     rdb_namespace_interface_t(
