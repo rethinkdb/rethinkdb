@@ -75,6 +75,9 @@ private:
         msg_list_t msg_local_list;
     } queues_[MAX_THREADS];
 
+    // Must only be used with acquired incoming_messages_lock_
+    bool check_and_set_is_woken_up();
+    bool is_woken_up_;
     msg_list_t incoming_messages_;
     spinlock_t incoming_messages_lock_;
     

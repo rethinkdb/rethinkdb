@@ -18,7 +18,10 @@
 linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue,
                                          linux_thread_pool_t *thread_pool,
                                          threadnum_t current_thread)
-    : queue_(queue), thread_pool_(thread_pool), current_thread_(current_thread) {
+    : queue_(queue),
+      thread_pool_(thread_pool),
+      is_woken_up_(false),
+      current_thread_(current_thread) {
 
     queue_->watch_resource(event_.get_notify_fd(), poll_event_in, this);
 }
@@ -84,7 +87,7 @@ void linux_message_hub_t::insert_external_message(linux_thread_message_t *msg) {
     bool do_wake_up;
     {
         spinlock_acq_t acq(&incoming_messages_lock_);
-        do_wake_up = incoming_messages_.empty();
+        do_wake_up = !check_and_set_is_woken_up();
         incoming_messages_.push_back(msg);
     }
 
@@ -120,13 +123,6 @@ void linux_message_hub_t::on_event(int events) {
         // TODO! Maybe refactor part below (put it into a function):
         // Pull new messages
         {
-            // Other threads will automatically push their messages
-            // for us into the incoming queue, even while
-            // we are in this loop. However we still have to pick up
-            // our local messages, since we are not calling push_messages()
-            // while we are still in on_event()
-            deliver_local_messages();
-            
             // We do this in two steps to release the spinlock faster.
             // append_and_clear is a very cheap operation, while
             // assigning each message to a different priority queue
@@ -135,7 +131,23 @@ void linux_message_hub_t::on_event(int events) {
             // Pull the messages
             {
                 spinlock_acq_t acq(&incoming_messages_lock_);
+                if (!initial_pass) {
+                    // Other threads will automatically push their messages
+                    // for us into the incoming queue, even while
+                    // we are in this loop. However we still have to pick up
+                    // our local messages, since we are not calling push_messages()
+                    // while we are still in on_event()
+                    deliver_local_messages();
+                }
                 new_messages.append_and_clear(&incoming_messages_);
+                if (initial_pass) {
+                    // We guarantee to process all messages that are delivered
+                    // at this point. Note that we do not guarantee to deliver
+                    // incoming messages delivered during !initial_pass.
+                    // -> reset is_woken_up_, so future incoming messages
+                    // wake us up again.
+                    is_woken_up_ = false;
+                }
             }
             // Sort the messages into their respective priority queues
             while (linux_thread_message_t *m = new_messages.head()) {
@@ -176,10 +188,10 @@ void linux_message_hub_t::on_event(int events) {
             // TODO! Explain how this is computed and why
             int priority_exponent = MESSAGE_SCHEDULER_MAX_PRIORITY - current_priority;
             size_t to_process_from_priority = std::max(1ul, effective_granularity >> priority_exponent);
-            
+
             while (linux_thread_message_t *m = get_priority_msg_list(current_priority).head()) {
                 if (to_process_from_priority == 0) break;
-                
+
                 get_priority_msg_list(current_priority).remove(m);
                 --to_process_from_priority;
                 if (num_initial_msgs_left_to_process[current_priority - MESSAGE_SCHEDULER_MIN_PRIORITY] > 0) {
@@ -205,9 +217,23 @@ void linux_message_hub_t::on_event(int events) {
 
 void linux_message_hub_t::deliver_local_messages() {
     const int local_thread = thread_pool_->thread_id;
-    
-    spinlock_acq_t acq(&incoming_messages_lock_);
-    incoming_messages_.append_and_clear(&queues_[local_thread].msg_local_list);
+
+    if (!queues_[local_thread].msg_local_list.empty()) {
+        incoming_messages_.append_and_clear(&queues_[local_thread].msg_local_list);
+        if (!check_and_set_is_woken_up()) {
+            // Wake ourselves up for another round.
+            // While this might seem risky w.r.t. dead-locks when the event pipe
+            // is full, it is actually ok because the is_woken_up() flag guarantees
+            // that we only ever write one event onto this.
+            event_.wakey_wakey();
+        }
+    }
+}
+
+bool linux_message_hub_t::check_and_set_is_woken_up() {
+    const bool was_woken_up = is_woken_up_;
+    is_woken_up_ = true;
+    return was_woken_up;
 }
 
 // Pushes messages collected locally global lists available to all
@@ -226,7 +252,8 @@ void linux_message_hub_t::push_messages() {
 
                 // We only need to do a wake up if we're the first people to do a
                 // wake up.
-                do_wake_up = thread_pool_->threads[i]->message_hub.incoming_messages_.empty();
+                do_wake_up =
+                    !thread_pool_->threads[i]->message_hub.check_and_set_is_woken_up();
 
                 thread_pool_->threads[i]->message_hub.incoming_messages_.append_and_clear(&queue->msg_local_list);
             }
