@@ -214,14 +214,34 @@
 // Size of a cache line (used in cache_line_padded_t).
 #define CACHE_LINE_SIZE                           64
 
+
 /**
  * Message scheduler configuration
  */
-// TODO! Document. Especially the granularity.
+
+// Each message on the message hup can have a priority between
+// MESSAGE_SCHEDULER_MIN_PRIORITY and MESSAGE_SCHEDULER_MAX_PRIORITY (both inclusive).
 #define MESSAGE_SCHEDULER_MIN_PRIORITY          (-2)
 #define MESSAGE_SCHEDULER_MAX_PRIORITY          2
+
+// If no priority is specified, messages will get MESSAGE_SCHEDULER_DEFAULT_PRIORITY.
 #define MESSAGE_SCHEDULER_DEFAULT_PRIORITY      0
+
+// Ordered messages cannot currently have different priorities, because that would mean
+// that ordered messages of a high priority could bypass those of a lower priority.
+// (our current implementation does not support re-ordering messages within a given
+// priority)
+// MESSAGE_SCHEDULER_ORDERED_PRIORITY is the effective priority at which ordered
+// messages are scheduled.
 #define MESSAGE_SCHEDULER_ORDERED_PRIORITY      0
+
+// MESSAGE_SCHEDULER_GRANULARITY specifies how many messages (of
+// MESSAGE_SCHEDULER_MAX_PRIORITY) the message scheduler processes before it
+// can take in new incoming messages. A smaller value means that high-priority
+// messages can bypass lower-priority ones faster, but decreases the efficiency
+// of the message hub.
+// MESSAGE_SCHEDULER_GRANULARITY should be least
+// 2^(MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1)
 #define MESSAGE_SCHEDULER_GRANULARITY           32ul
 
 #endif  // CONFIG_ARGS_HPP_

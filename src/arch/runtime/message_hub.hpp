@@ -49,18 +49,14 @@ private:
     // Does store_message or store_message_sometime, only without setting the reloop_count_ in
     // debug mode.
     void do_store_message(threadnum_t nthread, linux_thread_message_t *msg);
-    
-    // TODO! Document
+
+    // Moves messages from our own entry in queues_ onto incoming_messages_
     void deliver_local_messages();
 
+    // Moves messages from incoming_messages_ into the respective entries of
+    // priority_msg_lists, depending on the messages' priorities.
+    void sort_incoming_messages_by_priority(bool reset_is_woken_up);
 
-    // TODO! Remove? This doesn't seem to be implemented.
-    /* pull_messages should be called on thread N with N as its argument. (The argument is
-    partially redundant.) It will cause the actual delivery of messages that originated
-    on this->current_thread and are destined for thread N. It is (almost) the only method on
-    linux_message_hub_t that is not called on the thread that the message hub belongs to. */
-    void pull_messages(threadnum_t thread);
-    
     msg_list_t &get_priority_msg_list(int priority);
 
     linux_event_queue_t *const queue_;
@@ -80,8 +76,13 @@ private:
     bool is_woken_up_;
     msg_list_t incoming_messages_;
     spinlock_t incoming_messages_lock_;
-    
-    // TODO! Document
+
+    // Use `sort_incoming_messages_by_priority()` to sort incoming_messages_ into
+    // these lists.
+    // Use `get_priority_msg_list()` to get the list for a given priority.
+    // Each list contains messages of the respective priority.
+    // (except for ordered messages, which go onto the list for
+    // MESSAGE_SCHEDULER_ORDERED_PRIORITY)
     msg_list_t priority_msg_lists_[
             MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1];
 
