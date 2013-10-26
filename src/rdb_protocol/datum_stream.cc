@@ -71,6 +71,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
     return std::move(*v);
 }
 
+// RSI: tests for truncated sindexes
 bool reader_t::load_items(env_t *env) {
     started = true;
     if (items_index >= items.size() && !finished) { // read some more
@@ -96,6 +97,8 @@ bool reader_t::load_items(env_t *env) {
     return items_index < items.size();
 }
 
+// RSI: user-settable sharding
+// RSI: search for `next`
 std::vector<counted_t<const datum_t> >
 reader_t::next_batch(env_t *env, batch_type_t batch_type) {
     started = true;
@@ -248,8 +251,8 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) {
         bool operator()(const rget_item_t &l, const rget_item_t &r) {
             r_sanity_check(l.sindex_key && r.sindex_key);
             return sorting == ASCENDING
-                ? (*l.sindex_key < *r.sindex_key)
-                : (*l.sindex_key > *r.sindex_key);
+                ? (**l.sindex_key < **r.sindex_key)
+                : (**l.sindex_key > **r.sindex_key);
         }
     private:
         sorting_t sorting;

@@ -702,7 +702,8 @@ private:
     ql::env_t ql_env;
 
     void unshard_range_get(const rget_read_t &rg) {
-        rget_read_response_t *rg_response = boost::get<rget_read_response_t>(&response_out->response);
+        rget_read_response_t *rg_response
+            = boost::get<rget_read_response_t>(&response_out->response);
         // A vanilla range get
         // First we need to determine the cutoff key:
         rg_response->last_considered_key =
@@ -758,7 +759,6 @@ private:
             while (true) {
                 store_key_t key_to_beat =
                     rg.sorting != DESCENDING ? store_key_t::max() : store_key_t::min();
-                bool found_value = false;
                 stream_t::const_iterator *value = NULL;
 
                 for (auto it = iterators.begin(); it != iterators.end(); ++it) {
@@ -773,11 +773,10 @@ private:
                             && it->first->key >= key_to_beat
                             && it->first->key >= rg_response->last_considered_key)) {
                         key_to_beat = it->first->key;
-                        found_value = true;
                         value = &it->first;
                     }
                 }
-                if (found_value) {
+                if (value != NULL) {
                     res_stream->push_back(**value);
                     ++(*value);
                 } else {
@@ -785,7 +784,6 @@ private:
                 }
             }
         }
-
     }
 
     void unshard_reduce(const rget_read_t &rg) {

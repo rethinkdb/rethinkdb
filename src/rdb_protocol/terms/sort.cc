@@ -151,11 +151,12 @@ private:
             }
             r_sanity_check(sorting != UNORDERED);
             tbl->add_sorting(index->as_str(), sorting, this);
-            if (index->as_str() == tbl->get_pkey()) {
-                seq = tbl->as_datum_stream(env->env, backtrace());
-            } else {
+            if (index->as_str() != tbl->get_pkey()
+                && !comparisons.empty()) {
                 seq = make_counted<indexed_sort_datum_stream_t>(
                     tbl->as_datum_stream(env->env, backtrace()), lt_cmp);
+            } else {
+                seq = tbl->as_datum_stream(env->env, backtrace());
             }
         } else {
             if (!seq.has()) {
@@ -180,11 +181,6 @@ private:
             seq = make_counted<array_datum_stream_t>(
                 make_counted<const datum_t>(std::move(to_sort)), backtrace());
         }
-
-        if (!comparisons.empty()) {
-            seq = make_counted<indexed_sort_datum_stream_t>(seq, lt_cmp);
-        }
-
         return tbl.has() ? new_val(seq, tbl) : new_val(env->env, seq);
     }
 
