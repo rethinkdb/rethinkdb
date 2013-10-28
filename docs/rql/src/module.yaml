@@ -105,7 +105,7 @@ commands:
     body:
       py: "$PARENT.close([noreply_wait=True])"
       rb: "$PARENT.close([:noreply_wait => true])"
-      js: "$PARENT.close([{noreplyWait: false} ,][callback])"
+      js: "$PARENT.close([{noreplyWait: true} ,][callback])"
 
     io:
       - - connection
@@ -135,7 +135,7 @@ commands:
     body:
       py: "$PARENT.reconnect([noreply_wait=True])"
       rb: "$PARENT.reconnect([:noreply_wait => true])"
-      js: "$PARENT.reconnect([{noreplyWait: false} ,]callback)"
+      js: "$PARENT.reconnect([{noreplyWait: true} ,]callback)"
 
     io:
       - - connection
@@ -260,9 +260,8 @@ commands:
   - tag: noreply_wait
     section: module
     description: |
-      Close and attempt to reopen a connection. By default, outstanding requests are completed before
-      the connection is reopened. You can alternatively specify that you want to reconnect immediately, which
-      has the effect of canceling any outstanding request while keeping the connection open.
+      Wait for outstanding no-reply requests to finish. If you have previously run queries with the
+      `noreply` flag set, it guarantees that those queries have been processed by the server.
 
     body:
       py: "$PARENT.noreply_wait()"
