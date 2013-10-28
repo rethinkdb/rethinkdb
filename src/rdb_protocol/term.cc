@@ -309,7 +309,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         try {
             // NOREPLY_WAIT is just a no-op.
             // This works because we only evaluate one Query at a time
-            // on the connection level. Once we get to the NOREPLY_WAIY Query
+            // on the connection level. Once we get to the NOREPLY_WAIT Query
             // we know that all previous Queries have completed processing.
 
             // Send back a WAIT_COMPLETE response.
