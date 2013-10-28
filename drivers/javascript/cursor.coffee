@@ -170,7 +170,10 @@ class ArrayResult extends IterableResult
 
     toArray: ar (cb) ->
         # IterableResult.toArray would create a copy
-        cb(null, @)
+        if @__index?
+            cb(null, @.slice(@__index, @.length))
+        else
+            cb(null, @)
 
     makeIterable: (response) ->
         for name, method of ArrayResult.prototype
