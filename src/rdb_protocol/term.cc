@@ -306,18 +306,13 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             return;
         }
 
-        try {
-            // NOREPLY_WAIT is just a no-op.
-            // This works because we only evaluate one Query at a time
-            // on the connection level. Once we get to the NOREPLY_WAIT Query
-            // we know that all previous Queries have completed processing.
+        // NOREPLY_WAIT is just a no-op.
+        // This works because we only evaluate one Query at a time
+        // on the connection level. Once we get to the NOREPLY_WAIT Query
+        // we know that all previous Queries have completed processing.
 
-            // Send back a WAIT_COMPLETE response.
-            res->set_type(Response_ResponseType_WAIT_COMPLETE);
-        } catch (const exc_t &e) {
-            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
-            return;
-        }
+        // Send back a WAIT_COMPLETE response.
+        res->set_type(Response_ResponseType_WAIT_COMPLETE);
     } break;
     default: unreachable();
     }
