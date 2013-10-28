@@ -86,6 +86,19 @@ r.connect({port:port}, function(err, c) {
                         assert(ar_to_send[i] === res2[i]);
                     }
                 })
+                res.next( function(err, row) {
+                    assert(row === ar_to_send[0])
+                    res.toArray(function(err, res2) {
+                        // Make sure we didn't create a copy here
+                        assert(res2.length === (ar_to_send.length-1));
+
+                        // Test values
+                        for(var i=0; i<res2.length; i++) {
+                            assert(ar_to_send[i+1] === res2[i]);
+                        }
+                    })
+                })
+
 
             })
 
