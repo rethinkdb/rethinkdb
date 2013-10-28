@@ -12,7 +12,8 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     block_size_t block_size = slice->cache()->get_block_size();
 
     keyvalue_location_t<memcached_value_t> kv_location;
-    find_keyvalue_location_for_write(txn, superblock, store_key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
+    find_keyvalue_location_for_write(txn, superblock, store_key.btree_key(),
+            &kv_location, &slice->root_eviction_priority, &slice->stats, NULL);
     scoped_malloc_t<memcached_value_t> the_value(std::move(kv_location.value));
 
     bool expired = the_value.has() && the_value->expired(effective_time);

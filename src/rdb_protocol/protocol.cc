@@ -822,8 +822,12 @@ void read_t::unshard(read_response_t *responses, size_t count,
     rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
     boost::apply_visitor(v, read);
 
-    /* We've got some profileing to do. */
+    /* We've got some profiling to do. */
+    /* This is a tad hacky, some of the methods in rdb_r_unshard_visitor_t set
+     * these fields because they just do dumb copies. So we clear them before
+     * we set them here. */
     response_out->n_shards = 0;
+    response_out->event_log.clear();
     if (profile == profile_bool_t::PROFILE) {
         for (size_t i = 0; i < count; ++i) {
             response_out->event_log.insert(
@@ -1050,8 +1054,12 @@ void write_t::unshard(write_response_t *responses, size_t count,
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
     boost::apply_visitor(visitor, write);
 
-    /* We've got some profileing to do. */
+    /* We've got some profiling to do. */
+    /* This is a tad hacky, some of the methods in rdb_w_unshard_visitor_t set
+     * these fields because they just do dumb copies. So we clear them before
+     * we set them here. */
     response_out->n_shards = 0;
+    response_out->event_log.clear();
     if (profile == profile_bool_t::PROFILE) {
         for (size_t i = 0; i < count; ++i) {
             response_out->event_log.insert(
@@ -1120,7 +1128,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-        rdb_get(get.key, btree, txn, superblock, res);
+        rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get());
     }
 
     void operator()(const rget_read_t &rget) {
@@ -1338,7 +1346,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_write_response_t *res = boost::get<point_write_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(w.key);
-        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(),
+                res, &mod_report.info, ql_env.trace.get_or_null());
 
         update_sindexes(&mod_report);
     }
@@ -1348,7 +1357,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         point_delete_response_t *res = boost::get<point_delete_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(d.key);
-        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res, &mod_report.info);
+        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res,
+                &mod_report.info, ql_env.trace.get_or_null());
 
         update_sindexes(&mod_report);
     }
@@ -1605,7 +1615,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
-                   txn, superblock, &response, &mod_report.info);
+                   txn, superblock, &response, &mod_report.info,
+                   static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
     }
@@ -1621,9 +1632,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         point_write_response_t response;
         rdb_modification_report_t mod_report(bf_atom.key);
         rdb_set(bf_atom.key, bf_atom.value, true,
-                btree, bf_atom.recency,
-                txn, superblock, &response,
-                &mod_report.info);
+                btree, bf_atom.recency, txn, superblock, &response,
+                &mod_report.info, static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
     }

@@ -47,7 +47,8 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         rdb_set(pk,
                 make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
-                superblock.get(), &response, &mod_report.info);
+                superblock.get(), &response, &mod_report.info,
+                static_cast<profile::trace_t *>(NULL));
 
         {
             scoped_ptr_t<buf_lock_t> sindex_block;

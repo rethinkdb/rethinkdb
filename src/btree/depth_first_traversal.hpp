@@ -9,6 +9,8 @@
 
 class superblock_t;
 
+namespace profile { class trace_t; }
+
 class counted_buf_lock_t : public buf_lock_t,
                            public single_threaded_countable_t<counted_buf_lock_t> {
 public:
@@ -59,6 +61,7 @@ public:
     /* Return value of `true` indicates to keep going; `false` indicates to stop
     traversing the tree. */
     virtual bool handle_pair(scoped_key_value_t &&keyvalue) = 0;
+    virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 protected:
     virtual ~depth_first_traversal_callback_t() { }
 };

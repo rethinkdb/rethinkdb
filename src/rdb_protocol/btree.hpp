@@ -82,7 +82,8 @@ struct rdb_modification_info_t;
 struct rdb_modification_report_t;
 class rdb_modification_report_cb_t;
 
-void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response);
+void rdb_get(const store_key_t &key, btree_slice_t *slice, transaction_t *txn,
+        superblock_t *superblock, point_read_response_t *response, profile::trace_t *trace);
 
 enum return_vals_t {
     NO_RETURN_VALS = 0,
@@ -111,7 +112,7 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
 void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response,
-             rdb_modification_info_t *mod_info);
+             rdb_modification_info_t *mod_info, profile::trace_t *trace);
 
 class rdb_backfill_callback_t {
 public:
@@ -135,7 +136,8 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
         timestamp, transaction_t *txn, superblock_t *superblock,
         point_delete_response_t *response,
-        rdb_modification_info_t *mod_info);
+        rdb_modification_info_t *mod_info,
+        profile::trace_t *trace);
 
 /* A deleter that doesn't actually delete the values. Needed for secondary
  * indexes which only have references. */

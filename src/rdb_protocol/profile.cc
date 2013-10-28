@@ -104,8 +104,8 @@ counted_t<const ql::datum_t> construct_datum(
 
 void print_event_log(const event_log_t &event_log) {
     for (auto it = event_log.begin(); it != event_log.end(); ++it) {
-        if (boost::get<start_t>(&*it)) {
-            debugf("Start.\n");
+        if (auto start = boost::get<start_t>(&*it)) {
+            debugf("Start: %s.\n", start->description_.c_str());
         } else if (auto split = boost::get<split_t>(&*it)) {
             debugf("Split: %zu.\n", split->n_parallel_jobs_);
         } else if (boost::get<sample_t>(&*it)) {

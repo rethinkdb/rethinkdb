@@ -2,6 +2,7 @@
 #include "btree/depth_first_traversal.hpp"
 
 #include "btree/operations.hpp"
+#include "rdb_protocol/profile.hpp"
 
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
 `cb->handle_value()` returned `false`. */
@@ -17,8 +18,12 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         superblock->release();
         return true;
     } else {
-        auto root_block = make_counted<counted_buf_lock_t>(transaction, root_block_id,
+        counted_t<counted_buf_lock_t> root_block;
+        {
+            profile::starter_t starter("Acquire block for read.", cb->get_trace());
+            root_block = make_counted<counted_buf_lock_t>(transaction, root_block_id,
                                                            rwi_read);
+        }
         superblock->release();
         return btree_depth_first_traversal(slice, transaction, std::move(root_block), range, cb, direction);
     }
@@ -44,8 +49,12 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
         for (int i = 0; i < end_index - start_index; ++i) {
             int true_index = (direction == FORWARD ? start_index + i : (end_index - 1) - i);
             const btree_internal_pair *pair = internal_node::get_pair_by_index(inode, true_index);
-            auto lock = make_counted<counted_buf_lock_t>(transaction, pair->lnode,
-                                                         rwi_read);
+            counted_t<counted_buf_lock_t> lock;
+            {
+                profile::starter_t starter("Acquire block for read.", cb->get_trace());
+                lock = make_counted<counted_buf_lock_t>(transaction, pair->lnode,
+                                                             rwi_read);
+            }
             if (!btree_depth_first_traversal(slice, transaction, std::move(lock),
                                              range, cb, direction)) {
                 return false;

@@ -57,9 +57,11 @@ bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value
     return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
 }
 
-void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response) {
+void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn,
+        superblock_t *superblock, point_read_response_t *response, profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
+    find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location,
+            slice->root_eviction_priority, &slice->stats, trace);
 
     if (!kv_location.value.has()) {
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
@@ -169,7 +171,8 @@ void rdb_replace_and_return_superblock(
         keyvalue_location_t<rdb_value_t> kv_location;
         find_keyvalue_location_for_write(
             txn, superblock, key.btree_key(), &kv_location,
-            &slice->root_eviction_priority, &slice->stats, superblock_promise_or_null);
+            &slice->root_eviction_priority, &slice->stats, ql_env->trace.get_or_null(),
+            superblock_promise_or_null);
 
         bool started_empty, ended_empty;
         counted_t<const ql::datum_t> old_val;
@@ -377,10 +380,10 @@ void rdb_batched_replace(const std::vector<std::pair<int64_t, point_replace_t> >
 void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock, point_write_response_t *response_out,
-             rdb_modification_info_t *mod_info) {
+             rdb_modification_info_t *mod_info, profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
-                                     &slice->root_eviction_priority, &slice->stats);
+                                     &slice->root_eviction_priority, &slice->stats, trace);
     const bool had_value = kv_location.value.has();
 
     /* update the modification report */
@@ -446,9 +449,11 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 repli_timestamp_t timestamp, transaction_t *txn,
                 superblock_t *superblock, point_delete_response_t *response,
-                rdb_modification_info_t *mod_info) {
+                rdb_modification_info_t *mod_info,
+                profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
+    find_keyvalue_location_for_write(txn, superblock, key.btree_key(),
+            &kv_location, &slice->root_eviction_priority, &slice->stats, trace);
     bool exists = kv_location.value.has();
 
     /* Update the modification report. */
@@ -697,7 +702,7 @@ public:
         }
     }
 
-    bool handle_pair(scoped_key_value_t &&keyvalue,
+    virtual bool handle_pair(scoped_key_value_t &&keyvalue,
                      concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
         sampler->new_sample();
@@ -809,6 +814,12 @@ public:
         }
 
     }
+
+    virtual profile::trace_t *get_trace() THROWS_NOTHING {
+        return ql_env->trace.get();
+    }
+
+
     bool bad_init;
     transaction_t *transaction;
     rget_read_response_t *response;
@@ -1065,6 +1076,7 @@ void rdb_update_single_sindex(
                                                      &kv_location,
                                                      &sindex->btree->root_eviction_priority,
                                                      &sindex->btree->stats,
+                                                     env.trace.get_or_null(),
                                                      &return_superblock_local);
 
                     if (kv_location.value.has()) {
@@ -1098,6 +1110,7 @@ void rdb_update_single_sindex(
                                                      &kv_location,
                                                      &sindex->btree->root_eviction_priority,
                                                      &sindex->btree->stats,
+                                                     env.trace.get_or_null(),
                                                      &return_superblock_local);
 
                     kv_location_set(&kv_location, *it,
