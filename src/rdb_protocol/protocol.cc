@@ -1295,7 +1295,7 @@ void store_t::protocol_read(const read_t &read,
     response->n_shards = 1;
     response->event_log = std::move(v.get_event_log());
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
-    response->event_log.push_back(profile::event_t());
+    response->event_log.push_back(profile::stop_t());
 }
 
 // TODO: get rid of this extra response_t copy on the stack
@@ -1492,7 +1492,7 @@ void store_t::protocol_write(const write_t &write,
     response->n_shards = 1;
     response->event_log = std::move(v.get_event_log());
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
-    response->event_log.push_back(profile::event_t());
+    response->event_log.push_back(profile::stop_t());
 }
 
 struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
