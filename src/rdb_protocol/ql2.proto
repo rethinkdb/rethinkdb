@@ -49,7 +49,7 @@ message VersionDummy { // We need to wrap it like this for some
 //   [SUCCESS_PARTIAL] in its [Response].
 // * A [STOP] query with the same token as a [START] query that you want to stop.
 // * A [NOREPLY_WAIT] query with a unique per-connection token. The server answers
-//   with a [SUCCESS_WAIT] [Response].
+//   with a [WAIT_COMPLETE] [Response].
 message Query {
     enum QueryType {
         START    = 1; // Start a new query.
