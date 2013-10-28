@@ -215,7 +215,7 @@ counted_t<const ql::datum_t> trace_t::as_datum() {
     return construct_datum(&begin, event_log_.end());
 }
 
-event_log_t &&trace_t::get_event_log() {
+event_log_t &&trace_t::get_event_log() RVALUE_THIS {
     guarantee(!redirected_event_log_);
     return std::move(event_log_);
 }

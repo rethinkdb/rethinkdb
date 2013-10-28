@@ -66,7 +66,7 @@ class trace_t {
 public:
     trace_t();
     counted_t<const ql::datum_t> as_datum();
-    event_log_t &&get_event_log();
+    event_log_t &&get_event_log() RVALUE_THIS;
 private:
     friend class starter_t;
     friend class splitter_t;
