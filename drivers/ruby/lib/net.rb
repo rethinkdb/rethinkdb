@@ -231,10 +231,10 @@ module RethinkDB
       q.type = Query::QueryType::NOREPLY_WAIT
       q.token = @@token_cnt += 1
       res = run_internal(q)
-      if res.type != Response::ResponseType::SUCCESS_ATOM
+      if res.type != Response::ResponseType::WAIT_COMPLETE
         raise RqlRuntimeError, "Unexpected response to noreply_wait: #{res}."
       end
-      Shim.response_to_native(res, nil, nil)
+      nil
     end
 
     def self.last

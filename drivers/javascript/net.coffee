@@ -173,6 +173,9 @@ class Connection extends events.EventEmitter
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
                         cb null, cursor._endData(mkSeq(response, opts))
+                   ,"WAIT_COMPLETE": =>
+                        @_delQuery(token)
+                        cb null, null
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )

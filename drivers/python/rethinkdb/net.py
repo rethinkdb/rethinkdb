@@ -263,6 +263,10 @@ class Connection(object):
                 return None
             return Datum.deconstruct(response.response[0], time_format)
 
+        # Noreply_wait response
+        elif response.type == p.Response.WAIT_COMPLETE:
+            return None
+
         # Default for unknown response types
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
