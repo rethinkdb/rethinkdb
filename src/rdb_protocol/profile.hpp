@@ -22,7 +22,7 @@ namespace profile {
 
 struct start_t {
     start_t();
-    start_t(const std::string &description);
+    explicit start_t(const std::string &description);
     std::string description_;
     ticks_t when_;
 
@@ -31,7 +31,7 @@ struct start_t {
 
 struct split_t {
     split_t();
-    split_t(size_t n_parallel_jobs);
+    explicit split_t(size_t n_parallel_jobs);
 
     size_t n_parallel_jobs_;
 
@@ -127,8 +127,8 @@ private:
  */
 class splitter_t {
 public:
-    splitter_t(trace_t *parent);
-    splitter_t(const scoped_ptr_t<trace_t> &parent);
+    explicit splitter_t(trace_t *parent);
+    explicit splitter_t(const scoped_ptr_t<trace_t> &parent);
     void give_splits(size_t n_parallel_jobs_, const event_log_t &event_log);
     ~splitter_t();
 private:
