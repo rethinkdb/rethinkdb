@@ -333,7 +333,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
                           sindex_key_literal, key_range_t::closed);
         rdb_protocol_t::read_t read(
             rdb_protocol_t::rget_read_t(
-                rdb_protocol_t::region_t(rng.to_primary_keyrange()), sindex_id, rng));
+                rdb_protocol_t::region_t(rng.to_sindex_keyrange()), sindex_id, rng));
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

@@ -252,7 +252,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
                           sindex_key_literal, key_range_t::closed);
         rdb_protocol_t::read_t read(
             rdb_protocol_t::rget_read_t(
-                rdb_protocol_t::region_t(rng.to_primary_keyrange()), id, rng));
+                rdb_protocol_t::region_t(rng.to_sindex_keyrange()), id, rng));
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -290,7 +290,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
                           sindex_key_literal, key_range_t::closed);
         rdb_protocol_t::read_t read(
             rdb_protocol_t::rget_read_t(
-                rdb_protocol_t::region_t(rng.to_primary_keyrange()), id, rng));
+                rdb_protocol_t::region_t(rng.to_sindex_keyrange()), id, rng));
 
         rdb_protocol_t::read_response_t response;
 
@@ -420,7 +420,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                                   sindex_key_literal, key_range_t::closed);
                 rdb_protocol_t::rget_read_t rget(
                     rdb_protocol_t::region_t(
-                        rng.to_primary_keyrange()), sindex_id, rng);
+                        rng.to_sindex_keyrange()), sindex_id, rng);
                 rdb_protocol_t::read_t read(rget);
                 rdb_protocol_t::read_response_t response;
 
