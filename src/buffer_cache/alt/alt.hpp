@@ -71,6 +71,9 @@ public:
     block_id_t block_id() const { return block_id_; }
     alt_access_t access() const { return current_page_acq_.access(); }
 
+    signal_t *read_acq_signal() { return current_page_acq_.read_acq_signal(); }
+    signal_t *write_acq_signal() { return current_page_acq_.write_acq_signal(); }
+
 private:
     friend class alt_buf_read_t;
     friend class alt_buf_write_t;
