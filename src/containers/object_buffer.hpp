@@ -37,11 +37,11 @@ public:
     }
 
     template <class... Args>
-    T *create(const Args &... args) {
+    T *create(Args &&... args) {
         rassert(state == EMPTY);
         state = CONSTRUCTING;
         try {
-            new (&object_data[0]) T(args...);
+            new (&object_data[0]) T(std::forward<Args>(args)...);
         } catch (...) {
             state = EMPTY;
             throw;

@@ -89,19 +89,19 @@ class Connection(object):
         except ValueError as err:
           raise RqlDriverError("Could not convert port %s to an integer." % port)
 
-        self.reconnect()
+        self.reconnect(noreply_wait=False)
 
     def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
-        self.close()
+        self.close(noreply_wait=False)
 
     def use(self, db):
         self.db = db
 
-    def reconnect(self):
-        self.close()
+    def reconnect(self, noreply_wait=True):
+        self.close(noreply_wait)
 
         try:
             self.socket = socket.create_connection((self.host, self.port), self.timeout)
@@ -128,12 +128,26 @@ class Connection(object):
         # Clear timeout so we don't timeout on long running queries
         self.socket.settimeout(None)
 
-    def close(self):
-        self.cursor_cache = { }
+    def close(self, noreply_wait=True):
         if self.socket:
+            if noreply_wait:
+                self.noreply_wait()
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.socket = None
+        self.cursor_cache = { }
+
+    def noreply_wait(self):
+        token = self.next_token
+        self.next_token += 1
+
+        # Construct query
+        query = p.Query()
+        query.type = p.Query.NOREPLY_WAIT
+        query.token = token
+
+        # Send the request
+        return self._send_query(query, 'noreply_wait')
 
     # Not thread safe. Sets this connection as global state that will be used
     # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
@@ -291,6 +305,10 @@ class Connection(object):
             if len(response.response) < 1:
                 return None
             return Datum.deconstruct(response.response[0], time_format)
+
+        # Noreply_wait response
+        elif response.type == p.Response.WAIT_COMPLETE:
+            return None
 
         # Default for unknown response types
         else:

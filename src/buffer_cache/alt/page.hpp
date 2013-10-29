@@ -1,6 +1,9 @@
 #ifndef BUFFER_CACHE_ALT_PAGE_HPP_
 #define BUFFER_CACHE_ALT_PAGE_HPP_
 
+#include <utility>
+#include <vector>
+
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/segmented_vector.hpp"
@@ -190,12 +193,20 @@ private:
 
 class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t> {
 public:
+    current_page_acq_t();
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
                        alt_access_t access);
     current_page_acq_t(page_txn_t *txn,
                        alt_access_t access);  // access must be write.
     ~current_page_acq_t();
+
+
+    void init(page_txn_t *txn,
+              block_id_t block_id,
+              alt_access_t access);
+    void init(page_txn_t *txn,
+              alt_access_t access);  // access must be write.
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)
     void declare_snapshotted();
@@ -207,6 +218,7 @@ public:
     page_t *current_page_for_write();
 
     block_id_t block_id() const { return block_id_; }
+    alt_access_t access() const { return access_; }
 
     void mark_deleted();
 
@@ -403,8 +415,6 @@ private:
 
     DISABLE_COPYING(page_txn_t);
 };
-
-// RSI: Make alt_buf_lock_t guarantee that its parent has been acquired.
 
 
 

@@ -76,32 +76,50 @@ struct current_page_help_t {
     page_cache_t *page_cache;
 };
 
+current_page_acq_t::current_page_acq_t()
+    : txn_(NULL) { }
+
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        block_id_t block_id,
                                        alt_access_t access)
-    : txn_(txn),
-      access_(access),
-      declared_snapshotted_(false),
-      block_id_(block_id),
-      current_page_(txn->page_cache_->page_for_block_id(block_id)),
-      dirtied_page_(false) {
-    txn_->add_acquirer(this);
-    current_page_->add_acquirer(this);
+    : txn_(NULL) {
+    init(txn, block_id, access);
 }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        alt_access_t access)
-    : txn_(txn),
-      access_(access),
-      declared_snapshotted_(false),
-      block_id_(NULL_BLOCK_ID),  // This gets overwritten vvv.
-      current_page_(txn->page_cache_->page_for_new_block_id(&block_id_)),
-      dirtied_page_(false) {
-    rassert(access == alt_access_t::write);
+    : txn_(NULL) {
+    init(txn, access);
+}
+
+void current_page_acq_t::init(page_txn_t *txn,
+                              block_id_t block_id,
+                              alt_access_t access) {
+    guarantee(txn_ == NULL);
+    txn_ = txn;
+    access_ = access;
+    declared_snapshotted_ = false;
+    block_id_ = block_id;
+    current_page_ = txn->page_cache_->page_for_block_id(block_id);
+    dirtied_page_ = false;
+
     txn_->add_acquirer(this);
     current_page_->add_acquirer(this);
 }
 
+void current_page_acq_t::init(page_txn_t *txn,
+                              alt_access_t access) {
+    guarantee(txn_ == NULL);
+    txn_ = txn;
+    access_ = access;
+    declared_snapshotted_ = false;
+    current_page_ = txn->page_cache_->page_for_new_block_id(&block_id_);
+    dirtied_page_ = false;
+    rassert(access == alt_access_t::write);
+
+    txn_->add_acquirer(this);
+    current_page_->add_acquirer(this);
+}
 
 current_page_acq_t::~current_page_acq_t() {
     txn_->remove_acquirer(this);

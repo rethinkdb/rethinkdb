@@ -1,6 +1,8 @@
 #ifndef BUFFER_CACHE_ALT_ALT_HPP_
 #define BUFFER_CACHE_ALT_ALT_HPP_
 
+#include <vector>
+
 #include "buffer_cache/alt/page.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
@@ -14,7 +16,7 @@ class alt_buf_lock_t;
 
 class alt_cache_t {
 public:
-    alt_cache_t(serializer_t *serializer);
+    explicit alt_cache_t(serializer_t *serializer);
     ~alt_cache_t();
 
     page_cache_t page_cache_;
@@ -57,17 +59,23 @@ private:
 
 class alt_buf_lock_t {
 public:
-    // Nonblocking constructors.
+    // Nonblocking constructor.
     alt_buf_lock_t(alt_txn_t *txn,
                    block_id_t block_id,
                    alt_access_t access);
-    // RSI: Assert that parent access isn't read while child access is write.
+    // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
+    // pulsed.  In either case, returns before the block is acquired, but after we're
+    // _in line_ for the block.
     alt_buf_lock_t(alt_buf_lock_t *parent,
                    block_id_t block_id,
                    alt_access_t access);
     ~alt_buf_lock_t();
 
     block_id_t block_id() const { return block_id_; }
+    alt_access_t access() const { return current_page_acq_.access(); }
+
+    signal_t *read_acq_signal() { return current_page_acq_.read_acq_signal(); }
+    signal_t *write_acq_signal() { return current_page_acq_.write_acq_signal(); }
 
 private:
     friend class alt_buf_read_t;
@@ -87,7 +95,7 @@ private:
 
 class alt_buf_read_t {
 public:
-    alt_buf_read_t(alt_buf_lock_t *lock);
+    explicit alt_buf_read_t(alt_buf_lock_t *lock);
     ~alt_buf_read_t();
 
     const void *get_data_read(uint32_t *block_size_out);
@@ -101,7 +109,7 @@ private:
 
 class alt_buf_write_t {
 public:
-    alt_buf_write_t(alt_buf_lock_t *lock);
+    explicit alt_buf_write_t(alt_buf_lock_t *lock);
     ~alt_buf_write_t();
 
     void *get_data_write(uint32_t block_size);
