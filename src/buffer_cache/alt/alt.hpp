@@ -59,10 +59,13 @@ private:
 
 class alt_buf_lock_t {
 public:
-    // Nonblocking constructors.
+    // Nonblocking constructor.
     alt_buf_lock_t(alt_txn_t *txn,
                    block_id_t block_id,
                    alt_access_t access);
+    // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
+    // pulsed.  In either case, returns before the block is acquired, but after we're
+    // _in line_ for the block.
     alt_buf_lock_t(alt_buf_lock_t *parent,
                    block_id_t block_id,
                    alt_access_t access);
