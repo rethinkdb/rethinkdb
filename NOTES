@@ -1,3 +1,23 @@
+# Release 1.10.1 (Von Ryan's Express)
+
+Released on 2013-10-23
+
+Bug fix update.
+
+* Server
+  * `r.js` no longer fails when interrupted too early (#1553)
+  * Data for some `get_all` queries is no longer duplicated (#1541)
+  * Fixed crash `Guarantee failed: [!token_pair->sindex_write_token.has()]` (#1380)
+  * Fixed crash caused by rapid resharding (#728)
+* ReQL
+  * `pluck` in combination with `limit` now returns a stream when possible (#1502)
+* Python driver
+  * Fixed `undefined variable` error in `tzname()` (#1512)
+* Ruby driver
+  * Fixed error message when calling unbound function (#1336)
+* Packaging
+  * Added support for Ubuntu 13.10 (Saucy) (#1554)
+
 # Release 1.10.0 (Von Ryan's Express)
 
 Released on 2013-09-26
