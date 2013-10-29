@@ -44,7 +44,10 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
     guarantee(interruptor);
     response_out->set_token(q->token());
 
-    bool response_needed = true;
+    counted_t<const ql::datum_t> noreply = static_optarg("noreply", q);
+    bool response_needed = !(noreply.has() &&
+         noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
+         noreply->as_bool());
     try {
         threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
@@ -56,7 +59,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 ctx->cluster_metadata, ctx->directory_read_manager,
                 interruptor, ctx->machine_id, q));
         // `ql::run` will set the status code
-        ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
+        ql::run(q, std::move(env), response_out, stream_cache2);
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");

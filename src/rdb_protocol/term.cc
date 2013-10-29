@@ -155,8 +155,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
 }
 
 void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
-         Response *res, stream_cache2_t *stream_cache2,
-         bool *response_needed_out) {
+         Response *res, stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -200,15 +199,6 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         try {
             scope_env_t scope_env(env, var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
-
-            if (!*response_needed_out) {
-                // It's fine to just abort here because we don't allow write
-                // operations inside of lazy operations, which means the writes
-                // will have already occured even if `val` is a sequence that we
-                // haven't yet exhuasted.
-                return;
-            }
-
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();

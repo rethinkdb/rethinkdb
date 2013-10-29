@@ -1128,7 +1128,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-        rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get());
+        rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
     }
 
     void operator()(const rget_read_t &rget) {

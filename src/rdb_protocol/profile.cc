@@ -233,10 +233,10 @@ void trace_t::start_split() {
 }
 
 void trace_t::stop_split(size_t n_parallel_jobs_, const event_log_t &par_event_log) {
-    auto split = boost::get<split_t>(&event_log_.back());
+    auto split = boost::get<split_t>(&event_log_target()->back());
     guarantee(split);
     split->n_parallel_jobs_ = n_parallel_jobs_;
-    event_log_target()->insert(event_log_.end(), par_event_log.begin(), par_event_log.end());
+    event_log_target()->insert(event_log_target()->end(), par_event_log.begin(), par_event_log.end());
 }
 
 void trace_t::start_sample(event_log_t *event_log) {

@@ -22,6 +22,17 @@ bool is_joined(const T &multiple, const T &divisor) {
     return cpy == multiple;
 }
 
+counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q) {
+    for (int i = 0; i < q->global_optargs_size(); ++i) {
+        const Query::AssocPair &ap = q->global_optargs(i);
+        if (ap.key() == key && ap.val().type() == Term_TermType_DATUM) {
+            return make_counted<const datum_t>(&ap.val().datum());
+        }
+    }
+
+    return counted_t<const datum_t>();
+}
+
 global_optargs_t::global_optargs_t() { }
 
 global_optargs_t::global_optargs_t(protob_t<Query> q) {
@@ -30,23 +41,13 @@ global_optargs_t::global_optargs_t(protob_t<Query> q) {
     }
     Term *t = q->mutable_query();
     preprocess_term(t);
-    Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
 
-
-    // We parse out the `noreply` optarg in a special step so that we
-    // don't send back an unneeded response in the case where another
-    // optional argument throws a compilation error.
     for (int i = 0; i < q->global_optargs_size(); ++i) {
         const Query::AssocPair &ap = q->global_optargs(i);
-        if (ap.key() == "noreply") {
-            bool conflict = add_optarg(ap.key(), ap.val());
-            r_sanity_check(!conflict);
-        } else {
-            bool conflict = add_optarg(ap.key(), ap.val());
-            rcheck_toplevel(
-                    !conflict, base_exc_t::GENERIC,
-                    strprintf("Duplicate global optarg: %s", ap.key().c_str()));
-        }
+        bool conflict = add_optarg(ap.key(), ap.val());
+        rcheck_toplevel(
+                !conflict, base_exc_t::GENERIC,
+                strprintf("Duplicate global optarg: %s", ap.key().c_str()));
     }
 
     protob_t<Term> ewt = make_counted_term();
@@ -54,6 +55,7 @@ global_optargs_t::global_optargs_t(protob_t<Query> q) {
 
     N1(DB, NDATUM("test"));
 
+    Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
     propagate_backtrace(arg, t_bt); // duplicate toplevel backtrace
     UNUSED bool _b = add_optarg("db", *arg);
     //          ^^ UNUSED because user can override this value safely
@@ -262,9 +264,12 @@ env_t::env_t(
     interruptor(_interruptor),
     eval_callback(NULL)
 {
-    counted_t<val_t> profile_arg = global_optargs.get_optarg(this, "profile");
-    if (profile_arg.has() && profile_arg->as_bool()) {
-        trace.init(new profile::trace_t());
+    if (query.has()) {
+        counted_t<const datum_t> profile_arg = static_optarg("profile", query);
+        if (profile_arg.has() && profile_arg->get_type() == datum_t::type_t::R_BOOL &&
+            profile_arg->as_bool()) {
+            trace.init(new profile::trace_t());
+        }
     }
 }
 

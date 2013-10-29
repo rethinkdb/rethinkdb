@@ -816,7 +816,7 @@ public:
     }
 
     virtual profile::trace_t *get_trace() THROWS_NOTHING {
-        return ql_env->trace.get();
+        return ql_env->trace.get_or_null();
     }
 
 

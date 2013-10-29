@@ -22,6 +22,10 @@ namespace ql {
 class datum_t;
 class term_t;
 
+/* If and optarg with the given key is present and is of type DATUM it will be
+ * returned. Otherwise an empty counted_t<const datum_t> will be returned. */
+counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q);
+
 class global_optargs_t {
 public:
     global_optargs_t();
