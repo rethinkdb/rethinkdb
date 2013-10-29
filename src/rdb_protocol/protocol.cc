@@ -22,7 +22,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
@@ -1202,7 +1202,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
             rdb_rget_secondary_slice(
                     store->get_sindex_slice(*rget.sindex),
-                    *rget.sindex_range, //guaranteed present above
+                    *rget.sindex_range, *rget.sindex_region, // guaranteed present above
                     txn, sindex_sb.get(), &ql_env, rget.transform,
                     rget.terminal, rget.region.inner, rget.sorting,
                     sindex_mapping, multi_bool, res);
@@ -1752,10 +1752,12 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
 }
 
 hash_region_t<key_range_t> sindex_range_t::to_region() const {
-    return hash_region_t<key_range_t>(rdb_protocol_t::sindex_key_range(
-        start != NULL ? start->truncated_secondary() : store_key_t::min(),
-        end != NULL ? end->truncated_secondary() : store_key_t::max()));
+    return hash_region_t<key_range_t>(
+        rdb_protocol_t::sindex_key_range(
+            start != NULL ? start->truncated_secondary() : store_key_t::min(),
+            end != NULL ? end->truncated_secondary() : store_key_t::max()));
 }
+
 
 bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
     return (!start || (*start < *value || (*start == *value && !start_open))) &&

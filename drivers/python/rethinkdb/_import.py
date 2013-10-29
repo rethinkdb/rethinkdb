@@ -15,9 +15,9 @@ except ImportError:
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
-      [-i (DB | DB.TABLE)]\n\
+      [-i (DB | DB.TABLE)] [--clients NUM]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
-      [--force] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
@@ -258,7 +258,7 @@ def client_process(host, port, auth_key, task_queue, error_queue, use_upsert):
                                        (task[0], task[1], res["first_error"]))
             else:
                 break
-    except (r.RqlClientError, r.RqlDriverError, r.RqlRuntimeError) as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
@@ -458,7 +458,7 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
                        exit_event)
         else:
             raise RuntimeError("Error: Unknown file format specified")
-    except (r.RqlClientError, r.RqlDriverError, r.RqlRuntimeError) as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except InterruptedError:
         pass # Don't save interrupted errors, they are side-effects
@@ -647,7 +647,7 @@ def import_directory(options):
     # Ensure that all needed databases exist and tables don't
     try:
         conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    except r.RqlDriverError as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         raise RuntimeError(ex.message)
 
     db_list = r.db_list().run(conn)
@@ -692,7 +692,7 @@ def import_file(options):
 
     try:
         conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    except r.RqlDriverError as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         raise RuntimeError(ex.message)
 
     # Ensure that the database and table exist

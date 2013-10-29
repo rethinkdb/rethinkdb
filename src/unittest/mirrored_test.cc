@@ -101,7 +101,7 @@ public:
                                              &snapshotted_file_opener_,
                                              &get_global_perfmon_collection());
 
-        std::vector<standard_serializer_t *> serializers;
+        std::vector<serializer_t *> serializers;
         serializers.push_back(&log_serializer);
         serializer_multiplexer_t::create(serializers, 1);
         serializer_multiplexer_t multiplexer(serializers);

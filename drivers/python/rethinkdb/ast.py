@@ -509,7 +509,7 @@ class RqlTzinfo(datetime.tzinfo):
 
 def reql_type_time_to_datetime(obj):
     if not 'epoch_time' in obj:
-        raise RqlDriverError('psudo-type TIME object %s does not have expected field "epoch_time".' % py_json.dumps(obj))
+        raise RqlDriverError('pseudo-type TIME object %s does not have expected field "epoch_time".' % py_json.dumps(obj))
 
     if 'timezone' in obj:
         return datetime.datetime.fromtimestamp(obj['epoch_time'], RqlTzinfo(obj['timezone']))
@@ -552,35 +552,19 @@ class Datum(RqlQuery):
 
     @staticmethod
     def deconstruct(datum, time_format='native'):
-        if datum.type == p.Datum.R_NULL:
-            return None
-        elif datum.type == p.Datum.R_BOOL:
-            return datum.r_bool
-        elif datum.type == p.Datum.R_NUM:
-            # Convert to an integer if we think maybe the user might think of this
-            # number as an integer. I have been assured that this is a "temporary"
-            # behavior change until RQL supports native integers.
-            num = datum.r_num
-            if num % 1 == 0:
-                # Then we assume that in the user's data model this floating point
-                # number is meant be an integer and "helpfully" convert types for them.
-                num = int(num)
-            return num
-        elif datum.type == p.Datum.R_STR:
-            return datum.r_str
-        elif datum.type == p.Datum.R_ARRAY:
-            return [Datum.deconstruct(e, time_format) for e in datum.r_array]
-        elif datum.type == p.Datum.R_OBJECT:
-            obj = {}
+        d_type = datum.type
+        if d_type == p.Datum.R_OBJECT:
+            obj = { }
             for pair in datum.r_object:
                 obj[pair.key] = Datum.deconstruct(pair.val, time_format)
 
-            # Thanks to "psudo-types" we can't yet be quite sure if this object is meant to
+            # Thanks to "pseudo-types" we can't yet be quite sure if this object is meant to
             # be an object or something else. We need a second layer of type switching, this
             # time on an obfuscated field "$reql_type$" rather than the datum type field we
             # already switched on.
-            if '$reql_type$' in obj:
-                if obj['$reql_type$'] == 'TIME':
+            reql_type = obj.get('$reql_type$')
+            if reql_type is not None:
+                if reql_type == 'TIME':
                     if time_format == 'native':
                         # Convert to native python datetime object
                         return reql_type_time_to_datetime(obj)
@@ -590,9 +574,28 @@ class Datum(RqlQuery):
                     else:
                         raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
                 else:
-                    raise RqlDriverError("Unknown psudo-type %s" % obj['$reql_type$'])
+                    raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
 
             return obj
+        elif d_type == p.Datum.R_ARRAY:
+            array = datum.r_array
+            return [Datum.deconstruct(e, time_format) for e in array]
+        elif d_type == p.Datum.R_STR:
+            return datum.r_str
+        elif d_type == p.Datum.R_NUM:
+            # Convert to an integer if we think maybe the user might think of this
+            # number as an integer. I have been assured that this is a "temporary"
+            # behavior change until RQL supports native integers.
+            num = datum.r_num
+            if num % 1 == 0:
+                # Then we assume that in the user's data model this floating point
+                # number is meant be an integer and "helpfully" convert types for them.
+                num = int(num)
+            return num
+        elif d_type == p.Datum.R_BOOL:
+            return datum.r_bool
+        elif d_type == p.Datum.R_NULL:
+            return None
         else:
             raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
 

@@ -7,8 +7,9 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
-#include "rdb_protocol/env.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -255,11 +256,8 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     {
         /* Create a secondary index object. */
         const ql::sym_t one(1);
-        ql::protob_t<Term> twrap = ql::make_counted_term();
-        Term *arg = twrap.get();
-        N2(GET_FIELD, NVAR(one), NDATUM("id"));
-
-        ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
+        ql::protob_t<const Term> mapping = ql::r::var(one)["id"].release_counted();
+        ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
         rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m, SINGLE));
 
