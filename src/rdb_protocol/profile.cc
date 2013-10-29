@@ -1,5 +1,8 @@
 #include <limits>
 
+#include "errors.hpp"
+#include <boost/variant/static_visitor.hpp>
+
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/datum.hpp"
 
@@ -67,59 +70,86 @@ counted_t<const ql::datum_t> construct_sample(
 
 counted_t<const ql::datum_t> construct_datum(
         event_log_t::iterator *begin,
+        event_log_t::iterator end);
+
+class construct_datum_visitor_t : public boost::static_visitor<> {
+public:
+    construct_datum_visitor_t(
+        event_log_t::iterator *begin, event_log_t::iterator end,
+        std::vector<counted_t<const ql::datum_t> > *res)
+        : begin_(begin), end_(end), res_(res) { }
+
+    void operator()(start_t &start) const {
+        (*begin_)++;
+        counted_t<const ql::datum_t> sub_tasks = construct_datum(begin_, end_);
+        auto stop = boost::get<stop_t>(&**begin_);
+        guarantee(stop);
+        res_->push_back(construct_start(
+            stop->when_ - start.when_, std::move(start.description_), sub_tasks));
+        (*begin_)++;
+    }
+    void operator()(const split_t &split) const {
+        (*begin_)++;
+        std::vector<counted_t<const ql::datum_t> > parallel_tasks;
+        for (size_t i = 0; i < split.n_parallel_jobs_; ++i) {
+            parallel_tasks.push_back(construct_datum(begin_, end_));
+            guarantee(boost::get<stop_t>(&**begin_));
+            (*begin_)++;
+        }
+        res_->push_back(construct_split(
+            make_counted<const ql::datum_t>(std::move(parallel_tasks))));
+    }
+    void operator()(sample_t &sample) const {
+        (*begin_)++;
+        res_->push_back(construct_sample(&sample));
+    }
+    void operator()(const stop_t &) const {
+        //Nothing to do here
+    }
+
+private:
+    event_log_t::iterator *begin_;
+    event_log_t::iterator end_;
+    std::vector<counted_t<const ql::datum_t> > *res_;
+};
+
+counted_t<const ql::datum_t> construct_datum(
+        event_log_t::iterator *begin,
         event_log_t::iterator end) {
     std::vector<counted_t<const ql::datum_t> > res;
 
+    construct_datum_visitor_t visitor(begin, end, &res);
     while (*begin != end && !boost::get<stop_t>(&**begin)) {
-        if (auto start = boost::get<start_t>(&**begin)) {
-            (*begin)++;
-            counted_t<const ql::datum_t> sub_tasks = construct_datum(begin, end);
-            auto stop = boost::get<stop_t>(&**begin);
-            guarantee(stop);
-            res.push_back(construct_start(
-                stop->when_ - start->when_, std::move(start->description_), sub_tasks));
-            (*begin)++;
-        } else if (auto split = boost::get<split_t>(&**begin)) {
-            (*begin)++;
-            std::vector<counted_t<const ql::datum_t> > parallel_tasks;
-            for (size_t i = 0; i < split->n_parallel_jobs_; ++i) {
-                parallel_tasks.push_back(construct_datum(begin, end));
-                guarantee(boost::get<stop_t>(&**begin));
-                (*begin)++;
-            }
-            res.push_back(construct_split(
-                make_counted<const ql::datum_t>(std::move(parallel_tasks))));
-        } else if (auto sample = boost::get<sample_t>(&**begin)) {
-            (*begin)++;
-            res.push_back(construct_sample(sample));
-        } else if (boost::get<stop_t>(&**begin)) {
-            // Do nothing, we'll be breaking out of the loop
-        } else {
-            unreachable();
-        }
+        boost::apply_visitor(visitor, **begin);
     }
 
     return make_counted<const ql::datum_t>(std::move(res));
 }
 
-void print_event_log(const event_log_t &event_log) {
-    for (auto it = event_log.begin(); it != event_log.end(); ++it) {
-        if (auto start = boost::get<start_t>(&*it)) {
-            debugf("Start: %s.\n", start->description_.c_str());
-        } else if (auto split = boost::get<split_t>(&*it)) {
-            debugf("Split: %zu.\n", split->n_parallel_jobs_);
-        } else if (boost::get<sample_t>(&*it)) {
-            debugf("Sample.");
-        } else if (boost::get<stop_t>(&*it)) {
-            debugf("Stop.\n");
-        } else {
-            unreachable();
-        }
+class print_event_log_visitor_t : public boost::static_visitor<> {
+public:
+    void operator()(const start_t &start) const {
+        debugf("Start: %s.\n", start.description_.c_str());
+    }
+    void operator()(const split_t &split) const {
+        debugf("Split: %zu.\n", split.n_parallel_jobs_);
+    }
+    void operator()(const sample_t &) const {
+        debugf("Sample.");
+    }
+    void operator()(const stop_t &) const {
+        debugf("Stop.\n");
+    }
+};
 
+void print_event_log(const event_log_t &event_log) {
+    print_event_log_visitor_t visitor;
+    for (auto it = event_log.begin(); it != event_log.end(); ++it) {
+        boost::apply_visitor(visitor, *it);
     }
 }
 
-starter_t::starter_t(const std::string &description, trace_t *parent) 
+starter_t::starter_t(const std::string &description, trace_t *parent)
     : parent_(parent)
 {
     if (parent_) {
@@ -127,7 +157,7 @@ starter_t::starter_t(const std::string &description, trace_t *parent)
     }
 }
 
-starter_t::starter_t(const std::string &description, const scoped_ptr_t<trace_t> &parent) 
+starter_t::starter_t(const std::string &description, const scoped_ptr_t<trace_t> &parent)
     : starter_t(description, parent.get_or_null()) { }
 
 starter_t::~starter_t() {
