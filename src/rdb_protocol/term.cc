@@ -256,9 +256,15 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
-                bool b = stream_cache2->serve(token, res, env->interruptor);
-                r_sanity_check(b);
+                counted_t<datum_stream_t> seq = val->as_seq(env);
+                if (counted_t<const datum_t> arr = seq->as_array(env)) {
+                    res->set_type(Response_ResponseType_SUCCESS_ATOM);
+                    arr->write_to_protobuf(res->add_response());
+                } else {
+                    stream_cache2->insert(token, std::move(env_ptr), seq);
+                    bool b = stream_cache2->serve(token, res, env->interruptor);
+                    r_sanity_check(b);
+                }
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
                                "Query result must be of type DATUM or STREAM (got %s).",

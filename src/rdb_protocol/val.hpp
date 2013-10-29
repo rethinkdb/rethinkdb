@@ -184,6 +184,7 @@ public:
     std::string trunc_print() const;
 
 private:
+    friend int val_type(counted_t<val_t> v); // type_manip version
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;

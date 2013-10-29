@@ -24,6 +24,7 @@ static const int MAX_TYPE = 10;
 static const int DB_TYPE = val_t::type_t::DB * MAX_TYPE;
 static const int TABLE_TYPE = val_t::type_t::TABLE * MAX_TYPE;
 static const int SELECTION_TYPE = val_t::type_t::SELECTION * MAX_TYPE;
+static const int ARRAY_SELECTION_TYPE = SELECTION_TYPE + datum_t::R_ARRAY;
 static const int SEQUENCE_TYPE = val_t::type_t::SEQUENCE * MAX_TYPE;
 static const int SINGLE_SELECTION_TYPE = val_t::type_t::SINGLE_SELECTION * MAX_TYPE;
 static const int DATUM_TYPE = val_t::type_t::DATUM * MAX_TYPE;
@@ -41,9 +42,10 @@ public:
     coerce_map_t() {
         map["DB"] = DB_TYPE;
         map["TABLE"] = TABLE_TYPE;
-        map["SELECTION"] = SELECTION_TYPE;
+        map["SELECTION<STREAM>"] = SELECTION_TYPE;
+        map["SELECTION<ARRAY>"] = ARRAY_SELECTION_TYPE;
         map["STREAM"] = SEQUENCE_TYPE;
-        map["SINGLE_SELECTION"] = SINGLE_SELECTION_TYPE;
+        map["SELECTION<OBJECT>"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
         map["FUNCTION"] = FUNC_TYPE;
         CT_ASSERT(val_t::type_t::FUNC < MAX_TYPE);
@@ -244,6 +246,10 @@ int val_type(counted_t<val_t> v) {
     int t = v->get_type().raw_type * MAX_TYPE;
     if (t == DATUM_TYPE) {
         t += v->as_datum()->get_type();
+    } else if (t == SELECTION_TYPE) {
+        if (v->sequence()->is_array()) {
+            t += datum_t::R_ARRAY;
+        }
     }
     return t;
 }
@@ -259,7 +265,8 @@ private:
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
         } else {
-            return new_val(make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
+            return new_val(
+                make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
         }
     }
     virtual const char *name() const { return "typeof"; }
