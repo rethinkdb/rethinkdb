@@ -125,9 +125,16 @@ message Response {
     // specifies either the index of a positional argument or the name of an
     // optional argument.  (Those words will make more sense if you look at the
     // [Term] message below.)
-
     optional Backtrace backtrace = 4; // Contains n [Frame]s when you get back an error.
 
+    // If the [global_optargs] in the [Query] that this [Response] is a
+    // response to contains a key "profile" which maps to a static value of
+    // true then [profile] will contain a [Datum] which provides profiling
+    // information about the execution of the query. This field should be
+    // returned to the user along with the result that would normally be
+    // returned (a datum or a cursor). In official drivers this is accomplished
+    // by putting them inside of an object with "value" mapping to the return
+    // value and "profile" mapping to the profile object.
     optional Datum profile = 5;
 }
 
