@@ -45,7 +45,6 @@ private:
     virtual const char *name() const { return "desc"; }
 };
 
-// RSI: typeof, send back array for selection
 class orderby_term_t : public op_term_t {
 public:
     orderby_term_t(compile_env_t *env, const protob_t<const Term> &term)
