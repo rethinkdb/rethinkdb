@@ -144,10 +144,11 @@ private:
  * {
  *     sampler_t sampler("Reduce elements", trace);
  *     counted_t<const datum_t> res = stream.next();
+ *     sampler.new_sample();
  *
  *     while (auto v = stream.next()) {
  *         res = reduce(res, v);
- *         new_sample();
+ *         sampler.new_sample();
  *     }
  * }
  *
