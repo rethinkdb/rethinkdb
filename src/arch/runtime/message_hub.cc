@@ -23,9 +23,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue,
       current_thread_(current_thread) {
 
 #ifndef NDEBUG
-    if(MESSAGE_SCHEDULER_GRANULARITY < (1 >> (MESSAGE_SCHEDULER_MAX_PRIORITY
-                                               - MESSAGE_SCHEDULER_MIN_PRIORITY
-                                               + 1))) {
+    if(MESSAGE_SCHEDULER_GRANULARITY < (1 << (NUM_SCHEDULER_PRIORITIES))) {
         logWRN("MESSAGE_SCHEDULER_GRANULARITY is too small to honor some of the "
                "lower priorities");
     }
@@ -124,12 +122,8 @@ void linux_message_hub_t::on_event(int events) {
     start_watchdog(); // Initialize watchdog before handling messages
 #endif
 
-    const int num_priorities = MESSAGE_SCHEDULER_MAX_PRIORITY
-                               - MESSAGE_SCHEDULER_MIN_PRIORITY
-                               + 1;
-
     // Loop until we have processed at least the initial batch of messages.
-    size_t num_initial_msgs_left_to_process[num_priorities];
+    size_t num_initial_msgs_left_to_process[NUM_SCHEDULER_PRIORITIES];
     bool initial_batch_has_been_processed = false;
     bool initial_pass = true;
     do {
@@ -157,7 +151,7 @@ void linux_message_hub_t::on_event(int events) {
         // messages with a high-priority can bypass older messages with lower
         // priority.
         if (initial_pass) {
-            for (int i = 0; i < num_priorities; ++i) {
+            for (int i = 0; i < NUM_SCHEDULER_PRIORITIES; ++i) {
                 num_initial_msgs_left_to_process[i] = priority_msg_lists_[i].size();
             }
             initial_pass = false;
@@ -168,7 +162,7 @@ void linux_message_hub_t::on_event(int events) {
         // We call this the granularity of the message scheduler, and it is
         // MESSAGE_SCHEDULER_GRANULARITY or smaller.
         size_t total_pending_msgs = 0;
-        for (int i = 0; i < num_priorities; ++i) {
+        for (int i = 0; i < NUM_SCHEDULER_PRIORITIES; ++i) {
             total_pending_msgs += priority_msg_lists_[i].size();
         }
         const size_t effective_granularity = std::min(total_pending_msgs,
@@ -189,8 +183,9 @@ void linux_message_hub_t::on_event(int events) {
             int priority_exponent = MESSAGE_SCHEDULER_MAX_PRIORITY - current_priority;
             size_t to_process_from_priority = std::max(1ul, effective_granularity >> priority_exponent);
 
-            while (linux_thread_message_t *m = get_priority_msg_list(current_priority).head()) {
-                if (to_process_from_priority == 0) break;
+            for (linux_thread_message_t *m = get_priority_msg_list(current_priority).head();
+                 m != NULL && to_process_from_priority > 0;
+                 m = get_priority_msg_list(current_priority).head()) {
 
                 get_priority_msg_list(current_priority).remove(m);
                 --to_process_from_priority;
@@ -218,7 +213,7 @@ void linux_message_hub_t::on_event(int events) {
         // Check if we have to continue in order to fulfill our guarantee
         // to at least process all of the initial messages.
         initial_batch_has_been_processed = true;
-        for (int i = 0; i < num_priorities; ++i) {
+        for (int i = 0; i < NUM_SCHEDULER_PRIORITIES; ++i) {
             if (num_initial_msgs_left_to_process[i] > 0) {
                 initial_batch_has_been_processed = false;
                 break;

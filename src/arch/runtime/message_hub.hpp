@@ -13,6 +13,12 @@
 #include "containers/intrusive_list.hpp"
 #include "utils.hpp"
 
+
+#define NUM_SCHEDULER_PRIORITIES (MESSAGE_SCHEDULER_MAX_PRIORITY \
+                                  - MESSAGE_SCHEDULER_MIN_PRIORITY \
+                                  + 1)
+
+
 class linux_thread_pool_t;
 
 /* There is one message hub per thread, NOT one message hub for the entire program.
@@ -83,8 +89,7 @@ private:
     // Each list contains messages of the respective priority.
     // (except for ordered messages, which go onto the list for
     // MESSAGE_SCHEDULER_ORDERED_PRIORITY)
-    msg_list_t priority_msg_lists_[
-            MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1];
+    msg_list_t priority_msg_lists_[NUM_SCHEDULER_PRIORITIES];
 
     void on_event(int events);
 
