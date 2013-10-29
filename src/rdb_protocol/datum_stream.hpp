@@ -23,6 +23,18 @@
 
 namespace ql {
 
+// This is a more selective subset of the list at the top of protocol.cc.
+typedef rdb_protocol_details::transform_t transform_t;
+typedef rdb_protocol_details::terminal_t terminal_t;
+typedef rdb_protocol_details::rget_item_t rget_item_t;
+typedef rdb_protocol_details::transform_variant_t transform_variant_t;
+typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
+typedef rdb_protocol_t::read_t read_t;
+typedef rdb_protocol_t::rget_read_t rget_read_t;
+typedef rdb_protocol_t::read_response_t read_response_t;
+typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
+typedef rdb_protocol_t::region_t region_t;
+
 class scope_env_t;
 
 enum batch_type_t {
@@ -171,18 +183,6 @@ private:
     counted_t<datum_stream_t> subsource;
 };
 
-// RSI: remove?
-typedef rdb_protocol_details::transform_t transform_t;
-typedef rdb_protocol_details::terminal_t terminal_t;
-typedef rdb_protocol_details::rget_item_t rget_item_t;
-typedef rdb_protocol_details::transform_variant_t transform_variant_t;
-typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
-typedef rdb_protocol_t::read_t read_t;
-typedef rdb_protocol_t::rget_read_t rget_read_t;
-typedef rdb_protocol_t::read_response_t read_response_t;
-typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
-typedef rdb_protocol_t::region_t region_t;
-
 class readgen_t {
 public:
     explicit readgen_t(
@@ -190,24 +190,24 @@ public:
         const datum_range_t &original_datum_range,
         sorting_t sorting);
     virtual ~readgen_t() { }
-    read_t terminal_read(const transform_t &transform, terminal_t &&_terminal);
+    read_t terminal_read(const transform_t &transform, terminal_t &&_terminal) const;
     // This has to be on `readgen_t` because we sort differently depending on
     // the kinds of reads we're doing.
-    virtual void sindex_sort(std::vector<rget_item_t> *vec) = 0;
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const = 0;
 
     virtual read_t next_read(
-        const key_range_t &active_range, const transform_t &transform);
+        const key_range_t &active_range, const transform_t &transform) const;
     // This generates a read that will read as many rows as we need to be able
     // to do an sindex sort, or nothing if no such read is necessary.  Such a
     // read should only be necessary when we're ordering by a secondary index
     // and the last element read has a truncated value for that secondary index.
     virtual boost::optional<read_t> sindex_sort_read(
-        const std::vector<rget_item_t> &items, const transform_t &transform) = 0;
-    virtual key_range_t original_keyrange() = 0;
+        const std::vector<rget_item_t> &items, const transform_t &transform) const = 0;
+    virtual key_range_t original_keyrange() const = 0;
 
     // Returns `true` if there is no more to read.
     bool update_range(key_range_t *active_range,
-                      const store_key_t &last_considered_key);
+                      const store_key_t &last_considered_key) const;
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const datum_range_t original_datum_range;
@@ -215,7 +215,7 @@ protected:
 
 private:
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range, const transform_t &transform) = 0;
+        const key_range_t &active_range, const transform_t &transform) const = 0;
 };
 
 class primary_readgen_t : public readgen_t {
@@ -228,11 +228,11 @@ private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
                       datum_range_t range, sorting_t sorting);
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range, const transform_t &transform);
+        const key_range_t &active_range, const transform_t &transform) const;
     virtual boost::optional<read_t> sindex_sort_read(
-        const std::vector<rget_item_t> &items, const transform_t &transform);
-    virtual void sindex_sort(std::vector<rget_item_t> *vec);
-    virtual key_range_t original_keyrange();
+        const std::vector<rget_item_t> &items, const transform_t &transform) const;
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
+    virtual key_range_t original_keyrange() const;
 };
 
 class sindex_readgen_t : public readgen_t {
@@ -247,16 +247,15 @@ private:
         const std::map<std::string, wire_func_t> &global_optargs,
         const std::string &sindex, datum_range_t sindex_range, sorting_t sorting);
     virtual rget_read_t next_read_impl(
-        const key_range_t &active_range, const transform_t &transform);
+        const key_range_t &active_range, const transform_t &transform) const;
     virtual boost::optional<read_t> sindex_sort_read(
-        const std::vector<rget_item_t> &items, const transform_t &transform);
-    virtual void sindex_sort(std::vector<rget_item_t> *vec);
-    virtual key_range_t original_keyrange();
+        const std::vector<rget_item_t> &items, const transform_t &transform) const;
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
+    virtual key_range_t original_keyrange() const;
 
     const std::string sindex;
 };
 
-// RSI: prefetching
 class reader_t {
 public:
     explicit reader_t(
@@ -278,8 +277,7 @@ private:
     transform_t transform;
 
     bool started, finished;
-    // RSI: make const?
-    scoped_ptr_t<readgen_t> readgen;
+    const scoped_ptr_t<const readgen_t> readgen;
     key_range_t active_range;
 
     // We need this to handle the SINDEX_CONSTANT case.

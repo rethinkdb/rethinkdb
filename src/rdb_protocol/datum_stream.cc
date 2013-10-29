@@ -159,7 +159,7 @@ readgen_t::readgen_t(
       sorting(_sorting) { }
 
 bool readgen_t::update_range(key_range_t *active_range,
-                             const store_key_t &last_considered_key) {
+                             const store_key_t &last_considered_key) const {
     if (sorting != DESCENDING) {
         active_range->left = last_considered_key;
     } else {
@@ -186,13 +186,13 @@ bool readgen_t::update_range(key_range_t *active_range,
 
 // RSI: remove if one line
 read_t readgen_t::next_read(
-    const key_range_t &active_range, const transform_t &transform) {
+    const key_range_t &active_range, const transform_t &transform) const {
     return read_t(next_read_impl(active_range, transform));
 }
 
 // TODO: this is how we did it before, but it sucks.
 read_t readgen_t::terminal_read(
-    const transform_t &transform, terminal_t &&_terminal) {
+    const transform_t &transform, terminal_t &&_terminal) const {
     rget_read_t read = next_read_impl(original_keyrange(), transform);
     read.terminal = std::move(_terminal);
     return read_t(read);
@@ -210,20 +210,21 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
 }
 
 rget_read_t primary_readgen_t::next_read_impl(
-    const key_range_t &active_range, const transform_t &transform) {
+    const key_range_t &active_range, const transform_t &transform) const {
     return rget_read_t(region_t(active_range), transform, global_optargs, sorting);
 }
 
 // We never need to do an sindex sort when indexing by a primary key.
 boost::optional<read_t> primary_readgen_t::sindex_sort_read(
-    UNUSED const std::vector<rget_item_t> &items, UNUSED const transform_t &transform) {
+    UNUSED const std::vector<rget_item_t> &items,
+    UNUSED const transform_t &transform) const {
     return boost::optional<read_t>();
 }
-void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) {
+void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const {
     return;
 }
 
-key_range_t primary_readgen_t::original_keyrange() {
+key_range_t primary_readgen_t::original_keyrange() const {
     return original_datum_range.to_primary_keyrange();
 }
 
@@ -241,7 +242,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
             env->global_optargs.get_all_optargs(), sindex, range, sorting));
 }
 
-void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) {
+void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
     if (vec->size() == 0) {
         return;
     }
@@ -263,14 +264,14 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) {
 }
 
 rget_read_t sindex_readgen_t::next_read_impl(
-    const key_range_t &active_range, const transform_t &transform) {
+    const key_range_t &active_range, const transform_t &transform) const {
     return rget_read_t(region_t(active_range), sindex, original_datum_range,
                        transform, global_optargs, sorting);
 }
 
 // RSI: test this shit
 boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
-    const std::vector<rget_item_t> &items, const transform_t &transform) {
+    const std::vector<rget_item_t> &items, const transform_t &transform) const {
     if (sorting != UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
         if (datum_t::key_is_truncated(key)) {
@@ -288,7 +289,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     return boost::optional<read_t>();
 }
 
-key_range_t sindex_readgen_t::original_keyrange() {
+key_range_t sindex_readgen_t::original_keyrange() const {
     return original_datum_range.to_sindex_keyrange();
 }
 
