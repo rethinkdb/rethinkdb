@@ -9,7 +9,10 @@ class RqlServerError extends Error
         @name = @constructor.name
         @msg = msg
         @frames = frames[0..]
-        @message = "#{msg} in:\n#{RqlQueryPrinter::printQuery(term)}\n#{RqlQueryPrinter::printCarrots(term, frames)}"
+        if term?
+            @message = "#{msg} in:\n#{RqlQueryPrinter::printQuery(term)}\n#{RqlQueryPrinter::printCarrots(term, frames)}"
+        else
+            @message = "#{msg}"
 
 class RqlRuntimeError extends RqlServerError
 
