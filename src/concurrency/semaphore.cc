@@ -79,6 +79,10 @@ void semaphore_t::lock_now(int count) {
     current += count;
 }
 
+void semaphore_t::force_lock(int count) {
+    current += count;
+}
+
 void adjustable_semaphore_t::lock(semaphore_available_callback_t *cb, int count) {
     rassert(!in_callback);
     rassert(count <= capacity || capacity == SEMAPHORE_NO_LIMIT);

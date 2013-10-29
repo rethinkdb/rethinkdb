@@ -39,6 +39,9 @@ public:
     {
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
+    ~semaphore_t() {
+        rassert(waiters.empty());
+    }
 
     void lock(semaphore_available_callback_t *cb, int count = 1);
 
@@ -48,6 +51,7 @@ public:
 
     void unlock(int count = 1);
     void lock_now(int count = 1);
+    void force_lock(int count = 1);
 };
 
 /* `adjustable_semaphore_t` is a `semaphore_t` where you can change the
@@ -84,6 +88,9 @@ public:
         rassert(trickle_fraction <= 1.0 && trickle_fraction >= 0.0);
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
+    ~adjustable_semaphore_t() {
+        rassert(waiters.empty());
+    }
 
     void lock(semaphore_available_callback_t *cb, int count = 1);
 
@@ -91,9 +98,7 @@ public:
     void co_lock_interruptible(signal_t *interruptor, int count = 1);
 
     void unlock(int count = 1);
-
     void lock_now(int count = 1);
-
     void force_lock(int count = 1);
 
     void set_capacity(int new_capacity);
@@ -107,9 +112,10 @@ private:
 };
 
 
-class adjustable_semaphore_acq_t {
+template <typename S>
+class generic_semaphore_acq_t {
 public:
-    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree, int _count = 1, bool _force = false) :
+    generic_semaphore_acq_t(S *_acquiree, int _count = 1, bool _force = false) :
                 acquiree(_acquiree),
                 count(_count) {
                     
@@ -120,22 +126,25 @@ public:
         }
     }
 
-    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) :
+    generic_semaphore_acq_t(generic_semaphore_acq_t &&movee) :
                 acquiree(movee.acquiree),
                 count(movee.count) {
         movee.acquiree = NULL;
     }
 
-    ~adjustable_semaphore_acq_t() {
+    ~generic_semaphore_acq_t() {
         if (acquiree) {
             acquiree->unlock(count);
         }
     }
 
 private:
-    adjustable_semaphore_t *acquiree;
+    S *acquiree;
     int count;
-    DISABLE_COPYING(adjustable_semaphore_acq_t);
+    DISABLE_COPYING(generic_semaphore_acq_t<S>);
 };
+
+typedef generic_semaphore_acq_t<adjustable_semaphore_t> adjustable_semaphore_acq_t;
+typedef generic_semaphore_acq_t<semaphore_t> semaphore_acq_t;
 
 #endif /* CONCURRENCY_SEMAPHORE_HPP_ */
