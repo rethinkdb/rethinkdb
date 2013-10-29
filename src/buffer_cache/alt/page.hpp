@@ -363,6 +363,16 @@ private:
         dirtied_page_t(block_id_t _block_id, page_ptr_t &&_ptr,
                        repli_timestamp_t _tstamp)
             : block_id(_block_id), ptr(std::move(_ptr)), tstamp(_tstamp) { }
+        dirtied_page_t(dirtied_page_t &&movee)
+            : block_id(movee.block_id),
+              ptr(std::move(movee.ptr)),
+              tstamp(movee.tstamp) { }
+        dirtied_page_t &operator=(dirtied_page_t &&movee) {
+            block_id = movee.block_id;
+            ptr = std::move(movee.ptr);
+            tstamp = movee.tstamp;
+            return *this;
+        }
         // The block id of the dirty page.
         block_id_t block_id;
         // The pointer to the snapshotted dirty page value.  (If empty, the page was

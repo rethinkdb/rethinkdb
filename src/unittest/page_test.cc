@@ -762,7 +762,7 @@ private:
     mock_ser_t mock;
     page_cache_t c;
 
-    static const int b_len = 17;
+    static const size_t b_len = 17;
     block_id_t b[b_len];
 
     cond_t condA, condB, condC, condD, condE, condF, condG;
