@@ -65,6 +65,7 @@ public:
 
     void coro_pool_callback(backfill_queue_entry_t<protocol_t> chunk, signal_t *interruptor) {
         assert_thread();
+        coro_t::self()->set_priority(-2);
         try {
             if (chunk.is_not_last_backfill_chunk) {
                 /* This is an actual backfill chunk */
