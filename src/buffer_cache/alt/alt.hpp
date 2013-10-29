@@ -1,6 +1,8 @@
 #ifndef BUFFER_CACHE_ALT_ALT_HPP_
 #define BUFFER_CACHE_ALT_ALT_HPP_
 
+#include <vector>
+
 #include "buffer_cache/alt/page.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
@@ -14,7 +16,7 @@ class alt_buf_lock_t;
 
 class alt_cache_t {
 public:
-    alt_cache_t(serializer_t *serializer);
+    explicit alt_cache_t(serializer_t *serializer);
     ~alt_cache_t();
 
     page_cache_t page_cache_;
@@ -87,7 +89,7 @@ private:
 
 class alt_buf_read_t {
 public:
-    alt_buf_read_t(alt_buf_lock_t *lock);
+    explicit alt_buf_read_t(alt_buf_lock_t *lock);
     ~alt_buf_read_t();
 
     const void *get_data_read(uint32_t *block_size_out);
@@ -101,7 +103,7 @@ private:
 
 class alt_buf_write_t {
 public:
-    alt_buf_write_t(alt_buf_lock_t *lock);
+    explicit alt_buf_write_t(alt_buf_lock_t *lock);
     ~alt_buf_write_t();
 
     void *get_data_write(uint32_t block_size);

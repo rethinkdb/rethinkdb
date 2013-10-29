@@ -1,6 +1,9 @@
 #ifndef BUFFER_CACHE_ALT_PAGE_HPP_
 #define BUFFER_CACHE_ALT_PAGE_HPP_
 
+#include <utility>
+#include <vector>
+
 #include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/segmented_vector.hpp"
