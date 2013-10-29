@@ -130,34 +130,32 @@ print
 print 'import rethinkdb'
 
 # For each section of the documentation
-for section in docs['sections']:
+for key in docs:
+    command = docs[key]
 
-    # For each command in each section
-    for command in section['commands']:
+    # Skip it if it is not a python command
+    if not command['langs']['py'].has_key('name'):
+        continue
 
-        # Skip it if it is not a python command
-        if not command['langs']['py'].has_key('name'):
-            continue
+    where = section['name'] + ": " + command['tag']
 
-        where = section['name'] + ": " + command['tag']
+    # Format the description and examples
+    doc = doc_format(where, command['description'])
+    for example in command['langs']['py']['examples']:
+        doc = doc + '\n\n' + \
+              doc_format(where,example['description']) + example_format(example['code'])
 
-        # Format the description and examples
-        doc = doc_format(where, command['description'])
-        for example in command['langs']['py']['examples']:
-            doc = doc + '\n\n' + \
-                  doc_format(where,example['description']) + example_format(example['code'])
+    # Find all the python names (and the associated modules) for the command
+    parent = parents[command['io'][0][0]]
+    tag = command['langs']['py']['name']
+    names = tags.get(tag, [(parent, tag)])
+    if type(names) == type(lambda x: x):
+        names = names(parent)
 
-        # Find all the python names (and the associated modules) for the command
-        parent = parents[command['io'][0][0]]
-        tag = command['langs']['py']['name']
-        names = tags.get(tag, [(parent, tag)])
-        if type(names) == type(lambda x: x):
-            names = names(parent)
-
-        # Print out the statements that sets each __doc__ string
-        for parent, name in names:
-            if has_methods.get(parent, True):
-                func = '.__func__'
-            else:
-                func = ''
-            print parent + name + func + '.__doc__' + ' = ' + repr(doc)
+    # Print out the statements that sets each __doc__ string
+    for parent, name in names:
+        if has_methods.get(parent, True):
+            func = '.__func__'
+        else:
+            func = ''
+        print parent + name + func + '.__doc__' + ' = ' + repr(doc)

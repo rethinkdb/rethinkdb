@@ -18,7 +18,7 @@ else # Don't use precompiled assets
 
 WEB_SOURCE_DIR := $(TOP)/admin
 WEB_ASSETS_OBJ_DIR := $(BUILD_DIR)/webobj
-WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js js/reql_docs.json
+WEB_ASSETS_RELATIVE := cluster-min.js cluster.css index.html js fonts images favicon.ico js/rethinkdb.js js/template.js
 BUILD_WEB_ASSETS := $(foreach a,$(WEB_ASSETS_RELATIVE),$(WEB_ASSETS_BUILD_DIR)/$(a))
 
 # coffee script can't handle dependencies.
@@ -96,9 +96,5 @@ $(WEB_ASSETS_BUILD_DIR)/images: | $(WEB_ASSETS_BUILD_DIR)/.
 $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
-
-$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(DOCS_JSON_OUT) | $(WEB_ASSETS_BUILD_DIR)/js/.
-	$P CP
-	cp $< $@
 
 endif # USE_PRECOMPILED_WEB_ASSETS = 1
