@@ -398,8 +398,6 @@ private:
     DISABLE_COPYING(page_txn_t);
 };
 
-// RSI: Make alt_buf_lock_t guarantee that its parent has been acquired.
-
 
 
 
