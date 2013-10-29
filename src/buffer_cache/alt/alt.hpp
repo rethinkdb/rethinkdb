@@ -61,7 +61,6 @@ public:
     alt_buf_lock_t(alt_txn_t *txn,
                    block_id_t block_id,
                    alt_access_t access);
-    // RSI: Assert that parent access isn't read while child access is write.
     alt_buf_lock_t(alt_buf_lock_t *parent,
                    block_id_t block_id,
                    alt_access_t access);
