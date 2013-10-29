@@ -28,6 +28,10 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
     (void)snapshot_node_;
 }
 
+bool is_subordinate(alt_access_t parent, alt_access_t child) {
+    return parent == alt_access_t::write || child == alt_access_t::read;
+}
+
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
                                block_id_t block_id,
                                alt_access_t access)
@@ -36,6 +40,12 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
       block_id_(block_id),
       current_page_acq_(txn_->page_txn(), block_id, access),
       snapshot_node_(NULL) {
+    guarantee(is_subordinate(parent->access(), access));
+    if (access == alt_access_t::write) {
+        guarantee(parent->current_page_acq_.write_acq_signal()->is_pulsed());
+    } else {
+        guarantee(parent->current_page_acq_.read_acq_signal()->is_pulsed());
+    }
 }
 
 alt_buf_lock_t::~alt_buf_lock_t() {

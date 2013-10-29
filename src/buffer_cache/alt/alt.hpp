@@ -68,6 +68,7 @@ public:
     ~alt_buf_lock_t();
 
     block_id_t block_id() const { return block_id_; }
+    alt_access_t access() const { return current_page_acq_.access(); }
 
 private:
     friend class alt_buf_read_t;

@@ -207,6 +207,7 @@ public:
     page_t *current_page_for_write();
 
     block_id_t block_id() const { return block_id_; }
+    alt_access_t access() const { return access_; }
 
     void mark_deleted();
 
