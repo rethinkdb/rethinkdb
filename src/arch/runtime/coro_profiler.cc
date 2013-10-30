@@ -1,0 +1,318 @@
+// Copyright 2010-2012 RethinkDB, all rights reserved.
+#include "arch/runtime/coro_profiler.hpp"
+
+#include <string>
+#include <vector>
+#include <sstream>
+#include <cmath>
+
+#include "arch/runtime/coroutines.hpp"
+#include "arch/runtime/runtime.hpp"
+#include "thread_stack_pcs.hpp"
+#include "containers/scoped.hpp"
+#include "logger.hpp"
+
+
+#ifdef ENABLE_CORO_PROFILER
+
+// In order to not waste the first couple entries of our back traces on constant
+// entries inside of `rethinkdb_backtrace()`, we strip those frames off.
+// `NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE` is the number of frames that must be removed
+// to hide the call to `rethinkdb_backtrace()` from the backtrace.
+// This depends on the implementation of `rethinkdb_backtrace()`.
+// Hmm, maybe it should be moved to there?
+#define NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE   1
+
+coro_profiler_t &coro_profiler_t::get_global_profiler() {
+    // Singleton implementation after Scott Meyers.
+    // Since C++11, this is even thread safe according to here:
+    // http://stackoverflow.com/questions/1661529/is-meyers-implementation-of-singleton-pattern-thread-safe?lq=1
+    static coro_profiler_t profiler;
+    return profiler;
+}
+
+coro_profiler_t::coro_profiler_t() {
+    logINF("Coro profiler activated.");
+    
+    const std::string reql_output_filename = "coro_profiler_out.py";
+    reql_output_file.open(reql_output_filename);
+    if (reql_output_file.is_open()) {
+        logINF("Writing profiler reports to '%s'", reql_output_filename.c_str());
+        write_reql_header();
+    } else {
+        logWRN("Could not open '%s' for writing profiler reports.", reql_output_filename.c_str());
+    }
+}
+
+coro_profiler_t::~coro_profiler_t() {
+    // Generate a final report:
+    const spinlock_acq_t report_interval_lock(&report_interval_spinlock);
+    generate_report();
+}
+
+void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
+    if (coro_t::self() == NULL) return;
+    
+    const ticks_t ticks_on_entry = get_ticks();
+    
+    coro_profiler_mixin_t &coro_mixin = static_cast<coro_profiler_mixin_t&>(*coro_t::self());
+    bool might_have_to_generate_report = false;
+    per_thread_samples_t &thread_samples = per_thread_samples[get_thread_id().threadnum].value;
+    {        
+        const spinlock_acq_t thread_lock(&thread_samples.spinlock);
+        
+        // See if we might have to generate a report
+        if (thread_samples.ticks_at_last_report + CORO_PROFILER_REPORTING_INTERVAL <= ticks_on_entry) {
+            // There is a chance that we have to generate a report (unless another
+            // thread is already at it). Let's first release the lock on thread_samples
+            // before we actually check for that though. That way we can be sure
+            // not to dead-lock.
+            might_have_to_generate_report = true;
+        }
+        
+        // Figure out from where we were called.
+        // We strip ourselves from the backtrace, hence the +1 in the argument to
+        // `get_current_execution_point().`
+        const coro_execution_point_key_t execution_point =
+            get_current_execution_point(levels_to_strip_from_backtrace + 1);
+        
+        // Record the sample
+        per_execution_point_samples_t &execution_point_samples = thread_samples.per_execution_point_samples[execution_point];
+        ++execution_point_samples.num_samples_total;
+        ticks_t ticks_since_previous = 0;
+        if (coro_mixin.last_sample_at != 0) {
+            rassert(coro_mixin.last_sample_at <= ticks_on_entry);
+            ticks_since_previous = ticks_on_entry - coro_mixin.last_sample_at;
+        }
+        rassert(coro_mixin.last_resumed_at <= ticks_on_entry);
+        rassert(coro_mixin.last_resumed_at > 0);
+        ticks_t ticks_since_resume = ticks_on_entry - coro_mixin.last_resumed_at;
+        execution_point_samples.samples.push_back(coro_sample_t(ticks_since_resume, ticks_since_previous));
+        coro_mixin.last_sample_at = ticks_on_entry;
+    }
+    
+    if (might_have_to_generate_report) {
+        const spinlock_acq_t report_interval_lock(&report_interval_spinlock);
+        if (ticks_at_last_report + CORO_PROFILER_REPORTING_INTERVAL <= ticks_on_entry) {
+            generate_report();
+        }
+    }
+    
+    /* 
+     * Ensign:  Captain, we are no longer in warp.
+     * Captain: What happened?
+     * Ensign:  The profiler is stealing our time and makes us appear slower than we actually are!
+     * Captain: Can we compensate?
+     * Ensign:  Positive.
+     * Captain: Do it!
+     * Ensign:  I'm reconfiguring the shield timings er yield timings. That should block its interference.
+     */
+    const ticks_t ticks_on_exit = get_ticks();
+    rassert(ticks_on_exit >= ticks_on_entry);
+    const ticks_t clock_scew = ticks_on_exit - ticks_on_entry;
+    coro_mixin.last_resumed_at += clock_scew;
+    coro_mixin.last_sample_at += clock_scew;
+}
+
+void coro_profiler_t::record_coro_resume() {
+    rassert(coro_t::self());
+    
+    const ticks_t ticks = get_ticks();
+    
+    coro_profiler_mixin_t &coro_mixin = static_cast<coro_profiler_mixin_t&>(*coro_t::self());
+    coro_mixin.last_sample_at = ticks;
+    coro_mixin.last_resumed_at = ticks;
+}
+
+void coro_profiler_t::record_coro_yield(size_t levels_to_strip_from_backtrace) {
+    rassert(coro_t::self());
+    
+    record_sample(1 + levels_to_strip_from_backtrace);
+}
+
+coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_execution_point(size_t levels_to_strip_from_backtrace) {
+    // Generate call trace
+    // We strip ourselves, and the frames that are inside `rethinkdb_backtrace()`.
+    levels_to_strip_from_backtrace += 1 + NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE;
+    const size_t max_frames = CORO_PROFILER_CALLTREE_DEPTH + levels_to_strip_from_backtrace;
+    void **stack_frames = new void*[max_frames];
+    size_t backtrace_size = rethinkdb_backtrace(stack_frames, max_frames);
+    small_trace_t trace;
+    for (size_t i = 0; i < CORO_PROFILER_CALLTREE_DEPTH; ++i) {
+        if (i + levels_to_strip_from_backtrace < backtrace_size) {
+            trace[i] = stack_frames[i + levels_to_strip_from_backtrace];
+        } else {
+            trace[i] = NULL;
+        }
+    }
+    delete[] stack_frames;
+
+    // Record the sample
+#ifndef NDEBUG
+    return coro_execution_point_key_t(coro_t::self()->get_coroutine_type(), trace);
+#else
+    return coro_execution_point_key_t("?", trace);
+#endif
+}
+
+void coro_profiler_t::generate_report() {
+    std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> execution_point_reports;
+    
+    // We assume that the global report_interval_spinlock has already been locked by our callee.
+    {
+        // Proceed to locking all thread sample structures
+        std::vector<scoped_ptr_t<spinlock_acq_t> > thread_locks;
+        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+            thread_locks.push_back(scoped_ptr_t<spinlock_acq_t>(new spinlock_acq_t(&thread_samples->value.spinlock)));
+        }
+
+        // Reset report ticks
+        const ticks_t ticks = get_ticks();
+        ticks_at_last_report = ticks;
+        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+            thread_samples->value.ticks_at_last_report = ticks;
+        }
+
+        // Collect data for each trace over all threads
+        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+            for (auto execution_point_samples = thread_samples->value.per_execution_point_samples.begin(); execution_point_samples != thread_samples->value.per_execution_point_samples.end(); ++execution_point_samples) {
+                // Collect samples
+                if (!execution_point_samples->second.samples.empty()) {
+                    std::vector<coro_sample_t> &sample_collection =
+                        execution_point_reports[execution_point_samples->first].collected_samples;
+                    sample_collection.insert(sample_collection.end(),
+                                             execution_point_samples->second.samples.begin(),
+                                             execution_point_samples->second.samples.end());
+
+                    // Reset samples
+                    execution_point_samples->second.samples.clear();
+                }
+            }
+        }
+        
+        // Release per-thread locks
+    }
+    
+    // Compute statistics
+    for (auto report =  execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
+        report->second.compute_stats();
+    }
+    
+    if (reql_output_file.is_open()) {
+        print_to_reql(execution_point_reports);
+    }
+}
+
+void coro_profiler_t::per_execution_point_collected_report_t::compute_stats() {
+    rassert(num_samples == 0); // `per_execution_point_collected_report_t` is not re-usable.
+    
+    // Pass 1: Compute min, max, mean
+    for (auto sample = collected_samples.begin(); sample != collected_samples.end(); ++sample) {
+        if (num_samples == 0) {
+            time_since_previous.min = time_since_previous.max = ticks_to_secs(sample->ticks_since_previous);
+            time_since_resume.min = time_since_resume.max = ticks_to_secs(sample->ticks_since_resume);
+        } else {
+            time_since_previous.min = std::min(time_since_previous.min, ticks_to_secs(sample->ticks_since_previous));
+            time_since_previous.max = std::max(time_since_previous.max, ticks_to_secs(sample->ticks_since_previous));
+            time_since_resume.min = std::min(time_since_resume.min, ticks_to_secs(sample->ticks_since_resume));
+            time_since_resume.max = std::max(time_since_resume.max, ticks_to_secs(sample->ticks_since_resume));
+        }
+        time_since_previous.mean += ticks_to_secs(sample->ticks_since_previous);
+        time_since_resume.mean += ticks_to_secs(sample->ticks_since_resume);
+        ++num_samples;
+    }
+    time_since_previous.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
+    time_since_resume.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
+    
+    // Pass 2: Compute standard deviation
+    for (auto sample = collected_samples.begin(); sample != collected_samples.end(); ++sample) {
+        time_since_previous.stddev += std::pow(ticks_to_secs(sample->ticks_since_previous) - time_since_previous.mean, 2);
+        time_since_resume.stddev += std::pow(ticks_to_secs(sample->ticks_since_resume) - time_since_resume.mean, 2);
+    }
+    // Use the unbiased estimate of the standard deviation, hence division by num_samples-1
+    time_since_previous.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
+    time_since_resume.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
+    time_since_previous.stddev = std::sqrt(time_since_previous.stddev);
+    time_since_resume.stddev = std::sqrt(time_since_resume.stddev);
+}
+
+void coro_profiler_t::print_to_reql(
+    const std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> &execution_point_reports) {
+    
+    const double time = ticks_to_secs(get_ticks());
+    
+    reql_output_file.precision(std::numeric_limits<double>::digits10);
+    for (auto report = execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
+        reql_output_file << "print t.insert({" << std::endl;
+        reql_output_file << "\t\t'time': " << time << "," << std::endl;
+        reql_output_file << "\t\t'coro_type': '" << report->first.first << "'," << std::endl;
+        reql_output_file << "\t\t'trace': " << trace_to_array_str(report->first.second) << "," << std::endl;
+        reql_output_file << "\t\t'num_samples': " << report->second.num_samples << "," << std::endl;
+        reql_output_file << "\t\t'since_previous': " << distribution_to_object_str(report->second.time_since_previous) << "," << std::endl;
+        reql_output_file << "\t\t'since_resume': " << distribution_to_object_str(report->second.time_since_resume) << "" << std::endl;
+        reql_output_file << "\t}).run(conn, durability='soft')" << std::endl;
+    }
+}
+
+std::string coro_profiler_t::trace_to_array_str(const small_trace_t &trace) {
+    std::string trace_array_str = "[";
+    for (size_t i = 0; i < CORO_PROFILER_CALLTREE_DEPTH; ++i) {
+        if (trace[i] == NULL) {
+            break;
+        }
+        if (i > 0) {
+            trace_array_str += ", ";
+        }
+        trace_array_str += "'" + get_frame_description(trace[i]) + "'";
+    }
+    trace_array_str += "]";
+    
+    return trace_array_str;
+}
+
+std::string coro_profiler_t::distribution_to_object_str(const data_distribution_t &distribution) {
+    std::stringstream format_stream;
+    format_stream << "{";
+    format_stream << "'min': "  << distribution.min << ", ";
+    format_stream << "'max': "  << distribution.max << ", ";
+    format_stream << "'mean': "  << distribution.mean << ", ";
+    format_stream << "'stddev': "  << distribution.stddev;
+    format_stream << "}";
+    
+    return format_stream.str();
+}
+
+void coro_profiler_t::write_reql_header() {
+    reql_output_file << "#!/usr/bin/env python" << std::endl;
+    reql_output_file << std::endl;
+    reql_output_file << "import rethinkdb as r" << std::endl;
+    reql_output_file << "conn = r.connect() # Modify this as needed" << std::endl;
+    reql_output_file << "t = r.table(\"coro_prof\") # Modify this as needed" << std::endl;
+    reql_output_file << std::endl;
+}
+
+const std::string &coro_profiler_t::get_frame_description(void *addr) {
+    auto cache_it = frame_description_cache.find(addr);
+    if (cache_it != frame_description_cache.end()) {
+        return cache_it->second;
+    }
+    
+    backtrace_frame_t frame(addr);
+    std::stringstream description_stream;
+#if CORO_PROFILER_ADDRESS_TO_LINE
+    std::string line = address_to_line.address_to_line(frame.get_filename(), frame.get_addr()) + "  |  ";
+#else
+    std::string line = "";
+#endif
+    std::string demangled_name;
+    try {
+        demangled_name = frame.get_demangled_name();
+    } catch (demangle_failed_exc_t &e) {
+        demangled_name = "?";
+    }
+    description_stream << frame.get_addr() << "\t" << line << demangled_name;
+    
+    return frame_description_cache.insert(std::pair<void *, std::string>(addr, description_stream.str())).first->second;
+}
+
+#endif /* ENABLE_CORO_PROFILER */

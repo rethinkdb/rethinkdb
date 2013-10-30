@@ -19,6 +19,7 @@
 
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
@@ -172,10 +173,10 @@ void coro_t::run() {
         cglobals->total_coroutine_counts[coro->coroutine_type.c_str()]++;
         cglobals->active_coroutines.insert(coro);
 #endif
+        PROFILER_CORO_RESUME
         coro->action_wrapper.run();
+        PROFILER_CORO_YIELD(0)
 #ifndef NDEBUG
-        // Pet the watchdog to reset it before execution moves
-        pet_watchdog();
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
         cglobals->active_coroutines.erase(coro);
 #endif
@@ -225,17 +226,14 @@ void coro_t::wait() {   /* class method */
 
     rassert(!self()->waiting_);
     self()->waiting_ = true;
-
-#ifndef NDEBUG
-        // Pet the watchdog to reset it before execution moves
-        pet_watchdog();
-#endif
-
+        
+    PROFILER_CORO_YIELD(1)
     if (cglobals->prev_coro) {
         context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
     } else {
         context_switch(&self()->stack.context, &cglobals->scheduler);
     }
+    PROFILER_CORO_RESUME
 
     rassert(self());
     rassert(self()->waiting_);
@@ -264,14 +262,12 @@ void coro_t::notify_now_deprecated() {
     cglobals->assert_finite_coro_waiting_counter = 0;
 #endif
 
+    if (coro_t::self() != NULL) {
+        PROFILER_CORO_YIELD(1)
+    }
     coro_t *prev_prev_coro = cglobals->prev_coro;
     cglobals->prev_coro = cglobals->current_coro;
     cglobals->current_coro = this;
-
-#ifndef NDEBUG
-    // Pet the watchdog to reset it before execution moves
-    pet_watchdog();
-#endif
 
     if (cglobals->prev_coro) {
         context_switch(&cglobals->prev_coro->stack.context, &this->stack.context);
@@ -282,6 +278,9 @@ void coro_t::notify_now_deprecated() {
     rassert(cglobals->current_coro == this);
     cglobals->current_coro = cglobals->prev_coro;
     cglobals->prev_coro = prev_prev_coro;
+    if (coro_t::self() != NULL) {
+        PROFILER_CORO_RESUME
+    }
 
 #ifndef NDEBUG
     /* Restore old value of `assert_finite_coro_waiting_counter`. */
@@ -318,9 +317,27 @@ void coro_t::move_to_thread(threadnum_t thread) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
+#ifndef NDEBUG
+    /* Switch the coro counter to the new thread 1/2 */
+    rassert(cglobals->coro_count > 0);
+    cglobals->coro_count--;
+    rassert(cglobals->running_coroutine_counts[self()->coroutine_type.c_str()] > 0);
+    cglobals->running_coroutine_counts[self()->coroutine_type.c_str()]--;
+    rassert(cglobals->total_coroutine_counts[self()->coroutine_type.c_str()] > 0);
+    cglobals->total_coroutine_counts[self()->coroutine_type.c_str()]--;
+    rassert(cglobals->active_coroutines.find(self()) != cglobals->active_coroutines.end());
+    cglobals->active_coroutines.erase(self());
+#endif
     self()->current_thread_ = thread;
     self()->notify_later_ordered();
     wait();
+#ifndef NDEBUG
+    /* Switch the coro counter to the new thread 2/2 */
+    cglobals->coro_count++;
+    cglobals->running_coroutine_counts[self()->coroutine_type.c_str()]++;
+    cglobals->total_coroutine_counts[self()->coroutine_type.c_str()]++;
+    cglobals->active_coroutines.insert(self());
+#endif
 }
 
 void coro_t::on_thread_switch() {

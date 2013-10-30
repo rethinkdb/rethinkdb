@@ -118,10 +118,6 @@ void linux_message_hub_t::on_event(int events) {
     // up and so that poll-based event triggering doesn't infinite-loop.
     event_.consume_wakey_wakeys();
 
-#ifndef NDEBUG
-    start_watchdog(); // Initialize watchdog before handling messages
-#endif
-
     // Loop until we have processed at least the initial batch of messages.
     size_t num_initial_msgs_left_to_process[NUM_SCHEDULER_PRIORITIES];
     bool initial_batch_has_been_processed = false;
@@ -203,10 +199,6 @@ void linux_message_hub_t::on_event(int events) {
 #endif
 
                 m->on_thread_switch();
-
-#ifndef NDEBUG
-                pet_watchdog(); // Verify that each message completes in the acceptable time range
-#endif
             }
         }
 
