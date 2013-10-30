@@ -35,7 +35,7 @@ void call_later_on_this_thread(linux_thread_message_t *msg);
 
 if (continue_on_thread(thread, msg)) call_later_on_this_thread(msg);
 
-This is because originally clients would just call store_message() directly.
+This is because originally clients would just call store_message_ordered() directly.
 When continue_on_thread() was written, the code still assumed that the message's
 callback would not be called before continue_on_thread() returned. Using
 call_later_on_this_thread() is not ideal because it would be better to just

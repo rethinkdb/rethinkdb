@@ -295,7 +295,9 @@ void coro_t::notify_sometime() {
 
     rassert(!notified_);
     notified_ = true;
-    linux_thread_pool_t::thread->message_hub.store_message_sometime(current_thread_, this);
+    linux_thread_pool_t::thread->message_hub.store_message_sometime(
+        current_thread_,
+        this);
 }
 
 void coro_t::notify_later_ordered() {
@@ -304,7 +306,9 @@ void coro_t::notify_later_ordered() {
 
     /* `current_thread` is the thread that the coroutine lives on, which may or may not be the
     same as `get_thread_id()`.  (In a call to move_to_thread, it won't be.) */
-    linux_thread_pool_t::thread->message_hub.store_message(current_thread_, this);
+    linux_thread_pool_t::thread->message_hub.store_message_ordered(
+        current_thread_,
+        this);
 }
 
 void coro_t::move_to_thread(threadnum_t thread) {

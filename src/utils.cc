@@ -233,6 +233,16 @@ on_thread_t::~on_thread_t() {
     coro_t::move_to_thread(home_thread());
 }
 
+with_priority_t::with_priority_t(int priority) {
+    rassert(coro_t::self() != NULL);
+    previous_priority = coro_t::self()->get_priority();
+    coro_t::self()->set_priority(priority);
+}
+with_priority_t::~with_priority_t() {
+    rassert(coro_t::self() != NULL);
+    coro_t::self()->set_priority(previous_priority);
+}
+
 microtime_t current_microtime() {
     // This could be done more efficiently, surely.
     struct timeval t;

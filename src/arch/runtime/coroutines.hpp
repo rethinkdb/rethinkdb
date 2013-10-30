@@ -117,6 +117,13 @@ public:
     static void set_coroutine_stack_size(size_t size);
 
     artificial_stack_t * get_stack();
+    
+    void set_priority(int _priority) {
+        linux_thread_message_t::set_priority(_priority);
+    }
+    int get_priority() const {
+        return linux_thread_message_t::get_priority();
+    }
 
 private:
     /* When called from within a coroutine, schedules the coroutine to be run on
@@ -137,6 +144,14 @@ private:
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->action_wrapper.reset(action);
+        // If we were called from a coroutine, the new coroutine inherits our
+        // caller's priority.
+        if (self() != NULL) {
+            coro->set_priority(self()->get_priority());
+        } else {
+            // Otherwise, just reset to the default.
+            coro->set_priority(MESSAGE_SCHEDULER_DEFAULT_PRIORITY);
+        }
         return coro;
     }
 
