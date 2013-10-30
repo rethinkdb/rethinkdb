@@ -241,6 +241,25 @@ commands:
             r.now().run(conn, time_format="raw")
           rb: |
             r.now().run(conn, :time_format=>"raw")
+      - description: |
+          If you want to receive profiling information along with the results
+          of the query you can pass a profile flag. Valid values are true and
+          false.
+        validate: false
+        code:
+          js: |
+            r.table('marvel')
+             .insert({ superhero: 'Iron Man', superpower: 'Arc Reactor' })
+             .run({connection:conn, profile:true},
+                  function (err, cursor) { ... });
+          py: |
+            r.table('marvel')
+             .insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' })
+             .run(conn, profile=True)
+          rb: |
+            r.table('marvel')
+             .insert({ :superhero => 'Iron Man', :superpower => 'Arc Reactor' })
+             .run(conn, :profile => true)
 
 
   - tag: next
