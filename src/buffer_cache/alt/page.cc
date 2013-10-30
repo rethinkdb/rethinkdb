@@ -515,7 +515,7 @@ void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
 }
 
 void page_t::add_waiter(page_acq_t *acq) {
-    backindex_bag_t<page_t> *old_bag
+    backindex_bag_t<page_t *> *old_bag
         = acq->page_cache()->correct_eviction_category(this);
     waiters_.push_back(acq);
     acq->page_cache()->change_eviction_bag(old_bag, this);
@@ -544,7 +544,7 @@ void page_t::reset_block_token() {
 
 
 void page_t::remove_waiter(page_acq_t *acq) {
-    backindex_bag_t<page_t> *old_bag
+    backindex_bag_t<page_t *> *old_bag
         = acq->page_cache()->correct_eviction_category(this);
     waiters_.remove(acq);
     acq->page_cache()->change_eviction_bag(old_bag, this);
@@ -1016,7 +1016,7 @@ void page_cache_t::add_to_evictable_unbacked(page_t *page) {
 void page_cache_t::move_unevictable_to_evictable(page_t *page) {
     rassert(unevictable_pages_.has_element(page));
     unevictable_pages_.remove(page);
-    backindex_bag_t<page_t> *new_bag = correct_eviction_category(page);
+    backindex_bag_t<page_t *> *new_bag = correct_eviction_category(page);
     rassert(new_bag == &evictable_disk_backed_pages_
             || new_bag == &evictable_unbacked_pages_);
     new_bag->add(page);
@@ -1025,19 +1025,19 @@ void page_cache_t::move_unevictable_to_evictable(page_t *page) {
 void page_cache_t::remove_page(page_t *page) {
     rassert(page->waiters_.empty());
     rassert(page->snapshot_refcount_ == 0);
-    backindex_bag_t<page_t> *bag = correct_eviction_category(page);
+    backindex_bag_t<page_t *> *bag = correct_eviction_category(page);
     bag->remove(page);
 }
 
-void page_cache_t::change_eviction_bag(backindex_bag_t<page_t> *current_bag,
+void page_cache_t::change_eviction_bag(backindex_bag_t<page_t *> *current_bag,
                                        page_t *page) {
     rassert(current_bag->has_element(page));
     current_bag->remove(page);
-    backindex_bag_t<page_t> *new_bag = correct_eviction_category(page);
+    backindex_bag_t<page_t *> *new_bag = correct_eviction_category(page);
     new_bag->add(page);
 }
 
-backindex_bag_t<page_t> *page_cache_t::correct_eviction_category(page_t *page) {
+backindex_bag_t<page_t *> *page_cache_t::correct_eviction_category(page_t *page) {
     if (page->destroy_ptr_ != NULL || !page->waiters_.empty()) {
         return &unevictable_pages_;
     } else if (!page->buf_.has()) {

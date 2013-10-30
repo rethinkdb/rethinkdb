@@ -321,8 +321,8 @@ private:
     void add_to_evictable_unbacked(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;
     void move_unevictable_to_evictable(page_t *page);
-    void change_eviction_bag(backindex_bag_t<page_t> *current_bag, page_t *page);
-    backindex_bag_t<page_t> *correct_eviction_category(page_t *page);
+    void change_eviction_bag(backindex_bag_t<page_t *> *current_bag, page_t *page);
+    backindex_bag_t<page_t *> *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
 
     friend class page_txn_t;
@@ -346,10 +346,10 @@ private:
 
     // These track whether a page's eviction status.
     // RSI: Does anybody use evicted_pages_?
-    backindex_bag_t<page_t> unevictable_pages_;
-    backindex_bag_t<page_t> evictable_disk_backed_pages_;
-    backindex_bag_t<page_t> evictable_unbacked_pages_;
-    backindex_bag_t<page_t> evicted_pages_;
+    backindex_bag_t<page_t *> unevictable_pages_;
+    backindex_bag_t<page_t *> evictable_disk_backed_pages_;
+    backindex_bag_t<page_t *> evictable_unbacked_pages_;
+    backindex_bag_t<page_t *> evicted_pages_;
 
     free_list_t free_list_;
 

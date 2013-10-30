@@ -33,7 +33,7 @@ private:
 template <class T>
 class backindex_bag_t {
 public:
-    typedef backindex_bag_index_t *(*backindex_bag_index_accessor_t)(T *);
+    typedef backindex_bag_index_t *(*backindex_bag_index_accessor_t)(T);
 
     explicit backindex_bag_t(backindex_bag_index_accessor_t accessor)
         : accessor_(accessor) { }
@@ -42,14 +42,14 @@ public:
     // of this container.  The idea behind this function is that some value of type T
     // could be a member of one of several backindex_bag_t's (or none).  We see if
     // it's a memory of this one.
-    bool has_element(T *potential_element) const {
+    bool has_element(T potential_element) const {
         const backindex_bag_index_t *const backindex = accessor_(potential_element);
         return backindex->index_ < vector_.size()
             && vector_[backindex->index_] == potential_element;
     }
 
     // Removes the element from the bag.
-    void remove(T *element) {
+    void remove(T element) {
         backindex_bag_index_t *const backindex = accessor_(element);
         rassert(backindex->index_ != SIZE_MAX);
         guarantee(backindex->index_ < vector_.size());
@@ -60,7 +60,7 @@ public:
         // The code here feels weird when back_element == element (i.e. when
         // backindex->index_ == back_element_backindex->index_) but it works (I
         // hope).
-        T *const back_element = vector_.back();
+        const T back_element = vector_.back();
         backindex_bag_index_t *const back_element_backindex = accessor_(back_element);
 
         rassert(back_element_backindex->index_ == vector_.size() - 1);
@@ -74,7 +74,7 @@ public:
     }
 
     // Adds the element to the bag.
-    void add(T *element) {
+    void add(T element) {
         backindex_bag_index_t *const backindex = accessor_(element);
         guarantee(backindex->index_ == SIZE_MAX);
 
@@ -86,7 +86,7 @@ public:
         return vector_.size();
     }
 
-    T *access_random(size_t index) const {
+    T access_random(size_t index) const {
         rassert(index != SIZE_MAX);
         guarantee(index < vector_.size());
         return vector_[index];
@@ -95,7 +95,8 @@ public:
 private:
     const backindex_bag_index_accessor_t accessor_;
 
-    segmented_vector_t<T *> vector_;
+    // RSP: Huge block size, shitty data structure for a bag.
+    segmented_vector_t<T> vector_;
 
     DISABLE_COPYING(backindex_bag_t);
 };
