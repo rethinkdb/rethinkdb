@@ -1,3 +1,4 @@
+#define __STDC_LIMIT_MACROS
 #include "buffer_cache/alt/alt.hpp"
 
 #include "concurrency/auto_drainer.hpp"
@@ -65,7 +66,7 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
     lock_->current_page_acq_.read_acq_signal()->wait();
     page_t *page = lock_->current_page_acq_.current_page_for_read();
     if (!page_acq_.has()) {
-        page_acq_.init(page);
+        page_acq_.init(page, &lock_->cache_->page_cache_);
     }
     page_acq_.buf_ready_signal()->wait();
     *block_size_out = page_acq_.get_buf_size();
@@ -84,7 +85,7 @@ void *alt_buf_write_t::get_data_write(uint32_t block_size) {
     lock_->current_page_acq_.write_acq_signal()->wait();
     page_t *page = lock_->current_page_acq_.current_page_for_write();
     if (!page_acq_.has()) {
-        page_acq_.init(page);
+        page_acq_.init(page, &lock_->cache_->page_cache_);
     }
     page_acq_.buf_ready_signal()->wait();
     return page_acq_.get_buf_write();

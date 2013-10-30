@@ -124,7 +124,7 @@ void run_OneWriteAcqWait() {
     current_page_acq_t acq(&txn, alt_access_t::write);
     page_acq_t page_acq;
     page_t *page = acq.current_page_for_write();
-    page_acq.init(page);
+    page_acq.init(page, &page_cache);
     ASSERT_TRUE(page_acq.buf_ready_signal()->is_pulsed());
     void *buf = page_acq.get_buf_write();
     ASSERT_TRUE(buf != NULL);
@@ -718,7 +718,7 @@ private:
 
     void make_empty(const scoped_ptr_t<current_page_acq_t> &acq) {
         page_acq_t page_acq;
-        page_acq.init(acq->current_page_for_write());
+        page_acq.init(acq->current_page_for_write(), &c);
         const uint32_t n = page_acq.get_buf_size();
         ASSERT_EQ(4080u, n);
         memset(page_acq.get_buf_write(), 0, n);
@@ -736,7 +736,7 @@ private:
     void check_value(const scoped_ptr_t<current_page_acq_t> &acq,
                      const std::string &expected) {
         page_acq_t page_acq;
-        page_acq.init(acq->current_page_for_read());
+        page_acq.init(acq->current_page_for_read(), &c);
         check_page_acq(&page_acq, expected);
     }
 
@@ -748,7 +748,7 @@ private:
         {
             page_acq_t page_acq;
             page_t *page_for_write = acq->current_page_for_write();
-            page_acq.init(page_for_write);
+            page_acq.init(page_for_write, &c);
             check_page_acq(&page_acq, expected);
 
             char *const p = static_cast<char *>(page_acq.get_buf_write());

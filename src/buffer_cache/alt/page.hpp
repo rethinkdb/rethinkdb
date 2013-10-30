@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "concurrency/cond_var.hpp"
+#include "containers/backindex_bag.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/segmented_vector.hpp"
 #include "repli_timestamp.hpp"
@@ -28,7 +29,8 @@ enum class alt_access_t { read, write };
 // in-place, but still a definite known value).
 class page_t {
 public:
-    page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf);
+    page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+           page_cache_t *page_cache);
     page_t(block_id_t block_id, page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache);
     ~page_t();
@@ -49,11 +51,11 @@ private:
 
     friend class page_ptr_t;
     void add_snapshotter();
-    void remove_snapshotter();
+    void remove_snapshotter(page_cache_t *page_cache);
     size_t num_snapshot_references();
 
 
-    void pulse_waiters();
+    void pulse_waiters_or_make_evictable(page_cache_t *page_cache);
 
     static void load_with_block_id(page_t *page,
                                    block_id_t block_id,
@@ -63,6 +65,10 @@ private:
                                  page_cache_t *page_cache);
 
     friend class page_cache_t;
+
+    static backindex_bag_index_t *eviction_index(page_t *page) {
+        return &page->eviction_index_;
+    }
 
     // One of destroy_ptr_, buf_, or block_token_ is non-null.
     bool *destroy_ptr_;
@@ -78,18 +84,38 @@ private:
     // are waiters) expect the value to never be evicted.
     // RSP: This could be a single pointer instead of two.
     intrusive_list_t<page_acq_t> waiters_;
+
+    // This page_t's index into its eviction bag (managed by the page_cache_t -- one
+    // of unevictable_pages_, etc).  Which bag we should be in:
+    //
+    // if destroy_ptr_ is non-null:  unevictable_pages_
+    // else if waiters_ is non-empty: unevictable_pages_
+    // else if buf_ is null: evicted_pages_ (and block_token_ is non-null)
+    // else if block_token_ is non-null: evictable_disk_backed_pages_
+    // else: evictable_unbacked_pages_ (buf_ is non-null, block_token_ is null)
+    //
+    // So, when destroy_ptr_, waiters_, buf_, or block_token_ is touched, we might
+    // need to change this page's eviction bag.
+    //
+    // The logic above is implemented in page_cache_t::appropriate_eviction_bag.
+    backindex_bag_index_t eviction_index_;
+
     DISABLE_COPYING(page_t);
 };
 
 // A page_ptr_t holds a pointer to a page_t.
 class page_ptr_t {
 public:
-    explicit page_ptr_t(page_t *page) : page_(NULL) { init(page); }
+    explicit page_ptr_t(page_t *page, page_cache_t *page_cache)
+        : page_(NULL), page_cache_(NULL) { init(page, page_cache); }
     page_ptr_t();
+
+    // The page must be reset(...) before it is destroyed.
     ~page_ptr_t();
+
     page_ptr_t(page_ptr_t &&movee);
     page_ptr_t &operator=(page_ptr_t &&movee);
-    void init(page_t *page);
+    void init(page_t *page, page_cache_t *page_cache);
 
     page_t *get_page_for_read();
     page_t *get_page_for_write(page_cache_t *page_cache);
@@ -102,6 +128,8 @@ public:
 
 private:
     page_t *page_;
+    // RSI: Get rid of this variable.
+    page_cache_t *page_cache_;
     DISABLE_COPYING(page_ptr_t);
 };
 
@@ -114,7 +142,12 @@ public:
 
     // RSI: This doesn't actually try to make the page loaded, if it's not already
     // loaded.
-    void init(page_t *page);
+    void init(page_t *page, page_cache_t *page_cache);
+
+    page_cache_t *page_cache() const {
+        rassert(page_cache_ != NULL);
+        return page_cache_;
+    }
 
     signal_t *buf_ready_signal();
     bool has() const;
@@ -128,6 +161,7 @@ private:
     friend class page_t;
 
     page_t *page_;
+    page_cache_t *page_cache_;
     cond_t buf_ready_signal_;
     DISABLE_COPYING(page_acq_t);
 };
@@ -139,7 +173,8 @@ struct current_page_help_t;
 class current_page_t {
 public:
     // Constructs a fresh, empty page.
-    current_page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf);
+    current_page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+                   page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
     current_page_t();
     ~current_page_t();
@@ -172,7 +207,8 @@ private:
     friend class page_cache_t;
 
     void make_non_deleted(block_size_t block_size,
-                          scoped_malloc_t<ser_buffer_t> buf);
+                          scoped_malloc_t<ser_buffer_t> buf,
+                          page_cache_t *page_cache);
 
     // page_ can be null if we haven't tried loading the page yet.  We don't want to
     // prematurely bother loading the page if it's going to be deleted.
@@ -274,8 +310,21 @@ public:
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
 
+    // Returns how much memory is being used by all the pages in the cache at this
+    // moment in time.
+    size_t total_page_memory() const;
+    size_t evictable_page_memory() const;
+
 private:
     friend class page_t;
+    void add_to_unevictable(page_t *page);
+    void add_to_evictable_unbacked(page_t *page);
+    bool page_is_in_unevictable_bag(page_t *page) const;
+    void move_unevictable_to_evictable(page_t *page);
+    void change_eviction_bag(backindex_bag_t<page_t> *current_bag, page_t *page);
+    backindex_bag_t<page_t> *correct_eviction_category(page_t *page);
+    void remove_page(page_t *page);
+
     friend class page_txn_t;
     static void do_flush_txn(page_cache_t *page_cache, page_txn_t *txn);
     void im_waiting_for_flush(page_txn_t *txn);
@@ -294,6 +343,13 @@ private:
 
     // RSP: Array growth slow.
     std::vector<current_page_t *> current_pages_;
+
+    // These track whether a page's eviction status.
+    // RSI: Does anybody use evicted_pages_?
+    backindex_bag_t<page_t> unevictable_pages_;
+    backindex_bag_t<page_t> evictable_disk_backed_pages_;
+    backindex_bag_t<page_t> evictable_unbacked_pages_;
+    backindex_bag_t<page_t> evicted_pages_;
 
     free_list_t free_list_;
 

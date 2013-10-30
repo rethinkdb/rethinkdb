@@ -1,3 +1,4 @@
+#define __STDC_LIMIT_MACROS
 #include "buffer_cache/alt/page.hpp"
 
 #include <algorithm>
@@ -14,6 +15,10 @@ namespace alt {
 
 page_cache_t::page_cache_t(serializer_t *serializer)
     : serializer_(serializer),
+      unevictable_pages_(&page_t::eviction_index),
+      evictable_disk_backed_pages_(&page_t::eviction_index),
+      evictable_unbacked_pages_(&page_t::eviction_index),
+      evicted_pages_(&page_t::eviction_index),
       free_list_(serializer),
       drainer_(new auto_drainer_t) {
     {
@@ -59,10 +64,12 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
             new current_page_t(serializer_->get_block_size(),
-                               serializer_->malloc());
+                               serializer_->malloc(),
+                               this);
     } else {
         current_pages_[block_id]->make_non_deleted(serializer_->get_block_size(),
-                                                   serializer_->malloc());
+                                                   serializer_->malloc(),
+                                                   this);
     }
 
     *block_id_out = block_id;
@@ -201,8 +208,9 @@ current_page_t::current_page_t()
 }
 
 current_page_t::current_page_t(block_size_t block_size,
-                               scoped_malloc_t<ser_buffer_t> buf)
-    : page_(new page_t(block_size, std::move(buf))),
+                               scoped_malloc_t<ser_buffer_t> buf,
+                               page_cache_t *page_cache)
+    : page_(new page_t(block_size, std::move(buf), page_cache), page_cache),
       is_deleted_(false),
       last_modifier_(NULL) {
 }
@@ -213,11 +221,12 @@ current_page_t::~current_page_t() {
 }
 
 void current_page_t::make_non_deleted(block_size_t block_size,
-                                      scoped_malloc_t<ser_buffer_t> buf) {
+                                      scoped_malloc_t<ser_buffer_t> buf,
+                                      page_cache_t *page_cache) {
     rassert(is_deleted_);
     rassert(!page_.has());
     is_deleted_ = false;
-    page_.init(new page_t(block_size, std::move(buf)));
+    page_.init(new page_t(block_size, std::move(buf), page_cache), page_cache);
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
@@ -272,7 +281,8 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                 // downgrade itself to readonly and snapshotted for the sake of
                 // flushing its version of the page -- and if it deleted the page,
                 // this is how it learns.
-                cur->snapshotted_page_.init(the_page_for_read_or_deleted(help));
+                cur->snapshotted_page_.init(the_page_for_read_or_deleted(help),
+                                            cur->page_cache());
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
                 // RSI: Dedup this with remove_acquirer.
@@ -293,7 +303,9 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                     // page to a full-sized page.
                     // TODO: We should consider whether we really want this behavior.
                     page_.init(new page_t(help.page_cache->serializer()->get_block_size(),
-                                          help.page_cache->serializer()->malloc()));
+                                          help.page_cache->serializer()->malloc(),
+                                          help.page_cache),
+                               help.page_cache);
                     is_deleted_ = false;
                 }
                 cur->write_cond_.pulse_if_not_already_pulsed();
@@ -312,7 +324,7 @@ void current_page_t::mark_deleted() {
 void current_page_t::convert_from_serializer_if_necessary(current_page_help_t help) {
     rassert(!is_deleted_);
     if (!page_.has()) {
-        page_.init(new page_t(help.block_id, help.page_cache));
+        page_.init(new page_t(help.block_id, help.page_cache), help.page_cache);
     }
 }
 
@@ -347,24 +359,28 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
       buf_size_(block_size_t::undefined()),
       snapshot_refcount_(0) {
+    page_cache->add_to_unevictable(this);
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
                                             this,
                                             block_id,
                                             page_cache));
 }
 
-page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf)
+page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
+               page_cache_t *page_cache)
     : destroy_ptr_(NULL),
       buf_size_(block_size),
       buf_(std::move(buf)),
       snapshot_refcount_(0) {
     rassert(buf_.has());
+    page_cache->add_to_evictable_unbacked(this);
 }
 
 page_t::page_t(page_t *copyee, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
       buf_size_(block_size_t::undefined()),
       snapshot_refcount_(0) {
+    page_cache->add_to_unevictable(this);
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_from_copyee,
                                             this,
                                             copyee,
@@ -381,7 +397,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
                               page_cache_t *page_cache) {
     // This is called using spawn_now_dangerously.  We need to atomically set
     // destroy_ptr_.
-    page_ptr_t copyee_ptr(copyee);
+    page_ptr_t copyee_ptr(copyee, page_cache);
     bool page_destroyed = false;
     rassert(page->destroy_ptr_ == NULL);
     page->destroy_ptr_ = &page_destroyed;
@@ -391,7 +407,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
     {
         page_acq_t acq;
-        acq.init(copyee);
+        acq.init(copyee, page_cache);
         acq.buf_ready_signal()->wait();
 
         ASSERT_FINITE_CORO_WAITING;
@@ -411,7 +427,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             page->buf_ = std::move(buf);
             page->destroy_ptr_ = NULL;
 
-            page->pulse_waiters();
+            page->pulse_waiters_or_make_evictable(page_cache);
         }
     }
 }
@@ -452,7 +468,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     page->buf_ = std::move(buf);
     page->block_token_ = std::move(block_token);
 
-    page->pulse_waiters();
+    page->pulse_waiters_or_make_evictable(page_cache);
 }
 
 void page_t::add_snapshotter() {
@@ -462,7 +478,7 @@ void page_t::add_snapshotter() {
     ++snapshot_refcount_;
 }
 
-void page_t::remove_snapshotter() {
+void page_t::remove_snapshotter(page_cache_t *page_cache) {
     rassert(snapshot_refcount_ > 0);
     --snapshot_refcount_;
     if (snapshot_refcount_ == 0) {
@@ -471,6 +487,7 @@ void page_t::remove_snapshotter() {
         // load_from_copyee.
         rassert(waiters_.empty());
 
+        page_cache->remove_page(this);
         // RSI: Is this what we do?  For now it is.
         delete this;
     }
@@ -485,15 +502,23 @@ page_t *page_t::make_copy(page_cache_t *page_cache) {
     return ret;
 }
 
-void page_t::pulse_waiters() {
-    for (page_acq_t *p = waiters_.head(); p != NULL; p = waiters_.next(p)) {
-        // The waiter's not already going to have been pulsed.
-        p->buf_ready_signal_.pulse();
+void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
+    rassert(page_cache->page_is_in_unevictable_bag(this));
+    if (waiters_.empty()) {
+        page_cache->move_unevictable_to_evictable(this);
+    } else {
+        for (page_acq_t *p = waiters_.head(); p != NULL; p = waiters_.next(p)) {
+            // The waiter's not already going to have been pulsed.
+            p->buf_ready_signal_.pulse();
+        }
     }
 }
 
 void page_t::add_waiter(page_acq_t *acq) {
+    backindex_bag_t<page_t> *old_bag
+        = acq->page_cache()->correct_eviction_category(this);
     waiters_.push_back(acq);
+    acq->page_cache()->change_eviction_bag(old_bag, this);
     if (buf_.has()) {
         acq->buf_ready_signal_.pulse();
     }
@@ -510,25 +535,41 @@ void *page_t::get_page_buf() {
 }
 
 void page_t::reset_block_token() {
+    // The page is supposed to have its buffer acquired in reset_block_token -- it's
+    // the thing modifying the page.  We thus assume that the page is unevictable and
+    // resetting block_token_ doesn't change that.
+    rassert(!waiters_.empty());
     block_token_.reset();
 }
 
 
 void page_t::remove_waiter(page_acq_t *acq) {
+    backindex_bag_t<page_t> *old_bag
+        = acq->page_cache()->correct_eviction_category(this);
     waiters_.remove(acq);
+    acq->page_cache()->change_eviction_bag(old_bag, this);
 
     // page_acq_t always has a lesser lifetime than some page_ptr_t.
     rassert(snapshot_refcount_ > 0);
 }
 
-page_acq_t::page_acq_t() : page_(NULL) {
+page_acq_t::page_acq_t() : page_(NULL), page_cache_(NULL) {
 }
 
-void page_acq_t::init(page_t *page) {
+void page_acq_t::init(page_t *page, page_cache_t *page_cache) {
     rassert(page_ == NULL);
+    rassert(page_cache_ == NULL);
     rassert(!buf_ready_signal_.is_pulsed());
     page_ = page;
+    page_cache_ = page_cache;
     page_->add_waiter(this);
+}
+
+page_acq_t::~page_acq_t() {
+    if (page_ != NULL) {
+        rassert(page_cache_ != NULL);
+        page_->remove_waiter(this);
+    }
 }
 
 bool page_acq_t::has() const {
@@ -553,12 +594,6 @@ void *page_acq_t::get_buf_write() {
 const void *page_acq_t::get_buf_read() {
     buf_ready_signal_.wait();
     return page_->get_page_buf();
-}
-
-page_acq_t::~page_acq_t() {
-    if (page_ != NULL) {
-        page_->remove_waiter(this);
-    }
 }
 
 free_list_t::free_list_t(serializer_t *serializer) {
@@ -590,26 +625,31 @@ void free_list_t::release_block_id(block_id_t block_id) {
     free_ids_.push_back(block_id);
 }
 
-page_ptr_t::page_ptr_t() : page_(NULL) {
+page_ptr_t::page_ptr_t() : page_(NULL), page_cache_(NULL) {
 }
 
 page_ptr_t::~page_ptr_t() {
     reset();
 }
 
-page_ptr_t::page_ptr_t(page_ptr_t &&movee) : page_(movee.page_) {
+page_ptr_t::page_ptr_t(page_ptr_t &&movee)
+    : page_(movee.page_), page_cache_(movee.page_cache_) {
     movee.page_ = NULL;
+    movee.page_cache_ = NULL;
 }
 
 page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
     page_ptr_t tmp(std::move(movee));
     std::swap(page_, tmp.page_);
+    std::swap(page_cache_, tmp.page_cache_);
     return *this;
 }
 
-void page_ptr_t::init(page_t *page) {
-    rassert(page_ == NULL);
+void page_ptr_t::init(page_t *page, page_cache_t *page_cache) {
+    rassert(page_ == NULL && page_cache_ == NULL);
     page_ = page;
+    page_cache_ = page_cache;
+    // RSI: Seriously?  Does anything init with a null page?
     if (page_ != NULL) {
         page_->add_snapshotter();
     }
@@ -618,8 +658,10 @@ void page_ptr_t::init(page_t *page) {
 void page_ptr_t::reset() {
     if (page_ != NULL) {
         page_t *ptr = page_;
+        page_cache_t *cache = page_cache_;
         page_ = NULL;
-        ptr->remove_snapshotter();
+        page_cache_ = NULL;
+        ptr->remove_snapshotter(cache);
     }
 }
 
@@ -631,7 +673,7 @@ page_t *page_ptr_t::get_page_for_read() {
 page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
     rassert(page_ != NULL);
     if (page_->num_snapshot_references() > 1) {
-        page_ptr_t tmp(page_->make_copy(page_cache));
+        page_ptr_t tmp(page_->make_copy(page_cache), page_cache);
         *this = std::move(tmp);
     }
     return page_;
@@ -830,6 +872,8 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
 
                 rassert(page->buf_.has());
 
+                // RSI: Is there a page_acq_t for this buf we're writing?  There had
+                // better be.
                 write_infos.push_back(buf_write_info_t(page->buf_.get(),
                                                        page->buf_size_,
                                                        dp->block_id));
@@ -954,6 +998,54 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
 
         // RSI: 'ordered'?  Really?
         coro_t::spawn_later_ordered(std::bind(&page_cache_t::do_flush_txn, this, txn));
+    }
+}
+
+void page_cache_t::add_to_unevictable(page_t *page) {
+    unevictable_pages_.add(page);
+}
+
+bool page_cache_t::page_is_in_unevictable_bag(page_t *page) const {
+    return unevictable_pages_.has_element(page);
+}
+
+void page_cache_t::add_to_evictable_unbacked(page_t *page) {
+    evictable_unbacked_pages_.add(page);
+}
+
+void page_cache_t::move_unevictable_to_evictable(page_t *page) {
+    rassert(unevictable_pages_.has_element(page));
+    unevictable_pages_.remove(page);
+    backindex_bag_t<page_t> *new_bag = correct_eviction_category(page);
+    rassert(new_bag == &evictable_disk_backed_pages_
+            || new_bag == &evictable_unbacked_pages_);
+    new_bag->add(page);
+}
+
+void page_cache_t::remove_page(page_t *page) {
+    rassert(page->waiters_.empty());
+    rassert(page->snapshot_refcount_ == 0);
+    backindex_bag_t<page_t> *bag = correct_eviction_category(page);
+    bag->remove(page);
+}
+
+void page_cache_t::change_eviction_bag(backindex_bag_t<page_t> *current_bag,
+                                       page_t *page) {
+    rassert(current_bag->has_element(page));
+    current_bag->remove(page);
+    backindex_bag_t<page_t> *new_bag = correct_eviction_category(page);
+    new_bag->add(page);
+}
+
+backindex_bag_t<page_t> *page_cache_t::correct_eviction_category(page_t *page) {
+    if (page->destroy_ptr_ != NULL || !page->waiters_.empty()) {
+        return &unevictable_pages_;
+    } else if (!page->buf_.has()) {
+        return &evicted_pages_;
+    } else if (page->block_token_.has()) {
+        return &evictable_disk_backed_pages_;
+    } else {
+        return &evictable_unbacked_pages_;
     }
 }
 
