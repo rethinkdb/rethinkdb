@@ -125,7 +125,7 @@ read_check_state(scs_block_token_t<inner_serializer_t> *token, const void *buf) 
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, ser_buffer_t *buf, file_account_t *io_account) {
+block_read(const counted_t< scs_block_token_t<inner_serializer_t> > &_token, ser_buffer_t *buf, file_account_t *io_account) {
     scs_block_token_t<inner_serializer_t> *token = _token.get();
     guarantee(token, "bad token");
 #ifdef SERIALIZER_DEBUG_PRINT
@@ -137,7 +137,7 @@ block_read(const counted_t< scs_block_token_t<inner_serializer_t> >& _token, ser
 
 template<class inner_serializer_t>
 void semantic_checking_serializer_t<inner_serializer_t>::
-index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) {
     std::vector<index_write_op_t> inner_ops;
     inner_ops.reserve(write_ops.size());
 
