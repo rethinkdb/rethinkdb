@@ -263,7 +263,6 @@ void linux_message_hub_t::deliver_local_messages() {
             // that we only ever write one event onto this.
             event_.wakey_wakey();
         }
->>>>>>> next
     }
 }
 
