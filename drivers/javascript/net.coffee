@@ -135,6 +135,9 @@ class Connection extends events.EventEmitter
 
     _processResponse: (response) ->
         token = response.token
+        profile = response.profile
+        if profile?
+            profile = deconstructDatum(profile, {})
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
@@ -163,16 +166,24 @@ class Connection extends events.EventEmitter
                         response = mkAtom response, opts
                         if Array.isArray response
                             response = cursors.makeIterable response
+                        if profile?
+                            response = {profile: profile, value: response}
                         cb null, response
                         @_delQuery(token)
                    ,"SUCCESS_PARTIAL": =>
                         cursor = new cursors.Cursor @, token
                         @outstandingCallbacks[token].cursor = cursor
-                        cb null, cursor._addData(mkSeq(response, opts))
+                        if profile?
+                            cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
+                        else
+                            cb null, cursor._addData(mkSeq(response, opts))
                    ,"SUCCESS_SEQUENCE": =>
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
-                        cb null, cursor._endData(mkSeq(response, opts))
+                        if profile?
+                            cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
+                        else
+                            cb null, cursor._addData(mkSeq(response, opts))
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )
@@ -222,6 +233,12 @@ class Connection extends events.EventEmitter
             pair =
                 key: 'noreply'
                 val: r.expr(!!opts.noreply).build()
+            query.global_optargs.push(pair)
+
+        if opts.profile?
+            pair =
+                key: 'profile'
+                val: r.expr(!!opts.profile).build()
             query.global_optargs.push(pair)
 
         # Save callback
