@@ -4,7 +4,6 @@
 
 #include "rpc/connectivity/messages.hpp"
 #include "rpc/connectivity/heartbeat.hpp"
-#include "concurrency/semaphore.hpp"
 
 /* `message_multiplexer_t` is used when you want multiple components to share a
 `message_service_t`. Here's an example of how one might use it:
@@ -62,7 +61,6 @@ public:
         message_multiplexer_t *const parent;
         const tag_t tag;
         run_t *run;
-        semaphore_t outstanding_writes_semaphore;
     };
     explicit message_multiplexer_t(message_service_t *super_ms);
     ~message_multiplexer_t();
