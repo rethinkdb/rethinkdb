@@ -203,7 +203,13 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
+                }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
+                }
                 stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
                 bool b = stream_cache2->serve(token, res, env->interruptor);
                 r_sanity_check(b);
@@ -211,11 +217,6 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 rfail_toplevel(base_exc_t::GENERIC,
                                "Query result must be of type DATUM or STREAM (got %s).",
                                val->get_type().name());
-            }
-
-            /* Fill in the profiling information if it's present. */
-            if (env->trace.has()) {
-                env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
             }
         } catch (const exc_t &e) {
             fill_error(res, Response::RUNTIME_ERROR, e.what(), e.backtrace());
