@@ -355,7 +355,7 @@ TEST(RDBProtocol, OvershardedSindexList) {
 }
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    std::string id = create_sindex(nsi, osource);
+    std::string sindex_id = create_sindex(nsi, osource);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
@@ -404,7 +404,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
             {
                 /* Access the data using the secondary index. */
-                rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
+                rdb_protocol_t::read_t read
+                    = make_sindex_read(sindex_key_literal, sindex_id);
                 rdb_protocol_t::read_response_t response;
 
                 cond_t interruptor;
