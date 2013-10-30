@@ -256,7 +256,7 @@ class Connection(object):
         if Datum.deconstruct(response.profile) == None:
             return value
         else:
-            return {"value": value, "explanation": Datum.deconstruct(response.profile)}
+            return {"value": value, "profile": Datum.deconstruct(response.profile)}
 
 def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20):
     return Connection(host, port, db, auth_key, timeout)
