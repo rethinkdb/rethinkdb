@@ -1614,6 +1614,7 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
+    with_priority_t p(-2); coro_t::yield();
     rdb_backfill_callback_impl_t callback(chunk_fun_cb);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
@@ -1731,6 +1732,7 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         write_token_pair_t *token_pair,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
+    with_priority_t p(-2); coro_t::yield();
     boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree, txn, superblock, token_pair, interruptor), chunk.val);
 }
 
@@ -1740,6 +1742,7 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   superblock_t *superblock,
                                   write_token_pair_t *token_pair,
                                   signal_t *interruptor) {
+    with_priority_t p(-2); coro_t::yield();
     value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
 

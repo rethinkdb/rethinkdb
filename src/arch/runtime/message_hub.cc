@@ -3,7 +3,6 @@
 
 #include <math.h>
 #include <unistd.h>
-#include <algorithm>
 
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
@@ -23,6 +22,13 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue,
       is_woken_up_(false),
       current_thread_(current_thread) {
 
+#ifndef NDEBUG
+    if(MESSAGE_SCHEDULER_GRANULARITY < (1 << (NUM_SCHEDULER_PRIORITIES))) {
+        logWRN("MESSAGE_SCHEDULER_GRANULARITY is too small to honor some of the "
+               "lower priorities");
+    }
+#endif
+
     queue_->watch_resource(event_.get_notify_fd(), poll_event_in, this);
 }
 
@@ -33,7 +39,7 @@ linux_message_hub_t::~linux_message_hub_t() {
     for (int p = MESSAGE_SCHEDULER_MIN_PRIORITY;
          p <= MESSAGE_SCHEDULER_MAX_PRIORITY;
          ++p) {
-        
+
         guarantee(get_priority_msg_list(p).empty());
     }
 
@@ -120,77 +126,65 @@ void linux_message_hub_t::on_event(int events) {
     size_t num_initial_msgs_left_to_process[num_priorities];
     bool initial_pass = true;
     do {
-        // TODO! Maybe refactor part below (put it into a function):
-        // Pull new messages
-        {
-            // We do this in two steps to release the spinlock faster.
-            // append_and_clear is a very cheap operation, while
-            // assigning each message to a different priority queue
-            // is more expensive.
-            msg_list_t new_messages;
-            // Pull the messages
-            {
-                spinlock_acq_t acq(&incoming_messages_lock_);
-                if (!initial_pass) {
-                    // Other threads will automatically push their messages
-                    // for us into the incoming queue, even while
-                    // we are in this loop. However we still have to pick up
-                    // our local messages, since we are not calling push_messages()
-                    // while we are still in on_event()
-                    deliver_local_messages();
-                }
-                new_messages.append_and_clear(&incoming_messages_);
-                if (initial_pass) {
-                    // We guarantee to process all messages that are delivered
-                    // at this point. Note that we do not guarantee to deliver
-                    // incoming messages delivered during !initial_pass.
-                    // -> reset is_woken_up_, so future incoming messages
-                    // wake us up again.
-                    is_woken_up_ = false;
-                }
-            }
-            // Sort the messages into their respective priority queues
-            while (linux_thread_message_t *m = new_messages.head()) {
-                new_messages.remove(m);
-                int effective_priority = m->priority;
-                if (m->is_ordered) {
-                    // Ordered messages are treated as if they had
-                    // priority MESSAGE_SCHEDULER_ORDERED_PRIORITY.
-                    // This ensures that they can never bypass another
-                    // ordered message.
-                    effective_priority = MESSAGE_SCHEDULER_ORDERED_PRIORITY;
-                    m->is_ordered = false;
-                }
-                get_priority_msg_list(effective_priority).push_back(m);
-            }
+        if (!initial_pass) {
+            // Other threads will automatically push their messages
+            // for us into the incoming queue, even while
+            // we are in this loop. However we still have to pick up
+            // our local messages, since this->push_messages() is not
+            // going to be called while we are still running on_event()
+            deliver_local_messages();
         }
-        // TODO! Comment more
+
+        // We guarantee to process all messages that are delivered
+        // before the first pass. We do not guarantee to deliver
+        // incoming messages delivered during !initial_pass!
+        // As a consequence, we must reset is_woken_up_ in the first
+        // pass, so later incoming messages wake us up again.
+        const bool reset_is_woken_up = initial_pass;
+        sort_incoming_messages_by_priority(reset_is_woken_up);
+
+        // We store how many messages we have initially for each priority.
+        // Those are the messages that we *definitely* have to process during
+        // this call to `on_event()`.
+        // We *may* process more messages than this, such that more recent
+        // messages with a high-priority can bypass older messages with lower
+        // priority.
         if (initial_pass) {
-            for (int i = 0; i < num_priorities; ++i) {
+            for (int i = 0; i < NUM_SCHEDULER_PRIORITIES; ++i) {
                 num_initial_msgs_left_to_process[i] = priority_msg_lists_[i].size();
             }
             initial_pass = false;
         }
 
-        // TODO! Maybe optimize
+        // Compute how many messages of MESSAGE_SCHEDULER_MAX_PRIORITY we process
+        // before we check the incoming queues for new messages.
+        // We call this the granularity of the message scheduler, and it is
+        // MESSAGE_SCHEDULER_GRANULARITY or smaller.
         size_t total_pending_msgs = 0;
-        for (int i = 0; i < num_priorities; ++i) {
+        for (int i = 0; i < NUM_SCHEDULER_PRIORITIES; ++i) {
             total_pending_msgs += priority_msg_lists_[i].size();
         }
-
-        // TODO! Explain
-        const size_t effective_granularity = std::min(total_pending_msgs, MESSAGE_SCHEDULER_GRANULARITY);
+        const size_t effective_granularity = std::min(total_pending_msgs,
+                                                      MESSAGE_SCHEDULER_GRANULARITY);
 
         // Process a certain number of messages from each priority
         for (int current_priority = MESSAGE_SCHEDULER_MAX_PRIORITY;
              current_priority >= MESSAGE_SCHEDULER_MIN_PRIORITY; --current_priority) {
 
-            // TODO! Explain how this is computed and why
+            // Compute how many messages of `current_priority` we want to process
+            // in this pass.
+            // The priority has an exponential effect on how many messages
+            // get processed, i.e. if we process 8 messages of priority 1 per pass,
+            // we are going to process up to 16 messages of priority 2, 32 of
+            // priority 3 and so on.
+            // However, we process at least one message of each priority level per
+            // pass (in case the granularity is too small).
             int priority_exponent = MESSAGE_SCHEDULER_MAX_PRIORITY - current_priority;
             size_t to_process_from_priority = std::max(1ul, effective_granularity >> priority_exponent);
 
-            while (linux_thread_message_t *m = get_priority_msg_list(current_priority).head()) {
-                if (to_process_from_priority == 0) break;
+            for (linux_thread_message_t *m = get_priority_msg_list(current_priority).head();
+                 m != NULL && to_process_from_priority > 0;
+                 m = get_priority_msg_list(current_priority).head()) {
 
                 get_priority_msg_list(current_priority).remove(m);
                 --to_process_from_priority;
@@ -210,17 +204,62 @@ void linux_message_hub_t::on_event(int events) {
                 m->on_thread_switch();
             }
         }
-    } while (std::any_of(num_initial_msgs_left_to_process,
-                         num_initial_msgs_left_to_process + num_priorities,
-                         [] (int msgs_left) -> bool { return msgs_left > 0; } ));
+
+        // Check if we have to continue in order to fulfill our guarantee
+        // to at least process all of the initial messages.
+        initial_batch_has_been_processed = true;
+        for (int i = 0; i < NUM_SCHEDULER_PRIORITIES; ++i) {
+            if (num_initial_msgs_left_to_process[i] > 0) {
+                initial_batch_has_been_processed = false;
+                break;
+            }
+        }
+    } while (!initial_batch_has_been_processed);
+}
+
+void linux_message_hub_t::sort_incoming_messages_by_priority(bool reset_is_woken_up) {
+    // We do this in two steps to release the spinlock faster.
+    // append_and_clear is a very cheap operation, while
+    // assigning each message to a different priority queue
+    // is more expensive.
+
+    // 1. Pull the messages
+    msg_list_t new_messages;
+    {
+        spinlock_acq_t acq(&incoming_messages_lock_);
+        new_messages.append_and_clear(&incoming_messages_);
+        if (reset_is_woken_up) {
+            is_woken_up_ = false;
+        }
+    }
+
+    // 2. Sort the messages into their respective priority queues
+    while (linux_thread_message_t *m = new_messages.head()) {
+        new_messages.remove(m);
+        int effective_priority = m->priority;
+        if (m->is_ordered) {
+            // Ordered messages are treated as if they had
+            // priority MESSAGE_SCHEDULER_ORDERED_PRIORITY.
+            // This ensures that they can never bypass another
+            // ordered message.
+            effective_priority = MESSAGE_SCHEDULER_ORDERED_PRIORITY;
+            m->is_ordered = false;
+        }
+        get_priority_msg_list(effective_priority).push_back(m);
+    }
 }
 
 void linux_message_hub_t::deliver_local_messages() {
     const int local_thread = thread_pool_->thread_id;
 
     if (!queues_[local_thread].msg_local_list.empty()) {
-        incoming_messages_.append_and_clear(&queues_[local_thread].msg_local_list);
-        if (!check_and_set_is_woken_up()) {
+        bool do_wake_up;
+        {
+            spinlock_acq_t acq(&incoming_messages_lock_);
+            incoming_messages_.append_and_clear(&queues_[local_thread].msg_local_list);
+            do_wake_up = !check_and_set_is_woken_up();
+        }
+        if (do_wake_up) {
             // Wake ourselves up for another round.
             // While this might seem risky w.r.t. dead-locks when the event pipe
             // is full, it is actually ok because the is_woken_up() flag guarantees

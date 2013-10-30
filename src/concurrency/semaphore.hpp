@@ -4,6 +4,7 @@
 
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
+#include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 
 class semaphore_available_callback_t {
@@ -39,6 +40,9 @@ public:
     {
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
+    ~semaphore_t() {
+        rassert(waiters.empty());
+    }
 
     void lock(semaphore_available_callback_t *cb, int count = 1);
 
@@ -48,6 +52,7 @@ public:
 
     void unlock(int count = 1);
     void lock_now(int count = 1);
+    void force_lock(int count = 1);
 };
 
 /* `adjustable_semaphore_t` is a `semaphore_t` where you can change the
@@ -84,6 +89,9 @@ public:
         rassert(trickle_fraction <= 1.0 && trickle_fraction >= 0.0);
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
+    ~adjustable_semaphore_t() {
+        rassert(waiters.empty());
+    }
 
     void lock(semaphore_available_callback_t *cb, int count = 1);
 
@@ -91,9 +99,7 @@ public:
     void co_lock_interruptible(signal_t *interruptor, int count = 1);
 
     void unlock(int count = 1);
-
     void lock_now(int count = 1);
-
     void force_lock(int count = 1);
 
     void set_capacity(int new_capacity);
@@ -107,35 +113,53 @@ private:
 };
 
 
-class adjustable_semaphore_acq_t {
+template <typename S>
+class generic_semaphore_acq_t {
 public:
-    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree, int _count = 1, bool _force = false) :
+    enum lock_mode_t { EAGER, FORCE, LAZILY_UNORDERED };
+    generic_semaphore_acq_t(S *_acquiree, int _count = 1, lock_mode_t mode = EAGER) :
                 acquiree(_acquiree),
                 count(_count) {
-                    
-        if (_force) {
-            acquiree->force_lock(count);
-        } else {
-            acquiree->co_lock(count);
+
+        switch (mode) {
+            case EAGER:
+                acquiree->co_lock(count);
+                break;
+            case FORCE:
+                acquiree->force_lock(count);
+                break;
+            case LAZILY_UNORDERED: {
+                struct : public semaphore_available_callback_t, public cond_t {
+                    void on_semaphore_available() { pulse(); }
+                } cb;
+                acquiree->lock(&cb, count);
+                cb.wait_lazily_unordered();
+                break;
+            }
+            default:
+                unreachable();
         }
     }
 
-    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) :
+    generic_semaphore_acq_t(generic_semaphore_acq_t &&movee) :
                 acquiree(movee.acquiree),
                 count(movee.count) {
         movee.acquiree = NULL;
     }
 
-    ~adjustable_semaphore_acq_t() {
+    ~generic_semaphore_acq_t() {
         if (acquiree) {
             acquiree->unlock(count);
         }
     }
 
 private:
-    adjustable_semaphore_t *acquiree;
+    S *acquiree;
     int count;
-    DISABLE_COPYING(adjustable_semaphore_acq_t);
+    DISABLE_COPYING(generic_semaphore_acq_t<S>);
 };
+
+typedef generic_semaphore_acq_t<adjustable_semaphore_t> adjustable_semaphore_acq_t;
+typedef generic_semaphore_acq_t<semaphore_t> semaphore_acq_t;
 
 #endif /* CONCURRENCY_SEMAPHORE_HPP_ */
