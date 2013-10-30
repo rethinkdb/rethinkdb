@@ -139,11 +139,6 @@ public:
             default:
                 unreachable();
         }
-        if (mode == FORCE) {
-            acquiree->force_lock(count);
-        } else {
-            acquiree->co_lock(count);
-        }
     }
 
     generic_semaphore_acq_t(generic_semaphore_acq_t &&movee) :
