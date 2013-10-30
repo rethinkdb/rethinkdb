@@ -112,6 +112,8 @@ void bring_sindexes_up_to_date(
         transaction_t *txn)
     THROWS_NOTHING
 {
+    with_priority_t p(-2);
+
     /* We register our modification queue here. An important point about
      * correctness here: we've held the superblock this whole time and will
      * continue to do so until the call to post_construct_secondary_indexes
@@ -160,10 +162,12 @@ public:
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
         rdb_update_sindexes(*sindexes_, &mod_report, txn_);
+        coro_t::yield();
     }
 
     void operator()(const rdb_erase_range_report_t &erase_range_report) const {
         rdb_erase_range_sindexes(*sindexes_, &erase_range_report, txn_, interruptor_);
+        coro_t::yield();
     }
 
 private:
@@ -250,6 +254,7 @@ void post_construct_and_drain_queue(
 
                 boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
                                      sindex_change);
+                coro_t::yield();
             }
 
             previous_size = mod_queue->size();
@@ -262,6 +267,8 @@ void post_construct_and_drain_queue(
                 store->deregister_sindex_queue(mod_queue.get(), &acq);
                 return;
             }
+
+            coro_t::yield();
         }
     } catch (const interrupted_exc_t &) {
         // We were interrupted so we just exit. Sindex post construct is in an
@@ -1613,7 +1620,7 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
-    with_priority_t p(-2); coro_t::yield();
+    with_priority_t p(-2);
     rdb_backfill_callback_impl_t callback(chunk_fun_cb);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
@@ -1639,24 +1646,24 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
       sindex_block_id(superblock->get_sindex_block_id()) { }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
-        with_priority_t p(-2); coro_t::yield();
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
                    txn, superblock, &response, &mod_report.info);
+        coro_t::yield();
 
         update_sindexes(&mod_report);
+        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
-        with_priority_t p(-2); coro_t::yield();
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock,
                 store, token_pair, interruptor);
+        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
-        with_priority_t p(-2); coro_t::yield();
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
         rdb_modification_report_t mod_report(bf_atom.key);
@@ -1664,17 +1671,19 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                 btree, bf_atom.recency,
                 txn, superblock, &response,
                 &mod_report.info);
+        coro_t::yield();
 
         update_sindexes(&mod_report);
+        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
-        with_priority_t p(-2); coro_t::yield();
         value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
         rdb_value_deleter_t deleter;
         scoped_ptr_t<buf_lock_t> sindex_block;
         std::set<std::string> created_sindexes;
         store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, &sindex_block, &created_sindexes, interruptor);
+        coro_t::yield();
 
         if (!created_sindexes.empty()) {
             sindex_access_vector_t sindexes;
@@ -1726,7 +1735,7 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         write_token_pair_t *token_pair,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
-    with_priority_t p(-2); coro_t::yield();
+    with_priority_t p(-2);
     boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree, txn, superblock, token_pair, interruptor), chunk.val);
 }
 
@@ -1736,7 +1745,7 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   superblock_t *superblock,
                                   write_token_pair_t *token_pair,
                                   signal_t *interruptor) {
-    with_priority_t p(-2); coro_t::yield();
+    with_priority_t p(-2);
     value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
 
