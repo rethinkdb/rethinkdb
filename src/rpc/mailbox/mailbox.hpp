@@ -6,7 +6,6 @@
 #include <string>
 
 #include "containers/archive/archive.hpp"
-#include "concurrency/semaphore.hpp"
 #include "rpc/connectivity/cluster.hpp"
 
 class mailbox_manager_t;
@@ -37,8 +36,6 @@ private:
     friend class mailbox_manager_t;
     friend class raw_mailbox_writer_t;
     friend void send(mailbox_manager_t *, address_t, mailbox_write_callback_t *);
-
-    one_per_thread_t<semaphore_t> outstanding_writes_semaphores;
 
     mailbox_manager_t *manager;
 
@@ -140,8 +137,6 @@ private:
                                       threadnum_t dest_thread,
                                       raw_mailbox_t::id_t dest_mailbox_id,
                                       mailbox_write_callback_t *callback);
-
-    void send(raw_mailbox_t::address_t dest, mailbox_write_callback_t *callback);
 
     void on_message(peer_id_t, string_read_stream_t *stream);
 
