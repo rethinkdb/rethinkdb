@@ -2,9 +2,6 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
-// These unit tests need to access some private methods.
-#define private public
-
 #include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/iterators.hpp"
@@ -248,11 +245,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        datum_range_t rng(sindex_key_literal, key_range_t::closed,
-                          sindex_key_literal, key_range_t::closed);
-        rdb_protocol_t::read_t read(
-            rdb_protocol_t::rget_read_t(
-                rdb_protocol_t::region_t(rng.to_sindex_keyrange()), id, rng));
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -286,12 +279,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        datum_range_t rng(sindex_key_literal, key_range_t::closed,
-                          sindex_key_literal, key_range_t::closed);
-        rdb_protocol_t::read_t read(
-            rdb_protocol_t::rget_read_t(
-                rdb_protocol_t::region_t(rng.to_sindex_keyrange()), id, rng));
-
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -367,7 +355,7 @@ TEST(RDBProtocol, OvershardedSindexList) {
 }
 
 void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
-    std::string sindex_id = create_sindex(nsi, osource);
+    std::string id = create_sindex(nsi, osource);
 
     for (size_t i = 0; i < 20; ++i) {
         for (size_t j = 100; j < 200; j += 5) {
@@ -416,12 +404,7 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
 
             {
                 /* Access the data using the secondary index. */
-                datum_range_t rng(sindex_key_literal, key_range_t::closed,
-                                  sindex_key_literal, key_range_t::closed);
-                rdb_protocol_t::rget_read_t rget(
-                    rdb_protocol_t::region_t(
-                        rng.to_sindex_keyrange()), sindex_id, rng);
-                rdb_protocol_t::read_t read(rget);
+                rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
                 rdb_protocol_t::read_response_t response;
 
                 cond_t interruptor;

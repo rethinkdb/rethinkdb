@@ -190,7 +190,7 @@ read_t readgen_t::next_read(
     return read_t(next_read_impl(active_range, transform));
 }
 
-// TODO: this is how we did it before, but it sucks.
+// RSI: this is how we did it before, but it sucks.
 read_t readgen_t::terminal_read(
     const transform_t &transform, terminal_t &&_terminal) const {
     rget_read_t read = next_read_impl(original_keyrange(), transform);
@@ -211,7 +211,13 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
 
 rget_read_t primary_readgen_t::next_read_impl(
     const key_range_t &active_range, const transform_t &transform) const {
-    return rget_read_t(region_t(active_range), transform, global_optargs, sorting);
+    return rget_read_t(
+        region_t(active_range),
+        global_optargs,
+        transform,
+        boost::optional<terminal_t>(),
+        boost::optional<sindex_rangespec_t>(),
+        sorting);
 }
 
 // We never need to do an sindex sort when indexing by a primary key.
@@ -265,8 +271,16 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
 
 rget_read_t sindex_readgen_t::next_read_impl(
     const key_range_t &active_range, const transform_t &transform) const {
-    return rget_read_t(region_t(active_range), sindex, original_datum_range,
-                       transform, global_optargs, sorting);
+    return rget_read_t(
+        region_t::universe(),
+        global_optargs,
+        transform,
+        boost::optional<terminal_t>(),
+        sindex_rangespec_t(
+            sindex,
+            region_t(active_range),
+            original_datum_range),
+        sorting);
 }
 
 // RSI: test this shit
@@ -281,9 +295,17 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
             // read with the same truncated sindex value".
             store_key_t rbound(skey + std::string(MAX_KEY_SIZE - skey.size(), 0xFF));
             key_range_t rng(key_range_t::open, key, key_range_t::closed, rbound);
-            return boost::optional<read_t>(read_t(rget_read_t(
-                region_t(key_range_t(rng)), sindex, original_datum_range,
-                transform, global_optargs, sorting)));
+            return read_t(
+                rget_read_t(
+                    region_t::universe(),
+                    global_optargs,
+                    transform,
+                    boost::optional<terminal_t>(),
+                    sindex_rangespec_t(
+                        sindex,
+                        region_t(key_range_t(rng)),
+                        original_datum_range),
+                    sorting));
         }
     }
     return boost::optional<read_t>();

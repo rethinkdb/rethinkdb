@@ -1209,7 +1209,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             std::vector<char> sindex_mapping_data;
 
             try {
-                bool found = store->acquire_sindex_superblock_for_read(*rget.sindex,
+                bool found = store->acquire_sindex_superblock_for_read(rget.sindex->id,
                         superblock->get_sindex_block_id(), token_pair,
                         txn, &sindex_sb, &sindex_mapping_data, &interruptor);
 
@@ -1217,7 +1217,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     res->result = ql::datum_exc_t(
                         ql::base_exc_t::GENERIC,
                         strprintf("Index `%s` was not found.",
-                                  rget.sindex->c_str()));
+                                  rget.sindex->id.c_str()));
                     return;
                 }
             } catch (const sindex_not_post_constructed_exc_t &) {
@@ -1225,14 +1225,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     ql::base_exc_t::GENERIC,
                     strprintf("Index `%s` was accessed before "
                               "its construction was finished.",
-                              rget.sindex->c_str()));
+                              rget.sindex->id.c_str()));
                 return;
             }
-
-            guarantee(rget.sindex_range, "If an rget has a sindex specified "
-                      "it should also have a sindex_range.");
-            guarantee(rget.sindex_region, "If an rget has a sindex specified "
-                      "it should also have a sindex_region.");
 
             // This chunk of code puts together a filter so we can exclude any items
             //  that don't fall in the specified range.  Because the secondary index
@@ -1248,11 +1243,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
 
             rdb_rget_secondary_slice(
-                    store->get_sindex_slice(*rget.sindex),
-                    *rget.sindex_range, *rget.sindex_region, // guaranteed present above
-                    txn, sindex_sb.get(), &ql_env, rget.transform,
-                    rget.terminal, rget.region.inner, rget.sorting,
-                    sindex_mapping, multi_bool, res);
+                store->get_sindex_slice(rget.sindex->id),
+                rget.sindex->original_range, rget.sindex->region,
+                txn, sindex_sb.get(), &ql_env, rget.transform,
+                rget.terminal, rget.region.inner, rget.sorting,
+                sindex_mapping, multi_bool, res);
         }
     }
 
@@ -1809,15 +1804,16 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_rangespec_t,
+                           id, region, original_range);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(key_range_t::bound_t, int8_t,
                                       key_range_t::open, key_range_t::none);
 RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
                            empty_ok(left_bound), empty_ok(right_bound),
                            left_bound_type, right_bound_type);
-RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
-                           sindex_region, sindex_range,
-                           transform, terminal, optargs, sorting);
+RDB_IMPL_ME_SERIALIZABLE_6(rdb_protocol_t::rget_read_t,
+                           region, optargs, transform, terminal, sindex, sorting);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
                            max_depth, result_limit, region);
@@ -1849,7 +1845,8 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t, backfill_atom);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::key_value_pair_t,
+                           backfill_atom);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::sindexes_t, sindexes);
 

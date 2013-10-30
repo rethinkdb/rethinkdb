@@ -315,87 +315,48 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    // RSI: get rid of some of these constructors?
+    struct sindex_rangespec_t {
+        sindex_rangespec_t() { }
+        sindex_rangespec_t(const std::string &_id,
+                           const region_t &_region,
+                           const datum_range_t _original_range)
+            : id(_id), region(_region), original_range(_original_range) { }
+        std::string id; // What sindex we're using.
+        region_t region; // What keyspace we're currently operating on.
+        datum_range_t original_range; // For dealing with truncation.
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    // TODO: this should maybe be multiple types.  Determining the type of read
+    // by branching on whether an optional is full sucks.
     class rget_read_t {
     public:
         rget_read_t() { }
 
-        explicit rget_read_t(const region_t &_region,
-                             sorting_t _sorting = UNORDERED)
-            : region(_region), sorting(_sorting) {
-        }
-
-        rget_read_t(const region_t &_sindex_region,
-                    const std::string &_sindex,
-                    datum_range_t _sindex_range,
-                    sorting_t _sorting = UNORDERED)
-            : region(region_t::universe()), sindex(_sindex),
-              sindex_range(_sindex_range),
-              sindex_region(_sindex_region), sorting(_sorting) { }
-
-        rget_read_t(const region_t &_sindex_region,
-                    const std::string &_sindex,
-                    datum_range_t _sindex_range,
-                    const rdb_protocol_details::transform_t &_transform,
+        rget_read_t(const region_t &_region,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    sorting_t _sorting = UNORDERED)
-            : region(region_t::universe()), sindex(_sindex),
-              sindex_range(_sindex_range),
-              sindex_region(_sindex_region),
-              transform(_transform), optargs(_optargs),
+                    const rdb_protocol_details::transform_t &_transform,
+                    boost::optional<rdb_protocol_details::terminal_t> &&_terminal,
+                    boost::optional<sindex_rangespec_t> &&_sindex,
+                    sorting_t _sorting)
+            : region(_region),
+              optargs(_optargs),
+              transform(_transform),
+              terminal(std::move(_terminal)),
+              sindex(std::move(_sindex)),
               sorting(_sorting) { }
 
-        rget_read_t(const region_t &_region,
-                    const rdb_protocol_details::transform_t &_transform,
-                    const std::map<std::string, ql::wire_func_t> &_optargs,
-                    sorting_t _sorting = UNORDERED)
-            : region(_region), transform(_transform),
-              optargs(_optargs), sorting(_sorting) {
-            rassert(optargs.size() != 0);
-        }
+        region_t region; // We need this even for sindex reads due to sharding.
+        std::map<std::string, ql::wire_func_t> optargs; // Needed for transformations.
 
-        rget_read_t(const region_t &_region,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), terminal(_terminal), optargs(_optargs) {
-            rassert(optargs.size() != 0);
-        }
-
-        rget_read_t(const region_t &_region,
-                    const rdb_protocol_details::transform_t &_transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &_terminal,
-                    const std::map<std::string, ql::wire_func_t> &_optargs)
-            : region(_region), transform(_transform),
-              terminal(_terminal), optargs(_optargs) {
-            rassert(optargs.size() != 0);
-        }
-
-        /* This region is in the primary index's keyspace. */
-        region_t region;
-
-        /* `sindex` and `sindex_region` are both non null if the instance
-        represents a sindex read (notice all sindex reads are range reads).
-        And both null if the instance represents a normal rget. Notice that
-        even if they are set and the instance represents a sindex read `region`
-        is still used due to sharding. */
-
-        /* The sindex from which we're reading. */
-        boost::optional<std::string> sindex;
-
-        /* The actual sindex range to use for bounds, since the sindex key may
-        have been truncated due to excessive length */
-        boost::optional<datum_range_t> sindex_range;
-
-        /* The region of that sindex we're reading use `sindex_key_range` to
-        read a single key. */
-        boost::optional<region_t> sindex_region;
-
+        // We use these two for lazy maps, reductions, etc.
         rdb_protocol_details::transform_t transform;
         boost::optional<rdb_protocol_details::terminal_t> terminal;
-        std::map<std::string, ql::wire_func_t> optargs;
 
-        /* How to sort the data. */
-        sorting_t sorting;
+        // This is non-empty if we're doing an sindex read.
+        boost::optional<sindex_rangespec_t> sindex;
+
+        sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -406,7 +367,8 @@ struct rdb_protocol_t {
             : max_depth(0), result_limit(0), region(region_t::universe())
         { }
         distribution_read_t(int _max_depth, size_t _result_limit)
-            : max_depth(_max_depth), result_limit(_result_limit), region(region_t::universe())
+            : max_depth(_max_depth), result_limit(_result_limit),
+              region(region_t::universe())
         { }
 
         int max_depth;

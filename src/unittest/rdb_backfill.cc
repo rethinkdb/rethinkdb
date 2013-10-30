@@ -254,7 +254,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > >
         replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card())));
 
-    std::string sindex_id("sid");
+    std::string id("sid");
     {
         /* Create a secondary index object. */
         const ql::sym_t one(1);
@@ -264,7 +264,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
 
         ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m, SINGLE));
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, SINGLE));
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -329,11 +329,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
-        datum_range_t rng(sindex_key_literal, key_range_t::closed,
-                          sindex_key_literal, key_range_t::closed);
-        rdb_protocol_t::read_t read(
-            rdb_protocol_t::rget_read_t(
-                rdb_protocol_t::region_t(rng.to_sindex_keyrange()), sindex_id, rng));
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

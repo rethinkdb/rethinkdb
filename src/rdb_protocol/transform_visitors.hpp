@@ -21,7 +21,6 @@ void transform_exception(const datum_exc_t &exc,
 
 }  // namespace ql
 
-// RSI: nuke
 namespace query_language {
 
 void transform_apply(ql::env_t *ql_env, counted_t<const ql::datum_t> json,

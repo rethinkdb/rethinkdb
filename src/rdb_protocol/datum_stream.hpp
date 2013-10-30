@@ -30,6 +30,7 @@ typedef rdb_protocol_details::rget_item_t rget_item_t;
 typedef rdb_protocol_details::transform_variant_t transform_variant_t;
 typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
 typedef rdb_protocol_t::read_t read_t;
+typedef rdb_protocol_t::sindex_rangespec_t sindex_rangespec_t;
 typedef rdb_protocol_t::rget_read_t rget_read_t;
 typedef rdb_protocol_t::read_response_t read_response_t;
 typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
