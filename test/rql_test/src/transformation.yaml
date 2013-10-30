@@ -197,7 +197,7 @@ tests:
       ot: ({'id':96,'a':0})
 
     - cd: tbl.order_by('id').type_of()
-      ot: "'SELECTION'"
+      ot: "'SELECTION<ARRAY>'"
 
     - cd: tbl.order_by('missing').order_by('id').nth(0)
       ot: ({'id':0, 'a':0})
@@ -459,7 +459,7 @@ tests:
 
     # Coerce a table to an array
     - cd: tbl.limit(5).type_of()
-      ot: '"SELECTION"'
+      ot: '"SELECTION<STREAM>"'
 
     - cd: tbl.limit(5).coerce_to('array').type_of()
       ot: '"ARRAY"'

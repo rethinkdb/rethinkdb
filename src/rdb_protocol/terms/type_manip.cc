@@ -292,22 +292,30 @@ private:
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
             b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
-            b |= info.add("primary_key", make_counted<datum_t>(std::string(table->get_pkey())));
+            b |= info.add("primary_key",
+                          make_counted<datum_t>(std::string(table->get_pkey())));
             b |= info.add("indexes", table->sindex_list(env->env));
             b |= info.add("db", val_info(env, new_val(table->db)));
         } break;
         case SELECTION_TYPE: {
-            b |= info.add("table", val_info(env, new_val(v->as_selection(env->env).first)));
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_selection(env->env).first)));
+        } break;
+        case ARRAY_SELECTION_TYPE: {
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_selection(env->env).first)));
         } break;
         case SINGLE_SELECTION_TYPE: {
-            b |= info.add("table", val_info(env, new_val(v->as_single_selection().first)));
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_single_selection().first)));
         } break;
         case SEQUENCE_TYPE: {
             // No more info.
         } break;
 
         case FUNC_TYPE: {
-            b |= info.add("source_code", make_counted<datum_t>(v->as_func()->print_source()));
+            b |= info.add("source_code",
+                          make_counted<datum_t>(v->as_func()->print_source()));
         } break;
 
         case R_NULL_TYPE:   // fallthru
@@ -320,7 +328,7 @@ private:
             b |= info.add("value", make_counted<datum_t>(v->as_datum()->print()));
         } break;
 
-        default: unreachable();
+        default: r_sanity_check(false);
         }
         r_sanity_check(!b);
         return info.to_counted();
