@@ -159,7 +159,7 @@ class ArrayResult extends IterableResult
 
         if @hasNext() is true
             self = @
-            if self.__index%@stackSize == 0
+            if self.__index%@stackSize is @stackSize-1
                 # Reset the stack
                 setImmediate ->
                     cb(null, self[self.__index++])
