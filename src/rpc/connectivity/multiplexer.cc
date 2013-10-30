@@ -8,7 +8,7 @@
 #include "rpc/connectivity/connectivity.hpp"
 
 
-#define MAX_OUTSTANDING_WRITES_PER_MULTIPLEXER_CLIENT_THREAD 4
+#define MAX_OUTSTANDING_WRITES_PER_MULTIPLEXER_CLIENT_THREAD 16
 
 
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
