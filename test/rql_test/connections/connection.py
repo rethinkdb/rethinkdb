@@ -354,14 +354,14 @@ class TestBatching(TestWithConnection):
         # If this test fails in the future check first if the structure of the object has changed.
 
         # Only the first chunk (of either 1 or 2) should have loaded
-        self.assertEqual(len(cursor.chunks), 1)
+        self.assertEqual(len(cursor.responses), 1)
 
         # Either the whole stream should have loaded in one batch or the server reserved at least
         # one element in the stream for the second batch.
         if cursor.end_flag:
-            self.assertEqual(len(cursor.chunks[0]), batch_size)
+            self.assertEqual(len(cursor.responses[0].response), batch_size)
         else:
-            assertLess(len(cursor.chunks[0]), batch_size)
+            assertLess(len(cursor.responses[0].response), batch_size)
 
         itr = iter(cursor)
         for i in xrange(0, batch_size - 1):
@@ -369,8 +369,8 @@ class TestBatching(TestWithConnection):
 
         # In both cases now there should at least one element left in the last chunk
         self.assertTrue(cursor.end_flag)
-        self.assertGreaterEqual(len(cursor.chunks), 1)
-        self.assertGreaterEqual(len(cursor.chunks[0]), 1)
+        self.assertGreaterEqual(len(cursor.responses), 1)
+        self.assertGreaterEqual(len(cursor.responses[0].response), 1)
 
 # # TODO: test cursors, streaming large values
 
