@@ -124,6 +124,7 @@ void linux_message_hub_t::on_event(int events) {
 
     const int num_priorities = MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1;
     size_t num_initial_msgs_left_to_process[num_priorities];
+    bool initial_batch_has_been_processed = false;
     bool initial_pass = true;
     do {
         if (!initial_pass) {
