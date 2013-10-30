@@ -120,7 +120,7 @@ class Connection(object):
             response += char
 
         if response != b"SUCCESS":
-            self.close()
+            self.close(noreply_wait=False)
             raise RqlDriverError("Server dropped connection with message: \"%s\"" % response.strip())
 
         # Connection is now initialized
@@ -132,7 +132,10 @@ class Connection(object):
         if self.socket:
             if noreply_wait:
                 self.noreply_wait()
-            self.socket.shutdown(socket.SHUT_RDWR)
+            try:
+                self.socket.shutdown(socket.SHUT_RDWR)
+            except socket.error:
+                pass
             self.socket.close()
             self.socket = None
         self.cursor_cache = { }
