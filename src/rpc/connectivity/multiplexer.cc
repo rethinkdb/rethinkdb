@@ -8,6 +8,9 @@
 #include "rpc/connectivity/connectivity.hpp"
 
 
+#define MAX_OUTSTANDING_WRITES_PER_MULTIPLEXER_CLIENT 16
+
+
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
     guarantee(parent->run == NULL);
     parent->run = this;
@@ -52,7 +55,8 @@ message_multiplexer_t::client_t::run_t::~run_t() {
 message_multiplexer_t::client_t::client_t(message_multiplexer_t *p, tag_t t) :
     parent(p),
     tag(t),
-    run(NULL)
+    run(NULL),
+    outstanding_writes_semaphore(MAX_OUTSTANDING_WRITES_PER_MULTIPLEXER_CLIENT)
 {
     guarantee(parent->run == NULL);
     guarantee(parent->clients[tag] == NULL);
@@ -90,7 +94,16 @@ private:
 
 void message_multiplexer_t::client_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) {
     tagged_message_writer_t writer(tag, callback);
-    parent->message_service->send_message(dest, &writer);
+    if (dest == parent->message_service->get_connectivity_service()->get_me()) {
+        // If we send to ourselves, we must not go through the semaphore because
+        // we might get here recursively and deadlock.
+        parent->message_service->send_message(dest, &writer);
+    } else {
+        semaphore_acq_t outstanding_write_acq (&outstanding_writes_semaphore, 1,
+                                               semaphore_acq_t::lock_mode_t::LAZILY_UNORDERED);
+        parent->message_service->send_message(dest, &writer);
+        // Release outstanding_writes_semaphore
+    }
 }
 
 void message_multiplexer_t::client_t::kill_connection(peer_id_t peer) {
