@@ -179,8 +179,69 @@ describe('Javascript connection API', function(){
         }));
 
         it("fails to query after close", withConnection(function(done, c){
-            c.close();
+            c.close({noreplyWait: false});
             r(1).run(c, givesError("RqlDriverError", "Connection is closed.", done));
+        }));
+
+        it("noreplyWait waits", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            c.noreplyWait(function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration >= 500);
+                done();
+            });
+        }));
+
+        it("close waits by default", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            c.close(function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration >= 500);
+                done();
+            });
+        }));
+
+        it("reconnect waits by default", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            c.reconnect(function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration >= 500);
+                done();
+            });
+        }));
+
+        it("close does not wait if we want it not to", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            c.close({'noreplyWait': false}, function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration < 500);
+                done();
+            });
+        }));
+
+        it("reconnect does not wait if we want it not to", withConnection(function(done, c){
+            var t = new Date().getTime();
+            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            c.reconnect({'noreplyWait': false}, function (err) {
+                assertNull(err);
+                var duration = new Date().getTime() - t;
+                assert(duration < 500);
+                done();
+            });
+        }));
+
+        it("close waits even without callback", withConnection(function(done, c){
+            r.js('while(true);', {timeout: 0.5}).run({connection: c, noreply: true});
+            c.close();
+            r(1).run(c, noError(done));
         }));
 
         it("test use", withConnection(function(done, c){
