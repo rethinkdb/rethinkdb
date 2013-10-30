@@ -60,16 +60,16 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 interruptor, ctx->machine_id, q));
         // `ql::run` will set the status code
         ql::run(q, std::move(env), response_out, stream_cache2);
+    } catch (const ql::exc_t &e) {
+        fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
+    } catch (const ql::datum_exc_t &e) {
+        fill_error(response_out, Response::COMPILE_ERROR, e.what(), ql::backtrace_t());
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");
     } catch (const std::exception &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        strprintf("Unexpected exception: %s\n", e.what()));
-    } catch (const ql::exc_t &e) {
-        fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
-    } catch (const ql::datum_exc_t &e) {
-        fill_error(response_out, Response::COMPILE_ERROR, e.what(), ql::backtrace_t());
     }
 
     return response_needed;
