@@ -170,7 +170,7 @@ void writeback_t::local_buf_t::set_dirty(bool _dirty) {
         throttling_acq.init(new adjustable_semaphore_acq_t(
                 &gbuf->cache->writeback.dirty_block_semaphore,
                 1,
-                true));
+                adjustable_semaphore_acq_t::lock_mode_t::FORCE));
         ++gbuf->cache->stats->pm_n_blocks_dirty;
     }
     if (dirty && !_dirty) {
