@@ -167,8 +167,7 @@ class RDBVal extends TermBase
         perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
         if perhapsOptDict and
                 ((Object::toString.call(perhapsOptDict) is '[object Object]') and
-                not (perhapsOptDict instanceof TermBase) and
-                not (perhapsOptDict instanceof Function))
+                not (perhapsOptDict instanceof TermBase)
             opts = perhapsOptDict
             attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
 
