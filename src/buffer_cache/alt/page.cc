@@ -882,14 +882,13 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
         }
     }
 
-    for (auto it = txn->touched_pages_.begin(); it != txn->touched_pages_.end();
-         ++it) {
+    for (size_t i = 0, e = txn->touched_pages_.size(); i < e; ++i) {
         // "is_deleted == false and !block_token.has()" means the page is just
         // touched.
-        blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
+        blocks_by_tokens.push_back(block_token_tstamp_t(txn->touched_pages_[i].first,
                                                         false,
                                                         counted_t<standard_block_token_t>(),
-                                                        it->second));
+                                                        txn->touched_pages_[i].second));
     }
 
     // RSI: Take the newly written blocks' block tokens and set their page_t's block

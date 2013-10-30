@@ -453,8 +453,8 @@ private:
     // Saved pages (by block id).
     segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
 
-    // RSP: Performance?
-    std::vector<std::pair<block_id_t, repli_timestamp_t> > touched_pages_;
+    // Touched pages (by block id).
+    segmented_vector_t<std::pair<block_id_t, repli_timestamp_t>, 8> touched_pages_;
 
     // Tells whether this page_txn_t has announced itself (to the cache) to be
     // waiting for a flush.
