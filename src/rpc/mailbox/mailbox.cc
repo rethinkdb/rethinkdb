@@ -11,6 +11,10 @@
 #include "concurrency/pmap.hpp"
 #include "logger.hpp"
 
+
+#define MAX_OUTSTANDING_WRITES_PER_MAILBOX_PER_THREAD 4
+
+
 /* raw_mailbox_t */
 
 const int raw_mailbox_t::address_t::ANY_THREAD = -1;
@@ -35,6 +39,7 @@ std::string raw_mailbox_t::address_t::human_readable() const {
 }
 
 raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_read_callback_t *_callback) :
+    outstanding_writes_semaphores(MAX_OUTSTANDING_WRITES_PER_MAILBOX_PER_THREAD),
     manager(m),
     mailbox_id(manager->register_mailbox(this)),
     callback(_callback) {
@@ -79,9 +84,18 @@ private:
 
 void send(mailbox_manager_t *src, raw_mailbox_t::address_t dest, mailbox_write_callback_t *callback) {
     guarantee(src);
+    src->send(dest, callback);
+}
+
+void mailbox_manager_t::send(raw_mailbox_t::address_t dest, mailbox_write_callback_t *callback) {
     guarantee(!dest.is_nil());
     raw_mailbox_writer_t writer(dest.thread, dest.mailbox_id, callback);
-    src->message_service->send_message(dest.peer, &writer);
+    {
+        semaphore_acq_t outstanding_write_acq(
+            mailbox_tables.get()->find_mailbox(dest.mailbox_id)->outstanding_writes_semaphores.get());
+        message_service->send_message(dest.peer, &writer);
+        // Release semaphore
+    }
 }
 
 mailbox_manager_t::mailbox_manager_t(message_service_t *ms) :
