@@ -166,7 +166,7 @@ void linux_message_hub_t::on_event(int events) {
             total_pending_msgs += priority_msg_lists_[i].size();
         }
         const size_t effective_granularity = std::min(total_pending_msgs,
-                                                      MESSAGE_SCHEDULER_GRANULARITY);
+                                                      static_cast<size_t>(MESSAGE_SCHEDULER_GRANULARITY));
 
         // Process a certain number of messages from each priority
         for (int current_priority = MESSAGE_SCHEDULER_MAX_PRIORITY;
