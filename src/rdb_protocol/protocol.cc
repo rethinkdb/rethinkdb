@@ -162,12 +162,10 @@ public:
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
         rdb_update_sindexes(*sindexes_, &mod_report, txn_);
-        coro_t::yield();
     }
 
     void operator()(const rdb_erase_range_report_t &erase_range_report) const {
         rdb_erase_range_sindexes(*sindexes_, &erase_range_report, txn_, interruptor_);
-        coro_t::yield();
     }
 
 private:
