@@ -6,6 +6,7 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -62,7 +63,7 @@ public:
                                   const pb_rcheckable_t *bt_src) {
         std::string dc;
         r::reql_t dc_arg = parse_dc(&in->args(2), &dc, bt_src);
-        reql_t gmr = r::expr(in->args(0))
+        r::reql_t gmr = r::expr(in->args(0))
                          .grouped_map_reduce(
                             in->args(1),
                             map_fn(dc, &dc_arg),
@@ -76,8 +77,8 @@ private:
     // This logic is ugly because we need to handle both MAKE_OBJ and R_OBJECT
     // as syntax rather than just parsing them both into an object (since we're
     // doing this at compile-time rather than runtime).
-    static reql_t parse_dc(const Term *t, std::string *dc_out,
-                         const pb_rcheckable_t *bt_src) {
+    static r::reql_t parse_dc(const Term *t, std::string *dc_out,
+                              const pb_rcheckable_t *bt_src) {
         std::string errmsg = "Invalid aggregator for GROUPBY.";
         if (t->type() == Term::MAKE_OBJ) {
             rcheck_target(bt_src, base_exc_t::GENERIC,
@@ -98,7 +99,7 @@ private:
                           d->r_object_size() == 1, errmsg);
             const Datum_AssocPair *ap = &d->r_object(0);
             *dc_out = ap->key();
-            rcheck_target(
+xo            rcheck_target(
                 bt_src, base_exc_t::GENERIC,
                 *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                 strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
@@ -110,7 +111,7 @@ private:
         }
     }
 
-    static reql_t map_fn(const std::string &dc, const reql_t *dc_arg) {
+    static r::reql_t map_fn(const std::string &dc, const r::reql_t *dc_arg) {
         auto obj = pb::dummy_var_t::GROUPBY_MAP_OBJ;
         if (dc == "COUNT") {
             return r::fun(arg, 1.0);
@@ -134,7 +135,7 @@ private:
                       )(dc_arg->copy());
         } else { unreachable(); }
     }
-    static reql_t reduce_fn(const std::string &dc, UNUSED const Term *dc_arg) {
+        static r::reql_t reduce_fn(const std::string &dc, UNUSED const r::reql_t *dc_arg) {
         auto a = pb::dummy_var_t::GROUPBY_REDUCE_A;
         auto b = pb::dummy_var_t::GROUPBY_REDUCE_A;
         if (dc == "COUNT" || dc == "SUM") {
@@ -145,8 +146,8 @@ private:
                                    r::var(a).nth(1) + r::var(b).nth(1)));
         } else { unreachable(); }
     }
-    static reql_t final_wrap(reql_t arg,
-                             const std::string &dc, UNUSED const Term *dc_arg) {
+    static r::reql_t final_wrap(r::reql_t arg,
+                                const std::string &dc, UNUSED const r::reql_t *dc_arg) {
         if (dc == "COUNT" || dc == "SUM") {
             return arg;
         }

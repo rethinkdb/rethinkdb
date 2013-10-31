@@ -128,6 +128,7 @@ public:
     REQL_METHOD(operator [], GET_FIELD)
     REQL_METHOD(nth, NTH)
     REQL_METHOD(pluck, PLUCK)
+    REQL_METHOD(grouped_map_reduce, GROUPED_MAP_REDUCE)
 
 #undef REQL_METHOD
 
