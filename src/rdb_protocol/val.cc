@@ -444,7 +444,7 @@ void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
                           const rcheckable_t *parent) {
     r_sanity_check(_sorting != sorting_t::UNORDERED);
 
-    rcheck_target(parent, base_exc_t::GENERIC, !sorting,
+    rcheck_target(parent, base_exc_t::GENERIC, sorting == sorting_t::UNORDERED,
             "Cannot apply 2 indexed orderings to the same TABLE.");
     rcheck_target(parent, base_exc_t::GENERIC, !sindex_id || *sindex_id == new_sindex_id,
             strprintf(

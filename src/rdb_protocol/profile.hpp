@@ -71,12 +71,17 @@ private:
     friend class starter_t;
     friend class splitter_t;
     friend class sampler_t;
+    friend class disabler_t;
     void start(const std::string &description);
     void stop();
     void start_split();
     void stop_split(size_t n_parallel_jobs_, const event_log_t &event_log);
     void start_sample(event_log_t *sample_event_log);
-    void stop_sample(const std::string &description, ticks_t mean_duration, size_t n_samples);
+    void stop_sample(const std::string &description, ticks_t mean_duration,
+        size_t n_samples, event_log_t *sample_event_log);
+    void stop_sample(event_log_t *sample_event_log);
+    void disable();
+    void enable();
 
     /* returns the event_log_t that we should put events in */
     event_log_t *event_log_target();
@@ -84,6 +89,8 @@ private:
     /* redirected_event_log_ is used during sampling to send the events to the
      * sampler to be processed. */
     event_log_t *redirected_event_log_;
+    size_t disabled_ref_count;
+    bool disabled();
 };
 
 /* These are the instruments for adding profiling to code. You construct this
@@ -105,6 +112,7 @@ public:
     starter_t(const std::string &description, const scoped_ptr_t<trace_t> &parent);
     ~starter_t();
 private:
+    void init(const std::string &description, trace_t *parent);
     trace_t *parent_;
 };
 
@@ -132,6 +140,7 @@ public:
     void give_splits(size_t n_parallel_jobs_, const event_log_t &event_log);
     ~splitter_t();
 private:
+    void init(trace_t *parent);
     trace_t *parent_;
     size_t n_parallel_jobs_;
     event_log_t event_log_;
@@ -166,12 +175,26 @@ public:
     void new_sample();
     ~sampler_t();
 private:
+    void init(const std::string &description, trace_t *parent);
     trace_t *parent_;
     event_log_t event_log_;
 
     std::string description_;
     ticks_t total_time_;
     size_t n_samples_;
+};
+
+/* disabler_t is used when you don't want a section of code to be profiled.
+ * Right now this is used for parts of the code that would otherwise use
+ * trace_t illegally due to their reentrancy. */
+class disabler_t {
+public:
+    disabler_t(trace_t *parent);
+    disabler_t(const scoped_ptr_t<trace_t> &parent);
+    ~disabler_t();
+private:
+    void init(trace_t *parent);
+    trace_t *parent_;
 };
 
 void print_event_log(const event_log_t &event_log);

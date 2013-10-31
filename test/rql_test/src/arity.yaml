@@ -61,7 +61,7 @@ tests:
       ot:
         py: err_regex('TypeError', ".*takes at least 1 argument \(0 given\)", [])
         js: err("RqlDriverError", "Expected between 1 and 2 argument(s) but found 0.", [])
-        rb: err("ArgumentError", "wrong number of arguments (0 for 1)", [])
+        rb: err("ArgumentError", "wrong number of arguments (0 for 1..2)", [])
 
     - ot:
         js: err("RqlDriverError", "Expected 1 argument(s) but found 0.", [])

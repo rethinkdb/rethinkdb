@@ -690,6 +690,7 @@ public:
                 query_language::terminal_initialize(&*terminal, &response->result);
             }
 
+            disabler.init(new profile::disabler_t(ql_env->trace));
             sampler.init(new profile::sampler_t("Range traversal doc evaluation.", ql_env->trace));
         } catch (const ql::exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
@@ -835,6 +836,7 @@ public:
     counted_t<ql::func_t> sindex_function;
     boost::optional<sindex_multi_bool_t> sindex_multi;
 
+    scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
 };
 

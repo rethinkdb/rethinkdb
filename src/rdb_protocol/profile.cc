@@ -128,10 +128,10 @@ counted_t<const ql::datum_t> construct_datum(
 
 class print_event_log_visitor_t : public boost::static_visitor<> {
 public:
-    void operator()(const start_t &start) const {
+    void operator()(UNUSED const start_t &start) const {
         debugf("Start: %s.\n", start.description_.c_str());
     }
-    void operator()(const split_t &split) const {
+    void operator()(UNUSED const split_t &split) const {
         debugf("Split: %zu.\n", split.n_parallel_jobs_);
     }
     void operator()(const sample_t &) const {
@@ -149,16 +149,13 @@ void print_event_log(const event_log_t &event_log) {
     }
 }
 
-starter_t::starter_t(const std::string &description, trace_t *parent)
-    : parent_(parent)
-{
-    if (parent_) {
-        parent_->start(description);
-    }
+starter_t::starter_t(const std::string &description, trace_t *parent) {
+    init(description, parent);
 }
 
-starter_t::starter_t(const std::string &description, const scoped_ptr_t<trace_t> &parent)
-    : starter_t(description, parent.get_or_null()) { }
+starter_t::starter_t(const std::string &description, const scoped_ptr_t<trace_t> &parent) {
+    init(description, parent.get_or_null());
+}
 
 starter_t::~starter_t() {
     if (parent_) {
@@ -166,16 +163,20 @@ starter_t::~starter_t() {
     }
 }
 
-splitter_t::splitter_t(trace_t *parent)
-    : parent_(parent), received_splits_(false)
-{
+void starter_t::init(const std::string &description, trace_t *parent) {
+    parent_ = parent;
     if (parent_) {
-        parent_->start_split();
+        parent_->start(description);
     }
 }
 
-splitter_t::splitter_t(const scoped_ptr_t<trace_t> &parent)
-    : splitter_t(parent.get_or_null()) { }
+splitter_t::splitter_t(trace_t *parent) {
+    init(parent);
+}
+
+splitter_t::splitter_t(const scoped_ptr_t<trace_t> &parent) {
+    init(parent.get_or_null());
+}
 
 void splitter_t::give_splits(
     size_t n_parallel_jobs, const event_log_t &event_log) {
@@ -191,17 +192,32 @@ splitter_t::~splitter_t() {
     }
 }
 
-sampler_t::sampler_t(const std::string &description, trace_t *parent)
-    : parent_(parent), description_(description),
-      total_time_(0), n_samples_(0)
-{
+void splitter_t::init(trace_t *parent) {
+    parent_ = parent;
+    received_splits_ = false;
+
+    if (parent_) {
+        parent_->start_split();
+    }
+}
+
+sampler_t::sampler_t(const std::string &description, trace_t *parent) {
+    init(description, parent);
+}
+
+sampler_t::sampler_t(const std::string &description, const scoped_ptr_t<trace_t> &parent) {
+    init(description, parent.get_or_null());
+}
+
+void sampler_t::init(const std::string &description, trace_t *parent) {
+    parent_ = parent;
+    description_ = description;
+    total_time_ = 0;
+    n_samples_ = 0;
     if (parent_) {
         parent_->start_sample(&event_log_);
     }
 }
-
-sampler_t::sampler_t(const std::string &description, const scoped_ptr_t<trace_t> &parent)
-    : sampler_t(description, parent.get_or_null()) { }
 
 ticks_t duration(const event_log_t &event_log) {
     guarantee(!event_log.empty());
@@ -229,15 +245,36 @@ sampler_t::~sampler_t() {
     new_sample();
     if (parent_) {
         if (n_samples_ > 0) {
-            parent_->stop_sample(description_, total_time_ / n_samples_, n_samples_);
+            parent_->stop_sample(description_, total_time_ / n_samples_, n_samples_, &event_log_);
         } else {
-            parent_->stop_sample(description_, 0, 0);
+            parent_->stop_sample(&event_log_);
         }
     }
 }
 
+disabler_t::disabler_t(trace_t *parent) {
+    init(parent);
+}
+
+disabler_t::disabler_t(const scoped_ptr_t<trace_t> &parent) {
+    init(parent.get_or_null());
+}
+
+disabler_t::~disabler_t() {
+    if (parent_) {
+        parent_->enable();
+    }
+}
+
+void disabler_t::init(trace_t *parent) {
+    parent_ = parent;
+    if (parent_) {
+        parent_->disable();
+    }
+}
+
 trace_t::trace_t()
-    : redirected_event_log_(NULL) { }
+    : redirected_event_log_(NULL), disabled_ref_count(0) { }
 
 counted_t<const ql::datum_t> trace_t::as_datum() {
     guarantee(!redirected_event_log_);
@@ -251,18 +288,26 @@ event_log_t &&trace_t::get_event_log() RVALUE_THIS {
 }
 
 void trace_t::start(const std::string &description) {
+    if (disabled()) { return; }
+    //debugf("Start %s %p.\n", description.c_str(), this);
     event_log_target()->push_back(start_t(description));
 }
 
 void trace_t::stop() {
+    if (disabled()) { return; }
+    //debugf("Stop %p.\n", this);
     event_log_target()->push_back(stop_t());
 }
 
 void trace_t::start_split() {
+    if (disabled()) { return; }
+    //debugf("Start split %p.\n", this);
     event_log_target()->push_back(split_t());
 }
 
 void trace_t::stop_split(size_t n_parallel_jobs_, const event_log_t &par_event_log) {
+    if (disabled()) { return; }
+    //debugf("Stop split %zu, %p.\n", n_parallel_jobs_, this);
     auto split = boost::get<split_t>(&event_log_target()->back());
     guarantee(split);
     split->n_parallel_jobs_ = n_parallel_jobs_;
@@ -270,13 +315,50 @@ void trace_t::stop_split(size_t n_parallel_jobs_, const event_log_t &par_event_l
 }
 
 void trace_t::start_sample(event_log_t *event_log) {
-    redirected_event_log_ = event_log;
+    if (disabled()) { return; }
+    //debugf("Start sample %p.\n", this);
+    /* This is a tad hacky. We currently don't  allow samples within samples.
+     * And if someone tries to do it the inner sample winds up just being a
+     * no-op. We should see if in practice this is something we actually want
+     * to support. */
+    if (!redirected_event_log_) {
+        redirected_event_log_ = event_log;
+    }
 }
 
-void trace_t::stop_sample(const std::string &description, 
-        ticks_t mean_duration, size_t n_samples) {
-    redirected_event_log_ = NULL;
+void trace_t::stop_sample(const std::string &description,
+        ticks_t mean_duration, size_t n_samples, event_log_t *event_log) {
+    if (disabled()) { return; }
+    //debugf("Stop sample %s, %p.\n", description.c_str(), this);
+    /* Don't reset the redirected_event_log_ if the sampler_t wasn't
+     * actually being redirected to. The predicate fails when the
+     * innter samplers in nested sampler_ts are destructed. */
+    if (event_log == redirected_event_log_) {
+        redirected_event_log_ = NULL;
+    }
     event_log_target()->push_back(sample_t(description, mean_duration, n_samples));
+}
+
+void trace_t::stop_sample(event_log_t *event_log) {
+    if (disabled()) { return; }
+    //debugf("Stop sample %p.\n", this);
+    /* Don't reset the redirected_event_log_ if the sampler_t wasn't
+     * actually being redirected to. The predicate fails when the
+     * innter samplers in nested sampler_ts are destructed. */
+    if (event_log == redirected_event_log_) {
+        redirected_event_log_ = NULL;
+    }
+}
+
+void trace_t::disable() {
+    disabled_ref_count++;
+}
+void trace_t::enable() {
+    disabled_ref_count--;
+}
+
+bool trace_t::disabled() {
+    return disabled_ref_count > 0;
 }
 
 event_log_t *trace_t::event_log_target() {
