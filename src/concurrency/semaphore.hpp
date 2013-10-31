@@ -4,7 +4,6 @@
 
 #include "concurrency/signal.hpp"
 #include "concurrency/wait_any.hpp"
-#include "concurrency/cond_var.hpp"
 #include "containers/intrusive_list.hpp"
 
 class semaphore_available_callback_t {
@@ -116,28 +115,14 @@ private:
 template <typename S>
 class generic_semaphore_acq_t {
 public:
-    enum lock_mode_t { EAGER, FORCE, LAZILY_UNORDERED };
-    generic_semaphore_acq_t(S *_acquiree, int _count = 1, lock_mode_t mode = EAGER) :
+    generic_semaphore_acq_t(S *_acquiree, int _count = 1, bool _force = false) :
                 acquiree(_acquiree),
                 count(_count) {
 
-        switch (mode) {
-            case EAGER:
-                acquiree->co_lock(count);
-                break;
-            case FORCE:
-                acquiree->force_lock(count);
-                break;
-            case LAZILY_UNORDERED: {
-                struct : public semaphore_available_callback_t, public cond_t {
-                    void on_semaphore_available() { pulse(); }
-                } cb;
-                acquiree->lock(&cb, count);
-                cb.wait_lazily_unordered();
-                break;
-            }
-            default:
-                unreachable();
+        if (_force) {
+            acquiree->force_lock(count);
+        } else {
+            acquiree->co_lock(count);
         }
     }
 
