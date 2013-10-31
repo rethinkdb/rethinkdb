@@ -136,7 +136,7 @@ TEST(PageTest, OneWriteAcqWait) {
 
 class bigger_test_t {
 public:
-    bigger_test_t() : mock(), c(mock.ser.get()) {
+    bigger_test_t() : mock(), c(mock.ser.get()), txn1_ptr(NULL), txn2_ptr(NULL) {
         for (size_t i = 0; i < b_len; ++i) {
             b[i] = NULL_BLOCK_ID;
         }
@@ -172,6 +172,7 @@ public:
 private:
     void run_txn1(auto_drainer_t::lock_t) {
         page_txn_t txn1(&c);
+        txn1_ptr = &txn1;
         auto acq6 = make_scoped<current_page_acq_t>(&txn1, alt_access_t::write);
         ASSERT_EQ(NULL_BLOCK_ID, b[6]);
         b[6] = acq6->block_id();
@@ -188,12 +189,16 @@ private:
         acq6.reset();
 
         condCR1.pulse();
+        condC.wait();
+        txn1_ptr = NULL;
     }
 
     void run_txn2(auto_drainer_t::lock_t) {
-        page_txn_t txn2(&c);
-
         condA.wait();
+        ASSERT_TRUE(txn1_ptr != NULL);
+        page_txn_t txn2(&c, txn1_ptr);
+        txn2_ptr = &txn2;
+
         ASSERT_NE(NULL_BLOCK_ID, b[6]);
         auto acq6 = make_scoped<current_page_acq_t>(&txn2, b[6], alt_access_t::write);
 
@@ -244,6 +249,8 @@ private:
         acq8.reset();
 
         condCR2.pulse();
+
+        txn2_ptr = NULL;
     }
 
     void run_txn3(auto_drainer_t::lock_t) {
@@ -778,6 +785,9 @@ private:
     cond_t condCR1, condCR2, condCR3, condCR4;
 
     cond_t t678cond;
+
+    page_txn_t *txn1_ptr;
+    page_txn_t *txn2_ptr;
 
     auto_drainer_t drain;
 };
