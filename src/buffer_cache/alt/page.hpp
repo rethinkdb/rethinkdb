@@ -65,6 +65,7 @@ private:
                                  page_cache_t *page_cache);
 
     friend class page_cache_t;
+    friend class evicter_t;
 
     static backindex_bag_index_t *eviction_index(page_t *page) {
         return &page->eviction_index_;
@@ -303,6 +304,30 @@ private:
     DISABLE_COPYING(free_list_t);
 };
 
+class evicter_t {
+public:
+    void add_to_unevictable(page_t *page);
+    void add_to_evictable_unbacked(page_t *page);
+    bool page_is_in_unevictable_bag(page_t *page) const;
+    void move_unevictable_to_evictable(page_t *page);
+    void change_eviction_bag(backindex_bag_t<page_t *> *current_bag, page_t *page);
+    backindex_bag_t<page_t *> *correct_eviction_category(page_t *page);
+    void remove_page(page_t *page);
+
+private:
+    friend class page_cache_t;
+    evicter_t();
+    ~evicter_t();
+
+    // These track whether every page's eviction status.
+    backindex_bag_t<page_t *> unevictable_pages_;
+    backindex_bag_t<page_t *> evictable_disk_backed_pages_;
+    backindex_bag_t<page_t *> evictable_unbacked_pages_;
+    backindex_bag_t<page_t *> evicted_pages_;
+
+    DISABLE_COPYING(evicter_t);
+};
+
 class page_cache_t {
 public:
     explicit page_cache_t(serializer_t *serializer);
@@ -317,13 +342,7 @@ public:
 
 private:
     friend class page_t;
-    void add_to_unevictable(page_t *page);
-    void add_to_evictable_unbacked(page_t *page);
-    bool page_is_in_unevictable_bag(page_t *page) const;
-    void move_unevictable_to_evictable(page_t *page);
-    void change_eviction_bag(backindex_bag_t<page_t *> *current_bag, page_t *page);
-    backindex_bag_t<page_t *> *correct_eviction_category(page_t *page);
-    void remove_page(page_t *page);
+    evicter_t &evicter() { return evicter_; }
 
     friend class page_txn_t;
     static void do_flush_txn(page_cache_t *page_cache, page_txn_t *txn);
@@ -344,14 +363,9 @@ private:
     // RSP: Array growth slow.
     std::vector<current_page_t *> current_pages_;
 
-    // These track whether a page's eviction status.
-    // RSI: Does anybody use evicted_pages_?
-    backindex_bag_t<page_t *> unevictable_pages_;
-    backindex_bag_t<page_t *> evictable_disk_backed_pages_;
-    backindex_bag_t<page_t *> evictable_unbacked_pages_;
-    backindex_bag_t<page_t *> evicted_pages_;
-
     free_list_t free_list_;
+
+    evicter_t evicter_;
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 

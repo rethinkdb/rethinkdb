@@ -15,10 +15,6 @@ namespace alt {
 
 page_cache_t::page_cache_t(serializer_t *serializer)
     : serializer_(serializer),
-      unevictable_pages_(&page_t::eviction_index),
-      evictable_disk_backed_pages_(&page_t::eviction_index),
-      evictable_unbacked_pages_(&page_t::eviction_index),
-      evicted_pages_(&page_t::eviction_index),
       free_list_(serializer),
       drainer_(new auto_drainer_t) {
     {
@@ -359,7 +355,7 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
       buf_size_(block_size_t::undefined()),
       snapshot_refcount_(0) {
-    page_cache->add_to_unevictable(this);
+    page_cache->evicter().add_to_unevictable(this);
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
                                             this,
                                             block_id,
@@ -373,14 +369,14 @@ page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
       buf_(std::move(buf)),
       snapshot_refcount_(0) {
     rassert(buf_.has());
-    page_cache->add_to_evictable_unbacked(this);
+    page_cache->evicter().add_to_evictable_unbacked(this);
 }
 
 page_t::page_t(page_t *copyee, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
       buf_size_(block_size_t::undefined()),
       snapshot_refcount_(0) {
-    page_cache->add_to_unevictable(this);
+    page_cache->evicter().add_to_unevictable(this);
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_from_copyee,
                                             this,
                                             copyee,
@@ -487,8 +483,7 @@ void page_t::remove_snapshotter(page_cache_t *page_cache) {
         // load_from_copyee.
         rassert(waiters_.empty());
 
-        page_cache->remove_page(this);
-        // RSI: Is this what we do?  For now it is.
+        page_cache->evicter().remove_page(this);
         delete this;
     }
 }
@@ -503,9 +498,9 @@ page_t *page_t::make_copy(page_cache_t *page_cache) {
 }
 
 void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
-    rassert(page_cache->page_is_in_unevictable_bag(this));
+    rassert(page_cache->evicter().page_is_in_unevictable_bag(this));
     if (waiters_.empty()) {
-        page_cache->move_unevictable_to_evictable(this);
+        page_cache->evicter().move_unevictable_to_evictable(this);
     } else {
         for (page_acq_t *p = waiters_.head(); p != NULL; p = waiters_.next(p)) {
             // The waiter's not already going to have been pulsed.
@@ -516,9 +511,9 @@ void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
 
 void page_t::add_waiter(page_acq_t *acq) {
     backindex_bag_t<page_t *> *old_bag
-        = acq->page_cache()->correct_eviction_category(this);
+        = acq->page_cache()->evicter().correct_eviction_category(this);
     waiters_.push_back(acq);
-    acq->page_cache()->change_eviction_bag(old_bag, this);
+    acq->page_cache()->evicter().change_eviction_bag(old_bag, this);
     if (buf_.has()) {
         acq->buf_ready_signal_.pulse();
     }
@@ -545,9 +540,9 @@ void page_t::reset_block_token() {
 
 void page_t::remove_waiter(page_acq_t *acq) {
     backindex_bag_t<page_t *> *old_bag
-        = acq->page_cache()->correct_eviction_category(this);
+        = acq->page_cache()->evicter().correct_eviction_category(this);
     waiters_.remove(acq);
-    acq->page_cache()->change_eviction_bag(old_bag, this);
+    acq->page_cache()->evicter().change_eviction_bag(old_bag, this);
 
     // page_acq_t always has a lesser lifetime than some page_ptr_t.
     rassert(snapshot_refcount_ > 0);
@@ -1000,19 +995,29 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
     }
 }
 
-void page_cache_t::add_to_unevictable(page_t *page) {
+evicter_t::evicter_t()
+    : unevictable_pages_(&page_t::eviction_index),
+      evictable_disk_backed_pages_(&page_t::eviction_index),
+      evictable_unbacked_pages_(&page_t::eviction_index),
+      evicted_pages_(&page_t::eviction_index) { }
+
+evicter_t::~evicter_t() {
+}
+
+
+void evicter_t::add_to_unevictable(page_t *page) {
     unevictable_pages_.add(page);
 }
 
-bool page_cache_t::page_is_in_unevictable_bag(page_t *page) const {
+bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
     return unevictable_pages_.has_element(page);
 }
 
-void page_cache_t::add_to_evictable_unbacked(page_t *page) {
+void evicter_t::add_to_evictable_unbacked(page_t *page) {
     evictable_unbacked_pages_.add(page);
 }
 
-void page_cache_t::move_unevictable_to_evictable(page_t *page) {
+void evicter_t::move_unevictable_to_evictable(page_t *page) {
     rassert(unevictable_pages_.has_element(page));
     unevictable_pages_.remove(page);
     backindex_bag_t<page_t *> *new_bag = correct_eviction_category(page);
@@ -1021,14 +1026,7 @@ void page_cache_t::move_unevictable_to_evictable(page_t *page) {
     new_bag->add(page);
 }
 
-void page_cache_t::remove_page(page_t *page) {
-    rassert(page->waiters_.empty());
-    rassert(page->snapshot_refcount_ == 0);
-    backindex_bag_t<page_t *> *bag = correct_eviction_category(page);
-    bag->remove(page);
-}
-
-void page_cache_t::change_eviction_bag(backindex_bag_t<page_t *> *current_bag,
+void evicter_t::change_eviction_bag(backindex_bag_t<page_t *> *current_bag,
                                        page_t *page) {
     rassert(current_bag->has_element(page));
     current_bag->remove(page);
@@ -1036,7 +1034,7 @@ void page_cache_t::change_eviction_bag(backindex_bag_t<page_t *> *current_bag,
     new_bag->add(page);
 }
 
-backindex_bag_t<page_t *> *page_cache_t::correct_eviction_category(page_t *page) {
+backindex_bag_t<page_t *> *evicter_t::correct_eviction_category(page_t *page) {
     if (page->destroy_ptr_ != NULL || !page->waiters_.empty()) {
         return &unevictable_pages_;
     } else if (!page->buf_.has()) {
@@ -1046,6 +1044,13 @@ backindex_bag_t<page_t *> *page_cache_t::correct_eviction_category(page_t *page)
     } else {
         return &evictable_unbacked_pages_;
     }
+}
+
+void evicter_t::remove_page(page_t *page) {
+    rassert(page->waiters_.empty());
+    rassert(page->snapshot_refcount_ == 0);
+    backindex_bag_t<page_t *> *bag = correct_eviction_category(page);
+    bag->remove(page);
 }
 
 
