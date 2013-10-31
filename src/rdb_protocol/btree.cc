@@ -1222,10 +1222,16 @@ public:
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
             {
-                order_token_t txn_order_token = store_->order_source.check_in("post_construct_traversal_helper_t::process_a_leaf");
-                const order_token_t pre_begin_txn_token = store_->btree->pre_begin_txn_checkpoint_.check_through(txn_order_token);
-                wtxn.init(new transaction_t(store_->cache.get(), rwi_write, 2, repli_timestamp_t::distant_past,
-                                            pre_begin_txn_token, WRITE_DURABILITY_SOFT));
+                order_token_t txn_order_token =
+                    store_->order_source.check_in("post_construct_traversal_helper_t::process_a_leaf");
+                const order_token_t pre_begin_txn_token =
+                    store_->btree->pre_begin_txn_checkpoint_.check_through(txn_order_token);
+                wtxn.init(new transaction_t(store_->cache.get(),
+                                            rwi_write,
+                                            2,
+                                            repli_timestamp_t::distant_past,
+                                            pre_begin_txn_token,
+                                            WRITE_DURABILITY_SOFT));
             }
 
             scoped_ptr_t<buf_lock_t> sindex_block;
