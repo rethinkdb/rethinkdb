@@ -1195,7 +1195,17 @@ public:
             // We want soft durability because having a partially constructed secondary index is
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
+            // While we need wtxn to be a write transaction (thus calling
+            // `acquire_superblock_for_write`), we only need a read lock
+            // on the superblock (which is why we pass in `rwi_read`).
+            // Usually in btree code, we are supposed to acquire the superblock
+            // in write mode if we are going to do writes further down the tree,
+            // in order to guarantee that no other read can bypass the write on
+            // the way down (the snapshotting code in the cache I think makes
+            // some assumptions of that kind, or maybe not?).
+            // TODO!
             store_->acquire_superblock_for_write(
+                rwi_write,
                 rwi_read,
                 repli_timestamp_t::distant_past,
                 2,
@@ -1205,9 +1215,9 @@ public:
                 &superblock,
                 interruptor_);
 
-            // Synchronization appears to be guaranteed by the token_pair.
-            // so it is not necessary to hold on to the superblock any longer.
-            // Or is it?
+            // Synchronization is guaranteed by the token_pair.
+            // Let's get out what we need and then release the btree superblock
+            // immediately.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
             superblock->release();
 
