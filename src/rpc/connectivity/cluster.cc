@@ -795,6 +795,7 @@ void connectivity_cluster_t::run_t::handle(
 
                 string_read_stream_t stream(std::move(message), 0);
                 message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
+                coro_t::yield();
             }
         } catch (const fake_archive_exc_t &) {
             /* The exception broke us out of the loop, and that's what we
