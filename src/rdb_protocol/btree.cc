@@ -1205,22 +1205,13 @@ public:
                 &superblock,
                 interruptor_);
 
-            block_id_t sindex_block_id = superblock->get_sindex_block_id();
-            struct release_sb_when_in_line_t : public lock_in_line_callback_t {
-                void on_in_line() {
-                    sb->release();
-                }
-                scoped_ptr_t<real_superblock_t> sb;
-            } release_sb_when_in_line;
-            release_sb_when_in_line.sb = std::move(superblock);
             scoped_ptr_t<buf_lock_t> sindex_block;
             store_->acquire_sindex_block_for_write(
                 &token_pair,
                 wtxn.get(),
                 &sindex_block,
-                sindex_block_id,
-                interruptor_,
-                &release_sb_when_in_line);
+                superblock->get_sindex_block_id(),
+                interruptor_);
 
             store_->acquire_sindex_superblocks_for_write(
                     sindexes_to_post_construct_,
