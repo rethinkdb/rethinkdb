@@ -1181,6 +1181,7 @@ public:
         write_token_pair_t token_pair;
         store_->new_write_token_pair(&token_pair);
 
+        scoped_ptr_t<transaction_t> superblock_read_txn;
         scoped_ptr_t<transaction_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
 
@@ -1197,7 +1198,6 @@ public:
             // `acquire_superblock_for_write()` with `rwi_read`. The former
             // simply ensures that we go through the correct synchronization of
             // a write operation with the token_pair.
-            scoped_ptr_t<transaction_t> superblock_read_txn;
             store_->acquire_superblock_for_write(
                 rwi_read,
                 repli_timestamp_t::distant_past,
@@ -1208,12 +1208,14 @@ public:
                 &superblock,
                 interruptor_);
 
-            // Synchronization is guaranteed by the token_pair.
-            // Let's get out what we need and then release the btree superblock
-            // immediately.
+            // Synchronization is guaranteed through the token_pair.
+            // Let's get the information we need from the superblock and then
+            // release it immediately.
+            // Note that we hold on the the superblock_read_txn though because
+            // it has a reference to our token_pair and assumes that we do not
+            // terminate it before at least acquiring the sindex block.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
             superblock->release();
-            superblock_read_txn.reset();
 
             // Now start a write transaction to actually perform our updates through.
             // We want soft durability because having a partially constructed secondary index is

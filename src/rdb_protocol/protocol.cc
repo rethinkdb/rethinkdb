@@ -210,7 +210,6 @@ void post_construct_and_drain_queue(
 
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
-            // TODO (daniel): Also optimize this
             store->acquire_superblock_for_write(
                 rwi_write,
                 repli_timestamp_t::distant_past,
@@ -221,9 +220,9 @@ void post_construct_and_drain_queue(
                 &queue_superblock,
                 lock.get_drain_signal());
 
-            // Synchronization is guaranteed by the token_pair.
-            // Let's get out what we need and then release the queue superblock
-            // immediately.
+            // Synchronization is guaranteed through the token_pair.
+            // Let's get the information we need from the superblock and then
+            // release it immediately.
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
             queue_superblock->release();
 
@@ -308,12 +307,18 @@ void post_construct_and_drain_queue(
             &queue_superblock,
             lock.get_drain_signal());
 
+        // Synchronization is guaranteed through the token_pair.
+        // Let's get the information we need from the superblock and then
+        // release it immediately.
+        block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
+        queue_superblock->release();
+
         scoped_ptr_t<buf_lock_t> queue_sindex_block;
         store->acquire_sindex_block_for_write(
             &token_pair,
             queue_txn.get(),
             &queue_sindex_block,
-            queue_superblock->get_sindex_block_id(),
+            sindex_block_id,
             lock.get_drain_signal());
 
         mutex_t::acq_t acq;
