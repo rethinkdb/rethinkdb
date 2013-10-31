@@ -1657,17 +1657,14 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
                    txn, superblock, &response, &mod_report.info);
-        coro_t::yield();
 
         update_sindexes(&mod_report);
-        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock,
                 store, token_pair, interruptor);
-        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
@@ -1678,10 +1675,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                 btree, bf_atom.recency,
                 txn, superblock, &response,
                 &mod_report.info);
-        coro_t::yield();
 
         update_sindexes(&mod_report);
-        coro_t::yield();
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
@@ -1690,7 +1685,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         scoped_ptr_t<buf_lock_t> sindex_block;
         std::set<std::string> created_sindexes;
         store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, &sindex_block, &created_sindexes, interruptor);
-        coro_t::yield();
 
         if (!created_sindexes.empty()) {
             sindex_access_vector_t sindexes;

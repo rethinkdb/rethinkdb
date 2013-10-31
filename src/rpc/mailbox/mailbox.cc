@@ -121,8 +121,7 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, string_read_str
     }
 
     coro_t::spawn_now_dangerously(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
-                                                  this, threadnum_t(dest_thread), dest_mailbox_id, stream));
-    coro_t::yield(); // TODO: This should be in the higher-level loop, connectivity_cluster_t::run_t::handle
+                                              this, threadnum_t(dest_thread), dest_mailbox_id, stream));
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(threadnum_t dest_thread,
