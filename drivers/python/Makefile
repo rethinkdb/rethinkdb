@@ -12,16 +12,12 @@ PBCPP=rethinkdb_pbcpp.so
 PBCPP_BUILT=./build/lib.linux-x86_64-2.7/rethinkdb_pbcpp.so
 PYTHON_DOCS=$(PYTHON_SRC)/docs.py
 
-DOCS_YAML_DIR := ../../docs/rql/src
-DOCS_YAML_FILES := $(shell find $(DOCS_YAML_DIR) -name '*.yaml')
-
-
 all: $(PYTHON_PB_FILE) $(PBCPP) $(PYTHON_DOCS)
 
 ../../build/docs/reql_docs.json: $(DOCS_YAML_FILES)
 	$(MAKE) -C ../../ build/docs/reql_docs.json
 
-$(PYTHON_DOCS): ../../build/docs/reql_docs.json
+$(PYTHON_DOCS): ../../docs/rql/py_docs.json
 	python gendocs.py > $@
 
 $(PYTHON_PB_FILE): $(PROTO_FILE)
