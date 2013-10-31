@@ -66,6 +66,7 @@ private:
 
     friend class page_cache_t;
     friend class evicter_t;
+    friend class eviction_bag_t;
 
     static backindex_bag_index_t *eviction_index(page_t *page) {
         return &page->eviction_index_;
@@ -302,6 +303,35 @@ private:
     // RSP: std::vector performance.
     std::vector<block_id_t> free_ids_;
     DISABLE_COPYING(free_list_t);
+};
+
+class eviction_bag_t {
+public:
+    eviction_bag_t();
+    ~eviction_bag_t();
+
+    // For adding a page that doesn't have a size yet -- its size is not yet
+    // accounted for, because its buf isn't loaded yet.
+    void add_without_size(page_t *page);
+
+    // Adds the size for a page that was added with add_without_size, now that it has
+    // been loaded and we know the size.
+    void add_size(block_size_t size);
+
+    // Adds the page with its known size.
+    void add(page_t *page, block_size_t size);
+
+    // Removes the page with its size.
+    void remove(page_t *page, block_size_t size);
+
+    // Returns true if this bag contains the given page.
+    bool has_page(page_t *page) const;
+
+private:
+    backindex_bag_t<page_t *> bag_;
+    uint64_t size_;
+
+    DISABLE_COPYING(eviction_bag_t);
 };
 
 class evicter_t {

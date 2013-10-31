@@ -995,6 +995,38 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
     }
 }
 
+eviction_bag_t::eviction_bag_t()
+    : bag_(&page_t::eviction_index), size_(0) { }
+
+eviction_bag_t::~eviction_bag_t() {
+    guarantee(bag_.size() == 0);
+    guarantee(size_ == 0);
+}
+
+void eviction_bag_t::add_without_size(page_t *page) {
+    bag_.add(page);
+}
+
+void eviction_bag_t::add_size(block_size_t size) {
+    size_ += size.ser_value();
+}
+
+void eviction_bag_t::add(page_t *page, block_size_t size) {
+    bag_.add(page);
+    size_ += size.ser_value();
+}
+
+void eviction_bag_t::remove(page_t *page, block_size_t size) {
+    bag_.remove(page);
+    uint64_t value = size.ser_value();
+    rassert(value <= size_);
+    size_ -= value;
+}
+
+bool eviction_bag_t::has_page(page_t *page) const {
+    return bag_.has_element(page);
+}
+
 evicter_t::evicter_t()
     : unevictable_pages_(&page_t::eviction_index),
       evictable_disk_backed_pages_(&page_t::eviction_index),
