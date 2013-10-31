@@ -143,16 +143,15 @@ module RethinkDB
         value = Cursor.new(Shim.response_to_native(res, msg, opts),
                    msg, self, opts, q.token, true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
-        value =Cursor.new(Shim.response_to_native(res, msg, opts),
+        value = Cursor.new(Shim.response_to_native(res, msg, opts),
                    msg, self, opts, q.token, false)
       else
         value = Shim.response_to_native(res, msg, opts)
       end
 
-      profile = Shim.datum_to_native(res.profile(), opts)
-      if profile
-          {:profile => profile,
-           :value => value}
+      if res.has_profile?
+          {"profile" => Shim.datum_to_native(res.profile(), opts),
+           "value" => value}
       else
           value
       end
