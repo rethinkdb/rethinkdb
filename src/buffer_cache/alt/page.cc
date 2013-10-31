@@ -645,7 +645,6 @@ void page_ptr_t::init(page_t *page, page_cache_t *page_cache) {
     rassert(page_ == NULL && page_cache_ == NULL);
     page_ = page;
     page_cache_ = page_cache;
-    // RSI: Seriously?  Does anything init with a null page?
     if (page_ != NULL) {
         page_->add_snapshotter();
     }
