@@ -74,7 +74,9 @@ private:
 
     // One of destroy_ptr_, buf_, or block_token_ is non-null.
     bool *destroy_ptr_;
-    block_size_t buf_size_;
+    // RSI: Make a block_size_t-like type for holding this value that lets you hold a
+    // zero value.
+    uint32_t ser_buf_size_;
     scoped_malloc_t<ser_buffer_t> buf_;
     counted_t<standard_block_token_t> block_token_;
 
@@ -316,13 +318,13 @@ public:
 
     // Adds the size for a page that was added with add_without_size, now that it has
     // been loaded and we know the size.
-    void add_size(block_size_t size);
+    void add_size(uint32_t ser_buf_size);
 
     // Adds the page with its known size.
-    void add(page_t *page, block_size_t size);
+    void add(page_t *page, uint32_t ser_buf_size);
 
     // Removes the page with its size.
-    void remove(page_t *page, block_size_t size);
+    void remove(page_t *page, uint32_t ser_buf_size);
 
     // Returns true if this bag contains the given page.
     bool has_page(page_t *page) const;
@@ -337,7 +339,7 @@ private:
 class evicter_t {
 public:
     void add_not_yet_loaded(page_t *page);
-    void add_now_loaded_size(block_size_t block_size);
+    void add_now_loaded_size(uint32_t ser_buf_size);
     void add_to_evictable_unbacked(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;
     void move_unevictable_to_evictable(page_t *page);

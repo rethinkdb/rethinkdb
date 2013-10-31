@@ -353,7 +353,7 @@ page_txn_t *current_page_t::change_last_modifier(page_txn_t *new_last_modifier) 
 
 page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
-      buf_size_(block_size_t::undefined()),
+      ser_buf_size_(0),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_with_block_id,
@@ -365,7 +365,7 @@ page_t::page_t(block_id_t block_id, page_cache_t *page_cache)
 page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
                page_cache_t *page_cache)
     : destroy_ptr_(NULL),
-      buf_size_(block_size),
+      ser_buf_size_(block_size.ser_value()),
       buf_(std::move(buf)),
       snapshot_refcount_(0) {
     rassert(buf_.has());
@@ -374,7 +374,7 @@ page_t::page_t(block_size_t block_size, scoped_malloc_t<ser_buffer_t> buf,
 
 page_t::page_t(page_t *copyee, page_cache_t *page_cache)
     : destroy_ptr_(NULL),
-      buf_size_(block_size_t::undefined()),
+      ser_buf_size_(0),
       snapshot_refcount_(0) {
     page_cache->evicter().add_not_yet_loaded(this);
     coro_t::spawn_now_dangerously(std::bind(&page_t::load_from_copyee,
@@ -413,13 +413,13 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             // carefully track snapshotters anyway, once we're comfortable with that,
             // we could do it.
 
-            block_size_t buf_size = copyee->buf_size_;
+            uint32_t ser_buf_size = copyee->ser_buf_size_;
             rassert(copyee->buf_.has());
             scoped_malloc_t<ser_buffer_t> buf = page_cache->serializer_->malloc();
 
-            memcpy(buf.get(), copyee->buf_.get(), buf_size.ser_value());
+            memcpy(buf.get(), copyee->buf_.get(), ser_buf_size);
 
-            page->buf_size_ = buf_size;
+            page->ser_buf_size_ = ser_buf_size;
             page->buf_ = std::move(buf);
             page->destroy_ptr_ = NULL;
 
@@ -460,7 +460,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     rassert(!page->block_token_.has());
     rassert(!page->buf_.has());
     rassert(block_token.has());
-    page->buf_size_ = block_token->block_size();
+    page->ser_buf_size_ = block_token->block_size().ser_value();
     page->buf_ = std::move(buf);
     page->block_token_ = std::move(block_token);
 
@@ -499,7 +499,7 @@ page_t *page_t::make_copy(page_cache_t *page_cache) {
 
 void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
     rassert(page_cache->evicter().page_is_in_unevictable_bag(this));
-    page_cache->evicter().add_now_loaded_size(this->buf_size_);
+    page_cache->evicter().add_now_loaded_size(ser_buf_size_);
     if (waiters_.empty()) {
         page_cache->evicter().move_unevictable_to_evictable(this);
     } else {
@@ -522,7 +522,8 @@ void page_t::add_waiter(page_acq_t *acq) {
 
 uint32_t page_t::get_page_buf_size() {
     rassert(buf_.has());
-    return buf_size_.value();
+    rassert(ser_buf_size_ != 0);
+    return block_size_t::unsafe_make(ser_buf_size_).value();
 }
 
 void *page_t::get_page_buf() {
@@ -703,11 +704,15 @@ void page_txn_t::remove_preceder(page_txn_t *preceder) {
 page_txn_t::~page_txn_t() {
     rassert(live_acqs_.empty(), "current_page_acq_t lifespan exceeds its page_txn_t's");
 
+    // RSI: Remove this assertion when we support manually starting txn flushes
+    // sooner.
+    rassert(!began_waiting_for_flush_);
+
     if (!began_waiting_for_flush_) {
         pagef("in ~page_txn_t, going to announce waiting for flush\n");
-        // This transaction didn't do anything!
         announce_waiting_for_flush_if_we_should();
     }
+
     // RSI: Do we want to wait for this here?  Or should the page_cache_t be the
     // thing that waits and destroys this object?
 
@@ -788,9 +793,6 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
             touched_pages_.push_back(std::make_pair(block_id, repli_timestamp_t::invalid /* RSI: handle recency */));
         }
     }
-
-    // Now, let's flush if we should.
-    announce_waiting_for_flush_if_we_should();
 }
 
 void page_txn_t::announce_waiting_for_flush_if_we_should() {
@@ -869,7 +871,7 @@ void page_cache_t::do_flush_txn(page_cache_t *page_cache, page_txn_t *txn) {
                 // RSI: Is there a page_acq_t for this buf we're writing?  There had
                 // better be.
                 write_infos.push_back(buf_write_info_t(page->buf_.get(),
-                                                       page->buf_size_,
+                                                       block_size_t::unsafe_make(page->ser_buf_size_),
                                                        dp->block_id));
                 ancillary_infos.push_back(std::make_pair(dp->block_id, dp->tstamp));
             }
@@ -1006,18 +1008,18 @@ void eviction_bag_t::add_without_size(page_t *page) {
     bag_.add(page);
 }
 
-void eviction_bag_t::add_size(block_size_t size) {
-    size_ += size.ser_value();
+void eviction_bag_t::add_size(uint32_t ser_buf_size) {
+    size_ += ser_buf_size;
 }
 
-void eviction_bag_t::add(page_t *page, block_size_t size) {
+void eviction_bag_t::add(page_t *page, uint32_t ser_buf_size) {
     bag_.add(page);
-    size_ += size.ser_value();
+    size_ += ser_buf_size;
 }
 
-void eviction_bag_t::remove(page_t *page, block_size_t size) {
+void eviction_bag_t::remove(page_t *page, uint32_t ser_buf_size) {
     bag_.remove(page);
-    uint64_t value = size.ser_value();
+    uint64_t value = ser_buf_size;
     rassert(value <= size_, "value = %" PRIu64 ", size_ = %" PRIu64,
             value, size_);
     size_ -= value;
@@ -1036,8 +1038,8 @@ void evicter_t::add_not_yet_loaded(page_t *page) {
     unevictable_.add_without_size(page);
 }
 
-void evicter_t::add_now_loaded_size(block_size_t size) {
-    unevictable_.add_size(size);
+void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
+    unevictable_.add_size(ser_buf_size);
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
@@ -1045,24 +1047,24 @@ bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
 }
 
 void evicter_t::add_to_evictable_unbacked(page_t *page) {
-    evictable_unbacked_.add(page, page->buf_size_);
+    evictable_unbacked_.add(page, page->ser_buf_size_);
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
     rassert(unevictable_.has_page(page));
-    unevictable_.remove(page, page->buf_size_);
+    unevictable_.remove(page, page->ser_buf_size_);
     eviction_bag_t *new_bag = correct_eviction_category(page);
     rassert(new_bag == &evictable_disk_backed_
             || new_bag == &evictable_unbacked_);
-    new_bag->add(page, page->buf_size_);
+    new_bag->add(page, page->ser_buf_size_);
 }
 
 void evicter_t::change_eviction_bag(eviction_bag_t *current_bag,
                                     page_t *page) {
     rassert(current_bag->has_page(page));
-    current_bag->remove(page, page->buf_size_);
+    current_bag->remove(page, page->ser_buf_size_);
     eviction_bag_t *new_bag = correct_eviction_category(page);
-    new_bag->add(page, page->buf_size_);
+    new_bag->add(page, page->ser_buf_size_);
 }
 
 eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
@@ -1081,7 +1083,7 @@ void evicter_t::remove_page(page_t *page) {
     rassert(page->waiters_.empty());
     rassert(page->snapshot_refcount_ == 0);
     eviction_bag_t *bag = correct_eviction_category(page);
-    bag->remove(page, page->buf_size_);
+    bag->remove(page, page->ser_buf_size_);
 }
 
 
