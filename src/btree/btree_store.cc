@@ -134,7 +134,7 @@ void btree_store_t<protocol_t>::write(
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(rwi_write, timestamp.to_repli_timestamp(), expected_change_count, durability, token_pair, &txn, &real_superblock, interruptor);
+    acquire_superblock_for_write(timestamp.to_repli_timestamp(), expected_change_count, durability, token_pair, &txn, &real_superblock, interruptor);
 
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), real_superblock.get());
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
@@ -186,8 +186,7 @@ void btree_store_t<protocol_t>::receive_backfill(
 
     // We don't want hard durability, this is a backfill chunk, and nobody
     // wants chunk-by-chunk acks.
-    acquire_superblock_for_write(rwi_write,
-                                 chunk.get_btree_repli_timestamp(),
+    acquire_superblock_for_write(chunk.get_btree_repli_timestamp(),
                                  expected_change_count,
                                  WRITE_DURABILITY_SOFT,
                                  token_pair,
@@ -226,8 +225,7 @@ void btree_store_t<protocol_t>::reset_data(
     // TOnDO that's not reasonable; reset_data() is sometimes used to wipe out
     // entire databases.
     const int expected_change_count = 2;
-    acquire_superblock_for_write(rwi_write,
-                                 repli_timestamp_t::invalid,
+    acquire_superblock_for_write(repli_timestamp_t::invalid,
                                  expected_change_count,
                                  durability,
                                  token_pair,
@@ -945,7 +943,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(rwi_write,
+    acquire_superblock_for_write(rwi_write, rwi_write,
                                  repli_timestamp_t::invalid,
                                  1,
                                  WRITE_DURABILITY_HARD,
@@ -1006,7 +1004,6 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_write(
-        access_t access,
         repli_timestamp_t timestamp,
         int expected_change_count,
         const write_durability_t durability,
@@ -1016,14 +1013,32 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
-    acquire_superblock_for_write(access, timestamp, expected_change_count, durability,
+    acquire_superblock_for_write(rwi_write, rwi_write, timestamp, expected_change_count, durability,
+            token_pair, txn_out, sb_out, interruptor);
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_superblock_for_write(
+        access_t txn_access,
+        access_t superblock_access,
+        repli_timestamp_t timestamp,
+        int expected_change_count,
+        const write_durability_t durability,
+        write_token_pair_t *token_pair,
+        scoped_ptr_t<transaction_t> *txn_out,
+        scoped_ptr_t<real_superblock_t> *sb_out,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+
+    acquire_superblock_for_write(txn_access, superblock_access, timestamp, expected_change_count, durability,
             &token_pair->main_write_token, txn_out, sb_out, interruptor);
     (*txn_out)->set_token_pair(token_pair);
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_write(
-        access_t access,
+        access_t txn_access,
+        access_t superblock_access,
         repli_timestamp_t timestamp,
         int expected_change_count,
         write_durability_t durability,
@@ -1042,7 +1057,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
     order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_and_txn(btree.get(), access, expected_change_count, timestamp, order_token, durability, sb_out, txn_out);
+    get_btree_superblock_and_txn(btree.get(), txn_access, superblock_access, expected_change_count, timestamp, order_token, durability, sb_out, txn_out);
 }
 
 /* store_view_t interface */

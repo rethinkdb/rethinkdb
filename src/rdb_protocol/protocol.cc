@@ -209,7 +209,6 @@ void post_construct_and_drain_queue(
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
             store->acquire_superblock_for_write(
-                rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
@@ -296,7 +295,6 @@ void post_construct_and_drain_queue(
             destroyer(&token_pair.sindex_write_token);
 
         store->acquire_superblock_for_write(
-            rwi_write,
             repli_timestamp_t::distant_past,
             2,
             WRITE_DURABILITY_HARD,

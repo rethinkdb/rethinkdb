@@ -369,7 +369,18 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
     void acquire_superblock_for_write(
-            access_t access,
+            repli_timestamp_t timestamp,
+            int expected_change_count,
+            write_durability_t durability,
+            write_token_pair_t *token_pair,
+            scoped_ptr_t<transaction_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+
+    void acquire_superblock_for_write(
+            access_t txn_access,
+            access_t superblock_access,
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
@@ -380,7 +391,8 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 private:
     void acquire_superblock_for_write(
-            access_t access,
+            access_t txn_access,
+            access_t superblock_access,
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
