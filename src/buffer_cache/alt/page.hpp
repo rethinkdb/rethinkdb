@@ -336,12 +336,13 @@ private:
 
 class evicter_t {
 public:
-    void add_to_unevictable(page_t *page);
+    void add_not_yet_loaded(page_t *page);
+    void add_now_loaded_size(block_size_t block_size);
     void add_to_evictable_unbacked(page_t *page);
     bool page_is_in_unevictable_bag(page_t *page) const;
     void move_unevictable_to_evictable(page_t *page);
-    void change_eviction_bag(backindex_bag_t<page_t *> *current_bag, page_t *page);
-    backindex_bag_t<page_t *> *correct_eviction_category(page_t *page);
+    void change_eviction_bag(eviction_bag_t *current_bag, page_t *page);
+    eviction_bag_t *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
 
 private:
@@ -350,10 +351,10 @@ private:
     ~evicter_t();
 
     // These track whether every page's eviction status.
-    backindex_bag_t<page_t *> unevictable_pages_;
-    backindex_bag_t<page_t *> evictable_disk_backed_pages_;
-    backindex_bag_t<page_t *> evictable_unbacked_pages_;
-    backindex_bag_t<page_t *> evicted_pages_;
+    eviction_bag_t unevictable_;
+    eviction_bag_t evictable_disk_backed_;
+    eviction_bag_t evictable_unbacked_;
+    eviction_bag_t evicted_;
 
     DISABLE_COPYING(evicter_t);
 };
