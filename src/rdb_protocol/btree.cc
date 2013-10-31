@@ -1192,26 +1192,19 @@ public:
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
-            // We want soft durability because having a partially constructed secondary index is
-            // okay -- we wipe it and rebuild it, if it has not been marked completely
-            // constructed.
-            // While we need wtxn to be a write transaction (thus calling
-            // `acquire_superblock_for_write`), we only need a read lock
-            // on the superblock (which is why we pass in `rwi_read`).
-            // Usually in btree code, we are supposed to acquire the superblock
-            // in write mode if we are going to do writes further down the tree,
-            // in order to guarantee that no other read can bypass the write on
-            // the way down (the snapshotting code in the cache I think makes
-            // some assumptions of that kind, or maybe not?).
-            // TODO!
+            // First acquire the btree superblock in a read transaction to figure
+            // out the sindex_block_id. This looks a bit odd because we call
+            // `acquire_superblock_for_write()` with `rwi_read`. The former
+            // simply ensures that we go through the correct synchronization of
+            // a write operation with the token_pair.
+            scoped_ptr_t<transaction_t> superblock_read_txn;
             store_->acquire_superblock_for_write(
-                rwi_write,
                 rwi_read,
                 repli_timestamp_t::distant_past,
-                2,
+                0,
                 WRITE_DURABILITY_SOFT,
                 &token_pair,
-                &wtxn,
+                &superblock_read_txn,
                 &superblock,
                 interruptor_);
 
@@ -1220,6 +1213,18 @@ public:
             // immediately.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
             superblock->release();
+            superblock_read_txn.reset();
+
+            // Now start a write transaction to actually perform our updates through.
+            // We want soft durability because having a partially constructed secondary index is
+            // okay -- we wipe it and rebuild it, if it has not been marked completely
+            // constructed.
+            {
+                order_token_t txn_order_token = store_->order_source.check_in("post_construct_traversal_helper_t::process_a_leaf");
+                const order_token_t pre_begin_txn_token = store_->btree->pre_begin_txn_checkpoint_.check_through(txn_order_token);
+                wtxn.init(new transaction_t(store_->cache.get(), rwi_write, 2, repli_timestamp_t::distant_past,
+                                            pre_begin_txn_token, WRITE_DURABILITY_SOFT));
+            }
 
             scoped_ptr_t<buf_lock_t> sindex_block;
             store_->acquire_sindex_block_for_write(

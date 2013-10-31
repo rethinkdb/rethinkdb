@@ -227,8 +227,7 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
 
 void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
-void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
-                                  access_t superblock_access, int expected_change_count,
+void get_btree_superblock_and_txn(btree_slice_t *slice, access_t access, int expected_change_count,
                                   repli_timestamp_t tstamp, order_token_t token,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,

@@ -213,7 +213,6 @@ void post_construct_and_drain_queue(
             // TODO (daniel): Also optimize this
             store->acquire_superblock_for_write(
                 rwi_write,
-                rwi_read,
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
@@ -222,17 +221,19 @@ void post_construct_and_drain_queue(
                 &queue_superblock,
                 lock.get_drain_signal());
 
-            // TODO (daniel): Check if we can also release the superblock
-            // early here, and if it is ok that we acquire it for reading only.
+            // Synchronization is guaranteed by the token_pair.
+            // Let's get out what we need and then release the queue superblock
+            // immediately.
+            block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
+            queue_superblock->release();
 
             scoped_ptr_t<buf_lock_t> queue_sindex_block;
             store->acquire_sindex_block_for_write(
                 &token_pair,
                 queue_txn.get(),
                 &queue_sindex_block,
-                queue_superblock->get_sindex_block_id(),
+                sindex_block_id,
                 lock.get_drain_signal());
-            queue_superblock.reset();
 
             sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
@@ -298,6 +299,7 @@ void post_construct_and_drain_queue(
             destroyer(&token_pair.sindex_write_token);
 
         store->acquire_superblock_for_write(
+            rwi_write,
             repli_timestamp_t::distant_past,
             2,
             WRITE_DURABILITY_HARD,
