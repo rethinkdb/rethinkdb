@@ -378,42 +378,42 @@ private:
 
     void run_txn6(auto_drainer_t::lock_t) {
         page_txn_t txn6(&c);
-        auto acqA0 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
-        ASSERT_EQ(NULL_BLOCK_ID, b[0+0]);
-        b[0+0] = acqA0->block_id();
-        acqA0->write_acq_signal()->wait();
-        auto acqA1 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
-        acqA0.reset();
-        ASSERT_EQ(NULL_BLOCK_ID, b[0+1]);
-        b[0+1] = acqA1->block_id();
-        acqA1->write_acq_signal()->wait();
-        auto acqA2 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
-        acqA1.reset();
-        ASSERT_EQ(NULL_BLOCK_ID, b[0+2]);
-        b[0+2] = acqA2->block_id();
-        ASSERT_NE(NULL_BLOCK_ID, b[0+0]);
-        ASSERT_NE(NULL_BLOCK_ID, b[0+1]);
-        ASSERT_NE(NULL_BLOCK_ID, b[0+2]);
+        auto acq0 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
+        ASSERT_EQ(NULL_BLOCK_ID, b[0]);
+        b[0] = acq0->block_id();
+        acq0->write_acq_signal()->wait();
+        auto acq1 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
+        acq0.reset();
+        ASSERT_EQ(NULL_BLOCK_ID, b[1]);
+        b[1] = acq1->block_id();
+        acq1->write_acq_signal()->wait();
+        auto acq2 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
+        acq1.reset();
+        ASSERT_EQ(NULL_BLOCK_ID, b[2]);
+        b[2] = acq2->block_id();
+        ASSERT_NE(NULL_BLOCK_ID, b[0]);
+        ASSERT_NE(NULL_BLOCK_ID, b[1]);
+        ASSERT_NE(NULL_BLOCK_ID, b[2]);
         assert_unique_ids();
-        acqA2->write_acq_signal()->wait();
+        acq2->write_acq_signal()->wait();
 
         // Wait while holding block.
         t678cond.wait();
-        acqA2.reset();
+        acq2.reset();
     }
 
     void run_txn7(auto_drainer_t::lock_t) {
         page_txn_t txn7(&c);
-        auto acqA3 = make_scoped<current_page_acq_t>(&txn7, alt_access_t::write);
-        ASSERT_EQ(NULL_BLOCK_ID, b[0+3]);
-        b[0+3] = acqA3->block_id();
-        acqA3->write_acq_signal()->wait();
-        auto acqA4 = make_scoped<current_page_acq_t>(&txn7, alt_access_t::write);
-        acqA3.reset();
-        ASSERT_EQ(NULL_BLOCK_ID, b[0+4]);
-        b[0+4] = acqA4->block_id();
-        acqA4->write_acq_signal()->wait();
-        acqA4.reset();
+        auto acq3 = make_scoped<current_page_acq_t>(&txn7, alt_access_t::write);
+        ASSERT_EQ(NULL_BLOCK_ID, b[3]);
+        b[3] = acq3->block_id();
+        acq3->write_acq_signal()->wait();
+        auto acq4 = make_scoped<current_page_acq_t>(&txn7, alt_access_t::write);
+        acq3.reset();
+        ASSERT_EQ(NULL_BLOCK_ID, b[4]);
+        b[4] = acq4->block_id();
+        acq4->write_acq_signal()->wait();
+        acq4.reset();
 
         // Wait after releasing block, to be different than run_txn6.
         t678cond.wait();
@@ -421,11 +421,11 @@ private:
 
     void run_txn8(auto_drainer_t::lock_t) {
         page_txn_t txn8(&c);
-        auto acqA5 = make_scoped<current_page_acq_t>(&txn8, alt_access_t::write);
-        ASSERT_EQ(NULL_BLOCK_ID, b[0+5]);
-        b[0+5] = acqA5->block_id();
-        acqA5->write_acq_signal()->wait();
-        acqA5.reset();
+        auto acq5 = make_scoped<current_page_acq_t>(&txn8, alt_access_t::write);
+        ASSERT_EQ(NULL_BLOCK_ID, b[5]);
+        b[5] = acq5->block_id();
+        acq5->write_acq_signal()->wait();
+        acq5.reset();
 
         // Idk, wait after releasing block.
         t678cond.wait();
