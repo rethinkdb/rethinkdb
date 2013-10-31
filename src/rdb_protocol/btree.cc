@@ -1301,7 +1301,7 @@ void post_construct_secondary_indexes(
         true /* USE_SNAPSHOT */);
 
     txn->get_cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY, &cache_account);
-    txn.set_account(cache_account.get());
+    txn->set_account(cache_account.get());
 
     btree_parallel_traversal(txn.get(), superblock.get(),
             store->btree.get(), &helper, &wait_any);

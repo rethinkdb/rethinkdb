@@ -330,8 +330,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id,
-        signal_t *interruptor,
-        lock_in_line_callback_t *call_when_in_line)
+        signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
 
     /* First wait for our turn. */
@@ -342,11 +341,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->sindex_write_token);
 
     /* Finally acquire the block. */
-    sindex_block_out->init(new buf_lock_t(txn,
-                                          sindex_block_id,
-                                          rwi_write,
-                                          buffer_cache_order_mode_check,
-                                          call_when_in_line));
+    sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_write));
 }
 
 template <class region_map_t>

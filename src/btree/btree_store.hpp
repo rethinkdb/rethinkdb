@@ -151,8 +151,7 @@ public:
             transaction_t *txn,
             scoped_ptr_t<buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id,
-            signal_t *interruptor,
-            lock_in_line_callback_t *call_when_in_line = NULL)
+            signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     MUST_USE bool add_sindex(
