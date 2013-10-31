@@ -1196,7 +1196,7 @@ public:
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
             store_->acquire_superblock_for_write(
-                rwi_write,
+                rwi_read,
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
@@ -1205,22 +1205,19 @@ public:
                 &superblock,
                 interruptor_);
 
+            // Synchronization appears to be guaranteed by the token_pair.
+            // so it is not necessary to hold on to the superblock any longer.
+            // Or is it?
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
-            struct release_sb_when_in_line_t : public lock_in_line_callback_t {
-                void on_in_line() {
-                    sb->release();
-                }
-                scoped_ptr_t<real_superblock_t> sb;
-            } release_sb_when_in_line;
-            release_sb_when_in_line.sb = std::move(superblock);
+            superblock->release();
+
             scoped_ptr_t<buf_lock_t> sindex_block;
             store_->acquire_sindex_block_for_write(
                 &token_pair,
                 wtxn.get(),
                 &sindex_block,
                 sindex_block_id,
-                interruptor_,
-                &release_sb_when_in_line);
+                interruptor_);
 
             store_->acquire_sindex_superblocks_for_write(
                     sindexes_to_post_construct_,
@@ -1253,6 +1250,7 @@ public:
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
+            coro_t::yield();
         }
     }
 
@@ -1289,6 +1287,8 @@ void post_construct_secondary_indexes(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     store->new_read_token(&read_token);
 
+    // Mind the destructor ordering
+    scoped_ptr_t<cache_account_t> cache_account;
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
@@ -1299,6 +1299,9 @@ void post_construct_secondary_indexes(
         &superblock,
         interruptor,
         true /* USE_SNAPSHOT */);
+
+    txn->get_cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY, &cache_account);
+    txn.set_account(cache_account.get());
 
     btree_parallel_traversal(txn.get(), superblock.get(),
             store->btree.get(), &helper, &wait_any);

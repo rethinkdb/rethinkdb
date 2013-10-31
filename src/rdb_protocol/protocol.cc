@@ -211,7 +211,7 @@ void post_construct_and_drain_queue(
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
             store->acquire_superblock_for_write(
-                rwi_write,
+                rwi_read,
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
@@ -220,6 +220,9 @@ void post_construct_and_drain_queue(
                 &queue_superblock,
                 lock.get_drain_signal());
 
+            // TODO (daniel): Check if we can also release the superblock
+            // early here, and if it is ok that we acquire it for reading only.
+
             scoped_ptr_t<buf_lock_t> queue_sindex_block;
             store->acquire_sindex_block_for_write(
                 &token_pair,
@@ -227,6 +230,7 @@ void post_construct_and_drain_queue(
                 &queue_sindex_block,
                 queue_superblock->get_sindex_block_id(),
                 lock.get_drain_signal());
+            queue_superblock.reset();
 
             sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
@@ -254,7 +258,6 @@ void post_construct_and_drain_queue(
 
                 boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
                                      sindex_change);
-                coro_t::yield();
             }
 
             previous_size = mod_queue->size();
@@ -267,8 +270,6 @@ void post_construct_and_drain_queue(
                 store->deregister_sindex_queue(mod_queue.get(), &acq);
                 return;
             }
-
-            coro_t::yield();
         }
     } catch (const interrupted_exc_t &) {
         // We were interrupted so we just exit. Sindex post construct is in an
