@@ -95,7 +95,7 @@ class Cursor extends IterableResult
 
                 # Is there data waiting in our buffer?
                 chunk = @_chunks[0]
-                if not chunk?
+                if @_chunks.length == 1 && chunk.length == 1 && !@_endFlag
                     # We're out of data for now, let's fetch more (which will prompt us again)
                     @_promptCont()
                     return
@@ -123,7 +123,7 @@ class Cursor extends IterableResult
 
     ## Implement IterableResult
 
-    hasNext: ar () -> !@_endFlag || @_chunks[0]?
+    hasNext: ar () -> @_chunks[0]?
 
     next: ar (cb) ->
         nextCbCheck(cb)

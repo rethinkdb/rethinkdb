@@ -46,8 +46,6 @@ private:
         counted_t<datum_stream_t> stream;
         int max_chunk_size; // Size of 0 = unlimited
         time_t max_age;
-
-        scoped_ptr_t<Datum> next_datum;
     private:
         DISABLE_COPYING(entry_t);
     };
