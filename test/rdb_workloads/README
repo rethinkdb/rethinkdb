@@ -20,7 +20,7 @@ x_between - X_END_DATE, X_DATE_INTERVAL
 x_map_reduce - X_END_DATE, X_DATE_INTERVAL
 x_get_all - none
 x_connect - none
- 
+
 Below are example bash scripts for both table setup and running the stress client.
 
 ----------------------------------------------------------
