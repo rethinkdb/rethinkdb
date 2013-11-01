@@ -96,7 +96,7 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
             "when the database was first created.");
     }
     if (c->n_files < static_cast<int>(underlying.size())) {
-        fail_due_to_user_error("Got more files than expected. Did you give a file that wasn't"
+        fail_due_to_user_error("Got more files than expected. Did you give a file that wasn't "
             "included in the call to 'rethinkdb create'? Did you duplicate one of the files?");
     }
     guarantee(c->this_serializer >= 0 && c->this_serializer < static_cast<int>(underlying.size()));
