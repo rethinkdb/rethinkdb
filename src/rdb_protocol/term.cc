@@ -248,6 +248,34 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             return;
         }
     } break;
+    case Query_QueryType_NOREPLY_WAIT: {
+        try {
+            rcheck_toplevel(!stream_cache2->contains(token),
+                            base_exc_t::GENERIC,
+                            strprintf("ERROR: duplicate token %" PRIi64, token));
+        } catch (const exc_t &e) {
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
+            return;
+        }
+
+        try {
+            // NOREPLY_WAIT is just a no-op.
+            // This works because we only evaluate one Query at a time
+            // on the connection level. Once we get to the NOREPLY_WAIY Query
+            // we know that all previous Queries have completed processing.
+            
+            // Send back a null datum.
+            res->set_type(Response_ResponseType_SUCCESS_ATOM);
+            counted_t<const datum_t> d = make_counted<datum_t>(datum_t::R_NULL);
+            d->write_to_protobuf(res->add_response());
+        } catch (const exc_t &e) {
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+            return;
+        }
+    } break;
     default: unreachable();
     }
 }

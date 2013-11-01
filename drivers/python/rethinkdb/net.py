@@ -78,19 +78,19 @@ class Connection(object):
         except ValueError as err:
           raise RqlDriverError("Could not convert port %s to an integer." % port)
 
-        self.reconnect()
+        self.reconnect(False)
 
     def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
-        self.close()
+        self.close(False)
 
     def use(self, db):
         self.db = db
 
-    def reconnect(self):
-        self.close()
+    def reconnect(self, noreply_wait=True):
+        self.close(noreply_wait)
 
         try:
             self.socket = socket.create_connection((self.host, self.port), self.timeout)
@@ -117,11 +117,25 @@ class Connection(object):
         # Clear timeout so we don't timeout on long running queries
         self.socket.settimeout(None)
 
-    def close(self):
+    def close(self, noreply_wait=True):
         if self.socket:
+            if noreply_wait:
+                self.noreply_wait()
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
             self.socket = None
+
+    def noreply_wait(self):
+        token = self.next_token
+        self.next_token += 1
+
+        # Construct query
+        query = p.Query()
+        query.type = p.Query.NOREPLY_WAIT
+        query.token = token
+
+        # Send the request
+        return self._send_query(query, 'noreply_wait')
 
     # Not thread safe. Sets this connection as global state that will be used
     # by subsequence calls to `query.run`. Useful for trying out RethinkDB in
@@ -205,7 +219,7 @@ class Connection(object):
         except KeyboardInterrupt as err:
             # When interrupted while waiting for a response cancel the outstanding
             # requests by resetting this connection
-            self.reconnect()
+            self.reconnect(False)
             raise err
 
         # Construct response

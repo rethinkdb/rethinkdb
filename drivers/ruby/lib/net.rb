@@ -105,7 +105,7 @@ module RethinkDB
       @@last = self
       @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
       @conn_id = 0
-      reconnect
+      reconnect(false)
     end
     attr_reader :default_db, :conn_id
 
@@ -181,7 +181,7 @@ module RethinkDB
         return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
-        reconnect
+        reconnect(false)
         raise e
       end
     end
@@ -204,8 +204,10 @@ module RethinkDB
     def debug_socket; @socket; end
 
     # Reconnect to the server.  This will interrupt all queries on the
-    # server and invalidate all outstanding enumerables on the client.
-    def reconnect
+    # server (if noreply_wait = false) and invalidate all outstanding
+    # enumerables on the client.
+    def reconnect(noreply_wait=true)
+      noreply_wait if noreply_wait
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
@@ -216,11 +218,24 @@ module RethinkDB
       self
     end
 
-    def close
+    def close(noreply_wait=true)
+      noreply_wait if noreply_wait
       @listener.terminate if @listener
       @listener = nil
       @socket.close
       @socket = nil
+    end
+
+    def noreply_wait
+      raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
+      q = Query.new
+      q.type = Query::QueryType::NOREPLY_WAIT
+      q.token = @@token_cnt += 1
+      res = run_internal(q)
+      if res.type != Response::ResponseType::SUCCESS_ATOM
+        raise RqlRuntimeError, "Unexpected response to noreply_wait: #{res}."
+      end
+      Shim.response_to_native(res, nil, nil)
     end
 
     def self.last
