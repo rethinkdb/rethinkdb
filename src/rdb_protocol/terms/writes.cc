@@ -10,34 +10,6 @@
 
 namespace ql {
 
-// This function is used by e.g. foreach to merge statistics from multiple write
-// operations.
-counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
-                                     counted_t<const datum_t> l,
-                                     counted_t<const datum_t> r) {
-    if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
-        return make_counted<datum_t>(l->as_num() + r->as_num());
-    } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
-        datum_ptr_t arr(datum_t::R_ARRAY);
-        for (size_t i = 0; i < l->size(); ++i) {
-            arr.add(l->get(i));
-        }
-        for (size_t i = 0; i < r->size(); ++i) {
-            arr.add(r->get(i));
-        }
-        return arr.to_counted();
-    }
-
-    // Merging a string is left-preferential, which is just a no-op.
-    rcheck_datum(
-        l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
-        base_exc_t::GENERIC,
-        strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
-                  l->trunc_print().c_str(), l->get_type_name().c_str(),
-                  r->trunc_print().c_str(), r->get_type_name().c_str()));
-    return l;
-}
-
 // Use this merge if it should theoretically never be called.
 counted_t<const datum_t> pure_merge(UNUSED const std::string &key,
                                     UNUSED counted_t<const datum_t> l,
@@ -106,17 +78,19 @@ private:
         std::vector<std::string> generated_keys;
         counted_t<val_t> v1 = arg(env, 1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
-            counted_t<const datum_t> d = v1->as_datum();
-            if (d->get_type() == datum_t::R_OBJECT) {
+            std::vector<counted_t<const datum_t> > datums;
+            datums.push_back(v1->as_datum());
+            if (datums[0]->get_type() == datum_t::R_OBJECT) {
                 try {
-                    maybe_generate_key(t, &generated_keys, &d);
+                    maybe_generate_key(t, &generated_keys, &datums[0]);
                 } catch (const base_exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
                 }
-                counted_t<const datum_t> new_stats =
-                    t->replace(env->env, d, d, upsert, durability_requirement, return_vals);
-                stats = stats->merge(new_stats, stats_merge);
+                counted_t<const datum_t> replace_stats = t->batched_insert(
+                    env->env, std::move(datums), upsert,
+                    durability_requirement, return_vals);
+                stats = stats->merge(replace_stats, stats_merge);
                 done = true;
             }
         }
@@ -142,11 +116,9 @@ private:
                     }
                 }
 
-                std::vector<counted_t<const datum_t> > results =
-                    t->batch_replace(env->env, datums, datums, upsert, durability_requirement);
-                for (auto it = results.begin(); it != results.end(); ++it) {
-                    stats = stats->merge(*it, stats_merge);
-                }
+                counted_t<const datum_t> replace_stats = t->batched_insert(
+                    env->env, std::move(datums), upsert, durability_requirement, false);
+                stats = stats->merge(replace_stats);
             }
         }
 
@@ -157,7 +129,8 @@ private:
                 genkeys.push_back(make_counted<datum_t>(std::move(generated_keys[i])));
             }
             datum_ptr_t d(datum_t::R_OBJECT);
-            UNUSED bool b = d.add("generated_keys", make_counted<datum_t>(std::move(genkeys)));
+            UNUSED bool b = d.add("generated_keys",
+                                  make_counted<datum_t>(std::move(genkeys)));
             stats = stats->merge(d.to_counted(), pure_merge);
         }
 
@@ -196,10 +169,11 @@ private:
         if (v0->get_type().is_convertible(val_t::type_t::SINGLE_SELECTION)) {
             std::pair<counted_t<table_t>, counted_t<const datum_t> > tblrow
                 = v0->as_single_selection();
-            counted_t<const datum_t> result =
-                tblrow.first->replace(env->env, tblrow.second, f, nondet_ok,
-                                      durability_requirement, return_vals);
-            stats = stats->merge(result, stats_merge);
+            std::vector<counted_t<const datum_t> > datums;
+            datums.push_back(tblrow.second);
+            counted_t<const datum_t> replace_stats = tblrow.first->batched_replace(
+                env->env, datums, f, nondet_ok, durability_requirement, return_vals);
+            stats = stats->merge(replace_stats, stats_merge);
         } else {
             std::pair<counted_t<table_t>, counted_t<datum_stream_t> > tblrows
                 = v0->as_selection(env->env);
@@ -210,16 +184,14 @@ private:
                    "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
             for (;;) {
-                std::vector<counted_t<const datum_t> > datums = ds->next_batch(env->env);
+                std::vector<counted_t<const datum_t> > datums
+                    = ds->next_batch(env->env);
                 if (datums.empty()) {
                     break;
                 }
-                std::vector<counted_t<const datum_t> > results =
-                    tbl->batch_replace(env->env, datums, f, nondet_ok, durability_requirement);
-
-                for (auto result = results.begin(); result != results.end(); ++result) {
-                    stats = stats->merge(*result, stats_merge);
-                }
+                counted_t<const datum_t> replace_stats = tbl->batched_replace(
+                    env->env, datums, f, nondet_ok, durability_requirement, false);
+                stats = stats->merge(replace_stats, stats_merge);
             }
         }
         return new_val(stats);

@@ -12,7 +12,8 @@
 
 namespace ql {
 
-func_t::func_t(const protob_t<const Backtrace> &bt_source) : pb_rcheckable_t(bt_source) { }
+func_t::func_t(const protob_t<const Backtrace> &bt_source)
+  : pb_rcheckable_t(bt_source) { }
 func_t::~func_t() { }
 
 counted_t<val_t> func_t::call(env_t *env) const {

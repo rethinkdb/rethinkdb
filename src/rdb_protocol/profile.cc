@@ -3,8 +3,9 @@
 #include "errors.hpp"
 #include <boost/variant/static_visitor.hpp>
 
-#include "rdb_protocol/profile.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/profile.hpp"
 
 namespace profile {
 
@@ -128,17 +129,17 @@ counted_t<const ql::datum_t> construct_datum(
 
 class print_event_log_visitor_t : public boost::static_visitor<> {
 public:
-    void operator()(UNUSED const start_t &start) const {
-        debugf("Start: %s.\n", start.description_.c_str());
+    void operator()(const start_t &start) const {
+        logINF("Start: %s.\n", start.description_.c_str());
     }
-    void operator()(UNUSED const split_t &split) const {
-        debugf("Split: %zu.\n", split.n_parallel_jobs_);
+    void operator()(const split_t &split) const {
+        logINF("Split: %zu.\n", split.n_parallel_jobs_);
     }
     void operator()(const sample_t &) const {
-        debugf("Sample.");
+        logINF("Sample.");
     }
     void operator()(const stop_t &) const {
-        debugf("Stop.\n");
+        logINF("Stop.\n");
     }
 };
 

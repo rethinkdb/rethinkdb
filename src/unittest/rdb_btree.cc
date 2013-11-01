@@ -178,9 +178,10 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
-    store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
-                                        1, WRITE_DURABILITY_SOFT,
-                                        &token_pair, &txn, &super_block, &dummy_interruptor);
+    store->acquire_superblock_for_write(
+        rwi_write, repli_timestamp_t::invalid,
+        1, WRITE_DURABILITY_SOFT,
+        &token_pair, &txn, &super_block, &dummy_interruptor);
 
     scoped_ptr_t<buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(

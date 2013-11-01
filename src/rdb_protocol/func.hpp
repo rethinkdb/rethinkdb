@@ -28,7 +28,8 @@ class func_t : public slow_atomic_countable_t<func_t>, public pb_rcheckable_t {
 public:
     virtual ~func_t();
 
-    virtual counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const = 0;
+    virtual counted_t<val_t> call(
+        env_t *env, const std::vector<counted_t<const datum_t> > &args) const = 0;
 
     virtual bool is_deterministic() const = 0;
 
@@ -39,12 +40,16 @@ public:
 
     void assert_deterministic(const char *extra_msg) const;
 
-    bool filter_call(env_t *env, counted_t<const datum_t> arg, counted_t<func_t> default_filter_val) const;
+    bool filter_call(env_t *env,
+                     counted_t<const datum_t> arg,
+                     counted_t<func_t> default_filter_val) const;
 
     // These are simple, they call the vector version of call.
     counted_t<val_t> call(env_t *env) const;
     counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg) const;
-    counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg1, counted_t<const datum_t> arg2) const;
+    counted_t<val_t> call(env_t *env,
+                          counted_t<const datum_t> arg1,
+                          counted_t<const datum_t> arg2) const;
 
 protected:
     explicit func_t(const protob_t<const Backtrace> &bt_source);
@@ -63,7 +68,8 @@ public:
                 counted_t<term_t> body);
     ~reql_func_t();
 
-    counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
+    counted_t<val_t> call(
+        env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
     bool is_deterministic() const;
 
     std::string print_source() const;
