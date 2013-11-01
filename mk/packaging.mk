@@ -24,44 +24,17 @@ else
   NODEJS_NEW := 1
 endif
 
-# We have facilities for converting between toy names and Debian release numbers.
-
-deb-release-numbers := 1:buzz 2:rex 3:bo 4:hamm 5:slink 6:potato 7:woody 8:sarge 9:etch 10:lenny 11:squeeze 12:wheezy 13:jessie
-deb-num-to-toy = $(patsubst $1:%,%,$(filter $1:%,$(deb-release-numbers)))
-deb-toy-to-num = $(patsubst %:$1,%,$(filter %:$1,$(deb-release-numbers)))
-
-# We can accept a toy name via DEB_RELEASE or a number via DEB_NUM_RELEASE.
-# Note that the numeric release does not correspond to the Debian version but to the sequence of major releases. Version 1.3 is number 3, and version 2 is number 4.
-# DEB_REAL_NUM_RELEASE is a scrubbed version of DEB_NUM_RELEASE.
-
-DEB_RELEASE_NUM := $(call deb-toy-to-num,$(DEB_RELEASE))
-
-ifneq ($(DEB_RELEASE),)
-  ifeq ($(DEB_RELEASE_NUM),)
-    $(warning The Debian version specification is invalid. We will ignore it.)
-  endif
-  ifneq ($(UBUNTU_RELEASE),)
-    $(warning We seem to have received an Ubuntu release specification and a Debian release specification. We will ignore the Debian release specification.)
-  endif
+ifneq (,$(UBUNTU_RELEASE))
+  RETHINKDB_VERSION_DEB := $(RETHINKDB_VERSION)-$(PACKAGE_BUILD_NUMBER)ubuntu1~$(UBUNTU_RELEASE)
+else
+  RETHINKDB_VERSION_DEB := $(RETHINKDB_VERSION)-$(PACKAGE_BUILD_NUMBER)
 endif
-
-DEB_PACKAGE_REVISION := $(shell env UBUNTU_RELEASE="$(UBUNTU_RELEASE)" DEB_RELEASE="$(DEB_RELEASE)" DEB_RELEASE_NUM="$(DEB_RELEASE_NUM)" PACKAGE_VERSION="" $(TOP)/scripts/gen-trailer.sh)
-RETHINKDB_VERSION_DEB := $(RETHINKDB_PACKAGING_VERSION)$(DEB_PACKAGE_REVISION)
 
 .PHONY: prepare_deb_package_dirs
 prepare_deb_package_dirs:
 	$P MKDIR $(DEB_PACKAGE_DIR) $(DEB_CONTROL_ROOT)
 	mkdir -p $(DEB_PACKAGE_DIR)
 	mkdir -p $(DEB_CONTROL_ROOT)
-
-.PHONY: install-deb
-install-deb: DESTDIR = $(DEB_PACKAGE_DIR)
-install-deb: install
-	$P INSTALL $(DESTDIR)$(doc_dir)/changelog.Debian.gz
-	install -m755 -d $(DESTDIR)$(doc_dir)
-	sed -e 's/PACKAGING_VERSION/$(RETHINKDB_VERSION_DEB)/' $(ASSETS_DIR)/docs/changelog.Debian | \
-	  gzip -c9 | \
-	  install -m644 -T /dev/stdin $(DESTDIR)$(doc_dir)/changelog.Debian.gz
 
 DSC_CONFIGURE_DEFAULT += --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
@@ -79,10 +52,39 @@ else
   DIST_CUSTOM_MK_LINES :=
 endif
 
+DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, exuberant-ctags, m4, debhelper
+DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev
+ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
+  DEB_BUILD_DEPENDS += , nodejs-legacy
+endif
+ifneq (1,$(STATIC_V8))
+  DEB_BUILD_DEPENDS += , libv8-dev
+endif
+ifneq (1,$(BUILD_PORTABLE))
+  DEB_BUILD_DEPENDS += , protobuf-compiler, protobuf-c-compiler, libprotobuf-dev
+  DEB_BUILD_DEPENDS += , libprotobuf-c0-dev, libprotoc-dev, npm, libgoogle-perftools-dev
+endif
+
+ifeq ($(BUILD_PORTABLE),1)
+  LEGACY_PACKAGE := 1
+else ifeq ($(LEGACY_LINUX),1)
+  LEGACY_PACKAGE := 1
+else
+  LEGACY_PACKAGE := 0
+endif
+
+ifneq (1,$(SIGN_PACKAGE))
+  DEBUILD_SIGN_OPTIONS := -us -uc
+else
+  DEBUILD_SIGN_OPTIONS :=
+endif
+
+OS_RELEASE := $(if $(DEB_RELEASE),$(DEB_RELEASE),$(if $(UBUNTU_RELEASE),$(UBUNTU_RELEASE),unstable))
+
 .PHONY: build-deb-src
-build-deb-src: deb-src-dir build-deb-src-control
+build-deb-src: deb-src-dir
 	$P DEBUILD ""
-	cd $(DSC_PACKAGE_DIR) && yes | debuild -S -sa
+	cd $(DSC_PACKAGE_DIR) && yes | debuild -S -sa $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: deb-src-dir
 deb-src-dir: dist-dir
@@ -90,90 +92,28 @@ deb-src-dir: dist-dir
 	rm -rf $(DSC_PACKAGE_DIR)
 	mv $(DIST_DIR) $(DSC_PACKAGE_DIR)
 	echo $(DSC_CONFIGURE_DEFAULT) >> $(DSC_PACKAGE_DIR)/configure.default
-
-.PHONY: build-deb-src-control
-build-deb-src-control: | deb-src-dir
-	$P CP $(PACKAGING_DIR)/debian.template $(DSC_PACKAGE_DIR)/debian
-	cp -pRP $(PACKAGING_DIR)/debian.template $(DSC_PACKAGE_DIR)/debian
-	env UBUNTU_RELEASE=$(UBUNTU_RELEASE) \
-	    DEB_RELEASE=$(DEB_RELEASE) \
-	    DEB_RELEASE_NUM=$(DEB_RELEASE_NUM) \
-	    VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME) \
-	    PACKAGE_VERSION=$(RETHINKDB_PACKAGING_VERSION) \
+	$P CP $(PACKAGING_DIR)/debian $(DSC_PACKAGE_DIR)/debian
+	cp -pRP $(PACKAGING_DIR)/debian $(DSC_PACKAGE_DIR)/debian
+	env PRODUCT_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME) \
+	    PRODUCT_VERSION=$(RETHINKDB_VERSION_DEB) \
+	    OS_RELEASE=$(OS_RELEASE) \
 	  $(TOP)/scripts/gen-changelog.sh \
 	  > $(DSC_PACKAGE_DIR)/debian/changelog
-	$P M4 $(DEBIAN_PKG_DIR)/control $(DSC_PACKAGE_DIR)/debian/control
-	env disk_size=0 \
-	  m4 -D "PACKAGE_NAME=$(PACKAGE_NAME)" \
-	     -D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)" \
-	     -D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)" \
-	     -D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-	     -D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
-	     -D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)" \
-	     -D "STATIC_V8=$(STATIC_V8)" \
-	     -D "TC_BUNDLED=$(BUILD_PORTABLE)" \
-	     -D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
-	     -D "DISK_SIZE=$${disk_size}" \
-	     -D "SOURCEBUILD=1" \
-	     -D "NODEJS_NEW=$(NODEJS_NEW)" \
-	     -D "CURRENT_ARCH=$(DEB_ARCH)" \
-	     $(DEBIAN_PKG_DIR)/control > $(DSC_PACKAGE_DIR)/debian/control
-	$P M4 preinst postinst prerm postrm "->" $(DSC_PACKAGE_DIR)/debian
-	for script in preinst postinst prerm postrm; do \
-	  m4 -D "BIN_DIR=$(bin_dir)" \
-	     -D "MAN1_DIR=$(man1_dir)" \
-	     -D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
-	     -D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
-	     -D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
-	     -D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
-	     -D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" \
-	     -D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
-	     $(DEBIAN_PKG_DIR)/$${script} > $(DSC_PACKAGE_DIR)/debian/$${script}; \
-	  chmod 0755 $(DSC_PACKAGE_DIR)/debian/$${script}; \
-	done
-	$P CAT $(DEBIAN_PKG_DIR)/copyright ">" $(DSC_PACKAGE_DIR)/debian/copyright
-	cat $(DEBIAN_PKG_DIR)/copyright > $(DSC_PACKAGE_DIR)/debian/copyright
+	$P ECHO $(DSC_PACKAGE_DIR)/debian/rethinkdb.version
+	echo $(RETHINKDB_VERSION_DEB) > $(DSC_PACKAGE_DIR)/debian/rethinkdb.version
+	$P M4 $(DSC_PACKAGE_DIR)/debian/control
+	m4 -D "PACKAGE_NAME=$(PACKAGE_NAME)" \
+	   -D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
+	   -D "DEB_BUILD_DEPENDS=$(DEB_BUILD_DEPENDS)" \
+	   -D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
+	  $(DSC_PACKAGE_DIR)/debian/control.in \
+	  > $(DSC_PACKAGE_DIR)/debian/control
+	rm $(DSC_PACKAGE_DIR)/debian/control.in
 
 .PHONY: build-deb
-build-deb: all prepare_deb_package_dirs install-deb
-	$P MD5SUMS $(DEB_PACKAGE_DIR)
-	find $(DEB_PACKAGE_DIR) -path $(DEB_CONTROL_ROOT) -prune -o -path $(DEB_PACKAGE_DIR)/etc -prune -o -type f -printf "%P\\0" | \
-	   (cd $(DEB_PACKAGE_DIR) && xargs -0 md5sum) > $(DEB_CONTROL_ROOT)/md5sums
-	$P FIND $(DEB_CONTROL_ROOT)/conffiles
-	find $(DEB_PACKAGE_DIR) -type f -printf "/%P\n" | (grep '^/etc/' | grep -v '^/etc/init\.d' || true) > $(DEB_CONTROL_ROOT)/conffiles
-	$P M4 preinst postinst prerm postrm $(DEB_CONTROL_ROOT) 
-	for script in preinst postinst prerm postrm; do \
-	  m4 -D "BIN_DIR=$(bin_dir)" \
-	     -D "MAN1_DIR=$(man1_dir)" \
-	     -D "BASH_COMPLETION_DIR=$(bash_completion_dir)" \
-	     -D "INTERNAL_BASH_COMPLETION_DIR=$(internal_bash_completion_dir)" \
-	     -D "SERVER_EXEC_NAME=$(SERVER_EXEC_NAME)" \
-	     -D "SERVER_EXEC_NAME_VERSIONED=$(SERVER_EXEC_NAME_VERSIONED)" \
-	     -D "UPDATE_ALTERNATIVES=$(NAMEVERSIONED)" \
-	     -D "PRIORITY=$(PACKAGING_ALTERNATIVES_PRIORITY)" \
-	     $(DEBIAN_PKG_DIR)/$${script} > $(DEB_CONTROL_ROOT)/$${script}; \
-	  chmod 0755 $(DEB_CONTROL_ROOT)/$${script}; \
-	done
-	$P M4 $(DEBIAN_PKG_DIR)/control $(DEB_CONTROL_ROOT)/control
-	env disk_size=$$(du -s -k $(DEB_PACKAGE_DIR) | cut -f1); \
-	  m4 -D "PACKAGE_NAME=$(PACKAGE_NAME)" \
-	     -D "VERSIONED_PACKAGE_NAME=$(VERSIONED_PACKAGE_NAME)" \
-	     -D "VANILLA_PACKAGE_NAME=$(VANILLA_PACKAGE_NAME)" \
-	     -D "PACKAGE_VERSION=$(RETHINKDB_VERSION_DEB)" \
-	     -D "VERSIONED_QUALIFIED_PACKAGE_NAME=$(VERSIONED_QUALIFIED_PACKAGE_NAME)" \
-	     -D "LEGACY_PACKAGE=$(LEGACY_PACKAGE)" \
-	     -D "STATIC_V8=$(STATIC_V8)" \
-	     -D "TC_BUNDLED=$(BUILD_PORTABLE)" \
-	     -D "BUILD_DRIVERS=$(BUILD_DRIVERS)" \
-	     -D "DISK_SIZE=$${disk_size}" \
-	     -D "SOURCEBUILD=0" \
-	     -D "NODEJS_NEW=$(NODEJS_NEW)" \
-	     -D "CURRENT_ARCH=$(DEB_ARCH)" \
-	     $(DEBIAN_PKG_DIR)/control > $(DEB_CONTROL_ROOT)/control
-	$P CP $(DEBIAN_PKG_DIR)/copyright $(DEB_CONTROL_ROOT)/copyright
-	cat $(DEBIAN_PKG_DIR)/copyright > $(DEB_CONTROL_ROOT)/copyright
-	$P DPKG-DEB $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
-	fakeroot dpkg-deb -b $(DEB_PACKAGE_DIR) $(PACKAGES_DIR)
+build-deb: deb-src-dir
+	$P BUILD-DEB $(DSC_PACKAGE_DIR)
+	cd $(DSC_PACKAGE_DIR) && dpkg-buildpackage -rfakeroot $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: install-osx
 install-osx: install-binaries install-web
@@ -196,7 +136,6 @@ build-osx: install-osx
 .PHONY: reset-dist-dir
 reset-dist-dir: FORCE | web-assets
 	$P CP $(DIST_FILE_LIST) $(DIST_DIR)
-	rm -rf $(PROTOC_JS_PLUGIN)
 	$(EXTERN_MAKE) -C $(TOP)/external/gtest/make clean
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)

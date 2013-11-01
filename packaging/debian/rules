@@ -3,7 +3,7 @@
 
 package?=$(shell cat debian/control | grep '^Source:' | awk '{ printf "%s" , $$2 }')
 
-PVERSION?=$(shell cat debian/control | grep '^Version: ' | head -n 1 | awk '{ printf "%s" , $$2 }')
+PVERSION?=$(shell cat debian/rethinkdb.version)
 
 DEBUG?=0
 
