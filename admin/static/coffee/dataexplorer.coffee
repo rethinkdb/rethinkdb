@@ -274,19 +274,19 @@ module 'DataExplorerView', ->
 
         # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
         set_doc_description: (command, tag, suggestions) =>
-            if command['langs']['js']['body']?
-                if command['langs']['js']['body'].match(/(\)(\s)*)$/)
-                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                else
+            if command['body']?
+                dont_need_parenthesis = not (new RegExp(tag+'\\(')).test(command['body'])
+                if dont_need_parenthesis
                     full_tag = tag # Here full_tag is just the name of the tag
+                else
+                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
 
                 @descriptions[full_tag] =
                     name: tag
-                    dont_need_parenthesis: command['langs']['js']['dont_need_parenthesis']
-                    args: /.*(\(.*\))$/.exec(command['langs']['js']['body'])?[1].replace('$ARG', 'parentType')
+                    args: /.*(\(.*\))/.exec(command['body'])?[1]
                     description: @description_with_example_template
                         description: command['description']
-                        examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
+                        example: command['example']
 
             parents = {}
             returns = []
@@ -323,14 +323,14 @@ module 'DataExplorerView', ->
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
-            for group in data['sections']
-                for command in group['commands']
-                    tag = command['langs']['js']['name']
-                    if tag of @ignored_commands
-                        continue
-                    if tag is '()' # The parentheses will be added later
-                        tag = ''
-                    @set_doc_description command, tag, @suggestions
+            for key of data
+                command = data[key]
+                tag = command['name']
+                if tag of @ignored_commands
+                    continue
+                if tag is '()' # The parentheses will be added later
+                    tag = ''
+                @set_doc_description command, tag, @suggestions
 
             relations = data['types']
 
