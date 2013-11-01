@@ -427,7 +427,7 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 
 class debug_timer_t {
 public:
-    debug_timer_t(std::string _name = "");
+    explicit debug_timer_t(std::string _name = "");
     ~debug_timer_t();
     microtime_t tick(const std::string &tag);
 private:
