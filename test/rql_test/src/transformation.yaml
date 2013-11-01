@@ -121,10 +121,21 @@ tests:
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
 
+    - py: tbl.order_by([1,2,3])
+      js: tbl.orderBy([1,2,3])
+      rb: tbl.order_by([1,2,3])
+      ot: err('RqlRuntimeError', 'Expected type STRING but found ARRAY.', [0])
+
     - py: tbl.order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).nth(0)
       rb: tbl.order_by('a', :index => :id)[0]
       ot: ({'id':0, 'a':0})
+
+    - py: tbl.order_by(index='id').order_by(index='id')[0]
+      js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)
+      rb: tbl.order_by(:index => :id).order_by(:index => :id)[0]
+      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+
 
     - py: tbl.order_by(index='id').order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)

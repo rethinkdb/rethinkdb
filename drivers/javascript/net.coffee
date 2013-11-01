@@ -503,7 +503,7 @@ class HttpConnection extends Connection
 # The only exported function of this module
 module.exports.connect = ar (host, callback) ->
     # Host must be a string or an object
-    unless typeof(host) is 'string' or typeof(host) is 'object'
+    unless typeof(host) is 'string' or Object::toString.call(host) is '[object Object]'
         throw new err.RqlDriverError "First argument to `connect` must be a string giving the "+
                                      "host to `connect` to or an object giving `host` and `port`."
 

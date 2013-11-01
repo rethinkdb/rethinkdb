@@ -166,9 +166,8 @@ class RDBVal extends TermBase
         # Look for opts dict
         perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
         if perhapsOptDict and
-                ((perhapsOptDict instanceof Object) and
-                not (perhapsOptDict instanceof TermBase) and
-                not (perhapsOptDict instanceof Function))
+                (Object::toString.call(perhapsOptDict) is '[object Object]') and
+                not (perhapsOptDict instanceof TermBase)
             opts = perhapsOptDict
             attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
 
@@ -201,7 +200,7 @@ class RDBVal extends TermBase
         # Look for opts dict
         perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
         if perhapsOptDict and
-                ((perhapsOptDict instanceof Object) and not (perhapsOptDict instanceof TermBase))
+                ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
             opts = perhapsOptDict
             keys = keysAndOpts[0...(keysAndOpts.length - 1)]
 
@@ -216,7 +215,7 @@ class RDBVal extends TermBase
         if opts?
             new IndexCreate opts, @, name, funcWrap(defun_or_opts)
         else if defun_or_opts?
-            if (defun_or_opts instanceof Object) and not (defun_or_opts instanceof Function) and not (defun_or_opts instanceof TermBase)
+            if (Object::toString.call(defun_or_opts) is '[object Object]') and not (defun_or_opts instanceof Function) and not (defun_or_opts instanceof TermBase)
                 new IndexCreate defun_or_opts, @, name
             else
                 new IndexCreate {}, @, name, funcWrap(defun_or_opts)
