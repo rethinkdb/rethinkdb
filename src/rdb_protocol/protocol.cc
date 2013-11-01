@@ -94,10 +94,10 @@ namespace rdb_protocol_details {
 RDB_IMPL_SERIALIZABLE_3(backfill_atom_t, key, value, recency);
 
 void post_construct_and_drain_queue(
+        auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        auto_drainer_t::lock_t lock)
+        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue)
     THROWS_NOTHING;
 
 /* Creates a queue of operations for the sindex, runs a post construction for
@@ -143,10 +143,10 @@ void bring_sindexes_up_to_date(
 
     coro_t::spawn_sometime(boost::bind(
                 &post_construct_and_drain_queue,
+                auto_drainer_t::lock_t(&store->drainer),
                 sindexes_to_bring_up_to_date_uuid,
                 store,
-                mod_queue,
-                auto_drainer_t::lock_t(&store->drainer)));
+                mod_queue));
 }
 
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
@@ -171,12 +171,16 @@ private:
 
 /* This function is really part of the logic of bring_sindexes_up_to_date
  * however it needs to be in a seperate function so that it can be spawned in a
- * coro. */
+ * coro. 
+ * NOTE: the auto_drainer lock must be in front of the
+ * mod_queue shared pointer, because we must not release
+ * the drainer lock before the mod_queue is released.
+ */
 void post_construct_and_drain_queue(
+        auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue,
-        auto_drainer_t::lock_t lock)
+        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue)
     THROWS_NOTHING
 {
     try {
