@@ -1208,7 +1208,7 @@ public:
                 rwi_write,
                 rwi_read,
                 repli_timestamp_t::distant_past,
-                0,
+                2,
                 WRITE_DURABILITY_SOFT,
                 &token_pair,
                 &wtxn,
