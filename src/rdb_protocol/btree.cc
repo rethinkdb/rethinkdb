@@ -1310,7 +1310,10 @@ void post_construct_secondary_indexes(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     store->new_read_token(&read_token);
 
-    // Mind the destructor ordering
+    // Mind the destructor ordering.
+    // The superblock must be released before txn (`btree_parallel_traversal`
+    // usually already takes care of that).
+    // The txn must be destructed before the cache_account.
     scoped_ptr_t<cache_account_t> cache_account;
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
