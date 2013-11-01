@@ -11,6 +11,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/sym.hpp"
+#include "rdb_protocol/pb_utils.hpp"
 
 /** RVALUE_THIS
  *
@@ -38,14 +39,6 @@
 
 
 namespace ql {
-
-namespace pb {
-
-enum class dummy_var_t;
-
-sym_t dummy_var_to_sym(dummy_var_t dummy_var);
-
-} // namespace pb
 
 namespace r {
 
@@ -83,11 +76,12 @@ public:
     explicit reql_t(const Datum &d);
     explicit reql_t(const Term &t);
     explicit reql_t(std::vector<reql_t> &&val);
+    explicit reql_t(pb::dummy_var_t var);
 
     reql_t(reql_t &&other);
     reql_t &operator= (reql_t &&other);
 
-    reql_t copy();
+    reql_t copy() const;
 
     template <class... T>
     reql_t(Term_TermType type, T &&... args) : term(make_scoped<Term>()) {
@@ -110,12 +104,16 @@ public:
 
     void swap(Term &t);
 
-#define REQL_METHOD(name, termtype)                             \
-    template<class... T>                                       \
-    reql_t name(T &&... a) RVALUE_THIS                          \
+    void copy_optargs_from_term(const Term &from);
+    void copy_args_from_term(const Term &from, size_t start_index = 0);
+
+#define REQL_METHOD(name, termtype)                                     \
+    template<class... T>                                                \
+    reql_t name(T &&... a) RVALUE_THIS                                  \
     { return std::move(*this).call(Term::termtype, std::forward<T>(a)...); }
 
     REQL_METHOD(operator +, ADD)
+    REQL_METHOD(operator /, DIV)
     REQL_METHOD(operator ==, EQ)
     REQL_METHOD(operator (), FUNCALL)
     REQL_METHOD(operator >, GT)
@@ -125,16 +123,22 @@ public:
     REQL_METHOD(operator &&, ALL)
     REQL_METHOD(count, COUNT)
     REQL_METHOD(map, MAP)
+    REQL_METHOD(concat_map, CONCATMAP)
     REQL_METHOD(operator [], GET_FIELD)
     REQL_METHOD(nth, NTH)
     REQL_METHOD(pluck, PLUCK)
     REQL_METHOD(grouped_map_reduce, GROUPED_MAP_REDUCE)
+    REQL_METHOD(has_fields, HAS_FIELDS)
+    REQL_METHOD(coerce_to, COERCE_TO)
+    REQL_METHOD(get_all, GET_ALL)
+    REQL_METHOD(replace, REPLACE)
+    REQL_METHOD(slice, SLICE)
+    REQL_METHOD(filter, FILTER)
+    REQL_METHOD(contains, CONTAINS)
+    REQL_METHOD(merge, MERGE)
+    REQL_METHOD(default_, DEFAULT)
 
-#undef REQL_METHOD
-
-private:
-
-    void set_datum(const datum_t &d);
+    reql_t operator !() RVALUE_THIS;
 
     template <class... T>
     void add_args(T &&... args) {
@@ -146,6 +150,10 @@ private:
         reql_t it(std::forward<T>(a));
         term->mutable_args()->AddAllocated(it.term.release());
     }
+
+private:
+
+    void set_datum(const datum_t &d);
 
     scoped_ptr_t<Term> term;
 };
@@ -174,9 +182,17 @@ reql_t array(Ts &&... xs) {
     return reql_t(Term::MAKE_ARRAY, std::forward<Ts>(xs)...);
 }
 
+template<class... Ts>
+reql_t object(Ts &&... xs) {
+    return reql_t(Term::MAKE_OBJ, std::forward<Ts>(xs)...);
+}
+
 reql_t null();
 
-std::pair<std::string, reql_t> optarg(const std::string &key, reql_t &&value);
+template <class T>
+std::pair<std::string, reql_t> optarg(const std::string &key, T &&value) {
+    return std::pair<std::string, reql_t>(key, reql_t(std::forward<T>(value)));
+}
 
 reql_t db(const std::string &name);
 
