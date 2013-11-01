@@ -14,9 +14,6 @@ PYTHON_DOCS=$(PYTHON_SRC)/docs.py
 
 all: $(PYTHON_PB_FILE) $(PBCPP) $(PYTHON_DOCS)
 
-../../build/docs/reql_docs.json: $(DOCS_YAML_FILES)
-	$(MAKE) -C ../../ build/docs/reql_docs.json
-
 $(PYTHON_DOCS): ../../docs/rql/py_docs.json
 	python gendocs.py > $@
 
