@@ -897,22 +897,29 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
-void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex_range,
-                    transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
-                    const rdb_protocol_details::transform_t &transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    const key_range_t &pk_range,
-                    sorting_t sorting,
-                    const ql::map_wire_func_t &sindex_func,
-                    sindex_multi_bool_t sindex_multi,
-                    rget_read_response_t *response) {
+void rdb_rget_secondary_slice(
+    btree_slice_t *slice,
+    const sindex_range_t &sindex_range,
+    const rdb_protocol_t::region_t &sindex_region,
+    transaction_t *txn,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const rdb_protocol_details::transform_t &transform,
+    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+    const key_range_t &pk_range,
+    sorting_t sorting,
+    const ql::map_wire_func_t &sindex_func,
+    sindex_multi_bool_t sindex_multi,
+    rget_read_response_t *response)
+{
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
-            sindex_range.to_region().inner, pk_range,
-            sorting, sindex_func, sindex_multi, sindex_range, response);
+    rdb_rget_depth_first_traversal_callback_t callback(
+        txn, ql_env, transform, terminal, sindex_region.inner, pk_range,
+        sorting, sindex_func, sindex_multi, sindex_range, response);
 
-    btree_concurrent_traversal(slice, txn, superblock, sindex_range.to_region().inner,
-            &callback, (forward(sorting) ? FORWARD : BACKWARD));
+    btree_concurrent_traversal(
+        slice, txn, superblock, sindex_region.inner, &callback,
+        (forward(sorting) ? FORWARD : BACKWARD));
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
