@@ -294,7 +294,7 @@ counted_t<const datum_t> array_datum_stream_t::next_impl(UNUSED env_t *env) {
 // MAP_DATUM_STREAM_T
 map_datum_stream_t::map_datum_stream_t(counted_t<func_t> _f,
                                        counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(_source->backtrace()), f(_f), source(_source) {
+    : wrapper_datum_stream_t(_source), f(_f), source(_source) {
     guarantee(f.has() && source.has());
 }
 
@@ -310,7 +310,7 @@ counted_t<const datum_t> map_datum_stream_t::next_impl(env_t *env) {
 // INDEXES_OF_DATUM_STREAM_T
 indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<func_t> _f,
                                                      counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(_source->backtrace()), f(_f), source(_source), index(0) {
+    : wrapper_datum_stream_t(_source), f(_f), source(_source), index(0) {
     guarantee(f.has() && source.has());
 }
 
@@ -331,7 +331,7 @@ counted_t<const datum_t> indexes_of_datum_stream_t::next_impl(env_t *env) {
 filter_datum_stream_t::filter_datum_stream_t(counted_t<func_t> _f,
                                              counted_t<func_t> _default_filter_val,
                                              counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(_source->backtrace()), f(_f),
+    : wrapper_datum_stream_t(_source), f(_f),
       default_filter_val(_default_filter_val), source(_source) {
     guarantee(f.has() && source.has());
 }
@@ -353,7 +353,7 @@ counted_t<const datum_t> filter_datum_stream_t::next_impl(env_t *env) {
 // CONCATMAP_DATUM_STREAM_T
 concatmap_datum_stream_t::concatmap_datum_stream_t(counted_t<func_t> _f,
                                                    counted_t<datum_stream_t> _source)
-    : eager_datum_stream_t(_source->backtrace()), f(_f), source(_source) {
+    : wrapper_datum_stream_t(_source), f(_f), source(_source) {
     guarantee(f.has() && source.has());
 }
 
