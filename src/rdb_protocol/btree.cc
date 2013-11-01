@@ -1181,7 +1181,6 @@ public:
         write_token_pair_t token_pair;
         store_->new_write_token_pair(&token_pair);
 
-        scoped_ptr_t<transaction_t> superblock_read_txn;
         scoped_ptr_t<transaction_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
 
@@ -1193,40 +1192,34 @@ public:
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
-            // First acquire the btree superblock in a read transaction to figure
-            // out the sindex_block_id. This looks a bit odd because we call
-            // `acquire_superblock_for_write()` with `rwi_read`. The former
-            // simply ensures that we go through the correct synchronization of
-            // a write operation with the token_pair.
+            // We want soft durability because having a partially constructed secondary index is
+            // okay -- we wipe it and rebuild it, if it has not been marked completely
+            // constructed.
+            // While we need wtxn to be a write transaction (thus calling
+            // `acquire_superblock_for_write`), we only need a read lock
+            // on the superblock (which is why we pass in `rwi_read`).
+            // Usually in btree code, we are supposed to acquire the superblock
+            // in write mode if we are going to do writes further down the tree,
+            // in order to guarantee that no other read can bypass the write on
+            // the way down. However in this special case this is already
+            // guaranteed by the token_pair that all secondary index operations
+            // use, so we can safely acquire it with `rwi_read` instead.
             store_->acquire_superblock_for_write(
+                rwi_write,
                 rwi_read,
                 repli_timestamp_t::distant_past,
                 0,
                 WRITE_DURABILITY_SOFT,
                 &token_pair,
-                &superblock_read_txn,
+                &wtxn,
                 &superblock,
                 interruptor_);
 
             // Synchronization is guaranteed through the token_pair.
             // Let's get the information we need from the superblock and then
             // release it immediately.
-            // Note that we hold on the the superblock_read_txn though because
-            // it has a reference to our token_pair and assumes that we do not
-            // terminate it before at least acquiring the sindex block.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
             superblock->release();
-
-            // Now start a write transaction to actually perform our updates through.
-            // We want soft durability because having a partially constructed secondary index is
-            // okay -- we wipe it and rebuild it, if it has not been marked completely
-            // constructed.
-            {
-                order_token_t txn_order_token = store_->order_source.check_in("post_construct_traversal_helper_t::process_a_leaf");
-                const order_token_t pre_begin_txn_token = store_->btree->pre_begin_txn_checkpoint_.check_through(txn_order_token);
-                wtxn.init(new transaction_t(store_->cache.get(), rwi_write, 2, repli_timestamp_t::distant_past,
-                                            pre_begin_txn_token, WRITE_DURABILITY_SOFT));
-            }
 
             scoped_ptr_t<buf_lock_t> sindex_block;
             store_->acquire_sindex_block_for_write(
@@ -1304,7 +1297,10 @@ void post_construct_secondary_indexes(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     store->new_read_token(&read_token);
 
-    // Mind the destructor ordering
+    // Mind the destructor ordering.
+    // The superblock must be released before txn (`btree_parallel_traversal`
+    // usually already takes care of that).
+    // The txn must be destructed before the cache_account.
     scoped_ptr_t<cache_account_t> cache_account;
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
