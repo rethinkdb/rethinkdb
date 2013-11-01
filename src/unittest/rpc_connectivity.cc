@@ -590,7 +590,7 @@ void check_tcp_closed(socket_stream_t *stream) {
         int64_t res;
         do {
             res = stream->read(&buffer, 1024);
-        } while (res != 0);
+        } while (res > 0);
 
         do {
             let_stuff_happen();
@@ -673,10 +673,16 @@ void run_different_version_test() {
     ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send bad version
+    std::string bad_version_str("0.1.1b");
     write_message_t bad_version_msg;
-    bad_version_msg << std::string("0.1.1b");
-    bad_version_msg << connectivity_cluster_t::cluster_arch_bitsize;
-    bad_version_msg << connectivity_cluster_t::cluster_build_mode;
+    bad_version_msg << bad_version_str.length();
+    bad_version_msg.append(bad_version_str.data(), bad_version_str.length());
+    bad_version_msg << connectivity_cluster_t::cluster_arch_bitsize.length();
+    bad_version_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
+                           connectivity_cluster_t::cluster_arch_bitsize.length());
+    bad_version_msg << connectivity_cluster_t::cluster_build_mode.length();
+    bad_version_msg.append(connectivity_cluster_t::cluster_build_mode.data(),
+                           connectivity_cluster_t::cluster_build_mode.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_version_msg));
     let_stuff_happen();
 
@@ -716,10 +722,16 @@ void run_different_arch_test() {
     ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send the expected version but bad arch bitsize
+    std::string bad_arch_str("96bit");
     write_message_t bad_arch_msg;
-    bad_arch_msg << connectivity_cluster_t::cluster_version;
-    bad_arch_msg << std::string("96bit");
-    bad_arch_msg << connectivity_cluster_t::cluster_build_mode;
+    bad_arch_msg << connectivity_cluster_t::cluster_version.length();
+    bad_arch_msg.append(connectivity_cluster_t::cluster_version.data(),
+                        connectivity_cluster_t::cluster_version.length());
+    bad_arch_msg << bad_arch_str.length();
+    bad_arch_msg.append(bad_arch_str.data(), bad_arch_str.length());
+    bad_arch_msg << connectivity_cluster_t::cluster_build_mode.length();
+    bad_arch_msg.append(connectivity_cluster_t::cluster_build_mode.data(),
+                        connectivity_cluster_t::cluster_build_mode.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_arch_msg));
     let_stuff_happen();
 
@@ -758,10 +770,16 @@ void run_different_build_mode_test() {
     ASSERT_TRUE(stream.is_read_open() && stream.is_write_open());
 
     // Send the expected version but bad arch bitsize
+    std::string bad_build_mode_str("build mode activated");
     write_message_t bad_build_mode_msg;
-    bad_build_mode_msg << connectivity_cluster_t::cluster_version;
-    bad_build_mode_msg << connectivity_cluster_t::cluster_arch_bitsize;
-    bad_build_mode_msg << std::string("build mode activated");
+    bad_build_mode_msg << connectivity_cluster_t::cluster_version.length();
+    bad_build_mode_msg.append(connectivity_cluster_t::cluster_version.data(),
+                              connectivity_cluster_t::cluster_version.length());
+    bad_build_mode_msg << connectivity_cluster_t::cluster_arch_bitsize.length();
+    bad_build_mode_msg.append(connectivity_cluster_t::cluster_arch_bitsize.data(),
+                              connectivity_cluster_t::cluster_arch_bitsize.length());
+    bad_build_mode_msg << bad_build_mode_str.length();
+    bad_build_mode_msg.append(bad_build_mode_str.data(), bad_build_mode_str.length());
     ASSERT_FALSE(send_write_message(&stream, &bad_build_mode_msg));
     let_stuff_happen();
 
