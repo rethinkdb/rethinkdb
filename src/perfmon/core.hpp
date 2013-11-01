@@ -52,6 +52,7 @@ class perfmon_membership_t;
 class perfmon_collection_t : public perfmon_t, public home_thread_mixin_t {
 public:
     perfmon_collection_t();
+    ~perfmon_collection_t();
 
     /* Perfmon interface */
     void *begin_stats();
@@ -64,6 +65,9 @@ private:
     void add(perfmon_membership_t *perfmon);
     void remove(perfmon_membership_t *perfmon);
 
+#ifndef NDEBUG
+    bool is_not_destroyed;
+#endif
     rwi_lock_t constituents_access;
     intrusive_list_t<perfmon_membership_t> constituents;
 };
