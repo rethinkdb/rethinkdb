@@ -78,13 +78,13 @@ class Connection(object):
         except ValueError as err:
           raise RqlDriverError("Could not convert port %s to an integer." % port)
 
-        self.reconnect(False)
+        self.reconnect(noreply_wait=False)
 
     def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
-        self.close(False)
+        self.close(noreply_wait=False)
 
     def use(self, db):
         self.db = db
@@ -219,7 +219,7 @@ class Connection(object):
         except KeyboardInterrupt as err:
             # When interrupted while waiting for a response cancel the outstanding
             # requests by resetting this connection
-            self.reconnect(False)
+            self.reconnect(noreply_wait=False)
             raise err
 
         # Construct response
@@ -262,6 +262,10 @@ class Connection(object):
             if len(response.response) < 1:
                 value = None
             value = Datum.deconstruct(response.response[0], time_format)
+
+        # Noreply_wait response
+        elif response.type == p.Response.WAIT_COMPLETE:
+            return None
 
         # Default for unknown response types
         else:

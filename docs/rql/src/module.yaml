@@ -97,48 +97,63 @@ commands:
   - tag: close
     section: module
     description: |
-      Close an open connection. Closing a connection cancels all outstanding
-      requests and frees the memory associated with the open requests.
+      Close an open connection. Closing a connection waits until all outstanding requests
+      are finished and frees the memory associated with them.
+      You can change the behavior of `close` to terminate the connection immediately by passing
+      an argument. All outstanding requests are canceled in that case.
 
     body:
-      py: "$PARENT.close()"
-      rb: "$PARENT.close"
-      js: "$PARENT.close()"
+      py: "$PARENT.close([noreply_wait=True])"
+      rb: "$PARENT.close([:noreply_wait => true])"
+      js: "$PARENT.close([{noreplyWait: true} ,][callback])"
 
     io:
       - - connection
         - null
 
     examples:
-      - description: Close an open connection.
+      - description: Close an open connection, waiting for outstanding requests to finish.
         validate: false
         code:
-          js: conn.close()
+          js: conn.close(function(err) { ... })
           py: conn.close()
           rb: conn.close
+      - description: Terminate all outstanding requests and close the connection right away.
+        validate: false
+        code:
+          js: "conn.close({noreplyWait: false})"
+          py: conn.close(noreply_wait=False)
+          rb: conn.close(:noreply_wait => false)
 
   - tag: reconnect
     section: module
     description: |
-      Close and attempt to reopen a connection. Has the effect of canceling
-      any outstanding request while keeping the connection open.
+      Close and attempt to reopen a connection. By default, outstanding requests are completed before
+      the connection is reopened. You can alternatively specify that you want to reconnect immediately, which
+      has the effect of canceling any outstanding request while keeping the connection open.
 
     body:
-      py: "$PARENT.reconnect()"
-      rb: "$PARENT.reconnect"
-      js: "$PARENT.reconnect()"
+      py: "$PARENT.reconnect([noreply_wait=True])"
+      rb: "$PARENT.reconnect([:noreply_wait => true])"
+      js: "$PARENT.reconnect([{noreplyWait: true} ,]callback)"
 
     io:
       - - connection
         - null
 
     examples:
-      - description: Cancel outstanding requests/queries that are no longer needed.
+      - description: Establish a new connection, but not before pending requests have completed.
         validate: false
         code:
           js: conn.reconnect(function(err, conn) { ... })
           py: conn.reconnect()
           rb: conn.reconnect
+      - description: Cancel outstanding requests/queries that are no longer needed.
+        validate: false
+        code:
+          js: "conn.reconnect({noreplyWait: false}, function(err, conn) { ... })"
+          py: conn.reconnect(noreply_wait=False)
+          rb: conn.reconnect(:noreply_wait => false)
 
   - tag: use
     section: module
@@ -261,6 +276,33 @@ commands:
              .insert({ :superhero => 'Iron Man', :superpower => 'Arc Reactor' })
              .run(conn, :profile => true)
 
+  - tag: noreply_wait
+    section: module
+    description: |
+      Wait for outstanding no-reply requests to finish. If you have previously run queries with the
+      `noreply` flag set, it guarantees that those queries have been processed by the server.
+
+    body:
+      py: "$PARENT.noreply_wait()"
+      rb: "$PARENT.noreply_wait"
+      js: "$PARENT.noreplyWait(callback)"
+
+    js:
+      name: noreplyWait
+
+    io:
+      - - connection
+        - null
+
+    examples:
+      - description: |
+          We have previously run queries with the `noreply` argument set. Now
+          wait until the server has executed them.
+        validate: false
+        code:
+          js: conn.noreplyWait(function(err) { ... })
+          py: conn.noreply_wait()
+          rb: conn.noreply_wait
 
   - tag: next
     section: module

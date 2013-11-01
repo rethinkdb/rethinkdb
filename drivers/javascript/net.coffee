@@ -184,6 +184,9 @@ class Connection extends events.EventEmitter
                             cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
                         else
                             cb null, cursor._addData(mkSeq(response, opts))
+                   ,"WAIT_COMPLETE": =>
+                        @_delQuery(token)
+                        cb null, null
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )
@@ -195,7 +198,7 @@ class Connection extends events.EventEmitter
         if callback?
             opts = optsOrCallback
             unless Object::toString.call(opts) is '[object Object]'
-                throw new err.RqlDriverError "First argument to two-argument `close` must be a dictionary."
+                throw new err.RqlDriverError "First argument to two-argument `close` must be an object."
             cb = callback
         else if Object::toString.call(optsOrCallback) is '[object Object]'
             opts = optsOrCallback
@@ -208,7 +211,7 @@ class Connection extends events.EventEmitter
             unless key in ['noreplyWait']
                 throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
         unless not cb? or typeof cb is 'function'
-            throw new err.RqlDriverError "Final argument to `close` must be a callback function or dictionary."
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
         wrappedCb = (args...) =>
             @open = false
@@ -225,7 +228,9 @@ class Connection extends events.EventEmitter
     noreplyWait: ar (callback) ->
         unless typeof callback is 'function'
             throw new err.RqlDriverError "First argument to noreplyWait must be a callback function."
-        unless @open then throw new err.RqlDriverError "Connection is closed."
+        unless @open
+            callback(new err.RqlDriverError "Connection is closed.")
+            return
         
         # Assign token
         token = @nextToken++
@@ -421,7 +426,7 @@ class TcpConnection extends Connection
             opts = {}
             cb = optsOrCallback
         unless not cb? or typeof cb is 'function'
-            throw new err.RqlDriverError "Final argument to `close` must be a callback function or dictionary."
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
         wrappedCb = (args...) =>
             @rawSocket.end()

@@ -105,7 +105,7 @@ module RethinkDB
       @@last = self
       @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
       @conn_id = 0
-      reconnect(false)
+      reconnect(:noreply_wait => false)
     end
     attr_reader :default_db, :conn_id
 
@@ -115,8 +115,8 @@ module RethinkDB
       noreply ? nil : wait(q.token)
     end
     def run(msg, opts)
-      reconnect if @auto_reconnect && (!@socket || !@listener)
-      raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
+      reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
+      raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = Query.new
       q.type = Query::QueryType::START
       q.query = msg
@@ -181,7 +181,7 @@ module RethinkDB
         return res
       rescue @abort_module::Abort => e
         print "\nAborting query and reconnecting...\n"
-        reconnect(false)
+        reconnect(:noreply_wait => false)
         raise e
       end
     end
@@ -204,10 +204,17 @@ module RethinkDB
     def debug_socket; @socket; end
 
     # Reconnect to the server.  This will interrupt all queries on the
-    # server (if noreply_wait = false) and invalidate all outstanding
+    # server (if :noreply_wait => false) and invalidate all outstanding
     # enumerables on the client.
-    def reconnect(noreply_wait=true)
-      noreply_wait if noreply_wait
+    def reconnect(opts={})
+      raise ArgumentError, "Argument to reconnect must be a hash." if opts.class != Hash
+      if not (opts.keys - [:noreply_wait]).empty?
+        raise ArgumentError, "reconnect does not understand these options: " +
+          (opts.keys - [:noreply_wait]).to_s
+      end
+      opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
+      
+      self.noreply_wait() if opts[:noreply_wait]
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
@@ -218,8 +225,15 @@ module RethinkDB
       self
     end
 
-    def close(noreply_wait=true)
-      noreply_wait if noreply_wait
+    def close(opts={})
+      raise ArgumentError, "Argument to close must be a hash." if opts.class != Hash
+      if not (opts.keys - [:noreply_wait]).empty?
+        raise ArgumentError, "close does not understand these options: " +
+          (opts.keys - [:noreply_wait]).to_s
+      end
+      opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
+      
+      self.noreply_wait() if opts[:noreply_wait]
       @listener.terminate if @listener
       @listener = nil
       @socket.close
@@ -227,15 +241,15 @@ module RethinkDB
     end
 
     def noreply_wait
-      raise RuntimeError, "Error: Connection Closed." if !@socket || !@listener
+      raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = Query.new
       q.type = Query::QueryType::NOREPLY_WAIT
       q.token = @@token_cnt += 1
       res = run_internal(q)
-      if res.type != Response::ResponseType::SUCCESS_ATOM
-        raise RqlRuntimeError, "Unexpected response to noreply_wait: #{res}."
+      if res.type != Response::ResponseType::WAIT_COMPLETE
+        raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
       end
-      Shim.response_to_native(res, nil, nil)
+      nil
     end
 
     def self.last
