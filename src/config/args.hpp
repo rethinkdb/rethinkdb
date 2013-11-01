@@ -249,5 +249,12 @@
 // 2^(MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1)
 #define MESSAGE_SCHEDULER_GRANULARITY           32
 
+// Priorities for specific tasks
+#define CORO_PRIORITY_SINDEX_CONSTRUCTION       (-2)
+#define CORO_PRIORITY_BACKFILL_SENDER           (-2)
+#define CORO_PRIORITY_BACKFILL_RECEIVER         (-2)
+#define CORO_PRIORITY_RESET_DATA                (-2)
+
+
 #endif  // CONFIG_ARGS_HPP_
 
