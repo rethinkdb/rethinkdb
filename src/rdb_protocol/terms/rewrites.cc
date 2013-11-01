@@ -245,15 +245,17 @@ private:
         auto row = pb::dummy_var_t::EQJOIN_ROW;
         auto v = pb::dummy_var_t::EQJOIN_V;
 
-        r::reql_t inner_map =
+        r::reql_t get_all =
             r::expr(right)
             .get_all(
-              r::expr(left_attr)(row, r::optarg("_SHORTCUT_", GET_FIELD_SHORTCUT)))
-            .map(r::fun(v, r::object(r::optarg("left", row), r::optarg("right", v))));
+              r::expr(left_attr)(row, r::optarg("_SHORTCUT_", GET_FIELD_SHORTCUT)));
 
-        inner_map.copy_optargs_from_term(*in);
+        get_all.copy_optargs_from_term(*in);
 
-        return r::expr(left).concat_map(r::fun(row, std::move(inner_map)));
+        return r::expr(left).concat_map(r::fun(row,
+                  std::move(get_all)
+                  .map(r::fun(v,
+                    r::object(r::optarg("left", row), r::optarg("right", v))))));
     }
     virtual const char *name() const { return "inner_join"; }
 };

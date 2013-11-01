@@ -33,7 +33,7 @@ public:
         auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
 
         r::reql_t body = r::var(varnum).call(term->type());
-        body.copy_args_from_term(*term);
+        body.copy_args_from_term(*term, 1);
         body.add_arg(r::optarg("_NO_RECURSE_", r::boolean(true)));
 
         switch (poly_type) {

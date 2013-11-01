@@ -34,7 +34,7 @@ reql_t::reql_t(reql_t &&other) : term(std::move(other.term)) {
     guarantee(term.has());
 }
 
-reql_t::reql_t(pb::dummy_var_t var) : term() {
+reql_t::reql_t(pb::dummy_var_t var) : term(make_scoped<Term>()) {
     term->set_type(Term::VAR);
     add_arg(static_cast<double>(dummy_var_to_sym(var).value));
 }
