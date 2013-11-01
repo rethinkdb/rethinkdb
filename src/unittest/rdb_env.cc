@@ -219,6 +219,10 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sync_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data,
                                                              ql::env_t *_env,
                                                              rdb_protocol_t::write_response_t *_response) :

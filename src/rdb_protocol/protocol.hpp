@@ -506,6 +506,11 @@ struct rdb_protocol_t {
         bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
+    
+    struct sync_response_t {
+        // sync always succeeds
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
 
     typedef counted_t<const ql::datum_t> batched_replace_response_t;
     struct write_response_t {
@@ -514,7 +519,9 @@ struct rdb_protocol_t {
                        point_write_response_t,
                        point_delete_response_t,
                        sindex_create_response_t,
-                       sindex_drop_response_t> response;
+                       sindex_drop_response_t,
+                       sync_response_t> response;
+
         profile::event_log_t event_log;
         size_t n_shards;
 
@@ -633,6 +640,17 @@ struct rdb_protocol_t {
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
+    
+    class sync_t {
+    public:
+        sync_t()
+            : region(region_t::universe())
+        { }
+
+        region_t region;
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
 
     struct write_t {
         boost::variant<batched_replace_t,
@@ -640,7 +658,8 @@ struct rdb_protocol_t {
                        point_write_t,
                        point_delete_t,
                        sindex_create_t,
-                       sindex_drop_t> write;
+                       sindex_drop_t,
+                       sync_t> write;
 
         durability_requirement_t durability_requirement;
         profile_bool_t profile;
@@ -679,6 +698,26 @@ struct rdb_protocol_t {
         write_t(const sindex_drop_t &c, profile_bool_t _profile)
             : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
               profile(_profile) { }
+        write_t(const sindex_create_t &c,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(c), durability_requirement(durability),
+              profile(_profile) { }
+        write_t(const sindex_drop_t &c,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(c), durability_requirement(durability),
+              profile(_profile) { }
+        /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
+         *  not have the desired effect (of writing unsaved data to disk).
+         *  However there are cases where we use sync internally (such as when
+         *  splitting up batched replaces/inserts) and want it to only have an
+         *  effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard
+         *  durability. */
+        write_t(const sync_t &c,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(c), durability_requirement(durability), profile(_profile) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
