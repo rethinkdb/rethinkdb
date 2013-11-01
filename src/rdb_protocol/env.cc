@@ -6,7 +6,7 @@
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -50,14 +50,11 @@ global_optargs_t::global_optargs_t(protob_t<Query> q) {
                 strprintf("Duplicate global optarg: %s", ap.key().c_str()));
     }
 
-    protob_t<Term> ewt = make_counted_term();
-    Term *const arg = ewt.get();
-
-    N1(DB, NDATUM("test"));
+    Term arg = r::db("test").get();
 
     Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
-    propagate_backtrace(arg, t_bt); // duplicate toplevel backtrace
-    UNUSED bool _b = add_optarg("db", *arg);
+    propagate_backtrace(&arg, t_bt); // duplicate toplevel backtrace
+    UNUSED bool _b = add_optarg("db", arg);
     //          ^^ UNUSED because user can override this value safely
 }
 
@@ -65,8 +62,7 @@ bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) {
         return true;
     }
-    protob_t<Term> arg = make_counted_term();
-    N2(FUNC, N0(MAKE_ARRAY), *arg = val);
+    protob_t<Term> arg = r::fun(r::expr(val)).release_counted();
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
 
     compile_env_t empty_compile_env((var_visibility_t()));
