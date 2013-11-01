@@ -91,14 +91,8 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
         fail_due_to_user_error("The files that the server was started with didn't all come from "
             "the same call to 'rethinkdb create'.");
     }
-    if (c->n_files > static_cast<int>(underlying.size())) {
-        fail_due_to_user_error("You forgot to include one of the files/devices that you included "
-            "when the database was first created.");
-    }
-    if (c->n_files < static_cast<int>(underlying.size())) {
-        fail_due_to_user_error("Got more files than expected. Did you give a file that wasn't "
-            "included in the call to 'rethinkdb create'? Did you duplicate one of the files?");
-    }
+
+    guarantee(c->n_files == static_cast<int>(underlying.size()));
     guarantee(c->this_serializer >= 0 && c->this_serializer < static_cast<int>(underlying.size()));
     guarantee(c->n_proxies == static_cast<int>(proxies->size()));
 
