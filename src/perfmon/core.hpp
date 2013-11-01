@@ -65,9 +65,6 @@ private:
     void add(perfmon_membership_t *perfmon);
     void remove(perfmon_membership_t *perfmon);
 
-#ifndef NDEBUG
-    bool is_not_destroyed;
-#endif
     rwi_lock_t constituents_access;
     intrusive_list_t<perfmon_membership_t> constituents;
 };

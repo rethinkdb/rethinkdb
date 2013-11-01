@@ -37,22 +37,13 @@ public:
     }
 };
 
-perfmon_collection_t::perfmon_collection_t()
-#ifndef NDEBUG
-    : is_not_destroyed(true)
-#endif
-{ }
-perfmon_collection_t::~perfmon_collection_t() {
-#ifndef NDEBUG
-    is_not_destroyed = false;
-#endif
-}
+perfmon_collection_t::perfmon_collection_t() { }
+perfmon_collection_t::~perfmon_collection_t() { }
 
 void *perfmon_collection_t::begin_stats() {
     stats_collection_context_t *ctx;
     {
         on_thread_t thread_switcher(home_thread());
-        rassert(is_not_destroyed);
         ctx = new stats_collection_context_t(&constituents_access, constituents);
     }
 
@@ -65,7 +56,6 @@ void *perfmon_collection_t::begin_stats() {
 }
 
 void perfmon_collection_t::visit_stats(void *_context) {
-    rassert(is_not_destroyed);
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
@@ -75,7 +65,6 @@ void perfmon_collection_t::visit_stats(void *_context) {
 }
 
 scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
-    rassert(is_not_destroyed);
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
 
     scoped_ptr_t<perfmon_result_t> map = perfmon_result_t::alloc_map_result();
@@ -105,7 +94,6 @@ void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rassert(is_not_destroyed);
     rwi_lock_t::write_acq_t write_acq(&constituents_access);
     constituents.push_back(perfmon);
 }
@@ -116,7 +104,6 @@ void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rassert(is_not_destroyed);
     rwi_lock_t::write_acq_t write_acq(&constituents_access);
     constituents.remove(perfmon);
 }
