@@ -223,12 +223,19 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
-        rdb_rget_slice(store->get_sindex_slice(sindex_id),
+        rdb_rget_slice(
+            store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
-            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
+            txn.get(),
+            sindex_sb.get(),
+            NULL, // env_t
+            ql::batcher_t::user_batcher(ql::NORMAL, counted_t<const ql::datum_t>()),
+            rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(),
+            ASCENDING,
+            &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
@@ -279,12 +286,19 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
-        rdb_rget_slice(store->get_sindex_slice(sindex_id),
+        rdb_rget_slice(
+            store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
-            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
+            txn.get(),
+            sindex_sb.get(),
+            NULL, // env_t
+            ql::batcher_t::user_batcher(ql::NORMAL, counted_t<const ql::datum_t>()),
+            rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(),
+            ASCENDING,
+            &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);

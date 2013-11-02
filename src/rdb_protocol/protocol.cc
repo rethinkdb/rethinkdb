@@ -1202,8 +1202,8 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (!rget.sindex) {
             // Normal rget
             rdb_rget_slice(btree, rget.region.inner, txn, superblock,
-                    &ql_env, rget.transform, rget.terminal,
-                    rget.sorting, res);
+                           &ql_env, rget.batcher, rget.transform, rget.terminal,
+                           rget.sorting, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
@@ -1245,7 +1245,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
                 rget.sindex->original_range, rget.sindex->region,
-                txn, sindex_sb.get(), &ql_env, rget.transform,
+                txn, sindex_sb.get(), &ql_env, rget.batcher, rget.transform,
                 rget.terminal, rget.region.inner, rget.sorting,
                 sindex_mapping, multi_bool, res);
         }

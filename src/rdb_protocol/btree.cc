@@ -853,8 +853,7 @@ public:
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env,
-                    const ql::batcher_t &batcher,
+                    ql::env_t *ql_env, const ql::batcher_t &batcher,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     sorting_t sorting,

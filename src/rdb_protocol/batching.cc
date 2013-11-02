@@ -39,6 +39,10 @@ batcher_t batcher_t::user_batcher(batch_type_t batch_type, env_t *env) {
         vconf.has() ? vconf->as_datum() : counted_t<const datum_t>());
 }
 
+batcher_t batcher_t::with_new_batch_type(batch_type_t new_batch_type) const {
+    return batcher_t(new_batch_type, els_left, size_left, end_time);
+}
+
 bool batcher_t::should_send_batch() const {
     return els_left <= 0
         || size_left <= 0

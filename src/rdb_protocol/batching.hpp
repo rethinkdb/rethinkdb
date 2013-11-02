@@ -32,6 +32,7 @@ public:
                                   const counted_t<const datum_t> &conf);
     static batcher_t user_batcher(batch_type_t batch_type, env_t *env);
     static batcher_t empty_batcher_for_serialization() { return batcher_t(); }
+    batcher_t with_new_batch_type(batch_type_t new_batch_type) const;
 
     template<class T>
     bool note_el(const T &t) {
