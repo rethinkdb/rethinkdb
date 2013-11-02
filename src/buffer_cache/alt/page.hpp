@@ -418,15 +418,19 @@ private:
 //    committed to disk before or at the same time as T.
 //
 // As a result, we form a directed graph of txns, which gets modified on the fly, and
-// we commit them in topological order.  (_Cycles_ cannot happen, because we do not
-// have row-level locking -- write transactions can't pass each other.  If there was
-// a cycle, then the txn's would have had an inconsistent view of the cache.  So
-// transactions must form a DAG.  However, if two txns modify the same block (without
-// the first txn saving a snapshot), then they both must be committed at the same
-// time.)  HOWEVER, FOR NOW, TRANSACTIONS SNAPSHOT ALL BLOCKS THEY CHANGED, SO THAT
-// THEY CAN BE WRITTEN WITHOUT WAITING FOR SUBSEQUENT TRANSACTIONS THAT HAVE MODIFIED
-// THE BLOCK.  RSP: THIS IS WASTEFUL (WHEN MANY TRANSACTIONS MODIFY THE SAME BLOCK IN
-// A ROW).
+// we commit them in topological order.  (_Cycles_ cannot happen (edit: nope,
+// see[1]), because we do not have row-level locking -- write transactions can't pass
+// each other.  If there was a cycle, then the txn's would have had an inconsistent
+// view of the cache.  So transactions must form a DAG.  However, if two txns modify
+// the same block (without the first txn saving a snapshot), then they both must be
+// committed at the same time.)  HOWEVER, FOR NOW, TRANSACTIONS SNAPSHOT ALL BLOCKS
+// THEY CHANGED, SO THAT THEY CAN BE WRITTEN WITHOUT WAITING FOR SUBSEQUENT
+// TRANSACTIONS THAT HAVE MODIFIED THE BLOCK.  RSP: THIS IS WASTEFUL (WHEN MANY
+// TRANSACTIONS MODIFY THE SAME BLOCK IN A ROW).
+//
+// Update: Cycles _can_ happen thanks to the stats block.  The rule therefore is that
+// you _can_ have cycles, as long as you don't mind things having inconsistent views
+// of the cache.
 class page_txn_t {
 public:
     // RSI: Somehow distinguish between write and read behavior.
