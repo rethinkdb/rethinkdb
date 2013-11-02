@@ -287,34 +287,6 @@
     ], 
     "description": "\n\n\n\nMatch against a regular expression. Returns a match object containing the matched string,\nthat string's start/end position, and the capture groups. Accepts RE2 syntax\n([https://code.google.com/p/re2/wiki/Syntax](https://code.google.com/p/re2/wiki/Syntax)).\nYou can enable case-insensitive matching by prefixing the regular expression with\n`(?i)`. (See linked RE2 documentation for more flags.)\n\n\n\n\n\n"
   }, 
-  "index_create": {
-    "examples": [
-      {
-        "code": "r.table('dc').index_create('code_name').run(conn)", 
-        "description": "<p><strong>Example:</strong> To efficiently query our heros by code name we have to create a secondary\nindex.</p>"
-      }, 
-      {
-        "code": "r.table('dc').index_create('power_rating',\nlambda hero: hero['combat_power'] + (2 * hero['compassion_power'])\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> You can also create a secondary index based on an arbitrary function on the document.</p>"
-      }, 
-      {
-        "code": "r.table('dc').index_create('parental_planets',\nlambda hero: [hero['mothers_home_planet'], hero['fathers_home_planet']]\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> A compound index can be created by returning an array of values to use as\nthe secondary index key.</p>"
-      }, 
-      {
-        "code": "r.table('dc').index_create('abilities', multi=True).run(conn)", 
-        "description": "<p><strong>Example:</strong> A multi index can be created by passing an optional multi argument. Multi\nindexes functions should return arrays and allow you to query based on whether a value\nis present in the returned array. The example would allow us to get heroes who possess a\nspecific ability (the field 'abilities' is an array).</p>"
-      }
-    ], 
-    "name": "index_create", 
-    "io": [
-      [
-        "table", 
-        "object"
-      ]
-    ], 
-    "description": "\n\n\n\nCreate a new secondary index on this table.\n\n\n\n\n\n\n\n\n"
-  }, 
   "do": {
     "examples": [
       {
@@ -1022,22 +994,18 @@
   "count": {
     "examples": [
       {
-        "code": "(r.table('marvel').count() + r.table('dc').count()).run(conn)", 
-        "description": "<p><strong>Example:</strong> Just how many super heroes are there?</p>"
-      }, 
-      {
-        "code": "r.table('marvel').count(r.row['monstersKilled'].contains('Sphinx')).run(conn)", 
-        "description": "<p><strong>Example:</strong> Just how many super heroes have defeated the Sphinx?</p>"
+        "code": "r.table('marvel').group_by('strength', r.count).run(conn)", 
+        "description": "<p><strong>Example:</strong> Just how many heroes do we have at each strength level?</p>"
       }
     ], 
     "name": "count", 
     "io": [
       [
-        "sequence", 
-        "value"
+        "r", 
+        null
       ]
     ], 
-    "description": "\n\n\n\nCount the number of elements in the sequence. With a single argument, count the number\nof elements equal to it. If the argument is a function, it is equivalent to calling\nfilter before count.\n\n\n\n\n"
+    "description": "\n\n\n\nCount the total size of the group.\n\n"
   }, 
   "filter": {
     "examples": [
@@ -1079,21 +1047,21 @@
     ], 
     "description": "\n\n\n\nGet all the documents for which the given predicate is true.\n\nfilter can be called on a sequence, selection, or a field containing an array of\nelements. The return type is the same as the type on which the function was called on.\nThe body of every filter is wrapped in an implicit `.default(false)`, and the default\nvalue can be changed by passing the optional argument `default`. Setting this optional\nargument to `r.error()` will cause any non-existence errors to abort the filter.\n\n\n\n\n\n\n\n"
   }, 
-  "distinct": {
+  "union": {
     "examples": [
       {
-        "code": "r.table('marvel').concat_map(lambda hero: hero['villainList']).distinct().run(conn)", 
-        "description": "<p><strong>Example:</strong> Which unique villains have been vanquished by marvel heroes?</p>"
+        "code": "r.table('marvel').union(r.table('dc')).run(conn)", 
+        "description": "<p><strong>Example:</strong> Construct a stream of all heroes.</p>"
       }
     ], 
-    "name": "distinct", 
+    "name": "union", 
     "io": [
       [
         "sequence", 
-        "value"
+        "array"
       ]
     ], 
-    "description": "\n\n\n\nRemove duplicate elements from the sequence.\n\n"
+    "description": "\n\n\n\nConcatenate two sequences.\n\n\n"
   }, 
   "delete": {
     "examples": [
@@ -1215,41 +1183,33 @@
     ], 
     "description": "\n\n\n\nTest if the first value is greater than or equal to other.\n\n\n"
   }, 
-  "replace": {
+  "index_create": {
     "examples": [
       {
-        "code": "r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(conn)", 
-        "description": "<p><strong>Example:</strong> Remove all existing attributes from Superman's document, and add an\nattribute 'age'.</p>"
+        "code": "r.table('dc').index_create('code_name').run(conn)", 
+        "description": "<p><strong>Example:</strong> To efficiently query our heros by code name we have to create a secondary\nindex.</p>"
       }, 
       {
-        "code": "r.table('marvel').get('superman').replace(\n    { 'id': 'superman', 'age': 30 }, non_atomic=True\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Allow the server to run non-atomic operations.</p>"
+        "code": "r.table('dc').index_create('power_rating',\nlambda hero: hero['combat_power'] + (2 * hero['compassion_power'])\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> You can also create a secondary index based on an arbitrary function on the document.</p>"
       }, 
       {
-        "code": "r.table('heroes').filter(r.row['universe'] == 'marvel').replace(\n    lambda hero: hero.merge({'is_fav': True}), durability='soft'\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Mark all Marvel heroes as favorites, specifying soft durability.</p>"
+        "code": "r.table('dc').index_create('parental_planets',\nlambda hero: [hero['mothers_home_planet'], hero['fathers_home_planet']]\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> A compound index can be created by returning an array of values to use as\nthe secondary index key.</p>"
       }, 
       {
-        "code": "r.table('heroes').filter(r.row['universe'] == 'marvel').replace(\n    lambda hero: hero.merge({'is_fav': True}), return_vals=True\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> You can get a copy of the previous value and the old value back using the\nreturn_vals flag.</p>"
+        "code": "r.table('dc').index_create('abilities', multi=True).run(conn)", 
+        "description": "<p><strong>Example:</strong> A multi index can be created by passing an optional multi argument. Multi\nindexes functions should return arrays and allow you to query based on whether a value\nis present in the returned array. The example would allow us to get heroes who possess a\nspecific ability (the field 'abilities' is an array).</p>"
       }
     ], 
-    "name": "replace", 
+    "name": "index_create", 
     "io": [
       [
         "table", 
         "object"
-      ], 
-      [
-        "selection", 
-        "object"
-      ], 
-      [
-        "singleSelection", 
-        "object"
       ]
     ], 
-    "description": "\n\n\n\nReplace documents in a table. Accepts a JSON document or a RQL expression, and replaces\nthe original document with the new one. The new document must have the same primary key\nas the original document. The optional argument durability with value 'hard' or 'soft'\nwill override the table or query's default durability setting. The optional argument\nreturn_vals will return the old and new values of the row you're modifying when set to\ntrue (only valid for single-row replacements). The optional argument non_atomic lets you\npermit non-atomic updates.\n\nReplace returns an object that contains the following attributes:\n\n- `replaced`: the number of documents that were replaced\n- `unchanged`: the number of documents that would have been modified, except that the\nnew value was the same as the old value\n- `inserted`: the number of new documents added. You can have new documents inserted if\nyou do a point-replace on a key that isn't in the table or you do a replace on a\nselection and one of the documents you are replacing has been deleted\n- `deleted`: the number of deleted documents when doing a replace with null\n- `errors`: the number of errors encountered while performing the replace; if errors\noccurred performing the replace, first_error contains the text of the first error encountered\n- `skipped`: 0 for a replace operation\n\n\n\n\n\n\n\n\n"
+    "description": "\n\n\n\nCreate a new secondary index on this table.\n\n\n\n\n\n\n\n\n"
   }, 
   "change_at": {
     "examples": [
@@ -1415,21 +1375,21 @@
     ], 
     "description": "\n\n\n\nCompute the logical and of two values.\n\n"
   }, 
-  "union": {
+  "distinct": {
     "examples": [
       {
-        "code": "r.table('marvel').union(r.table('dc')).run(conn)", 
-        "description": "<p><strong>Example:</strong> Construct a stream of all heroes.</p>"
+        "code": "r.table('marvel').concat_map(lambda hero: hero['villainList']).distinct().run(conn)", 
+        "description": "<p><strong>Example:</strong> Which unique villains have been vanquished by marvel heroes?</p>"
       }
     ], 
-    "name": "union", 
+    "name": "distinct", 
     "io": [
       [
         "sequence", 
-        "array"
+        "value"
       ]
     ], 
-    "description": "\n\n\n\nConcatenate two sequences.\n\n\n"
+    "description": "\n\n\n\nRemove duplicate elements from the sequence.\n\n"
   }, 
   "*": {
     "examples": [
@@ -1638,38 +1598,6 @@
       ]
     ], 
     "description": "\n\n\n\n\nReturn the day of week of a time object as a number between 1 and 7 (following ISO 8601 standard). For your convenience, the terms r.monday, r.tuesday etc. are defined and map to the appropriate integer.\n\n\n\n"
-  }, 
-  "eq_join": {
-    "examples": [
-      {
-        "code": "r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run(conn)", 
-        "description": "<p><strong>Example:</strong> Let our heroes join forces to battle evil!</p>"
-      }, 
-      {
-        "code": "r.table('marvel').inner_join(r.table('dc'),\nlambda left, right: left['main_dc_collaborator'] == right['hero_name']).run(conn)", 
-        "description": "<p><strong>Example:</strong> The above query is equivalent to this inner join but runs in O(n log(m))\ntime rather than the O(n * m) time the inner join takes.</p>"
-      }, 
-      {
-        "code": "r.table('marvel').eq_join('main_weapon_origin',\nr.table('mythical_weapons'), index='origin').run(conn)", 
-        "description": "<p><strong>Example:</strong> You can take advantage of a secondary index on the second table by giving\nan optional index parameter.</p>"
-      }, 
-      {
-        "code": "r.table('marvel').eq_join(lambda doc:\n    doc['dc_collaborators'].order_by('appearances')[0]['name'],\n    r.table('dc')).run(conn)", 
-        "description": "<p><strong>Example:</strong> You can pass a function instead of an attribute to join on more\ncomplicated expressions. Here we join to the DC universe collaborator with whom the hero\nhas the most appearances.</p>"
-      }
-    ], 
-    "name": "eq_join", 
-    "io": [
-      [
-        "sequence", 
-        "stream"
-      ], 
-      [
-        "array", 
-        "array"
-      ]
-    ], 
-    "description": "\n\n\n\nAn efficient join that looks up elements in the right table by primary key.\n\n\n\n\n\n\n\n"
   }, 
   "r": {
     "examples": [
@@ -1923,21 +1851,25 @@
     ], 
     "description": "\n\n\n\nTrim the sequence to within the bounds provided.\n\n\n\n"
   }, 
-  "time_of_day": {
+  "concat_map": {
     "examples": [
       {
-        "code": "r.table(\"posts\").filter(\n    r.row[\"date\"].time_of_day() <= 12*60*60\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Retrieve posts that were submitted before noon.</p>"
+        "code": "r.table('marvel').concat_map(lambda hero: hero['defeatedMonsters']).run(conn)", 
+        "description": "<p><strong>Example:</strong> Construct a sequence of all monsters defeated by Marvel heroes. Here the field\n'defeatedMonsters' is a list that is concatenated to the sequence.</p>"
       }
     ], 
-    "name": "time_of_day", 
+    "name": "concat_map", 
     "io": [
       [
-        "time", 
-        "number"
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
       ]
     ], 
-    "description": "\n\n\n\nReturn the number of seconds elapsed since the beginning of the day stored in the time object.\n\n\n\n"
+    "description": "\n\n\n\nFlattens a sequence of arrays returned by the mappingFunction into a single sequence.\n\n"
   }, 
   "-": {
     "examples": [
@@ -2131,6 +2063,74 @@
     ], 
     "description": "\n\n\n\nTest if a sequence is empty.\n\n\n\n"
   }, 
+  "replace": {
+    "examples": [
+      {
+        "code": "r.table('marvel').get('superman').replace({ 'id': 'superman', 'age': 30 }).run(conn)", 
+        "description": "<p><strong>Example:</strong> Remove all existing attributes from Superman's document, and add an\nattribute 'age'.</p>"
+      }, 
+      {
+        "code": "r.table('marvel').get('superman').replace(\n    { 'id': 'superman', 'age': 30 }, non_atomic=True\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Allow the server to run non-atomic operations.</p>"
+      }, 
+      {
+        "code": "r.table('heroes').filter(r.row['universe'] == 'marvel').replace(\n    lambda hero: hero.merge({'is_fav': True}), durability='soft'\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Mark all Marvel heroes as favorites, specifying soft durability.</p>"
+      }, 
+      {
+        "code": "r.table('heroes').filter(r.row['universe'] == 'marvel').replace(\n    lambda hero: hero.merge({'is_fav': True}), return_vals=True\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> You can get a copy of the previous value and the old value back using the\nreturn_vals flag.</p>"
+      }
+    ], 
+    "name": "replace", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ], 
+      [
+        "selection", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "description": "\n\n\n\nReplace documents in a table. Accepts a JSON document or a RQL expression, and replaces\nthe original document with the new one. The new document must have the same primary key\nas the original document. The optional argument durability with value 'hard' or 'soft'\nwill override the table or query's default durability setting. The optional argument\nreturn_vals will return the old and new values of the row you're modifying when set to\ntrue (only valid for single-row replacements). The optional argument non_atomic lets you\npermit non-atomic updates.\n\nReplace returns an object that contains the following attributes:\n\n- `replaced`: the number of documents that were replaced\n- `unchanged`: the number of documents that would have been modified, except that the\nnew value was the same as the old value\n- `inserted`: the number of new documents added. You can have new documents inserted if\nyou do a point-replace on a key that isn't in the table or you do a replace on a\nselection and one of the documents you are replacing has been deleted\n- `deleted`: the number of deleted documents when doing a replace with null\n- `errors`: the number of errors encountered while performing the replace; if errors\noccurred performing the replace, first_error contains the text of the first error encountered\n- `skipped`: 0 for a replace operation\n\n\n\n\n\n\n\n\n"
+  }, 
+  "eq_join": {
+    "examples": [
+      {
+        "code": "r.table('marvel').eq_join('main_dc_collaborator', r.table('dc')).run(conn)", 
+        "description": "<p><strong>Example:</strong> Let our heroes join forces to battle evil!</p>"
+      }, 
+      {
+        "code": "r.table('marvel').inner_join(r.table('dc'),\nlambda left, right: left['main_dc_collaborator'] == right['hero_name']).run(conn)", 
+        "description": "<p><strong>Example:</strong> The above query is equivalent to this inner join but runs in O(n log(m))\ntime rather than the O(n * m) time the inner join takes.</p>"
+      }, 
+      {
+        "code": "r.table('marvel').eq_join('main_weapon_origin',\nr.table('mythical_weapons'), index='origin').run(conn)", 
+        "description": "<p><strong>Example:</strong> You can take advantage of a secondary index on the second table by giving\nan optional index parameter.</p>"
+      }, 
+      {
+        "code": "r.table('marvel').eq_join(lambda doc:\n    doc['dc_collaborators'].order_by('appearances')[0]['name'],\n    r.table('dc')).run(conn)", 
+        "description": "<p><strong>Example:</strong> You can pass a function instead of an attribute to join on more\ncomplicated expressions. Here we join to the DC universe collaborator with whom the hero\nhas the most appearances.</p>"
+      }
+    ], 
+    "name": "eq_join", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "description": "\n\n\n\nAn efficient join that looks up elements in the right table by primary key.\n\n\n\n\n\n\n\n"
+  }, 
   "table_create": {
     "examples": [
       {
@@ -2203,25 +2203,21 @@
     ], 
     "description": "\n\n\n\nAdd a several values to an array and return it as a set (an array with distinct values).\n\n\n"
   }, 
-  "concat_map": {
+  "time_of_day": {
     "examples": [
       {
-        "code": "r.table('marvel').concat_map(lambda hero: hero['defeatedMonsters']).run(conn)", 
-        "description": "<p><strong>Example:</strong> Construct a sequence of all monsters defeated by Marvel heroes. Here the field\n'defeatedMonsters' is a list that is concatenated to the sequence.</p>"
+        "code": "r.table(\"posts\").filter(\n    r.row[\"date\"].time_of_day() <= 12*60*60\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Retrieve posts that were submitted before noon.</p>"
       }
     ], 
-    "name": "concat_map", 
+    "name": "time_of_day", 
     "io": [
       [
-        "sequence", 
-        "stream"
-      ], 
-      [
-        "array", 
-        "array"
+        "time", 
+        "number"
       ]
     ], 
-    "description": "\n\n\n\nFlattens a sequence of arrays returned by the mappingFunction into a single sequence.\n\n"
+    "description": "\n\n\n\nReturn the number of seconds elapsed since the beginning of the day stored in the time object.\n\n\n\n"
   }, 
   "without": {
     "examples": [
