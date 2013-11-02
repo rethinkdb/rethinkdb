@@ -190,14 +190,25 @@ public:
 
         {
             page_cache_t cache(mock.ser.get());
+            auto_drainer_t drain;
+            c = &cache;
+            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn14,
+                                            this, drain.lock()));
+            coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn15,
+                                            this, drain.lock()));
+        }
+        c = NULL;
+
+        {
+            page_cache_t cache(mock.ser.get());
             c = &cache;
             page_txn_t txn(c);
 
             check_value(&txn, b[0], "t6");
             check_value(&txn, b[1], "t6");
             check_value(&txn, b[2], "t6");
-            check_value(&txn, b[3], "t7");
-            check_value(&txn, b[4], "t7");
+            check_value(&txn, b[3], "t7t14t15");
+            check_value(&txn, b[4], "t7t15t14");
             check_value(&txn, b[5], "t8");
             check_value(&txn, b[6], "t1t2t9");
             check_value(&txn, b[7], "t2t5");
@@ -768,6 +779,30 @@ private:
         condZ5.pulse();
     }
 
+    void run_txn14(auto_drainer_t::lock_t) {
+        page_txn_t txn14(c);
+        auto acq3 = make_scoped<current_page_acq_t>(&txn14, b[3], alt_access_t::write);
+        check_and_append(acq3, "t7", "t14");
+        acq3.reset();
+        bad1.pulse();
+        bad2.wait();
+        auto acq4 = make_scoped<current_page_acq_t>(&txn14, b[4], alt_access_t::write);
+        check_and_append(acq4, "t7t15", "t14");
+        acq4.reset();
+    }
+
+    void run_txn15(auto_drainer_t::lock_t) {
+        page_txn_t txn15(c);
+        bad1.wait();
+        auto acq3 = make_scoped<current_page_acq_t>(&txn15, b[3], alt_access_t::write);
+        check_and_append(acq3, "t7t14", "t15");
+        acq3.reset();
+        auto acq4 = make_scoped<current_page_acq_t>(&txn15, b[4], alt_access_t::write);
+        check_and_append(acq4, "t7", "t15");
+        acq4.reset();
+        bad2.pulse();
+    }
+
     void assert_unique_ids() {
         for (size_t i = 0; i < b_len; ++i) {
             if (b[i] != NULL_BLOCK_ID) {
@@ -829,7 +864,6 @@ private:
         }
     }
 
-
     mock_ser_t mock;
     page_cache_t *c;
 
@@ -852,6 +886,8 @@ private:
     cond_t condCR1, condCR2, condCR3, condCR4;
 
     cond_t t678cond;
+
+    cond_t bad1, bad2;
 
     page_txn_t *txn1_ptr;
     page_txn_t *txn2_ptr;

@@ -71,6 +71,8 @@ public:
                    alt_access_t access);
     ~alt_buf_lock_t();
 
+    void snapshot_subtree();
+
     block_id_t block_id() const { return block_id_; }
     alt_access_t access() const { return current_page_acq_.access(); }
 

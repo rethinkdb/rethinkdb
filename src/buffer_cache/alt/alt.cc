@@ -56,6 +56,10 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
 alt_buf_lock_t::~alt_buf_lock_t() {
 }
 
+void alt_buf_lock_t::snapshot_subtree() {
+    // RSI: Actually implement this.
+}
+
 alt_buf_read_t::alt_buf_read_t(alt_buf_lock_t *lock)
     : lock_(lock) {
 }
