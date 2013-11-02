@@ -210,7 +210,8 @@ private:
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
-                while (counted_t<const datum_t> el = ds->next(env->env)) {
+                batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+                while (counted_t<const datum_t> el = ds->next(env->env, batcher)) {
                     arr.add(el);
                 }
                 return new_val(arr.to_counted());
@@ -220,7 +221,8 @@ private:
             if (end_type == R_OBJECT_TYPE) {
                 if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                     datum_ptr_t obj(datum_t::R_OBJECT);
-                    while (counted_t<const datum_t> pair = ds->next(env->env)) {
+                    batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+                    while (counted_t<const datum_t> pair = ds->next(env->env, batcher)) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj.add(key, keyval);

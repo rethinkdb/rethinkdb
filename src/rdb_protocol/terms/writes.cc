@@ -99,9 +99,10 @@ private:
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row inserts.");
 
+            batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = datum_stream->next_batch(env->env, NORMAL);
+                    = datum_stream->next_batch(env->env, batcher);
                 if (datums.empty()) {
                     break;
                 }
@@ -182,9 +183,10 @@ private:
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
+            batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = ds->next_batch(env->env, NORMAL);
+                    = ds->next_batch(env->env, batcher);
                 if (datums.empty()) {
                     break;
                 }
@@ -212,8 +214,10 @@ private:
 
         counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
-        while (counted_t<const datum_t> row = ds->next(env->env)) {
-            counted_t<val_t> v = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
+        batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+        while (counted_t<const datum_t> row = ds->next(env->env, batcher)) {
+            counted_t<val_t> v =
+                arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
             try {
                 counted_t<const datum_t> d = v->as_datum();
                 if (d->get_type() == datum_t::R_OBJECT) {

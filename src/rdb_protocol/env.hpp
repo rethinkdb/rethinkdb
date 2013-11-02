@@ -26,12 +26,13 @@ class compile_env_t;
 class global_optargs_t {
 public:
     global_optargs_t();
-    global_optargs_t(const std::map<std::string, wire_func_t> &_optargs);
+    global_optargs_t(std::map<std::string, wire_func_t> &&_optargs);
 
     // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
-    counted_t<val_t> get_optarg(env_t *env, const std::string &key); // returns NULL if no entry
+    // returns NULL if no entry
+    counted_t<val_t> get_optarg(env_t *env, const std::string &key);
     const std::map<std::string, wire_func_t> &get_all_optargs();
 private:
     std::map<std::string, wire_func_t> optargs;
@@ -94,7 +95,7 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine,
-        const std::map<std::string, wire_func_t> &_optargs);
+        std::map<std::string, wire_func_t> &&_optargs);
 
     explicit env_t(signal_t *);
 
@@ -121,7 +122,6 @@ public:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs;
-
 
     // A pool used for running external JS jobs.  Inexplicably this isn't inside of
     // js_runner_t.
@@ -161,5 +161,7 @@ public:
 };
 
 }  // namespace ql
+
+// RSI: make sure batch start time is reset on CONTINUE
 
 #endif // RDB_PROTOCOL_ENV_HPP_

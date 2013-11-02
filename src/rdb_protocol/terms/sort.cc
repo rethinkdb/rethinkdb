@@ -164,9 +164,10 @@ private:
             rcheck(!comparisons.empty(), base_exc_t::GENERIC,
                    "Must specify something to order by.");
             std::vector<counted_t<const datum_t> > to_sort;
+            batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > data
-                    = seq->next_batch(env->env, NORMAL);
+                    = seq->next_batch(env->env, batcher);
                 if (data.size() == 0) {
                     break;
                 }
@@ -203,7 +204,8 @@ private:
         counted_t<datum_stream_t> s = arg(env, 0)->as_seq(env->env);
         std::vector<counted_t<const datum_t> > arr;
         counted_t<const datum_t> last;
-        while (counted_t<const datum_t> d = s->next(env->env)) {
+        batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+        while (counted_t<const datum_t> d = s->next(env->env, batcher)) {
             arr.push_back(std::move(d));
             rcheck(!past_array_limit(arr), base_exc_t::GENERIC, array_size_error(arr));
         }

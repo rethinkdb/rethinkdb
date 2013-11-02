@@ -35,7 +35,8 @@ public:
         std::vector<counted_t<const datum_t> > result;
         result.reserve(num);
         size_t element_number = 0;
-        while (counted_t<const datum_t> row = seq->next(env->env)) {
+        batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+        while (counted_t<const datum_t> row = seq->next(env->env, batcher)) {
             element_number++;
             if (result.size() < num) {
                 result.push_back(row);

@@ -28,7 +28,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/wire_func.hpp"
-#include "rdb_protocol/constants.hpp"
+#include "rdb_protocol/batching.hpp"
 #include "utils.hpp"
 
 class extproc_pool_t;
@@ -70,10 +70,11 @@ enum sorting_t {
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
 
 namespace ql {
-class readgen_t;
-class primary_readgen_t;
-class sindex_readgen_t;
 class datum_t;
+class env_t;
+class primary_readgen_t;
+class readgen_t;
+class sindex_readgen_t;
 }
 
 class datum_range_t {
@@ -331,23 +332,26 @@ struct rdb_protocol_t {
     // by branching on whether an optional is full sucks.
     class rget_read_t {
     public:
-        rget_read_t() { }
+        rget_read_t() : batcher(ql::batcher_t::empty_batcher_for_serialization()) { }
 
         rget_read_t(const region_t &_region,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
+                    const ql::batcher_t &_batcher,
                     const rdb_protocol_details::transform_t &_transform,
                     boost::optional<rdb_protocol_details::terminal_t> &&_terminal,
                     boost::optional<sindex_rangespec_t> &&_sindex,
                     sorting_t _sorting)
             : region(_region),
               optargs(_optargs),
+              batcher(_batcher),
               transform(_transform),
               terminal(std::move(_terminal)),
               sindex(std::move(_sindex)),
               sorting(_sorting) { }
 
         region_t region; // We need this even for sindex reads due to sharding.
-        std::map<std::string, ql::wire_func_t> optargs; // Needed for transformations.
+        std::map<std::string, ql::wire_func_t> optargs;
+        ql::batcher_t batcher; // used to size batches
 
         // We use these two for lazy maps, reductions, etc.
         rdb_protocol_details::transform_t transform;
@@ -448,7 +452,7 @@ struct rdb_protocol_t {
         bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-    
+
     struct sync_response_t {
         // sync always succeeds
         RDB_DECLARE_ME_SERIALIZABLE;

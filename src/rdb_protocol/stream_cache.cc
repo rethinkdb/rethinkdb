@@ -34,33 +34,22 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         // a new env_t instead?  Why do we keep env_t's around anymore?)
         entry->env->interruptor = interruptor;
 
-        int chunk_size = 0;
-        if (entry->next_datum.has()) {
-            *res->add_response() = *entry->next_datum.get();
-            ++chunk_size;
-            entry->next_datum.reset();
-        }
-        while (counted_t<const datum_t> d = entry->stream->next(entry->env.get())) {
-            d->write_to_protobuf(res->add_response());
-            if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                if (counted_t<const datum_t> next_d = entry->stream->next(entry->env.get())) {
-                    r_sanity_check(!entry->next_datum.has());
-                    entry->next_datum.init(new Datum());
-                    next_d->write_to_protobuf(entry->next_datum.get());
-                    res->set_type(Response::SUCCESS_PARTIAL);
-                }
-                break;
-            }
+        std::vector<counted_t<const datum_t> > ds
+            = entry->stream->next_batch(
+                entry->env.get(),
+                batcher_t::user_batcher(NORMAL, entry->env.get()));
+        for (auto d = ds.begin(); d != ds.end(); ++d) {
+            (*d)->write_to_protobuf(res->add_response());
         }
     } catch (const std::exception &e) {
         erase(key);
         throw;
     }
-    if (!entry->next_datum.has()) {
+    if (entry->stream->is_exhausted()) {
         erase(key);
         res->set_type(Response::SUCCESS_SEQUENCE);
     } else {
-        r_sanity_check(res->type() == Response::SUCCESS_PARTIAL);
+        res->set_type(Response::SUCCESS_PARTIAL);
     }
     return true;
 }
@@ -71,8 +60,8 @@ void stream_cache2_t::maybe_evict() {
 
 stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> &&env_ptr,
                                   counted_t<datum_stream_t> _stream)
-    : last_activity(_last_activity), env(std::move(env_ptr)), stream(_stream),
-      max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE) { }
+    : last_activity(_last_activity), env(std::move(env_ptr)),
+      stream(_stream), max_age(DEFAULT_MAX_AGE) { }
 
 stream_cache2_t::entry_t::~entry_t() { }
 

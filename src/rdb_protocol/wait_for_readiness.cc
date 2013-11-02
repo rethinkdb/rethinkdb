@@ -9,10 +9,9 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/uuid.hpp"
+#include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
-
-
 
 void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                                   uuid_u namespace_id,
@@ -31,6 +30,7 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     rdb_protocol_t::rget_read_t empty_rget_read(
         hash_region_t<key_range_t>::universe(),
         std::map<std::string, ql::wire_func_t>(),
+        ql::batcher_t::user_batcher(ql::NORMAL, counted_t<const ql::datum_t>()),
         rdb_protocol_details::transform_t(),
         boost::optional<rdb_protocol_details::terminal_t>(),
         boost::optional<rdb_protocol_t::sindex_rangespec_t>(),

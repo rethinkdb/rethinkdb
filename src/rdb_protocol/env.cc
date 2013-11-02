@@ -24,8 +24,13 @@ bool is_joined(const T &multiple, const T &divisor) {
 
 global_optargs_t::global_optargs_t() { }
 
-global_optargs_t::global_optargs_t(const std::map<std::string, wire_func_t> &_optargs)
-    : optargs(_optargs) { }
+global_optargs_t::global_optargs_t(std::map<std::string, wire_func_t> &&_optargs)
+    : optargs(std::move(_optargs)) { }
+
+void global_optargs_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
+    r_sanity_check(optargs.size() == 0);
+    optargs = _optargs;
+}
 
 bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     if (optargs.count(key)) {
@@ -36,17 +41,14 @@ bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
 
     compile_env_t empty_compile_env((var_visibility_t()));
-    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env, arg);
+    counted_t<func_term_t> func_term
+        = make_counted<func_term_t>(&empty_compile_env, arg);
     counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
 
     optargs[key] = wire_func_t(func);
     return false;
 }
 
-void global_optargs_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
-    r_sanity_check(optargs.size() == 0);
-    optargs = _optargs;
-}
 counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
     if (!optargs.count(key)) {
         return counted_t<val_t>();
@@ -56,7 +58,6 @@ counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key
 const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;
 }
-
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
     eval_callback = callback;
@@ -139,8 +140,8 @@ env_t::env_t(
     directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
     signal_t *_interruptor,
     uuid_u _this_machine,
-    const std::map<std::string, wire_func_t> &_optargs)
-  : global_optargs(_optargs),
+    std::map<std::string, wire_func_t> &&_optargs)
+    : global_optargs(std::move(_optargs)),
     extproc_pool(_extproc_pool),
     cluster_access(_ns_repo,
                    _namespaces_semilattice_metadata,
@@ -156,7 +157,8 @@ env_t::env_t(signal_t *_interruptor)
     cluster_access(NULL,
                    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
                    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
-                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+                   boost::shared_ptr<
+                       semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
                    NULL,
                    uuid_u()),
     interruptor(_interruptor),

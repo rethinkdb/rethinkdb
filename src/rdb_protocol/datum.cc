@@ -49,12 +49,13 @@ datum_t::datum_t(const char *cstr)
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
     : type(R_ARRAY),
       r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
-    rcheck(!past_array_limit(*r_array), base_exc_t::GENERIC, array_size_error(*r_array));
+    rcheck(!past_array_limit(*r_array),base_exc_t::GENERIC, array_size_error(*r_array));
 }
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
     : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(_object))) {
+      r_object(new std::map<std::string, counted_t<const datum_t> >(
+                   std::move(_object))) {
     maybe_sanitize_ptype();
 }
 
