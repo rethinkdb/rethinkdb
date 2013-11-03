@@ -29,9 +29,3 @@ generate_test(
 generate_test(
     make + "-B rb_polyglot",
     name = "rb-polyglot")
-
-# Validate the API documentation examples
-generate_test(
-    "make -j1 -C $RETHINKDB/docs/rql validate",
-    name = "validate-examples"
-    )

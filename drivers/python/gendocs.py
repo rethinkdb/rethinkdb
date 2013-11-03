@@ -12,7 +12,7 @@ from textwrap import fill
 from HTMLParser import HTMLParser
 
 # The json documentation generated from docs/rql/src/*.yaml
-docs_file = "../../build/docs/reql_docs.json"
+docs_file = "../../docs/rql/py_docs.json"
 
 # Load the json documentation
 docs = json.load(open(docs_file))
@@ -43,7 +43,9 @@ parents = {
 
 # The real python names for names used in the docs
 tags = {
-    '[]': [(query, '__getitem__')],
+    '[] (get_field)': [(query, '__getitem__')],
+    '[] (nth)': [(query, 'nth')],
+    '[] (slice)': [(query, 'slice')],
     '+': [(query, '__add__'), ('rethinkdb.', 'add')],
     '-': [(query, '__sub__'), ('rethinkdb.', 'sub')],
     '*': [(query, '__mul__'), ('rethinkdb.', 'mul')],
@@ -59,6 +61,7 @@ tags = {
     '>=': [(query, '__ge__')],
     '~': [(query, '__invert__'), (query, 'not_'), ('rethinkdb.', 'not_')],
     'r': [('', 'rethinkdb')],
+    'repl': [('rethinkdb.net.Connection.', 'repl')],
     'count': lambda parent: not parent == 'rethinkdb.' and [(query, 'count')] or []
 }
 
@@ -69,6 +72,8 @@ format_tag = {
     'a': lambda text, href: text + " ("  + href + ")",
     'br': lambda _: "\n",
     'code': lambda text: "`" + text + "`",
+    'p': lambda text: "\n" + text + "\n",
+    'h1': lambda text: "\n" + text + "\n",
     'ul': lambda text: "\n" + text + "\n",
     'li': lambda text: fill(text, initial_indent = " * ", subsequent_indent = "   "),
     'strong': lambda text: "*" + text + "*"
@@ -130,34 +135,27 @@ print
 print 'import rethinkdb'
 
 # For each section of the documentation
-for section in docs['sections']:
+for key in docs:
+    command = docs[key]
 
-    # For each command in each section
-    for command in section['commands']:
+    where = command['name']
 
-        # Skip it if it is not a python command
-        if not command['langs']['py'].has_key('name'):
-            continue
+    # Format the description and examples
+    doc = doc_format(where, command['description'])
+    for example in command['examples']:
+        doc = doc + '\n\n' + \
+              doc_format(where,example['description']) + example_format(example['code'])
 
-        where = section['name'] + ": " + command['tag']
+    # Find all the python names (and the associated modules) for the command
+    tag = command['name']
+    names = tags.get(tag, [(parents[command['io'][0][0]], tag)])
+    if type(names) == type(lambda x: x):
+        names = names(parent)
 
-        # Format the description and examples
-        doc = doc_format(where, command['description'])
-        for example in command['langs']['py']['examples']:
-            doc = doc + '\n\n' + \
-                  doc_format(where,example['description']) + example_format(example['code'])
-
-        # Find all the python names (and the associated modules) for the command
-        parent = parents[command['io'][0][0]]
-        tag = command['langs']['py']['name']
-        names = tags.get(tag, [(parent, tag)])
-        if type(names) == type(lambda x: x):
-            names = names(parent)
-
-        # Print out the statements that sets each __doc__ string
-        for parent, name in names:
-            if has_methods.get(parent, True):
-                func = '.__func__'
-            else:
-                func = ''
-            print parent + name + func + '.__doc__' + ' = ' + repr(doc)
+    # Print out the statements that sets each __doc__ string
+    for parent, name in names:
+        if has_methods.get(parent, True):
+            func = '.__func__'
+        else:
+            func = ''
+        print parent + name + func + '.__doc__' + ' = ' + repr(doc)
