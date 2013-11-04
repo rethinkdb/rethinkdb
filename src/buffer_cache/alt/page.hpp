@@ -210,6 +210,8 @@ private:
     // Has access to our fields.  RSI: Is this still true?
     friend class page_cache_t;
 
+    bool is_deleted() const { return is_deleted_; }
+
     void make_non_deleted(block_size_t block_size,
                           scoped_malloc_t<ser_buffer_t> buf,
                           page_cache_t *page_cache);
@@ -439,6 +441,8 @@ public:
     // preceding_txn, if it's not NULL.
     explicit page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn = NULL);
     ~page_txn_t();
+
+    page_cache_t *page_cache() const { return page_cache_; }
 
 private:
     // page cache has access to all of this type's innards, including fields.
