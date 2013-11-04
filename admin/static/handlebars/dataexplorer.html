@@ -155,12 +155,21 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
     <h1 class="title">Error</h1>
+    <p class="error_title">
+        {{#if js_error}}
+            JavaScript error:
+        {{else}}
+            Server error:
+        {{/if}}
+    </p>
+    <pre class="error error_details">{{error}}</pre>
+
     {{#if query}}
-        <p class="error">A query could not be executed.</p>
+        <p class="error">The query that returned an error is:</p>
         <pre class="error error_details">{{query}}</pre>
     {{/if}}
-    <p class="error">Error: </p>
-    <pre class="error error_details">{{error}}</pre>
+
+
 </script>
 
 <script id="dataexplorer-query_error-template" type="text/x-handlebars-template">
