@@ -64,6 +64,8 @@ private:
     static void load_from_copyee(page_t *page, page_t *copyee,
                                  page_cache_t *page_cache);
 
+    static void load_using_block_token(page_t *page, page_cache_t *page_cache);
+
     friend class page_cache_t;
     friend class evicter_t;
     friend class eviction_bag_t;
@@ -71,6 +73,8 @@ private:
     static backindex_bag_index_t *eviction_index(page_t *page) {
         return &page->eviction_index_;
     }
+
+    void evict_self();
 
     // One of destroy_ptr_, buf_, or block_token_ is non-null.
     bool *destroy_ptr_;
@@ -331,8 +335,13 @@ public:
     // Returns true if this bag contains the given page.
     bool has_page(page_t *page) const;
 
+    uint64_t size() const { return size_; }
+
+    bool remove_random(page_t **page_out);
+
 private:
     backindex_bag_t<page_t *> bag_;
+    // The size in memory.
     uint64_t size_;
 
     DISABLE_COPYING(eviction_bag_t);
@@ -349,10 +358,15 @@ public:
     eviction_bag_t *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
 
-private:
-    friend class page_cache_t;
-    evicter_t();
+    explicit evicter_t(uint64_t memory_limit);
     ~evicter_t();
+
+private:
+    void evict_if_necessary();
+    uint64_t in_memory_size() const;
+
+    // RSI: Implement issue 97.
+    uint64_t memory_limit_;
 
     // These track whether every page's eviction status.
     eviction_bag_t unevictable_;
@@ -365,7 +379,8 @@ private:
 
 class page_cache_t {
 public:
-    explicit page_cache_t(serializer_t *serializer);
+    // RSI: Remove default parameter of memory_limit?
+    explicit page_cache_t(serializer_t *serializer, uint64_t memory_limit = GIGABYTE);
     ~page_cache_t();
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);

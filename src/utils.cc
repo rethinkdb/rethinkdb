@@ -412,6 +412,17 @@ int randint(int n) {
     return x % n;
 }
 
+size_t randsize(size_t n) {
+    size_t ret = 0;
+    size_t i = SIZE_MAX;
+    while (i != 0) {
+        int x = randint(0x10000);
+        ret = ret * 0x10000 + x;
+        i /= 0x10000;
+    }
+    return ret % n;
+}
+
 double randdouble() {
     nrand_xsubi_t buffer;
     if (!TLS_get_rng_initialized()) {

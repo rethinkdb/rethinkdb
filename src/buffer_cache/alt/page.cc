@@ -13,9 +13,10 @@
 
 namespace alt {
 
-page_cache_t::page_cache_t(serializer_t *serializer)
+page_cache_t::page_cache_t(serializer_t *serializer, uint64_t memory_limit)
     : serializer_(serializer),
       free_list_(serializer),
+      evicter_(memory_limit),
       drainer_(new auto_drainer_t) {
     {
         on_thread_t thread_switcher(serializer->home_thread());
@@ -423,6 +424,8 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
             page->buf_ = std::move(buf);
             page->destroy_ptr_ = NULL;
 
+            page_cache->evicter().add_now_loaded_size(page->ser_buf_size_);
+
             page->pulse_waiters_or_make_evictable(page_cache);
         }
     }
@@ -431,8 +434,8 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 
 void page_t::load_with_block_id(page_t *page, block_id_t block_id,
                                 page_cache_t *page_cache) {
-    // This is called using spawn_now_dangerously.  We need to atomically set
-    // destroy_ptr_.
+    // This is called using spawn_now_dangerously.  We need to set
+    // destroy_ptr_ before blocking the coroutine.
     bool page_destroyed = false;
     rassert(page->destroy_ptr_ == NULL);
     page->destroy_ptr_ = &page_destroyed;
@@ -443,10 +446,12 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     counted_t<standard_block_token_t> block_token;
     {
         serializer_t *const serializer = page_cache->serializer_;
+        buf = serializer->malloc();  // Call malloc() on our home thread because
+                                     // we'll destroy it on our home thread and
+                                     // tcmalloc likes that.
         on_thread_t th(serializer->home_thread());
         block_token = serializer->index_read(block_id);
         rassert(block_token.has());
-        buf = serializer->malloc();
         serializer->block_read(block_token,
                                buf.get(),
                                page_cache->reads_io_account.get());
@@ -463,6 +468,8 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     page->ser_buf_size_ = block_token->block_size().ser_value();
     page->buf_ = std::move(buf);
     page->block_token_ = std::move(block_token);
+    page->destroy_ptr_ = NULL;
+    page_cache->evicter().add_now_loaded_size(page->ser_buf_size_);
 
     page->pulse_waiters_or_make_evictable(page_cache);
 }
@@ -499,7 +506,6 @@ page_t *page_t::make_copy(page_cache_t *page_cache) {
 
 void page_t::pulse_waiters_or_make_evictable(page_cache_t *page_cache) {
     rassert(page_cache->evicter().page_is_in_unevictable_bag(this));
-    page_cache->evicter().add_now_loaded_size(ser_buf_size_);
     if (waiters_.empty()) {
         page_cache->evicter().move_unevictable_to_evictable(this);
     } else {
@@ -517,7 +523,52 @@ void page_t::add_waiter(page_acq_t *acq) {
     acq->page_cache()->evicter().change_eviction_bag(old_bag, this);
     if (buf_.has()) {
         acq->buf_ready_signal_.pulse();
+    } else if (destroy_ptr_ == NULL) {
+        rassert(block_token_.has());
+        coro_t::spawn_now_dangerously(std::bind(&page_t::load_using_block_token,
+                                                this,
+                                                acq->page_cache()));
     }
+}
+
+// Unevicts page.
+void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache) {
+    // This is called using spawn_now_dangerously.  We need to set
+    // destroy_ptr_ before blocking the coroutine.
+    bool page_destroyed = false;
+    rassert(page->destroy_ptr_ == NULL);
+    page->destroy_ptr_ = &page_destroyed;
+
+    auto_drainer_t::lock_t lock(page_cache->drainer_.get());
+
+    counted_t<standard_block_token_t> block_token = page->block_token_;
+    rassert(block_token.has());
+
+    scoped_malloc_t<ser_buffer_t> buf;
+    {
+        serializer_t *const serializer = page_cache->serializer_;
+        buf = serializer->malloc();  // Call malloc() on our home thread because
+                                     // we'll destroy it on our home thread and
+                                     // tcmalloc likes that.
+        on_thread_t th(serializer->home_thread());
+        serializer->block_read(block_token,
+                               buf.get(),
+                               page_cache->reads_io_account.get());
+    }
+
+    ASSERT_FINITE_CORO_WAITING;
+    if (page_destroyed) {
+        return;
+    }
+
+    rassert(page->block_token_.get() == block_token.get());
+    rassert(!page->buf_.has());
+    rassert(page->ser_buf_size_ == block_token->block_size().ser_value());
+    block_token.reset();
+    page->buf_ = std::move(buf);
+    page->destroy_ptr_ = NULL;
+
+    page->pulse_waiters_or_make_evictable(page_cache);
 }
 
 uint32_t page_t::get_page_buf_size() {
@@ -549,6 +600,15 @@ void page_t::remove_waiter(page_acq_t *acq) {
     // page_acq_t always has a lesser lifetime than some page_ptr_t.
     rassert(snapshot_refcount_ > 0);
 }
+
+void page_t::evict_self() {
+    // A page_t can only self-evict if it has a block token.
+    rassert(waiters_.empty());
+    rassert(block_token_.has());
+    rassert(buf_.has());
+    buf_.reset();
+}
+
 
 page_acq_t::page_acq_t() : page_(NULL), page_cache_(NULL) {
 }
@@ -1043,7 +1103,7 @@ eviction_bag_t::eviction_bag_t()
 
 eviction_bag_t::~eviction_bag_t() {
     guarantee(bag_.size() == 0);
-    guarantee(size_ == 0);
+    guarantee(size_ == 0, "size was %" PRIu64, size_);
 }
 
 void eviction_bag_t::add_without_size(page_t *page) {
@@ -1071,7 +1131,19 @@ bool eviction_bag_t::has_page(page_t *page) const {
     return bag_.has_element(page);
 }
 
-evicter_t::evicter_t() { }
+bool eviction_bag_t::remove_random(page_t **page_out) {
+    if (bag_.size() == 0) {
+        return false;
+    } else {
+        page_t *page = bag_.access_random(randsize(bag_.size()));
+        remove(page, page->ser_buf_size_);
+        *page_out = page;
+        return true;
+    }
+}
+
+evicter_t::evicter_t(uint64_t memory_limit)
+    : memory_limit_(memory_limit) { }
 
 evicter_t::~evicter_t() { }
 
@@ -1082,6 +1154,7 @@ void evicter_t::add_not_yet_loaded(page_t *page) {
 
 void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
     unevictable_.add_size(ser_buf_size);
+    evict_if_necessary();
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
@@ -1090,6 +1163,7 @@ bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
 
 void evicter_t::add_to_evictable_unbacked(page_t *page) {
     evictable_unbacked_.add(page, page->ser_buf_size_);
+    evict_if_necessary();
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
@@ -1099,6 +1173,7 @@ void evicter_t::move_unevictable_to_evictable(page_t *page) {
     rassert(new_bag == &evictable_disk_backed_
             || new_bag == &evictable_unbacked_);
     new_bag->add(page, page->ser_buf_size_);
+    evict_if_necessary();
 }
 
 void evicter_t::change_eviction_bag(eviction_bag_t *current_bag,
@@ -1107,6 +1182,7 @@ void evicter_t::change_eviction_bag(eviction_bag_t *current_bag,
     current_bag->remove(page, page->ser_buf_size_);
     eviction_bag_t *new_bag = correct_eviction_category(page);
     new_bag->add(page, page->ser_buf_size_);
+    evict_if_necessary();
 }
 
 eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
@@ -1126,9 +1202,28 @@ void evicter_t::remove_page(page_t *page) {
     rassert(page->snapshot_refcount_ == 0);
     eviction_bag_t *bag = correct_eviction_category(page);
     bag->remove(page, page->ser_buf_size_);
+    evict_if_necessary();
 }
 
+uint64_t evicter_t::in_memory_size() const {
+    return unevictable_.size()
+        + evictable_disk_backed_.size()
+        + evictable_unbacked_.size();
+}
 
+void evicter_t::evict_if_necessary() {
+    // RSI: Implement eviction of unbacked evictables too.  When flushing, you
+    // could use the page_t::eviction_index_ field to identify pages that are
+    // currently in the process of being evicted, to avoid reflushing a page
+    // currently being written for the purpose of eviction.
+
+    page_t *page;
+    while (in_memory_size() > memory_limit_
+           && evictable_disk_backed_.remove_random(&page)) {
+        evicted_.add(page, page->ser_buf_size_);
+        page->evict_self();
+    }
+}
 
 }  // namespace alt
 

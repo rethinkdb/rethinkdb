@@ -57,15 +57,6 @@ bool page_repl_random_t::is_full(size_t space_needed) {
 
 //perfmon_counter_t pm_n_blocks_evicted("blocks_evicted");
 
-size_t randsize(size_t n) {
-    size_t x = randint(0x10000);
-    x = x * 0x10000 + randint(0x10000);
-    x = x * 0x10000 + randint(0x10000);
-    x = x * 0x10000 + randint(0x10000);
-    return x % n;
-}
-
-
 // make_space tries to make sure that the number of blocks currently in memory is at least
 // 'space_needed' less than the user-specified memory limit.
 void page_repl_random_t::make_space(size_t space_needed) {

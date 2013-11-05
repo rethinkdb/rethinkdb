@@ -91,6 +91,9 @@ public:
         return vector_.size();
     }
 
+    // Accesses an element by index.  This is called "access random" because
+    // hopefully the index was randomly generated.  There are no guarantees about the
+    // ordering of elements in this bag.
     T access_random(size_t index) const {
         rassert(index != SIZE_MAX);
         guarantee(index < vector_.size());

@@ -185,6 +185,7 @@ private:
 void get_dev_urandom(void *out, int64_t nbytes);
 
 int randint(int n);
+size_t randsize(size_t n);
 double randdouble();
 std::string rand_string(int len);
 
