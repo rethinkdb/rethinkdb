@@ -43,9 +43,6 @@ include $(TOP)/external/build.mk
 # Clients drivers
 include $(TOP)/drivers/build.mk
 
-# Documentation
-include $(TOP)/docs/rql/build.mk
-
 # Build the web assets
 include $(TOP)/mk/webui.mk
 

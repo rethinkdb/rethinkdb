@@ -48,6 +48,8 @@ JS_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/js
 FONTS_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/fonts
 IMAGES_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/images
 FAVICON := $(WEB_SOURCE_DIR)/favicon.ico
+DOCS_JS := $(TOP)/docs/rql/reql_docs.json
+
 
 HANDLEBAR_HTML_FILES := $(shell find $(WEB_SOURCE_DIR)/static/handlebars -name \*.html)
 
@@ -97,7 +99,7 @@ $(WEB_ASSETS_BUILD_DIR)/favicon.ico: $(FAVICON) | $(WEB_ASSETS_BUILD_DIR)/.
 	$P CP $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 	cp -P $(FAVICON) $(WEB_ASSETS_BUILD_DIR)
 
-$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(DOCS_JSON_OUT) | $(WEB_ASSETS_BUILD_DIR)/js/.
+$(WEB_ASSETS_BUILD_DIR)/js/reql_docs.json: $(DOCS_JS) | $(WEB_ASSETS_BUILD_DIR)/js/.
 	$P CP
 	cp $< $@
 

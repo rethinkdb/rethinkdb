@@ -181,7 +181,8 @@ void linux_message_hub_t::on_event(int events) {
             // However, we process at least one message of each priority level per
             // pass (in case the granularity is too small).
             int priority_exponent = MESSAGE_SCHEDULER_MAX_PRIORITY - current_priority;
-            size_t to_process_from_priority = std::max(1ul, effective_granularity >> priority_exponent);
+            size_t to_process_from_priority =
+                std::max(static_cast<size_t>(1), effective_granularity >> priority_exponent);
 
             for (linux_thread_message_t *m = get_priority_msg_list(current_priority).head();
                  m != NULL && to_process_from_priority > 0;
