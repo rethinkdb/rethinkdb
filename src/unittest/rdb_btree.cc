@@ -222,11 +222,14 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
+        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
+         * which prevents to profiling code from crashing. */
+        ql::env_t dummy_env(NULL);
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
-            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
+            txn.get(), sindex_sb.get(), &dummy_env, rdb_protocol_details::transform_t(),
             boost::optional<rdb_protocol_details::terminal_t>(), sorting_t::ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
@@ -278,11 +281,14 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
+        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
+         * which prevents to profiling code from crashing. */
+        ql::env_t dummy_env(NULL);
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
-            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
+            txn.get(), sindex_sb.get(), &dummy_env, rdb_protocol_details::transform_t(),
             boost::optional<rdb_protocol_details::terminal_t>(), sorting_t::ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
