@@ -46,7 +46,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] = new current_page_t();
     } else {
-        rassert(!current_pages_[block_id]->is_deleted_);
+        rassert(!current_pages_[block_id]->is_deleted());
     }
 
     return current_pages_[block_id];
@@ -103,7 +103,7 @@ void current_page_acq_t::init(page_txn_t *txn,
     access_ = access;
     declared_snapshotted_ = false;
     block_id_ = block_id;
-    current_page_ = txn->page_cache_->page_for_block_id(block_id);
+    current_page_ = txn->page_cache()->page_for_block_id(block_id);
     dirtied_page_ = false;
 
     txn_->add_acquirer(this);
@@ -116,7 +116,7 @@ void current_page_acq_t::init(page_txn_t *txn,
     txn_ = txn;
     access_ = access;
     declared_snapshotted_ = false;
-    current_page_ = txn->page_cache_->page_for_new_block_id(&block_id_);
+    current_page_ = txn->page_cache()->page_for_new_block_id(&block_id_);
     dirtied_page_ = false;
     rassert(access == alt_access_t::write);
 
@@ -191,7 +191,7 @@ bool current_page_acq_t::dirtied_page() const {
 }
 
 page_cache_t *current_page_acq_t::page_cache() const {
-    return txn_->page_cache_;
+    return txn_->page_cache();
 }
 
 current_page_help_t current_page_acq_t::help() const {
