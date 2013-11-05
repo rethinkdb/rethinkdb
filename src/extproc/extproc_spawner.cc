@@ -217,8 +217,10 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
     stream_out->create(fds[0], reinterpret_cast<fd_watcher_t*>(NULL));
 
     // Get the pid of the new worker process
-    res = deserialize(stream_out->get(), pid_out);
-    guarantee(res == ARCHIVE_SUCCESS);
+    archive_result_t archive_res;
+    archive_res = deserialize(stream_out->get(), pid_out);
+    guarantee_deserialization(archive_res, "pid_out");
+    guarantee(archive_res == ARCHIVE_SUCCESS);
     guarantee(*pid_out != -1);
 
     scoped_fd_t closer(fds[1]);
