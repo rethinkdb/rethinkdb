@@ -29,7 +29,7 @@ void get_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block
 
     vector_read_stream_t read_stream(&sindex);
     int res = deserialize(&read_stream, sindexes_out);
-    guarantee(res == 0, "corrupted secondary index.");
+    guarantee(res == 0, "Corrupted secondary index. Result code = %d.", res);
 }
 
 void set_secondary_indexes_internal(transaction_t *txn, buf_lock_t *sindex_block, const std::map<std::string, secondary_index_t> &sindexes) {
