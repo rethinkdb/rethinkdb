@@ -121,7 +121,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     wm << data;
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
-    guarantee_err(res == 0,
+    guarantee(res == 0,
                   "Serialization for json data failed... this shouldn't happen.\n");
 
     // TODO more copies, good lord

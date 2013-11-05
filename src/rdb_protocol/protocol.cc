@@ -246,7 +246,7 @@ void post_construct_and_drain_queue(
 
                 rdb_sindex_change_t sindex_change;
                 int ser_res = deserialize(&read_stream, &sindex_change);
-                guarantee_err(ser_res == 0, "corruption in disk-backed queue");
+                guarantee(ser_res == 0, "corruption in disk-backed queue");
 
                 boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
                                      sindex_change);

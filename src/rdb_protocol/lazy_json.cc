@@ -16,7 +16,7 @@ counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
     blob.expose_all(txn, rwi_read, &buffer_group, &acq_group);
     buffer_group_read_stream_t read_stream(const_view(&buffer_group));
     int res = deserialize(&read_stream, &data);
-    guarantee_err(res == 0, "disk corruption (or programmer error) detected");
+    guarantee(res == 0, "disk corruption (or programmer error) detected");
 
     return data;
 }
