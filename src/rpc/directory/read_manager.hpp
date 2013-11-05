@@ -6,6 +6,7 @@
 
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -55,7 +56,7 @@ private:
 
     /* These are meant to be spawned in new coroutines */
     void propagate_initialization(peer_id_t peer, uuid_u session_id, metadata_t new_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
-    void propagate_update(peer_id_t peer, uuid_u session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
+    void propagate_update(peer_id_t peer, uuid_u session_id, boost::shared_ptr<metadata_t> new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
     void interrupt_updates_and_free_session(session_t *session, auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING;
 
     /* The connectivity service telling us which peers are connected */
