@@ -220,7 +220,6 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
     archive_result_t archive_res;
     archive_res = deserialize(stream_out->get(), pid_out);
     guarantee_deserialization(archive_res, "pid_out");
-    guarantee(archive_res == ARCHIVE_SUCCESS);
     guarantee(*pid_out != -1);
 
     scoped_fd_t closer(fds[1]);
