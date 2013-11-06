@@ -66,29 +66,46 @@ rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
 
 std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read) {
     rget_read_response_t res = do_read(env, read);
+
+    // It's called `do_range_read`.  If we have more than one type of range
+    // read (which we might; rget_read_t should arguably be two types), this
+    // will have to be a visitor.
+    auto rr = boost::get<rget_read_t>(&read.read);
+    r_sanity_check(rr);
+    const key_range_t &rng = rr->sindex? rr->sindex->region.inner : rr->region.inner;
+
     // We need to do some adjustments to the last considered key so that we
     // update the range correctly in the case where we're reading a subportion
     // of the total range.
-    if (res.last_considered_key == store_key_t::max()) {
-        auto rr = boost::get<rget_read_t>(&read.read);
-        const key_range_t &rng = rr->sindex? rr->sindex->region.inner : rr->region.inner;
+    store_key_t *key = &res.last_considered_key;
+    if (*key == store_key_t::max() && rr->sorting == ASCENDING) {
         if (!rng.right.unbounded) {
-            res.last_considered_key = rng.right.key;
-            bool b = res.last_considered_key.decrement();
+            *key = rng.right.key;
+            bool b = key->decrement();
             r_sanity_check(b);
         }
+    } else if (*key == store_key_t::min() && rr->sorting == DESCENDING) {
+        *key = rng.left;
     }
 
     // debugf("last_considered_key: %s\n",
     //        key_to_debug_str(res.last_considered_key).c_str());
+    // debugf("%d: [%s, %s]\n", active_range.is_empty(),
+    //         key_to_debug_str(active_range.left).c_str(),
+    //         key_to_debug_str(active_range.right.key).c_str());
     finished = readgen->update_range(&active_range, res.last_considered_key);
+    // debugf("%d: [%s, %s]\n", active_range.is_empty(),
+    //         key_to_debug_str(active_range.left).c_str(),
+    //         key_to_debug_str(active_range.right.key).c_str());
     // debugf("FINISHED %d\n", finished);
     // debugf("FINISHED_EMPTY %d\n", active_range.is_empty());
-    // debugf("%d: [%s, %s]\n", active_range.is_empty(),
-    //        key_to_debug_str(active_range.left).c_str(),
-    //        key_to_debug_str(active_range.right.key).c_str());
     auto v = boost::get<std::vector<rget_item_t> >(&res.result);
     r_sanity_check(v);
+    std::string s;
+    for (auto it = v->begin(); it != v->end(); ++it) {
+        s += strprintf("%lf ", it->data->get("num")->as_num());
+    }
+    // debugf("%s\n", s.c_str());
     // debugf("%zu\n\n\n", v->size());
     return std::move(*v);
 }
@@ -98,14 +115,14 @@ bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
     started = true;
     if (items_index >= items.size() && !finished) { // read some more
         items_index = 0;
-        debugf("RANGE_READ\n");
+        // debugf("RANGE_READ\n");
         items = do_range_read(env, readgen->next_read(active_range, transform, batcher));
         // RSI: Enforce sort limit.
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
         while (boost::optional<read_t> read
                = readgen->sindex_sort_read(active_range, items, transform, batcher)) {
-            debugf("SINDEX_SORT_READ\n");
+            // debugf("SINDEX_SORT_READ\n");
             std::vector<rget_item_t> new_items = do_range_read(env, *read);
             if (new_items.size() == 0) {
                 break;
@@ -188,11 +205,17 @@ readgen_t::readgen_t(
 
 bool readgen_t::update_range(key_range_t *active_range,
                              const store_key_t &last_considered_key) const {
+    // debugf("PRE-UPDATE %d [%s, %s]\n", active_range->is_empty(),
+    //        key_to_debug_str(active_range->left).c_str(),
+    //        key_to_debug_str(active_range->right.key).c_str());
     if (sorting != DESCENDING) {
         active_range->left = last_considered_key;
     } else {
         active_range->right = key_range_t::right_bound_t(last_considered_key);
     }
+    // debugf("POST-UPDATE %d [%s, %s]\n", active_range->is_empty(),
+    //        key_to_debug_str(active_range->left).c_str(),
+    //        key_to_debug_str(active_range->right.key).c_str());
 
     // TODO: mixing these non-const operations INTO THE CONDITIONAL is bad, and
     // confused me for a while when I tried moving some stuff around.
@@ -331,12 +354,23 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
         const store_key_t &key = items[items.size() - 1].key;
         if (datum_t::key_is_truncated(key)) {
             std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
-            // Generate the right bound by filling to the end with 0xFF.  This
-            // lets us produce a range that's "everything after the last row we
-            // read with the same truncated sindex value".
-            store_key_t rbound(skey + std::string(MAX_KEY_SIZE - skey.size(), 0xFF));
-            if (active_range.left <= rbound) {
-                key_range_t rng(key_range_t::open, key, key_range_t::closed, rbound);
+            key_range_t rng = active_range;
+            if (sorting == ASCENDING) {
+                // We construct a right bound that's larger than the maximum
+                // possible row with this truncated sindex but smaller than the
+                // minimum possible row with a larger sindex.
+                rng.right = key_range_t::right_bound_t(
+                    store_key_t(skey + std::string(MAX_KEY_SIZE - skey.size(), 0xFF)));
+            } else {
+                // We construct a left bound that's smaller than the minimum
+                // possible row with this truncated sindex but larger than the
+                // maximum possible row with a smaller sindex.
+                rng.left = store_key_t(skey);
+            }
+            if (rng.right.unbounded || rng.left < rng.right.key) {
+                // debugf("GEN %d: [%s, %s]\n", rng.is_empty(),
+                //        key_to_debug_str(rng.left).c_str(),
+                //        key_to_debug_str(rng.right.key).c_str());
                 return read_t(
                     rget_read_t(
                         region_t::universe(),
