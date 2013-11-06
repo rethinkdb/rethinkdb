@@ -172,16 +172,16 @@ private:
 // PROFILER_RECORD_SAMPLE adds an additional point for data collection in between
 // such yields and can be used to "trace" execution times through different
 // sections of a given piece of code.
-#define PROFILER_RECORD_SAMPLE coro_profiler_t::get_global_profiler().record_sample();
-#define PROFILER_CORO_RESUME coro_profiler_t::get_global_profiler().record_coro_resume();
-#define PROFILER_CORO_YIELD(STRIP_FRAMES) coro_profiler_t::get_global_profiler().record_coro_yield(STRIP_FRAMES);
+#define PROFILER_RECORD_SAMPLE coro_profiler_t::get_global_profiler().record_sample()
+#define PROFILER_CORO_RESUME coro_profiler_t::get_global_profiler().record_coro_resume()
+#define PROFILER_CORO_YIELD(STRIP_FRAMES) coro_profiler_t::get_global_profiler().record_coro_yield(STRIP_FRAMES)
 
 #else /* ENABLE_CORO_PROFILER */
 
 // Short-cuts (no-ops for disabled coro profiler)
-#define PROFILER_RECORD_SAMPLE {}
-#define PROFILER_CORO_RESUME {}
-#define PROFILER_CORO_YIELD(STRIP_FRAMES) {}
+#define PROFILER_RECORD_SAMPLE do {} while(0)
+#define PROFILER_CORO_RESUME do {} while(0)
+#define PROFILER_CORO_YIELD(STRIP_FRAMES) do {} while(0)
 
 #endif /* not ENABLE_CORO_PROFILER */
 

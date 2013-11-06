@@ -17,13 +17,13 @@ threadnum_t get_thread_id();
 struct coro_globals_t;
 
 
-#ifdef ENABLE_CORO_PROFILER
 struct coro_profiler_mixin_t {
+#ifdef ENABLE_CORO_PROFILER
     coro_profiler_mixin_t() : last_resumed_at(0), last_sample_at(0) { }
     ticks_t last_resumed_at;
     ticks_t last_sample_at;
-};
 #endif
+};
 
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
@@ -33,11 +33,10 @@ another fiber calls notify_*() on it.
 coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
 on_thread_t for more safety. */
 
-#ifdef ENABLE_CORO_PROFILER
-class coro_t : private coro_profiler_mixin_t, private linux_thread_message_t, public intrusive_list_node_t<coro_t>, public home_thread_mixin_t {
-#else
-class coro_t : private linux_thread_message_t, public intrusive_list_node_t<coro_t>, public home_thread_mixin_t {
-#endif
+class coro_t : private coro_profiler_mixin_t,
+               private linux_thread_message_t,
+               public intrusive_list_node_t<coro_t>,
+               public home_thread_mixin_t {
 public:
     friend bool is_coroutine_stack_overflow(void *);
 
@@ -166,9 +165,7 @@ private:
 
     static void run() NORETURN;
 
-#ifdef ENABLE_CORO_PROFILER
     friend class coro_profiler_t;
-#endif
     friend struct coro_globals_t;
     ~coro_t();
 

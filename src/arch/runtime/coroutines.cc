@@ -173,9 +173,9 @@ void coro_t::run() {
         cglobals->total_coroutine_counts[coro->coroutine_type.c_str()]++;
         cglobals->active_coroutines.insert(coro);
 #endif
-        PROFILER_CORO_RESUME
+        PROFILER_CORO_RESUME;
         coro->action_wrapper.run();
-        PROFILER_CORO_YIELD(0)
+        PROFILER_CORO_YIELD(0);
 #ifndef NDEBUG
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
         cglobals->active_coroutines.erase(coro);
@@ -227,13 +227,13 @@ void coro_t::wait() {   /* class method */
     rassert(!self()->waiting_);
     self()->waiting_ = true;
 
-    PROFILER_CORO_YIELD(1)
+    PROFILER_CORO_YIELD(1);
     if (cglobals->prev_coro) {
         context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
     } else {
         context_switch(&self()->stack.context, &cglobals->scheduler);
     }
-    PROFILER_CORO_RESUME
+    PROFILER_CORO_RESUME;
 
     rassert(self());
     rassert(self()->waiting_);
@@ -263,7 +263,7 @@ void coro_t::notify_now_deprecated() {
 #endif
 
     if (coro_t::self() != NULL) {
-        PROFILER_CORO_YIELD(1)
+        PROFILER_CORO_YIELD(1);
     }
     coro_t *prev_prev_coro = cglobals->prev_coro;
     cglobals->prev_coro = cglobals->current_coro;
@@ -279,7 +279,7 @@ void coro_t::notify_now_deprecated() {
     cglobals->current_coro = cglobals->prev_coro;
     cglobals->prev_coro = prev_prev_coro;
     if (coro_t::self() != NULL) {
-        PROFILER_CORO_RESUME
+        PROFILER_CORO_RESUME;
     }
 
 #ifndef NDEBUG

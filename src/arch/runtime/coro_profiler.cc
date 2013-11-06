@@ -146,7 +146,6 @@ coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_executi
     }
     delete[] stack_frames;
 
-    // Record the sample
 #ifndef NDEBUG
     return coro_execution_point_key_t(coro_t::self()->get_coroutine_type(), trace);
 #else
@@ -157,7 +156,7 @@ coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_executi
 void coro_profiler_t::generate_report() {
     std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> execution_point_reports;
 
-    // We assume that the global report_interval_spinlock has already been locked by our callee.
+    // We assume that the global report_interval_spinlock has already been locked by our caller.
     {
         // Proceed to locking all thread sample structures
         std::vector<scoped_ptr_t<spinlock_acq_t> > thread_locks;
