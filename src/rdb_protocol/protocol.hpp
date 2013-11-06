@@ -294,22 +294,34 @@ struct rdb_protocol_t {
     struct sindex_list_response_t {
         sindex_list_response_t() { }
         std::vector<std::string> sindexes;
+
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
+    struct sindex_status_response_t {
+        sindex_status_response_t()
+            : found(false), blocks_remaining(0),
+              blocks_total(0), ready(true)
+        { }
+        bool found;
+        size_t blocks_remaining, blocks_total;
+        bool ready;
+
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
     struct read_response_t {
-        boost::variant<point_read_response_t,
-                       rget_read_response_t,
-                       distribution_read_response_t,
-                       sindex_list_response_t> response;
+        typedef boost::variant<point_read_response_t,
+                               rget_read_response_t,
+                               distribution_read_response_t,
+                               sindex_list_response_t,
+                               sindex_status_response_t> inner_t;
+        inner_t response;
         profile::event_log_t event_log;
         size_t n_shards;
 
         read_response_t() { }
-        explicit read_response_t(
-            const boost::variant<point_read_response_t,
-                                 rget_read_response_t,
-                                 distribution_read_response_t> &r)
+        explicit read_response_t(const inner_t &r)
             : response(r) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
@@ -440,11 +452,21 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
+    class sindex_status_t {
+    public:
+        sindex_status_t() { }
+        std::string sindex;
+        region_t region;
+        RDB_DECLARE_ME_SERIALIZABLE;
+    };
+
     struct read_t {
-        boost::variant<point_read_t,
-                       rget_read_t,
-                       distribution_read_t,
-                       sindex_list_t> read;
+        typedef boost::variant<point_read_t,
+                               rget_read_t,
+                               distribution_read_t,
+                               sindex_list_t,
+                               sindex_status_t> inner_t;
+        inner_t read;
         profile_bool_t profile;
 
         region_t get_region() const THROWS_NOTHING;
@@ -459,11 +481,7 @@ struct rdb_protocol_t {
             THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
-        read_t(const boost::variant<point_read_t,
-                                    rget_read_t,
-                                    distribution_read_t,
-                                    sindex_list_t> &r,
-               profile_bool_t _profile)
+        read_t(const inner_t &r, profile_bool_t _profile)
             : read(r), profile(_profile) { }
 
         // Only use snapshotting if we're doing a range get.
@@ -506,7 +524,7 @@ struct rdb_protocol_t {
         bool success;
         RDB_DECLARE_ME_SERIALIZABLE;
     };
-    
+
     struct sync_response_t {
         // sync always succeeds
         RDB_DECLARE_ME_SERIALIZABLE;

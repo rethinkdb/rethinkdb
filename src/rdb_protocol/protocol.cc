@@ -54,6 +54,9 @@ typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_
 typedef rdb_protocol_t::sindex_list_t sindex_list_t;
 typedef rdb_protocol_t::sindex_list_response_t sindex_list_response_t;
 
+typedef rdb_protocol_t::sindex_status_t sindex_status_t;
+typedef rdb_protocol_t::sindex_status_response_t sindex_status_response_t;
+
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
@@ -417,6 +420,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(UNUSED const sindex_list_t &sl) const {
         return rdb_protocol_t::monokey_region(sindex_list_region_key());
     }
+
+    region_t operator()(const sindex_status_t &ss) const {
+        return ss.region;
+    }
 };
 
 region_t read_t::get_region() const THROWS_NOTHING {
@@ -467,6 +474,10 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
 
     bool operator()(const sindex_list_t &sl) const {
         return keyed_read(sl, sindex_list_region_key());
+    }
+
+    bool operator()(const sindex_status_t &ss) const {
+        return rangey_read(ss);
     }
 
     const hash_region_t<key_range_t> *region;
@@ -643,6 +654,18 @@ public:
         guarantee(count == 1);
         guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
         *response_out = responses[0];
+    }
+
+    void operator()(UNUSED const sindex_status_t &ss) {
+        *response_out = read_response_t(sindex_status_response_t());
+        auto ss_response = boost::get<sindex_status_response_t>(&response_out->response);
+        for (size_t i = 0; i < count; ++i) {
+            auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
+            guarantee(resp);
+            ss_response->blocks_remaining += resp->blocks_remaining;
+            ss_response->blocks_total += resp->blocks_total;
+            ss_response->ready &= resp->ready;
+        }
     }
 
 private:
@@ -1281,6 +1304,25 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         }
     }
 
+    void operator()(const sindex_status_t &sindex_status) {
+        response->response = sindex_status_response_t();
+        auto res = &boost::get<sindex_status_response_t>(response->response);
+
+        std::map<std::string, secondary_index_t> sindexes;
+        store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
+
+        if (!std_contains(sindexes, sindex_status.sindex)) {
+            /* A default constructed sindex_status_response_t indicates that
+             * the sindex wasn't found. So we can just return. */
+            return;
+        } else {
+            res->found = true;
+            res->blocks_remaining = 0;
+            res->blocks_total = 0;
+            res->ready = sindexes[sindex_status.sindex].post_construction_complete;
+        }
+    }
+
     rdb_read_visitor_t(btree_slice_t *_btree,
                        btree_store_t<rdb_protocol_t> *_store,
                        transaction_t *_txn,
@@ -1855,6 +1897,8 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
                            region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
+RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_status_response_t,
+                           found, blocks_remaining, blocks_total, ready);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::read_response_t, response, event_log, n_shards);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
@@ -1868,6 +1912,7 @@ RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
                            max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_status_t, sindex, region);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
