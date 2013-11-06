@@ -9,6 +9,35 @@
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 
+const char *archive_result_as_str(archive_result_t archive_result) {
+    switch (archive_result) {
+    case ARCHIVE_SUCCESS:
+        return "ARCHIVE_SUCCESS";
+        break;
+    case ARCHIVE_SOCK_ERROR:
+        return "ARCHIVE_SOCK_ERROR";
+        break;
+    case ARCHIVE_SOCK_EOF:
+        return "ARCHIVE_SOCK_EOF";
+        break;
+    case ARCHIVE_RANGE_ERROR:
+        return "ARCHIVE_RANGE_ERROR";
+        break;
+    case ARCHIVE_GENERIC_ERROR:
+        return "ARCHIVE_GENERIC_ERROR";
+        break;
+    default:
+        unreachable();
+    }
+}
+
+void guarantee_deserialization(
+    archive_result_t archive_result, const char *name_of_value) {
+    guarantee(archive_result == ARCHIVE_SUCCESS,
+        "Deserialization of %s failed with error %s.",
+        name_of_value, archive_result_as_str(archive_result));
+}
+
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);
 

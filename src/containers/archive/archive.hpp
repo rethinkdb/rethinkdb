@@ -38,6 +38,10 @@ enum archive_result_t {
     ARCHIVE_GENERIC_ERROR = 1,
 };
 
+const char *archive_result_as_str(archive_result_t archive_result);
+
+void guarantee_deserialization(archive_result_t archive_result, const char *name_of_value);
+
 // We wrap things in this class for making friend declarations more
 // compilable under gcc-4.5.
 class archive_deserializer_t {
