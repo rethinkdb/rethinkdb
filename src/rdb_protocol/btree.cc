@@ -30,11 +30,12 @@ template<class Value>
 void find_keyvalue_location_for_write(
     const btree_loc_info_t &info,
     keyvalue_location_t<Value> *kv_loc_out,
+    profile::trace_t *trace,
     promise_t<superblock_t *> *pass_back_superblock) {
     find_keyvalue_location_for_write(
         info.btree->txn, info.superblock, info.key->btree_key(), kv_loc_out,
         &info.btree->slice->root_eviction_priority, &info.btree->slice->stats,
-        pass_back_superblock);
+        trace, pass_back_superblock);
 }
 
 const rdb_value_t *value_sizer_t<rdb_value_t>::as_rdb(const void *p) {
@@ -68,9 +69,11 @@ bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value
     return blob::ref_fits(bs, data_length, value->value_ref(), blob::btree_maxreflen);
 }
 
-void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn, superblock_t *superblock, point_read_response_t *response) {
+void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn,
+        superblock_t *superblock, point_read_response_t *response, profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location, slice->root_eviction_priority, &slice->stats);
+    find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location,
+            slice->root_eviction_priority, &slice->stats, trace);
 
     if (!kv_location.value.has()) {
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
@@ -193,14 +196,17 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
     promise_t<superblock_t *> *superblock_promise,
-    rdb_modification_info_t *mod_info_out) {
+    rdb_modification_info_t *mod_info_out,
+    profile::trace_t *trace)
+{
     bool return_vals = replacer->should_return_vals();
     const std::string &primary_key = *info.btree->primary_key;
     const store_key_t &key = *info.key;
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(info, &kv_location, superblock_promise);
+        find_keyvalue_location_for_write(info, &kv_location,
+            trace, superblock_promise);
 
         bool started_empty, ended_empty;
         counted_t<const ql::datum_t> old_val;
@@ -326,13 +332,15 @@ void do_a_replace_from_batched_replace(
     const one_replace_t one_replace,
     promise_t<superblock_t *> *superblock_promise,
     rdb_modification_report_cb_t *sindex_cb,
-    batched_replace_response_t *stats_out) {
+    batched_replace_response_t *stats_out,
+    profile::trace_t *trace)
+{
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
     rdb_modification_report_t mod_report(*info.key);
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
-        info, &one_replace, superblock_promise, &mod_report.info);
+        info, &one_replace, superblock_promise, &mod_report.info, trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
     exiter.wait();
@@ -344,7 +352,8 @@ batched_replace_response_t rdb_batched_replace(
     scoped_ptr_t<superblock_t> *superblock,
     const std::vector<store_key_t> &keys,
     const btree_batched_replacer_t *replacer,
-    rdb_modification_report_cb_t *sindex_cb) {
+    rdb_modification_report_cb_t *sindex_cb,
+    profile::trace_t *trace) {
 
     fifo_enforcer_source_t batched_replaces_fifo_source;
     fifo_enforcer_sink_t batched_replaces_fifo_sink;
@@ -355,7 +364,6 @@ batched_replace_response_t rdb_batched_replace(
     // because the coroutines being drained use them.
     {
         auto_drainer_t drainer;
-
         // Note the destructor ordering: We release the superblock before draining
         // on all the write operations.
         scoped_ptr_t<superblock_t> current_superblock(superblock->release());
@@ -374,7 +382,8 @@ batched_replace_response_t rdb_batched_replace(
 
                     &superblock_promise,
                     sindex_cb,
-                    &stats));
+                    &stats,
+                    trace));
 
             current_superblock.init(superblock_promise.wait());
         }
@@ -390,10 +399,11 @@ void rdb_set(const store_key_t &key,
              transaction_t *txn,
              superblock_t *superblock,
              point_write_response_t *response_out,
-             rdb_modification_info_t *mod_info) {
+             rdb_modification_info_t *mod_info,
+             profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
     find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location,
-                                     &slice->root_eviction_priority, &slice->stats);
+                                     &slice->root_eviction_priority, &slice->stats, trace);
     const bool had_value = kv_location.value.has();
 
     /* update the modification report */
@@ -408,7 +418,8 @@ void rdb_set(const store_key_t &key,
         guarantee(mod_info->deleted.second.empty() == !had_value &&
                   !mod_info->added.second.empty());
     }
-    response_out->result = (had_value ? DUPLICATE : STORED);
+    response_out->result =
+        (had_value ? point_write_result_t::DUPLICATE : point_write_result_t::STORED);
 }
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
@@ -458,9 +469,11 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
 void rdb_delete(const store_key_t &key, btree_slice_t *slice,
                 repli_timestamp_t timestamp, transaction_t *txn,
                 superblock_t *superblock, point_delete_response_t *response,
-                rdb_modification_info_t *mod_info) {
+                rdb_modification_info_t *mod_info,
+                profile::trace_t *trace) {
     keyvalue_location_t<rdb_value_t> kv_location;
-    find_keyvalue_location_for_write(txn, superblock, key.btree_key(), &kv_location, &slice->root_eviction_priority, &slice->stats);
+    find_keyvalue_location_for_write(txn, superblock, key.btree_key(),
+            &kv_location, &slice->root_eviction_priority, &slice->stats, trace);
     bool exists = kv_location.value.has();
 
     /* Update the modification report. */
@@ -470,7 +483,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 
     if (exists) kv_location_delete(&kv_location, key, slice, timestamp, txn, mod_info);
     guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
-    response->result = (exists ? DELETED : MISSING);
+    response->result = (exists ? point_delete_result_t::DELETED : point_delete_result_t::MISSING);
 }
 
 void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *_value) {
@@ -696,6 +709,9 @@ public:
             if (terminal) {
                 query_language::terminal_initialize(&*terminal, &response->result);
             }
+
+            disabler.init(new profile::disabler_t(ql_env->trace));
+            sampler.init(new profile::sampler_t("Range traversal doc evaluation.", ql_env->trace));
         } catch (const ql::exc_t &e2) {
             /* Evaluation threw so we're not going to be accepting any more requests. */
             response->result = e2;
@@ -707,9 +723,10 @@ public:
         }
     }
 
-    bool handle_pair(scoped_key_value_t &&keyvalue,
+    virtual bool handle_pair(scoped_key_value_t &&keyvalue,
                      concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) {
+        sampler->new_sample();
         store_key_t store_key(keyvalue.key());
         if (bad_init) {
             return false;
@@ -744,7 +761,7 @@ public:
                 guarantee(sindex_range);
                 guarantee(sindex_multi);
 
-                if (sindex_multi == MULTI &&
+                if (sindex_multi == sindex_multi_bool_t::MULTI &&
                     sindex_value->get_type() == ql::datum_t::R_ARRAY) {
                         boost::optional<uint64_t> tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
                         guarantee(tag);
@@ -786,7 +803,7 @@ public:
                 guarantee(stream);
                 for (auto it = data.begin(); it != data.end(); ++it) {
                     counted_t<const ql::datum_t> datum = it->get();
-                    if (sorting != UNORDERED && sindex_value) {
+                    if (sorting != sorting_t::UNORDERED && sindex_value) {
                         stream->push_back(rdb_protocol_details::rget_item_t(
                                     store_key, sindex_value, datum));
                     } else {
@@ -818,6 +835,12 @@ public:
         }
 
     }
+
+    virtual profile::trace_t *get_trace() THROWS_NOTHING {
+        return ql_env->trace.get_or_null();
+    }
+
+
     bool bad_init;
     transaction_t *transaction;
     rget_read_response_t *response;
@@ -832,6 +855,9 @@ public:
     boost::optional<sindex_range_t> sindex_range;
     counted_t<ql::func_t> sindex_function;
     boost::optional<sindex_multi_bool_t> sindex_multi;
+
+    scoped_ptr_t<profile::disabler_t> disabler;
+    scoped_ptr_t<profile::sampler_t> sampler;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -856,6 +882,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     sorting_t sorting,
                     rget_read_response_t *response) {
+    profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(
             txn, ql_env, transform, terminal, range, sorting, response);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
@@ -870,21 +897,29 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
-void rdb_rget_secondary_slice(btree_slice_t *slice, const sindex_range_t &sindex_range,
-                    transaction_t *txn, superblock_t *superblock, ql::env_t *ql_env,
-                    const rdb_protocol_details::transform_t &transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    const key_range_t &pk_range,
-                    sorting_t sorting,
-                    const ql::map_wire_func_t &sindex_func,
-                    sindex_multi_bool_t sindex_multi,
-                    rget_read_response_t *response) {
-    rdb_rget_depth_first_traversal_callback_t callback(txn, ql_env, transform, terminal,
-            sindex_range.to_region().inner, pk_range,
-            sorting, sindex_func, sindex_multi, sindex_range, response);
+void rdb_rget_secondary_slice(
+    btree_slice_t *slice,
+    const sindex_range_t &sindex_range,
+    const rdb_protocol_t::region_t &sindex_region,
+    transaction_t *txn,
+    superblock_t *superblock,
+    ql::env_t *ql_env,
+    const rdb_protocol_details::transform_t &transform,
+    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
+    const key_range_t &pk_range,
+    sorting_t sorting,
+    const ql::map_wire_func_t &sindex_func,
+    sindex_multi_bool_t sindex_multi,
+    rget_read_response_t *response)
+{
+    profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
+    rdb_rget_depth_first_traversal_callback_t callback(
+        txn, ql_env, transform, terminal, sindex_region.inner, pk_range,
+        sorting, sindex_func, sindex_multi, sindex_range, response);
 
-    btree_concurrent_traversal(slice, txn, superblock, sindex_range.to_region().inner,
-            &callback, (forward(sorting) ? FORWARD : BACKWARD));
+    btree_concurrent_traversal(
+        slice, txn, superblock, sindex_region.inner, &callback,
+        (forward(sorting) ? FORWARD : BACKWARD));
 
     if (callback.cumulative_size >= rget_max_chunk_size) {
         response->truncated = true;
@@ -1011,7 +1046,7 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
     counted_t<const ql::datum_t> index =
         mapping->compile_wire_func()->call(env, doc)->as_datum();
 
-    if (multi == MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
+    if (multi == sindex_multi_bool_t::MULTI && index->get_type() == ql::datum_t::R_ARRAY) {
         for (uint64_t i = 0; i < index->size(); ++i) {
             keys_out->push_back(
                 store_key_t(index->get(i, ql::THROW)->print_secondary(primary_key, i)));
@@ -1034,7 +1069,7 @@ void rdb_update_single_sindex(
     guarantee(modification->primary_key.size() != 0);
 
     ql::map_wire_func_t mapping;
-    sindex_multi_bool_t multi = MULTI;
+    sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
     int success = deserialize(&read_stream, &mapping);
     guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
@@ -1070,6 +1105,7 @@ void rdb_update_single_sindex(
                                                      &kv_location,
                                                      &sindex->btree->root_eviction_priority,
                                                      &sindex->btree->stats,
+                                                     env.trace.get_or_null(),
                                                      &return_superblock_local);
 
                     if (kv_location.value.has()) {
@@ -1103,6 +1139,7 @@ void rdb_update_single_sindex(
                                                      &kv_location,
                                                      &sindex->btree->root_eviction_priority,
                                                      &sindex->btree->stats,
+                                                     env.trace.get_or_null(),
                                                      &return_superblock_local);
 
                     kv_location_set(&kv_location, *it,

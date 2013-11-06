@@ -5,6 +5,8 @@
 
 class concurrent_traversal_adapter_t;
 
+namespace profile { class trace_t; }
+
 class concurrent_traversal_fifo_enforcer_signal_t {
 public:
     void wait_interruptible() THROWS_ONLY(interrupted_exc_t);
@@ -31,6 +33,8 @@ public:
     virtual bool handle_pair(scoped_key_value_t &&keyvalue,
                              concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t) = 0;
+
+    virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 
 protected:
     virtual ~concurrent_traversal_callback_t() { }

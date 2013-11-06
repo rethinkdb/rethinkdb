@@ -13,6 +13,7 @@
 
 namespace ql {
 class datum_t;
+class rdb_namespace_access_t;
 class env_t;
 template <class> class protob_t;
 class scope_env_t;
@@ -111,7 +112,7 @@ private:
 
     bool use_outdated;
     std::string pkey;
-    scoped_ptr_t<namespace_repo_t<rdb_protocol_t>::access_t> access;
+    scoped_ptr_t<rdb_namespace_access_t> access;
 
     boost::optional<std::string> sindex_id;
     sorting_t sorting;

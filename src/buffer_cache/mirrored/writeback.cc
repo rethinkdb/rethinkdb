@@ -246,12 +246,11 @@ public:
         public home_thread_mixin_t {
         writeback_t *parent;
         counted_t<standard_block_token_t> token;
+        scoped_ptr_t<mc_buf_lock_t> buf;
 
     private:
         friend class buf_writer_t;
         cond_t finished_;
-
-        scoped_ptr_t<mc_buf_lock_t> buf;
 
     public:
         void on_write_launched(const counted_t<standard_block_token_t>& tok) {
@@ -285,20 +284,15 @@ public:
     }
     void on_thread_switch() {
         assert_thread();
-        
+
+        // Note that we must hold on to the buffer until
+        // the serializer index_write has completed. At the point where
+        // on_io_complete() is called we have no such guarantee.
+
         // Release the throttling lock now that the block has been written to disk.
         // This allows queued up write transaction to get through again.
         throttling_acq.reset();
-        
-        // Ideally, if we were done updating the block sequence id, we would be able to release the
-        // buffer now. However, we're not in coroutine context, and releasing a buffer could require
-        // releasing a snapshot, which could cause an ls_block_token to hit refcount 0 and be
-        // destroyed, which requires being in coroutine context to switch back to the serializer
-        // thread and unregister it. So, we cannot do that here.
 
-        // TODO: The rationale above is no longer true.
-        // ls_block_token_pointee_t does not use on_thread_t to destroy itself.
-        // Can we release the buf? ^
         io_completed_ = true;
     }
     ~buf_writer_t() {

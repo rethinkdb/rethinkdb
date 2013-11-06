@@ -21,12 +21,15 @@ class extproc_pool_t;
 namespace ql {
 class datum_t;
 class term_t;
-class compile_env_t;
+
+/* If and optarg with the given key is present and is of type DATUM it will be
+ * returned. Otherwise an empty counted_t<const datum_t> will be returned. */
+counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q);
 
 class global_optargs_t {
 public:
     global_optargs_t();
-    global_optargs_t(const std::map<std::string, wire_func_t> &_optargs);
+    global_optargs_t(protob_t<Query> q);
 
     // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
@@ -35,6 +38,43 @@ public:
     const std::map<std::string, wire_func_t> &get_all_optargs();
 private:
     std::map<std::string, wire_func_t> optargs;
+};
+
+/* This wraps a namespace_interface_t and makes it automatically handle getting
+ * profiling information from them. It acheives this by doing the following in its methods:
+ * 
+ * - Set the explain field in the read_t/write_t object so that the shards know whether or not to do profiling
+ * - Construct a splitter_t
+ * - Call the corresponding method on internal_
+ * - splitter_t::give_splits with the event logs from the shards
+ */
+class rdb_namespace_interface_t {
+public:
+    rdb_namespace_interface_t(
+            namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
+
+    void read(rdb_protocol_t::read_t *, rdb_protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read_outdated(rdb_protocol_t::read_t *, rdb_protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(rdb_protocol_t::write_t *, rdb_protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+
+    /* These calls are for the sole purpose of optimizing queries; don't rely
+    on them for correctness. They should not block. */
+    std::set<rdb_protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
+    signal_t *get_initial_ready_signal();
+    /* Check if the internal value is null. */
+    bool has();
+private:
+    namespace_interface_t<rdb_protocol_t> *internal_;
+    env_t *env_;
+};
+
+class rdb_namespace_access_t {
+public:
+    rdb_namespace_access_t(uuid_u id, env_t *env);
+    rdb_namespace_interface_t get_namespace_if();
+private:
+    base_namespace_repo_t<rdb_protocol_t>::access_t internal_;
+    env_t *env_;
 };
 
 class cluster_access_t {
@@ -94,7 +134,23 @@ public:
         directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
         signal_t *_interruptor,
         uuid_u _this_machine,
-        const std::map<std::string, wire_func_t> &_optargs);
+        protob_t<Query> query);
+
+    env_t(
+        extproc_pool_t *_extproc_pool,
+        base_namespace_repo_t<rdb_protocol_t> *_ns_repo,
+
+        clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >
+            _namespaces_semilattice_metadata,
+
+        clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >
+             _databases_semilattice_metadata,
+        boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >
+            _semilattice_metadata,
+        directory_read_manager_t<cluster_directory_metadata_t> *_directory_read_manager,
+        signal_t *_interruptor,
+        uuid_u _this_machine,
+        profile_bool_t _profile);
 
     explicit env_t(signal_t *);
 
@@ -132,6 +188,10 @@ public:
 
     // The interruptor signal while a query evaluates.  This can get overwritten!
     signal_t *interruptor;
+
+    scoped_ptr_t<profile::trace_t> trace;
+
+    profile_bool_t profile();
 
 private:
     js_runner_t js_runner;

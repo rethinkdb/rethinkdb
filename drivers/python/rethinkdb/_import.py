@@ -15,9 +15,9 @@ except ImportError:
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
-      [-i (DB | DB.TABLE)]\n\
+      [-i (DB | DB.TABLE)] [--clients NUM]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
-      [--force] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
@@ -472,11 +472,11 @@ def abort_import(signum, frame, parent_pid, exit_event, task_queue, clients, int
         interrupt_event.set()
         exit_event.set()
 
-        for client in clients:
-            if client.is_alive():
-                # TODO: this could theoretically block indefinitely if
-                #   the queue is full and clients aren't reading
-                task_queue.put("exit")
+        alive_clients = sum([client.is_alive() for client in clients])
+        for i in xrange(alive_clients):
+            # TODO: this could theoretically block indefinitely if
+            #   the queue is full and clients aren't reading
+            task_queue.put("exit")
 
 def print_progress(ratio):
     total_width = 40
@@ -547,9 +547,9 @@ def spawn_import_clients(options, files_info):
             update_progress(progress_info)
 
         # Wait for all clients to finish
-        for client in client_procs:
-            if client.is_alive():
-                task_queue.put("exit")
+        alive_clients = sum([client.is_alive() for client in client_procs])
+        for i in xrange(alive_clients):
+            task_queue.put("exit")
 
         while len(client_procs) > 0:
             time.sleep(0.1)

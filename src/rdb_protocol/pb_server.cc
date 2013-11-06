@@ -5,6 +5,7 @@
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -43,7 +44,10 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
     guarantee(interruptor);
     response_out->set_token(q->token());
 
-    bool response_needed = true;
+    counted_t<const ql::datum_t> noreply = static_optarg("noreply", q);
+    bool response_needed = !(noreply.has() &&
+         noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
+         noreply->as_bool());
     try {
         threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
@@ -53,10 +57,13 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
                 ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
                 ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
-                interruptor, ctx->machine_id,
-                std::map<std::string, ql::wire_func_t>()));
+                interruptor, ctx->machine_id, q));
         // `ql::run` will set the status code
-        ql::run(q, std::move(env), response_out, stream_cache2, &response_needed);
+        ql::run(q, std::move(env), response_out, stream_cache2);
+    } catch (const ql::exc_t &e) {
+        fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
+    } catch (const ql::datum_exc_t &e) {
+        fill_error(response_out, Response::COMPILE_ERROR, e.what(), ql::backtrace_t());
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");

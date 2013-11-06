@@ -286,6 +286,18 @@ public:
     ~on_thread_t();
 };
 
+/* `with_priority_t` changes the priority of the current coroutine to the
+ value given in its constructor. When it is destructed, it restores the
+ original priority of the coroutine. */
+
+class with_priority_t {
+public:
+    explicit with_priority_t(int priority);
+    ~with_priority_t();
+private:
+    int previous_priority;
+};
+
 
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
@@ -455,5 +467,29 @@ private:
 #define DBLPRI "%.20g"
 
 #define ANY_PORT 0
+
+/** RVALUE_THIS
+ *
+ * This macro is used to annotate methods that treat *this as an
+ * rvalue reference. On compilers that support it, it expands to &&
+ * and all uses of the method on non-rvlaue *this are reported as
+ * errors.
+ *
+ * The supported compilers are clang >= 2.9 and gcc >= 4.8.1
+ *
+ **/
+#if defined(__clang__)
+#if __has_extension(cxx_rvalue_references)
+#define RVALUE_THIS &&
+#else
+#define RVALUE_THIS
+#endif
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && \
+    (__GNUC_MINOR__ > 8 || (__GNUC_MINOR__ == 8 && \
+                            __GNUC_PATCHLEVEL__ > 1)))
+#define RVALUE_THIS &&
+#else
+#define RVALUE_THIS
+#endif
 
 #endif // UTILS_HPP_
