@@ -206,11 +206,13 @@ backtrace_t::backtrace_t() {
     delete[] stack_frames;
 }
 
-backtrace_frame_t::backtrace_frame_t(const void* _addr) : addr(_addr) {
-    filename = "";
-    function = "";
-    offset = "";
+backtrace_frame_t::backtrace_frame_t(const void* _addr) :
+    symbols_initialized(false),
+    addr(_addr) {
 
+}
+
+void backtrace_frame_t::initialize_symbols() {
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
     if (symbols != NULL) {
@@ -231,21 +233,26 @@ backtrace_frame_t::backtrace_frame_t(const void* _addr) : addr(_addr) {
         }
         free(symbols);
     }
+    symbols_initialized = true;
 }
 
 std::string backtrace_frame_t::get_name() const {
+    rassert(symbols_initialized);
     return function;
 }
 
 std::string backtrace_frame_t::get_demangled_name() const {
+    rassert(symbols_initialized);
     return demangle_cpp_name(function.c_str());
 }
 
 std::string backtrace_frame_t::get_filename() const {
+    rassert(symbols_initialized);
     return filename;
 }
 
 std::string backtrace_frame_t::get_offset() const {
+    rassert(symbols_initialized);
     return offset;
 }
 
@@ -277,21 +284,28 @@ std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
     address_to_line_t address_to_line;
     std::string output;
     for (size_t i = 0; i < get_num_frames(); i++) {
-        const backtrace_frame_t &current_frame = get_frame(i);
+        backtrace_frame_t current_frame = get_frame(i);
+        current_frame.initialize_symbols();
 
         output.append(strprintf("%d: ", static_cast<int>(i+1)));
 
         try {
             output.append(current_frame.get_demangled_name());
         } catch (const demangle_failed_exc_t &) {
-            output.append(current_frame.get_name() + "+" + current_frame.get_offset());
+            if (!current_frame.get_name().empty()) {
+                output.append(current_frame.get_name() + "+" + current_frame.get_offset());
+            } else {
+                output.append("<unknown function>");
+            }
         }
 
         output.append(" at ");
 
         std::string some_other_line;
         if (use_addr2line) {
-            some_other_line = address_to_line.address_to_line(current_frame.get_filename(), current_frame.get_addr());
+            if (!current_frame.get_filename().empty()) {
+                some_other_line = address_to_line.address_to_line(current_frame.get_filename(), current_frame.get_addr());
+            }
         }
         if (!some_other_line.empty()) {
             output.append(some_other_line);

@@ -58,6 +58,10 @@ std::string format_backtrace(bool use_addr2line = true);
 class backtrace_frame_t {
 public:
     explicit backtrace_frame_t(const void *_addr);
+
+    // Initializes filename, function and offset strings.
+    void initialize_symbols();
+
     std::string get_filename() const;
     std::string get_name() const;
     std::string get_demangled_name() const;
@@ -65,6 +69,7 @@ public:
     const void *get_addr() const;
 private:
     std::string filename, function, offset;
+    bool symbols_initialized;
     const void *addr;
 };
 

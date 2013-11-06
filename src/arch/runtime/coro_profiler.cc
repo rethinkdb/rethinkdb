@@ -364,6 +364,7 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
     }
 
     backtrace_frame_t frame(addr);
+    frame.initialize_symbols();
     std::stringstream description_stream;
 #if CORO_PROFILER_ADDRESS_TO_LINE
     std::string line = address_to_line.address_to_line(frame.get_filename(), frame.get_addr()) + "  |  ";
