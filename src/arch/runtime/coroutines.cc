@@ -226,7 +226,7 @@ void coro_t::wait() {   /* class method */
 
     rassert(!self()->waiting_);
     self()->waiting_ = true;
-        
+
     PROFILER_CORO_YIELD(1)
     if (cglobals->prev_coro) {
         context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);

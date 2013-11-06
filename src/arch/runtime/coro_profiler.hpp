@@ -63,7 +63,6 @@ public:
     // Should you ever want to make this a true singleton, just make the
     // constructor private.
     coro_profiler_t();
-    ~coro_profiler_t();
 
     static coro_profiler_t &get_global_profiler();
 
@@ -76,7 +75,7 @@ public:
 
 private:
     typedef std::array<void *, CORO_PROFILER_BACKTRACE_DEPTH> small_trace_t;
-    // Identify an execution point of a coroutine by a pair of
+    // We identify an execution point of a coroutine by a pair of
     // the coro's coroutine_type (the function which spawned it) and
     // a small_trace_t of its current execution point.
     typedef std::pair<std::string, small_trace_t> coro_execution_point_key_t;
@@ -119,10 +118,21 @@ private:
         data_distribution_t time_since_previous;
         data_distribution_t time_since_resume;
         data_distribution_t priority;
+
+    private:
+        // Helper functions for compute_stats
+        void update_min_max(const double new_sample, data_distribution_t *current_out) const;
+        void accumulate_sample_pass1(const double new_sample,
+                                     data_distribution_t *current_out) const;
+        void divide_mean(data_distribution_t *current_out) const;
+        void accumulate_sample_pass2(const double new_sample,
+                                     data_distribution_t *current_out) const;
+        void divide_stddev(data_distribution_t *current_out) const;
     };
 
     void generate_report();
-    void print_to_reql(const std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> &execution_point_reports);
+    void print_to_reql(const std::map<coro_execution_point_key_t,
+                       per_execution_point_collected_report_t> &execution_point_reports);
     void write_reql_header();
     std::string distribution_to_object_str(const data_distribution_t &distribution);
     std::string trace_to_array_str(const small_trace_t &trace);
@@ -176,4 +186,3 @@ private:
 #endif /* not ENABLE_CORO_PROFILER */
 
 #endif	/* ARCH_RUNTIME_CORO_PROFILER_HPP_ */
-

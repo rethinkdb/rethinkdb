@@ -25,13 +25,13 @@ std::string demangle_cpp_name(const char *mangled_name);
 class address_to_line_t {
 public:
     address_to_line_t() { }
-    
+
     /* Returns an empty string if the line could not be found */
     std::string address_to_line(const std::string &executable, const void *address);
-    
+
 private:
     bool run_addr2line(const std::string &executable, const void *address, char *line, int line_size);
-    
+
     // Internal helper class:
     class addr2line_t {
     public:
@@ -45,10 +45,10 @@ private:
         pid_t pid;
         DISABLE_COPYING(addr2line_t);
     };
-    
+
     // "Cache" to re-use addr2line processes
     boost::ptr_map<const std::string, addr2line_t> procs;
-    
+
     DISABLE_COPYING(address_to_line_t);
 };
 
@@ -90,7 +90,7 @@ private:
 
     time_t timestamp;
     std::string timestr;
-    
+
     std::string print_frames(bool use_addr2line);
 
     DISABLE_COPYING(lazy_backtrace_formatter_t);

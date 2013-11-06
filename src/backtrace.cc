@@ -183,7 +183,7 @@ bool address_to_line_t::run_addr2line(const std::string &executable, const void 
 std::string address_to_line_t::address_to_line(const std::string &executable, const void *address) {
     char line[255];
     bool success = run_addr2line(executable, address, line, sizeof(line));
-    
+
     if (!success) {
         return "";
     } else {
@@ -210,7 +210,7 @@ backtrace_frame_t::backtrace_frame_t(const void* _addr) : addr(_addr) {
     filename = "";
     function = "";
     offset = "";
-    
+
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
     if (symbols != NULL) {

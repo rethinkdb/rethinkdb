@@ -44,12 +44,6 @@ coro_profiler_t::coro_profiler_t() {
     }
 }
 
-coro_profiler_t::~coro_profiler_t() {
-    // Generate a final report:
-    const spinlock_acq_t report_interval_lock(&report_interval_spinlock);
-    generate_report();
-}
-
 void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
     if (coro_t::self() == NULL) return;
 
@@ -77,7 +71,8 @@ void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
             get_current_execution_point(levels_to_strip_from_backtrace + 1);
 
         // Record the sample
-        per_execution_point_samples_t &execution_point_samples = thread_samples.per_execution_point_samples[execution_point];
+        per_execution_point_samples_t &execution_point_samples =
+            thread_samples.per_execution_point_samples[execution_point];
         ++execution_point_samples.num_samples_total;
         ticks_t ticks_since_previous = 0;
         if (coro_mixin.last_sample_at != 0) {
@@ -132,7 +127,9 @@ void coro_profiler_t::record_coro_yield(size_t levels_to_strip_from_backtrace) {
     record_sample(1 + levels_to_strip_from_backtrace);
 }
 
-coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_execution_point(size_t levels_to_strip_from_backtrace) {
+coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_execution_point(
+    size_t levels_to_strip_from_backtrace) {
+
     // Generate call trace
     // We strip ourselves, and the frames that are inside `rethinkdb_backtrace()`.
     levels_to_strip_from_backtrace += 1 + NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE;
@@ -164,20 +161,29 @@ void coro_profiler_t::generate_report() {
     {
         // Proceed to locking all thread sample structures
         std::vector<scoped_ptr_t<spinlock_acq_t> > thread_locks;
-        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
-            thread_locks.push_back(scoped_ptr_t<spinlock_acq_t>(new spinlock_acq_t(&thread_samples->value.spinlock)));
+        for (auto thread_samples = per_thread_samples.begin();
+             thread_samples != per_thread_samples.end();
+             ++thread_samples) {
+            thread_locks.push_back(
+                scoped_ptr_t<spinlock_acq_t>(new spinlock_acq_t(&thread_samples->value.spinlock)));
         }
 
         // Reset report ticks
         const ticks_t ticks = get_ticks();
         ticks_at_last_report = ticks;
-        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
+        for (auto thread_samples = per_thread_samples.begin();
+             thread_samples != per_thread_samples.end();
+             ++thread_samples) {
             thread_samples->value.ticks_at_last_report = ticks;
         }
 
         // Collect data for each trace over all threads
-        for (auto thread_samples = per_thread_samples.begin(); thread_samples != per_thread_samples.end(); ++thread_samples) {
-            for (auto execution_point_samples = thread_samples->value.per_execution_point_samples.begin(); execution_point_samples != thread_samples->value.per_execution_point_samples.end(); ++execution_point_samples) {
+        for (auto thread_samples = per_thread_samples.begin();
+             thread_samples != per_thread_samples.end();
+             ++thread_samples) {
+            for (auto execution_point_samples = thread_samples->value.per_execution_point_samples.begin();
+                 execution_point_samples != thread_samples->value.per_execution_point_samples.end();
+                 ++execution_point_samples) {
                 // Collect samples
                 if (!execution_point_samples->second.samples.empty()) {
                     std::vector<coro_sample_t> &sample_collection =
@@ -191,12 +197,14 @@ void coro_profiler_t::generate_report() {
                 }
             }
         }
- 
+
         // Release per-thread locks
     }
 
     // Compute statistics
-    for (auto report =  execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
+    for (auto report =  execution_point_reports.begin();
+         report != execution_point_reports.end();
+         ++report) {
         report->second.compute_stats();
     }
 
@@ -205,63 +213,109 @@ void coro_profiler_t::generate_report() {
     }
 }
 
+void coro_profiler_t::per_execution_point_collected_report_t::update_min_max(
+    const double new_sample,
+    data_distribution_t *current_out) const {
+
+    if (num_samples == 0) {
+        current_out->min = current_out->max = new_sample;
+    } else {
+        current_out->min = std::min(current_out->min, new_sample);
+        current_out->max = std::max(current_out->max, new_sample);
+    }
+}
+
+void coro_profiler_t::per_execution_point_collected_report_t::accumulate_sample_pass1(
+    const double new_sample,
+    data_distribution_t *current_out) const {
+
+    update_min_max(new_sample, current_out);
+    current_out->mean += new_sample;
+}
+
+void coro_profiler_t::per_execution_point_collected_report_t::divide_mean(
+    data_distribution_t *current_out) const {
+
+    current_out->mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1.0;
+}
+
+void coro_profiler_t::per_execution_point_collected_report_t::accumulate_sample_pass2(
+    const double new_sample,
+    data_distribution_t *current_out) const {
+
+    current_out->stddev += std::pow(new_sample - current_out->mean, 2);
+}
+
+void coro_profiler_t::per_execution_point_collected_report_t::divide_stddev(
+    data_distribution_t *current_out) const {
+
+    // Use the unbiased estimate of the standard deviation, hence division by num_samples-1
+    current_out->stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1.0;
+    current_out->stddev = std::sqrt(current_out->stddev);
+}
+
 void coro_profiler_t::per_execution_point_collected_report_t::compute_stats() {
     rassert(num_samples == 0); // `per_execution_point_collected_report_t` is not re-usable.
 
-    // TODO (daniel): Refactor
     // Pass 1: Compute min, max, mean
     for (auto sample = collected_samples.begin(); sample != collected_samples.end(); ++sample) {
-        if (num_samples == 0) {
-            time_since_previous.min = time_since_previous.max = ticks_to_secs(sample->ticks_since_previous);
-            time_since_resume.min = time_since_resume.max = ticks_to_secs(sample->ticks_since_resume);
-            priority.min = priority.max = static_cast<double>(sample->priority);
-        } else {
-            time_since_previous.min = std::min(time_since_previous.min, ticks_to_secs(sample->ticks_since_previous));
-            time_since_previous.max = std::max(time_since_previous.max, ticks_to_secs(sample->ticks_since_previous));
-            time_since_resume.min = std::min(time_since_resume.min, ticks_to_secs(sample->ticks_since_resume));
-            time_since_resume.max = std::max(time_since_resume.max, ticks_to_secs(sample->ticks_since_resume));
-            priority.min = std::min(priority.min, static_cast<double>(sample->priority));
-            priority.max = std::max(priority.max, static_cast<double>(sample->priority));
-        }
-        time_since_previous.mean += ticks_to_secs(sample->ticks_since_previous);
-        time_since_resume.mean += ticks_to_secs(sample->ticks_since_resume);
-        priority.mean += static_cast<double>(sample->priority);
+        accumulate_sample_pass1(ticks_to_secs(sample->ticks_since_previous),
+                                &time_since_previous);
+        accumulate_sample_pass1(ticks_to_secs(sample->ticks_since_resume),
+                                &time_since_resume);
+        accumulate_sample_pass1(static_cast<double>(sample->priority),
+                                &priority);
+
         ++num_samples;
     }
-    time_since_previous.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
-    time_since_resume.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
-    priority.mean /= (num_samples > 0) ? static_cast<double>(num_samples) : 1;
+    divide_mean(&time_since_previous);
+    divide_mean(&time_since_resume);
+    divide_mean(&priority);
 
     // Pass 2: Compute standard deviation
     for (auto sample = collected_samples.begin(); sample != collected_samples.end(); ++sample) {
-        time_since_previous.stddev += std::pow(ticks_to_secs(sample->ticks_since_previous) - time_since_previous.mean, 2);
-        time_since_resume.stddev += std::pow(ticks_to_secs(sample->ticks_since_resume) - time_since_resume.mean, 2);
-        priority.stddev += std::pow(static_cast<double>(sample->priority) - priority.mean, 2);
+        accumulate_sample_pass2(ticks_to_secs(sample->ticks_since_previous),
+                                &time_since_previous);
+        accumulate_sample_pass2(ticks_to_secs(sample->ticks_since_resume),
+                                &time_since_resume);
+        accumulate_sample_pass2(static_cast<double>(sample->priority),
+                                &priority);
     }
-    // Use the unbiased estimate of the standard deviation, hence division by num_samples-1
-    time_since_previous.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
-    time_since_resume.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
-    priority.stddev /= (num_samples > 1) ? static_cast<double>(num_samples-1) : 1;
-    time_since_previous.stddev = std::sqrt(time_since_previous.stddev);
-    time_since_resume.stddev = std::sqrt(time_since_resume.stddev);
-    priority.stddev = std::sqrt(priority.stddev);
+    divide_stddev(&time_since_previous);
+    divide_stddev(&time_since_resume);
+    divide_stddev(&priority);
 }
 
 void coro_profiler_t::print_to_reql(
-    const std::map<coro_execution_point_key_t, per_execution_point_collected_report_t> &execution_point_reports) {
+    const std::map<coro_execution_point_key_t,
+    per_execution_point_collected_report_t> &execution_point_reports) {
 
     const double time = ticks_to_secs(get_ticks());
 
     reql_output_file.precision(std::numeric_limits<double>::digits10);
     for (auto report = execution_point_reports.begin(); report != execution_point_reports.end(); ++report) {
         reql_output_file << "print t.insert({" << std::endl;
-        reql_output_file << "\t\t'time': " << time << "," << std::endl;
-        reql_output_file << "\t\t'coro_type': '" << report->first.first << "'," << std::endl;
-        reql_output_file << "\t\t'trace': " << trace_to_array_str(report->first.second) << "," << std::endl;
-        reql_output_file << "\t\t'num_samples': " << report->second.num_samples << "," << std::endl;
-        reql_output_file << "\t\t'since_previous': " << distribution_to_object_str(report->second.time_since_previous) << "," << std::endl;
-        reql_output_file << "\t\t'since_resume': " << distribution_to_object_str(report->second.time_since_resume) << "," << std::endl;
-        reql_output_file << "\t\t'priority': " << distribution_to_object_str(report->second.priority) << "" << std::endl;
+        reql_output_file << "\t\t'time': "
+                         << time
+                         << "," << std::endl;
+        reql_output_file << "\t\t'coro_type': '"
+                         << report->first.first
+                         << "'," << std::endl;
+        reql_output_file << "\t\t'trace': "
+                         << trace_to_array_str(report->first.second)
+                         << "," << std::endl;
+        reql_output_file << "\t\t'num_samples': "
+                         << report->second.num_samples
+                         << "," << std::endl;
+        reql_output_file << "\t\t'since_previous': "
+                         << distribution_to_object_str(report->second.time_since_previous)
+                         << "," << std::endl;
+        reql_output_file << "\t\t'since_resume': "
+                         << distribution_to_object_str(report->second.time_since_resume)
+                         << "," << std::endl;
+        reql_output_file << "\t\t'priority': "
+                         << distribution_to_object_str(report->second.priority)
+                         << "" << std::endl;
         reql_output_file << "\t}).run(conn, durability='soft')" << std::endl;
     }
 }
@@ -324,7 +378,8 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
     }
     description_stream << frame.get_addr() << "\t" << line << demangled_name;
 
-    return frame_description_cache.insert(std::pair<void *, std::string>(addr, description_stream.str())).first->second;
+    return frame_description_cache.insert(
+        std::pair<void *, std::string>(addr, description_stream.str())).first->second;
 }
 
 #endif /* ENABLE_CORO_PROFILER */
