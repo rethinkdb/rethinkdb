@@ -136,11 +136,11 @@ coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_executi
     // Generate call trace
     // We strip ourselves, and the frames that are inside `rethinkdb_backtrace()`.
     levels_to_strip_from_backtrace += 1 + NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE;
-    const size_t max_frames = CORO_PROFILER_CALLTREE_DEPTH + levels_to_strip_from_backtrace;
+    const size_t max_frames = CORO_PROFILER_BACKTRACE_DEPTH + levels_to_strip_from_backtrace;
     void **stack_frames = new void*[max_frames];
     size_t backtrace_size = rethinkdb_backtrace(stack_frames, max_frames);
     small_trace_t trace;
-    for (size_t i = 0; i < CORO_PROFILER_CALLTREE_DEPTH; ++i) {
+    for (size_t i = 0; i < CORO_PROFILER_BACKTRACE_DEPTH; ++i) {
         if (i + levels_to_strip_from_backtrace < backtrace_size) {
             trace[i] = stack_frames[i + levels_to_strip_from_backtrace];
         } else {
@@ -268,7 +268,7 @@ void coro_profiler_t::print_to_reql(
 
 std::string coro_profiler_t::trace_to_array_str(const small_trace_t &trace) {
     std::string trace_array_str = "[";
-    for (size_t i = 0; i < CORO_PROFILER_CALLTREE_DEPTH; ++i) {
+    for (size_t i = 0; i < CORO_PROFILER_BACKTRACE_DEPTH; ++i) {
         if (trace[i] == NULL) {
             break;
         }

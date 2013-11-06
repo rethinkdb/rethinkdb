@@ -207,9 +207,9 @@ backtrace_t::backtrace_t() {
 }
 
 backtrace_frame_t::backtrace_frame_t(const void* _addr) : addr(_addr) {
-    filename = "?";
-    function = "?";
-    offset = "?";
+    filename = "";
+    function = "";
+    offset = "";
     
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
