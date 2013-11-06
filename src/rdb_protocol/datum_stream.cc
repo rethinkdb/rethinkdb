@@ -66,9 +66,30 @@ rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
 
 std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read) {
     rget_read_response_t res = do_read(env, read);
+    // We need to do some adjustments to the last considered key so that we
+    // update the range correctly in the case where we're reading a subportion
+    // of the total range.
+    if (res.last_considered_key == store_key_t::max()) {
+        auto rr = boost::get<rget_read_t>(&read.read);
+        const key_range_t &rng = rr->sindex? rr->sindex->region.inner : rr->region.inner;
+        if (!rng.right.unbounded) {
+            res.last_considered_key = rng.right.key;
+            bool b = res.last_considered_key.decrement();
+            r_sanity_check(b);
+        }
+    }
+
+    // debugf("last_considered_key: %s\n",
+    //        key_to_debug_str(res.last_considered_key).c_str());
     finished = readgen->update_range(&active_range, res.last_considered_key);
+    // debugf("FINISHED %d\n", finished);
+    // debugf("FINISHED_EMPTY %d\n", active_range.is_empty());
+    // debugf("%d: [%s, %s]\n", active_range.is_empty(),
+    //        key_to_debug_str(active_range.left).c_str(),
+    //        key_to_debug_str(active_range.right.key).c_str());
     auto v = boost::get<std::vector<rget_item_t> >(&res.result);
     r_sanity_check(v);
+    // debugf("%zu\n\n\n", v->size());
     return std::move(*v);
 }
 
@@ -77,12 +98,14 @@ bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
     started = true;
     if (items_index >= items.size() && !finished) { // read some more
         items_index = 0;
+        debugf("RANGE_READ\n");
         items = do_range_read(env, readgen->next_read(active_range, transform, batcher));
         // RSI: Enforce sort limit.
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
         while (boost::optional<read_t> read
-               = readgen->sindex_sort_read(items, transform, batcher)) {
+               = readgen->sindex_sort_read(active_range, items, transform, batcher)) {
+            debugf("SINDEX_SORT_READ\n");
             std::vector<rget_item_t> new_items = do_range_read(env, *read);
             if (new_items.size() == 0) {
                 break;
@@ -186,7 +209,7 @@ bool readgen_t::update_range(key_range_t *active_range,
             return true;
         }
     }
-    return false;
+    return active_range->is_empty();
 }
 
 read_t readgen_t::next_read(
@@ -233,6 +256,7 @@ rget_read_t primary_readgen_t::next_read_impl(
 
 // We never need to do an sindex sort when indexing by a primary key.
 boost::optional<read_t> primary_readgen_t::sindex_sort_read(
+    UNUSED const key_range_t &active_range,
     UNUSED const std::vector<rget_item_t> &items,
     UNUSED const transform_t &transform,
     UNUSED const batcher_t &batcher) const {
@@ -285,6 +309,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
     const key_range_t &active_range,
     const transform_t &transform,
     const batcher_t &batcher) const {
+    // debugf("NEXT_READ_IMPL %d\n", active_range.is_empty());
     return rget_read_t(
         region_t::universe(),
         global_optargs,
@@ -296,7 +321,9 @@ rget_read_t sindex_readgen_t::next_read_impl(
 }
 
 // RSI: test this shit
+
 boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
+    const key_range_t &active_range,
     const std::vector<rget_item_t> &items,
     const transform_t &transform,
     const batcher_t &batcher) const {
@@ -308,19 +335,21 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
             // lets us produce a range that's "everything after the last row we
             // read with the same truncated sindex value".
             store_key_t rbound(skey + std::string(MAX_KEY_SIZE - skey.size(), 0xFF));
-            key_range_t rng(key_range_t::open, key, key_range_t::closed, rbound);
-            return read_t(
-                rget_read_t(
-                    region_t::universe(),
-                    global_optargs,
-                    batcher,
-                    transform,
-                    boost::optional<terminal_t>(),
-                    sindex_rangespec_t(
-                        sindex,
-                        region_t(key_range_t(rng)),
-                        original_datum_range),
-                    sorting));
+            if (active_range.left <= rbound) {
+                key_range_t rng(key_range_t::open, key, key_range_t::closed, rbound);
+                return read_t(
+                    rget_read_t(
+                        region_t::universe(),
+                        global_optargs,
+                        batcher.with_new_batch_type(SINDEX_CONSTANT),
+                        transform,
+                        boost::optional<terminal_t>(),
+                        sindex_rangespec_t(
+                            sindex,
+                            region_t(key_range_t(rng)),
+                            original_datum_range),
+                        sorting));
+            }
         }
     }
     return boost::optional<read_t>();

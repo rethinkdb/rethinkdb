@@ -202,6 +202,7 @@ public:
     // read should only be necessary when we're ordering by a secondary index
     // and the last element read has a truncated value for that secondary index.
     virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const transform_t &transform,
         const batcher_t &batcher) const = 0;
@@ -236,6 +237,7 @@ private:
         const transform_t &transform,
         const batcher_t &batcher) const;
     virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const transform_t &transform,
         const batcher_t &batcher) const;
@@ -259,6 +261,7 @@ private:
         const transform_t &transform,
         const batcher_t &batcher) const;
     virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const transform_t &transform,
         const batcher_t &batcher) const;

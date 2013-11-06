@@ -8,10 +8,18 @@
 
 namespace ql {
 
-batcher_t::batcher_t(batch_type_t _batch_type, int64_t els, int64_t size,
-                     microtime_t _end_time)
-    : batch_type(_batch_type), seen_one_el(false),
-      els_left(els), size_left(size), end_time(_end_time) { }
+batcher_t::batcher_t(
+    batch_type_t _batch_type,
+    int64_t els,
+    int64_t size,
+    microtime_t _end_time)
+    : batch_type(_batch_type),
+      seen_one_el(false),
+      els_left(els),
+      size_left(size),
+      end_time(_batch_type == NORMAL
+               ? _end_time
+               : std::numeric_limits<decltype(batcher_t().end_time)>::max()) { }
 
 batcher_t batcher_t::user_batcher(batch_type_t batch_type,
                                   const counted_t<const datum_t> &conf) {
