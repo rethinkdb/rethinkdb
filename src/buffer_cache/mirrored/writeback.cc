@@ -285,7 +285,7 @@ public:
     void on_thread_switch() {
         assert_thread();
 
-        // Note that we must hold on the the buffer until
+        // Note that we must hold on to the buffer until
         // the serializer index_write has completed. At the point where
         // on_io_complete() is called we have no such guarantee.
 
