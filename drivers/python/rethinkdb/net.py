@@ -316,10 +316,14 @@ class Connection(object):
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
 
-        if Datum.deconstruct(response.profile) == None:
+        try:
+            if  Datum.deconstruct(response.profile) == None:
+                return value
+            else:
+                return {"value": value, "profile": Datum.deconstruct(response.profile)}
+        except AttributeError:
+            # response.profile does not exist
             return value
-        else:
-            return {"value": value, "profile": Datum.deconstruct(response.profile)}
 
 def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20):
     return Connection(host, port, db, auth_key, timeout)
