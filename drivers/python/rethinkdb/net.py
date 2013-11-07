@@ -65,6 +65,14 @@ class Cursor(object):
             if len(self.responses) == 0 and self.end_flag:
                 break
 
+            try:
+                self.conn._check_error_response(self.responses[0], self.term)
+                if self.responses[0].type != p.Response.SUCCESS_PARTIAL and self.responses[0].type != p.Response.SUCCESS_SEQUENCE:
+                    raise RqlDriverError("Unexpected response type received for cursor")
+            except:
+                self.close()
+                raise
+
             for datum in self.responses[0].response:
                 yield deconstruct(datum, time_format)
             del self.responses[0]
@@ -213,8 +221,6 @@ class Connection(object):
         return self._send_query(cursor.query, cursor.term)
 
     def _update_cursor(self, response):
-        if response.type != p.Response.SUCCESS_PARTIAL and response.type != p.Response.SUCCESS_SEQUENCE:
-            raise RqlDriverError("Unexpected response type received for cursor token")
         cursor = self.cursor_cache[response.token]
         del self.cursor_cache[response.token]
         cursor._extend(response)
@@ -258,6 +264,23 @@ class Connection(object):
                 # This response is corrupted or not intended for us.
                 raise RqlDriverError("Unexpected response received.")
 
+    def _check_error_response(self, response, term):
+        if response.type == p.Response.RUNTIME_ERROR:
+            message = Datum.deconstruct(response.response[0])
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlRuntimeError(message, term, frames)
+        elif response.type == p.Response.COMPILE_ERROR:
+            message = Datum.deconstruct(response.response[0])
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlCompileError(message, term, frames)
+        elif response.type == p.Response.CLIENT_ERROR:
+            message = Datum.deconstruct(response.response[0])
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlClientError(message, term, frames)
+
     def _send_query(self, query, term, opts={}, async=False):
         # Error if this connection has closed
         if not self.socket:
@@ -276,26 +299,11 @@ class Connection(object):
         # Get response
         response = self._read_response(query.token)
 
+        self._check_error_response(response, term)
+
         time_format = 'native'
         if 'time_format' in opts:
             time_format = opts['time_format']
-
-        # Error responses
-        if response.type == p.Response.RUNTIME_ERROR:
-            message = Datum.deconstruct(response.response[0])
-            backtrace = response.backtrace
-            frames = backtrace.frames or []
-            raise RqlRuntimeError(message, term, frames)
-        elif response.type == p.Response.COMPILE_ERROR:
-            message = Datum.deconstruct(response.response[0])
-            backtrace = response.backtrace
-            frames = backtrace.frames or []
-            raise RqlCompileError(message, term, frames)
-        elif response.type == p.Response.CLIENT_ERROR:
-            message = Datum.deconstruct(response.response[0])
-            backtrace = response.backtrace
-            frames = backtrace.frames or []
-            raise RqlClientError(message, term, frames)
 
         # Sequence responses
         elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
