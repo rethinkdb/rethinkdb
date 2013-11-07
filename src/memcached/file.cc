@@ -35,7 +35,7 @@ public:
         if (interruptor->is_pulsed()) throw no_more_data_exc_t();
         int limit = MEGABYTE;
         dest->clear();
-        char c;
+        int c;
         const char *head = "\r\n";
         while ((*head) && ((c = getc(file)) != EOF) && (limit--) > 0) {
             dest->push_back(c);
