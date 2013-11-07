@@ -101,14 +101,12 @@ private:
         case Term::REPLACE:
         case Term::DB_CREATE:
         case Term::DB_DROP:
-        case Term::DB_LIST:
         case Term::TABLE_CREATE:
         case Term::TABLE_DROP:
-        case Term::TABLE_LIST:
         case Term::SYNC:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
-        case Term::INDEX_LIST:
+        case Term::INDEX_WAIT:
             return true;
 
         case Term::DATUM:
@@ -228,6 +226,10 @@ private:
         case Term::OCTOBER:
         case Term::NOVEMBER:
         case Term::DECEMBER:
+        case Term::DB_LIST:
+        case Term::TABLE_LIST:
+        case Term::INDEX_LIST:
+        case Term::INDEX_STATUS:
             return false;
         default: unreachable();
         }
@@ -327,6 +329,8 @@ private:
         case Term::INDEX_CREATE:
         case Term::INDEX_DROP:
         case Term::INDEX_LIST:
+        case Term::INDEX_STATUS:
+        case Term::INDEX_WAIT:
         case Term::FUNCALL:
         case Term::BRANCH:
         case Term::ANY:

@@ -100,6 +100,41 @@ public:
     virtual const char *name() const { return "sindex_list"; }
 };
 
+class sindex_status_term_t : public op_term_t {
+public:
+    sindex_status_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
+
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
+        return new_val(table->sindex_status(env->env, arg(env, 1)->as_str()));
+    }
+
+    virtual const char *name() const { return "sindex_status"; }
+};
+
+ticks_t poll_ticks = 10000;
+
+class sindex_wait_term_t : public op_term_t {
+public:
+    sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
+
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
+        for (;;) {
+            counted_t<const datum_t> status =
+                table->sindex_status(env->env, arg(env, 1)->as_str());
+            if (status->get("ready", NOTHROW)->as_bool()) {
+                return new_val(status);
+            }
+            nap(poll_ticks, env->env->interruptor);
+        }
+    }
+
+    virtual const char *name() const { return "sindex_wait"; }
+};
+
 counted_t<term_t> make_sindex_create_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_create_term_t>(env, term);
 }
@@ -108,6 +143,12 @@ counted_t<term_t> make_sindex_drop_term(compile_env_t *env, const protob_t<const
 }
 counted_t<term_t> make_sindex_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_list_term_t>(env, term);
+}
+counted_t<term_t> make_sindex_status_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sindex_status_term_t>(env, term);
+}
+counted_t<term_t> make_sindex_wait_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sindex_wait_term_t>(env, term);
 }
 
 

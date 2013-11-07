@@ -434,6 +434,11 @@ message Term {
         INDEX_DROP   = 76; // Table, STRING -> OBJECT
         // Lists all secondary indexes on a particular table.
         INDEX_LIST   = 77; // Table -> ARRAY
+        // Gets information about whether or not a set of indexes are ready to
+        // be accessed.
+        INDEX_STATUS = 139; // Table, String... -> ARRAY
+        // Blocks until a set of indexes are ready to be accessed.
+        INDEX_WAIT = 140; // Table, String... -> ARRAY
 
         // * Control Operators
         // Calls a function on data
