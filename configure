@@ -724,7 +724,7 @@ int main(){ tgetent(0, "xterm"); return 0; }
 ~'
 
 # An assoc-list of possible library aliases
-lib_alias=':~'
+lib_alias=':~termcap:ncurses'
 
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
