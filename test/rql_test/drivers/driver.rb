@@ -146,6 +146,7 @@ $success_count = 0
 
 def test src, expected, name, opthash=nil
   $opthash = opthash
+  $opthash = Hash[$opthash.map{|k,v| [k, eval(v, $defines)]}] if $opthash
   $test_count += 1
   begin
     query = eval src, $defines

@@ -88,25 +88,9 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
         *key = rng.left;
     }
 
-    // debugf("last_considered_key: %s\n",
-    //        key_to_debug_str(res.last_considered_key).c_str());
-    // debugf("%d: [%s, %s]\n", active_range.is_empty(),
-    //         key_to_debug_str(active_range.left).c_str(),
-    //         key_to_debug_str(active_range.right.key).c_str());
     finished = readgen->update_range(&active_range, res.last_considered_key);
-    // debugf("%d: [%s, %s]\n", active_range.is_empty(),
-    //         key_to_debug_str(active_range.left).c_str(),
-    //         key_to_debug_str(active_range.right.key).c_str());
-    // debugf("FINISHED %d\n", finished);
-    // debugf("FINISHED_EMPTY %d\n", active_range.is_empty());
     auto v = boost::get<std::vector<rget_item_t> >(&res.result);
     r_sanity_check(v);
-    std::string s;
-    for (auto it = v->begin(); it != v->end(); ++it) {
-        s += strprintf("%lf ", it->data->get("num")->as_num());
-    }
-    // debugf("%s\n", s.c_str());
-    // debugf("%zu\n\n\n", v->size());
     return std::move(*v);
 }
 
@@ -115,14 +99,12 @@ bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
     started = true;
     if (items_index >= items.size() && !finished) { // read some more
         items_index = 0;
-        // debugf("RANGE_READ\n");
         items = do_range_read(env, readgen->next_read(active_range, transform, batcher));
         // RSI: Enforce sort limit.
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
         while (boost::optional<read_t> read
                = readgen->sindex_sort_read(active_range, items, transform, batcher)) {
-            // debugf("SINDEX_SORT_READ\n");
             std::vector<rget_item_t> new_items = do_range_read(env, *read);
             if (new_items.size() == 0) {
                 break;
@@ -205,17 +187,11 @@ readgen_t::readgen_t(
 
 bool readgen_t::update_range(key_range_t *active_range,
                              const store_key_t &last_considered_key) const {
-    // debugf("PRE-UPDATE %d [%s, %s]\n", active_range->is_empty(),
-    //        key_to_debug_str(active_range->left).c_str(),
-    //        key_to_debug_str(active_range->right.key).c_str());
     if (sorting != DESCENDING) {
         active_range->left = last_considered_key;
     } else {
         active_range->right = key_range_t::right_bound_t(last_considered_key);
     }
-    // debugf("POST-UPDATE %d [%s, %s]\n", active_range->is_empty(),
-    //        key_to_debug_str(active_range->left).c_str(),
-    //        key_to_debug_str(active_range->right.key).c_str());
 
     // TODO: mixing these non-const operations INTO THE CONDITIONAL is bad, and
     // confused me for a while when I tried moving some stuff around.
@@ -332,7 +308,6 @@ rget_read_t sindex_readgen_t::next_read_impl(
     const key_range_t &active_range,
     const transform_t &transform,
     const batcher_t &batcher) const {
-    // debugf("NEXT_READ_IMPL %d\n", active_range.is_empty());
     return rget_read_t(
         region_t::universe(),
         global_optargs,
@@ -368,9 +343,6 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                 rng.left = store_key_t(skey);
             }
             if (rng.right.unbounded || rng.left < rng.right.key) {
-                // debugf("GEN %d: [%s, %s]\n", rng.is_empty(),
-                //        key_to_debug_str(rng.left).c_str(),
-                //        key_to_debug_str(rng.right.key).c_str());
                 return read_t(
                     rget_read_t(
                         region_t::universe(),
