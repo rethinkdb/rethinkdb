@@ -115,6 +115,15 @@ public:
 
 ticks_t poll_ticks = 10000;
 
+bool all_ready(counted_t<const datum_t> statuses) {
+    for (size_t i = 0; i < statuses->size(); ++i) {
+        if (!statuses->get(i)->get("ready", NOTHROW)->as_bool()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 class sindex_wait_term_t : public op_term_t {
 public:
     sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -123,12 +132,13 @@ public:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
         for (;;) {
-            counted_t<const datum_t> status =
+            counted_t<const datum_t> statuses =
                 table->sindex_status(env->env, arg(env, 1)->as_str());
-            if (status->get("ready", NOTHROW)->as_bool()) {
-                return new_val(status);
+            if (all_ready(statuses)) {
+                return new_val(statuses);
+            } else {
+                nap(poll_ticks, env->env->interruptor);
             }
-            nap(poll_ticks, env->env->interruptor);
         }
     }
 

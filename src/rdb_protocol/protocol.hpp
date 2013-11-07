@@ -300,7 +300,7 @@ struct rdb_protocol_t {
 
     struct sindex_status_response_t {
         sindex_status_response_t()
-            : found(false), blocks_remaining(0),
+            : found(true), blocks_remaining(0),
               blocks_total(0), ready(true)
         { }
         bool found;

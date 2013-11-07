@@ -662,6 +662,10 @@ public:
         for (size_t i = 0; i < count; ++i) {
             auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
             guarantee(resp);
+            if (!resp->found) {
+                *ss_response = *resp;
+                return;
+            }
             ss_response->blocks_remaining += resp->blocks_remaining;
             ss_response->blocks_total += resp->blocks_total;
             ss_response->ready &= resp->ready;
