@@ -1,5 +1,25 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataExplorerView', ->
+    @state =
+        current_query: null
+        query: null
+        results: null
+        cursor: null
+        metadata: null
+        cursor_timed_out: true
+        view: 'tree'
+        history_state: 'hidden'
+        last_keys: []
+        last_columns_size: {}
+        options:
+            suggestions: true
+            electric_punctuation: false # False by default
+        history: []
+        focus_on_codemirror: true
+        #saved_data: {}
+
+
+
     class @Container extends Backbone.View
         id: 'dataexplorer'
         template: Handlebars.templates['dataexplorer_view-template']
@@ -52,11 +72,11 @@ module 'DataExplorerView', ->
         # We give this button an "active" class that make it looks like it's pressed.
         toggle_pressed_buttons: =>
             if @history_view.state is 'visible'
-                @saved_data.history_state = 'visible'
+                @state.history_state = 'visible'
                 @$('.clear_queries_link').fadeIn 'fast'
                 @$('.close_queries_link').addClass 'active'
             else
-                @saved_data.history_state = 'hidden'
+                @state.history_state = 'hidden'
                 @$('.clear_queries_link').fadeOut 'fast'
                 @$('.close_queries_link').removeClass 'active'
 
@@ -337,9 +357,7 @@ module 'DataExplorerView', ->
             for state of @suggestions
                 @suggestions[state].sort()
 
-            if DataExplorerView.Container.prototype.focus_on_codemirror is true
-                # "@" refers to prototype -_-
-                # In case we give focus to codemirror then load the docs, we show the suggestion
+            if @state?.focus_on_codemirror is true
                 window.router.current_view.handle_keypress()
 
         # Save the query in the history
@@ -351,64 +369,36 @@ module 'DataExplorerView', ->
             query = query.replace(/^\s*$[\n\r]{1,}/gm, '')
             query = query.replace(/\s*$/, '') # Remove the white spaces at the end of the query (like newline/space/tab)
             if window.localStorage?
-                if @history.length is 0 or @history[@history.length-1].query isnt query and @regex.white.test(query) is false
-                    @history.push
+                if @state.history.length is 0 or @state.history[@state.history.length-1].query isnt query and @regex.white.test(query) is false
+                    @state.history.push
                         query: query
                         broken_query: broken_query
-                    if @history.length>@size_history
-                        window.localStorage.rethinkdb_history = JSON.stringify @history.slice @history.length-@size_history
+                    if @state.history.length>@size_history
+                        window.localStorage.rethinkdb_history = JSON.stringify @state.history.slice @state.history.length-@size_history
                     else
-                        window.localStorage.rethinkdb_history = JSON.stringify @history
+                        window.localStorage.rethinkdb_history = JSON.stringify @state.history
                     @history_view.add_query
                         query: query
                         broken_query: broken_query
 
         clear_history: =>
-            @history.length = 0
-            window.localStorage.rethinkdb_history = JSON.stringify @history
+            @state.history.length = 0
+            window.localStorage.rethinkdb_history = JSON.stringify @state.history
 
         initialize: (args) =>
             @TermBaseConstructor = r.expr(1).constructor.__super__.constructor.__super__.constructor
 
+            @state = args.state
+
             # Load options from local storage
             if window.localStorage?.options?
-                @options = JSON.parse window.localStorage.options
-            else
-                @options =
-                    suggestions: true
-                    electric_punctuation: false # False by default
+                @state.options = JSON.parse window.localStorage.options
 
-            # We do not load the rest of data from localStorage.
-            if not DataExplorerView.Container.prototype.saved_data?
-                DataExplorerView.Container.prototype.saved_data =
-                    current_query: null
-                    query: null
-                    results: null
-                    cursor: null
-                    metadata: null
-                    cursor_timed_out: true
-                    view: 'tree'
-                    history_state: 'hidden'
-                    last_keys: []
-                    last_columns_size: {}
-                    options: @options
+            if window.localStorage?.rethinkdb_history?
+                @state.history = JSON.parse window.localStorage.rethinkdb_history
 
-            # Load history, keep it in memory for the session
-            if not DataExplorerView.Container.prototype.history?
-                if window.localStorage?.rethinkdb_history?
-                    try
-                        DataExplorerView.Container.prototype.history = JSON.parse window.localStorage.rethinkdb_history
-                    catch err
-                        DataExplorerView.Container.prototype.history = []
-                else
-                    DataExplorerView.Container.prototype.history = []
-            @history = DataExplorerView.Container.prototype.history
-
-            # Let's have a shortcut
-            @prototype = DataExplorerView.Container.prototype
-            @saved_data = DataExplorerView.Container.prototype.saved_data
-            @show_query_warning = @saved_data.query isnt @saved_data.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
-            @current_results = @saved_data.results
+            @show_query_warning = @state.query isnt @state.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
+            @current_results = @state.results
 
             # Index used to navigate through history with the keyboard
             @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
@@ -434,15 +424,15 @@ module 'DataExplorerView', ->
             @results_view = new DataExplorerView.ResultView
                 container: @
                 limit: @limit
-                view: @saved_data.view
+                view: @state.view
 
             @options_view = new DataExplorerView.OptionsView
                 container: @
-                options: @saved_data.options
+                options: @state.options
 
             @history_view = new DataExplorerView.HistoryView
                 container: @
-                history: @history
+                history: @state.history
 
             @driver_handler = new DataExplorerView.DriverHandler
                 container: @
@@ -486,11 +476,11 @@ module 'DataExplorerView', ->
                 @$('.button_query').prop 'disabled', 'disabled'
 
             # Let's bring back the data explorer to its old state (if there was)
-            if @saved_data?.query? and @saved_data?.results? and @saved_data?.metadata?
+            if @state?.query? and @state?.results? and @state?.metadata?
                 @$('.results_container').html @results_view.render_result({
                     show_query_warning: @show_query_warning
-                    results: @saved_data.results
-                    metadata: @saved_data.metadata
+                    results: @state.results
+                    metadata: @state.metadata
                 }).$el
                 # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
             else
@@ -517,13 +507,13 @@ module 'DataExplorerView', ->
             @codemirror.on 'gutterClick', @handle_gutter_click
 
             @codemirror.setSize '100%', 'auto'
-            if @saved_data.current_query?
-                @codemirror.setValue @saved_data.current_query
+            if @state.current_query?
+                @codemirror.setValue @state.current_query
             @codemirror.focus() # Give focus
             
             # Track if the focus is on codemirror
             # We use it to refresh the docs once the reql_docs.json is loaded
-            @prototype.focus_on_codemirror = true
+            @state.focus_on_codemirror = true
 
             @codemirror.setCursor @codemirror.lineCount(), 0
             if @codemirror.getValue() is '' # We show suggestion for an empty query only
@@ -532,12 +522,12 @@ module 'DataExplorerView', ->
 
             @draft = @codemirror.getValue()
 
-            if @saved_data.history_state is 'visible' # If the history was visible, we show it
+            if @state.history_state is 'visible' # If the history was visible, we show it
                 @toggle_history
                     no_animation: true
 
         on_blur: =>
-            @prototype.focus_on_codemirror = false
+            @state.focus_on_codemirror = false
             @hide_suggestion_and_description()
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
@@ -793,14 +783,14 @@ module 'DataExplorerView', ->
                     @ignored_next_keyup = false
                 return true
 
-            @prototype.focus_on_codemirror = true
+            @state.focus_on_codemirror = true
 
             # Let's hide the tooltip if the user just clicked on the textarea. We'll only display later the suggestions if there are (no description)
             if event?.type is 'mouseup'
                 @hide_suggestion_and_description()
 
             # Save the last query (even incomplete)
-            @saved_data.current_query = @codemirror.getValue()
+            @state.current_query = @codemirror.getValue()
 
             # Look for special commands
             if event?.which?
@@ -1061,15 +1051,15 @@ module 'DataExplorerView', ->
                     return true
                 # Catching history navigation
                 else if event.type is 'keyup' and event.altKey and event.which is 38 # Key up
-                    if @history_displayed_id < @history.length
+                    if @history_displayed_id < @state.history.length
                         @history_displayed_id++
-                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
+                        @codemirror.setValue @state.history[@state.history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                 else if event.type is 'keyup' and event.altKey and event.which is 40 # Key down
                     if @history_displayed_id > 1
                         @history_displayed_id--
-                        @codemirror.setValue @history[@history.length-@history_displayed_id].query
+                        @codemirror.setValue @state.history[@state.history.length-@history_displayed_id].query
                         event.preventDefault()
                         return true
                     else if @history_displayed_id is 1
@@ -1077,13 +1067,13 @@ module 'DataExplorerView', ->
                         @codemirror.setValue @draft
                         @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                 else if event.type is 'keyup' and event.altKey and event.which is 33 # Page up
-                    @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
+                    @history_displayed_id = @state.history.length
+                    @codemirror.setValue @state.history[@state.history.length-@history_displayed_id].query
                     event.preventDefault()
                     return true
                 else if event.type is 'keyup' and event.altKey and event.which is 34 # Page down
                     @history_displayed_id = @history.length
-                    @codemirror.setValue @history[@history.length-@history_displayed_id].query
+                    @codemirror.setValue @state.history[@state.history.length-@history_displayed_id].query
                     @codemirror.setCursor @codemirror.lineCount(), 0 # We hit the draft and put the cursor at the end
                     event.preventDefault()
                     return true
@@ -1206,7 +1196,7 @@ module 'DataExplorerView', ->
                     @.$('.suggestion_name_list').append @template_suggestion_name
                         id: i
                         suggestion: suggestion
-                if @options.suggestions is true
+                if @state.options.suggestions is true
                     @show_suggestion()
                 else
                     @hide_suggestion()
@@ -1214,7 +1204,7 @@ module 'DataExplorerView', ->
             else if result.description?
                 @hide_suggestion()
                 @description = result.description
-                if @options.suggestions is true and event?.type isnt 'mouseup'
+                if @state.options.suggestions is true and event?.type isnt 'mouseup'
                     @show_description()
                 else
                     @hide_description()
@@ -2131,7 +2121,7 @@ module 'DataExplorerView', ->
 
             ch = @cursor_for_auto_completion.ch+suggestion_to_write.length
 
-            if @options.electric_punctuation is true
+            if @state.options.electric_punctuation is true
                 if suggestion_to_write[suggestion_to_write.length-1] is '(' and @count_not_closed_brackets('(') >= 0
                     @codemirror.setValue @query_first_part+suggestion_to_write+')'+@query_last_part
                     @written_suggestion = suggestion_to_write+')'
@@ -2179,10 +2169,6 @@ module 'DataExplorerView', ->
 
         # Extend description for .db() and .table() with dbs/tables names
         extend_description: (fn) =>
-            if @options?.can_extend? and @options?.can_extend is false
-                @extra_suggestions= null
-                return @descriptions[fn]
-
             if fn is 'db(' or fn is 'dbDrop('
                 description = _.extend {}, @descriptions[fn]
                 if databases.length is 0
@@ -2278,7 +2264,7 @@ module 'DataExplorerView', ->
 
                 @id_execution++
                 get_result_callback = @generate_get_result_callback @id_execution
-                @saved_data.cursor.next get_result_callback
+                @state.cursor.next get_result_callback
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
@@ -2288,8 +2274,8 @@ module 'DataExplorerView', ->
         # Function that execute the queries in a synchronous way.
         execute_query: =>
             # The user just executed a query, so we reset cursor_timed_out to false
-            @saved_data.cursor_timed_out = false
-            @saved_data.show_query_warning = false
+            @state.cursor_timed_out = false
+            @state.show_query_warning = false
 
             @raw_query = @codemirror.getValue()
 
@@ -2322,7 +2308,7 @@ module 'DataExplorerView', ->
 
         # A portion is one query of the whole input.
         execute_portion: =>
-            @saved_data.cursor = null
+            @state.cursor = null
             while @queries[@index]?
                 full_query = @non_rethinkdb_query
                 full_query += @queries[@index]
@@ -2389,7 +2375,7 @@ module 'DataExplorerView', ->
                     
                     if @index is @queries.length # @index was incremented in execute_portion
                         if cursor?
-                            @saved_data.cursor = @cursor
+                            @state.cursor = @cursor
 
                         if cursor?.hasNext?
                             @cursor = cursor
@@ -2403,9 +2389,9 @@ module 'DataExplorerView', ->
                             # Save the last executed query and the last displayed results
                             @current_results = cursor
 
-                            @saved_data.query = @query
-                            @saved_data.results = @current_results
-                            @saved_data.metadata =
+                            @state.query = @query
+                            @state.results = @current_results
+                            @state.metadata =
                                 limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                                 skip_value: @skip_value
                                 execution_time: new Date() - @start_time
@@ -2414,7 +2400,7 @@ module 'DataExplorerView', ->
 
                             @results_view.render_result
                                 results: @current_results # The first parameter is null ( = query, so we don't display it)
-                                metadata: @saved_data.metadata
+                                metadata: @state.metadata
 
                             # Successful query, let's save it in the history
                             @save_query
@@ -2446,10 +2432,10 @@ module 'DataExplorerView', ->
                     @.$('.loading_query_img').hide()
 
                     # if data is undefined or @current_results.length is @limit
-                    @saved_data.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
-                    @saved_data.query = @query
-                    @saved_data.results = @current_results
-                    @saved_data.metadata =
+                    @state.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
+                    @state.query = @query
+                    @state.results = @current_results
+                    @state.metadata =
                         limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
@@ -2458,7 +2444,7 @@ module 'DataExplorerView', ->
 
                     @results_view.render_result
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
-                        metadata: @saved_data.metadata
+                        metadata: @state.metadata
 
                     # Successful query, let's save it in the history
                     @save_query
@@ -2787,7 +2773,7 @@ module 'DataExplorerView', ->
 
         set_view: (view) =>
             @view = view
-            @container.saved_data.view = view
+            @container.state.view = view
             @render_result()
 
 
@@ -2801,7 +2787,7 @@ module 'DataExplorerView', ->
                 return @template_json_tree.span
                     classname: 'jt_null'
                     value: 'null'
-            else if Object.prototype.toString.call(value) is '[object Array]'
+            else if Object::toString.call(value) is '[object Array]'
                 if value.length is 0
                     return '[ ]'
                 else
@@ -2968,7 +2954,7 @@ module 'DataExplorerView', ->
                 if attr.prefix_str isnt ''
                     return attr.prefix_str+attr.key
                 return attr.key
-            @container.saved_data.last_keys = @last_keys
+            @container.state.last_keys = @last_keys
 
             return @template_json_table.container
                 table_attr: @json_to_table_get_attr flatten_attr
@@ -3201,8 +3187,8 @@ module 'DataExplorerView', ->
             else
                 @view = 'tree'
 
-            @last_keys = @container.saved_data.last_keys # Arrays of the last keys displayed
-            @last_columns_size = @container.saved_data.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+            @last_keys = @container.state.last_keys # Arrays of the last keys displayed
+            @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
 
         render_error: (query, err, js_error) =>
             @.$el.html @error_template
@@ -3220,10 +3206,10 @@ module 'DataExplorerView', ->
             if args?.metadata?
                 @metadata = args.metadata
             if args?.metadata?.skip_value?
-                # @container.saved_data.start_record is the old value of @container.saved_data.skip_value
+                # @container.state.start_record is the old value of @container.state.skip_value
                 # Here we just deal with start_record
                 # TODO May have to remove this line as we have metadata.start now
-                @container.saved_data.start_record = args.metadata.skip_value
+                @container.state.start_record = args.metadata.skip_value
 
                 if args.metadata.execution_time?
                     if args.metadata.execution_time < 1000
@@ -3243,8 +3229,8 @@ module 'DataExplorerView', ->
 
             @.$el.html @template _.extend @metadata,
                 show_query_warning: args?.show_query_warning
-                show_more_data: @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is false
-                cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.saved_data.cursor_timed_out is true)
+                show_more_data: @metadata.has_more_data is true and @container.state.cursor_timed_out is false
+                cursor_timed_out_template: (@cursor_timed_out_template() if @metadata.has_more_data is true and @container.state.cursor_timed_out is true)
                 execution_time_pretty: @metadata.execution_time_pretty
                 no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
                 num_results: num_results
@@ -3258,7 +3244,7 @@ module 'DataExplorerView', ->
                     @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
                     previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
-                    if Object.prototype.toString.call(@results) is '[object Array]'
+                    if Object::toString.call(@results) is '[object Array]'
                         @.$('.table_view').html @json_to_table @results
                     else
                         if not @results_array?
@@ -3334,8 +3320,8 @@ module 'DataExplorerView', ->
            
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
-            @container.saved_data.cursor_timed_out = true
-            if @container.saved_data.metadata?.has_more_data is true
+            @container.state.cursor_timed_out = true
+            if @container.state.metadata?.has_more_data is true
                 @$('.more_results_paragraph').html @cursor_timed_out_template()
 
         render: =>
@@ -3454,7 +3440,7 @@ module 'DataExplorerView', ->
             id = @$(event.target).data().id
             # Set + save codemirror
             @container.codemirror.setValue @history[parseInt(id)].query
-            @container.saved_data.current_query = @history[parseInt(id)].query
+            @container.state.current_query = @history[parseInt(id)].query
 
         delete_query: (event) =>
             that = @

@@ -1,5 +1,10 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 module 'DataBrowserView', ->
+    @state =
+        view: 'table'
+        last_keys: []
+        last_columns_size: {}
+
     class @Container extends Backbone.View
         id: 'databrowser'
         template: Handlebars.templates['databrowser_view-template']
@@ -9,8 +14,9 @@ module 'DataBrowserView', ->
         token: 0
         num_docs_per_page: 100
 
-        initialize: =>
-            @saved_data = {}
+        initialize: (state) =>
+            @state = state
+
             @driver_handler = new DataExplorerView.DriverHandler
                 on_success: @success_on_connect
                 on_fail: @error_on_connect

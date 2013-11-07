@@ -54,7 +54,7 @@ class NavBarView extends Backbone.View
     set_active_tab: (route) =>
         if route?
             @.$('ul.nav-left li').removeClass('active')
-            switch route 
+            switch route
                 when 'route:dashboard'          then @.$('li#nav-dashboard').addClass('active')
                 when 'route:index_namespaces'   then @.$('li#nav-namespaces').addClass('active')
                 when 'route:namespace'          then @.$('li#nav-namespaces').addClass('active')
