@@ -18,7 +18,7 @@ public:
     }
 
     typename boost::result_of<callable_type(outer_type)>::type get() {
-        return lens(parent->get());
+        return lens(std::move(parent->get()));
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
