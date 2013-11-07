@@ -72,6 +72,7 @@ public:
         counted_t<func_t> index_func, sindex_multi_bool_t multi);
     MUST_USE bool sindex_drop(env_t *env, const std::string &name);
     counted_t<const datum_t> sindex_list(env_t *env);
+    counted_t<const datum_t> sindex_status(env_t *env, const std::string &sindex);
     
     MUST_USE bool sync(env_t *env, const rcheckable_t *parent);
 

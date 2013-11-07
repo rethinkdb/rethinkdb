@@ -455,6 +455,9 @@ struct rdb_protocol_t {
     class sindex_status_t {
     public:
         sindex_status_t() { }
+        sindex_status_t(const std::string &_sindex)
+            : sindex(_sindex), region(region_t::universe())
+        { }
         std::string sindex;
         region_t region;
         RDB_DECLARE_ME_SERIALIZABLE;
