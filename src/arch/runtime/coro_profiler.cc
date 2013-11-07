@@ -106,9 +106,9 @@ void coro_profiler_t::record_sample(size_t levels_to_strip_from_backtrace) {
      */
     const ticks_t ticks_on_exit = get_ticks();
     rassert(ticks_on_exit >= ticks_on_entry);
-    const ticks_t clock_scew = ticks_on_exit - ticks_on_entry;
-    coro_mixin.last_resumed_at += clock_scew;
-    coro_mixin.last_sample_at += clock_scew;
+    const ticks_t clock_skew = ticks_on_exit - ticks_on_entry;
+    coro_mixin.last_resumed_at += clock_skew;
+    coro_mixin.last_sample_at += clock_skew;
 }
 
 void coro_profiler_t::record_coro_resume() {
@@ -201,7 +201,7 @@ void coro_profiler_t::generate_report() {
     }
 
     // Compute statistics
-    for (auto report =  execution_point_reports.begin();
+    for (auto report = execution_point_reports.begin();
          report != execution_point_reports.end();
          ++report) {
         report->second.compute_stats();

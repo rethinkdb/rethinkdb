@@ -197,13 +197,12 @@ std::string format_backtrace(bool use_addr2line) {
 }
 
 backtrace_t::backtrace_t() {
-    void **stack_frames = new void*[max_frames]; // Allocate on heap in case stack space is scarce
-    int size = rethinkdb_backtrace(stack_frames, max_frames);
+    scoped_array_t<void *> stack_frames(new void*[max_frames], max_frames); // Allocate on heap in case stack space is scarce
+    int size = rethinkdb_backtrace(stack_frames.data(), max_frames);
     frames.reserve(static_cast<size_t>(size));
     for (int i = 0; i < size; ++i) {
         frames.push_back(backtrace_frame_t(stack_frames[i]));
     }
-    delete[] stack_frames;
 }
 
 backtrace_frame_t::backtrace_frame_t(const void* _addr) :
