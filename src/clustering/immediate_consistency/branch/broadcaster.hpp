@@ -100,6 +100,8 @@ private:
     dispatchee is "readable" if a `replier_t` exists for it on the remote
     machine.) */
     void pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t);
+    void get_all_readable_dispatchees(std::vector<dispatchee_t *> *dispatchees_out, mutex_assertion_t::acq_t *proof,
+                                      std::vector<auto_drainer_t::lock_t> *locks_out) THROWS_ONLY(cannot_perform_query_exc_t);
 
     void background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING;
     void background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token, write_durability_t durability) THROWS_NOTHING;
