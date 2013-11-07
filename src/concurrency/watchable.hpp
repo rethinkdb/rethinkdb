@@ -108,6 +108,11 @@ public:
 
     virtual value_t get() = 0;
 
+    virtual void apply_atomic_op(std::function<bool(value_t*)> op) {
+        value_t v = get();
+        guarantee(op(&v) == false);
+    }
+
     /* These are internal; the reason they're public is so that `subview()` and
     similar things can be implemented. */
     virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
@@ -192,6 +197,9 @@ private:
         }
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
             return &parent->rwi_lock_assertion;
+        }
+        void apply_atomic_op(std::function<bool(value_t*)> op) {
+            return parent->apply_atomic_op(op);
         }
         watchable_variable_t<value_t> *parent;
     };

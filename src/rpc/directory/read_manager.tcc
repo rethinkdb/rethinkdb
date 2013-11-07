@@ -43,10 +43,10 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
     switch (code) {
         case 'I': {
             /* Initial message from another peer */
-            metadata_t initial_value = metadata_t();
+            boost::shared_ptr<metadata_t> initial_value(new metadata_t());
             fifo_enforcer_state_t metadata_fifo_state;
             {
-                int res = deserialize(s, &initial_value);
+                int res = deserialize(s, initial_value.get());
                 guarantee(!res);  // In the spirit of unreachable...
                 res = deserialize(s, &metadata_fifo_state);
                 guarantee(!res);
@@ -57,7 +57,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
             coro_t::spawn_sometime(boost::bind(
                 &directory_read_manager_t::propagate_initialization, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
-                initial_value, metadata_fifo_state,
+                std::move(initial_value), metadata_fifo_state,
                 auto_drainer_t::lock_t(per_thread_drainers.get())));
 
             break;
@@ -65,10 +65,10 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
 
         case 'U': {
             /* Update from another peer */
-            metadata_t new_value = metadata_t();
+            boost::shared_ptr<metadata_t> new_value(new metadata_t());
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
-                int res = deserialize(s, &new_value);
+                int res = deserialize(s, new_value.get());
                 guarantee(!res);  // In the spirit of unreachable...
                 res = deserialize(s, &metadata_fifo_token);
                 guarantee(!res);  // In the spirit of unreachable...
@@ -81,7 +81,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
             coro_t::spawn_sometime(boost::bind(
                 &directory_read_manager_t::propagate_update, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
-                new_value, metadata_fifo_token,
+                std::move(new_value), metadata_fifo_token,
                 auto_drainer_t::lock_t(per_thread_drainers.get())));
 
             break;
@@ -125,7 +125,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_u session_id, metadata_t initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_u session_id, const boost::shared_ptr<metadata_t> &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
@@ -149,7 +149,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
         auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
             std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
-                = map->insert(std::make_pair(peer, initial_value));
+                = map->insert(std::make_pair(peer, std::move(*initial_value)));
             guarantee(res.second);
             return true;
         };
@@ -166,7 +166,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid_u session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid_u session_id, const boost::shared_ptr<metadata_t> &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
@@ -210,7 +210,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
                     //The session was deleted we can ignore this update.
                     return false;
                 }
-                var_it->second = new_value;
+                var_it->second = std::move(*new_value);
                 return true;
             };
             variable.apply_atomic_op(op);

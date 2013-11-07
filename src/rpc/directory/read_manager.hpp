@@ -54,9 +54,12 @@ private:
     void on_connect(peer_id_t peer) THROWS_NOTHING;
     void on_disconnect(peer_id_t peer) THROWS_NOTHING;
 
-    /* These are meant to be spawned in new coroutines */
-    void propagate_initialization(peer_id_t peer, uuid_u session_id, metadata_t new_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
-    void propagate_update(peer_id_t peer, uuid_u session_id, boost::shared_ptr<metadata_t> new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
+    /* These are meant to be spawned in new coroutines
+     * They assume ownership of new_value. Semantically, the argument here is `metadata_t &&new_value`
+     * but we cannot easily pass that through to the coroutine call, which is why
+     * we use boost::shared_ptr instead. */
+    void propagate_initialization(peer_id_t peer, uuid_u session_id, const boost::shared_ptr<metadata_t> &new_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
+    void propagate_update(peer_id_t peer, uuid_u session_id, const boost::shared_ptr<metadata_t> &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING;
     void interrupt_updates_and_free_session(session_t *session, auto_drainer_t::lock_t global_keepalive) THROWS_NOTHING;
 
     /* The connectivity service telling us which peers are connected */

@@ -103,6 +103,50 @@ public:
         auth_change_mailbox(_auth_change_mailbox),
         log_mailbox(lmb),
         peer_type(_peer_type) { }
+    /* Move constructor */
+    cluster_directory_metadata_t(cluster_directory_metadata_t &&other) {
+        *this = std::move(other);
+    }
+    cluster_directory_metadata_t(const cluster_directory_metadata_t &other) {
+        *this = other;
+    }
+
+    /* Move assignment operator */
+    cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
+        dummy_namespaces = std::move(other.dummy_namespaces);
+        memcached_namespaces = std::move(other.memcached_namespaces);
+        rdb_namespaces = std::move(other.rdb_namespaces);
+        machine_id = other.machine_id;
+        peer_id = other.peer_id;
+        ips = std::move(other.ips);
+        get_stats_mailbox_address = other.get_stats_mailbox_address;
+        semilattice_change_mailbox = other.semilattice_change_mailbox;
+        auth_change_mailbox = other.auth_change_mailbox;
+        log_mailbox = other.log_mailbox;
+        local_issues = std::move(other.local_issues);
+        peer_type = other.peer_type;
+
+        return *this;
+    }
+
+    /* Unfortunately having specified the move copy operator requires us to also specify the copy
+     * assignment operator explicitly. */
+    cluster_directory_metadata_t &operator=(const cluster_directory_metadata_t &other) {
+        dummy_namespaces = other.dummy_namespaces;
+        memcached_namespaces = other.memcached_namespaces;
+        rdb_namespaces = other.rdb_namespaces;
+        machine_id = other.machine_id;
+        peer_id = other.peer_id;
+        ips = other.ips;
+        get_stats_mailbox_address = other.get_stats_mailbox_address;
+        semilattice_change_mailbox = other.semilattice_change_mailbox;
+        auth_change_mailbox = other.auth_change_mailbox;
+        log_mailbox = other.log_mailbox;
+        local_issues = other.local_issues;
+        peer_type = other.peer_type;
+
+        return *this;
+    }
 
     namespaces_directory_metadata_t<mock::dummy_protocol_t> dummy_namespaces;
     namespaces_directory_metadata_t<memcached_protocol_t> memcached_namespaces;
