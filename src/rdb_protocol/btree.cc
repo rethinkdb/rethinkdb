@@ -163,14 +163,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     scoped_malloc_t<rdb_value_t> new_value(
             value_ref.data(), value_ref.data() + value_ref.size());
 
-    // Clear the blob in the leaf if it existed
-    if (kv_location->value.has()) {
-        blob_t old_blob(txn->get_cache()->get_block_size(),
-                    kv_location->value->value_ref(), blob::btree_maxreflen);
-        old_blob.clear(txn);
-    }
-
-    // Actually update the leaf, if needed.
+    // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
     null_key_modification_callback_t<rdb_value_t> null_cb;
     apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp,
