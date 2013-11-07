@@ -2291,9 +2291,6 @@ module 'DataExplorerView', ->
             @saved_data.cursor_timed_out = false
             @saved_data.show_query_warning = false
 
-            # postpone reconnection
-            @driver_handler.postpone_reconnection()
-
             @raw_query = @codemirror.getValue()
 
             @query = @clean_query @raw_query # Save it because we'll use it in @callback_multilples_queries
@@ -2684,13 +2681,7 @@ module 'DataExplorerView', ->
             clearTimeout @timeout_driver_connect
             # We do not destroy the cursor, because the user might come back and use it.
     
-    class @ResultView extends Backbone.View
-        className: 'result_view'
-        template: Handlebars.templates['dataexplorer_result_container-template']
-        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
-        option_template: Handlebars.templates['dataexplorer-option_page-template']
-        error_template: Handlebars.templates['dataexplorer-error-template']
-        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
+    class @SharedResultView extends Backbone.View
         template_json_tree:
             'container' : Handlebars.templates['dataexplorer_result_json_tree_container-template']
             'span': Handlebars.templates['dataexplorer_result_json_tree_span-template']
@@ -2708,37 +2699,81 @@ module 'DataExplorerView', ->
             'td_value': Handlebars.templates['dataexplorer_result_json_table_td_value-template']
             'td_value_content': Handlebars.templates['dataexplorer_result_json_table_td_value_content-template']
             'data_inline': Handlebars.templates['dataexplorer_result_json_table_data_inline-template']
-        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
-        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
-        events:
+
+        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
+        mouse_down: false
+
+        events: ->
+            'click .link_to_tree_view': 'show_tree'
+            'click .link_to_table_view': 'show_table'
+            'click .link_to_raw_view': 'show_raw'
             # For Tree view
             'click .jt_arrow': 'toggle_collapse'
             # For Table view
             'mousedown .click_detector': 'handle_mousedown'
             'click .jta_arrow_h': 'expand_tree_in_table'
-            'click .link_to_tree_view': 'show_tree'
-            'click .link_to_table_view': 'show_table'
-            'click .link_to_raw_view': 'show_raw'
 
-        current_result: []
+        expand_raw_textarea: =>
+            if $('.raw_view_textarea').length > 0
+                height = $('.raw_view_textarea')[0].scrollHeight
+                $('.raw_view_textarea').height(height)
 
-        initialize: (args) =>
-            @container = args.container
-            @set_limit args.limit
-            @set_skip 0
-            if args.view?
-                @view = args.view
+
+        toggle_collapse: (event) =>
+            @.$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
+            @.$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
+            @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
+            @.$(event.target).toggleClass('jt_arrow_hidden')
+            @set_scrollbar()
+
+        handle_mousedown: (event) =>
+            if event?.target?.className is 'click_detector'
+                @col_resizing = @$(event.target).parent().data('col')
+                @start_width = @$(event.target).parent().width()
+                @start_x = event.pageX
+                @mouse_down = true
+                $('body').toggleClass('resizing', true)
+
+        handle_mousemove: (event) =>
+            if @mouse_down
+                @last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
+                @resize_column @col_resizing, @last_columns_size[@col_resizing] # Resize
+
+        resize_column: (col, size) =>
+            @$('.col-'+col).css 'max-width', size
+            @$('.value-'+col).css 'max-width', size-20
+            @$('.col-'+col).css 'width', size
+            @$('.value-'+col).css 'width', size-20
+            if size < 20
+                @$('.value-'+col).css 'padding-left', (size-5)+'px'
+                @$('.value-'+col).css 'visibility', 'hidden'
             else
-                @view = 'tree'
+                @$('.value-'+col).css 'padding-left', '15px'
+                @$('.value-'+col).css 'visibility', 'visible'
 
-            @last_keys = @container.saved_data.last_keys # Arrays of the last keys displayed
-            @last_columns_size = @container.saved_data.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+        handle_mouseup: (event) =>
+            if @mouse_down is true
+                @mouse_down = false
+                $('body').toggleClass('resizing', false)
+                @set_scrollbar()
 
 
-        set_limit: (limit) =>
-            @limit = limit
-        set_skip: (skip) =>
-            @skip = skip
+
+        # Expand a JSON object in a table. We just call the @json_to_tree
+        expand_tree_in_table: (event) =>
+            dom_element = @.$(event.target).parent()
+            @.$(event.target).remove()
+            data = dom_element.data('json_data')
+            result = @json_to_tree data
+            dom_element.html result
+            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
+            $('.'+classname_to_change).css 'max-width', 'none'
+            classname_to_change = dom_element.parent().parent().attr('class')
+            $('.'+classname_to_change).css 'max-width', 'none'
+            dom_element.css 'max-width', 'none'
+            @set_scrollbar()
+
+
 
         show_tree: (event) =>
             event.preventDefault()
@@ -2755,16 +2790,7 @@ module 'DataExplorerView', ->
             @container.saved_data.view = view
             @render_result()
 
-        render_error: (query, err, js_error) =>
-            @.$el.html @error_template
-                query: query
-                error: err.toString().replace(/^(\s*)/, '')
-                js_error: js_error is true
-            return @
 
-        json_to_tree: (result) =>
-            return @template_json_tree.container
-                tree: @json_to_node(result)
 
         # We build the tree in a recursive way
         json_to_node: (value) =>
@@ -2907,7 +2933,7 @@ module 'DataExplorerView', ->
 
         # Build the table
         # We order by the most frequent keys then by alphabetic order
-        json_to_table: (result) =>
+        json_to_table: (result, primary_key) =>
             # While an Array type is never returned by the driver, we still build an Array in the data explorer
             # when a cursor is returned (since we just print @limit results)
             if not result.constructor? or result.constructor isnt Array
@@ -2921,8 +2947,12 @@ module 'DataExplorerView', ->
                     keys_count: keys_count
                     result: result_entry
             @compute_occurrence keys_count
+
+            # Primary key comes first
+            if primary_key?
+                keys_count.object[primary_key].occurrence = Infinity
+
             @order_keys keys_count
-        
 
             flatten_attr = []
 
@@ -2977,6 +3007,11 @@ module 'DataExplorerView', ->
                             prefix_str: prefix_str
                             key: key
 
+
+        json_to_tree: (result) =>
+            return @template_json_tree.container
+                tree: @json_to_node(result)
+
         json_to_table_get_attr: (flatten_attr) =>
             return @template_json_table.tr_attr
                 attr: flatten_attr
@@ -3000,7 +3035,7 @@ module 'DataExplorerView', ->
                         else
                             value = undefined
                     new_document.cells.push @json_to_table_get_td_value value, col
-                new_document.record = @container.saved_data.start_record + i
+                new_document.record = @metadata.skip_value + i
                 document_list.push new_document
             return @template_json_table.tr_value
                 document: document_list
@@ -3052,6 +3087,70 @@ module 'DataExplorerView', ->
 
             return data
 
+        # Helper for expanding a table when showing an object (creating new columns)
+        join_table: (data) =>
+            result = ''
+            for value, i in data
+                data_cell = @compute_data_for_type(value, 'float')
+                data_cell['is_inline'] = true
+                if i isnt data.length-1
+                    data_cell['need_comma'] = true
+
+                result += @template_json_table.data_inline data_cell
+                 
+            return result
+
+        set_scrollbar: =>
+            if @view is 'table'
+                content_name = '.json_table'
+                content_container = '.table_view_container'
+            else if @view is 'tree'
+                content_name = '.json_tree'
+                content_container = '.tree_view_container'
+            else if @view is 'raw'
+                @$('.wrapper_scrollbar').hide()
+                # There is no scrolbar with the raw view
+                return
+
+            # Set the floating scrollbar
+            width_value = @$(content_name).innerWidth() # Include padding
+            if width_value < @$(content_container).width()
+                # If there is no need for scrollbar, we hide the one on the top
+                @$('.wrapper_scrollbar').hide()
+                $(window).unbind 'scroll'
+            else
+                # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
+                @$('.wrapper_scrollbar').show()
+                @$('.scrollbar_fake_content').width width_value
+
+                $(".wrapper_scrollbar").scroll ->
+                    $(content_container).scrollLeft($(".wrapper_scrollbar").scrollLeft())
+                $(content_container).scroll ->
+                    $(".wrapper_scrollbar").scrollLeft($(content_container).scrollLeft())
+
+                position_scrollbar = ->
+                    if $(content_container).offset()?
+                        # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
+                        if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
+                            that.$('.wrapper_scrollbar').hide()
+                        # We show the scrollbar and stick it to the bottom of the window because there ismore content below
+                        else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
+                            that.$('.wrapper_scrollbar').show()
+                            that.$('.wrapper_scrollbar').css 'overflow', 'auto'
+                            that.$('.wrapper_scrollbar').css 'margin-bottom', '0px'
+                        # And sometimes we "hide" it
+                        else
+                            # We can not hide .wrapper_scrollbar because it would break the binding between wrapper_scrollbar and content_container
+                            that.$('.wrapper_scrollbar').css 'overflow', 'hidden'
+
+                that = @
+                position_scrollbar()
+                $(window).scroll ->
+                    position_scrollbar()
+                $(window).resize ->
+                    position_scrollbar()
+
+ 
         date_to_string: (date) =>
             if date.timezone?
                 timezone = date.timezone
@@ -3077,67 +3176,42 @@ module 'DataExplorerView', ->
             # Remove the timezone and replace it with the good one
             return raw_date_str.slice(0, raw_date_str.indexOf('GMT')+3)+timezone
 
-        # Expand a JSON object in a table. We just call the @json_to_tree
-        expand_tree_in_table: (event) =>
-            dom_element = @.$(event.target).parent()
-            @.$(event.target).remove()
-            data = dom_element.data('json_data')
-            result = @json_to_tree data
-            dom_element.html result
-            classname_to_change = dom_element.parent().attr('class').split(' ')[0]
-            $('.'+classname_to_change).css 'max-width', 'none'
-            classname_to_change = dom_element.parent().parent().attr('class')
-            $('.'+classname_to_change).css 'max-width', 'none'
-            dom_element.css 'max-width', 'none'
-            @set_scrollbar()
 
-        # Helper for expanding a table when showing an object (creating new columns)
-        join_table: (data) =>
-            result = ''
-            for value, i in data
-                data_cell = @compute_data_for_type(value, 'float')
-                data_cell['is_inline'] = true
-                if i isnt data.length-1
-                    data_cell['need_comma'] = true
 
-                result += @template_json_table.data_inline data_cell
-                 
-            return result
 
-        mouse_down: false
-        handle_mousedown: (event) =>
-            if event?.target?.className is 'click_detector'
-                @col_resizing = @$(event.target).parent().data('col')
-                @start_width = @$(event.target).parent().width()
-                @start_x = event.pageX
-                @mouse_down = true
-                $('body').toggleClass('resizing', true)
 
-        handle_mousemove: (event) =>
-            if @mouse_down
-                @last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
-                @resize_column @col_resizing, @last_columns_size[@col_resizing] # Resize
+    class @ResultView extends DataExplorerView.SharedResultView
+        className: 'result_view'
+        template: Handlebars.templates['dataexplorer_result_container-template']
+        metadata_template: Handlebars.templates['dataexplorer-metadata-template']
+        option_template: Handlebars.templates['dataexplorer-option_page-template']
+        error_template: Handlebars.templates['dataexplorer-error-template']
+        template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
+        cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
+        primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
 
-        resize_column: (col, size) =>
-            @$('.col-'+col).css 'max-width', size
-            @$('.value-'+col).css 'max-width', size-20
-            @$('.col-'+col).css 'width', size
-            @$('.value-'+col).css 'width', size-20
-            if size < 20
-                @$('.value-'+col).css 'padding-left', (size-5)+'px'
-                @$('.value-'+col).css 'visibility', 'hidden'
+        current_result: []
+
+        initialize: (args) =>
+            @container = args.container
+            @limit = args.limit
+            @skip = 0
+            if args.view?
+                @view = args.view
             else
-                @$('.value-'+col).css 'padding-left', '15px'
-                @$('.value-'+col).css 'visibility', 'visible'
+                @view = 'tree'
+
+            @last_keys = @container.saved_data.last_keys # Arrays of the last keys displayed
+            @last_columns_size = @container.saved_data.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+
+        render_error: (query, err, js_error) =>
+            @.$el.html @error_template
+                query: query
+                error: err.toString().replace(/^(\s*)/, '')
+                js_error: js_error is true
+            return @
 
 
-        handle_mouseup: (event) =>
-            if @mouse_down is true
-                @mouse_down = false
-                $('body').toggleClass('resizing', false)
-                @set_scrollbar()
-
-        default_size_column: 310 # max-width value of a cell of a table (as defined in the css file)
 
         render_result: (args) =>
             if args? and args.results isnt undefined
@@ -3148,6 +3222,7 @@ module 'DataExplorerView', ->
             if args?.metadata?.skip_value?
                 # @container.saved_data.start_record is the old value of @container.saved_data.skip_value
                 # Here we just deal with start_record
+                # TODO May have to remove this line as we have metadata.start now
                 @container.saved_data.start_record = args.metadata.skip_value
 
                 if args.metadata.execution_time?
@@ -3204,6 +3279,7 @@ module 'DataExplorerView', ->
                             if @last_keys[index] isnt previous_keys[index]
                                 same_keys = false
 
+                    # TODO we should just check if previous_keys is included in last_keys
                     # If the keys are the same, we are going to resize the columns as they were before
                     if same_keys is true
                         for col, value of @last_columns_size
@@ -3255,57 +3331,7 @@ module 'DataExplorerView', ->
             @delegateEvents()
             return @
  
-        set_scrollbar: =>
-            if @view is 'table'
-                content_name = '.json_table'
-                content_container = '.table_view_container'
-            else if @view is 'tree'
-                content_name = '.json_tree'
-                content_container = '.tree_view_container'
-            else if @view is 'raw'
-                @$('.wrapper_scrollbar').hide()
-                # There is no scrolbar with the raw view
-                return
-
-            # Set the floating scrollbar
-            width_value = @$(content_name).innerWidth() # Include padding
-            if width_value < @$(content_container).width()
-                # If there is no need for scrollbar, we hide the one on the top
-                @$('.wrapper_scrollbar').hide()
-                $(window).unbind 'scroll'
-            else
-                # Else we set the fake_content to the same width as the table that contains data and links the two scrollbars
-                @$('.wrapper_scrollbar').show()
-                @$('.scrollbar_fake_content').width width_value
-
-                $(".wrapper_scrollbar").scroll ->
-                    $(content_container).scrollLeft($(".wrapper_scrollbar").scrollLeft())
-                $(content_container).scroll ->
-                    $(".wrapper_scrollbar").scrollLeft($(content_container).scrollLeft())
-
-                position_scrollbar = ->
-                    if $(content_container).offset()?
-                        # Sometimes we don't have to display the scrollbar (when the results are not shown because the query is too big)
-                        if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+20 # bottom of the window < beginning of $('.json_table_container') // 20 pixels is the approximate height of the scrollbar (so we don't show JUST the scrollbar)
-                            that.$('.wrapper_scrollbar').hide()
-                        # We show the scrollbar and stick it to the bottom of the window because there ismore content below
-                        else if $(window).scrollTop()+$(window).height() < $(content_container).offset().top+$(content_container).height() # bottom of the window < end of $('.json_table_container')
-                            that.$('.wrapper_scrollbar').show()
-                            that.$('.wrapper_scrollbar').css 'overflow', 'auto'
-                            that.$('.wrapper_scrollbar').css 'margin-bottom', '0px'
-                        # And sometimes we "hide" it
-                        else
-                            # We can not hide .wrapper_scrollbar because it would break the binding between wrapper_scrollbar and content_container
-                            that.$('.wrapper_scrollbar').css 'overflow', 'hidden'
-
-                that = @
-                position_scrollbar()
-                $(window).scroll ->
-                    position_scrollbar()
-                $(window).resize ->
-                    position_scrollbar()
-
-            
+           
         # Check if the cursor timed out. If yes, make sure that the user cannot fetch more results
         cursor_timed_out: =>
             @container.saved_data.cursor_timed_out = true
@@ -3318,18 +3344,6 @@ module 'DataExplorerView', ->
 
         render_default: =>
             return @
-
-        toggle_collapse: (event) =>
-            @.$(event.target).nextAll('.jt_collapsible').toggleClass('jt_collapsed')
-            @.$(event.target).nextAll('.jt_points').toggleClass('jt_points_collapsed')
-            @.$(event.target).nextAll('.jt_b').toggleClass('jt_b_collapsed')
-            @.$(event.target).toggleClass('jt_arrow_hidden')
-            @set_scrollbar()
-
-        expand_raw_textarea: =>
-            if $('.raw_view_textarea').length > 0
-                height = $('.raw_view_textarea')[0].scrollHeight
-                $('.raw_view_textarea').height(height)
 
         destroy: =>
             $(window).unbind 'scroll'
@@ -3501,14 +3515,14 @@ module 'DataExplorerView', ->
                 is_at_bottom: 'true'
 
     class @DriverHandler
+        ping_time: 5*60*1000
+
         query_error_template: Handlebars.templates['dataexplorer-query_error-template']
 
         # I don't want that thing in window
         constructor: (args) ->
-            @container = args.container
             @on_success = args.on_success
             @on_fail = args.on_fail
-            @dont_timeout_connection = if args.dont_timeout_connection? then args.dont_timeout_connection else false
 
             if window.location.port is ''
                 if window.location.protocol is 'https:'
@@ -3538,11 +3552,6 @@ module 'DataExplorerView', ->
 
         connect: =>
             that = @
-            # Whether we are going to reconnect or not, the cursor might have timed out.
-            if @container?
-                @container.saved_data.cursor_timed_out = true
-            if @timeout?
-                clearTimeout @timeout
 
             if @connection?
                 if @driver_status is 'connected'
@@ -3551,28 +3560,34 @@ module 'DataExplorerView', ->
                     catch err
                         # Nothing bad here, let's just not pollute the console
             try
-                r.connect @server, (err, connection) ->
-                    if err?
-                        that.on_fail(err)
-                    else
-                        that.connection = connection
-                        that.on_success(connection)
-                        connection.removeAllListeners 'error'
-                        connection.on 'error', that.on_fail
-                if @container?
-                    @container.results_view.cursor_timed_out()
-                unless @dont_timeout_connection
-                    @timeout = setTimeout @connect, 5*60*1000
+                r.connect @server, @connect_callback
+   
+                @interval = setInterval @ping, @ping_time
             catch err
                 @on_fail(err)
+
+        # Callback for r.connect
+        connect_callback: (err, connection) =>
+         if err?
+            @.on_fail(err)
+         else
+            @connection = connection
+            @on_success(connection)
+
+            connection.removeAllListeners 'error'
+            connection.on 'error', @on_fail
+
     
-        postpone_reconnection: =>
-            clearTimeout @timeout
-            @timeout = setTimeout @connect, 5*60*1000
+        # Makre sure the connection doesn't die
+        ping: =>
+            r.expr(1).private_run @connection, ->
+                @
+
+        # We could have something to pospone the call to @ping everytime the user make a query
 
         destroy: =>
             try
                 @connection.close()
             catch err
                 # Nothing bad here, let's just not pollute the console
-            clearTimeout @timeout
+            clearTimeout @interval

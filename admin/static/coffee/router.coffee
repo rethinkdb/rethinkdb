@@ -22,6 +22,7 @@ class BackboneCluster extends Backbone.Router
         'resolve_issues': 'resolve_issues'
         'logs': 'logs'
         'dataexplorer': 'dataexplorer'
+        'databrowser': 'databrowser'
 
     initialize: ->
         log_initial '(initializing) router'
@@ -104,6 +105,15 @@ class BackboneCluster extends Backbone.Router
         @$container.html @current_view.render().el
         @current_view.init_after_dom_rendered() # Need to be called once the view is in the DOM tree
         @current_view.results_view.set_scrollbar() # In case we check the data explorer, leave and come back
+
+    databrowser: ->
+        @set_stats_call ''
+        log_router '/databrowser'
+        clear_modals()
+        @current_view.destroy()
+        @current_view = new DataBrowserView.Container
+        @$container.html @current_view.render().el
+        @current_view.post_render()
 
     #TODO Clean the next 3 methods. We don't need tab anymore
     database: (id, tab) ->

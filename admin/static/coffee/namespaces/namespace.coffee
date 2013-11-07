@@ -233,7 +233,6 @@ module 'NamespaceView', ->
             @driver_handler = new DataExplorerView.DriverHandler
                 on_success: @set_interval_get_indexes
                 on_fail: @on_fail_to_connect
-                dont_timeout_connection: true
             @secondary_indexes = null # list of secondary indexes available
             @deleting_secondary_index = null # The secondary index being deleted (with a confirm box displayed)
 

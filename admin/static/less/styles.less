@@ -495,10 +495,10 @@ TODO: retire this
                 width: 94px;
             }
             #nav-dataexplorer{
-                width: 136px;
+                width: 100px;
             }
-            #nav-logs{
-                width: 74px;
+            #nav-databrowser{
+                width: 100px;
             }
             #nav-options{
                 width: 60px;
@@ -1157,7 +1157,7 @@ TODO: retire this
 .resizing{
     .user-select(none)
 }
-#dataexplorer{
+#dataexplorer, #databrowser{
     margin: 0px;
     .options_container{
         float: right;
@@ -1539,7 +1539,7 @@ TODO: retire this
             white-space: -o-pre-wrap; /* Opera 7 */
             word-wrap: break-word; /* Internet Explorer 5.5+, 6, 7, 8 compability-mode */
             -ms-word-break: break-all; /* Internet Explorer 8 */
-            word-break: break-word;
+            word-break: break-all;
         }
         .query{
             font-family: @monospace;
@@ -1786,6 +1786,57 @@ TODO: retire this
                 padding: 4px;
                 margin: 0px 0px 0px -5px;
             }
+        }
+    }
+}
+
+#databrowser{
+    .navigation_container{
+        clear: both;
+        padding-top: 20px;
+        .separator{
+            display: inline-block;
+            margin: 0px 10px;
+        }
+        .previous_link_container{
+            display: inline-block;
+            margin: 0px 10px;
+        }
+        .jumper_container{
+            display: inline-block;
+            margin: 0px 10px;
+            .jumper{
+                margin-top: 8px;
+                width: 60px;
+            }
+        }
+        .next_link_container{
+            display: inline-block;
+            margin: 0px 10px;
+        }
+    }
+    .loading_query{
+        text-align: center;
+        height: 16px;
+        width: 16px;
+        padding: 0px;
+        margin: -30px auto 10px auto;
+        .loading_query_img{ display: none; }
+    }
+    .results_container{
+        .error_details{
+            font-family: @monospace;
+            padding: 7px 10px;
+            border: 1px solid #CCC;
+            border-radius: 3px;
+            background: #EEE;
+            white-space: pre-wrap; /* css-3 */
+            white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
+            white-space: -pre-wrap; /* Opera 4-6 */
+            white-space: -o-pre-wrap; /* Opera 7 */
+            word-wrap: break-word; /* Internet Explorer 5.5+, 6, 7, 8 compability-mode */
+            -ms-word-break: break-all; /* Internet Explorer 8 */
+            word-break: break-all;
         }
     }
 }

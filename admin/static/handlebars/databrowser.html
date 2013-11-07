@@ -1,0 +1,80 @@
+<script id="databrowser_view-template" type="text/x-handlebars-template">
+    <div class="section">
+        <div class="action_container">
+        </div>
+        <div class="loading_query">
+            <img src="images/ajax-loader.gif" class="loading_query_img"/>
+        </div>
+        <div class="results_container">
+        </div>
+    </div>
+</script>
+
+<script id="databrowser_actions_container-template" type="text/x-handlebars-template">
+    <h1 class="title">Data browser</h1>
+
+    <p>Select a table</p>
+    <select class="list_namespaces">
+    {{#each databases}}
+        <optgroup label="{{name}}" value="{{name}}">
+        {{#each namespaces}}
+            <option value="{{name}}" data-primary_key="{{primary_key}}">{{name}}</option>
+        {{/each}}
+        </optgroup>
+    {{/each}}
+    </select>
+</script>
+
+<script id="databrowser_result_container-template" type="text/x-handlebars-template">
+    <div class="results_header">
+        <ul class="nav nav-tabs change_view_container"">
+            <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
+            <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
+            <li><a href="#tree_view" class="link_to_tree_view active">Tree view</a></li>
+        </ul>
+        <div class="navigation_container">
+            <div class="previous_link_container">
+                {{#if previous}}<a href="#" class="previous_page">«« Previous</a>{{else}}«« Previous{{/if}} 
+            </div>
+            <div class="separator">
+                ||
+            </div>
+            <div class="jumper_container">
+                <select name="page" class="jumper">
+                    {{#each pages}}
+                    <option value="{{value}}" {{#if selected}}selected="selected"{{/if}}>{{page}}</option>
+                    {{/each}}
+                </select>
+            </div>
+            <div class="separator">
+                ||
+            </div>
+            <div class="next_link_container">
+                {{#if next}}<a href="#" class="next_page">Next »»</a>{{else}}Next »»{{/if}}
+            </div>
+        </div>
+    </div>
+    <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
+    <div class="tab-content">  
+        <div class="results active tree_view_container">
+            <div class="results_wrap tree_view"><div class="json_tree_container"></div>
+            </div>
+        </div>
+        <div class="results table_view_container">
+            <div class="results_wrap table_view"></div>
+        </div>
+        <div class="results raw_view_container">
+            <div class="raw_view_container raw_view">
+                <textarea class="raw_view_textarea"></textarea>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script id="databrowser-error-template" type="text/x-handlebars-template">
+    <h1 class="title">Error</h1>
+    The query to retrieve documents from {{db}}.{{namespace}} (page - {{page}})failed with the error:
+
+    <pre class="error error_details">{{error}}</pre>
+</script>
+
