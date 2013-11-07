@@ -191,12 +191,27 @@ bool current_page_acq_t::dirtied_page() const {
     return dirtied_page_;
 }
 
+block_version_t current_page_acq_t::block_version() const {
+    rassert(read_cond_.is_pulsed());
+    return block_version_;
+}
+
+
 page_cache_t *current_page_acq_t::page_cache() const {
     return txn_->page_cache();
 }
 
 current_page_help_t current_page_acq_t::help() const {
     return current_page_help_t(block_id(), page_cache());
+}
+
+void current_page_acq_t::pulse_read_available(block_version_t block_version) {
+    block_version_ = block_version;
+    read_cond_.pulse_if_not_already_pulsed();
+}
+
+void current_page_acq_t::pulse_write_available() {
+    write_cond_.pulse_if_not_already_pulsed();
 }
 
 current_page_t::current_page_t()
@@ -266,7 +281,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     while (cur != NULL) {
         // We know that the previous node has read access and has been pulsed as
         // readable, so we pulse the current node as readable.
-        cur->read_cond_.pulse_if_not_already_pulsed();
+        cur->pulse_read_available(block_version_);
 
         if (cur->access_ == alt_access_t::read) {
             current_page_acq_t *next = acquirers_.next(cur);
@@ -305,7 +320,8 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                                help.page_cache);
                     is_deleted_ = false;
                 }
-                cur->write_cond_.pulse_if_not_already_pulsed();
+                block_version_.increment();
+                cur->pulse_write_available();
             }
             break;
         }
@@ -807,7 +823,10 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
 
         // Get the block id while current_page_ is non-null.  (It'll become
         // null once we're snapshotted.)
+        // RSI: what's up with this comment -- is the block_id() function fragile?
         const block_id_t block_id = acq->block_id();
+
+        const block_version_t block_version = acq->block_version();
 
         if (acq->dirtied_page()) {
             // We know we hold an exclusive lock.
@@ -846,11 +865,13 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
             rassert(acq->current_page_ == NULL);
             // Steal the snapshotted page_ptr_t.
             page_ptr_t local = std::move(acq->snapshotted_page_);
-            snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_id,
+            snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_version,
+                                                                block_id,
                                                                 std::move(local),
                                                                 repli_timestamp_t::invalid /* RSI: handle recency */));
         } else {
-            touched_pages_.push_back(std::make_pair(block_id, repli_timestamp_t::invalid /* RSI: handle recency */));
+            touched_pages_.push_back(touched_page_t(block_version, block_id,
+                                                    repli_timestamp_t::invalid /* RSI: handle recency */));
         }
     }
 }

@@ -178,6 +178,22 @@ private:
 // known by the current_page_acq_t.
 struct current_page_help_t;
 
+class block_version_t {
+public:
+    block_version_t() : value_(0) { }
+
+    void increment() {
+        ++value_;
+    }
+
+    bool operator<(block_version_t other) const {
+        return value_ < other.value_;
+    }
+
+private:
+    uint64_t value_;
+};
+
 class current_page_t {
 public:
     // Constructs a fresh, empty page.
@@ -232,6 +248,10 @@ private:
     // The last txn that modified the page, or marked it deleted.
     page_txn_t *last_modifier_;
 
+    // An in-cache value that increments whenever the value is changed, so that
+    // different page_txn_t's can know which was the last to modify the block.
+    block_version_t block_version_;
+
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
     DISABLE_COPYING(current_page_t);
@@ -272,13 +292,17 @@ private:
     friend class page_txn_t;
     friend class current_page_t;
 
-    // Returns true if this acq dirtied the page.
+    // Returns true if the page has been created, edited, or deleted.
     bool dirtied_page() const;
+    block_version_t block_version() const;
     // Declares ourself readonly.  Only page_txn_t::remove_acquirer can do this!
     void declare_readonly();
 
     current_page_help_t help() const;
     page_cache_t *page_cache() const;
+
+    void pulse_read_available(block_version_t block_version);
+    void pulse_write_available();
 
     page_txn_t *txn_;
     alt_access_t access_;
@@ -291,6 +315,9 @@ private:
     page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
+    // The block version, assuming read_cond_ has been pulsed.
+    block_version_t block_version_;
+
     bool dirtied_page_;
 
     DISABLE_COPYING(current_page_acq_t);
@@ -498,9 +525,13 @@ private:
         dirtied_page_t()
             : block_id(NULL_BLOCK_ID),
               tstamp(repli_timestamp_t::invalid) { }
-        dirtied_page_t(block_id_t _block_id, page_ptr_t &&_ptr,
+        dirtied_page_t(block_version_t _block_version,
+                       block_id_t _block_id, page_ptr_t &&_ptr,
                        repli_timestamp_t _tstamp)
-            : block_id(_block_id), ptr(std::move(_ptr)), tstamp(_tstamp) { }
+            : block_version(_block_version),
+              block_id(_block_id),
+              ptr(std::move(_ptr)),
+              tstamp(_tstamp) { }
         dirtied_page_t(dirtied_page_t &&movee)
             : block_id(movee.block_id),
               ptr(std::move(movee.ptr)),
@@ -511,6 +542,8 @@ private:
             tstamp = movee.tstamp;
             return *this;
         }
+        // Our block version of the dirty page.
+        block_version_t block_version;
         // The block id of the dirty page.
         block_id_t block_id;
         // The pointer to the snapshotted dirty page value.  (If empty, the page was
@@ -523,8 +556,25 @@ private:
     // Saved pages (by block id).
     segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
 
+    struct touched_page_t {
+        touched_page_t()
+            : first(NULL_BLOCK_ID),
+              second(repli_timestamp_t::invalid) { }
+        touched_page_t(block_version_t _block_version,
+                       block_id_t _block_id,
+                       repli_timestamp_t _tstamp)
+            : block_version(_block_version),
+              first(_block_id),
+              second(_tstamp) { }
+
+        block_version_t block_version;
+        // RSI: Rename the `first` and `second` fields.
+        block_id_t first;
+        repli_timestamp_t second;
+    };
+
     // Touched pages (by block id).
-    segmented_vector_t<std::pair<block_id_t, repli_timestamp_t>, 8> touched_pages_;
+    segmented_vector_t<touched_page_t, 8> touched_pages_;
 
     // Tells whether this page_txn_t has announced itself (to the cache) to be
     // waiting for a flush.
