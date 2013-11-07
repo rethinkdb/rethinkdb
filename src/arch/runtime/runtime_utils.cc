@@ -10,6 +10,8 @@
 
 #ifndef NDEBUG
 
+#include <time.h>
+
 uint64_t get_clock_cycles() {
 #if defined(__i386__) || defined(__x86_64__)
     // uintptr_t matches the native register/word size on Linux on i386 and amd64.
@@ -22,7 +24,11 @@ uint64_t get_clock_cycles() {
     ret <<= 32;
     ret |= low;
 #else
-#error "Unsupported architecture."
+    // Use a generic implementation using gettime, returning approximately nanoseconds
+    // (1 nanosecond = 1 cycle, at 1GHz)
+    struct timespec tp;
+    clock_gettime(CLOCK_MONOTONIC, &tp);
+    uint64_t ret = static_cast<uint64_t>(tp.tv_sec * 1e9) + static_cast<uint64_t>(tp.tv_nsec);
 #endif
     return ret;
 }
