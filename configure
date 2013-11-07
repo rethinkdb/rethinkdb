@@ -717,7 +717,11 @@ optional_dep () {
 }
 
 # An assoc-list of c++ code to test if a library works
-lib_test_code=':~'
+lib_test_code=':~
+~termcap:
+#include <termcap.h>
+int main(){ tgetent(0, "xterm"); return 0; }
+~'
 
 # An assoc-list of possible library aliases
 lib_alias=':~'
@@ -750,7 +754,8 @@ check_lib () {
     fi
     if lookup "$force_paths" $1 path; then
         require_dep $1
-        var_append $(uc $1)_LIBS $path
+        check_lib_compile "$path" $1
+        $can_show && show_no "$path"
         return
     fi
     local check
@@ -778,19 +783,19 @@ check_lib () {
 
 check_dyn_lib () {
     # TODO: pkg_config
-    check_lib_compile $1 $2
+    check_lib_compile -l$1 $2
 }
 
 # Test if the c++ compiler knows about the library
 check_lib_compile () {
-    local bfile=`dirname $0`/mk/gen/check_$1
+    local bfile=`dirname $0`/mk/gen/check_$2
     local code
-    # if ! lookup "$lib_test_code" $1 code; then
+    if ! lookup "$lib_test_code" $2 code; then
         code='int main(){}'
-    # fi
+    fi
     echo "$code" > "$bfile.cc"
-    if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" -l$1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
-	var_append $(uc $2)_LIBS -l$1
+    if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" $1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
+	var_append $(uc $2)_LIBS $1
     else
         error_details="${error_details:-}"$(cat "$bfile.log")
     fi
