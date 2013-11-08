@@ -551,6 +551,14 @@ public:
                  ql::protob_t<Query>())
     { }
 
+    rdb_r_unshard_visitor_t(const read_response_t *_responses,
+                            size_t _count,
+                            read_response_t *_response_out,
+                            signal_t *interruptor)
+        : responses(_responses), count(_count), response_out(_response_out),
+          ql_env(interruptor)
+    { }
+
     void operator()(const point_read_t &) {
         guarantee(count == 1);
         guarantee(NULL != boost::get<point_read_response_t>(&responses[0].response));
@@ -853,8 +861,13 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
-    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
-    boost::apply_visitor(v, read);
+    if (ctx) {
+        rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
+        boost::apply_visitor(v, read);
+    } else {
+        rdb_r_unshard_visitor_t v(responses, count, response_out, interruptor);
+        boost::apply_visitor(v, read);
+    }
 
     /* We've got some profiling to do. */
     /* This is a tad hacky, some of the methods in rdb_r_unshard_visitor_t set

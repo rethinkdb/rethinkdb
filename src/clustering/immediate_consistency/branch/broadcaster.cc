@@ -384,72 +384,10 @@ void listener_read(
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
-    order_token.assert_read_mode();
-
-    std::vector<dispatchee_t *> readers;
-    std::vector<auto_drainer_t::lock_t> reader_locks;
-    state_timestamp_t timestamp;
-    std::vector<fifo_enforcer_read_token_t> enforcer_tokens;
-
-    {
-        wait_interruptible(lock, interruptor);
-        mutex_assertion_t::acq_t mutex_acq(&mutex);
-        lock->end();
-
-        if (read.all_read()) {
-            get_all_readable_dispatchees(&readers, &mutex_acq, &reader_locks);
-        } else {
-            readers.resize(1);
-            reader_locks.resize(1);
-            pick_a_readable_dispatchee(&readers[0], &mutex_acq, &reader_locks[0]);
-        }
-        timestamp = current_timestamp;
-        order_token = order_checkpoint.check_through(order_token);
-
-        /* This is safe even if `interruptor` gets pulsed because nothing
-        checks `interruptor` until after we have sent the message. */
-        for (auto it = readers.begin(); it != readers.end(); ++it) {
-            enforcer_tokens.push_back((*it)->fifo_source.enter_read());
-        }
-        guarantee(readers.size() == reader_locks.size() &&
-                  readers.size() == enforcer_tokens.size());
-    }
-
-    try {
-        wait_any_t interruptor2(interruptor);
-        for (auto it = reader_locks.begin(); it != reader_locks.end(); ++it) {
-            interruptor2.add(it->get_drain_signal());
-        }
-
-        if (readers.size() == 1) {
-            listener_read<protocol_t>(
-                mailbox_manager, readers[0]->read_mailbox, read, response,
-                timestamp, order_token, enforcer_tokens[0], &interruptor2);
-        } else {
-            std::vector<typename protocol_t::read_response_t> responses;
-            for (size_t i = 0; i < readers.size(); ++i) {
-                listener_read<protocol_t>(
-                    mailbox_manager, readers[i]->read_mailbox, read, &responses[i],
-                    timestamp, order_token, enforcer_tokens[i], &interruptor2);
-
-                typename protocol_t::context_t ctx;
-                /* Notice this is a bit of a hack here, we're passing a default
-                 * constructed context here to the UNSHARD function. This is
-                 * because onlyworks if the unsharding of all_reads doesn't require
-                 * anything fancy like reads to other databases. Should we ever
-                 * have need for a real context here it's not too hard to add but
-                 * for the time being I can't see an actual use case so I'm not
-                 * adding it.*/
-                read.unshard(responses.data(), responses.size(), response,
-                             &ctx, &interruptor2);
-            }
-        }
-    } catch (const interrupted_exc_t &) {
-        if (interruptor->is_pulsed()) {
-            throw;
-        } else {
-            throw cannot_perform_query_exc_t("lost contact with mirror during read");
-        }
+    if (read.all_read()) {
+        all_read(read, response, lock, order_token, interruptor);
+    } else {
+        single_read(read, response, lock, order_token, interruptor);
     }
 }
 
@@ -631,6 +569,116 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
         write->callback->write = NULL;
         write->callback->on_done();
     }
+}
+
+template<class protocol_t>
+void broadcaster_t<protocol_t>::single_read(
+    const typename protocol_t::read_t &read,
+    typename protocol_t::read_response_t *response,
+    fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token,
+    signal_t *interruptor)
+    THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t)
+{
+    order_token.assert_read_mode();
+
+    dispatchee_t *reader;
+    auto_drainer_t::lock_t reader_lock;
+    state_timestamp_t timestamp;
+    fifo_enforcer_read_token_t enforcer_token;
+
+    {
+        wait_interruptible(lock, interruptor);
+        mutex_assertion_t::acq_t mutex_acq(&mutex);
+        lock->end();
+
+        pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
+        timestamp = current_timestamp;
+        order_token = order_checkpoint.check_through(order_token);
+
+        /* This is safe even if `interruptor` gets pulsed because nothing
+        checks `interruptor` until after we have sent the message. */
+        enforcer_token = reader->fifo_source.enter_read();
+    }
+
+    try {
+        wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
+        listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
+                                  read, response, timestamp, order_token, enforcer_token,
+                                  &interruptor2);
+    } catch (const interrupted_exc_t &) {
+        if (interruptor->is_pulsed()) {
+            throw;
+        } else {
+            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+        }
+    }
+}
+
+template<class protocol_t>
+void broadcaster_t<protocol_t>::all_read(
+    const typename protocol_t::read_t &read,
+    typename protocol_t::read_response_t *response,
+    fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token,
+    signal_t *interruptor)
+    THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t)
+{
+    guarantee(read.all_read());
+    order_token.assert_read_mode();
+
+    std::vector<dispatchee_t *> readers;
+    std::vector<auto_drainer_t::lock_t> reader_locks;
+    state_timestamp_t timestamp;
+    std::vector<fifo_enforcer_read_token_t> enforcer_tokens;
+
+    {
+        wait_interruptible(lock, interruptor);
+        mutex_assertion_t::acq_t mutex_acq(&mutex);
+        lock->end();
+
+        get_all_readable_dispatchees(&readers, &mutex_acq, &reader_locks);
+        timestamp = current_timestamp;
+        order_token = order_checkpoint.check_through(order_token);
+
+        /* This is safe even if `interruptor` gets pulsed because nothing
+        checks `interruptor` until after we have sent the message. */
+        for (auto it = readers.begin(); it != readers.end(); ++it) {
+            enforcer_tokens.push_back((*it)->fifo_source.enter_read());
+        }
+        guarantee(readers.size() == reader_locks.size() &&
+                  readers.size() == enforcer_tokens.size());
+    }
+
+    try {
+        wait_any_t interruptor2(interruptor);
+        for (auto it = reader_locks.begin(); it != reader_locks.end(); ++it) {
+            interruptor2.add(it->get_drain_signal());
+        }
+        std::vector<typename protocol_t::read_response_t> responses;
+        responses.resize(readers.size());
+        for (size_t i = 0; i < readers.size(); ++i) {
+            listener_read<protocol_t>(
+                mailbox_manager, readers[i]->read_mailbox, read, &responses[i],
+                timestamp, order_token, enforcer_tokens[i], &interruptor2);
+
+            /* Notice this is a bit of a hack here, we're passing a default
+             * constructed context here to the UNSHARD function. This is
+             * because onlyworks if the unsharding of all_reads doesn't require
+             * anything fancy like reads to other databases. Should we ever
+             * have need for a real context here it's not too hard to add but
+             * for the time being I can't see an actual use case so I'm not
+             * adding it.*/
+            read.unshard(responses.data(), responses.size(), response,
+                         static_cast<typename protocol_t::context_t *>(NULL),
+                         &interruptor2);
+        }
+    } catch (const interrupted_exc_t &) {
+        if (interruptor->is_pulsed()) {
+            throw;
+        } else {
+            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+        }
+    }
+
 }
 
 /* This function sanity-checks `incomplete_writes`, `current_timestamp`,
