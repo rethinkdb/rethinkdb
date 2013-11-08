@@ -21,6 +21,7 @@ build_dir=
 dashboard_url=
 colorful=true
 timeout=5m
+flaky_filter=flaky
 
 # Print usage
 usage () {
@@ -35,11 +36,11 @@ usage () {
     echo "   -r <repeats>    Repeat each test"
     echo "   -d <run_dir>    Run the tests in a different folder (eg: /dev/shm)"
     echo "   -w <file>       Write report to file (- for stdout)"
-    echo "   -W <file>       Write html report to file (- for stdout)"
     echo "   -b <build>      RethinkDB build directory (default: build/debug)"
     echo "   -u <url>        Post the test results to the url"
     echo "   -c              Disable color"
     echo "   -t <timeout>    Kill tests that last longer (default: $timeout)"
+    echo "   -F <filter>     Mark these tests as flaky (default: $flaky_filter)"
     echo "   -s <name> -- <command>  For internal use only"
     echo "Output Directory Format:"
     echo "   A folder is created for each test. Files in the folder contain the command"
@@ -59,7 +60,7 @@ usage () {
 }
 
 # Parse the command line options
-while getopts ":lo:hvs:j:r:d:w:W:b:u:ct:" opt; do
+while getopts ":lo:hvs:j:r:d:w:b:u:ct:F:" opt; do
     case $opt in
         l) list_only=true ;;
         o) dir=$OPTARG ;;
@@ -70,11 +71,11 @@ while getopts ":lo:hvs:j:r:d:w:W:b:u:ct:" opt; do
         r) repeats=$OPTARG ;;
         d) run_dir=$OPTARG ; run_elsewhere=true ;;
         w) report_out=$OPTARG ;;
-        W) report_html_out=$OPTARG ;;
         b) build_dir=$OPTARG ;;
         u) dashboard_url=$OPTARG ;;
         c) colorful=false ;;
         t) timeout=$OPTARG ;;
+        F) flaky_filter=$OPTARG ;;
         *) echo Error: -$OPTARG ; usage; exit 1 ;;
     esac
 done
@@ -147,7 +148,12 @@ run_single_test () {
         if [[ $exit_code = 0 ]]; then
             echo "${green}Ok   $test ($index)${plain}"
         else
-            echo "${red}Fail $test ($index)${plain}"
+            if test -e flaky; then
+                colour=$yellow
+            else
+                colour=$red
+            fi
+            echo "${colour}Fail $test ($index)${plain}"
             ( tail -n 10 stdout-$index; tail -n 10 stderr-$index ) | sed 's/\(.\{'$((OUTPUT_WIDTH - 6))'\}\)/\1\\\n    /g; s/^/  | /' | tail -n 10
         fi
         exit $exit_code
@@ -268,8 +274,18 @@ selected_tests=$(filter_tests 0 "$test_filter" "" false)
 positive_tests=$(filter_tests 0 "$test_filter" "" true)
 num_skipped_tests=$(( $(echo "$positive_tests" | wc -l) - $(echo "$selected_tests" | wc -l) ))
 
+flaky_filter=$(echo $flaky_filter | sed 's/\([!*]\)/\\\1/g')
+flaky_tests=$(filter_tests 0 "$flaky_filter" "" false)
+
+is_flaky () {
+    echo "$flaky_tests" | grep -q "^$1$"
+}
+
 # Number of tests to run
 total=0
+
+# Number of flaky tests
+flaky_total=0
 
 # List of tests to run
 list=()
@@ -292,7 +308,11 @@ for name in $selected_tests; do
     cmd=`cat $path | sed -n 's/^TEST_COMMAND=//p'`
     if $list_only; then
         if $verbose; then
-            echo $name "("$(list_groups "$name")")": $cmd
+            flaky_tag=
+            if is_flaky "$name"; then
+                flaky_tag="[F] "
+            fi
+            echo $name "$flaky_tag("$(list_groups "$name")")": $cmd
         else
             echo $name
         fi
@@ -301,6 +321,10 @@ for name in $selected_tests; do
     total=$(( total + 1 ))
     mkdir "$dir/$name"
     echo "$cmd" > "$dir/$name/command-line"
+    if is_flaky "$name"; then
+        flaky_total=$(( flaky_total + 1 ))
+        echo "This test is unreliable" > "$dir/$name/flaky"
+    fi
     list+=("$name^$cmd")
 done
 
@@ -320,6 +344,8 @@ if test -z "${timeout_cmd:-}"; then
     echo "$output" >&2
     exit 1
 fi
+
+echo "$(eval echo $test_filter)" > "$dir/filter"
 
 # Run the tests
 run_dir_msg=
@@ -371,57 +397,20 @@ gen_report () {
 }
 
 gen_html_report () {
-    directory=$1
-    out=$2
-    echo "Writing HTML report to '$out'"
-    ( echo '<html><head><title>Test Report</title>'
-      echo '<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>'
-      echo '<style>td {border:1px solid grey}</style>'
-      echo '</head><body>'
-      echo "<h1>Rethinkdb `./scripts/gen-version.sh`</h1>"
-      echo "<p>Passed $passed of $total tests (filter: $(eval echo $test_filter))</p>"
-      echo "<table style='width:100%'>"
-      cd "$directory"
-      for test in *; do
-          for retcof in "$test"/return-code-*; do
-              rep=${retcof##*-}
-              echo "<tr><td>$test</td><td>$rep</td>"
-              retco=$(cat "$retcof")
-              if [[ "$retco" = 0 ]]; then
-                  color=green
-                  word=PASS
-              else
-                  color=red
-                  word=FAILED
-              fi
-              trid=$test-$rep
-              echo "<td style='background:$color'><a href='#$trid' onclick='\$(\"#$trid\").toggle()'>$word</a></td>"
-              echo "<td width='100%'></td></tr>"
-              echo "<tr id='$trid' style='display:none'><td colspan='4'>"
-              for file in `find "$test"/*-$rep -type f`; do
-                  echo "<ul><li>$file</ul>"
-                  if file -i "$file" | grep -q text/; then
-                      echo "<div style='border: 1px solid black'><pre>"
-                      perl -pe 's/&/&amp;/g;s/</&lt;/g' "$file"
-                      echo "</pre></div>"
-                  fi
-              done
-              echo "</td></tr>"
-          done
-      done
-      echo "</table></body></html>"
-    ) | if [[ "$out" = - ]]; then
-        cat
-    else
-        cat > "$out"
-    fi
+    echo "Generating HTML report in $1/test_results.html ..."
+    python "`dirname $0`"/gen-test-report.py "$1"
 }
 
 # Collect the results
 passed=0
+flaky_failed=0
 for test_dir in "$dir/"*/; do
     ls "$test_dir"return-code-* 2>/dev/null >/dev/null || continue
-    if ! grep -v -q '^0$' "$test_dir"return-code-*; then
+    if grep -v -q '^0$' "$test_dir"return-code-*; then
+         if test -e "$test_dir/flaky"; then
+             flaky_failed=$((flaky_failed + 1))
+         fi
+    else
         passed=$((passed + 1))
     fi
 done
@@ -431,14 +420,21 @@ duration=$((end_time - start_time))
 duration_str=$((duration/60))'m'$((duration%60))'s'
 
 test -n "$report_out" && gen_report "$dir" "$report_out"
-test -n "$report_html_out" && gen_html_report "$dir" "$report_html_out"
+gen_html_report "$dir"
 
 if [[ $passed = $total ]]; then
     echo "${green}Passed all $total tests in $duration_str.${plain}"
     exit_code=0
 else
     echo "${red}Failed $(( total - passed )) of $total tests in $duration_str.${plain}"
-    exit_code=1
+    if [[ $flaky_failed != 0 ]]; then
+        echo "${yellow}$flaky_failed of failed tests are flaky${plain}"
+    fi
+    if [[ $total = $(( passed + flaky_failed )) ]]; then
+        exit_code=0
+    else
+        exit_code=1
+    fi
 fi
 
 if [[ $num_skipped_tests != 0 ]]; then

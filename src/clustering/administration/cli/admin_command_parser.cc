@@ -2,6 +2,7 @@
 #include "clustering/administration/cli/admin_command_parser.hpp"
 
 #include <stdarg.h>
+#include <termcap.h>
 
 #include <map>
 #include <stdexcept>
@@ -11,7 +12,6 @@
 #include "arch/runtime/runtime_utils.hpp"
 #include "clustering/administration/cli/admin_cluster_link.hpp"
 #include "errors.hpp"
-#include "help.hpp"
 
 admin_command_parser_t *admin_command_parser_t::instance = NULL;
 uint64_t admin_command_parser_t::cluster_join_timeout = 5000; // Give 5 seconds to connect to all machines in the cluster
@@ -29,6 +29,7 @@ const char *list_databases_command = "ls databases";
 const char *list_auth_command = "ls auth";
 const char *exit_command = "exit";
 const char *help_command = "help";
+const char *dashed_help_command = "--help";
 const char *resolve_command = "resolve";
 const char *pin_shard_command = "pin shard";
 const char *split_shard_command = "split shard";
@@ -322,32 +323,94 @@ admin_command_parser_t::param_options_t *admin_command_parser_t::command_info_t:
     return option;
 }
 
-std::string make_bold(const std::string& str) {
-    return "\x1b[1m" + str + "\x1b[0m";
+admin_command_parser_t::admin_term_cap_t::admin_term_cap_t(fd_t fd) {
+    bool is_a_tty = isatty(fd);
+
+    // If the end-point is not a tty, no control characters
+    if (!is_a_tty) {
+        return;
+    }
+
+    // If we don't know the terminal type, no control characters
+    char *term_env = getenv("TERM");
+    if (term_env == NULL) {
+        return;
+    }
+
+    // If we can't find the terminal type in the termcap database, no control characters
+    int res = tgetent(NULL, term_env);
+    if (res != 1) {
+        return;
+    }
+
+    // Command to disable all formatting
+    char end_modes[] = "me";
+    char *normal_cstr = tgetstr(end_modes, NULL);
+    if (normal_cstr != NULL) {
+        normal_str.assign(normal_cstr);
+    } else {
+        // If we couldn't find this, we can't use bold or underline either, just return
+        return;
+    }
+
+    // Command to enable double-bright mode (bold)
+    char bold_mode[] = "md";
+    char *bold_cstr = tgetstr(bold_mode, NULL);
+    if (bold_cstr != NULL) {
+        bold_str.assign(bold_cstr);
+    }
+
+    // Command to enable underline mode
+    char underline_mode[] = "us";
+    char *underline_cstr = tgetstr(underline_mode, NULL);
+    if (underline_cstr != NULL) {
+        underline_str.assign(underline_cstr);
+    }
 }
 
-std::string underline_options(const std::string& str) {
+// TODO: these may need padding on some terminals (though that seems unlikely)
+const std::string &admin_command_parser_t::admin_term_cap_t::bold() const {
+    return bold_str;
+}
+
+const std::string &admin_command_parser_t::admin_term_cap_t::underline() const {
+    return underline_str;
+}
+
+const std::string &admin_command_parser_t::admin_term_cap_t::normal() const {
+    return normal_str;
+}
+
+std::string admin_command_parser_t::make_bold(const std::string& str) {
+    return termcap.bold() + str + termcap.normal();
+}
+
+std::string admin_command_parser_t::underline_options(const std::string& str) {
     std::string result;
     bool format_on = false;
     for (size_t i = 0; i < str.length(); ++i) {
         if (str[i] == '<') {
-            result.append("\x1b[1m\x1b[4m");
+            result += termcap.bold();
+            result += termcap.underline();
             format_on = true;
         } else if (str[i] == '>') {
-            result.append("\x1b[0m");
+            result += termcap.normal();
             format_on = false;
         } else {
             result += str[i];
         }
     }
     if (format_on) {
-        result.append("\x1b[0m");
+        result += termcap.normal();
     }
     return result;
 }
 
 // Format by width should only be passed a string with spaces as whitespace, any others will be converted to spaces
-std::string indent_and_underline(const std::string& str, size_t initial_indent, size_t subsequent_indent, size_t terminal_width) {
+std::string admin_command_parser_t::indent_and_underline(const std::string& str,
+                                                         size_t initial_indent,
+                                                         size_t subsequent_indent,
+                                                         size_t terminal_width) {
     std::string result(initial_indent, ' ');
     std::string indent_string(subsequent_indent, ' ');
     std::string current_word;
@@ -392,24 +455,23 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
                                                const std::string& header,
                                                bool console) {
     const char *prefix = console ? "" : "rethinkdb admin <ADMIN-OPTIONS> ";
-    help_pager_t help;
 
     struct winsize ws;
     size_t width = 80;
     if (ioctl(1, TIOCGWINSZ, &ws) == 0) width = ws.ws_col;
 
     if (!header.empty()) {
-        help.pagef("%s\n", make_bold("INFO").c_str());
-        if (console) help.pagef("%s\n\n", indent_and_underline(header, 4, 6, width).c_str());
-        else         help.pagef("%s\n\n", indent_and_underline("rethinkdb admin " + header, 4, 6, width).c_str());
+        printf("%s\n", make_bold("INFO").c_str());
+        if (console) printf("%s\n\n", indent_and_underline(header, 4, 6, width).c_str());
+        else         printf("%s\n\n", indent_and_underline("rethinkdb admin " + header, 4, 6, width).c_str());
     }
 
-    help.pagef("%s\n", make_bold("COMMANDS").c_str());
+    printf("%s\n", make_bold("COMMANDS").c_str());
     for (size_t i = 0; i < helps.size(); ++i) {
         std::string text = prefix + helps[i].command + " " + helps[i].usage;
-        help.pagef("%s\n", indent_and_underline(text, 4, 6, width).c_str());
+        printf("%s\n", indent_and_underline(text, 4, 6, width).c_str());
     }
-    help.pagef("\n");
+    printf("\n");
 
     bool description_header_printed = false;
     for (size_t i = 0; i < helps.size(); ++i) {
@@ -417,31 +479,31 @@ void admin_command_parser_t::do_usage_internal(const std::vector<admin_help_info
             continue;
         }
         if (description_header_printed == false) {
-            help.pagef("%s\n", make_bold("DESCRIPTION").c_str());
+            printf("%s\n", make_bold("DESCRIPTION").c_str());
             description_header_printed = true;
         }
         std::string some_other_header = prefix + helps[i].command + " " + helps[i].usage;
         std::string desc = helps[i].description;
-        help.pagef("%s\n%s\n\n", indent_and_underline(some_other_header, 4, 6, width).c_str(),
-                                 indent_and_underline(desc, 8, 8, width).c_str());
+        printf("%s\n%s\n\n", indent_and_underline(some_other_header, 4, 6, width).c_str(),
+               indent_and_underline(desc, 8, 8, width).c_str());
     }
 
     if (!console || !options.empty()) {
-        help.pagef("%s\n", make_bold("OPTIONS").c_str());
+        printf("%s\n", make_bold("OPTIONS").c_str());
 
         if (!console) {
-            help.pagef("%s\n", indent_and_underline("<ADMIN-OPTIONS>", 4, 6, width).c_str());
+            printf("%s\n", indent_and_underline("<ADMIN-OPTIONS>", 4, 6, width).c_str());
 #ifndef NDEBUG
-            help.pagef("%s\n", indent_and_underline("[--client-port <PORT>]", 8, 10, width).c_str());
-            help.pagef("%s\n\n", indent_and_underline("debug only option, specify the local port to use when connecting to the cluster", 12, 12, width).c_str());
+            printf("%s\n", indent_and_underline("[--client-port <PORT>]", 8, 10, width).c_str());
+            printf("%s\n\n", indent_and_underline("debug only option, specify the local port to use when connecting to the cluster", 12, 12, width).c_str());
 #endif
-            help.pagef("%s\n", indent_and_underline("-j,--join <HOST>:<PORT>", 8, 10, width).c_str());
-            help.pagef("%s\n\n", indent_and_underline("specify the host and cluster port of a node in the cluster to join", 12, 12, width).c_str());
+            printf("%s\n", indent_and_underline("-j,--join <HOST>:<PORT>", 8, 10, width).c_str());
+            printf("%s\n\n", indent_and_underline("specify the host and cluster port of a node in the cluster to join", 12, 12, width).c_str());
         }
 
         for (size_t i = 0; i < options.size(); ++i) {
-            help.pagef("%s\n", indent_and_underline(options[i].first, 4, 6, width).c_str());
-            help.pagef("%s\n\n", indent_and_underline(options[i].second, 8, 8, width).c_str());
+            printf("%s\n", indent_and_underline(options[i].first, 4, 6, width).c_str());
+            printf("%s\n\n", indent_and_underline(options[i].second, 8, 8, width).c_str());
         }
     }
 }
@@ -479,6 +541,7 @@ admin_command_parser_t::admin_command_parser_t(const std::string& peer_string,
                                                const peer_address_t &_canonical_addresses,
                                                int client_port,
                                                signal_t *_interruptor) :
+    termcap(STDOUT_FILENO),
     join_peer(peer_string),
     joins_param(joins),
     canonical_addresses(_canonical_addresses),
@@ -668,6 +731,10 @@ void admin_command_parser_t::build_command_descriptions() {
     info = add_command(touch_command, touch_command, touch_usage, &admin_cluster_link_t::do_admin_touch, &commands);
 
     info = add_command(help_command, help_command, help_usage, NULL, &commands); // Special case, 'help' is not done through the cluster
+    info->add_positional("command", 1, false)->add_options("split", "merge", "set", "unset", "ls", "create", "rm", "resolve", "help", "pin", "touch", NULLPTR);
+    info->add_positional("subcommand", 1, false);
+
+    info = add_command(dashed_help_command, dashed_help_command, help_usage, NULL, &commands); // Also allow --help to work for consistency with other rethinkdb subcommands
     info->add_positional("command", 1, false)->add_options("split", "merge", "set", "ls", "create", "rm", "resolve", "help", "pin", "touch", NULLPTR);
     info->add_positional("subcommand", 1, false);
 }
@@ -702,7 +769,11 @@ admin_cluster_link_t *admin_command_parser_t::get_cluster() {
 }
 
 
-admin_command_parser_t::command_info_t *admin_command_parser_t::find_command(const std::map<std::string, admin_command_parser_t::command_info_t *>& cmd_map, const std::vector<std::string>& line, size_t& index) {
+admin_command_parser_t::command_info_t *
+admin_command_parser_t::find_command(const std::map<std::string,
+                                                    admin_command_parser_t::command_info_t *>& cmd_map,
+                                     const std::vector<std::string>& line,
+                                     size_t& index) {
     std::map<std::string, command_info_t *>::const_iterator i = cmd_map.find(line[0]);
 
     if (i == commands.end()) {
@@ -721,7 +792,9 @@ admin_command_parser_t::command_info_t *admin_command_parser_t::find_command(con
     return i->second;
 }
 
-admin_command_parser_t::command_data_t admin_command_parser_t::parse_command(command_info_t *info, const std::vector<std::string>& line)
+admin_command_parser_t::command_data_t
+admin_command_parser_t::parse_command(command_info_t *info,
+                                      const std::vector<std::string>& line)
 {
     command_data_t data(info);
     size_t positional_index = 0;
@@ -783,7 +856,7 @@ admin_command_parser_t::command_data_t admin_command_parser_t::parse_command(com
 
 void admin_command_parser_t::run_command(const command_data_t& data) {
     // Special cases for help and join, which do nothing through the cluster
-    if (data.info->command == "help") {
+    if (data.info->command == help_command || data.info->command == dashed_help_command) {
         do_admin_help(data);
     } else if (data.info->do_function == NULL) {
         throw admin_parse_exc_t("incomplete command (should have been caught earlier, though)");
@@ -809,24 +882,28 @@ void admin_command_parser_t::run_command(const command_data_t& data) {
 }
 
 void admin_command_parser_t::completion_generator_hook(const char *raw, linenoiseCompletions *completions) {
-    if (instance == NULL) {
-        logERR("linenoise completion generator called without an instance of admin_command_parser_t");
-    } else {
-        bool partial = !linenoiseIsUnescapedSpace(raw, strlen(raw) - 1);
-        try {
-            std::vector<std::string> line = parse_line(raw);
-            instance->completion_generator(line, completions, partial);
-        } catch (const std::exception& ex) {
-            // Do nothing - if the line can't be parsed or completions failed, we just can't complete the line
-        }
+    guarantee(instance != NULL);
+
+    bool partial = !linenoiseIsUnescapedSpace(raw, strlen(raw) - 1);
+    try {
+        std::vector<std::string> line = parse_line(raw);
+        instance->completion_generator(line, completions, partial);
+    } catch (const std::exception& ex) {
+        // Do nothing - if the line can't be parsed or completions failed, we just can't complete the line
     }
 }
 
-std::map<std::string, admin_command_parser_t::command_info_t *>::const_iterator admin_command_parser_t::find_command_with_completion(const std::map<std::string, command_info_t *>& _commands, const std::string& str, linenoiseCompletions *completions, bool add_matches) {
+std::map<std::string, admin_command_parser_t::command_info_t *>::const_iterator
+admin_command_parser_t::find_command_with_completion(const std::map<std::string,
+                                                     command_info_t *>& _commands,
+                                                     const std::string& str,
+                                                     linenoiseCompletions *completions,
+                                                     bool add_matches) {
     std::map<std::string, command_info_t *>::const_iterator i = _commands.find(str);
     if (add_matches) {
         if (i == _commands.end()) {
-            for (i = _commands.lower_bound(str); i != _commands.end() && i->first.find(str) == 0; ++i) {
+            for (i = _commands.lower_bound(str);
+                 i != _commands.end() && i->first.find(str) == 0; ++i) {
                 linenoiseAddCompletion(completions, i->first.c_str());
             }
         } else {
@@ -838,14 +915,17 @@ std::map<std::string, admin_command_parser_t::command_info_t *>::const_iterator 
     return i;
 }
 
-void admin_command_parser_t::add_option_matches(const param_options_t *option, const std::string& partial, linenoiseCompletions *completions) {
+void admin_command_parser_t::add_option_matches(const param_options_t *option,
+                                                const std::string& partial,
+                                                linenoiseCompletions *completions) {
     if (option->hidden || (partial.find("!") == 0) ) {
         // Skip any hidden options, no completions there
         // Don't allow completions beginning with '!', as we use it as a special case
         return;
     }
 
-    for (std::set<std::string>::iterator i = option->valid_options.lower_bound(partial); i != option->valid_options.end() && i->find(partial) == 0; ++i) {
+    for (std::set<std::string>::iterator i = option->valid_options.lower_bound(partial);
+         i != option->valid_options.end() && i->find(partial) == 0; ++i) {
         if (i->find("!") != 0) {
             // skip special cases
             linenoiseAddCompletion(completions, i->c_str());
@@ -883,13 +963,18 @@ void admin_command_parser_t::add_option_matches(const param_options_t *option, c
     }
 }
 
-void admin_command_parser_t::add_positional_matches(const command_info_t *info, size_t offset, const std::string& partial, linenoiseCompletions *completions) {
+void admin_command_parser_t::add_positional_matches(const command_info_t *info,
+                                                    size_t offset,
+                                                    const std::string& partial,
+                                                    linenoiseCompletions *completions) {
     if (info->positionals.size() > offset) {
         add_option_matches(info->positionals[offset], partial, completions);
     }
 }
 
-void admin_command_parser_t::completion_generator(const std::vector<std::string>& line, linenoiseCompletions *completions, bool partial) {
+void admin_command_parser_t::completion_generator(const std::vector<std::string>& line,
+                                                  linenoiseCompletions *completions,
+                                                  bool partial) {
     // TODO: this function is too long, too complicated, and is probably redundant in some cases
     //   I'm sure it can be simplified, but for now it seems to work
 
@@ -1044,7 +1129,9 @@ void admin_command_parser_t::parse_and_run_command(const std::vector<std::string
 
         if (info == NULL) {
             throw admin_parse_exc_t("unknown command: " + line[0]);
-        } else if (info->do_function == NULL && info->full_command != help_command) {
+        } else if (info->do_function == NULL &&
+                   info->full_command != help_command &&
+                   info->full_command != dashed_help_command) {
             throw admin_parse_exc_t("incomplete command");
         }
 

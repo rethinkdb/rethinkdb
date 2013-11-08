@@ -34,13 +34,13 @@ void add_table_arg(Term *term, const std::string &db_name, const std::string &ta
     add_string_arg(arg, table_name);
 }
 
-Term* add_term_arg(Term *term, Term::TermType type) {
+Term *add_term_arg(Term *term, Term::TermType type) {
     Term *new_term = term->add_args();
     new_term->set_type(type);
     return new_term;
 }
 
-Datum* add_object_arg(Term *term) {
+Datum *add_object_arg(Term *term) {
     Term *arg = term->add_args();
     arg->set_type(Term::DATUM);
     Datum *datum = arg->mutable_datum();
@@ -123,7 +123,8 @@ public:
     virtual ~interrupt_callback_t() { }
 
     void eval_callback() {
-        if (--delay == 0) {
+        --delay;
+        if (delay == 0) {
             test_env_instance->interrupt();
         }
     }
@@ -136,7 +137,7 @@ private:
 class verify_callback_t {
 public:
     virtual ~verify_callback_t() { }
-    virtual bool verify(test_rdb_env_t::instance_t*) = 0;
+    virtual bool verify(test_rdb_env_t::instance_t *) = 0;
 };
 
 void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32_t *count_out,
@@ -147,9 +148,11 @@ void count_evals(test_rdb_env_t *test_env, ql::protob_t<const Term> term, uint32
     count_callback_t callback(count_out);
     env_instance->get()->set_eval_callback(&callback);
 
-    counted_t<ql::term_t> compiled_term = ql::compile_term(env_instance->get(), term);
+    ql::compile_env_t compile_env((ql::var_visibility_t()));
+    counted_t<ql::term_t> compiled_term = ql::compile_term(&compile_env, term);
 
-    UNUSED counted_t<ql::val_t> result = compiled_term->eval();
+    ql::scope_env_t scope_env(env_instance->get(), ql::var_scope_t());
+    UNUSED counted_t<ql::val_t> result = compiled_term->eval(&scope_env);
     rassert(*count_out > 0);
     guarantee(verify_callback->verify(env_instance.get()));
 }
@@ -164,10 +167,12 @@ void interrupt_test(test_rdb_env_t *test_env,
     interrupt_callback_t callback(interrupt_phase, env_instance.get());
     env_instance->get()->set_eval_callback(&callback);
 
-    counted_t<ql::term_t> compiled_term = ql::compile_term(env_instance->get(), term);
+    ql::compile_env_t compile_env((ql::var_visibility_t()));
+    counted_t<ql::term_t> compiled_term = ql::compile_term(&compile_env, term);
 
     try {
-        UNUSED counted_t<ql::val_t> result = compiled_term->eval();
+        ql::scope_env_t scope_env(env_instance->get(), ql::var_scope_t());
+        UNUSED counted_t<ql::val_t> result = compiled_term->eval(&scope_env);
     } catch (const interrupted_exc_t &ex) {
         guarantee(verify_callback->verify(env_instance.get()));
         return;
@@ -183,8 +188,8 @@ public:
         should_exist(_should_exist) { }
     virtual ~exists_verify_callback_t() { }
 
-    bool verify(test_rdb_env_t::instance_t* env_instance) {
-        const std::map<store_key_t, scoped_cJSON_t*> *data = env_instance->get_data(ns_id);
+    bool verify(test_rdb_env_t::instance_t *env_instance) {
+        const std::map<store_key_t, scoped_cJSON_t *> *data = env_instance->get_data(ns_id);
         bool exists = data->find(key) != data->end();
         return should_exist == exists;
     }

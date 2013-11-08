@@ -36,7 +36,6 @@
 #include "logger.hpp"
 #include "mock/dummy_protocol.hpp"
 #include "utils.hpp"
-#include "help.hpp"
 
 #define RETHINKDB_EXPORT_SCRIPT "rethinkdb-export"
 #define RETHINKDB_IMPORT_SCRIPT "rethinkdb-import"
@@ -404,21 +403,70 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts, c
 
 // Note that this defaults to the peer port if no port is specified
 //  (at the moment, this is only used for parsing --join directives)
+// Possible formats:
+//  host only: newton
+//  host and port: newton:60435
+//  IPv4 addr only: 192.168.0.1
+//  IPv4 addr and port: 192.168.0.1:60435
+//  IPv6 addr only: ::dead:beef
+//  IPv6 addr only: [::dead:beef]
+//  IPv6 addr and port: [::dead:beef]:60435
+//  IPv4-mapped IPv6 addr only: ::ffff:192.168.0.1
+//  IPv4-mapped IPv6 addr only: [::ffff:192.168.0.1]
+//  IPv4-mapped IPv6 addr and port: [::ffff:192.168.0.1]:60435
 host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
                                     const std::string &value, int default_port) {
-    size_t colon_loc = value.find_first_of(':');
-    if (colon_loc != std::string::npos) {
-        std::string host = value.substr(0, colon_loc);
-        int port = atoi(value.substr(colon_loc + 1).c_str());
-        if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
-            return host_and_port_t(host, port_t(port));
+    // First disambiguate IPv4 vs IPv6
+    size_t colon_count = std::count(value.begin(), value.end(), ':');
+
+    if (colon_count < 2) {
+        // IPv4 will have 1 or less colons
+        size_t colon_loc = value.find_last_of(':');
+        if (colon_loc != std::string::npos) {
+            std::string host = value.substr(0, colon_loc);
+            int port = atoi(value.substr(colon_loc + 1).c_str());
+            if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
+                return host_and_port_t(host, port_t(port));
+            }
+        } else if (value.size() != 0) {
+            return host_and_port_t(value, port_t(default_port));
         }
-    } else if (value.size() != 0) {
-        return host_and_port_t(value, port_t(default_port));
+    } else {
+        // IPv6 will have 2 or more colons
+        size_t last_colon_loc = value.find_last_of(':');
+        size_t start_bracket_loc = value.find_first_of('[');
+        size_t end_bracket_loc = value.find_last_of(']');
+
+        if (start_bracket_loc > end_bracket_loc) {
+            // Error condition fallthrough
+        } else if (start_bracket_loc == std::string::npos || end_bracket_loc == std::string::npos) {
+            // No brackets, therefore no port, just parse the whole thing as a hostname
+            return host_and_port_t(value, port_t(default_port));
+        } else if (last_colon_loc < end_bracket_loc) {
+            // Brackets, but no port, verify no other characters outside the brackets
+            if (value.find_last_not_of(" \t\r\n[", start_bracket_loc) == std::string::npos &&
+                value.find_first_not_of(" \t\r\n]", end_bracket_loc) == std::string::npos) {
+                std::string host = value.substr(start_bracket_loc + 1, end_bracket_loc - start_bracket_loc - 1);
+                return host_and_port_t(host, port_t(default_port));
+            }
+        } else {
+            // Brackets and port
+            std::string host = value.substr(start_bracket_loc + 1, end_bracket_loc - start_bracket_loc - 1);
+            std::string remainder = value.substr(end_bracket_loc + 1);
+            size_t remainder_colon_loc = remainder.find_first_of(':');
+            int port = atoi(remainder.substr(remainder_colon_loc + 1).c_str());
+
+            // Verify no characters before the brackets and up to the port colon
+            if (port != 0 && port <= MAX_PORT && remainder_colon_loc == 0 &&
+                value.find_last_not_of(" \t\r\n[", start_bracket_loc) == std::string::npos) {
+                return host_and_port_t(host, port_t(port));
+            }
+        }
     }
 
+
     throw options::value_error_t(source, option_name,
-                                 strprintf("Option '%s' has invalid host and port number '%s'",
+                                 strprintf("Option '%s' has invalid host and port format '%s'",
                                            option_name.c_str(), value.c_str()));
 }
 
@@ -441,25 +489,25 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
             all = true;
         } else {
             // Verify that all specified addresses are valid ip addresses
-            struct in_addr addr;
-            if (inet_pton(AF_INET, bind_options[i].c_str(), &addr) == 1) {
-                if (addr.s_addr == INADDR_ANY) {
+            try {
+                ip_address_t addr(bind_options[i]);
+                if (addr.is_any()) {
                     all = true;
                 } else {
-                    set_filter.insert(ip_address_t(addr));
+                    set_filter.insert(addr);
                 }
-            } else {
+            } catch (const invalid_address_exc_t &ex) {
                 throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", bind_options[i].c_str()));
             }
         }
     }
 
-    std::set<ip_address_t> result = ip_address_t::get_local_addresses(set_filter, all);
+    std::set<ip_address_t> result = get_local_ips(set_filter, all);
 
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
         if (result.find(*i) == result.end()) {
-            throw address_lookup_exc_t(strprintf("could not find bind ip address '%s'", i->as_dotted_decimal().c_str()));
+            throw address_lookup_exc_t(strprintf("could not find bind ip address '%s'", i->to_string().c_str()));
         }
     }
 
@@ -1422,106 +1470,17 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
     return true;
 }
 
-#if defined(__linux__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    char buffer[PATH_MAX + 1];
-    ssize_t len = readlink("/proc/self/exe", buffer, PATH_MAX);
-
-    if (len == -1) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    buffer[len] = '\0';
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#elif defined(__MACH__)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    uint32_t buffer_size = PATH_MAX;
-    char buffer[PATH_MAX + 1];
-
-    if (_NSGetExecutablePath(buffer, &buffer_size) == -1) {
-        buffer[0] = 0;
-
-        if (_NSGetExecutablePath(buffer, &buffer_size) == -1) {
-            fprintf(stderr, "Error when determining rethinkdb directory\n");
-            return false;
-        }
-    }
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#elif defined(__FreeBSD_version)
-bool get_rethinkdb_exe_directory(std::string *result) {
-    // Taken from http://stackoverflow.com/questions/799679, completely untested
-    int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
-    char buf[2048];
-    size_t cb = sizeof(buf);
-    int res = sysctl(mib, 4, buf, &cb, NULL, 0);
-
-    if (res != 0) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(res).c_str());
-        return false;
-    }
-
-    char *dir = dirname(buffer);
-    if (dir == NULL) {
-        fprintf(stderr, "Error when determining rethinkdb directory: %s\n",
-                errno_string(errno).c_str());
-        return false;
-    }
-
-    result->assign(dir);
-    return true;
-}
-#else
-#error "no implementation for 'get_rethinkdb_exe_directory()' available for this operating system"
-#endif
-
 void run_backup_script(const std::string& script_name, char * const arguments[]) {
-    std::string exe_dir;
-
-    if (!get_rethinkdb_exe_directory(&exe_dir)) {
-        return;
-    }
-
-    // First attempt to launch the script from the same directory as us
-    std::string local_script = exe_dir + "/" + script_name;
-    int res = execvp(local_script.c_str(), arguments);
-
-    fprintf(stderr, "Warning: error when running %s: %s\n",
-            local_script.c_str(), errno_string(errno).c_str());
-    fprintf(stderr, "  attempting to run using PATH\n");
-
-    // If that fails, try to run it from the system path
-    res = execvp(script_name.c_str(), arguments);
+    int res = execvp(script_name.c_str(), arguments);
     if (res == -1) {
-        fprintf(stderr, "Error when launching %s: %s\n",
+        fprintf(stderr,
+                "Error when launching %s: %s\n"
+                "The %s command depends on the RethinkDB Python driver, which must be installed.\n"
+                "Instructions for installing the RethinkDB Python driver are available here:\n"
+                "http://www.rethinkdb.com/docs/install-drivers/python/\n",
                 script_name.c_str(),
-                errno_string(errno).c_str());
+                errno_string(errno).c_str(),
+                script_name.c_str());
     }
 }
 
@@ -1653,22 +1612,21 @@ void help_rethinkdb_porcelain() {
         get_rethinkdb_porcelain_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
-    help.pagef("  and serve as a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
-    help.pagef("\n");
-    help.pagef("There are a number of subcommands for more specific tasks:\n");
-    help.pagef("    'rethinkdb create': prepare files on disk for a new server instance\n");
-    help.pagef("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
-    help.pagef("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
-    help.pagef("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
-    help.pagef("    'rethinkdb export': export data from an existing cluster into a file or directory\n");
-    help.pagef("    'rethinkdb import': import data from from a file or directory into an existing cluster\n");
-    help.pagef("    'rethinkdb dump': export and compress data from an existing cluster\n");
-    help.pagef("    'rethinkdb restore': import compressed data into an existing cluster\n");
-    help.pagef("\n");
-    help.pagef("For more information, run 'rethinkdb help [subcommand]'.\n");
+    printf("Running 'rethinkdb' will create a new data directory or use an existing one,\n");
+    printf("  and serve as a RethinkDB cluster node.\n");
+    printf("%s", format_help(help_sections).c_str());
+    printf("\n");
+    printf("There are a number of subcommands for more specific tasks:\n");
+    printf("    'rethinkdb create': prepare files on disk for a new server instance\n");
+    printf("    'rethinkdb serve': use an existing data directory to host data and serve queries\n");
+    printf("    'rethinkdb proxy': serve queries from an existing cluster but don't host data\n");
+    printf("    'rethinkdb admin': access and modify an existing cluster's metadata\n");
+    printf("    'rethinkdb export': export data from an existing cluster into a file or directory\n");
+    printf("    'rethinkdb import': import data from from a file or directory into an existing cluster\n");
+    printf("    'rethinkdb dump': export and compress data from an existing cluster\n");
+    printf("    'rethinkdb restore': import compressed data into an existing cluster\n");
+    printf("\n");
+    printf("For more information, run 'rethinkdb help [subcommand]'.\n");
 }
 
 void help_rethinkdb_create() {
@@ -1678,10 +1636,9 @@ void help_rethinkdb_create() {
         get_rethinkdb_create_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb create' is used to prepare a directory to act"
+    printf("'rethinkdb create' is used to prepare a directory to act"
                 " as the storage location for a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_serve() {
@@ -1691,9 +1648,8 @@ void help_rethinkdb_serve() {
         get_rethinkdb_serve_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("'rethinkdb serve' is the actual process for a RethinkDB cluster node.\n");
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_proxy() {
@@ -1703,9 +1659,8 @@ void help_rethinkdb_proxy() {
         get_rethinkdb_proxy_options(&help_sections, &options);
     }
 
-    help_pager_t help;
-    help.pagef("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
-    help.pagef("%s", format_help(help_sections).c_str());
+    printf("'rethinkdb proxy' serves as a proxy to an existing RethinkDB cluster.\n");
+    printf("%s", format_help(help_sections).c_str());
 }
 
 void help_rethinkdb_export() {

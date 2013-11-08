@@ -1,8 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/stream.hpp"
 
 #include "btree/keys.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 #include "rdb_protocol/datum_stream.hpp"
@@ -11,101 +10,14 @@
 
 namespace query_language {
 
-boost::shared_ptr<json_stream_t> json_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, ql::env_t *ql_env, const backtrace_t &backtrace) {
-    rdb_protocol_details::transform_t transform;
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, backtrace));
-    return boost::make_shared<transform_stream_t>(shared_from_this(), ql_env, transform);
-}
-
-hinted_datum_t json_stream_t::sorting_hint_next() {
-    return hinted_datum_t(CONTINUE, next());
-}
-
-rdb_protocol_t::rget_read_response_t::result_t json_stream_t::apply_terminal(
-    const rdb_protocol_details::terminal_variant_t &_t,
-    ql::env_t *ql_env,
-    const backtrace_t &backtrace) {
-    rdb_protocol_details::terminal_variant_t t = _t;
-    rdb_protocol_t::rget_read_response_t::result_t res;
-
-    terminal_initialize(ql_env, backtrace, &t, &res);
-
-    counted_t<const ql::datum_t> json;
-    while ((json = next())) {
-        terminal_apply(ql_env, backtrace, lazy_json_t(json), &t, &res);
-    }
-    return res;
-}
-
-in_memory_stream_t::in_memory_stream_t(boost::shared_ptr<json_stream_t> stream) {
-    while (counted_t<const ql::datum_t> json = stream->next()) {
-        data.push_back(json);
-    }
-}
-
-counted_t<const ql::datum_t> in_memory_stream_t::next() {
-    if (data.empty()) {
-        return counted_t<const ql::datum_t>();
-    } else {
-        counted_t<const ql::datum_t> ret = data.front();
-        data.pop_front();
-        return ret;
-    }
-}
-
-transform_stream_t::transform_stream_t(boost::shared_ptr<json_stream_t> _stream,
-                                       ql::env_t *_ql_env,
-                                       const rdb_protocol_details::transform_t &tr) :
-    stream(_stream),
-    ql_env(_ql_env),
-    transform(tr) { }
-
-counted_t<const ql::datum_t> transform_stream_t::next() {
-    while (data.empty()) {
-        counted_t<const ql::datum_t> input = stream->next();
-        if (!input) {
-            // End of stream reached.
-            return counted_t<const ql::datum_t>();
-        }
-
-        std::list<counted_t<const ql::datum_t> > accumulator;
-        accumulator.push_back(input);
-
-        // Apply transforms to the data
-        typedef rdb_protocol_details::transform_t::iterator tit_t;
-        for (tit_t it  = transform.begin();
-                   it != transform.end();
-                   ++it) {
-            std::list<counted_t<const ql::datum_t> > tmp;
-            for (auto jt = accumulator.begin(); jt != accumulator.end(); ++jt) {
-                transform_apply(ql_env, it->backtrace, *jt, &it->variant, &tmp);
-            }
-
-            accumulator = std::move(tmp);
-        }
-
-        data = std::move(accumulator);
-    }
-
-    counted_t<const ql::datum_t> datum = data.front();
-    data.pop_front();
-    return datum;
-}
-
-boost::shared_ptr<json_stream_t> transform_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &backtrace) {
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, backtrace));
-    return shared_from_this();
-}
-
 batched_rget_stream_t::batched_rget_stream_t(
-    const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-    signal_t *_interruptor,
+    const ql::rdb_namespace_access_t &_ns_access,
     counted_t<const ql::datum_t> left_bound, bool left_bound_open,
     counted_t<const ql::datum_t> right_bound, bool right_bound_open,
     const std::map<std::string, ql::wire_func_t> &_optargs,
     bool _use_outdated, sorting_t _sorting,
     ql::rcheckable_t *_parent)
-    : ns_access(_ns_access), interruptor(_interruptor),
+    : ns_access(new ql::rdb_namespace_access_t(_ns_access)),
       finished(false), started(false), optargs(_optargs), use_outdated(_use_outdated),
       range(left_bound_open ? key_range_t::open : key_range_t::closed,
             left_bound.has()
@@ -115,20 +27,17 @@ batched_rget_stream_t::batched_rget_stream_t(
             right_bound.has()
               ? store_key_t(right_bound->print_primary())
               : store_key_t::max()),
-      table_scan_backtrace(),
       sorting(_sorting),
       parent(_parent)
 { }
 
 batched_rget_stream_t::batched_rget_stream_t(
-    const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
-    signal_t *_interruptor, const std::string &_sindex_id,
+    const ql::rdb_namespace_access_t &_ns_access, const std::string &_sindex_id,
     counted_t<const ql::datum_t> _sindex_start_value, bool start_value_open,
     counted_t<const ql::datum_t> _sindex_end_value, bool end_value_open,
     const std::map<std::string, ql::wire_func_t> &_optargs, bool _use_outdated,
     sorting_t _sorting, ql::rcheckable_t *_parent)
-    : ns_access(_ns_access),
-      interruptor(_interruptor),
+    : ns_access(new ql::rdb_namespace_access_t(_ns_access)),
       sindex_id(_sindex_id),
       finished(false),
       started(false),
@@ -137,24 +46,23 @@ batched_rget_stream_t::batched_rget_stream_t(
       sindex_range(_sindex_start_value, start_value_open,
                    _sindex_end_value, end_value_open),
       range(rdb_protocol_t::sindex_key_range(
-                _sindex_start_value != NULL
+                _sindex_start_value.has()
                   ? _sindex_start_value->truncated_secondary()
                   : store_key_t::min(),
-                _sindex_end_value != NULL
+                _sindex_end_value.has()
                   ? _sindex_end_value->truncated_secondary()
                   : store_key_t::max())),
-      table_scan_backtrace(),
       sorting(_sorting),
       parent(_parent)
 { }
 
-boost::optional<rget_item_t> batched_rget_stream_t::head() {
+boost::optional<rget_item_t> batched_rget_stream_t::head(ql::env_t *env) {
     started = true;
     if (data.empty()) {
         if (finished) {
             return boost::optional<rget_item_t>();
         }
-        read_more();
+        read_more(env);
         if (data.empty()) {
             finished = true;
             return boost::optional<rget_item_t>();
@@ -198,10 +106,10 @@ bool rget_item_sindex_key_greater(const rget_item_t &left, const rget_item_t &ri
  * The sorting by the other field is done above but it needs to know which
  * elements had the same index value so it knows what to apply the sorting too.
  * */
-hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
+hinted_datum_t batched_rget_stream_t::sorting_hint_next(ql::env_t *env) {
     /* The simple case. No sorting is happening. */
-    if (sorting == UNORDERED) {
-        boost::optional<rget_item_t> item = head();
+    if (sorting == sorting_t::UNORDERED) {
+        boost::optional<rget_item_t> item = head(env);
         if (item) {
             pop();
             return hinted_datum_t(CONTINUE, item->data);
@@ -224,9 +132,14 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
             /* In this loop we load data in to the sorting buffer until we can
              * be sure that the next value to be returned is in it. (Or we hit
              * the limit at which point we error.) */
-            boost::optional<rget_item_t> item = head();
+            boost::optional<rget_item_t> item = head(env);
             if (!item) {
                 break;
+            }
+
+            if (!sindex_id) {
+                pop();
+                return hinted_datum_t(START, item->data);
             }
 
             std::string key = key_to_unescaped_str(item->key);
@@ -272,12 +185,11 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
          * return so we return nothing. */
         return hinted_datum_t(CONTINUE, counted_t<const ql::datum_t>());
     } else {
-        debugf("Sorting %zu elements.\n", sorting_buffer.size());
         /* There's data in the sorting_buffer time to sort it. */
-        if (sorting == ASCENDING) {
+        if (sorting == sorting_t::ASCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                       &rget_item_sindex_key_less);
-        } else if (sorting == DESCENDING) {
+        } else if (sorting == sorting_t::DESCENDING) {
             std::sort(sorting_buffer.begin(), sorting_buffer.end(),
                       &rget_item_sindex_key_greater);
         } else {
@@ -292,37 +204,36 @@ hinted_datum_t batched_rget_stream_t::sorting_hint_next() {
     }
 }
 
-counted_t<const ql::datum_t> batched_rget_stream_t::next() {
-    return sorting_hint_next().second;
+counted_t<const ql::datum_t> batched_rget_stream_t::next(ql::env_t *env) {
+    return sorting_hint_next(env).second;
 }
 
-boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(const rdb_protocol_details::transform_variant_t &t, UNUSED ql::env_t *ql_env2, const backtrace_t &per_op_backtrace) {
+boost::shared_ptr<json_stream_t> batched_rget_stream_t::add_transformation(
+    const rdb_protocol_details::transform_variant_t &t) {
     guarantee(!started);
-    transform.push_back(rdb_protocol_details::transform_atom_t(t, per_op_backtrace));
+    transform.push_back(t);
     return shared_from_this();
 }
 
 rdb_protocol_t::rget_read_response_t::result_t batched_rget_stream_t::apply_terminal(
-    const rdb_protocol_details::terminal_variant_t &t,
-    UNUSED ql::env_t *ql_env,
-    const backtrace_t &per_op_backtrace) {
+    const rdb_protocol_details::terminal_variant_t &t, ql::env_t *env) {
     rdb_protocol_t::rget_read_t rget_read = get_rget();
-    rget_read.terminal = rdb_protocol_details::terminal_t(t, per_op_backtrace);
-    rdb_protocol_t::read_t read(rget_read);
+    rget_read.terminal = t;
+    rdb_protocol_t::read_t read(rget_read, env->profile());
     try {
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
-            ns_access.get_namespace_if()->read_outdated(read, &res, interruptor);
+            ns_access->get_namespace_if().read_outdated(&read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
+            ns_access->get_namespace_if().read(
+                &read, &res, order_token_t::ignore, env->interruptor);
         }
-        rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+        rdb_protocol_t::rget_read_response_t *p_res
+            = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (runtime_exc_t *e = boost::get<runtime_exc_t>(&p_res->result)) {
-            throw *e;
-        } else if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        if (ql::exc_t *e2 = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e2;
         } else if (ql::datum_exc_t *e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
             throw *e3;
@@ -330,13 +241,7 @@ rdb_protocol_t::rget_read_response_t::result_t batched_rget_stream_t::apply_term
 
         return p_res->result;
     } catch (const cannot_perform_query_exc_t &e) {
-        if (table_scan_backtrace) {
-            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
-        } else {
-            // No backtrace for these.
-            rfail_toplevel(ql::base_exc_t::GENERIC,
-                           "cannot perform read: %s", e.what());
-        }
+        rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
     }
 }
 
@@ -356,26 +261,26 @@ rdb_protocol_t::rget_read_t batched_rget_stream_t::get_rget() {
     }
 }
 
-void batched_rget_stream_t::read_more() {
-    rdb_protocol_t::read_t read(get_rget());
+void batched_rget_stream_t::read_more(ql::env_t *env) {
+    rdb_protocol_t::read_t read(get_rget(), env->profile());
     try {
-        guarantee(ns_access.get_namespace_if());
+        guarantee(ns_access->get_namespace_if().has());
         rdb_protocol_t::read_response_t res;
         if (use_outdated) {
-            ns_access.get_namespace_if()->read_outdated(read, &res, interruptor);
+            ns_access->get_namespace_if().read_outdated(&read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(read, &res, order_token_t::ignore, interruptor);
+            ns_access->get_namespace_if().read(
+                &read, &res, order_token_t::ignore, env->interruptor);
         }
-        rdb_protocol_t::rget_read_response_t *p_res = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
+        rdb_protocol_t::rget_read_response_t *p_res
+            = boost::get<rdb_protocol_t::rget_read_response_t>(&res.response);
         guarantee(p_res);
 
         /* Re throw an exception if we got one. */
-        if (auto e = boost::get<runtime_exc_t>(&p_res->result)) {
+        if (auto e = boost::get<ql::exc_t>(&p_res->result)) {
             throw *e;
-        } else if (auto e2 = boost::get<ql::exc_t>(&p_res->result)) {
+        } else if (auto e2 = boost::get<ql::datum_exc_t>(&p_res->result)) {
             throw *e2;
-        } else if (auto e3 = boost::get<ql::datum_exc_t>(&p_res->result)) {
-            throw *e3;
         }
 
         // todo: just do a straight copy?
@@ -406,13 +311,7 @@ void batched_rget_stream_t::read_more() {
             }
         }
     } catch (const cannot_perform_query_exc_t &e) {
-        if (table_scan_backtrace) {
-            throw runtime_exc_t("cannot perform read: " + std::string(e.what()), *table_scan_backtrace);
-        } else {
-            // No backtrace.
-            rfail_toplevel(ql::base_exc_t::GENERIC,
-                           "cannot perform read: %s", e.what());
-        }
+        rfail_datum(ql::base_exc_t::GENERIC, "cannot perform read: %s", e.what());
     }
 }
 

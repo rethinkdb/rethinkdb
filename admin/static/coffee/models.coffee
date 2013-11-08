@@ -30,18 +30,24 @@ class Namespace extends Backbone.Model
     compute_shards: =>
         @.set 'computed_shards', new DataUtils.Shards [],@
 
+    regex:
+        string: /^S/
+        number: /^N.*%23(\-?[0-9]*(\.)?[0-9]*$)/
+        date: /^(PTIME).*%23\-?([0-9]*(\.)?[0-9]*$)/
     transform_key: (a) ->
         if a is null
             a_new = a
         else if a is ""
             a_new = -Infinity
-        else if typeof a is "string" and a[0]? and a[0] is 'N'
-            s = a.slice(a.indexOf("%23")+3)
-            if _.isNaN(parseFloat(s)) is false
-                a_new = parseFloat(s)
-        else if typeof a is "string" and a[0]? and a[0] is 'S'
-            a_new = a.slice(1)
-
+        else if typeof a is "string"
+            if @regex.string.test(a) is true
+                a_new = a.slice(1)
+            else if @regex.number.test(a) is true
+                s = a.slice(a.indexOf("%23")+3)
+                if _.isNaN(parseFloat(s)) is false
+                    a_new = parseFloat(s)
+            else if @regex.date.test(a) is true
+                a_new = new Date(parseFloat(a.slice(a.indexOf("%23")+3)))
         return a_new
 
 
@@ -52,7 +58,7 @@ class Namespace extends Backbone.Model
 
         if typeof a_new is 'number' and typeof b_new is 'number'
             return a_new-b_new
-        else if typeof a_new is 'string' and typeof b_new is 'string'
+        else if (typeof a_new is 'string' and typeof b_new is 'string') or (a_new instanceof Date and b_new instanceof Date)
             if a_new > b_new
                 return 1
             else if a_new < b_new
@@ -62,8 +68,17 @@ class Namespace extends Backbone.Model
         else if typeof a_new isnt typeof b_new
             if typeof a_new is 'number' and typeof b_new is 'string'
                 return -1
+            else if typeof a_new is 'number' and b_new instanceof Date
+                return -1
+            else if a_new instanceof Date and typeof b_new is 'string'
+                return -1
             else if typeof a_new is 'string' and typeof b_new is 'number'
                 return 1
+            else if a_new instanceof Date and typeof b_new is 'number'
+                return 1
+            else if typeof a_new is 'string' and b_new instanceof Date
+                return 1
+
             else if a_new is null and b_new isnt null
                 return 1
             else if b_new is null and a_new isnt null

@@ -1,11 +1,13 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/archive/archive.hpp"
 
 #include <string.h>
+#include <netinet/in.h>
 
 #include <algorithm>
 
 #include "containers/uuid.hpp"
+#include "rpc/serialize_macros.hpp"
 
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);
@@ -66,7 +68,6 @@ int send_write_message(write_stream_t *s, const write_message_t *msg) {
     return 0;
 }
 
-
 write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid) {
     rassert(!uuid.is_unset());
     msg.append(uuid.data(), uuid_u::static_size());
@@ -83,3 +84,19 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     return ARCHIVE_SUCCESS;
 }
 
+write_message_t &operator<<(write_message_t &msg, const in6_addr &addr) {
+    msg.append(&addr.s6_addr, sizeof(addr.s6_addr));
+    return msg;
+}
+
+MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
+    int64_t sz = sizeof(addr->s6_addr);
+    int64_t res = force_read(s, &addr->s6_addr, sz);
+
+    if (res == -1) { return ARCHIVE_SOCK_ERROR; }
+    if (res < sz) { return ARCHIVE_SOCK_EOF; }
+    rassert(res == sz);
+    return ARCHIVE_SUCCESS;
+}
+
+RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);

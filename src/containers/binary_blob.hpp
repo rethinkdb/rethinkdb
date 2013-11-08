@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_BINARY_BLOB_HPP_
 #define CONTAINERS_BINARY_BLOB_HPP_
 
@@ -46,7 +46,7 @@ public:
 
 private:
     std::vector<uint8_t> storage;
-    RDB_MAKE_ME_SERIALIZABLE_1(storage);
+    RDB_DECLARE_ME_SERIALIZABLE;
 };
 
 inline bool operator==(const binary_blob_t &left, const binary_blob_t &right) {

@@ -13,7 +13,7 @@
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
-int get_thread_id();
+threadnum_t get_thread_id();
 struct coro_globals_t;
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
@@ -108,13 +108,20 @@ public:
     static void set_coroutine_stack_size(size_t size);
 
     artificial_stack_t * get_stack();
+    
+    void set_priority(int _priority) {
+        linux_thread_message_t::set_priority(_priority);
+    }
+    int get_priority() const {
+        return linux_thread_message_t::get_priority();
+    }
 
 private:
     /* When called from within a coroutine, schedules the coroutine to be run on
     the given thread and then suspends the coroutine until that other thread
     picks it up again. Do not call this directly; use `on_thread_t` instead. */
     friend class on_thread_t;
-    static void move_to_thread(int thread);
+    static void move_to_thread(threadnum_t thread);
 
     // Contructor sets up the stack, get_and_init_coro will load a function to be run
     //  at which point the coroutine can be notified
@@ -128,6 +135,14 @@ private:
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->action_wrapper.reset(action);
+        // If we were called from a coroutine, the new coroutine inherits our
+        // caller's priority.
+        if (self() != NULL) {
+            coro->set_priority(self()->get_priority());
+        } else {
+            // Otherwise, just reset to the default.
+            coro->set_priority(MESSAGE_SCHEDULER_DEFAULT_PRIORITY);
+        }
         return coro;
     }
 
@@ -144,7 +159,7 @@ private:
 
     artificial_stack_t stack;
 
-    int current_thread_;
+    threadnum_t current_thread_;
 
     // Sanity check variables
     bool notified_;

@@ -25,11 +25,12 @@ failure_count = 0
 def print_test_failure(test_name, test_src, message):
     global failure_count
     failure_count = failure_count + 1
-    print ''
-    print "TEST FAILURE: %s" % test_name.encode('utf-8')
-    print "TEST BODY: %s" % test_src.encode('utf-8')
-    print message
-    print ''
+    print('')
+    print("TEST FAILURE: %s", test_name.encode('utf-8'))
+    print("TEST BODY: %s", test_src.encode('utf-8'))
+    print(message)
+    print('')
+    sys.exit(1)
 
 class Lst:
     def __init__(self, lst):
@@ -86,7 +87,7 @@ class Dct:
             val = other[key]
             if isinstance(val, str) or isinstance(val, unicode):
                 # Remove additional error info that creeps in in debug mode
-                val = re.sub("\nFailed assertion:.*", "", val, flags=re.M|re.S)
+                val = re.sub("(?ms)\nFailed assertion:.*", "", val)
             other[key] = val
             if not self.dct[key] == other[key]:
                 return False
@@ -115,8 +116,8 @@ class Err:
         else:
 
             # Strip "offending object" from the error message
-            other.message = re.sub(":\n.*", ".", other.message, flags=re.M|re.S)
-            other.message = re.sub("\nFailed assertion:.*", "", other.message, flags=re.M|re.S)
+            other.message = re.sub("(?ms):\n.*", ".", other.message)
+            other.message = re.sub("(?ms)\nFailed assertion:.*", "", other.message)
 
             if self.emsg and self.emsg != other.message:
                 return False
@@ -198,8 +199,8 @@ class PyTestDriver:
         #print 'Connecting to JS server on port ' + str(JSPORT)
         #self.js_conn = r.connect(host='localhost', port=JSPORT)
 
-        print 'Connecting to CPP server on port ' + str(CPPPORT)
-        print ''
+        print('Connecting to CPP server on port ' + str(CPPPORT))
+        print('')
         self.cpp_conn = r.connect(host='localhost', port=CPPPORT)
         if 'test' not in r.db_list().run(self.cpp_conn):
             r.db_create('test').run(self.cpp_conn)
@@ -209,6 +210,10 @@ class PyTestDriver:
         exec(expr, globals(), self.scope)
 
     def run(self, src, expected, name, runopts):
+        if runopts:
+            runopts["profile"] = True
+        else:
+            runopts = {"profile" : True}
 
         # Try to build the expected result
         if expected:
@@ -234,6 +239,8 @@ class PyTestDriver:
         # Try actually running the test
         try:
             cppres = query.run(self.cpp_conn, **runopts)
+            if cppres and "profile" in runopts and runopts["profile"]:
+                cppres = cppres["value"]
 
             # And comparing the expected result
             if not eq(exp_val)(cppres):

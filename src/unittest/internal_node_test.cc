@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <algorithm>
 #include <vector>
 
@@ -9,7 +9,6 @@
 
 namespace unittest {
 
-// TODO: this is rather duplicative of fsck::check_subtree_internal_node.
 void verify(block_size_t block_size, const internal_node_t *buf) {
     EXPECT_TRUE(buf->magic == internal_node_t::expected_magic);
 

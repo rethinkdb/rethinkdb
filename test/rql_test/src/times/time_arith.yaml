@@ -177,3 +177,19 @@ tests:
     py: ts.map(lambda x:x.date() + x.time_of_day()).map(lambda x:x.to_epoch_time())
     js: ts.map(r.row.date().add(r.row.timeOfDay())).map(r.row.toEpochTime())
     ot: rts
+
+  # Test time interaction with r.js
+  - rb: r.epoch_time(rt1).do(r.js("(function(data){return data})")).to_epoch_time()
+    py: r.epoch_time(rt1).do(r.js("(function(data){return data})")).to_epoch_time()
+    js: r.epoch_time(rt1).do(r.js("(function(data){return data})")).toEpochTime()
+    ot: rt1
+
+  - rb: r.do(r.js("new Date('2012-08-01')")).to_iso8601()
+    py: r.do(r.js("new Date('2012-08-01')")).to_iso8601()
+    js: r.do(r.js("new Date('2012-08-01')")).toISO8601()
+    ot: ("2012-08-01T00:00:00+00:00")
+
+  - rb: r.do(r.js("(function(x){doc = new Object(); doc.date = new Date('2012-08-01'); return doc;})"))["date"].to_iso8601()
+    py: r.do(r.js("(function(x){doc = new Object(); doc.date = new Date('2012-08-01'); return doc;})"))["date"].to_iso8601()
+    js: r.do(r.js("(function(x){doc = new Object(); doc.date = new Date('2012-08-01'); return doc;})"))("date").toISO8601()
+    ot: ("2012-08-01T00:00:00+00:00")

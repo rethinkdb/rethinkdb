@@ -61,8 +61,8 @@ public:
         typedef boost::variant<get_result_t, rget_result_t, distribution_result_t> result_t;
 
         read_response_t() { }
-        read_response_t(const read_response_t& r) : result(r.result) { }
-        explicit read_response_t(const result_t& r) : result(r) { }
+        read_response_t(const read_response_t &r) : result(r.result) { }
+        explicit read_response_t(const result_t &r) : result(r) { }
 
         result_t result;
     };

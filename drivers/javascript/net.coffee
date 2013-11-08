@@ -50,11 +50,9 @@ deconstructDatum = (datum, opts) ->
                             obj
                         else
                             throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
-                when undefined
-                    # Regular object
-                    obj
                 else
-                    throw new err.RqlDriverError "Unknown psudo-type #{obj['$reql_type$']}."
+                    # Regular object or unknown pseudo type
+                    obj
         },
             => throw new err.RqlDriverError "Unknown Datum type"
         )
@@ -81,7 +79,7 @@ class Connection extends events.EventEmitter
         @nextToken = 1
         @open = false
 
-        @buffer = new ArrayBuffer 0
+        @buffer = new Buffer(0)
 
         @_events = @_events || {}
 
@@ -102,18 +100,17 @@ class Connection extends events.EventEmitter
 
     _data: (buf) ->
         # Buffer data, execute return results if need be
-        @buffer = bufferConcat @buffer, buf
+        @buffer = Buffer.concat([@buffer, buf])
 
-        while @buffer.byteLength >= 4
-            responseLength = (new DataView @buffer).getUint32 0, true
-            unless @buffer.byteLength >= (4 + responseLength)
+        while @buffer.length >= 4
+            responseLength = @buffer.readUInt32LE(0)
+            unless @buffer.length >= (4 + responseLength)
                 break
 
             responseBuffer = @buffer.slice(4, responseLength + 4)
             response = pb.ParseResponse(responseBuffer)
             @_processResponse response
 
-            # For some reason, Arraybuffer.slice is not in my version of node
             @buffer = @buffer.slice(4 + responseLength)
 
     mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
@@ -138,6 +135,9 @@ class Connection extends events.EventEmitter
 
     _processResponse: (response) ->
         token = response.token
+        profile = response.profile
+        if profile?
+            profile = deconstructDatum(profile, {})
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
@@ -166,16 +166,27 @@ class Connection extends events.EventEmitter
                         response = mkAtom response, opts
                         if Array.isArray response
                             response = cursors.makeIterable response
+                        if profile?
+                            response = {profile: profile, value: response}
                         cb null, response
                         @_delQuery(token)
                    ,"SUCCESS_PARTIAL": =>
                         cursor = new cursors.Cursor @, token
                         @outstandingCallbacks[token].cursor = cursor
-                        cb null, cursor._addData(mkSeq(response, opts))
+                        if profile?
+                            cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
+                        else
+                            cb null, cursor._addData(mkSeq(response, opts))
                    ,"SUCCESS_SEQUENCE": =>
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
-                        cb null, cursor._endData(mkSeq(response, opts))
+                        if profile?
+                            cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
+                        else
+                            cb null, cursor._addData(mkSeq(response, opts))
+                   ,"WAIT_COMPLETE": =>
+                        @_delQuery(token)
+                        cb null, null
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )
@@ -183,15 +194,79 @@ class Connection extends events.EventEmitter
             # Unexpected token
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
-    close: ar () ->
-        @open = false
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            unless Object::toString.call(opts) is '[object Object]'
+                throw new err.RqlDriverError "First argument to two-argument `close` must be an object."
+            cb = callback
+        else if Object::toString.call(optsOrCallback) is '[object Object]'
+            opts = optsOrCallback
+            cb = null
+        else
+            opts = {}
+            cb = optsOrCallback
+
+        for own key of opts
+            unless key in ['noreplyWait']
+                throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
+
+        wrappedCb = (args...) =>
+            @open = false
+            if cb?
+                cb(args...)
+
+        noreplyWait = ((not opts.noreplyWait?) or opts.noreplyWait) and @open
+        if noreplyWait
+            @noreplyWait(wrappedCb)
+        else
+            wrappedCb()
+    )
+
+    noreplyWait: ar (callback) ->
+        unless typeof callback is 'function'
+            throw new err.RqlDriverError "First argument to noreplyWait must be a callback function."
+        unless @open
+            callback(new err.RqlDriverError "Connection is closed.")
+            return
+        
+        # Assign token
+        token = @nextToken++
+
+        # Construct query
+        query = {}
+        query.type = "NOREPLY_WAIT"
+        query.token = token
+
+        # Save callback
+        @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
+
+        @_sendQuery(query)
 
     cancel: ar () ->
         @outstandingCallbacks = {}
 
-    reconnect: ar (callback) ->
-        cb = => @constructor.call(@, {host:@host, port:@port}, callback)
-        setTimeout(cb, 0)
+    reconnect: (varar 1, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
+        else
+            opts = {}
+            cb = optsOrCallback
+
+        unless typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `reconnect` must be a callback function."
+
+        closeCb = (err) =>
+            if err?
+                cb(err)
+            else
+                constructCb = => @constructor.call(@, {host:@host, port:@port}, cb)
+                setTimeout(constructCb, 0)
+        @close(opts, closeCb)
+    )
 
     use: ar (db) ->
         @db = db
@@ -227,6 +302,12 @@ class Connection extends events.EventEmitter
                 val: r.expr(!!opts.noreply).build()
             query.global_optargs.push(pair)
 
+        if opts.profile?
+            pair =
+                key: 'profile'
+                val: r.expr(!!opts.profile).build()
+            query.global_optargs.push(pair)
+
         # Save callback
         if (not opts.noreply?) or !opts.noreply
             @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}
@@ -260,12 +341,19 @@ class Connection extends events.EventEmitter
         # Serialize protobuf
         data = pb.SerializeQuery(query)
 
-        length = data.byteLength
-        finalArray = new Uint8Array length + 4
-        (new DataView(finalArray.buffer)).setInt32(0, length, true)
-        finalArray.set((new Uint8Array(data)), 4)
+        # Prepend length
+        totalBuf = new Buffer(data.length + 4)
+        totalBuf.writeUInt32LE(data.length, 0)
 
-        @write finalArray.buffer
+        # Why loop and not just use Buffer.concat? Good question,
+        # The browserify implementation of Buffer.concat seems to
+        # be broken.
+        i = 0
+        while i < data.length
+            totalBuf.set(i+4, data.get(i))
+            i++
+
+        @write totalBuf
 
 class TcpConnection extends Connection
     @isAvailable: () -> !(process.browser)
@@ -277,7 +365,7 @@ class TcpConnection extends Connection
         super(host, callback)
 
         if @rawSocket?
-            @close()
+            @close({noreplyWait: false})
 
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
@@ -291,32 +379,28 @@ class TcpConnection extends Connection
 
         @rawSocket.once 'connect', =>
             # Initialize connection with magic number to validate version
-            buf = new ArrayBuffer 8
-            buf_view = new DataView buf
-            buf_view.setUint32 0, 0x723081e1, true # VersionDummy.Version.V0_2
-            buf_view.setUint32 4, @authKey.length, true
+            buf = new Buffer(8)
+            buf.writeUInt32LE(0x723081e1, 0) # VersionDummy.Version.V0_2
+            buf.writeUInt32LE(@authKey.length, 4)
             @write buf
             @rawSocket.write @authKey, 'ascii'
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection
             handshake_callback = (buf) =>
-                arr = util.toArrayBuffer(buf)
-
-                @buffer = bufferConcat @buffer, arr
-                for b,i in new Uint8Array @buffer
+                @buffer = Buffer.concat([@buffer, buf])
+                for b,i in @buffer
                     if b is 0
                         @rawSocket.removeListener('data', handshake_callback)
 
                         status_buf = @buffer.slice(0, i)
                         @buffer = @buffer.slice(i + 1)
-                        status_str = String.fromCharCode.apply(null, new Uint8Array status_buf)
+                        status_str = status_buf.toString()
 
                         clearTimeout(timeout)
                         if status_str == "SUCCESS"
                             # We're good, finish setting up the connection
-                            @rawSocket.on 'data', (buf) =>
-                                @_data(util.toArrayBuffer(buf))
+                            @rawSocket.on 'data', (buf) => @_data(buf)
 
                             @emit 'connect'
                             return
@@ -329,23 +413,36 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
-        @rawSocket.on 'close', => @open = false; @emit 'close'
+        @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
+    
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
+        else if Object::toString.call(optsOrCallback) is '[object Object]'
+            opts = optsOrCallback
+            cb = null
+        else
+            opts = {}
+            cb = optsOrCallback
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
-    close: () ->
-        super()
-        @rawSocket.end()
+        wrappedCb = (args...) =>
+            @rawSocket.end()
+            if cb?
+                cb(args...)
+
+        # This would simply be super(opts, wrappedCb), if we were not in the varar
+        # anonymous function
+        TcpConnection.__super__.close.call(this, opts, wrappedCb)
+    )
 
     cancel: () ->
         @rawSocket.destroy()
         super()
 
-    write: (chunk) ->
-        # Alas we must convert to a node buffer
-        buf = new Buffer chunk.byteLength
-        for byte,i in (new Uint8Array chunk)
-            buf[i] = byte
-
-        @rawSocket.write buf
+    write: (chunk) -> @rawSocket.write chunk
 
 class HttpConnection extends Connection
     DEFAULT_PROTOCOL: 'http'
@@ -388,26 +485,32 @@ class HttpConnection extends Connection
 
         xhr.onreadystatechange = (e) =>
             if xhr.readyState is 4 and xhr.status is 200
-                @_data(xhr.response)
-        xhr.send chunk
+                # Convert response from ArrayBuffer to node buffer
 
-bufferConcat = (buf1, buf2) ->
-    view = new Uint8Array (buf1.byteLength + buf2.byteLength)
-    view.set new Uint8Array(buf1), 0
-    view.set new Uint8Array(buf2), buf1.byteLength
-    view.buffer
+                buf = new Buffer(b for b in (new Uint8Array(xhr.response)))
+                @_data(buf)
+
+        # Convert the chunk from node buffer to ArrayBuffer
+        array = new ArrayBuffer(chunk.length)
+        view = new Uint8Array(array)
+        i = 0
+        while i < chunk.length
+            view[i] = chunk.get(i)
+            i++
+
+        xhr.send array
 
 # The only exported function of this module
 module.exports.connect = ar (host, callback) ->
     # Host must be a string or an object
-    unless typeof(host) is 'string' or typeof(host) is 'object'
+    unless typeof(host) is 'string' or Object::toString.call(host) is '[object Object]'
         throw new err.RqlDriverError "First argument to `connect` must be a string giving the "+
-                                 "host to `connect` to or an object giving `host` and `port`."
+                                     "host to `connect` to or an object giving `host` and `port`."
 
     # Callback must be a function
     unless typeof(callback) is 'function'
         throw new err.RqlDriverError "Second argument to `connect` must be a callback to invoke with "+
-                                 "either an error or the successfully established connection."
+                                     "either an error or the successfully established connection."
 
     if TcpConnection.isAvailable()
         new TcpConnection host, callback

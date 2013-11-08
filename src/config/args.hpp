@@ -16,7 +16,7 @@
  */
 
 #define SOFTWARE_NAME_STRING "RethinkDB"
-#define SERIALIZER_VERSION_STRING "1.8"
+#define SERIALIZER_VERSION_STRING "1.11"
 
 /**
  * Basic configuration parameters.
@@ -70,6 +70,9 @@
 // Size of the device block size (in bytes)
 #define DEVICE_BLOCK_SIZE                         512
 
+// Size of the metablock (in bytes)
+#define METABLOCK_SIZE                            (4 * KILOBYTE)
+
 // Size of each btree node (in bytes) on disk
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
@@ -79,6 +82,19 @@
 // Ratio of free ram to use for the cache by default
 // TODO: DEFAULT_MAX_CACHE_RATIO is unused. Should it be deleted?
 #define DEFAULT_MAX_CACHE_RATIO                   0.5
+
+// The maximum number of concurrently active
+// index writes per merger serializer.
+// The smaller the number, the more effective
+// the merger serializer is in merging index writes
+// together. This is favorable especially on rotational drives.
+// There is a theoretic chance of increased latencies on SSDs for
+// small values of this variable.
+#define MERGER_SERIALIZER_MAX_ACTIVE_WRITES       1
+
+// I/O priority of (merged) index writes used by the
+// merger serializer.
+#define MERGED_INDEX_WRITE_IO_PRIORITY            128
 
 
 // Maximum number of threads we support
@@ -180,6 +196,11 @@
 // TODO: LBA_SHARD_FACTOR used to be 16.
 #define LBA_SHARD_FACTOR                          4
 
+// How much space to reserve in the metablock to store inline LBA entries
+// Make sure that it fits into METABLOCK_SIZE, including all other meta data
+// TODO (daniel): Tune
+#define LBA_INLINE_SIZE                           (METABLOCK_SIZE - 512)
+
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
@@ -192,6 +213,36 @@
 
 // Size of a cache line (used in cache_line_padded_t).
 #define CACHE_LINE_SIZE                           64
+
+
+/**
+ * Message scheduler configuration
+ */
+
+// Each message on the message hup can have a priority between
+// MESSAGE_SCHEDULER_MIN_PRIORITY and MESSAGE_SCHEDULER_MAX_PRIORITY (both inclusive).
+#define MESSAGE_SCHEDULER_MIN_PRIORITY          (-2)
+#define MESSAGE_SCHEDULER_MAX_PRIORITY          2
+
+// If no priority is specified, messages will get MESSAGE_SCHEDULER_DEFAULT_PRIORITY.
+#define MESSAGE_SCHEDULER_DEFAULT_PRIORITY      0
+
+// Ordered messages cannot currently have different priorities, because that would mean
+// that ordered messages of a high priority could bypass those of a lower priority.
+// (our current implementation does not support re-ordering messages within a given
+// priority)
+// MESSAGE_SCHEDULER_ORDERED_PRIORITY is the effective priority at which ordered
+// messages are scheduled.
+#define MESSAGE_SCHEDULER_ORDERED_PRIORITY      0
+
+// MESSAGE_SCHEDULER_GRANULARITY specifies how many messages (of
+// MESSAGE_SCHEDULER_MAX_PRIORITY) the message scheduler processes before it
+// can take in new incoming messages. A smaller value means that high-priority
+// messages can bypass lower-priority ones faster, but decreases the efficiency
+// of the message hub.
+// MESSAGE_SCHEDULER_GRANULARITY should be least
+// 2^(MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1)
+#define MESSAGE_SCHEDULER_GRANULARITY           32
 
 #endif  // CONFIG_ARGS_HPP_
 

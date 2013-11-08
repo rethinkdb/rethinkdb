@@ -8,7 +8,7 @@ import threading
 import SocketServer
 from sys import argv
 from subprocess import Popen
-from time import sleep
+from time import sleep, time
 from sys import path, exit
 import unittest
 path.insert(0, '.')
@@ -196,6 +196,46 @@ class TestConnection(TestWithConnection):
             r.RqlDriverError, "Connection is closed.",
             r.expr(1).run, c)
 
+    def test_noreply_wait_waits(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.noreply_wait()
+        duration = time() - t
+        self.assertGreaterEqual(duration, 0.5)
+
+    def test_close_waits_by_default(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.close()
+        duration = time() - t
+        self.assertGreaterEqual(duration, 0.5)
+
+    def test_reconnect_waits_by_default(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.reconnect()
+        duration = time() - t
+        self.assertGreaterEqual(duration, 0.5)
+
+    def test_close_does_not_wait_if_requested(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.close(noreply_wait=False)
+        duration = time() - t
+        self.assertLess(duration, 0.5)
+
+    def test_reconnect_does_not_wait_if_requested(self):
+        c = r.connect(port=self.port)
+        t = time()
+        r.js('while(true);', timeout=0.5).run(c, noreply=True)
+        c.reconnect(noreply_wait=False)
+        duration = time() - t
+        self.assertLess(duration, 0.5)
+
     def test_db(self):
         c = r.connect(port=self.port)
 
@@ -314,14 +354,14 @@ class TestBatching(TestWithConnection):
         # If this test fails in the future check first if the structure of the object has changed.
 
         # Only the first chunk (of either 1 or 2) should have loaded
-        self.assertEqual(len(cursor.chunks), 1)
+        self.assertEqual(len(cursor.responses), 1)
 
         # Either the whole stream should have loaded in one batch or the server reserved at least
         # one element in the stream for the second batch.
         if cursor.end_flag:
-            self.assertEqual(len(cursor.chunks[0]), batch_size)
+            self.assertEqual(len(cursor.responses[0].response), batch_size)
         else:
-            assertLess(len(cursor.chunks[0]), batch_size)
+            assertLess(len(cursor.responses[0].response), batch_size)
 
         itr = iter(cursor)
         for i in xrange(0, batch_size - 1):
@@ -329,8 +369,8 @@ class TestBatching(TestWithConnection):
 
         # In both cases now there should at least one element left in the last chunk
         self.assertTrue(cursor.end_flag)
-        self.assertGreaterEqual(len(cursor.chunks), 1)
-        self.assertGreaterEqual(len(cursor.chunks[0]), 1)
+        self.assertGreaterEqual(len(cursor.responses), 1)
+        self.assertGreaterEqual(len(cursor.responses[0].response), 1)
 
 # # TODO: test cursors, streaming large values
 

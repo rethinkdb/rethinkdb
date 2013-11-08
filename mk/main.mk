@@ -11,7 +11,7 @@ default-goal: real-default-goal
 
 # Build the webui, drivers and executable
 .PHONY: all
-all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all backup-scripts
+all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all
 
 # $/ is a shorthand for $(TOP)/, without the leading ./
 / := $(patsubst ./%,%,$(TOP)/)
@@ -19,17 +19,11 @@ all: $(TOP)/src/all $(TOP)/admin/all $(TOP)/drivers/all backup-scripts
 # check-env.mk provides check-env-start and check-env-check
 include $(TOP)/mk/check-env.mk
 
-# Include custom.mk, the way, and generate and include the config file
+# Include custom.mk and the config file
 include $(TOP)/mk/configure.mk
 
 # Makefile related definitions
 include $(TOP)/mk/lib.mk
-
-# Don't parse the rest of the rules if the configure step is not complete
-ifneq (success,$(CONFIGURE_STATUS))
-  # Don't build anything
-  real-default-goal:
-else # if CONFIGURE_STATUS = success
 
 # The default goal
 real-default-goal: $(DEFAULT_GOAL)
@@ -49,14 +43,8 @@ include $(TOP)/external/build.mk
 # Clients drivers
 include $(TOP)/drivers/build.mk
 
-# Documentation
-include $(TOP)/docs/rql/build.mk
-
 # Build the web assets
 include $(TOP)/mk/webui.mk
-
-# Copying the backup scripts
-include $(TOP)/mk/backup-scripts.mk
 
 # Building the rethinkdb executable
 include $(TOP)/src/build.mk
@@ -75,5 +63,3 @@ include $(TOP)/mk/local.mk
 
 .PHONY: clean
 clean: build-clean
-
-endif # CONFIGURE_STATUS = success

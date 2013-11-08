@@ -1,4 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef PROTOB_PROTOB_TCC_
+#define PROTOB_PROTOB_TCC_
+
 #include "protob/protob.hpp"
 
 #include <google/protobuf/stubs/common.h>
@@ -12,7 +15,11 @@
 
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "containers/auth_key.hpp"
+#include "rpc/semilattice/joins/vclock.hpp"
+#include "rpc/semilattice/view.hpp"
 #include "utils.hpp"
 
 template <class request_t, class response_t, class context_t>
@@ -33,7 +40,7 @@ protob_server_t<request_t, response_t, context_t>::protob_server_t(
 
     for (int i = 0; i < get_num_threads(); ++i) {
         cross_thread_signal_t *s =
-            new cross_thread_signal_t(&main_shutting_down_cond, i);
+            new cross_thread_signal_t(&main_shutting_down_cond, threadnum_t(i));
         shutting_down_conds.push_back(s);
         rassert(s == &shutting_down_conds[i]);
     }
@@ -95,7 +102,7 @@ void protob_server_t<request_t, response_t, context_t>::handle_conn(
     // This must be read here because of home threads and stuff
     const vclock_t<auth_key_t> auth_vclock = auth_metadata->get().auth_key;
 
-    int chosen_thread = (next_thread++) % get_num_db_threads();
+    threadnum_t chosen_thread = threadnum_t((next_thread++) % get_num_db_threads());
     cross_thread_signal_t ct_keepalive(keepalive.get_drain_signal(), chosen_thread);
     on_thread_t rethreader(chosen_thread);
 
@@ -331,3 +338,5 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
         return res;
     }
 }
+
+#endif  // PROTOB_PROTOB_TCC_

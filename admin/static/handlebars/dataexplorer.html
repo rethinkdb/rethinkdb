@@ -44,7 +44,17 @@
     <li class="no_history {{displayed_class}}">No history available</li>
     {{else}}
     <li class="query_history {{displayed_class}}" id="query_history_{{id}}">
-    <div class="query_id">[{{num}}]</div><div class="query_history_content"><span class="query">{{query}}<span class="right_container"><button class="btn load_query" data-id={{id}}>Load</button>{{#if broken_query}}<img src="images/warning-icon.png" class="broken_query" title="This query produced an error" />{{/if}}</span></span></div>
+    <div class="query_id">[{{num}}]</div>
+    <div class="query_history_content">
+        <span class="query">{{query}}
+            <span class="right_container">
+                <button class="btn load_query" data-id={{id}}>Load</button>
+                <button class="btn delete_query" data-id={{id}}>Remove</button>
+                {{#if broken_query}}<img src="images/warning-icon.png" class="broken_query" title="This query produced an error" />{{/if}}
+
+            </span>
+        </span>
+    </div>
     </li>
     {{/if}}
 </script>
@@ -79,11 +89,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     <p>{{print_safe description}}</p>
     <div class="db_table_available"></div>
     <div class="separation"></div>
-    {{#each examples}}
-    <p><u>Example</u>: {{print_safe description}}</br>
-    {{code}}
-    </p>
-    {{/each}}
+    {{print_safe example}}
 </script>
 
 <script id="dataexplorer-databases_suggestions-template" type="text/x-handlebars-template">
@@ -149,12 +155,21 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 <script id="dataexplorer-error-template" type="text/x-handlebars-template">
     <h1 class="title">Error</h1>
+    <p class="error_title">
+        {{#if js_error}}
+            JavaScript error:
+        {{else}}
+            Server error:
+        {{/if}}
+    </p>
+    <pre class="error error_details">{{error}}</pre>
+
     {{#if query}}
-        <p class="error">A query could not be executed.</p>
+        <p class="error">The query that returned an error is:</p>
         <pre class="error error_details">{{query}}</pre>
     {{/if}}
-    <p class="error">Error: </p>
-    <pre class="error error_details">{{error}}</pre>
+
+
 </script>
 
 <script id="dataexplorer-query_error-template" type="text/x-handlebars-template">

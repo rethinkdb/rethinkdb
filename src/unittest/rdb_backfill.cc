@@ -7,10 +7,11 @@
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
-#include "rdb_protocol/proto_utils.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
 #include "rpc/semilattice/semilattice_manager.hpp"
 #include "unittest/branch_history_manager.hpp"
@@ -23,14 +24,16 @@
 namespace unittest {
 
 void run_with_broadcaster(
-        boost::function< void(std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
-                              branch_history_manager_t<rdb_protocol_t> *,
-                              clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > >,
-                              scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
-                              test_store_t<rdb_protocol_t> *,
-                              scoped_ptr_t<listener_t<rdb_protocol_t> > *,
-                              rdb_protocol_t::context_t *ctx,
-                              order_source_t *)> fun) {
+    boost::function< void(
+        std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
+        branch_history_manager_t<rdb_protocol_t> *,
+        clone_ptr_t<watchable_t<boost::optional<boost::optional<
+            broadcaster_business_card_t<rdb_protocol_t> > > > >,
+        scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
+        test_store_t<rdb_protocol_t> *,
+        scoped_ptr_t<listener_t<rdb_protocol_t> > *,
+        rdb_protocol_t::context_t *ctx,
+        order_source_t *)> fun) {
     order_source_t order_source;
 
     /* Set up a cluster so mailboxes can be created */
@@ -126,10 +129,13 @@ void write_to_broadcaster(size_t value_padding_length,
                           const std::string &value,
                           order_token_t otok,
                           signal_t *) {
-    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key),
-                                                                generate_document(value_padding_length, value),
-                                                                true),
-                                  DURABILITY_REQUIREMENT_DEFAULT);
+    rdb_protocol_t::write_t write(
+            rdb_protocol_t::point_write_t(
+                store_key_t(key),
+                generate_document(value_padding_length, value),
+                true),
+            DURABILITY_REQUIREMENT_DEFAULT,
+            profile_bool_t::PROFILE);
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -208,7 +214,8 @@ void run_backfill_test(size_t value_padding_length,
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)));
+        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)),
+                profile_bool_t::PROFILE);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
@@ -252,13 +259,12 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     std::string sindex_id("sid");
     {
         /* Create a secondary index object. */
-        Term mapping;
-        Term *arg = ql::pb::set_func(&mapping, 1);
-        N2(GET_FIELD, NVAR(1), NDATUM("id"));
+        const ql::sym_t one(1);
+        ql::protob_t<const Term> mapping = ql::r::var(one)["id"].release_counted();
+        ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
-        ql::map_wire_func_t m(mapping, std::map<int64_t, Datum>());
-
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m));
+        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(
+                    sindex_id, m, sindex_multi_bool_t::SINGLE), profile_bool_t::PROFILE);
 
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -324,7 +330,8 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
         rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            sindex_id, rdb_protocol_t::sindex_range_t(                sindex_key_literal, false, sindex_key_literal, false)));
+            sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)),
+                profile_bool_t::PROFILE);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

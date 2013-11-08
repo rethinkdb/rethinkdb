@@ -1,5 +1,5 @@
-from ast import *
-import ql2_pb2 as p
+from .ast import *
+from . import ql2_pb2 as p
 import datetime
 
 """
@@ -99,6 +99,9 @@ def div(*args):
 
 def mod(a, b):
     return Mod(a, b)
+
+def not_(a):
+    return Not(a)
 
 def all(*args):
     return All(*args)

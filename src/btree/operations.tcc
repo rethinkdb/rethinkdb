@@ -7,6 +7,7 @@
 #include "btree/slice.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/promise.hpp"
+#include "rdb_protocol/profile.hpp"
 
 // TODO: consider B#/B* trees to improve space efficiency
 
@@ -26,7 +27,12 @@
  * This is because it may need to use the superblock for some of its methods.
  * */
 template <class Value>
-void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblock, const btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t *root_eviction_priority, btree_stats_t *stats, promise_t<superblock_t *> *pass_back_superblock = NULL) {
+void find_keyvalue_location_for_write(
+        transaction_t *txn, superblock_t *superblock, const btree_key_t *key,
+        keyvalue_location_t<Value> *keyvalue_location_out,
+        eviction_priority_t *root_eviction_priority, btree_stats_t *stats,
+        profile::trace_t *trace,
+        promise_t<superblock_t *> *pass_back_superblock = NULL) {
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     keyvalue_location_out->superblock = superblock;
@@ -39,15 +45,24 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
 
     buf_lock_t last_buf;
     buf_lock_t buf;
-    get_root(&sizer, txn, superblock, &buf, *root_eviction_priority);
+    {
+        profile::starter_t starter("Acquiring block for write.\n", trace);
+        get_root(&sizer, txn, superblock, &buf, *root_eviction_priority);
+    }
 
     // Walk down the tree to the leaf.
     while (node::is_internal(reinterpret_cast<const node_t *>(buf.get_data_read()))) {
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
-        check_and_handle_split(&sizer, txn, &buf, &last_buf, superblock, key, reinterpret_cast<Value *>(NULL), root_eviction_priority);
+        {
+            profile::starter_t starter("Perhaps split node.", trace);
+            check_and_handle_split(&sizer, txn, &buf, &last_buf, superblock, key, reinterpret_cast<Value *>(NULL), root_eviction_priority);
+        }
 
         // Check if the node is underfull, and merge/level if it is.
-        check_and_handle_underfull(&sizer, txn, &buf, &last_buf, superblock, key);
+        {
+            profile::starter_t starter("Perhaps merge nodes.", trace);
+            check_and_handle_underfull(&sizer, txn, &buf, &last_buf, superblock, key);
+        }
 
         // Release the superblock, if we've gone past the root (and haven't
         // already released it). If we're still at the root or at one of
@@ -70,10 +85,13 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
         block_id_t node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf.get_data_read()), key);
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
-        buf_lock_t tmp(txn, node_id, rwi_write);
-        tmp.set_eviction_priority(incr_priority(buf.get_eviction_priority()));
-        last_buf.swap(tmp);
-        buf.swap(last_buf);
+        {
+            profile::starter_t starter("Acquiring block for write.\n", trace);
+            buf_lock_t tmp(txn, node_id, rwi_write);
+            tmp.set_eviction_priority(incr_priority(buf.get_eviction_priority()));
+            last_buf.swap(tmp);
+            buf.swap(last_buf);
+        }
     }
 
     {
@@ -93,7 +111,11 @@ void find_keyvalue_location_for_write(transaction_t *txn, superblock_t *superblo
 }
 
 template <class Value>
-void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superblock, const btree_key_t *key, keyvalue_location_t<Value> *keyvalue_location_out, eviction_priority_t root_eviction_priority, btree_stats_t *stats) {
+void find_keyvalue_location_for_read(
+        transaction_t *txn, superblock_t *superblock, const btree_key_t *key,
+        keyvalue_location_t<Value> *keyvalue_location_out,
+        eviction_priority_t root_eviction_priority, btree_stats_t *stats,
+        profile::trace_t *trace) {
     stats->pm_keys_read.record();
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
@@ -106,8 +128,13 @@ void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superbloc
         return;
     }
 
-    buf_lock_t buf(txn, node_id, rwi_read);
-    buf.set_eviction_priority(root_eviction_priority);
+    buf_lock_t buf;
+    {
+        profile::starter_t starter("Acquire a block for read.", trace);
+        buf_lock_t tmp(txn, node_id, rwi_read);
+        tmp.set_eviction_priority(root_eviction_priority);
+        buf.swap(tmp);
+    }
 
     superblock->release();
 
@@ -120,6 +147,7 @@ void find_keyvalue_location_for_read(transaction_t *txn, superblock_t *superbloc
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
         {
+            profile::starter_t starter("Acquire a block for read.", trace);
             buf_lock_t tmp(txn, node_id, rwi_read);
             tmp.set_eviction_priority(incr_priority(buf.get_eviction_priority()));
             buf.swap(tmp);

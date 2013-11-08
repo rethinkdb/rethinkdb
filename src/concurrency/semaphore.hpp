@@ -44,7 +44,7 @@ public:
 
     void co_lock(int count = 1);
 
-    void co_lock_interruptible(signal_t *interruptor);
+    void co_lock_interruptible(signal_t *interruptor, int count = 1);
 
     void unlock(int count = 1);
     void lock_now(int count = 1);
@@ -88,7 +88,7 @@ public:
     void lock(semaphore_available_callback_t *cb, int count = 1);
 
     void co_lock(int count = 1);
-    void co_lock_interruptible(signal_t *interruptor);
+    void co_lock_interruptible(signal_t *interruptor, int count = 1);
 
     void unlock(int count = 1);
 
@@ -98,10 +98,44 @@ public:
 
     void set_capacity(int new_capacity);
 
+    int get_capacity() const { return capacity; }
+
 private:
     bool try_lock(int count);
 
     void pump();
+};
+
+
+class adjustable_semaphore_acq_t {
+public:
+    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree, int _count = 1, bool _force = false) :
+                acquiree(_acquiree),
+                count(_count) {
+                    
+        if (_force) {
+            acquiree->force_lock(count);
+        } else {
+            acquiree->co_lock(count);
+        }
+    }
+
+    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) :
+                acquiree(movee.acquiree),
+                count(movee.count) {
+        movee.acquiree = NULL;
+    }
+
+    ~adjustable_semaphore_acq_t() {
+        if (acquiree) {
+            acquiree->unlock(count);
+        }
+    }
+
+private:
+    adjustable_semaphore_t *acquiree;
+    int count;
+    DISABLE_COPYING(adjustable_semaphore_acq_t);
 };
 
 #endif /* CONCURRENCY_SEMAPHORE_HPP_ */

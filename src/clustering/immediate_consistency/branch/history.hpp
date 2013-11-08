@@ -27,8 +27,6 @@ timestamp will be a number that the `broadcaster_t` increments every time a
 write operation passes through it. (Warning: The timestamp is usually not zero
 for a new `broadcaster_t`.) */
 
-typedef uuid_u branch_id_t;
-
 class version_t {
 public:
     version_t() { }
@@ -169,6 +167,8 @@ public:
 template <class protocol_t>
 class branch_history_manager_t : public home_thread_mixin_t {
 public:
+    virtual ~branch_history_manager_t() { }
+
     /* Returns information about one specific branch. Crashes if we don't have a
     record for this branch. */
     virtual branch_birth_certificate_t<protocol_t> get_branch(branch_id_t branch) THROWS_NOTHING = 0;

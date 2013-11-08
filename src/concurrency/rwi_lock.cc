@@ -223,4 +223,6 @@ void rwi_lock_t::process_queue() {
     // attempt at reordering to increase throughput. For example,
     // rwrwrw should probably be reordered to rrrwww so that the reads
     // could be executed in parallel.
+    // Note (daniel): Re-ordering might break assumptions we make in the
+    // snapshotting code.
 }

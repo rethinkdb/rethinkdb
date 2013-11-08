@@ -1,13 +1,11 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/pb_server.hpp"
-
-#include "errors.hpp"
-#include <boost/make_shared.hpp>
 
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
@@ -46,20 +44,26 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
     guarantee(interruptor);
     response_out->set_token(q->token());
 
-    bool response_needed = true;
+    counted_t<const ql::datum_t> noreply = static_optarg("noreply", q);
+    bool response_needed = !(noreply.has() &&
+         noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
+         noreply->as_bool());
     try {
-        int thread = get_thread_id();
+        threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
                 ctx->extproc_pool, ctx->ns_repo,
-                ctx->cross_thread_namespace_watchables[thread]->get_watchable(),
-                ctx->cross_thread_database_watchables[thread]->get_watchable(),
+                ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
+                ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
-                interruptor, ctx->machine_id,
-                std::map<std::string, ql::wire_func_t>()));
+                interruptor, ctx->machine_id, q));
         // `ql::run` will set the status code
-        ql::run(q, &env, response_out, stream_cache2, &response_needed);
+        ql::run(q, std::move(env), response_out, stream_cache2);
+    } catch (const ql::exc_t &e) {
+        fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
+    } catch (const ql::datum_exc_t &e) {
+        fill_error(response_out, Response::COMPILE_ERROR, e.what(), ql::backtrace_t());
     } catch (const interrupted_exc_t &e) {
         ql::fill_error(response_out, Response::RUNTIME_ERROR,
                        "Query interrupted.  Did you shut down the server?");

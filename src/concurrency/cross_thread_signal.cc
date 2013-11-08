@@ -10,7 +10,7 @@ void cross_thread_signal_subscription_t::run() {
     parent_->on_signal_pulsed(keepalive_);
 }
 
-cross_thread_signal_t::cross_thread_signal_t(signal_t *source, int dest) :
+cross_thread_signal_t::cross_thread_signal_t(signal_t *source, threadnum_t dest) :
     source_thread(get_thread_id()), dest_thread(dest),
     rethreader(static_cast<signal_t *>(this), dest_thread),
     subs(this, auto_drainer_t::lock_t(&drainer)) {

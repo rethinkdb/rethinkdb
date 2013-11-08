@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_NAMESPACE_METADATA_HPP_
 
@@ -30,8 +30,6 @@
 #include "rpc/semilattice/joins/map.hpp"
 #include "rpc/semilattice/joins/vclock.hpp"
 #include "rpc/serialize_macros.hpp"
-
-typedef uuid_u namespace_id_t;
 
 
 /* This is the metadata for a single namespace of a specific protocol. */

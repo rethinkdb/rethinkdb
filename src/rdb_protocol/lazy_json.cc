@@ -1,3 +1,4 @@
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/lazy_json.hpp"
 
 #include "containers/archive/buffer_group_stream.hpp"
