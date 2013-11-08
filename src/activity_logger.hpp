@@ -23,7 +23,7 @@ public:
 private:
     microtime_t timestamp;
     std::string msg;
-    scoped_ptr_t<lazy_backtrace_t> bt;
+    scoped_ptr_t<lazy_backtrace_formatter_t> bt;
 
     DISABLE_COPYING(log_event_t);
 };
