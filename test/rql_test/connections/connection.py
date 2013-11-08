@@ -361,7 +361,7 @@ class TestBatching(TestWithConnection):
         if cursor.end_flag:
             self.assertEqual(len(cursor.responses[0].response), batch_size)
         else:
-            assertLess(len(cursor.responses[0].response), batch_size)
+            self.assertLess(len(cursor.responses[0].response), batch_size)
 
         itr = iter(cursor)
         for i in xrange(0, batch_size - 1):
