@@ -162,6 +162,4 @@ public:
 
 }  // namespace ql
 
-// RSI: make sure batch start time is reset on CONTINUE
-
 #endif // RDB_PROTOCOL_ENV_HPP_

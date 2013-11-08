@@ -94,13 +94,12 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
     return std::move(*v);
 }
 
-// RSI: tests for truncated sindexes
 bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
     started = true;
     if (items_index >= items.size() && !finished) { // read some more
         items_index = 0;
-        items = do_range_read(env, readgen->next_read(active_range, transform, batcher));
-        // RSI: Enforce sort limit.
+        items = do_range_read(
+            env, readgen->next_read(active_range, transform, batcher));
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
         while (boost::optional<read_t> read
@@ -109,6 +108,19 @@ bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
             if (new_items.size() == 0) {
                 break;
             }
+
+            rcheck_datum(
+                (items.size() + new_items.size()) < array_size_limit(),
+                base_exc_t::GENERIC,
+                strprintf("Too many entries (> %zu) with the same "
+                          "truncated key for index `%s`.  "
+                          "Example value:\n%s\n"
+                          "Truncated key:\n%s",
+                          array_size_limit(),
+                          readgen->sindex_name().c_str(),
+                          (*items[items.size() - 1].sindex_key)->trunc_print().c_str(),
+                          key_to_debug_str(items[items.size() - 1].key).c_str()));
+
             items.reserve(items.size() + new_items.size());
             std::move(new_items.begin(), new_items.end(), std::back_inserter(items));
         }
@@ -120,8 +132,6 @@ bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
     return items_index < items.size();
 }
 
-// RSI: user-settable sharding
-// RSI: search for `next`
 std::vector<counted_t<const datum_t> >
 reader_t::next_batch(env_t *env, const batcher_t &batcher) {
     started = true;
@@ -164,7 +174,6 @@ reader_t::next_batch(env_t *env, const batcher_t &batcher) {
     default: unreachable();
     }
 
-    // RSI: prefetch instead?
     if (items_index >= items.size()) { // free memory immediately
         items_index = 0;
         std::vector<rget_item_t> tmp;
@@ -218,7 +227,7 @@ read_t readgen_t::next_read(
     return read_t(next_read_impl(active_range, transform, batcher));
 }
 
-// RSI: this is how we did it before, but it sucks.
+// TODO: this is how we did it before, but it sucks.
 read_t readgen_t::terminal_read(
     const transform_t &transform,
     terminal_t &&_terminal,
@@ -267,6 +276,10 @@ void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const 
 
 key_range_t primary_readgen_t::original_keyrange() const {
     return original_datum_range.to_primary_keyrange();
+}
+
+std::string primary_readgen_t::sindex_name() const {
+    return "";
 }
 
 sindex_readgen_t::sindex_readgen_t(
@@ -318,8 +331,6 @@ rget_read_t sindex_readgen_t::next_read_impl(
         sorting);
 }
 
-// RSI: test this shit
-
 boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     const key_range_t &active_range,
     const std::vector<rget_item_t> &items,
@@ -363,6 +374,10 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
 
 key_range_t sindex_readgen_t::original_keyrange() const {
     return original_datum_range.to_sindex_keyrange();
+}
+
+std::string sindex_readgen_t::sindex_name() const {
+    return sindex;
 }
 
 // DATUM_STREAM_T

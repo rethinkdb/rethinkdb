@@ -49,7 +49,7 @@ datum_t::datum_t(const char *cstr)
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
     : type(R_ARRAY),
       r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
-    rcheck(!past_array_limit(*r_array),base_exc_t::GENERIC, array_size_error(*r_array));
+    rcheck_array_size(*r_array, base_exc_t::GENERIC);
 }
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
@@ -763,7 +763,7 @@ void datum_t::add(counted_t<const datum_t> val) {
     check_type(R_ARRAY);
     r_sanity_check(val.has());
     r_array->push_back(val);
-    rcheck(!past_array_limit(*r_array), base_exc_t::GENERIC, array_size_error(*r_array));
+    rcheck_array_size(*r_array, base_exc_t::GENERIC);
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,

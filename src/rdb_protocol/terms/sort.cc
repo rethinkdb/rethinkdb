@@ -172,8 +172,8 @@ private:
                     break;
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
-                rcheck(!past_array_limit(to_sort), base_exc_t::GENERIC,
-                       array_size_error(to_sort));
+                rcheck(to_sort.size() < array_size_limit(), base_exc_t::GENERIC,
+                       strprintf("Array over size limit %zu.", to_sort.size()).c_str());
             }
             auto fn = std::bind(lt_cmp, env->env,
                                 std::placeholders::_1, std::placeholders::_2);
@@ -207,7 +207,7 @@ private:
         batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
         while (counted_t<const datum_t> d = s->next(env->env, batcher)) {
             arr.push_back(std::move(d));
-            rcheck(!past_array_limit(arr), base_exc_t::GENERIC, array_size_error(arr));
+            rcheck_array_size(arr, base_exc_t::GENERIC);
         }
         std::sort(arr.begin(), arr.end(),
                   std::bind(lt_cmp, env->env,

@@ -206,7 +206,9 @@ public:
         const std::vector<rget_item_t> &items,
         const transform_t &transform,
         const batcher_t &batcher) const = 0;
+
     virtual key_range_t original_keyrange() const = 0;
+    virtual std::string sindex_name() const = 0; // Used for error checking.
 
     // Returns `true` if there is no more to read.
     bool update_range(key_range_t *active_range,
@@ -243,6 +245,7 @@ private:
         const batcher_t &batcher) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
+    virtual std::string sindex_name() const; // Used for error checking.
 };
 
 class sindex_readgen_t : public readgen_t {
@@ -267,6 +270,7 @@ private:
         const batcher_t &batcher) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
+    virtual std::string sindex_name() const; // Used for error checking.
 
     const std::string sindex;
 };

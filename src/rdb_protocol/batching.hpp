@@ -14,7 +14,8 @@ class datum_t;
 class env_t;
 
 enum batch_type_t {
-    NORMAL = 0, // A normal batch.
+    // A normal batch.
+    NORMAL = 0,
     // A batch fetched for a terminal or terminal-like term, e.g. a big batched
     // insert.  Ignores latency caps because the latency the user encounters is
     // determined by bandwidth instead.
@@ -57,15 +58,8 @@ private:
     microtime_t end_time;
 };
 
-template<class T>
-static inline bool past_array_limit(const T &t) {
-    return t.size() > 100000;
-}
-
-template<class T>
-std::string array_size_error(UNUSED const T &t) {
-    return strprintf("Array size limit of 100000 exceeded.");
-}
+// TODO: make user-tunable.
+size_t array_size_limit();
 
 } // namespace ql
 

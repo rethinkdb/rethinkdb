@@ -57,4 +57,6 @@ bool batcher_t::should_send_batch() const {
         || (current_microtime() >= end_time && seen_one_el);
 }
 
+size_t array_size_limit() { return 100000; }
+
 } // namespace ql
