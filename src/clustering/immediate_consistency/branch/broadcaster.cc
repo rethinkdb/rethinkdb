@@ -384,7 +384,6 @@ void listener_read(
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
-
     order_token.assert_read_mode();
 
     std::vector<dispatchee_t *> readers;
@@ -400,6 +399,8 @@ void broadcaster_t<protocol_t>::read(const typename protocol_t::read_t &read, ty
         if (read.all_read()) {
             get_all_readable_dispatchees(&readers, &mutex_acq, &reader_locks);
         } else {
+            readers.resize(1);
+            reader_locks.resize(1);
             pick_a_readable_dispatchee(&readers[0], &mutex_acq, &reader_locks[0]);
         }
         timestamp = current_timestamp;
@@ -562,6 +563,7 @@ void broadcaster_t<protocol_t>::get_all_readable_dispatchees(
     while (dispatchee) {
         dispatchees_out->push_back(dispatchee);
         locks_out->push_back(dispatchees[dispatchee]);
+        dispatchee = readable_dispatchees.next(dispatchee);
     }
 }
 
