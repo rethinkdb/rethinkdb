@@ -65,6 +65,14 @@ class Cursor(object):
             if len(self.responses) == 0 and self.end_flag:
                 break
 
+            try:
+                self.conn._check_error_response(self.responses[0], self.term)
+                if self.responses[0].type != p.Response.SUCCESS_PARTIAL and self.responses[0].type != p.Response.SUCCESS_SEQUENCE:
+                    raise RqlDriverError("Unexpected response type received for cursor")
+            except:
+                self.close()
+                raise
+
             for datum in self.responses[0].response:
                 yield deconstruct(datum, time_format)
             del self.responses[0]
@@ -213,8 +221,6 @@ class Connection(object):
         return self._send_query(cursor.query, cursor.term)
 
     def _update_cursor(self, response):
-        if response.type != p.Response.SUCCESS_PARTIAL and response.type != p.Response.SUCCESS_SEQUENCE:
-            raise RqlDriverError("Unexpected response type received for cursor token")
         cursor = self.cursor_cache[response.token]
         del self.cursor_cache[response.token]
         cursor._extend(response)
@@ -258,6 +264,23 @@ class Connection(object):
                 # This response is corrupted or not intended for us.
                 raise RqlDriverError("Unexpected response received.")
 
+    def _check_error_response(self, response, term):
+        if response.type == p.Response.RUNTIME_ERROR:
+            message = Datum.deconstruct(response.response[0])
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlRuntimeError(message, term, frames)
+        elif response.type == p.Response.COMPILE_ERROR:
+            message = Datum.deconstruct(response.response[0])
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlCompileError(message, term, frames)
+        elif response.type == p.Response.CLIENT_ERROR:
+            message = Datum.deconstruct(response.response[0])
+            backtrace = response.backtrace
+            frames = backtrace.frames or []
+            raise RqlClientError(message, term, frames)
+
     def _send_query(self, query, term, opts={}, async=False):
         # Error if this connection has closed
         if not self.socket:
@@ -276,38 +299,22 @@ class Connection(object):
         # Get response
         response = self._read_response(query.token)
 
+        self._check_error_response(response, term)
+
         time_format = 'native'
         if 'time_format' in opts:
             time_format = opts['time_format']
 
-        # Error responses
-        if response.type == p.Response.RUNTIME_ERROR:
-            message = Datum.deconstruct(response.response[0])
-            backtrace = response.backtrace
-            frames = backtrace.frames or []
-            raise RqlRuntimeError(message, term, frames)
-        elif response.type == p.Response.COMPILE_ERROR:
-            message = Datum.deconstruct(response.response[0])
-            backtrace = response.backtrace
-            frames = backtrace.frames or []
-            raise RqlCompileError(message, term, frames)
-        elif response.type == p.Response.CLIENT_ERROR:
-            message = Datum.deconstruct(response.response[0])
-            backtrace = response.backtrace
-            frames = backtrace.frames or []
-            raise RqlClientError(message, term, frames)
-
         # Sequence responses
         elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
-            new_cursor = Cursor(self, query, term, opts)
-            new_cursor._extend(response)
-            return new_cursor
+            value = Cursor(self, query, term, opts)
+            value._extend(response)
 
         # Atom response
         elif response.type == p.Response.SUCCESS_ATOM:
             if len(response.response) < 1:
-                return None
-            return Datum.deconstruct(response.response[0], time_format)
+                value = None
+            value = Datum.deconstruct(response.response[0], time_format)
 
         # Noreply_wait response
         elif response.type == p.Response.WAIT_COMPLETE:
@@ -316,6 +323,15 @@ class Connection(object):
         # Default for unknown response types
         else:
             raise RqlDriverError("Unknown Response type %d encountered in response." % response.type)
+
+        try:
+            if  Datum.deconstruct(response.profile) == None:
+                return value
+            else:
+                return {"value": value, "profile": Datum.deconstruct(response.profile)}
+        except AttributeError:
+            # response.profile does not exist
+            return value
 
 def connect(host='localhost', port=28015, db=None, auth_key="", timeout=20):
     return Connection(host, port, db, auth_key, timeout)

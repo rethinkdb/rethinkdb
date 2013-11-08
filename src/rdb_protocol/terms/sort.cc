@@ -134,17 +134,17 @@ private:
                    "Indexed order_by can only be performed on a TABLE.");
             rcheck(!seq.has(), base_exc_t::GENERIC,
                    "Indexed order_by can only be performed on a TABLE.");
-            sorting_t sorting = UNORDERED;
+            sorting_t sorting = sorting_t::UNORDERED;
             for (int i = 0; i < get_src()->optargs_size(); ++i) {
                 if (get_src()->optargs(i).key() == "index") {
                     if (get_src()->optargs(i).val().type() == Term::DESC) {
-                        sorting = DESCENDING;
+                        sorting = sorting_t::DESCENDING;
                     } else {
-                        sorting = ASCENDING;
+                        sorting = sorting_t::ASCENDING;
                     }
                 }
             }
-            r_sanity_check(sorting != UNORDERED);
+            r_sanity_check(sorting != sorting_t::UNORDERED);
             tbl->add_sorting(index->as_str(), sorting, this);
         }
 
@@ -181,12 +181,16 @@ private:
                          counted_t<const datum_t>) >(env->env, lt_cmp, arg(env, 0)->as_seq(env->env), backtrace()));
         datum_ptr_t arr(datum_t::R_ARRAY);
         counted_t<const datum_t> last;
-        while (counted_t<const datum_t> d = s->next(env->env)) {
-            if (last.has() && *last == *d) {
-                continue;
+        {
+            profile::sampler_t sampler("Evaluating elements in distinct.", env->env->trace);
+            while (counted_t<const datum_t> d = s->next(env->env)) {
+                if (last.has() && *last == *d) {
+                    continue;
+                }
+                last = d;
+                arr.add(last);
+                sampler.new_sample();
             }
-            last = d;
-            arr.add(last);
         }
         counted_t<datum_stream_t> out =
             make_counted<array_datum_stream_t>(arr.to_counted(), backtrace());

@@ -30,6 +30,7 @@ def print_test_failure(test_name, test_src, message):
     print("TEST BODY: %s", test_src.encode('utf-8'))
     print(message)
     print('')
+    sys.exit(1)
 
 class Lst:
     def __init__(self, lst):
@@ -209,6 +210,10 @@ class PyTestDriver:
         exec(expr, globals(), self.scope)
 
     def run(self, src, expected, name, runopts):
+        if runopts:
+            runopts["profile"] = True
+        else:
+            runopts = {"profile" : True}
 
         # Try to build the expected result
         if expected:
@@ -234,6 +239,8 @@ class PyTestDriver:
         # Try actually running the test
         try:
             cppres = query.run(self.cpp_conn, **runopts)
+            if cppres and "profile" in runopts and runopts["profile"]:
+                cppres = cppres["value"]
 
             # And comparing the expected result
             if not eq(exp_val)(cppres):
