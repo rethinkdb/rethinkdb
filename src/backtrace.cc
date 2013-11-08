@@ -145,7 +145,7 @@ address_to_line_t::addr2line_t::~addr2line_t() {
 bool address_to_line_t::run_addr2line(const std::string &executable, const void *address, char *line, int line_size) {
     addr2line_t* proc;
 
-    boost::ptr_map<std::string, addr2line_t>::iterator iter = procs.find(executable);
+    boost::ptr_map<const std::string, addr2line_t>::iterator iter = procs.find(executable);
 
     if (iter != procs.end()) {
         proc = iter->second;
