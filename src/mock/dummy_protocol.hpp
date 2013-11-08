@@ -57,6 +57,8 @@ public:
                    read_t *read_out) const;
         void unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *) const;
 
+        bool all_read() const { return false; }
+
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         region_t keys;
     };
