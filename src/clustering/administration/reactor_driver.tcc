@@ -296,9 +296,11 @@ private:
 
     void on_change_reactor_directory() {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-        namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-        directory.reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
-        parent_->watchable_variable.set_value(directory);
+        auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool {
+            directory->reactor_bcards.find(namespace_id_)->second = std::move(reactor_->get_reactor_directory()->get());
+            return true;
+        };
+        parent_->watchable_variable.apply_atomic_op(op);
     }
 
     void initialize_reactor(io_backender_t *io_backender) {
@@ -326,11 +328,14 @@ private:
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
             DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-            namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-            std::pair<typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::iterator, bool> insert_res
-                = directory.reactor_bcards.insert(std::make_pair(namespace_id_, reactor_->get_reactor_directory()->get()));
-            guarantee(insert_res.second);  // Ensure a value did not already exist.
-            parent_->watchable_variable.set_value(directory);
+
+            auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool {
+                std::pair<typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::iterator, bool> insert_res
+                    = directory->reactor_bcards.insert(std::make_pair(namespace_id_, reactor_->get_reactor_directory()->get()));
+                guarantee(insert_res.second);  // Ensure a value did not already exist.
+                return true;
+            };
+            parent_->watchable_variable.apply_atomic_op(op);
         }
 
         reactor_has_been_initialized_.pulse();
