@@ -505,7 +505,7 @@ class Skip extends RDBOp
 
 class Limit extends RDBOp
     tt: "LIMIT"
-    st: 'limit'
+    mt: 'limit'
 
 class GetField extends RDBOp
     tt: "GET_FIELD"
