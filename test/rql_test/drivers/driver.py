@@ -255,7 +255,7 @@ driver = PyTestDriver()
 driver.connect()
 
 # Emitted test code will consist of calls to this function
-def test(query, expected, name, runopts={}):
+def test(query, expected, name, runopts={'batch_conf': {'max_els': 3}}):
     if expected == '':
         expected = None
     driver.run(query, expected, name, runopts)
