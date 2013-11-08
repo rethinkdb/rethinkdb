@@ -57,7 +57,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
             coro_t::spawn_sometime(boost::bind(
                 &directory_read_manager_t::propagate_initialization, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
-                std::move(initial_value), metadata_fifo_state,
+                initial_value, metadata_fifo_state,
                 auto_drainer_t::lock_t(per_thread_drainers.get())));
 
             break;
@@ -81,7 +81,7 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
             coro_t::spawn_sometime(boost::bind(
                 &directory_read_manager_t::propagate_update, this,
                 source_peer, connectivity_service->get_connection_session_id(source_peer),
-                std::move(new_value), metadata_fifo_token,
+                new_value, metadata_fifo_token,
                 auto_drainer_t::lock_t(per_thread_drainers.get())));
 
             break;
