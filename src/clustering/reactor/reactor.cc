@@ -8,13 +8,12 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
-// TODO!!
 template<class key_t, class value_t>
-std::map<key_t, value_t> collapse_optionals_in_map(std::map<key_t, boost::optional<value_t> > &&map) {
+std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
     std::map<key_t, value_t> res;
-    for (typename std::map<key_t, boost::optional<value_t> >::iterator it = map.begin(); it != map.end(); it++) {
+    for (typename std::map<key_t, boost::optional<value_t> >::const_iterator it = map.begin(); it != map.end(); it++) {
         if (it->second) {
-            res.insert(std::make_pair(it->first, std::move(it->second.get())));
+            res.insert(std::make_pair(it->first, it->second.get()));
         }
     }
     return res;

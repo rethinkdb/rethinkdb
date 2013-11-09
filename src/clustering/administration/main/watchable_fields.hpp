@@ -38,7 +38,7 @@ class field_getter_t {
 public:
     explicit field_getter_t(inner_t outer_t::*f) : field(f) { }
 
-    std::map<peer_id_t, inner_t> operator()(std::map<peer_id_t, outer_t> &&outer) const {
+    std::map<peer_id_t, inner_t> operator()(const std::map<peer_id_t, outer_t> &outer) const {
         std::map<peer_id_t, inner_t> inner;
         for (typename std::map<peer_id_t, outer_t>::const_iterator it = outer.begin(); it != outer.end(); it++) {
             inner[it->first] = std::move(it->second.*field);

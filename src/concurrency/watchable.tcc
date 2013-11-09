@@ -18,7 +18,13 @@ public:
     }
 
     typename boost::result_of<callable_type(outer_type)>::type get() {
-        return lens(std::move(parent->get()));
+        typename boost::result_of<callable_type(outer_type)>::type result;
+        auto op = [&] (outer_type *val) -> bool {
+            result = lens(*val);
+            return false;
+        };
+        parent->apply_atomic_op(op);
+        return result;
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
