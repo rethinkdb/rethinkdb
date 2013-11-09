@@ -10,6 +10,8 @@
 template <class outer_type, class callable_type>
 class subview_watchable_t : public watchable_t<typename boost::result_of<callable_type(outer_type)>::type> {
 public:
+    typedef typename boost::result_of<callable_type(outer_type)>::type result_type;
+
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
         lens(l),
         parent(p->clone()),
@@ -35,11 +37,27 @@ public:
         return new subview_watchable_t(lens, parent.get());
     }
 
-    typename boost::result_of<callable_type(outer_type)>::type get() {
+    result_type get() {
         if (parent_changed) {
             compute_value();
         }
         return cached_value;
+    }
+
+    void apply_atomic_op(const std::function<bool(result_type*)> &op) {
+        if (parent_changed) {
+            compute_value();
+        }
+        ASSERT_NO_CORO_WAITING;
+        guarantee(op(&cached_value) == false);
+    }
+
+    virtual void apply_read(const std::function<void(const result_type*)> &read) {
+        if (parent_changed) {
+            compute_value();
+        }
+        ASSERT_NO_CORO_WAITING;
+        read(&cached_value);
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
@@ -67,7 +85,7 @@ private:
     clone_ptr_t<watchable_t<outer_type> > parent;
     // The ones below here are for caching the computed value
     bool parent_changed;
-    typename boost::result_of<callable_type(outer_type)>::type cached_value;
+    result_type cached_value;
     typename watchable_t<outer_type>::subscription_t parent_subscription;
 };
 
