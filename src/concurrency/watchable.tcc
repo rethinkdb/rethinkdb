@@ -13,7 +13,7 @@ public:
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
         lens(l),
         parent(p->clone()),
-        parent_changed(false),
+        parent_changed(true),
         parent_subscription(boost::bind(
             &subview_watchable_t<outer_type, callable_type>::on_parent_changed,
             this)) {
