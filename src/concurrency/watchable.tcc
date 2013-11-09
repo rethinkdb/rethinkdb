@@ -11,20 +11,26 @@ template <class outer_type, class callable_type>
 class subview_watchable_t : public watchable_t<typename boost::result_of<callable_type(outer_type)>::type> {
 public:
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
-        lens(l), parent(p->clone()) { }
+        lens(l),
+        parent(p->clone()),
+        parent_changed(false),
+        parent_subscription(boost::bind(
+            &subview_watchable_t<outer_type, callable_type>::on_parent_changed,
+            this)) {
+
+        typename watchable_t<outer_type>::freeze_t freeze(parent);
+        parent_subscription.reset(parent, &freeze);
+    }
 
     subview_watchable_t *clone() const {
         return new subview_watchable_t(lens, parent.get());
     }
 
     typename boost::result_of<callable_type(outer_type)>::type get() {
-        typename boost::result_of<callable_type(outer_type)>::type result;
-        auto op = [&] (outer_type *val) -> bool {
-            result = lens(*val);
-            return false;
-        };
-        parent->apply_atomic_op(op);
-        return result;
+        if (parent_changed) {
+            compute_value();
+        }
+        return cached_value;
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
@@ -36,8 +42,25 @@ public:
     }
 
 private:
+    void compute_value() {
+        parent_changed = false;
+        // This is to avoid copying the whole value from the parent.
+        auto op = [&] (outer_type *val) -> bool {
+            cached_value = lens(*val);
+            return false;
+        };
+        parent->apply_atomic_op(op);
+    }
+    void on_parent_changed() {
+        parent_changed = true;
+    }
+
     callable_type lens;
     clone_ptr_t<watchable_t<outer_type> > parent;
+    // The ones below here are for caching the computed value
+    bool parent_changed;
+    typename watchable_t<outer_type>::subscription_t parent_subscription;
+    typename boost::result_of<callable_type(outer_type)>::type cached_value;
 };
 
 template<class value_type>
