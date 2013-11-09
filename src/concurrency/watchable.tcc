@@ -52,8 +52,12 @@ public:
 
 private:
     void compute_value() {
-        parent_changed = false;
-        cached_value = lens(parent->get());
+        // This is to avoid copying the whole value from the parent.
+        auto op = [&] (const outer_type *val) -> void {
+            parent_changed = false;
+            cached_value = lens(*val);
+        };
+        parent->apply_read(op);
     }
     void on_parent_changed() {
         parent_changed = true;

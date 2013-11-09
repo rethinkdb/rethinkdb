@@ -108,9 +108,14 @@ public:
 
     virtual value_t get() = 0;
 
-    virtual void apply_atomic_op(std::function<bool(value_t*)> op) {
+    virtual void apply_atomic_op(const std::function<bool(value_t*)> &op) {
         value_t v = get();
         guarantee(op(&v) == false);
+    }
+
+    virtual void apply_read(const std::function<void(const value_t*)> &read) {
+        value_t v = get();
+        read(&v);
     }
 
     /* These are internal; the reason they're public is so that `subview()` and
@@ -170,7 +175,7 @@ public:
     // Applies an atomic modification to the value.
     // `op` must return true if the value was modified,
     // and should return false otherwise.
-    void apply_atomic_op(std::function<bool(value_t*)> op) {
+    void apply_atomic_op(const std::function<bool(value_t*)> &op) {
         DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
         bool was_modified;
         {
@@ -180,6 +185,13 @@ public:
         if (was_modified) {
             publisher_controller.publish(&call_function);
         }
+    }
+
+    // This is similar to apply_atomic_op, except that the operation
+    // cannot modify the value.
+    void apply_read(const std::function<void(const value_t*)> &read) {
+        ASSERT_NO_CORO_WAITING;
+        read(&value);
     }
 
 private:
@@ -198,8 +210,11 @@ private:
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
             return &parent->rwi_lock_assertion;
         }
-        void apply_atomic_op(std::function<bool(value_t*)> op) {
+        void apply_atomic_op(const std::function<bool(value_t*)> &op) {
             return parent->apply_atomic_op(op);
+        }
+        void apply_read(const std::function<void(const value_t*)> &read) {
+            parent->apply_read(read);
         }
         watchable_variable_t<value_t> *parent;
     };
