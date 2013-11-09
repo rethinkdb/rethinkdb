@@ -306,6 +306,14 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
 }
 
 template <class protocol_t>
+void btree_store_t<protocol_t>::add_progress_tracker(
+        map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
+        uuid_u id, const parallel_traversal_progress_t *p) {
+    assert_thread();
+    sentry->reset(&progress_trackers, id, p);
+}
+
+template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
         transaction_t *txn,

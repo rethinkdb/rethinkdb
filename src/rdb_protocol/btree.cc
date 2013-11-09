@@ -1306,6 +1306,16 @@ void post_construct_secondary_indexes(
 
     post_construct_traversal_helper_t helper(store,
             sindexes_to_post_construct, &local_interruptor, interruptor);
+    parallel_traversal_progress_t progress_tracker;
+    helper.progress = &progress_tracker;
+
+    std::vector<map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> >
+        insertion_sentries(sindexes_to_post_construct.size());
+    auto sentry = insertion_sentries.begin();
+    for (auto it = sindexes_to_post_construct.begin();
+         it != sindexes_to_post_construct.end(); ++it) {
+        store->add_progress_tracker(&*sentry, *it, &progress_tracker);
+    }
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     store->new_read_token(&read_token);
