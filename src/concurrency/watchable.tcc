@@ -19,7 +19,16 @@ public:
             this)) {
 
         typename watchable_t<outer_type>::freeze_t freeze(parent);
+        parent_changed = true; // Re-doing it here, so we definitely set the flag
+                               // while having the parent freezed.
         parent_subscription.reset(parent, &freeze);
+    }
+
+    ~subview_watchable_t() {
+        {
+            on_thread_t t(parent->home_thread());
+            parent_subscription.reset();
+        }
     }
 
     subview_watchable_t *clone() const {
@@ -44,12 +53,7 @@ public:
 private:
     void compute_value() {
         parent_changed = false;
-        // This is to avoid copying the whole value from the parent.
-        auto op = [&] (outer_type *val) -> bool {
-            cached_value = lens(*val);
-            return false;
-        };
-        parent->apply_atomic_op(op);
+        cached_value = lens(parent->get());
     }
     void on_parent_changed() {
         parent_changed = true;
@@ -59,8 +63,8 @@ private:
     clone_ptr_t<watchable_t<outer_type> > parent;
     // The ones below here are for caching the computed value
     bool parent_changed;
-    typename watchable_t<outer_type>::subscription_t parent_subscription;
     typename boost::result_of<callable_type(outer_type)>::type cached_value;
+    typename watchable_t<outer_type>::subscription_t parent_subscription;
 };
 
 template<class value_type>
