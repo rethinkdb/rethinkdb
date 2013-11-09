@@ -13,51 +13,37 @@ public:
     typedef typename boost::result_of<callable_type(outer_type)>::type result_type;
 
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
-        lens(l),
-        parent(p->clone()),
-        parent_changed(true),
-        parent_subscription(boost::bind(
-            &subview_watchable_t<outer_type, callable_type>::on_parent_changed,
-            this)) {
-
-        typename watchable_t<outer_type>::freeze_t freeze(parent);
-        parent_changed = true; // Re-doing it here, so we definitely set the flag
-                               // while having the parent freezed.
-        parent_subscription.reset(parent, &freeze);
-    }
-
-    ~subview_watchable_t() {
-        {
-            on_thread_t t(parent->home_thread());
-            parent_subscription.reset();
-        }
-    }
+        lens(l), parent(p->clone()) { }
 
     subview_watchable_t *clone() const {
         return new subview_watchable_t(lens, parent.get());
     }
 
     result_type get() {
-        if (parent_changed) {
-            compute_value();
-        }
-        return cached_value;
+        result_type result;
+        // This is to avoid copying the whole value from the parent.
+        auto op = [&] (const outer_type *val) -> void {
+            result = lens(*val);
+        };
+        parent->apply_read(op);
+        return result;
     }
 
     void apply_atomic_op(const std::function<bool(result_type*)> &op) {
-        if (parent_changed) {
-            compute_value();
-        }
-        ASSERT_NO_CORO_WAITING;
-        guarantee(op(&cached_value) == false);
+        auto lensed_op = [&] (outer_type *val) -> bool {
+            result_type v = lens(*val);
+            guarantee(op(&v) == false);
+            return false;
+        };
+        parent->apply_atomic_op(lensed_op);
     }
 
     virtual void apply_read(const std::function<void(const result_type*)> &read) {
-        if (parent_changed) {
-            compute_value();
-        }
-        ASSERT_NO_CORO_WAITING;
-        read(&cached_value);
+        auto lensed_read = [&] (const outer_type *val) -> void {
+            result_type v = lens(*val);
+            read(&v);
+        };
+        parent->apply_read(lensed_read);
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
@@ -69,24 +55,8 @@ public:
     }
 
 private:
-    void compute_value() {
-        // This is to avoid copying the whole value from the parent.
-        auto op = [&] (const outer_type *val) -> void {
-            parent_changed = false;
-            cached_value = lens(*val);
-        };
-        parent->apply_read(op);
-    }
-    void on_parent_changed() {
-        parent_changed = true;
-    }
-
     callable_type lens;
     clone_ptr_t<watchable_t<outer_type> > parent;
-    // The ones below here are for caching the computed value
-    bool parent_changed;
-    result_type cached_value;
-    typename watchable_t<outer_type>::subscription_t parent_subscription;
 };
 
 template<class value_type>
