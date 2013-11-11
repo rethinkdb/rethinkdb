@@ -26,7 +26,6 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
                                alt_access_t access)
     : txn_(txn),
       cache_(txn_->cache()),
-      block_id_(block_id),
       current_page_acq_(txn->page_txn(), block_id, access),
       snapshot_node_(NULL) {
     // RSI: Obviously, we want to use snapshot_node_ at some point.
@@ -42,7 +41,6 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
                                alt_access_t access)
     : txn_(parent->txn_),
       cache_(txn_->cache()),
-      block_id_(block_id),
       current_page_acq_(),
       snapshot_node_(NULL) {
 

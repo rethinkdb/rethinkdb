@@ -75,7 +75,7 @@ public:
 
     void snapshot_subtree();
 
-    block_id_t block_id() const { return block_id_; }
+    block_id_t block_id() const { return current_page_acq_.block_id(); }
     alt_access_t access() const { return current_page_acq_.access(); }
 
     signal_t *read_acq_signal() { return current_page_acq_.read_acq_signal(); }
@@ -87,7 +87,6 @@ private:
 
     alt_txn_t *txn_;
     alt_cache_t *cache_;
-    block_id_t block_id_;
 
     current_page_acq_t current_page_acq_;
 
