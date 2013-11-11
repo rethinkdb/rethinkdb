@@ -61,6 +61,8 @@ private:
 
 class alt_buf_lock_t {
 public:
+    alt_buf_lock_t();
+
     // Nonblocking constructor.
     alt_buf_lock_t(alt_txn_t *txn,
                    block_id_t block_id,
@@ -89,11 +91,23 @@ public:
 
     void snapshot_subtree();
 
-    block_id_t block_id() const { return current_page_acq_.block_id(); }
-    alt_access_t access() const { return current_page_acq_.access(); }
+    block_id_t block_id() const {
+        guarantee(txn_ != NULL);
+        return current_page_acq_.block_id();
+    }
+    alt_access_t access() const {
+        guarantee(txn_ != NULL);
+        return current_page_acq_.access();
+    }
 
-    signal_t *read_acq_signal() { return current_page_acq_.read_acq_signal(); }
-    signal_t *write_acq_signal() { return current_page_acq_.write_acq_signal(); }
+    signal_t *read_acq_signal() {
+        guarantee(txn_ != NULL);
+        return current_page_acq_.read_acq_signal();
+    }
+    signal_t *write_acq_signal() {
+        guarantee(txn_ != NULL);
+        return current_page_acq_.write_acq_signal();
+    }
 
 private:
     friend class alt_buf_read_t;

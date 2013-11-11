@@ -134,9 +134,11 @@ void current_page_acq_t::init(page_txn_t *txn,
 }
 
 current_page_acq_t::~current_page_acq_t() {
-    txn_->remove_acquirer(this);
-    if (current_page_ != NULL) {
-        current_page_->remove_acquirer(this);
+    if (txn_ != NULL) {
+        txn_->remove_acquirer(this);
+        if (current_page_ != NULL) {
+            current_page_->remove_acquirer(this);
+        }
     }
 }
 

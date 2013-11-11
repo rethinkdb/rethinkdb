@@ -21,6 +21,13 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
       page_txn_(&cache->page_cache_, &preceding_txn->page_txn_),
       this_txn_timestamp_(repli_timestamp_t::invalid) { }
 
+alt_buf_lock_t::alt_buf_lock_t()
+    : txn_(NULL),
+      cache_(NULL),
+      current_page_acq_(),
+      snapshot_node_(NULL) {
+}
+
 alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
                                block_id_t block_id,
                                alt_access_t access)
@@ -91,11 +98,13 @@ alt_buf_lock_t::~alt_buf_lock_t() {
 }
 
 void alt_buf_lock_t::snapshot_subtree() {
+    guarantee(txn_ != NULL);
     // RSI: Actually implement this.
 }
 
 alt_buf_read_t::alt_buf_read_t(alt_buf_lock_t *lock)
     : lock_(lock) {
+    guarantee(lock_->txn_ != NULL);
 }
 
 alt_buf_read_t::~alt_buf_read_t() { }
@@ -113,6 +122,7 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
 
 alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
     : lock_(lock) {
+    guarantee(lock_->txn_ != NULL);
 }
 
 alt_buf_write_t::~alt_buf_write_t() { }
