@@ -57,9 +57,7 @@ void run_OneTxn() {
         {
             page_txn_t txn(&page_cache);
         }
-        debugf("txn destroyed\n");
     }
-    debugf("page_cache destroyed\n");
 }
 
 TEST(PageTest, OneTxn) {
@@ -198,9 +196,6 @@ public:
         }
         c = NULL;
 
-        // RSI: Uncomment this section -- make the page cache support stats-block
-        // style out-of-order page access.
-#if 1
         {
             page_cache_t cache(mock.ser.get(), memory_limit);
             auto_drainer_t drain;
@@ -211,7 +206,6 @@ public:
                                             this, drain.lock()));
         }
         c = NULL;
-#endif  // 0
 
         {
             page_cache_t cache(mock.ser.get(), memory_limit);
@@ -221,13 +215,8 @@ public:
             check_value(&txn, b[0], "t6");
             check_value(&txn, b[1], "t6");
             check_value(&txn, b[2], "t6");
-#if 1
             check_value(&txn, b[3], "t7t14t15");
             check_value(&txn, b[4], "t7t15t14");
-#elif 0
-            check_value(&txn, b[3], "t7");
-            check_value(&txn, b[4], "t7");
-#endif
             check_value(&txn, b[5], "t8");
             check_value(&txn, b[6], "t1t2t9");
             check_value(&txn, b[7], "t2t5");
@@ -797,9 +786,7 @@ private:
             condZ1.pulse();
             acq8.reset();
             condZ2.pulse();
-            debugf("done txn12 (pc=%p, txn12=%p)\n", c, &txn12);
         }
-        debugf("txn12 destroyed (pc=%p)\n", c);
         condZ3.pulse();
     }
 
@@ -820,9 +807,7 @@ private:
             check_and_append(acq8, "t12", "t13");
             condZ4.pulse();
             acq8.reset();
-            debugf("done txn13 (pc=%p, txn13=%p)\n", c, &txn13);
         }
-        debugf("txn13 destroyed (pc=%p)\n", c);
         condZ5.pulse();
     }
 
