@@ -7,6 +7,7 @@
 #include <set>
 
 #include "concurrency/cond_var.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 #include "containers/backindex_bag.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/segmented_vector.hpp"
@@ -437,7 +438,8 @@ private:
     static void do_flush_txn(page_cache_t *page_cache, page_txn_t *txn);
 #endif
     static void do_flush_txn_set(page_cache_t *page_cache,
-                                 const std::set<page_txn_t *> &txns);
+                                 const std::set<page_txn_t *> &txns,
+                                 fifo_enforcer_write_token_t index_write_token);
     static void remove_txn_set_from_graph(page_cache_t *page_cache,
                                           const std::set<page_txn_t *> &txns);
 
@@ -475,6 +477,12 @@ private:
     // blocking user queries.
     scoped_ptr_t<file_account_t> reads_io_account;
     scoped_ptr_t<file_account_t> writes_io_account;
+
+    // This fifo enforcement pair ensures ordering of index_write operations after we
+    // move to the serializer thread and get a bunch of blocks written.
+    // index_write_sink's pointee's home thread is on the serializer.
+    fifo_enforcer_source_t index_write_source;
+    scoped_ptr_t<fifo_enforcer_sink_t> index_write_sink;
 
     serializer_t *serializer_;
 

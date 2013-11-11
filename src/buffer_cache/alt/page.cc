@@ -24,6 +24,7 @@ page_cache_t::page_cache_t(serializer_t *serializer, uint64_t memory_limit)
         on_thread_t thread_switcher(serializer->home_thread());
         reads_io_account.init(serializer->make_io_account(CACHE_READS_IO_PRIORITY));
         writes_io_account.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
+        index_write_sink.init(new fifo_enforcer_sink_t);
     }
 }
 
@@ -38,6 +39,7 @@ page_cache_t::~page_cache_t() {
         on_thread_t thread_switcher(serializer_->home_thread());
         reads_io_account.reset();
         writes_io_account.reset();
+        index_write_sink.reset();
     }
 }
 
@@ -1205,7 +1207,8 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
 }
 
 void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
-                                    const std::set<page_txn_t *> &txns) {
+                                    const std::set<page_txn_t *> &txns,
+                                    fifo_enforcer_write_token_t index_write_token) {
     pagef("do_flush_txn_set (pc=%p, tset=%p) from %s\n", page_cache, &txns,
           debug_strprint(txns).c_str());
 
@@ -1359,8 +1362,16 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
         pagef("do_flush_txn_set blocks_releasable_cb waited (pc=%p, tset=%p)\n", page_cache, &txns);
 
-        // RSI: This blocks?  Is there any way to set the began_index_write_
-        // fields?
+        // RSI: Pass in the exiter to index_write, so that
+        // subsequent index_write operations don't have to wait for one another to
+        // finish.
+        fifo_enforcer_sink_t::exit_write_t exiter(page_cache->index_write_sink.get(),
+                                                  index_write_token);
+        exiter.wait();
+
+        // RSI: This blocks?  Is there any way to set the began_index_write_ fields?
+        // RSI: Does the serializer guarantee that index_write operations happen in
+        // exactly the order that they're specified in?
         page_cache->serializer_->index_write(write_ops,
                                              page_cache->writes_io_account.get());
         pagef("do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
@@ -1442,9 +1453,12 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
             (*it)->spawned_flush_ = true;
         }
 
+        fifo_enforcer_write_token_t token = index_write_source.enter_write();
+
         coro_t::spawn_later_ordered(std::bind(&page_cache_t::do_flush_txn_set,
                                               this,
-                                              flush_set));
+                                              flush_set,
+                                              token));
     }
 
     // RSI: Remove this commented section.
