@@ -19,6 +19,7 @@
 
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
+#include "thread_stack_pcs.hpp"
 #include "arch/runtime/coro_profiler.hpp"
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
@@ -126,6 +127,9 @@ coro_t::coro_t() :
     waiting_(false)
 #ifndef NDEBUG
     , selfname_number(get_thread_id().threadnum + MAX_THREADS * ++coro_selfname_counter)
+#endif
+#ifdef CROSS_CORO_BACKTRACES
+    , spawn_backtrace_size(0)
 #endif
 {
     ++pm_allocated_coroutines;
@@ -388,6 +392,64 @@ coro_t * coro_t::get_coro() {
 
     ++pm_active_coroutines;
     return coro;
+}
+
+void coro_t::grab_spawn_backtrace() {
+#ifdef CROSS_CORO_BACKTRACES
+    // Skip a few constant frames at the beginning of the backtrace.
+    // This is purely a cosmetic thing, to make the backtraces
+    // nicer to look at and easier to read.
+    //
+    // The +2 comes together as follows:
+    // +1 for our own stack frame (`grab_spawn_backtrace()`)
+    // +1 for the fact that we get called from `get_and_init_coro()`
+    //    which is also not interesting at all.
+    const int num_frames_to_skip = NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE + 2;
+
+    const size_t buffer_size = static_cast<size_t>(CROSS_CORO_BACKTRACES_MAX_SIZE
+                                                   + num_frames_to_skip);
+    void *buffer[buffer_size];
+    spawn_backtrace_size = rethinkdb_backtrace(buffer, buffer_size);
+    if (spawn_backtrace_size < num_frames_to_skip) {
+        // Something is fishy if this happens... Probably RethinkDB was compiled
+        // with some optimizations enabled that inlined some functions or
+        // optimized away some stack frames, or the value of
+        // NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE is wrong, or we were called
+        // from an unexpected context.
+        rassert(spawn_backtrace_size >= num_frames_to_skip,
+            "Got an unexpected backtrace. See comment in coro_t::grab_spawn_backtrace(). "
+            "If you determine that this is acceptable in your specific case (e.g. "
+            "you are just debugging something), feel free to temporarily comment "
+            "this assertion.");
+        spawn_backtrace_size = num_frames_to_skip;
+    }
+    spawn_backtrace_size -= num_frames_to_skip;
+    rassert(spawn_backtrace_size >= 0);
+    rassert(spawn_backtrace_size <= CROSS_CORO_BACKTRACES_MAX_SIZE);
+    memcpy(spawn_backtrace, buffer + num_frames_to_skip, spawn_backtrace_size * sizeof(void *));
+
+    // If we have space left and were called from inside a coroutine,
+    // we also append the parent's spawn_backtrace.
+    int space_remaining = CROSS_CORO_BACKTRACES_MAX_SIZE - spawn_backtrace_size;
+    if (space_remaining > 0 && self() != NULL) {
+        spawn_backtrace_size += self()->copy_spawn_backtrace(spawn_backtrace + spawn_backtrace_size,
+                                                             space_remaining);
+    }
+#endif
+}
+
+int coro_t::copy_spawn_backtrace(DEBUG_VAR void **buffer_out, DEBUG_VAR int size) const {
+    rassert(buffer_out != NULL);
+    rassert(size >= 0);
+#ifdef CROSS_CORO_BACKTRACES
+    int num_frames_to_store = std::min(size, spawn_backtrace_size);
+    memcpy(buffer_out,
+           spawn_backtrace,
+           static_cast<size_t>(num_frames_to_store) * sizeof(void *));
+    return num_frames_to_store;
+#else
+    return 0;
+#endif
 }
 
 #ifndef NDEBUG

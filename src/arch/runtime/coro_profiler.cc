@@ -15,14 +15,6 @@
 
 #ifdef ENABLE_CORO_PROFILER
 
-// In order to not waste the first couple entries of our back traces on constant
-// entries inside of `rethinkdb_backtrace()`, we strip those frames off.
-// `NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE` is the number of frames that must be removed
-// to hide the call to `rethinkdb_backtrace()` from the backtrace.
-// This depends on the implementation of `rethinkdb_backtrace()`.
-// Hmm, maybe it should be moved to there?
-#define NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE   1
-
 coro_profiler_t &coro_profiler_t::get_global_profiler() {
     // Singleton implementation after Scott Meyers.
     // Since C++11, this is even thread safe according to here:

@@ -13,6 +13,12 @@
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
+// Enable cross-coroutine backtraces in debug mode.
+#ifndef NDEBUG
+    #define CROSS_CORO_BACKTRACES            1
+#endif
+#define CROSS_CORO_BACKTRACES_MAX_SIZE  64
+
 threadnum_t get_thread_id();
 struct coro_globals_t;
 
@@ -129,6 +135,12 @@ public:
         return linux_thread_message_t::get_priority();
     }
 
+    /* Copies the backtrace from the time of spawning the coroutine into
+    `buffer_out`, which has to be allocated before calling the function.
+    `size` must contain the maximum number of entries to store.
+    Returns how many entries have been deposited into `buffer_out`. */
+    int copy_spawn_backtrace(void **buffer_out, int size) const;
+
 private:
     /* When called from within a coroutine, schedules the coroutine to be run on
     the given thread and then suspends the coroutine until that other thread
@@ -136,9 +148,12 @@ private:
     friend class on_thread_t;
     static void move_to_thread(threadnum_t thread);
 
-    // Contructor sets up the stack, get_and_init_coro will load a function to be run
+    // Constructor sets up the stack, get_and_init_coro will load a function to be run
     //  at which point the coroutine can be notified
     coro_t();
+
+    // Generates a spawn-time backtrace and stores it into `spawn_backtrace`.
+    void grab_spawn_backtrace();
 
     // If this function footprint ever changes, you may need to update the parse_coroutine_info function
     template<class Callable>
@@ -147,7 +162,9 @@ private:
 #ifndef NDEBUG
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
+        coro->grab_spawn_backtrace();
         coro->action_wrapper.reset(action);
+
         // If we were called from a coroutine, the new coroutine inherits our
         // caller's priority.
         if (self() != NULL) {
@@ -156,6 +173,7 @@ private:
             // Otherwise, just reset to the default.
             coro->set_priority(MESSAGE_SCHEDULER_DEFAULT_PRIORITY);
         }
+
         return coro;
     }
 
@@ -185,6 +203,11 @@ private:
     int64_t selfname_number;
     std::string coroutine_type;
     void parse_coroutine_type(const char *coroutine_function);
+#endif
+
+#ifdef CROSS_CORO_BACKTRACES
+    int spawn_backtrace_size;
+    void *spawn_backtrace[CROSS_CORO_BACKTRACES_MAX_SIZE];
 #endif
 
     DISABLE_COPYING(coro_t);

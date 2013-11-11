@@ -14,6 +14,7 @@
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "thread_stack_pcs.hpp"
@@ -199,6 +200,16 @@ std::string format_backtrace(bool use_addr2line) {
 backtrace_t::backtrace_t() {
     scoped_array_t<void *> stack_frames(new void*[max_frames], max_frames); // Allocate on heap in case stack space is scarce
     int size = rethinkdb_backtrace(stack_frames.data(), max_frames);
+
+#ifdef CROSS_CORO_BACKTRACES
+    if (coro_t::self() != NULL) {
+        int space_remaining = max_frames - size;
+        rassert(space_remaining >= 0);
+        size += coro_t::self()->copy_spawn_backtrace(stack_frames.data() + size,
+                                                     space_remaining);
+    }
+#endif
+
     frames.reserve(static_cast<size_t>(size));
     for (int i = 0; i < size; ++i) {
         frames.push_back(backtrace_frame_t(stack_frames[i]));
