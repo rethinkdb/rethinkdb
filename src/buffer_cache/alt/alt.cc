@@ -55,7 +55,39 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     current_page_acq_.init(txn_->page_txn(), block_id, access);
 }
 
+alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
+                               alt_access_t access)
+    : txn_(txn),
+      cache_(txn_->cache()),
+      current_page_acq_(),
+      snapshot_node_(NULL) {
+    guarantee(access == alt_access_t::write);
+    current_page_acq_.init(txn->page_txn(), access);
+}
+
+alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
+                               alt_access_t access)
+    : txn_(parent->txn_),
+      cache_(txn_->cache()),
+      current_page_acq_(),
+      snapshot_node_(NULL) {
+    guarantee(access == alt_access_t::write);
+
+    // RSI: vvv Dedup this section with the other constructor.
+    guarantee(is_subordinate(parent->access(), access));
+
+    if (access == alt_access_t::write) {
+        parent->write_acq_signal()->wait();
+    } else {
+        parent->read_acq_signal()->wait();
+    }
+    // ^^^ Dedup this section.
+
+    current_page_acq_.init(txn_->page_txn(), access);
+}
+
 alt_buf_lock_t::~alt_buf_lock_t() {
+    // RSI: We'll have to do something with snapshot_node_ here.
 }
 
 void alt_buf_lock_t::snapshot_subtree() {

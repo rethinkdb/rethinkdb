@@ -71,6 +71,20 @@ public:
     alt_buf_lock_t(alt_buf_lock_t *parent,
                    block_id_t block_id,
                    alt_access_t access);
+
+    // Nonblocking constructor that acquires a block with a new block id.  (RSI: Is
+    // this useful for _anything_?  We refer to the superblock by name.)  `access`
+    // must be `write`.
+    alt_buf_lock_t(alt_txn_t *txn,
+                   alt_access_t access);
+
+    // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
+    // pulsed.  Allocates a block with a new block id.  `access` must be `write`.
+    alt_buf_lock_t(alt_buf_lock_t *parent,
+                   alt_access_t access);
+
+
+
     ~alt_buf_lock_t();
 
     void snapshot_subtree();
