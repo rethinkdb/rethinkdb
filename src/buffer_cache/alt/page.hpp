@@ -201,6 +201,8 @@ public:
         return !operator==(other);
     }
 
+    uint64_t debug_value() const { return value_; }
+
 private:
     uint64_t value_;
 };
@@ -326,7 +328,8 @@ private:
     page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
-    // The block version, assuming read_cond_ has been pulsed.
+    // The block version for our acquisition of the page -- only valid once
+    // read_cond_ has been pulsed.
     block_version_t block_version_;
 
     bool dirtied_page_;
@@ -586,10 +589,12 @@ private:
               ptr(std::move(_ptr)),
               tstamp(_tstamp) { }
         dirtied_page_t(dirtied_page_t &&movee)
-            : block_id(movee.block_id),
+            : block_version(movee.block_version),
+              block_id(movee.block_id),
               ptr(std::move(movee.ptr)),
               tstamp(movee.tstamp) { }
         dirtied_page_t &operator=(dirtied_page_t &&movee) {
+            block_version = movee.block_version;
             block_id = movee.block_id;
             ptr = std::move(movee.ptr);
             tstamp = movee.tstamp;

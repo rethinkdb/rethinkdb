@@ -221,6 +221,10 @@ void current_page_acq_t::pulse_write_available() {
 current_page_t::current_page_t()
     : is_deleted_(false),
       last_modifier_(NULL) {
+    // Increment the block version so that we can distinguish between unassigned
+    // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
+    rassert(block_version_.debug_value() == 0);
+    block_version_.increment();
 }
 
 current_page_t::current_page_t(block_size_t block_size,
@@ -229,6 +233,10 @@ current_page_t::current_page_t(block_size_t block_size,
     : page_(new page_t(block_size, std::move(buf), page_cache), page_cache),
       is_deleted_(false),
       last_modifier_(NULL) {
+    // Increment the block version so that we can distinguish between unassigned
+    // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
+    rassert(block_version_.debug_value() == 0);
+    block_version_.increment();
 }
 
 current_page_t::~current_page_t() {
@@ -324,6 +332,8 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                                help.page_cache);
                     is_deleted_ = false;
                 }
+                pagef("block version increment on %" PRIi64 " from %" PRIu64 "\n",
+                      acq->block_id(), block_version_.debug_value());
                 block_version_.increment();
                 cur->pulse_write_available();
             }
@@ -1138,7 +1148,10 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                 // The insertion failed -- we need to use the newer version.
                 auto const jt = res.first;
                 // The versions can't be the same for different write transactions.
-                rassert(jt->second.version != d.block_version);
+                rassert(jt->second.version != d.block_version,
+                        "equal versions on block %" PRIi64 ": %" PRIu64,
+                        d.block_id,
+                        d.block_version.debug_value());
                 if (jt->second.version < d.block_version) {
                     // RSI: What if jt->second.tstamp > d.tstamp?
                     // Should we take the max of both tstamps?  Ugghh.
@@ -1376,7 +1389,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                                              page_cache->writes_io_account.get());
         pagef("do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
     }
-    pagef("exicted scope after do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
+    pagef("exited scope after do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
 
     // Flush complete, and we're back on the page cache's thread.
 

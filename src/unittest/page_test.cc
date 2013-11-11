@@ -200,7 +200,7 @@ public:
 
         // RSI: Uncomment this section -- make the page cache support stats-block
         // style out-of-order page access.
-#if 0
+#if 1
         {
             page_cache_t cache(mock.ser.get(), memory_limit);
             auto_drainer_t drain;
@@ -221,10 +221,10 @@ public:
             check_value(&txn, b[0], "t6");
             check_value(&txn, b[1], "t6");
             check_value(&txn, b[2], "t6");
-#if 0
+#if 1
             check_value(&txn, b[3], "t7t14t15");
             check_value(&txn, b[4], "t7t15t14");
-#elif 1
+#elif 0
             check_value(&txn, b[3], "t7");
             check_value(&txn, b[4], "t7");
 #endif
