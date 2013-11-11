@@ -1,8 +1,10 @@
 #ifndef BUFFER_CACHE_ALT_PAGE_HPP_
 #define BUFFER_CACHE_ALT_PAGE_HPP_
 
+#include <map>
 #include <utility>
 #include <vector>
+#include <set>
 
 #include "concurrency/cond_var.hpp"
 #include "containers/backindex_bag.hpp"
@@ -125,12 +127,12 @@ public:
     page_ptr_t &operator=(page_ptr_t &&movee);
     void init(page_t *page, page_cache_t *page_cache);
 
-    page_t *get_page_for_read();
+    page_t *get_page_for_read() const;
     page_t *get_page_for_write(page_cache_t *page_cache);
 
     void reset();
 
-    bool has() {
+    bool has() const {
         return page_ != NULL;
     }
 
@@ -188,6 +190,14 @@ public:
 
     bool operator<(block_version_t other) const {
         return value_ < other.value_;
+    }
+
+    bool operator==(block_version_t other) const {
+        return value_ == other.value_;
+    }
+
+    bool operator!=(block_version_t other) const {
+        return !operator==(other);
     }
 
 private:
@@ -422,7 +432,38 @@ private:
     evicter_t &evicter() { return evicter_; }
 
     friend class page_txn_t;
+    // RSI: Remove this commented section.
+#if 0
     static void do_flush_txn(page_cache_t *page_cache, page_txn_t *txn);
+#endif
+    static void do_flush_txn_set(page_cache_t *page_cache,
+                                 const std::set<page_txn_t *> &txns);
+    static void remove_txn_set_from_graph(page_cache_t *page_cache,
+                                          const std::set<page_txn_t *> &txns);
+
+    // RSI: Maybe just have txn_t hold a single list of block_change_t objects.
+    struct block_change_t {
+        block_change_t(block_version_t _version, bool _modified,
+                       page_t *_page, repli_timestamp_t _tstamp)
+            : version(_version), modified(_modified), page(_page), tstamp(_tstamp) { }
+        block_version_t version;
+
+        // True if the value of the block was modified (or the block was deleted), false
+        // if the block was only touched.
+        bool modified;
+        // If modified == true, the new value for the block, or NULL if the block was
+        // deleted.  (The page_t's lifetime is kept by some page_txn_t's
+        // snapshotted_dirtied_pages_ field.)
+        page_t *page;
+        repli_timestamp_t tstamp;
+    };
+
+    static std::map<block_id_t, block_change_t>
+    compute_changes(const std::set<page_txn_t *> &txns);
+
+    bool exists_flushable_txn_set(page_txn_t *txn,
+                                  std::set<page_txn_t *> *flush_set_out);
+
     void im_waiting_for_flush(page_txn_t *txn);
 
     friend class current_page_t;
@@ -496,6 +537,9 @@ private:
     // Removes a preceder, which is already half-way disconnected.
     void remove_preceder(page_txn_t *preceder);
 
+    // Removes a subseqer, which is already half-way disconnected.
+    void remove_subseqer(page_txn_t *subseqer);
+
     // current_page_acq should only call add_acquirer and remove_acquirer.
     friend class current_page_acq_t;
     void add_acquirer(current_page_acq_t *acq);
@@ -521,7 +565,8 @@ private:
     // RSP: Performance?  remove_acquirer takes linear time.
     std::vector<current_page_acq_t *> live_acqs_;
 
-    struct dirtied_page_t {
+    class dirtied_page_t {
+    public:
         dirtied_page_t()
             : block_id(NULL_BLOCK_ID),
               tstamp(repli_timestamp_t::invalid) { }
@@ -556,7 +601,8 @@ private:
     // Saved pages (by block id).
     segmented_vector_t<dirtied_page_t, 8> snapshotted_dirtied_pages_;
 
-    struct touched_page_t {
+    class touched_page_t {
+    public:
         touched_page_t()
             : first(NULL_BLOCK_ID),
               second(repli_timestamp_t::invalid) { }
@@ -576,9 +622,16 @@ private:
     // Touched pages (by block id).
     segmented_vector_t<touched_page_t, 8> touched_pages_;
 
+    // RSI: We could probably turn began_waiting_for_flush_ and spawned_flush_ into a
+    // generalized state enum.
+    //
+    // RSI: Should we have the spawned_flush_ variable or should we remove the txn
+    // from the graph?
+
     // Tells whether this page_txn_t has announced itself (to the cache) to be
     // waiting for a flush.
     bool began_waiting_for_flush_;
+    bool spawned_flush_ = false;  // RSI: compilable
 
     // RSI: Actually use this somehow?
     // Tells whether this page_txn_t, in the process of being flushed, began its

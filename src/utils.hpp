@@ -138,6 +138,11 @@ void debugf_dump_buf(printf_buffer_t *buf);
 void debug_print(printf_buffer_t *buf, uint64_t x);
 void debug_print(printf_buffer_t *buf, const std::string& s);
 
+template <class T>
+void debug_print(printf_buffer_t *buf, T *ptr) {
+    buf->appendf("%p", ptr);
+}
+
 #ifndef NDEBUG
 void debugf(const char *msg, ...) __attribute__((format (printf, 1, 2)));
 template <class T>

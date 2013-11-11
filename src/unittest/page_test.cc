@@ -1,3 +1,5 @@
+#define __STDC_LIMIT_MACROS
+
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "buffer_cache/alt/page.hpp"
@@ -50,8 +52,14 @@ TEST(PageTest, CreateDestroy) {
 
 void run_OneTxn() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get());
-    page_txn_t txn(&page_cache);
+    {
+        page_cache_t page_cache(mock.ser.get());
+        {
+            page_txn_t txn(&page_cache);
+        }
+        debugf("txn destroyed\n");
+    }
+    debugf("page_cache destroyed\n");
 }
 
 TEST(PageTest, OneTxn) {
@@ -789,7 +797,9 @@ private:
             condZ1.pulse();
             acq8.reset();
             condZ2.pulse();
+            debugf("done txn12 (pc=%p, txn12=%p)\n", c, &txn12);
         }
+        debugf("txn12 destroyed (pc=%p)\n", c);
         condZ3.pulse();
     }
 
@@ -810,7 +820,9 @@ private:
             check_and_append(acq8, "t12", "t13");
             condZ4.pulse();
             acq8.reset();
+            debugf("done txn13 (pc=%p, txn13=%p)\n", c, &txn13);
         }
+        debugf("txn13 destroyed (pc=%p)\n", c);
         condZ5.pulse();
     }
 
