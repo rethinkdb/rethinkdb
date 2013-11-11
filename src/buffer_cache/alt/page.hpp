@@ -431,6 +431,8 @@ public:
     size_t total_page_memory() const;
     size_t evictable_page_memory() const;
 
+    block_size_t max_block_size() const;
+
 private:
     friend class page_t;
     evicter_t &evicter() { return evicter_; }

@@ -19,6 +19,8 @@ public:
     explicit alt_cache_t(serializer_t *serializer);
     ~alt_cache_t();
 
+    block_size_t max_block_size() const;
+
     page_cache_t page_cache_;
 
 private:

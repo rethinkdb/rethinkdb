@@ -12,6 +12,10 @@ alt_cache_t::~alt_cache_t() {
     drainer_.reset();
 }
 
+block_size_t alt_cache_t::max_block_size() const {
+    return page_cache_.max_block_size();
+}
+
 alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
     : cache_(cache),
       page_txn_(&cache->page_cache_, &preceding_txn->page_txn_),

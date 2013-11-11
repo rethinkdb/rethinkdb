@@ -77,6 +77,10 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     return current_pages_[block_id];
 }
 
+block_size_t page_cache_t::max_block_size() const {
+    return serializer_->get_block_size();
+}
+
 struct current_page_help_t {
     current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
         : block_id(_block_id), page_cache(_page_cache) { }
