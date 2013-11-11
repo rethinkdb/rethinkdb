@@ -1329,14 +1329,17 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
 
         if (!std_contains(sindexes, sindex_status.sindex)) {
-            /* A default constructed sindex_status_response_t indicates that
-             * the sindex wasn't found. So we can just return. */
+            res->found = false;
             return;
         } else {
+            progress_completion_fraction_t frac =
+                store->get_progress(sindexes[sindex_status.sindex].id);
             res->found = true;
-            res->blocks_remaining = 0;
-            res->blocks_total = 0;
             res->ready = sindexes[sindex_status.sindex].post_construction_complete;
+            if (!res->ready) {
+                res->blocks_remaining = frac.estimate_of_released_nodes;
+                res->blocks_total = frac.estimate_of_total_nodes;
+            }
         }
     }
 

@@ -21,6 +21,7 @@
 #include "containers/map_sentries.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "btree/parallel_traversal.hpp"
 
 struct rdb_protocol_t;
 template <class T> class btree_store_t;
@@ -29,8 +30,6 @@ class btree_slice_t;
 class io_backender_t;
 class superblock_t;
 class real_superblock_t;
-
-class parallel_traversal_progress_t;
 
 class sindex_not_post_constructed_exc_t : public std::exception {
 public:
@@ -144,6 +143,8 @@ public:
     void add_progress_tracker(
         map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
         uuid_u id, const parallel_traversal_progress_t *p);
+
+    progress_completion_fraction_t get_progress(uuid_u id);
 
     void acquire_sindex_block_for_read(
             read_token_pair_t *token_pair,

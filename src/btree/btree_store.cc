@@ -314,6 +314,15 @@ void btree_store_t<protocol_t>::add_progress_tracker(
 }
 
 template <class protocol_t>
+progress_completion_fraction_t btree_store_t<protocol_t>::get_progress(uuid_u id) {
+    if (!std_contains(progress_trackers, id)) {
+        return progress_completion_fraction_t();
+    } else {
+        return progress_trackers[id]->guess_completion();
+    }
+}
+
+template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
         transaction_t *txn,
