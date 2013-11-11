@@ -173,6 +173,20 @@ struct rget_item_t {
     counted_t<const ql::datum_t> data;
 };
 
+struct single_sindex_status_t {
+    single_sindex_status_t()
+        : blocks_remaining(0),
+          blocks_total(0), ready(true)
+    { }
+    single_sindex_status_t(size_t _blocks_remaining, size_t _blocks_total, bool _ready)
+        : blocks_remaining(_blocks_remaining),
+          blocks_total(_blocks_total), ready(_ready) { }
+    size_t blocks_remaining, blocks_total;
+    bool ready;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+};
+
 } // namespace rdb_protocol_details
 
 enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
@@ -300,12 +314,8 @@ struct rdb_protocol_t {
 
     struct sindex_status_response_t {
         sindex_status_response_t()
-            : found(true), blocks_remaining(0),
-              blocks_total(0), ready(true)
         { }
-        bool found;
-        size_t blocks_remaining, blocks_total;
-        bool ready;
+        std::map<std::string, rdb_protocol_details::single_sindex_status_t> statuses;
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
@@ -455,10 +465,10 @@ struct rdb_protocol_t {
     class sindex_status_t {
     public:
         sindex_status_t() { }
-        sindex_status_t(const std::string &_sindex)
-            : sindex(_sindex), region(region_t::universe())
+        sindex_status_t(const std::set<std::string> &_sindexes)
+            : sindexes(_sindexes), region(region_t::universe())
         { }
-        std::string sindex;
+        std::set<std::string> sindexes;
         region_t region;
         RDB_DECLARE_ME_SERIALIZABLE;
     };

@@ -325,6 +325,13 @@ typedef boost::variant<rdb_modification_report_t,
                        rdb_erase_range_report_t>
         sindex_change_t;
 
+void add_status(const single_sindex_status_t &new_status,
+     single_sindex_status_t *status_out) {
+    status_out->blocks_remaining += new_status.blocks_remaining;
+    status_out->blocks_total += new_status.blocks_total;
+    status_out->ready &= new_status.ready;
+}
+
 }  // namespace rdb_protocol_details
 
 rdb_protocol_t::context_t::context_t()
@@ -670,13 +677,10 @@ public:
         for (size_t i = 0; i < count; ++i) {
             auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
             guarantee(resp);
-            if (!resp->found) {
-                *ss_response = *resp;
-                return;
+            for (auto it = resp->statuses.begin();
+                 it != resp->statuses.end(); ++it) {
+                add_status(it->second, &ss_response->statuses[it->first]);
             }
-            ss_response->blocks_remaining += resp->blocks_remaining;
-            ss_response->blocks_total += resp->blocks_total;
-            ss_response->ready &= resp->ready;
         }
     }
 
@@ -1328,17 +1332,18 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         std::map<std::string, secondary_index_t> sindexes;
         store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
 
-        if (!std_contains(sindexes, sindex_status.sindex)) {
-            res->found = false;
-            return;
-        } else {
-            progress_completion_fraction_t frac =
-                store->get_progress(sindexes[sindex_status.sindex].id);
-            res->found = true;
-            res->ready = sindexes[sindex_status.sindex].post_construction_complete;
-            if (!res->ready) {
-                res->blocks_remaining = frac.estimate_of_released_nodes;
-                res->blocks_total = frac.estimate_of_total_nodes;
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (std_contains(sindex_status.sindexes, it->first) ||
+                sindex_status.sindexes.empty()) {
+                progress_completion_fraction_t frac =
+                    store->get_progress(it->second.id);
+                rdb_protocol_details::single_sindex_status_t *s =
+                    &res->statuses[it->first];
+                s->ready = it->second.post_construction_complete;
+                if (!s->ready) {
+                    s->blocks_remaining = frac.estimate_of_released_nodes;
+                    s->blocks_total = frac.estimate_of_total_nodes;
+                }
             }
         }
     }
@@ -1910,6 +1915,8 @@ bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
 }
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
+                           blocks_total, blocks_remaining, ready);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
@@ -1917,8 +1924,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
                            region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
-RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_status_response_t,
-                           found, blocks_remaining, blocks_total, ready);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_status_response_t, statuses);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::read_response_t, response, event_log, n_shards);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
@@ -1932,7 +1938,7 @@ RDB_IMPL_ME_SERIALIZABLE_8(rdb_protocol_t::rget_read_t, region, sindex,
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
                            max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_status_t, sindex, region);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_status_t, sindexes, region);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 

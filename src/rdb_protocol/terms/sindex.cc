@@ -103,11 +103,15 @@ public:
 class sindex_status_term_t : public op_term_t {
 public:
     sindex_status_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)) { }
+        : op_term_t(env, term, argspec_t(1, -1)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
-        return new_val(table->sindex_status(env->env, arg(env, 1)->as_str()));
+        std::set<std::string> sindexes;
+        for (size_t i = 1; i < num_args(); ++i) {
+            sindexes.insert(arg(env, i)->as_str());
+        }
+        return new_val(table->sindex_status(env->env, sindexes));
     }
 
     virtual const char *name() const { return "sindex_status"; }
@@ -127,13 +131,17 @@ bool all_ready(counted_t<const datum_t> statuses) {
 class sindex_wait_term_t : public op_term_t {
 public:
     sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2)) { }
+        : op_term_t(env, term, argspec_t(1, -1)) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
+        std::set<std::string> sindexes;
+        for (size_t i = 1; i < num_args(); ++i) {
+            sindexes.insert(arg(env, i)->as_str());
+        }
         for (;;) {
             counted_t<const datum_t> statuses =
-                table->sindex_status(env->env, arg(env, 1)->as_str());
+                table->sindex_status(env->env, sindexes);
             if (all_ready(statuses)) {
                 return new_val(statuses);
             } else {
