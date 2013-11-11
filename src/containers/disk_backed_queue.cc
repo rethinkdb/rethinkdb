@@ -54,7 +54,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     }
 
     scoped_ptr_t<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
-    queue_block_t *head = reinterpret_cast<queue_block_t *>(_head->get_data_write());
+    queue_block_t *head = static_cast<queue_block_t *>(_head->get_data_write());
 
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
@@ -74,7 +74,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         _head.reset();
         add_block_to_head(&txn);
         _head.init(new buf_lock_t(&txn, head_block_id, rwi_write));
-        head = reinterpret_cast<queue_block_t *>(_head->get_data_write());
+        head = static_cast<queue_block_t *>(_head->get_data_write());
     }
 
     memcpy(head->data + head->data_size, buffer, blob.refsize(cache->get_block_size()));
@@ -96,7 +96,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
                       WRITE_DURABILITY_SOFT /* No durability for unlinked dbq file. */);
 
     scoped_ptr_t<buf_lock_t> _tail(new buf_lock_t(&txn, tail_block_id, rwi_write));
-    queue_block_t *tail = reinterpret_cast<queue_block_t *>(_tail->get_data_write());
+    queue_block_t *tail = static_cast<queue_block_t *>(_tail->get_data_write());
     rassert(tail->data_size != tail->live_data_offset);
 
     /* Grab the data from the blob and delete it. */
@@ -144,13 +144,13 @@ int64_t internal_disk_backed_queue_t::size() {
 
 void internal_disk_backed_queue_t::add_block_to_head(transaction_t *txn) {
     buf_lock_t _new_head(txn);
-    queue_block_t *new_head = reinterpret_cast<queue_block_t *>(_new_head.get_data_write());
+    queue_block_t *new_head = static_cast<queue_block_t *>(_new_head.get_data_write());
     if (head_block_id == NULL_BLOCK_ID) {
         rassert(tail_block_id == NULL_BLOCK_ID);
         head_block_id = tail_block_id = _new_head.get_block_id();
     } else {
         buf_lock_t _old_head(txn, head_block_id, rwi_write);
-        queue_block_t *old_head = reinterpret_cast<queue_block_t *>(_old_head.get_data_write());
+        queue_block_t *old_head = static_cast<queue_block_t *>(_old_head.get_data_write());
         rassert(old_head->next == NULL_BLOCK_ID);
         old_head->next = _new_head.get_block_id();
         head_block_id = _new_head.get_block_id();
@@ -164,7 +164,7 @@ void internal_disk_backed_queue_t::add_block_to_head(transaction_t *txn) {
 void internal_disk_backed_queue_t::remove_block_from_tail(transaction_t *txn) {
     rassert(tail_block_id != NULL_BLOCK_ID);
     buf_lock_t _old_tail(txn, tail_block_id, rwi_write);
-    queue_block_t *old_tail = reinterpret_cast<queue_block_t *>(_old_tail.get_data_write());
+    queue_block_t *old_tail = static_cast<queue_block_t *>(_old_tail.get_data_write());
 
     if (old_tail->next == NULL_BLOCK_ID) {
         rassert(head_block_id == _old_tail.get_block_id());
