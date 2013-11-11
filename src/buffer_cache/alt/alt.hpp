@@ -93,20 +93,20 @@ public:
 
     block_id_t block_id() const {
         guarantee(txn_ != NULL);
-        return current_page_acq_.block_id();
+        return current_page_acq_->block_id();
     }
     alt_access_t access() const {
         guarantee(txn_ != NULL);
-        return current_page_acq_.access();
+        return current_page_acq_->access();
     }
 
     signal_t *read_acq_signal() {
         guarantee(txn_ != NULL);
-        return current_page_acq_.read_acq_signal();
+        return current_page_acq_->read_acq_signal();
     }
     signal_t *write_acq_signal() {
         guarantee(txn_ != NULL);
-        return current_page_acq_.write_acq_signal();
+        return current_page_acq_->write_acq_signal();
     }
 
 private:
@@ -116,7 +116,7 @@ private:
     alt_txn_t *txn_;
     alt_cache_t *cache_;
 
-    current_page_acq_t current_page_acq_;
+    scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
     alt_snapshot_node_t *snapshot_node_;
 

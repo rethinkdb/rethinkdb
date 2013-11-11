@@ -33,7 +33,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
                                alt_access_t access)
     : txn_(txn),
       cache_(txn_->cache()),
-      current_page_acq_(txn->page_txn(), block_id, access),
+      current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id, access)),
       snapshot_node_(NULL) {
     // RSI: Obviously, we want to use snapshot_node_ at some point.
     (void)snapshot_node_;
@@ -59,7 +59,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
         parent->read_acq_signal()->wait();
     }
 
-    current_page_acq_.init(txn_->page_txn(), block_id, access);
+    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
@@ -69,7 +69,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
       current_page_acq_(),
       snapshot_node_(NULL) {
     guarantee(access == alt_access_t::write);
-    current_page_acq_.init(txn->page_txn(), access);
+    current_page_acq_.init(new current_page_acq_t(txn->page_txn(), access));
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
@@ -90,7 +90,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     }
     // ^^^ Dedup this section.
 
-    current_page_acq_.init(txn_->page_txn(), access);
+    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), access));
 }
 
 alt_buf_lock_t::~alt_buf_lock_t() {
@@ -107,11 +107,15 @@ alt_buf_read_t::alt_buf_read_t(alt_buf_lock_t *lock)
     guarantee(lock_->txn_ != NULL);
 }
 
-alt_buf_read_t::~alt_buf_read_t() { }
+alt_buf_read_t::~alt_buf_read_t() {
+    guarantee(lock_->txn_ != NULL);
+}
 
 const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
-    lock_->current_page_acq_.read_acq_signal()->wait();
-    page_t *page = lock_->current_page_acq_.current_page_for_read();
+    guarantee(lock_->txn_ != NULL);
+    lock_->current_page_acq_->read_acq_signal()->wait();
+    page_t *page = lock_->current_page_acq_->current_page_for_read();
+    guarantee(lock_->txn_ != NULL);
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache_->page_cache_);
     }
@@ -125,13 +129,17 @@ alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
     guarantee(lock_->txn_ != NULL);
 }
 
-alt_buf_write_t::~alt_buf_write_t() { }
+alt_buf_write_t::~alt_buf_write_t() {
+    guarantee(lock_->txn_ != NULL);
+}
 
 void *alt_buf_write_t::get_data_write(uint32_t block_size) {
+    guarantee(lock_->txn_ != NULL);
     // RSI: Use block_size somehow.
     (void)block_size;
-    lock_->current_page_acq_.write_acq_signal()->wait();
-    page_t *page = lock_->current_page_acq_.current_page_for_write();
+    lock_->current_page_acq_->write_acq_signal()->wait();
+    guarantee(lock_->txn_ != NULL);
+    page_t *page = lock_->current_page_acq_->current_page_for_write();
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache_->page_cache_);
     }
