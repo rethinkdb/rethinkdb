@@ -278,7 +278,7 @@ void connectivity_cluster_t::run_t::join_blocking(
 
     // Attempt to connect to all known ip addresses of the peer
     bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
-    semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
+    static_semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
     pmap(peer.ips().size(),

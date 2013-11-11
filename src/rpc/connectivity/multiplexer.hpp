@@ -63,7 +63,7 @@ public:
         message_multiplexer_t *const parent;
         const tag_t tag;
         run_t *run;
-        one_per_thread_t<semaphore_t> outstanding_writes_semaphores;
+        one_per_thread_t<static_semaphore_t> outstanding_writes_semaphores;
     };
     explicit message_multiplexer_t(message_service_t *super_ms);
     ~message_multiplexer_t();
