@@ -89,6 +89,8 @@ public:
 
     ~alt_buf_lock_t();
 
+    void swap(alt_buf_lock_t &other);
+
     void snapshot_subtree();
 
     block_id_t block_id() const {

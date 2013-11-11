@@ -97,6 +97,13 @@ alt_buf_lock_t::~alt_buf_lock_t() {
     // RSI: We'll have to do something with snapshot_node_ here.
 }
 
+void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
+    std::swap(txn_, other.txn_);
+    std::swap(cache_, other.cache_);
+    current_page_acq_.swap(other.current_page_acq_);
+    std::swap(snapshot_node_, other.snapshot_node_);
+}
+
 void alt_buf_lock_t::snapshot_subtree() {
     guarantee(txn_ != NULL);
     // RSI: Actually implement this.
