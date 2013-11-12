@@ -2935,10 +2935,6 @@ module 'DataExplorerView', ->
                     result: result_entry
             @compute_occurrence keys_count
 
-            # Primary key comes first
-            if primary_key?
-                keys_count.object[primary_key].occurrence = Infinity
-
             @order_keys keys_count
 
             flatten_attr = []
@@ -2957,37 +2953,9 @@ module 'DataExplorerView', ->
                 return attr.key
             @container.state.last_keys = @last_keys
 
+            flatten_attr: flatten_attr
+            result: result
 
-            #TODO Split this function in two, and properly use super()
-            if indexes?
-                indexes_hash = {}
-                for index in indexes
-                    indexes_hash[index] = true
-
-
-                # Check if there is an index
-                for attr in flatten_attr
-                    name = attr.prefix_str+attr.key
-                    if name of indexes_hash
-                        attr.has_index = true
-                    else
-                        if can_sort is true
-                            attr.can_sort = true
-                        else
-                            attr.can_sort = false
-
-            #TODO We should really split this method
-            for attr in flatten_attr
-                path = []
-                path.push.apply path, attr.prefix
-                path.push attr.key
-                attr.path = JSON.stringify path
-
-            return @template_json_table.container
-                table_attr: @json_to_table_get_attr flatten_attr
-                table_data: @json_to_table_get_values
-                    result: result
-                    flatten_attr: flatten_attr
 
         # Flatten the object returns by build_map_keys().
         # We get back an array of keys
@@ -3224,6 +3192,15 @@ module 'DataExplorerView', ->
                 error: err.toString().replace(/^(\s*)/, '')
                 js_error: js_error is true
             return @
+
+        json_to_table: (result) =>
+            {flatten_attr, result} = super result
+
+            return @template_json_table.container
+                table_attr: @json_to_table_get_attr flatten_attr
+                table_data: @json_to_table_get_values
+                    result: result
+                    flatten_attr: flatten_attr
 
 
 

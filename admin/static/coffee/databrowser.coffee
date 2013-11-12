@@ -209,6 +209,48 @@ module 'DataBrowserView', ->
                 'click .sort_desc': 'sort_desc'
                 'click .sort_asc': 'sort_asc'
 
+        json_to_table: (result, primary_key, can_sort, indexes) =>
+            {flatten_attr, result} = super result
+
+            if indexes?
+                indexes_hash = {}
+                for index in indexes
+                    indexes_hash[index] = true
+
+
+                # Check if there is an index
+                for attr in flatten_attr
+                    name = attr.prefix_str+attr.key
+                    if name of indexes_hash
+                        attr.has_index = true
+                    else
+                        if can_sort is true
+                            attr.can_sort = true
+                        else
+                            attr.can_sort = false
+
+            for attr in flatten_attr
+                path = []
+                path.push.apply path, attr.prefix
+                path.push attr.key
+                attr.path = JSON.stringify path
+
+            # The primary key comes first
+            for attr, i in flatten_attr
+                if attr.prefix_str is '' and attr.key is primary_key
+                    pk = flatten_attr.splice i, 1
+                    break
+            flatten_attr.unshift.apply flatten_attr, pk
+
+
+            return @template_json_table.container
+                table_attr: @json_to_table_get_attr flatten_attr
+                table_data: @json_to_table_get_values
+                    result: result
+                    flatten_attr: flatten_attr
+
+
+
 
         index_sort_desc: (event) =>
             @sort_results
