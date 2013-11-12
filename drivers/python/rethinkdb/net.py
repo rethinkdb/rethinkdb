@@ -1,38 +1,23 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-__all__ = ['connect', 'Connection', 'Cursor','protobuf_implementation']
+__all__ = ['connect', 'Connection', 'Cursor', 'protobuf_implementation']
 
 import errno
 import socket
 import struct
 from os import environ
 
-if 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION' in environ:
-    protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
-    if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
-        import rethinkdb_pbcpp
-else:
-    try:
-        # Set an environment variable telling the protobuf library
-        # to use the fast C++ based serializer implementation
-        # over the pure python one if it is available.
-        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
+try:
+    import rethinkdb.pbcpp
+    protobuf_implementation = 'cpp'
+except ImportError:
+    protobuf_implementation = 'python'
 
-        # The cpp_message module could change between versions of the
-        # protobuf module
-        from google.protobuf.internal import cpp_message
-        import rethinkdb_pbcpp
-        protobuf_implementation = 'cpp'
-    except ImportError as e:
-        # Default to using the python implementation of protobuf
-        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
-        protobuf_implementation = 'python'
+from rethinkdb import ql2_pb2 as p
 
-from . import ql2_pb2 as p
-
-from . import repl # For the repl connection
-from .errors import *
-from .ast import Datum, DB, expr
+from rethinkdb import repl # For the repl connection
+from rethinkdb.errors import *
+from rethinkdb.ast import Datum, DB, expr
 
 class Cursor(object):
     def __init__(self, conn, query, term, opts):
