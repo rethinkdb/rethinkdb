@@ -254,8 +254,7 @@ struct serializer_traits_t<serializer_t> {
     typedef standard_block_token_t block_token_type;
 };
 
-// TODO: time_t's size is system-dependent.
-typedef time_t creation_timestamp_t;
+typedef int64_t creation_timestamp_t;
 
 class serializer_data_ptr_t {
 public:

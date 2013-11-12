@@ -115,15 +115,19 @@ counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
     datum_ptr_t arr(datum_t::R_ARRAY);
-    while (counted_t<const datum_t> d = next(env)) {
-        arr.add(d);
+    {
+        profile::sampler_t sampler("Evaluating as_array elements.", env->trace);
+        while (counted_t<const datum_t> d = next(env)) {
+            arr.add(d);
+            sampler.new_sample();
+        }
     }
     return arr.to_counted();
 }
 
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
-    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+    env_t *env, bool use_outdated, rdb_namespace_access_t *ns_access,
     sorting_t sorting, const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
       json_stream(new query_language::batched_rget_stream_t(
@@ -134,7 +138,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 
 lazy_datum_stream_t::lazy_datum_stream_t(
         env_t *env, bool use_outdated,
-        namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+        rdb_namespace_access_t *ns_access,
         const std::string &sindex_id, sorting_t sorting,
         const protob_t<const Backtrace> &bt_src)
     : datum_stream_t(bt_src),
@@ -146,7 +150,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
-    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+    env_t *env, bool use_outdated, rdb_namespace_access_t *ns_access,
     counted_t<const datum_t> left_bound, bool left_bound_open,
     counted_t<const datum_t> right_bound, bool right_bound_open,
     sorting_t sorting, const protob_t<const Backtrace> &bt_src)
@@ -159,7 +163,7 @@ lazy_datum_stream_t::lazy_datum_stream_t(
 { }
 
 lazy_datum_stream_t::lazy_datum_stream_t(
-    env_t *env, bool use_outdated, namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+    env_t *env, bool use_outdated, rdb_namespace_access_t *ns_access,
     counted_t<const datum_t> left_bound, bool left_bound_open,
     counted_t<const datum_t> right_bound, bool right_bound_open,
     const std::string &sindex_id, sorting_t sorting,
@@ -511,8 +515,12 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
         return counted_t<const datum_t>();
     }
     datum_ptr_t arr(datum_t::R_ARRAY);
-    while (counted_t<const datum_t> d = next(env)) {
-        arr.add(d);
+    {
+        profile::sampler_t sampler("Evaluating as_array elements.", env->trace);
+        while (counted_t<const datum_t> d = next(env)) {
+            arr.add(d);
+            sampler.new_sample();
+        }
     }
     return arr.to_counted();
 }

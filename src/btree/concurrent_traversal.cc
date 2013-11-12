@@ -79,6 +79,10 @@ public:
         return !failure_cond_->is_pulsed();
     }
 
+    virtual profile::trace_t *get_trace() THROWS_NOTHING {
+        return cb_->get_trace();
+    }
+
 private:
     friend class concurrent_traversal_fifo_enforcer_signal_t;
 

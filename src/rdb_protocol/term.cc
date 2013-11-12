@@ -10,6 +10,8 @@
 #include "rdb_protocol/validate.hpp"
 
 #include "rdb_protocol/terms/terms.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
+#include "protob/protob.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -155,9 +157,11 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     unreachable();
 }
 
-void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
-         Response *res, stream_cache2_t *stream_cache2,
-         bool *response_needed_out) {
+void run(protob_t<Query> q,
+         rdb_protocol_t::context_t *ctx,
+         signal_t *interruptor,
+         Response *res,
+         stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -167,52 +171,22 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
-    env_t *env = env_ptr.get();
     int64_t token = q->token();
 
     switch (q->type()) {
     case Query_QueryType_START: {
+        threadnum_t thread = get_thread_id();
+        scoped_ptr_t<ql::env_t> env(
+            new ql::env_t(
+                ctx->extproc_pool, ctx->ns_repo,
+                ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
+                ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
+                ctx->cluster_metadata, ctx->directory_read_manager,
+                interruptor, ctx->machine_id, q));
+
         counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
-            preprocess_term(t);
-            Backtrace *t_bt = t->MutableExtension(ql2::extension::backtrace);
-
-
-            // We parse out the `noreply` optarg in a special step so that we
-            // don't send back an unneeded response in the case where another
-            // optional argument throws a compilation error.
-            for (int i = 0; i < q->global_optargs_size(); ++i) {
-                const Query::AssocPair &ap = q->global_optargs(i);
-                if (ap.key() == "noreply") {
-                    bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
-                    r_sanity_check(!conflict);
-                    counted_t<val_t> noreply
-                        = env->global_optargs.get_optarg(env, "noreply");
-                    r_sanity_check(noreply.has());
-                    *response_needed_out = !noreply->as_bool();
-                    break;
-                }
-            }
-
-            // Parse global optargs
-            for (int i = 0; i < q->global_optargs_size(); ++i) {
-                const Query::AssocPair &ap = q->global_optargs(i);
-                if (ap.key() != "noreply") {
-                    bool conflict = env->global_optargs.add_optarg(ap.key(), ap.val());
-                    rcheck_toplevel(
-                        !conflict, base_exc_t::GENERIC,
-                        strprintf("Duplicate global optarg: %s", ap.key().c_str()));
-                }
-            }
-
-            Term arg = r::db("test").get();
-
-            propagate_backtrace(&arg, t_bt); // duplicate toplevel backtrace
-            UNUSED bool _b = env->global_optargs.add_optarg("db", arg);
-            //          ^^ UNUSED because user can override this value safely
-
-            // Parse actual query
             compile_env_t compile_env((var_visibility_t()));
             root_term = compile_term(&compile_env, q.make_child(t));
             // TODO: handle this properly
@@ -237,24 +211,22 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         }
 
         try {
-            scope_env_t scope_env(env, var_scope_t());
+            scope_env_t scope_env(env.get(), var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
-
-            if (!*response_needed_out) {
-                // It's fine to just abort here because we don't allow write
-                // operations inside of lazy operations, which means the writes
-                // will have already occured even if `val` is a sequence that we
-                // haven't yet exhuasted.
-                return;
-            }
-
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
                 d->write_to_protobuf(res->add_response());
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
+                }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
-                bool b = stream_cache2->serve(token, res, env->interruptor);
+                if (env->trace.has()) {
+                    env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
+                }
+                counted_t<datum_stream_t> seq = val->as_seq(env.get());
+                stream_cache2->insert(token, std::move(env), seq);
+                bool b = stream_cache2->serve(token, res, interruptor);
                 r_sanity_check(b);
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
@@ -272,7 +244,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
     } break;
     case Query_QueryType_CONTINUE: {
         try {
-            bool b = stream_cache2->serve(token, res, env->interruptor);
+            bool b = stream_cache2->serve(token, res, interruptor);
             rcheck_toplevel(b, base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
         } catch (const exc_t &e) {
@@ -348,6 +320,7 @@ void term_t::prop_bt(Term *t) const {
 
 counted_t<val_t> term_t::eval(scope_env_t *env, eval_flags_t eval_flags) {
     // This is basically a hook for unit tests to change things mid-query
+    profile::starter_t starter(strprintf("Evaluating %s.", name()), env->env->trace);
     DEBUG_ONLY_CODE(env->env->do_eval_callback());
     DBG("EVALUATING %s (%d):\n", name(), is_deterministic());
     env->env->throw_if_interruptor_pulsed();

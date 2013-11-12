@@ -85,16 +85,21 @@ private:
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
             counted_t<const datum_t> last_d;
-            for (int32_t i = 0; ; ++i) {
-                counted_t<const datum_t> d = s->next(env->env);
-                if (!d.has()) {
-                    rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
-                           strprintf("Index out of bounds: %d", n));
-                    return new_val(last_d);
+
+            {
+                profile::sampler_t sampler("Find nth element.", env->env->trace);
+                for (int32_t i = 0; ; ++i) {
+                    sampler.new_sample();
+                    counted_t<const datum_t> d = s->next(env->env);
+                    if (!d.has()) {
+                        rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
+                               strprintf("Index out of bounds: %d", n));
+                        return new_val(last_d);
+                    }
+                    if (i == n) return new_val(d);
+                    last_d = d;
+                    r_sanity_check(n == -1 || i < n);
                 }
-                if (i == n) return new_val(d);
-                last_d = d;
-                r_sanity_check(n == -1 || i < n);
             }
         }
     }
@@ -433,23 +438,27 @@ private:
                 required_els.push_back(v->as_datum());
             }
         }
-        while (counted_t<const datum_t> el = seq->next(env->env)) {
-            for (auto it = required_els.begin(); it != required_els.end(); ++it) {
-                if (**it == *el) {
-                    std::swap(*it, required_els.back());
-                    required_els.pop_back();
-                    break; // Bag semantics for contains.
+        {
+            profile::sampler_t sampler("Evaluating elements in contains.", env->env->trace);
+            while (counted_t<const datum_t> el = seq->next(env->env)) {
+                for (auto it = required_els.begin(); it != required_els.end(); ++it) {
+                    if (**it == *el) {
+                        std::swap(*it, required_els.back());
+                        required_els.pop_back();
+                        break; // Bag semantics for contains.
+                    }
                 }
-            }
-            for (auto it = required_funcs.begin(); it != required_funcs.end(); ++it) {
-                if ((*it)->call(env->env, el)->as_bool()) {
-                    std::swap(*it, required_funcs.back());
-                    required_funcs.pop_back();
-                    break; // Bag semantics for contains.
+                for (auto it = required_funcs.begin(); it != required_funcs.end(); ++it) {
+                    if ((*it)->call(env->env, el)->as_bool()) {
+                        std::swap(*it, required_funcs.back());
+                        required_funcs.pop_back();
+                        break; // Bag semantics for contains.
+                    }
                 }
-            }
-            if (required_els.size() == 0 && required_funcs.size() == 0) {
-                return new_val_bool(true);
+                if (required_els.size() == 0 && required_funcs.size() == 0) {
+                    return new_val_bool(true);
+                }
+                sampler.new_sample();
             }
         }
         return new_val_bool(false);

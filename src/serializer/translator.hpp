@@ -70,7 +70,7 @@ struct multiplexer_config_block_t {
     int32_t n_proxies;
 
     static const block_magic_t expected_magic;
-};
+} __attribute__((packed));
 
 /* The translator serializer is a wrapper around another serializer. It uses some subset
 of the block IDs available on the inner serializer, but presents the illusion of a complete
