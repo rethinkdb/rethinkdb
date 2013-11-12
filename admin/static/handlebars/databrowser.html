@@ -78,3 +78,52 @@
     <pre class="error error_details">{{error}}</pre>
 </script>
 
+<script id="databrowser_result_json_table_tr_attr-template" type="text/xs-handlebars-template">
+    <tr class="jta_tr">
+        <td class="td_attr col-record col-record-attr" data-col="record">
+        </td>
+        {{#each attr}}
+        <td class="td_attr col-{{col}}" data-col={{col}}>
+            <div class="click_detector">
+                {{#if is_primitive}}
+                    <div class="jta_attr value-{{col}}">{{prefix_str}} <em>value</em>
+                        {{#if has_index}}
+                            <div class="order">
+                                <a href="#" class="index_sort_desc" data-path="{{path}}">down</a>
+                                <a href="#" class="index_sort_asc" data-path="{{path}}">up</a>
+                            </div>
+
+                        {{else}}
+                            {{#if can_sort}}
+                                <div class="order">
+                                    <a href="#" class="sort_desc" data-path="{{path}}">down</a>
+                                    <a href="#" class="sort_asc" data-path="{{path}}">up</a>
+                                </div>
+                            {{/if}}
+                        {{/if}}
+                    </div>
+                {{else}}
+                    <div class="jta_attr value-{{col}}">
+                        {{prefix_str}}{{key}}
+                        {{#if has_index}}
+                            <div class="order">
+                                <a href="#" class="index_sort_desc" data-path="{{path}}">down</a>
+                                <a href="#" class="index_sort_asc" data-path="{{path}}">up</a>
+                            </div>
+
+                        {{else}}
+                            {{#if can_sort}}
+                                <div class="order">
+                                    <a href="#" class="sort_desc" data-path="{{path}}">down</a>
+                                    <a href="#" class="sort_asc" data-path="{{path}}">up</a>
+                                </div>
+                            {{/if}}
+                        {{/if}}
+                    </div>
+                {{/if}}
+            </div>
+        </td>
+        {{/each}}
+    </tr>
+</script>
+

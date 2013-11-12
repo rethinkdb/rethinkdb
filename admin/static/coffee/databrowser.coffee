@@ -10,7 +10,7 @@ module 'DataBrowserView', ->
         template: Handlebars.templates['databrowser_view-template']
         actions_template: Handlebars.templates['databrowser_actions_container-template']
         events:
-            'change .list_namespaces': 'show_results'
+            'change .list_namespaces': 'handle_select_namespace'
         token: 0
         num_docs_per_page: 100
 
@@ -65,34 +65,68 @@ module 'DataBrowserView', ->
                 databases: dbs
 
 
-        # TODO Rename this method
-        show_results: (event) =>
-            @db = @$(event.currentTarget).find(':selected').parent().attr 'value'
-            @namespace = @$(event.currentTarget).val()
-            @primary_key = @$(event.currentTarget).find(':selected').data 'primary_key'
-            @page = 0
-            
-            @get_results @page
+        handle_select_namespace: (event) =>
+            @get_results
+                db: @$(event.currentTarget).find(':selected').parent().attr 'value'
+                namespace: @$(event.currentTarget).val()
+                primary_key: @$(event.currentTarget).find(':selected').data 'primary_key'
+                page: 0
+                order_by: [@$(event.currentTarget).find(':selected').data('primary_key')]
+                sort_by_index: true
+                asc: true
 
         show_loading: =>
             @$('.loading_query_img').show()
         hide_loading: =>
             @$('.loading_query_img').hide()
 
-        get_page: =>
-            @page
+        get_results: (args) =>
+            @db = args.db
+            @namespace = args.namespace
+            @primary_key = args.primary_key
+            @page = args.page
+            @order_by = args.order_by # That's an array!
+            @sort_by_index = args.sort_by_index
+            @asc = args.asc
 
-        get_results: (page) =>
-            skip_value = page*@num_docs_per_page
-            @page = page
+            skip_value = @page*@num_docs_per_page
 
             if @connection?
                 @token++
                 @show_loading()
-                r.expr({
-                    count: r.db(@db).table(@namespace).count()
-                    documents: r.db(@db).table(@namespace).orderBy({index: @primary_key}).skip(skip_value).limit(@num_docs_per_page).coerceTo('ARRAY')
-                }).private_run
+
+                if @sort_by_index is true
+                    #TODO Add docs about this behavior -- Having a dot in the field name produce an unexpected behavior
+                    #Or having an index that has the same name as a field but doesn't map to the field
+                    if @asc is true
+                        query = r.expr({
+                            count: r.db(@db).table(@namespace).count()
+                            indexes: r.db(@db).table(@namespace).indexList()
+                            documents: r.db(@db).table(@namespace).orderBy({index: @order_by.join('.')}).skip(skip_value).limit(@num_docs_per_page).coerceTo('ARRAY')
+                        })
+                    else
+                        query = r.expr({
+                            count: r.db(@db).table(@namespace).count()
+                            indexes: r.db(@db).table(@namespace).indexList()
+                            documents: r.db(@db).table(@namespace).orderBy({index: r.desc(@order_by.join('.'))}).skip(skip_value).limit(@num_docs_per_page).coerceTo('ARRAY')
+                        })
+                else
+                    order_by_reql = r.row
+                    for field in @order_by
+                        order_by_reql = order_by_reql(field)
+                    if @asc is true
+                        query = r.expr({
+                            count: r.db(@db).table(@namespace).count()
+                            indexes: r.db(@db).table(@namespace).indexList()
+                            documents: r.db(@db).table(@namespace).orderBy(order_by_reql).skip(skip_value).limit(@num_docs_per_page).coerceTo('ARRAY')
+                        })
+                    else
+                        query = r.expr({
+                            count: r.db(@db).table(@namespace).count()
+                            indexes: r.db(@db).table(@namespace).indexList()
+                            documents: r.db(@db).table(@namespace).orderBy(r.desc(order_by_reql)).skip(skip_value).limit(@num_docs_per_page).coerceTo('ARRAY')
+                        })
+                query.private_run
                     connection: @driver_handler.connection,
                     timeFormat: "raw"
                 , @generate_callback_run(@token)
@@ -129,13 +163,21 @@ module 'DataBrowserView', ->
                             page: @page
                     else
                         @results_to_display = []
-                        #@retrieve_results cursor, token, @num_docs_to_display
+
+                        # The primary key is always a valid index
+                        result.indexes.push @primary_key
 
                         @results_view.render_result
                             results: result.documents
-                            page: @page
                             count: result.count
+                            indexes: result.indexes
+                            db: @db
+                            namespace: @namespace
                             primary_key: @primary_key
+                            page: @page
+                            order_by: @order_by
+                            sort_by_index: @sort_by_index
+                            asc: @asc
                 # else, we just got back outdated results so we just ignore the event
 
             return callback
@@ -147,13 +189,13 @@ module 'DataBrowserView', ->
             else
                 console.log 'TOOD'
 
-        #events:
-        
         #destroy: =>
+        #TODO!
 
     class @ResultView extends DataExplorerView.SharedResultView
         last_keys: []
         last_columns_size: {}
+        limit_sort_without_index: 1000 #TODO Update
         view: 'table'
         template: Handlebars.templates['databrowser_result_container-template']
         error_template: Handlebars.templates['databrowser-error-template']
@@ -162,25 +204,89 @@ module 'DataBrowserView', ->
                 'change .jumper': 'jump_page'
                 'click .next_page': 'next_page'
                 'click .previous_page': 'previous_page'
+                'click .index_sort_desc': 'index_sort_desc'
+                'click .index_sort_asc': 'index_sort_asc'
+                'click .sort_desc': 'sort_desc'
+                'click .sort_asc': 'sort_asc'
 
+
+        index_sort_desc: (event) =>
+            @sort_results
+                event: event
+                sort_by_index: true
+                asc: false
+        index_sort_asc: (event) =>
+            @sort_results
+                event: event
+                sort_by_index: true
+                asc: true
+        sort_asc: (event) =>
+            @sort_results
+                event: event
+                sort_by_index: false
+                asc: true
+        sort_desc: (event) =>
+            @sort_results
+                event: event
+                sort_by_index: false
+                asc: false
+
+        sort_results: (args) =>
+            args.event.preventDefault()
+            @container.get_results
+                db: @db
+                namespace: @namespace
+                primary_key: @primary_key
+                page: 0
+                order_by: @$(args.event.currentTarget).data('path')
+                sort_by_index: args.sort_by_index
+                asc: args.asc
 
         jump_page: (event) =>
             #TODO check if selected, if it's the case, do nothing
             page = parseInt @$(event.currentTarget).val()
-            @container.get_results page
-
-
+            @container.get_results
+                db: @db
+                namespace: @namespace
+                primary_key: @primary_key
+                page: page
+                order_by: @order_by
+                sort_by_index: @sort_by_index
+                asc: @asc
 
         next_page: (event) =>
             event.preventDefault()
-            @container.get_results @container.get_page()+1
+            @container.get_results
+                db: @db
+                namespace: @namespace
+                primary_key: @primary_key
+                page: @page+1
+                order_by: @order_by
+                sort_by_index: @sort_by_index
+                asc: @asc
+
 
         # TODO Add check for the value of page
         previous_page: (event) =>
             event.preventDefault()
-            @container.get_results @container.get_page()-1
+            @container.get_results
+                db: @db
+                namespace: @namespace
+                primary_key: @primary_key
+                page: @page-1
+                order_by: @order_by
+                sort_by_index: @sort_by_index
+                asc: @asc
+
 
         initialize: (args) =>
+            @template_json_table = {}
+            #TODO Please... clean this
+            for key, value of @__proto__.__proto__.template_json_table
+                @template_json_table[key] = value
+
+            @template_json_table['tr_attr'] = Handlebars.templates['databrowser_result_json_table_tr_attr-template']
+
             @container = args.container
             @num_docs_per_page = args.num_docs_per_page
             @skip = 0
@@ -194,20 +300,26 @@ module 'DataBrowserView', ->
             return @
 
         render_result: (args) =>
-            if args?
-                if args.results isnt undefined
-                    @results = args.results
-                    @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
-                if args.count?
-                    @count = args.count
-                if args.primary_key?
-                    @primary_key = args.primary_key
-                if args.page?
-                    @skip_value = args.page*@num_docs_per_page
-                    @page = args.page
-                    # TODO Refactor the view in the DE so we don't have this @metadata object
-                    @metadata =
-                        skip_value: @skip_value
+            # Store the state
+            @results = args.results
+            @count = args.count
+            @indexes = args.indexes
+            @db = args.db
+            @namespace = args.namespace
+            @primary_key = args.primary_key
+            @page = args.page
+            @order_by = args.order_by
+            @sort_by_index = args.sort_by_index
+            @asc = args.asc
+
+            # Extra variables for convenience purpose
+            @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
+            @skip_value = args.page*@num_docs_per_page
+
+            # TODO Refactor DataExplorerView.Shared... to remove that
+            @metadata =
+                skip_value: @skip_value
+
 
             pages = []
             i = 0
@@ -215,13 +327,13 @@ module 'DataBrowserView', ->
                 pages.push
                     page: i+1
                     value: i
-                    selected: i is @container.get_page()
+                    selected: i is @page
                 i++
 
             @.$el.html @template
                 pages: pages
                 previous: @skip_value > 0
-                next: @container.get_page() < pages.length-1
+                next: @page < pages.length-1
 
             @$('.jumper').chosen()
 
@@ -235,7 +347,7 @@ module 'DataBrowserView', ->
                 when 'table'
                     previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
                     if Object.prototype.toString.call(@results) is '[object Array]'
-                        @.$('.table_view').html @json_to_table @results, @primary_key
+                        @.$('.table_view').html @json_to_table @results, @primary_key, @count<@limit_sort_without_index, @indexes
                     else
                         if not @results_array?
                             @results_array = []

@@ -64,6 +64,7 @@ class NavBarView extends Backbone.View
                 when 'route:datacenter'         then @.$('li#nav-servers').addClass('active')
                 when 'route:dataexplorer'       then @.$('li#nav-dataexplorer').addClass('active')
                 when 'route:logs'               then @.$('li#nav-logs').addClass('active')
+                when 'route:databrowser'        then @.$('li#nav-databrowser').addClass('active')
 
     update_cog_icon: (event) =>
         @$('.cog_icon').toggleClass 'active'

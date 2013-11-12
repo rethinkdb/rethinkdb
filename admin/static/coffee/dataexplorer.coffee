@@ -1003,7 +1003,7 @@ module 'DataExplorerView', ->
                                             else if /^\s*"/.test(@current_extra_suggestion) is true
                                                 suggestion = @current_extra_suggestion+'"'
                                     else
-                                        if @options.electric_punctuation is false
+                                        if @state.options.electric_punctuation is false
                                             move_outside = true
                                         if /^\s*'/.test(@current_extra_suggestion) is true
                                             string_delimiter = "'"
@@ -1121,7 +1121,7 @@ module 'DataExplorerView', ->
                 @hide_suggestion_and_description()
                 return false
 
-            if @options.electric_punctuation is true
+            if @state.options.electric_punctuation is true
                 @pair_char(event, stack) # Pair brackets/quotes
 
             # We just look at key up so we don't fire the call 3 times
@@ -2919,7 +2919,8 @@ module 'DataExplorerView', ->
 
         # Build the table
         # We order by the most frequent keys then by alphabetic order
-        json_to_table: (result, primary_key) =>
+        # if indexes is null, it means that we can order all fields
+        json_to_table: (result, primary_key, can_sort, indexes) =>
             # While an Array type is never returned by the driver, we still build an Array in the data explorer
             # when a cursor is returned (since we just print @limit results)
             if not result.constructor? or result.constructor isnt Array
@@ -2955,6 +2956,32 @@ module 'DataExplorerView', ->
                     return attr.prefix_str+attr.key
                 return attr.key
             @container.state.last_keys = @last_keys
+
+
+            #TODO Split this function in two, and properly use super()
+            if indexes?
+                indexes_hash = {}
+                for index in indexes
+                    indexes_hash[index] = true
+
+
+                # Check if there is an index
+                for attr in flatten_attr
+                    name = attr.prefix_str+attr.key
+                    if name of indexes_hash
+                        attr.has_index = true
+                    else
+                        if can_sort is true
+                            attr.can_sort = true
+                        else
+                            attr.can_sort = false
+
+            #TODO We should really split this method
+            for attr in flatten_attr
+                path = []
+                path.push.apply path, attr.prefix
+                path.push attr.key
+                attr.path = JSON.stringify path
 
             return @template_json_table.container
                 table_attr: @json_to_table_get_attr flatten_attr
@@ -3189,6 +3216,7 @@ module 'DataExplorerView', ->
 
             @last_keys = @container.state.last_keys # Arrays of the last keys displayed
             @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+
 
         render_error: (query, err, js_error) =>
             @.$el.html @error_template
