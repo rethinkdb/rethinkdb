@@ -115,12 +115,24 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     /* Notify that the peer has disconnected */
     if (got_initialization) {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-        auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
-            size_t num_erased = map->erase(peer);
-            guarantee(num_erased == 1);
-            return true;
+
+        /* C++11: auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool { ... }
+        Because we cannot use C++11 lambdas yet due to missing support in
+        GCC 4.4, this is the messy work-around: */
+        struct op_closure_t {
+            bool operator()(std::map<peer_id_t, metadata_t> *map) {
+                size_t num_erased = map->erase(peer);
+                guarantee(num_erased == 1);
+                return true;
+            }
+            op_closure_t(peer_id_t &c1) :
+                peer(c1) {
+            }
+            peer_id_t &peer;
         };
-        variable.apply_atomic_op(op);
+        op_closure_t op(peer);
+
+        variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
     }
 }
 
@@ -147,13 +159,28 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     /* Notify that the peer has connected */
     {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-        auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
-            std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
-                = map->insert(std::make_pair(peer, std::move(*initial_value)));
-            guarantee(res.second);
-            return true;
+
+        /* C++11: auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool { ... }
+        Because we cannot use C++11 lambdas yet due to missing support in
+        GCC 4.4, this is the messy work-around: */
+        struct op_closure_t {
+            bool operator()(std::map<peer_id_t, metadata_t> *map) {
+                std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
+                    = map->insert(std::make_pair(peer, std::move(*initial_value)));
+                guarantee(res.second);
+                return true;
+            }
+            op_closure_t(peer_id_t &c1,
+                         const boost::shared_ptr<metadata_t> &c2) :
+                peer(c1),
+                initial_value(c2) {
+            }
+            peer_id_t &peer;
+            const boost::shared_ptr<metadata_t> &initial_value;
         };
-        variable.apply_atomic_op(op);
+        op_closure_t op(peer, initial_value);
+
+        variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
     }
 
     /* Create a metadata FIFO sink and pulse the `got_initial_message` cond so
@@ -203,17 +230,35 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-            auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool {
-                typename std::map<peer_id_t, metadata_t>::iterator var_it = map->find(peer);
-                if (var_it == map->end()) {
-                    guarantee(!std_contains(sessions, peer));
-                    //The session was deleted we can ignore this update.
-                    return false;
+
+            /* C++11: auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool { ... }
+            Because we cannot use C++11 lambdas yet due to missing support in
+            GCC 4.4, this is the messy work-around: */
+            struct op_closure_t {
+                bool operator()(std::map<peer_id_t, metadata_t> *map) {
+                    typename std::map<peer_id_t, metadata_t>::iterator var_it = map->find(peer);
+                    if (var_it == map->end()) {
+                        guarantee(!std_contains(sessions, peer));
+                        //The session was deleted we can ignore this update.
+                        return false;
+                    }
+                    var_it->second = std::move(*new_value);
+                    return true;
                 }
-                var_it->second = std::move(*new_value);
-                return true;
+                op_closure_t(peer_id_t &c1,
+                             const boost::shared_ptr<metadata_t> &c2,
+                             boost::ptr_map<peer_id_t, session_t> &c3) :
+                    peer(c1),
+                    new_value(c2),
+                    sessions(c3) {
+                }
+                peer_id_t &peer;
+                const boost::shared_ptr<metadata_t> &new_value;
+                boost::ptr_map<peer_id_t, session_t> &sessions;
             };
-            variable.apply_atomic_op(op);
+            op_closure_t op(peer, new_value, sessions);
+
+            variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
         }
     } catch (const interrupted_exc_t &) {
         /* Here's what happened: `on_disconnect()` was called for the peer. It

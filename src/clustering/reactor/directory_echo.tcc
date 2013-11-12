@@ -5,6 +5,7 @@
 #include "clustering/reactor/directory_echo.hpp"
 
 #include <map>
+#include <functional>
 
 template<class internal_t>
 directory_echo_writer_t<internal_t>::our_value_change_t::our_value_change_t(directory_echo_writer_t *p) :
@@ -83,45 +84,69 @@ void directory_echo_mirror_t<internal_t>::on_change() {
 
     bool anything_changed = false;
 
-    auto op = [&] (const std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > *snapshot) -> void {
-        for (typename std::map<peer_id_t, directory_echo_wrapper_t<internal_t> >::const_iterator it = snapshot->begin(); it != snapshot->end(); it++) {
-            int version = it->second.version;
-            std::map<peer_id_t, directory_echo_version_t>::iterator jt = last_seen.find(it->first);
-            if (jt == last_seen.end() || jt->second < version) {
-                last_seen[it->first] = version;
-                /* Because `spawn_sometime()` won't run its function until after
-                `on_change()` has returned, we will call `subview.set_value()`
-                before the acks are sent. That guarantees that whatever is watching
-                our subview will see the change before we tell the other peer that
-                we saw the change. */
-                coro_t::spawn_sometime(boost::bind(
-                    &directory_echo_mirror_t<internal_t>::ack_version, this,
-                    it->second.ack_mailbox, version,
-                    auto_drainer_t::lock_t(&drainer)));
-                subview_value[it->first] = it->second.internal;
-                anything_changed = true;
+    /* C++11: auto op = [&] (const std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > *snapshot) -> void { ... }
+    Because we cannot use C++11 lambdas yet due to missing support in
+    GCC 4.4, this is the messy work-around: */
+    struct op_closure_t {
+        void operator()(const std::map<peer_id_t, directory_echo_wrapper_t<internal_t> > *snapshot) {
+            for (typename std::map<peer_id_t, directory_echo_wrapper_t<internal_t> >::const_iterator it = snapshot->begin(); it != snapshot->end(); it++) {
+                int version = it->second.version;
+                std::map<peer_id_t, directory_echo_version_t>::iterator jt = last_seen.find(it->first);
+                if (jt == last_seen.end() || jt->second < version) {
+                    last_seen[it->first] = version;
+                    /* Because `spawn_sometime()` won't run its function until after
+                    `on_change()` has returned, we will call `subview.set_value()`
+                    before the acks are sent. That guarantees that whatever is watching
+                    our subview will see the change before we tell the other peer that
+                    we saw the change. */
+                    coro_t::spawn_sometime(boost::bind(
+                        /* `parent` would be `this` if this was a C++11 lambda \/*/
+                        &directory_echo_mirror_t<internal_t>::ack_version, parent,
+                        it->second.ack_mailbox, version,
+                        auto_drainer_t::lock_t(&drainer)));
+                    subview_value[it->first] = it->second.internal;
+                    anything_changed = true;
+                }
+            }
+            /* Erase `last_seen` table entries for now-disconnected peers. This serves
+            two purposes:
+            1. It saves space if many peers connect and disconnect (this is not very
+                important, but nice theoretically)
+            2. It means that if they re-connect, we will re-transmit the ack. This is
+                important because maybe they didn't get the ack the first time due to
+                the connection going down.
+            */
+            for (typename std::map<peer_id_t, directory_echo_version_t>::iterator it = last_seen.begin();
+                    it != last_seen.end();) {
+                if (snapshot->find(it->first) == snapshot->end()) {
+                    subview_value.erase(it->first);
+                    anything_changed = true;
+                    last_seen.erase(it++);
+                } else {
+                    ++it;
+                }
             }
         }
-        /* Erase `last_seen` table entries for now-disconnected peers. This serves
-        two purposes:
-        1. It saves space if many peers connect and disconnect (this is not very
-            important, but nice theoretically)
-        2. It means that if they re-connect, we will re-transmit the ack. This is
-            important because maybe they didn't get the ack the first time due to
-            the connection going down.
-        */
-        for (typename std::map<peer_id_t, directory_echo_version_t>::iterator it = last_seen.begin();
-                it != last_seen.end();) {
-            if (snapshot->find(it->first) == snapshot->end()) {
-                subview_value.erase(it->first);
-                anything_changed = true;
-                last_seen.erase(it++);
-            } else {
-                ++it;
-            }
+        op_closure_t(std::map<peer_id_t, directory_echo_version_t> &c1,
+                     std::map<peer_id_t, internal_t> &c2,
+                     auto_drainer_t &c3,
+                     bool &c4,
+                     directory_echo_mirror_t<internal_t> *c5) :
+            last_seen(c1),
+            subview_value(c2),
+            drainer(c3),
+            anything_changed(c4),
+            parent(c5) {
         }
+        std::map<peer_id_t, directory_echo_version_t> &last_seen;
+        std::map<peer_id_t, internal_t> &subview_value;
+        auto_drainer_t &drainer;
+        bool &anything_changed;
+        directory_echo_mirror_t<internal_t> *parent;
     };
-    peers->apply_read(op);
+    op_closure_t op(last_seen, subview_value, drainer, anything_changed, this);
+
+    peers->apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
 
     /* If nothing actually changed, don't bother sending out a spurious update
     to our sub-listeners. */
