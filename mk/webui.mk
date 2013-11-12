@@ -1,4 +1,4 @@
-#### Web UI sources
+### Web UI sources
 
 .PHONY: $(TOP)/admin/all
 $(TOP)/admin/all: web-assets
@@ -42,7 +42,6 @@ COFFEE_SOURCES := $(patsubst %, $(WEB_SOURCE_DIR)/static/coffee/%,\
 			router.coffee \
 			app.coffee)
 COFFEE_VERSION_FILE :=  $(WEB_ASSETS_OBJ_DIR)/version.coffee
-LESS_SOURCES := $(shell find $(WEB_SOURCE_DIR)/static/less -name '*.less')
 LESS_MAIN := $(WEB_SOURCE_DIR)/static/less/styles.less
 CLUSTER_HTML := $(WEB_SOURCE_DIR)/templates/cluster.html
 JS_EXTERNAL_DIR := $(WEB_SOURCE_DIR)/static/js
