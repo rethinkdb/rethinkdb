@@ -835,6 +835,12 @@ class Table(RqlQuery):
     def index_list(self):
         return IndexList(self)
 
+    def index_status(self, *indexes):
+        return IndexStatus(self, *indexes)
+
+    def index_wait(self, *indexes):
+        return IndexWait(self, *indexes)
+
     def sync(self):
         return Sync(self)
 
@@ -997,6 +1003,14 @@ class IndexDrop(RqlMethodQuery):
 class IndexList(RqlMethodQuery):
     tt = p.Term.INDEX_LIST
     st = 'index_list'
+
+class IndexStatus(RqlMethodQuery):
+    tt = p.Term.INDEX_STATUS
+    st = 'index_status'
+
+class IndexWait(RqlMethodQuery):
+    tt = p.Term.INDEX_WAIT
+    st = 'index_wait'
 
 class Sync(RqlMethodQuery):
     tt = p.Term.SYNC
