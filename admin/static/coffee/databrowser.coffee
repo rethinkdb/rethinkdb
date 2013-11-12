@@ -242,6 +242,10 @@ module 'DataBrowserView', ->
                     break
             flatten_attr.unshift.apply flatten_attr, pk
 
+            # Reset col
+            for attr, i in flatten_attr
+                attr.col = i
+
 
             return @template_json_table.container
                 table_attr: @json_to_table_get_attr flatten_attr
