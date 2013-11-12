@@ -116,6 +116,9 @@ public:
         current_page_acq_->mark_deleted();
     }
 
+    alt_txn_t *txn() const { return txn_; }
+    alt_cache_t *cache() const { return cache_; }
+
 private:
     friend class alt_buf_read_t;
     friend class alt_buf_write_t;
@@ -151,6 +154,8 @@ public:
     ~alt_buf_write_t();
 
     void *get_data_write(uint32_t block_size);
+    // Equivalent to passing the max_block_size.
+    void *get_data_write();
 
 private:
     alt_buf_lock_t *lock_;

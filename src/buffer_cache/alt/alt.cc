@@ -154,6 +154,10 @@ void *alt_buf_write_t::get_data_write(uint32_t block_size) {
     return page_acq_.get_buf_write();
 }
 
+void *alt_buf_write_t::get_data_write() {
+    return get_data_write(lock_->cache_->max_block_size().value());
+}
+
 
 
 }  // namespace alt
