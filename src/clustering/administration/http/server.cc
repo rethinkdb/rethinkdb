@@ -180,6 +180,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/document-icon.png");
     white_list.insert("/images/eye-icon_white.png");
     white_list.insert("/images/globe-icon_white.png");
+    white_list.insert("/images/glyphicons-halflings.png");
     white_list.insert("/images/graph-icon.png");
     white_list.insert("/images/green-light.png");
     white_list.insert("/images/green-light_glow.png");

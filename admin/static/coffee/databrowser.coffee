@@ -220,7 +220,10 @@ module 'DataBrowserView', ->
 
                 # Check if there is an index
                 for attr in flatten_attr
-                    name = attr.prefix_str+attr.key
+                    if attr.is_primitive
+                        name = attr.prefix_str
+                    else
+                        name = attr.prefix_str+attr.key
                     if name of indexes_hash
                         attr.has_index = true
                     else
@@ -232,7 +235,8 @@ module 'DataBrowserView', ->
             for attr in flatten_attr
                 path = []
                 path.push.apply path, attr.prefix
-                path.push attr.key
+                if attr.is_primitive isnt true
+                    path.push attr.key
                 attr.path = JSON.stringify path
 
             # The primary key comes first

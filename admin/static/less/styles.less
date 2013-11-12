@@ -19,8 +19,13 @@
 @import "bootstrap/forms.less";
 @import "bootstrap/navs.less";
 
+// Icons
+@import "bootstrap/sprites.less";
+
 // Utility classes
 @import "bootstrap/utilities.less"; // Has to be last to override when necessary
+
+
 
 @import "lesshat";
 
@@ -1842,6 +1847,12 @@ TODO: retire this
             word-wrap: break-word; /* Internet Explorer 5.5+, 6, 7, 8 compability-mode */
             -ms-word-break: break-all; /* Internet Explorer 8 */
             word-break: break-all;
+        }
+        .icon-arrow-down, .icon-arrow-up{
+            opacity: 0.4;
+        }
+        .icon-arrow-down{
+            margin-left: 7px;
         }
     }
 }
