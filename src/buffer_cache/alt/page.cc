@@ -362,7 +362,7 @@ void current_page_t::convert_from_serializer_if_necessary(current_page_help_t he
 }
 
 page_t *current_page_t::the_page_for_read(current_page_help_t help) {
-    rassert(!is_deleted_);
+    guarantee(!is_deleted_);
     convert_from_serializer_if_necessary(help);
     return page_.get_page_for_read();
 }
@@ -376,7 +376,7 @@ page_t *current_page_t::the_page_for_read_or_deleted(current_page_help_t help) {
 }
 
 page_t *current_page_t::the_page_for_write(current_page_help_t help) {
-    rassert(!is_deleted_);
+    guarantee(!is_deleted_);
     convert_from_serializer_if_necessary(help);
     return page_.get_page_for_write(help.page_cache);
 }

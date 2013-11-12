@@ -111,6 +111,11 @@ public:
         return current_page_acq_->write_acq_signal();
     }
 
+    void mark_deleted() {
+        guarantee(txn_ != NULL);
+        current_page_acq_->mark_deleted();
+    }
+
 private:
     friend class alt_buf_read_t;
     friend class alt_buf_write_t;
