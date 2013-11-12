@@ -346,21 +346,23 @@ module 'DataBrowserView', ->
             return @
 
         render_result: (args) =>
-            # Store the state
-            @results = args.results
-            @count = args.count
-            @indexes = args.indexes
-            @db = args.db
-            @namespace = args.namespace
-            @primary_key = args.primary_key
-            @page = args.page
-            @order_by = args.order_by
-            @sort_by_index = args.sort_by_index
-            @asc = args.asc
+            # If args is not defined, we just switched between view (tree, table, raw), so we just need to re-display the same data
+            if args?
+                # Store the state
+                @results = args.results
+                @count = args.count
+                @indexes = args.indexes
+                @db = args.db
+                @namespace = args.namespace
+                @primary_key = args.primary_key
+                @page = args.page
+                @order_by = args.order_by
+                @sort_by_index = args.sort_by_index
+                @asc = args.asc
 
             # Extra variables for convenience purpose
             @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
-            @skip_value = args.page*@num_docs_per_page
+            @skip_value = @page*@num_docs_per_page
 
             # TODO Refactor DataExplorerView.Shared... to remove that
             @metadata =
