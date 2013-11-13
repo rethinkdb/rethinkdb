@@ -59,6 +59,12 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
 
 current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     block_id_t block_id = free_list_.acquire_block_id();
+    current_page_t *ret = page_for_new_chosen_block_id(block_id);
+    *block_id_out = block_id;
+    return ret;
+}
+
+current_page_t *page_cache_t::page_for_new_chosen_block_id(block_id_t block_id) {
     if (current_pages_.size() <= block_id) {
         current_pages_.resize(block_id + 1, NULL);
     }
@@ -73,7 +79,6 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
                                                    this);
     }
 
-    *block_id_out = block_id;
     return current_pages_[block_id];
 }
 
@@ -93,9 +98,10 @@ current_page_acq_t::current_page_acq_t()
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        block_id_t block_id,
-                                       alt_access_t access)
+                                       alt_access_t access,
+                                       bool create)
     : txn_(NULL) {
-    init(txn, block_id, access);
+    init(txn, block_id, access, create);
 }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
@@ -106,13 +112,18 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
 
 void current_page_acq_t::init(page_txn_t *txn,
                               block_id_t block_id,
-                              alt_access_t access) {
+                              alt_access_t access,
+                              bool create) {
     guarantee(txn_ == NULL);
     txn_ = txn;
     access_ = access;
     declared_snapshotted_ = false;
     block_id_ = block_id;
-    current_page_ = txn->page_cache()->page_for_block_id(block_id);
+    if (create) {
+        current_page_ = txn->page_cache()->page_for_new_chosen_block_id(block_id);
+    } else {
+        current_page_ = txn->page_cache()->page_for_block_id(block_id);
+    }
     dirtied_page_ = false;
 
     txn_->add_acquirer(this);

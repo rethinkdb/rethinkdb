@@ -47,6 +47,18 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
     (void)snapshot_node_;
 }
 
+alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
+                               block_id_t block_id,
+                               alt_create_t create)
+    : txn_(txn),
+      cache_(txn_->cache()),
+      current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
+                                               alt_access_t::write, true)),
+      snapshot_node_(NULL) {
+    guarantee(create == alt_create_t::create);
+}
+
+
 bool is_subordinate(alt_access_t parent, alt_access_t child) {
     return parent == alt_access_t::write || child == alt_access_t::read;
 }

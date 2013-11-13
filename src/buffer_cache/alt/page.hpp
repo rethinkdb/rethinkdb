@@ -276,19 +276,14 @@ public:
     // uses a scoped pointer now, because getting this type to be swappable was too
     // hard.  Make this type be swappable or remove the default constructor.
     current_page_acq_t();
+    // RSI: Clean up the interface (w.r.t. this create = false parameter).
     current_page_acq_t(page_txn_t *txn,
                        block_id_t block_id,
-                       alt_access_t access);
+                       alt_access_t access,
+                       bool create = false);
     current_page_acq_t(page_txn_t *txn,
                        alt_access_t access);  // access must be write.
     ~current_page_acq_t();
-
-
-    void init(page_txn_t *txn,
-              block_id_t block_id,
-              alt_access_t access);
-    void init(page_txn_t *txn,
-              alt_access_t access);  // access must be write.
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)
     void declare_snapshotted();
@@ -305,6 +300,13 @@ public:
     void mark_deleted();
 
 private:
+    void init(page_txn_t *txn,
+              block_id_t block_id,
+              alt_access_t access,
+              bool create);
+    void init(page_txn_t *txn,
+              alt_access_t access);  // access must be write.
+
     friend class page_txn_t;
     friend class current_page_t;
 
@@ -428,6 +430,7 @@ public:
     ~page_cache_t();
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);
+    current_page_t *page_for_new_chosen_block_id(block_id_t block_id);
 
     // Returns how much memory is being used by all the pages in the cache at this
     // moment in time.

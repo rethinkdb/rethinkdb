@@ -14,6 +14,10 @@ namespace alt {
 
 class alt_buf_lock_t;
 
+enum class alt_create_t {
+    create,
+};
+
 class alt_cache_t {
 public:
     explicit alt_cache_t(serializer_t *serializer);
@@ -67,6 +71,12 @@ public:
     alt_buf_lock_t(alt_txn_t *txn,
                    block_id_t block_id,
                    alt_access_t access);
+
+    // Nonblocking constructor, creates a new block with a specified block id.
+    alt_buf_lock_t(alt_txn_t *txn,
+                   block_id_t block_id,
+                   alt_create_t create);
+
     // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
     // pulsed.  In either case, returns before the block is acquired, but after we're
     // _in line_ for the block.
