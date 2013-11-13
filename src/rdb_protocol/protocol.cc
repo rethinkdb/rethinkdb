@@ -112,6 +112,8 @@ void bring_sindexes_up_to_date(
         transaction_t *txn)
     THROWS_NOTHING
 {
+    with_priority_t p(CORO_PRIORITY_SINDEX_CONSTRUCTION);
+
     /* We register our modification queue here. An important point about
      * correctness here: we've held the superblock this whole time and will
      * continue to do so until the call to post_construct_secondary_indexes
@@ -207,7 +209,6 @@ void post_construct_and_drain_queue(
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
             store->acquire_superblock_for_write(
-                rwi_write,
                 repli_timestamp_t::distant_past,
                 2,
                 WRITE_DURABILITY_SOFT,
@@ -216,12 +217,18 @@ void post_construct_and_drain_queue(
                 &queue_superblock,
                 lock.get_drain_signal());
 
+            // Synchronization is guaranteed through the token_pair.
+            // Let's get the information we need from the superblock and then
+            // release it immediately.
+            block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
+            queue_superblock->release();
+
             scoped_ptr_t<buf_lock_t> queue_sindex_block;
             store->acquire_sindex_block_for_write(
                 &token_pair,
                 queue_txn.get(),
                 &queue_sindex_block,
-                queue_superblock->get_sindex_block_id(),
+                sindex_block_id,
                 lock.get_drain_signal());
 
             sindex_access_vector_t sindexes;
@@ -288,7 +295,6 @@ void post_construct_and_drain_queue(
             destroyer(&token_pair.sindex_write_token);
 
         store->acquire_superblock_for_write(
-            rwi_write,
             repli_timestamp_t::distant_past,
             2,
             WRITE_DURABILITY_HARD,
@@ -297,12 +303,18 @@ void post_construct_and_drain_queue(
             &queue_superblock,
             lock.get_drain_signal());
 
+        // Synchronization is guaranteed through the token_pair.
+        // Let's get the information we need from the superblock and then
+        // release it immediately.
+        block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
+        queue_superblock->release();
+
         scoped_ptr_t<buf_lock_t> queue_sindex_block;
         store->acquire_sindex_block_for_write(
             &token_pair,
             queue_txn.get(),
             &queue_sindex_block,
-            queue_superblock->get_sindex_block_id(),
+            sindex_block_id,
             lock.get_drain_signal());
 
         mutex_t::acq_t acq;
@@ -1696,6 +1708,7 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
+    with_priority_t p(CORO_PRIORITY_BACKFILL_SENDER);
     rdb_backfill_callback_impl_t callback(chunk_fun_cb);
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
@@ -1804,6 +1817,7 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         write_token_pair_t *token_pair,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
+    with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
     boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree, txn, superblock, token_pair, interruptor), chunk.val);
 }
 
@@ -1813,6 +1827,7 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   superblock_t *superblock,
                                   write_token_pair_t *token_pair,
                                   signal_t *interruptor) {
+    with_priority_t p(CORO_PRIORITY_RESET_DATA);
     value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
     rdb_value_deleter_t deleter;
 

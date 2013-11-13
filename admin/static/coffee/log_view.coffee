@@ -137,8 +137,8 @@ module 'LogView', ->
                 too_many_new_entries: @num_new_entries > @max_log_entries
                 max_log_entries: @max_log_entries
                 has_logs: @current_logs.length > 0
-                from_date: new XDate(@current_logs[0]?.get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
-                to_date: new XDate(@current_logs[@displayed_logs-1]?.get('timestamp')*1000).toString("MMMM M, yyyy 'at' HH:mm:ss")
+                from_date: new XDate(@current_logs[0]?.get('timestamp')*1000).toString("MMMM d, yyyy 'at' HH:mm:ss")
+                to_date: new XDate(@current_logs[@displayed_logs-1]?.get('timestamp')*1000).toString("MMMM d, yyyy 'at' HH:mm:ss")
                 logs_for:
                     general:    @type is 'general'
                     machine:    @type is 'machine'

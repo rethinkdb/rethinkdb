@@ -73,7 +73,7 @@ void run_metainfo_test() {
 
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        get_btree_superblock_and_txn(&btree, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
         buf_lock_t *sb_buf = superblock->get();
 
         int op = random() % 100;

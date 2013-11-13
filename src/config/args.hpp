@@ -35,10 +35,10 @@
 // sequential set of i/o operations though. If access patterns are random
 // for all accounts, a low io batch factor does just as well (as bad) when it comes
 // to the number of random seeks, but might still provide a lower latency
-// than a high batch factor. Our serializer writes usually generate a sequential
-// access pattern and therefore take considerable advantage from a high io batch
-// factor.
-#define DEFAULT_IO_BATCH_FACTOR                   8
+// than a high batch factor. Our serializer now groups data writes into
+// a single large write operation by itself, making a high value here less
+// useful.
+#define DEFAULT_IO_BATCH_FACTOR                   1
 
 // Currently, each cache uses two IO accounts:
 // one account for writes, and one account for reads.
@@ -50,6 +50,11 @@
 // by the number of slices on a specific file.
 #define CACHE_READS_IO_PRIORITY                   512
 #define CACHE_WRITES_IO_PRIORITY                  64
+
+// The cache priority to use for secondary index post construction
+// 100 = same priority as all other read operations in the cache together.
+// 0 = minimal priority
+#define SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY   5
 
 // Garbage Colletion uses its own two IO accounts.
 // There is one low-priority account that is meant to guarantee
@@ -243,6 +248,13 @@
 // MESSAGE_SCHEDULER_GRANULARITY should be least
 // 2^(MESSAGE_SCHEDULER_MAX_PRIORITY - MESSAGE_SCHEDULER_MIN_PRIORITY + 1)
 #define MESSAGE_SCHEDULER_GRANULARITY           32
+
+// Priorities for specific tasks
+#define CORO_PRIORITY_SINDEX_CONSTRUCTION       (-2)
+#define CORO_PRIORITY_BACKFILL_SENDER           (-2)
+#define CORO_PRIORITY_BACKFILL_RECEIVER         (-2)
+#define CORO_PRIORITY_RESET_DATA                (-2)
+
 
 #endif  // CONFIG_ARGS_HPP_
 

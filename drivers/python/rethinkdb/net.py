@@ -1,37 +1,23 @@
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-__all__ = ['connect', 'Connection', 'Cursor','protobuf_implementation']
+__all__ = ['connect', 'Connection', 'Cursor', 'protobuf_implementation']
 
+import errno
 import socket
 import struct
 from os import environ
 
-if 'PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION' in environ:
-    protobuf_implementation = environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION']
-    if environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] == 'cpp':
-        import rethinkdb_pbcpp
-else:
-    try:
-        # Set an environment variable telling the protobuf library
-        # to use the fast C++ based serializer implementation
-        # over the pure python one if it is available.
-        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'cpp'
+try:
+    import rethinkdb.pbcpp
+    protobuf_implementation = 'cpp'
+except ImportError:
+    protobuf_implementation = 'python'
 
-        # The cpp_message module could change between versions of the
-        # protobuf module
-        from google.protobuf.internal import cpp_message
-        import rethinkdb_pbcpp
-        protobuf_implementation = 'cpp'
-    except ImportError as e:
-        # Default to using the python implementation of protobuf
-        environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
-        protobuf_implementation = 'python'
+from rethinkdb import ql2_pb2 as p
 
-from . import ql2_pb2 as p
-
-from . import repl # For the repl connection
-from .errors import *
-from .ast import Datum, DB, expr
+from rethinkdb import repl # For the repl connection
+from rethinkdb.errors import *
+from rethinkdb.ast import Datum, DB, expr
 
 class Cursor(object):
     def __init__(self, conn, query, term, opts):
@@ -116,13 +102,13 @@ class Connection(object):
         except Exception as err:
             raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
 
-        self.socket.sendall(struct.pack("<L", p.VersionDummy.V0_2))
-        self.socket.sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
+        self._sock_sendall(struct.pack("<L", p.VersionDummy.V0_2))
+        self._sock_sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
 
         # Read out the response from the server, which will be a null-terminated string
         response = b""
         while True:
-            char = self.socket.recv(1)
+            char = self._sock_recv(1)
             if char == b"\0":
                 break
             response += char
@@ -166,6 +152,22 @@ class Connection(object):
     def repl(self):
         repl.default_connection = self
         return self
+
+    def _sock_recv(self, length):
+        while True:
+            try:
+                return self.socket.recv(length)
+            except IOError as e:
+                if e.errno != errno.EINTR:
+                    raise
+
+    def _sock_sendall(self, data):
+        while True:
+            try:
+                return self.socket.sendall(data)
+            except IOError as e:
+                if e.errno != errno.EINTR:
+                    raise
 
     def _start(self, term, **global_opt_args):
         token = self.next_token
@@ -232,7 +234,7 @@ class Connection(object):
             try:
                 response_header = b''
                 while len(response_header) < 4:
-                    chunk = self.socket.recv(4)
+                    chunk = self._sock_recv(4)
                     if len(chunk) == 0:
                         raise RqlDriverError("Connection is closed.")
                     response_header += chunk
@@ -241,7 +243,7 @@ class Connection(object):
                 (response_len,) = struct.unpack("<L", response_header)
 
                 while len(response_buf) < response_len:
-                    chunk = self.socket.recv(response_len - len(response_buf))
+                    chunk = self._sock_recv(response_len - len(response_buf))
                     if len(chunk) == 0:
                         raise RqlDriverError("Connection is broken.")
                     response_buf += chunk
@@ -289,7 +291,7 @@ class Connection(object):
         # Send protobuf
         query_protobuf = query.SerializeToString()
         query_header = struct.pack("<L", len(query_protobuf))
-        self.socket.sendall(query_header + query_protobuf)
+        self._sock_sendall(query_header + query_protobuf)
 
         if 'noreply' in opts and opts['noreply']:
             return None
