@@ -69,7 +69,11 @@ private:
     perfmon_membership_t perfmon_membership;
 
     int64_t queue_size;
-    block_id_t head_block_id, tail_block_id;
+
+    // The end we push onto.
+    block_id_t head_block_id;
+    // The end we pop from.
+    block_id_t tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
 #if USE_ALT_CACHE
     scoped_ptr_t<alt::alt_cache_t> cache;

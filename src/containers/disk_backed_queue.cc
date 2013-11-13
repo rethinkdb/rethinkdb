@@ -99,11 +99,31 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     char buffer[MAX_REF_SIZE];
     bzero(buffer, MAX_REF_SIZE);
 
-    blob_t blob(txn.get_cache()->get_block_size(), buffer, MAX_REF_SIZE);
+#if USE_ALT_CACHE
+    alt::blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
+    blob.append_region(_head.get(), stream.vector().size());
+#else
+    blob_t blob(cache->get_block_size(), buffer, MAX_REF_SIZE);
     blob.append_region(&txn, stream.vector().size());
+#endif
     std::string sered_data(stream.vector().begin(), stream.vector().end());
-    blob.write_from_string(sered_data, &txn, 0);
 
+#if USE_ALT_CACHE
+    blob.write_from_string(sered_data, _head.get(), 0);
+#else
+    blob.write_from_string(sered_data, &txn, 0);
+#endif
+
+#if USE_ALT_CACHE
+    if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->max_block_size()) > cache->max_block_size().value()) {
+        // The data won't fit in our current head block, so it's time to make a new one.
+        head = NULL;
+        _head.reset();
+        add_block_to_head(&txn);
+        _head.init(new buf_lock_t(&txn, head_block_id, rwi_write));
+        head = static_cast<queue_block_t *>(_head->get_data_write());
+    }
+#else
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
         // The data won't fit in our current head block, so it's time to make a new one.
         head = NULL;
@@ -112,6 +132,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         _head.init(new buf_lock_t(&txn, head_block_id, rwi_write));
         head = static_cast<queue_block_t *>(_head->get_data_write());
     }
+#endif
 
     memcpy(head->data + head->data_size, buffer, blob.refsize(cache->get_block_size()));
     head->data_size += blob.refsize(cache->get_block_size());
