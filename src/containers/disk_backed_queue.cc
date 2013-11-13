@@ -2,7 +2,7 @@
 #include "containers/disk_backed_queue.hpp"
 
 #include "arch/io/disk.hpp"
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/alt_blob.hpp"
 #else
@@ -11,7 +11,7 @@
 #endif
 #include "serializer/config.hpp"
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
 using alt::alt_access_t;
 using alt::alt_cache_t;
 using alt::alt_create_t;
@@ -41,7 +41,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
        crashes. */
     file_opener.unlink_serializer_file();
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     cache.init(new alt_cache_t(serializer.get()));
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
     // RSI: Is this actually necessary?
@@ -67,7 +67,7 @@ internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }
 void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     mutex_t::acq_t mutex_acq(&mutex);
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     alt_txn_t txn(cache.get());
 #else
     // First, we need a transaction.
@@ -83,7 +83,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         add_block_to_head(&txn);
     }
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     auto _head = make_scoped<alt_buf_lock_t>(&txn, head_block_id,
                                              alt_access_t::write);
     auto write = make_scoped<alt_buf_write_t>(_head.get());
@@ -100,7 +100,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     char buffer[MAX_REF_SIZE];
     bzero(buffer, MAX_REF_SIZE);
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     // RSI: Wrong parent?  Can we just make the blob later?
     alt::blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
     blob.append_region(_head.get(), stream.vector().size());
@@ -110,13 +110,13 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
 #endif
     std::string sered_data(stream.vector().begin(), stream.vector().end());
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     blob.write_from_string(sered_data, _head.get(), 0);
 #else
     blob.write_from_string(sered_data, &txn, 0);
 #endif
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->max_block_size()) > cache->max_block_size().value()) {
         // The data won't fit in our current head block, so it's time to make a new one.
         head = NULL;
@@ -138,7 +138,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     }
 #endif
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     memcpy(head->data + head->data_size, buffer,
            blob.refsize(cache->max_block_size()));
     head->data_size += blob.refsize(cache->max_block_size());
@@ -155,7 +155,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
     mutex_t::acq_t mutex_acq(&mutex);
 
     char buffer[MAX_REF_SIZE];
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     alt_txn_t txn(cache.get());
 #else
     transaction_t txn(cache.get(),
@@ -166,7 +166,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
                       WRITE_DURABILITY_SOFT /* No durability for unlinked dbq file. */);
 #endif
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     auto _tail = make_scoped<alt_buf_lock_t>(&txn, tail_block_id,
                                              alt_access_t::write);
     auto write = make_scoped<alt_buf_write_t>(_tail.get());
@@ -179,26 +179,26 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
 
     /* Grab the data from the blob and delete it. */
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     memcpy(buffer, tail->data + tail->live_data_offset, alt::blob::ref_size(cache->max_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
 #else
     memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->get_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
 #endif
     std::vector<char> data_vec;
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     alt::blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
 #else
     blob_t blob(cache->get_block_size(), buffer, MAX_REF_SIZE);
 #endif
     {
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
         alt::blob_acq_t acq_group;
 #else
         blob_acq_t acq_group;
 #endif
         buffer_group_t blob_group;
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
         blob.expose_all(_tail.get(), alt_access_t::read, &blob_group, &acq_group);
 #else
         blob.expose_all(&txn, rwi_read, &blob_group, &acq_group);
@@ -211,13 +211,13 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
     }
 
     /* Record how far along in the blob we are. */
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     tail->live_data_offset += blob.refsize(cache->max_block_size());
 #else
     tail->live_data_offset += blob.refsize(cache->get_block_size());
 #endif
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     blob.clear(_tail.get());
 #else
     blob.clear(&txn);
@@ -244,7 +244,7 @@ int64_t internal_disk_backed_queue_t::size() {
     return queue_size;
 }
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
 void internal_disk_backed_queue_t::add_block_to_head(alt_txn_t *txn) {
     alt_buf_lock_t _new_head(txn, alt_access_t::write);
     alt_buf_write_t write(&_new_head);
@@ -256,13 +256,13 @@ void internal_disk_backed_queue_t::add_block_to_head(transaction_t *txn) {
 #endif
     if (head_block_id == NULL_BLOCK_ID) {
         rassert(tail_block_id == NULL_BLOCK_ID);
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
         head_block_id = tail_block_id = _new_head.block_id();
 #else
         head_block_id = tail_block_id = _new_head.get_block_id();
 #endif
     } else {
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
         alt_buf_lock_t _old_head(txn, head_block_id, alt_access_t::write);
         alt_buf_write_t old_write(&_old_head);
         queue_block_t *old_head
@@ -281,20 +281,20 @@ void internal_disk_backed_queue_t::add_block_to_head(transaction_t *txn) {
     new_head->live_data_offset = 0;
 }
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
 void internal_disk_backed_queue_t::remove_block_from_tail(alt_txn_t *txn) {
 #else
 void internal_disk_backed_queue_t::remove_block_from_tail(transaction_t *txn) {
 #endif
     rassert(tail_block_id != NULL_BLOCK_ID);
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     alt_buf_lock_t _old_tail(txn, tail_block_id, alt_access_t::write);
 #else
     buf_lock_t _old_tail(txn, tail_block_id, rwi_write);
 #endif
 
     {
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
         alt_buf_write_t old_write(&_old_tail);
         queue_block_t *old_tail = static_cast<queue_block_t *>(old_write.get_data_write());
 #else

@@ -7,9 +7,9 @@
 #include <string>
 #include <vector>
 
-#define USE_ALT_CACHE 0
+#define DBQ_USE_ALT_CACHE 1
 
-#if !USE_ALT_CACHE
+#if !DBQ_USE_ALT_CACHE
 #include "buffer_cache/types.hpp"
 #endif
 #include "concurrency/fifo_checker.hpp"
@@ -19,7 +19,7 @@
 #include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
 namespace alt {
 class alt_cache_t;
 class alt_txn_t;
@@ -53,7 +53,7 @@ public:
     int64_t size();
 
 private:
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     void add_block_to_head(alt::alt_txn_t *txn);
     void remove_block_from_tail(alt::alt_txn_t *txn);
 #else
@@ -75,7 +75,7 @@ private:
     // The end we pop from.
     block_id_t tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
-#if USE_ALT_CACHE
+#if DBQ_USE_ALT_CACHE
     scoped_ptr_t<alt::alt_cache_t> cache;
 #else
     scoped_ptr_t<cache_t> cache;
