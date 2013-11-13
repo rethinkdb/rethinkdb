@@ -19,7 +19,14 @@ block_size_t alt_cache_t::max_block_size() const {
 alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
     : cache_(cache),
       page_txn_(&cache->page_cache_, &preceding_txn->page_txn_),
-      this_txn_timestamp_(repli_timestamp_t::invalid) { }
+      this_txn_timestamp_(repli_timestamp_t::invalid) {
+    // RSI: Use this_txn_timestamp_ for something.
+    (void)this_txn_timestamp_;
+}
+
+alt_txn_t::~alt_txn_t() {
+    // RSI: Do anything?
+}
 
 alt_buf_lock_t::alt_buf_lock_t()
     : txn_(NULL),

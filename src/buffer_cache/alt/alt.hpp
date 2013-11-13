@@ -97,6 +97,9 @@ public:
         guarantee(txn_ != NULL);
         return current_page_acq_->block_id();
     }
+    // RSI: Remove get_block_id().
+    block_id_t get_block_id() const { return block_id(); }
+
     alt_access_t access() const {
         guarantee(txn_ != NULL);
         return current_page_acq_->access();
