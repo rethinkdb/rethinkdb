@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_DISK_BACKED_QUEUE_HPP_
 #define CONTAINERS_DISK_BACKED_QUEUE_HPP_
 
@@ -7,7 +7,11 @@
 #include <string>
 #include <vector>
 
+#define USE_ALT_CACHE 0
+
+#if !USE_ALT_CACHE
 #include "buffer_cache/types.hpp"
+#endif
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -15,6 +19,12 @@
 #include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
+#if USE_ALT_CACHE
+namespace alt {
+class alt_cache_t;
+class alt_txn_t;
+}
+#endif
 class io_backender_t;
 class perfmon_collection_t;
 
@@ -43,9 +53,13 @@ public:
     int64_t size();
 
 private:
+#if USE_ALT_CACHE
+    void add_block_to_head(alt::alt_txn_t *txn);
+    void remove_block_from_tail(alt::alt_txn_t *txn);
+#else
     void add_block_to_head(transaction_t *txn);
-
     void remove_block_from_tail(transaction_t *txn);
+#endif
 
     mutex_t mutex;
 
@@ -57,7 +71,11 @@ private:
     int64_t queue_size;
     block_id_t head_block_id, tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
+#if USE_ALT_CACHE
+    scoped_ptr_t<alt::alt_cache_t> cache;
+#else
     scoped_ptr_t<cache_t> cache;
+#endif
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };

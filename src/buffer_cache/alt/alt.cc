@@ -159,5 +159,4 @@ void *alt_buf_write_t::get_data_write() {
 }
 
 
-
 }  // namespace alt

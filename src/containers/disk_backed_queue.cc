@@ -1,10 +1,23 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/disk_backed_queue.hpp"
 
 #include "arch/io/disk.hpp"
+#if USE_ALT_CACHE
+#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/alt_blob.hpp"
+#else
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#endif
 #include "serializer/config.hpp"
+
+#if USE_ALT_CACHE
+using alt::alt_access_t;
+using alt::alt_cache_t;
+using alt::alt_txn_t;
+using alt::alt_buf_lock_t;
+using alt::alt_buf_write_t;
+#endif
 
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
                                                            const serializer_filepath_t &filename,
@@ -27,6 +40,17 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
        crashes. */
     file_opener.unlink_serializer_file();
 
+#if USE_ALT_CACHE
+    cache.init(new alt_cache_t(serializer.get()));
+    // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
+    // RSI: Is this actually necessary?
+    alt_txn_t txn(cache.get());
+    alt_buf_lock_t block(&txn, SUPERBLOCK_ID, alt_access_t::write);
+    alt_buf_write_t write(&block);
+    const block_size_t block_size = cache->max_block_size();
+    void *buf = write.get_data_write(block_size.value());
+    memset(buf, 0, block_size.value());
+#else
     /* Create the cache. */
     cache_t::create(serializer.get());
 
@@ -34,6 +58,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     cache_dynamic_config.max_size = MEGABYTE;
     cache_dynamic_config.max_dirty_size = MEGABYTE / 2;
     cache.init(new cache_t(serializer.get(), cache_dynamic_config, &perfmon_collection));
+#endif
 }
 
 internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }
@@ -41,6 +66,9 @@ internal_disk_backed_queue_t::~internal_disk_backed_queue_t() { }
 void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     mutex_t::acq_t mutex_acq(&mutex);
 
+#if USE_ALT_CACHE
+    alt_txn_t txn(cache.get());
+#else
     // First, we need a transaction.
     transaction_t txn(cache.get(),
                       rwi_write,
@@ -48,13 +76,21 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
                       repli_timestamp_t::distant_past,
                       cache_order_source.check_in("push"),
                       WRITE_DURABILITY_SOFT /* No need for durability with unlinked dbq file. */);
+#endif
 
     if (head_block_id == NULL_BLOCK_ID) {
         add_block_to_head(&txn);
     }
 
+#if USE_ALT_CACHE
+    scoped_ptr_t<alt_buf_lock_t> _head(new alt_buf_lock_t(&txn, head_block_id,
+                                                          alt_access_t::write));
+    scoped_ptr_t<alt_buf_write_t> write(_head.get());
+    queue_block_t *head = static_cast<queue_block_t *>(write->get_data_write());
+#else
     scoped_ptr_t<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
     queue_block_t *head = static_cast<queue_block_t *>(_head->get_data_write());
+#endif
 
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
