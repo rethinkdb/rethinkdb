@@ -15,7 +15,7 @@ const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
 // Enable cross-coroutine backtraces in debug mode.
 #ifndef NDEBUG
-    #define CROSS_CORO_BACKTRACES            1
+#define CROSS_CORO_BACKTRACES            1
 #endif
 #define CROSS_CORO_BACKTRACES_MAX_SIZE  64
 

@@ -438,10 +438,14 @@ void coro_t::grab_spawn_backtrace() {
 #endif
 }
 
-int coro_t::copy_spawn_backtrace(DEBUG_VAR void **buffer_out, DEBUG_VAR int size) const {
-    rassert(buffer_out != NULL);
-    rassert(size >= 0);
 #ifdef CROSS_CORO_BACKTRACES
+int coro_t::copy_spawn_backtrace(void **buffer_out, int size) const {
+#else
+int coro_t::copy_spawn_backtrace(void **, int) const {
+#endif
+#ifdef CROSS_CORO_BACKTRACES
+    guarantee(buffer_out != NULL);
+    guarantee(size >= 0);
     int num_frames_to_store = std::min(size, spawn_backtrace_size);
     memcpy(buffer_out,
            spawn_backtrace,
