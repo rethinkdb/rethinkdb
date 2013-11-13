@@ -118,10 +118,12 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->max_block_size()) > cache->max_block_size().value()) {
         // The data won't fit in our current head block, so it's time to make a new one.
         head = NULL;
+        write.reset();
         _head.reset();
         add_block_to_head(&txn);
-        _head.init(new buf_lock_t(&txn, head_block_id, rwi_write));
-        head = static_cast<queue_block_t *>(_head->get_data_write());
+        _head.init(new alt_buf_lock_t(&txn, head_block_id, alt_access_t::write));
+        write.init(new alt_buf_write_t(_head.get()));
+        head = static_cast<queue_block_t *>(write->get_data_write());
     }
 #else
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->get_block_size()) > cache->get_block_size().value()) {
@@ -134,8 +136,14 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     }
 #endif
 
+#if USE_ALT_CACHE
+    memcpy(head->data + head->data_size, buffer,
+           blob.refsize(cache->max_block_size()));
+    head->data_size += blob.refsize(cache->max_block_size());
+#else
     memcpy(head->data + head->data_size, buffer, blob.refsize(cache->get_block_size()));
     head->data_size += blob.refsize(cache->get_block_size());
+#endif
 
     queue_size++;
 }
