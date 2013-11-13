@@ -30,6 +30,7 @@ module 'DataBrowserView', ->
                     that.$('.main_error').slideDown 'fast'
             else
                 @$('.main_error').html @error_template args
+                #TODO Something's broken here?
                 @$('.main_error').slideDown 'fast'
 
 
@@ -38,8 +39,10 @@ module 'DataBrowserView', ->
 
         initialize: (args) =>
             @state = args?.state
-            if args.template?
-                @template = template
+            if args?.actions_template?
+                @actions_template = args.actions_template
+            if args?.on_connect_cb?
+                @on_connect_extra_cb = args.on_connect_cb
 
             @driver_handler = new DataExplorerView.DriverHandler
                 on_success: @success_on_connect
@@ -163,6 +166,8 @@ module 'DataBrowserView', ->
             if @$('.main_error').css('display') is 'block'
                 @$('.main_error').slideUp 'fast'
             @connection = connection
+            @on_connect_extra_cb()
+            @on_connect_extra_cb = null
 
         error_on_connect: =>
             @show_error

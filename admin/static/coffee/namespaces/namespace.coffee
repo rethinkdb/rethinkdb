@@ -28,6 +28,7 @@ module 'NamespaceView', ->
             'click .operations .delete': 'delete_namespace'
 
         initialize: ->
+            that = @
             log_initial '(initializing) namespace view: container'
 
             @model.load_key_distr()
@@ -45,6 +46,23 @@ module 'NamespaceView', ->
                 seconds: 73             # num seconds to track
                 type: 'table'
             )
+            @databrowser = new DataBrowserView.Container
+                actions_template: Handlebars.templates['namespace-databrowser-template']
+                state:
+                    view: 'table'
+                    last_keys: []
+                    last_columns_size: {}
+                on_connect_cb: ->
+                    that.databrowser.get_results
+                        db: databases.get(that.model.get('database')).get 'name'
+                        namespace: that.model.get 'name'
+                        primary_key: that.model.get 'primary_key'
+                        page: 0
+                        order_by: [that.model.get('primary_key')]
+                        sort_by_index: true
+                        asc: true
+
+
 
             namespaces.on 'remove', @check_if_still_exists
 
@@ -87,6 +105,7 @@ module 'NamespaceView', ->
             # Display the secondary indexes
             @.$('.secondary_indexes').html @secondary_indexes_view.render().el
 
+            @.$('.databrowser_container').html @databrowser.render().el
 
             return @
 
