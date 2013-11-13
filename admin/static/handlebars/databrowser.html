@@ -12,7 +12,8 @@
 </script>
 
 <script id="databrowser_actions_container-template" type="text/x-handlebars-template">
-    <h1 class="title">Data browser</h1>
+    <h1 class="title small_margin_bottom nav-tabs"><li><a href="#dataexplorer">Data Explorer</a></li><li class="active"><a href="#databrowser">Data Browser</a></li></h1>
+    <div id="user-alert-space"></div>
     <p>Select a table</p>
     <select class="list_namespaces">
     {{#each databases}}
