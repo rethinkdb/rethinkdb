@@ -36,8 +36,10 @@ module 'DataBrowserView', ->
         token: 0
         num_docs_per_page: 100
 
-        initialize: (state) =>
-            @state = state
+        initialize: (args) =>
+            @state = args?.state
+            if args.template?
+                @template = template
 
             @driver_handler = new DataExplorerView.DriverHandler
                 on_success: @success_on_connect
@@ -270,6 +272,14 @@ module 'DataBrowserView', ->
             for attr, i in flatten_attr
                 attr.col = i
 
+            @last_keys = flatten_attr.map (attr, i) ->
+                if attr.prefix_str isnt ''
+                    if attr.is_primitive is true
+                        return attr.prefix_str
+                    else
+                        return attr.prefix_str+attr.key
+                return attr.key
+            @container.state.last_keys = @last_keys
 
             return @template_json_table.container
                 table_attr: @json_to_table_get_attr flatten_attr
@@ -414,7 +424,7 @@ module 'DataBrowserView', ->
                     @.$('.link_to_tree_view').addClass 'active'
                     @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
-                    previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
+                    previous_keys = @container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
                     if Object.prototype.toString.call(@results) is '[object Array]'
                         @.$('.table_view').html @json_to_table @results, @primary_key, @count<@limit_sort_without_index, @indexes
                     else
@@ -429,17 +439,17 @@ module 'DataBrowserView', ->
 
                     # TODO we should just check if previous_keys is included in last_keys
                     # Check if the keys are the same
-                    if @last_keys.length isnt previous_keys.length
+                    if @container.state.last_keys.length isnt previous_keys.length
                         same_keys = false
                     else
                         same_keys = true
-                        for keys, index in @last_keys
-                            if @last_keys[index] isnt previous_keys[index]
+                        for keys, index in @container.state.last_keys
+                            if @container.state.last_keys[index] isnt previous_keys[index]
                                 same_keys = false
 
                     # If the keys are the same, we are going to resize the columns as they were before
                     if same_keys is true
-                        for col, value of @last_columns_size
+                        for col, value of @container.state.last_columns_size
                             @resize_column col, value
                     else
                         # Reinitialize @last_columns_size

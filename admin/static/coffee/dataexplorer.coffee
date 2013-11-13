@@ -2722,8 +2722,8 @@ module 'DataExplorerView', ->
 
         handle_mousemove: (event) =>
             if @mouse_down
-                @last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
-                @resize_column @col_resizing, @last_columns_size[@col_resizing] # Resize
+                @container.state.last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
+                @resize_column @col_resizing, @container.state.last_columns_size[@col_resizing] # Resize
 
         resize_column: (col, size) =>
             @$('.col-'+col).css 'max-width', size
@@ -2946,12 +2946,6 @@ module 'DataExplorerView', ->
                 prefix_str: ''
             for value, index in flatten_attr
                 value.col = index
-
-            @last_keys = flatten_attr.map (attr, i) ->
-                if attr.prefix_str isnt ''
-                    return attr.prefix_str+attr.key
-                return attr.key
-            @container.state.last_keys = @last_keys
 
             flatten_attr: flatten_attr
             result: result
@@ -3196,6 +3190,13 @@ module 'DataExplorerView', ->
         json_to_table: (result) =>
             {flatten_attr, result} = super result
 
+            @last_keys = flatten_attr.map (attr, i) ->
+                if attr.prefix_str isnt ''
+                    return attr.prefix_str+attr.key
+                return attr.key
+            @container.state.last_keys = @last_keys
+
+
             return @template_json_table.container
                 table_attr: @json_to_table_get_attr flatten_attr
                 table_data: @json_to_table_get_values
@@ -3249,7 +3250,7 @@ module 'DataExplorerView', ->
                     @.$('.link_to_tree_view').addClass 'active'
                     @.$('.link_to_tree_view').parent().addClass 'active'
                 when 'table'
-                    previous_keys = @last_keys # Save previous keys. @last_keys will be updated in @json_to_table
+                    previous_keys = @container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
                     if Object::toString.call(@results) is '[object Array]'
                         @.$('.table_view').html @json_to_table @results
                     else
@@ -3263,18 +3264,18 @@ module 'DataExplorerView', ->
                     @.$('.link_to_table_view').parent().addClass 'active'
 
                     # Check if the keys are the same
-                    if @last_keys.length isnt previous_keys.length
+                    if @container.state.last_keys.length isnt previous_keys.length
                         same_keys = false
                     else
                         same_keys = true
-                        for keys, index in @last_keys
-                            if @last_keys[index] isnt previous_keys[index]
+                        for keys, index in @container.state.last_keys
+                            if @container.state.last_keys[index] isnt previous_keys[index]
                                 same_keys = false
 
                     # TODO we should just check if previous_keys is included in last_keys
                     # If the keys are the same, we are going to resize the columns as they were before
                     if same_keys is true
-                        for col, value of @last_columns_size
+                        for col, value of @container.state.last_columns_size
                             @resize_column col, value
                     else
                         # Reinitialize @last_columns_size
