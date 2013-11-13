@@ -1,20 +1,14 @@
 #ifndef CONTAINERS_BACKINDEX_BAG_HPP_
 #define CONTAINERS_BACKINDEX_BAG_HPP_
 
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS
-#endif
-
-#include <stdint.h>
-
 #include "containers/segmented_vector.hpp"
 
 class backindex_bag_index_t {
 public:
-    backindex_bag_index_t() : index_(SIZE_MAX) { }
+    backindex_bag_index_t() : index_(NOT_IN_A_BAG) { }
 
     ~backindex_bag_index_t() {
-        guarantee(index_ == SIZE_MAX);
+        guarantee(index_ == NOT_IN_A_BAG);
     }
 
 private:
@@ -23,8 +17,10 @@ private:
 
     backindex_bag_index_t(size_t index) : index_(index) { }
 
-    // The item's index into a (specific) backindex_bag_t, or SIZE_MAX if it doesn't
-    // belong to the backindex_bag_t.
+    static const size_t NOT_IN_A_BAG = std::numeric_limits<size_t>::max();
+
+    // The item's index into a (specific) backindex_bag_t, or NOT_IN_A_BAG if it
+    // doesn't belong to the backindex_bag_t.
     size_t index_;
     DISABLE_COPYING(backindex_bag_index_t);
 };
@@ -56,7 +52,7 @@ public:
     // Removes the element from the bag.
     void remove(T element) {
         backindex_bag_index_t *const backindex = accessor_(element);
-        rassert(backindex->index_ != SIZE_MAX);
+        rassert(backindex->index_ != backindex_bag_index_t::NOT_IN_A_BAG);
         guarantee(backindex->index_ < vector_.size());
 
         const size_t index = backindex->index_;
@@ -75,13 +71,13 @@ public:
 
         vector_.pop_back();
 
-        backindex->index_ = SIZE_MAX;
+        backindex->index_ = backindex_bag_index_t::NOT_IN_A_BAG;
     }
 
     // Adds the element to the bag.
     void add(T element) {
         backindex_bag_index_t *const backindex = accessor_(element);
-        guarantee(backindex->index_ == SIZE_MAX);
+        guarantee(backindex->index_ == backindex_bag_index_t::NOT_IN_A_BAG);
 
         backindex->index_ = vector_.size();
         vector_.push_back(element);
@@ -95,7 +91,7 @@ public:
     // hopefully the index was randomly generated.  There are no guarantees about the
     // ordering of elements in this bag.
     T access_random(size_t index) const {
-        rassert(index != SIZE_MAX);
+        rassert(index != backindex_bag_index_t::NOT_IN_A_BAG);
         guarantee(index < vector_.size());
         return vector_[index];
     }

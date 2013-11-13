@@ -1,4 +1,3 @@
-#define __STDC_LIMIT_MACROS
 #include "buffer_cache/alt/page.hpp"
 
 #include <algorithm>
