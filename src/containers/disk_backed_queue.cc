@@ -83,9 +83,9 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     }
 
 #if USE_ALT_CACHE
-    scoped_ptr_t<alt_buf_lock_t> _head(new alt_buf_lock_t(&txn, head_block_id,
-                                                          alt_access_t::write));
-    scoped_ptr_t<alt_buf_write_t> write(_head.get());
+    auto _head = make_scoped<alt_buf_lock_t>(&txn, head_block_id,
+                                             alt_access_t::write);
+    auto write = make_scoped<alt_buf_write_t>(_head.get());
     queue_block_t *head = static_cast<queue_block_t *>(write->get_data_write());
 #else
     scoped_ptr_t<buf_lock_t> _head(new buf_lock_t(&txn, head_block_id, rwi_write));
