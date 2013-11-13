@@ -14,6 +14,7 @@
 #if USE_ALT_CACHE
 using alt::alt_access_t;
 using alt::alt_cache_t;
+using alt::alt_create_t;
 using alt::alt_txn_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_write_t;
@@ -45,7 +46,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
     // RSI: Is this actually necessary?
     alt_txn_t txn(cache.get());
-    alt_buf_lock_t block(&txn, SUPERBLOCK_ID, alt_access_t::write);
+    alt_buf_lock_t block(&txn, SUPERBLOCK_ID, alt_create_t::create);
     alt_buf_write_t write(&block);
     const block_size_t block_size = cache->max_block_size();
     void *buf = write.get_data_write(block_size.value());
