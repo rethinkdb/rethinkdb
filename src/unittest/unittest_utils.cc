@@ -34,7 +34,8 @@ rdb_protocol_t::read_t make_sindex_read(
                 id,
                 rdb_protocol_t::region_t(rng.to_sindex_keyrange()),
                 rng),
-            UNORDERED));
+            UNORDERED),
+        profile_bool_t::PROFILE);
 }
 
 serializer_filepath_t manual_serializer_filepath(const std::string &permanent_path,

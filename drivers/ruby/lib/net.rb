@@ -140,13 +140,20 @@ module RethinkDB
       res = run_internal(q, all_opts[:noreply])
       return res if !res
       if res.type == Response::ResponseType::SUCCESS_PARTIAL
-        Cursor.new(Shim.response_to_native(res, msg, opts),
+        value = Cursor.new(Shim.response_to_native(res, msg, opts),
                    msg, self, opts, q.token, true)
       elsif res.type == Response::ResponseType::SUCCESS_SEQUENCE
-        Cursor.new(Shim.response_to_native(res, msg, opts),
+        value = Cursor.new(Shim.response_to_native(res, msg, opts),
                    msg, self, opts, q.token, false)
       else
-        Shim.response_to_native(res, msg, opts)
+        value = Shim.response_to_native(res, msg, opts)
+      end
+
+      if res.has_profile?
+          {"profile" => Shim.datum_to_native(res.profile(), opts),
+           "value" => value}
+      else
+          value
       end
     end
 

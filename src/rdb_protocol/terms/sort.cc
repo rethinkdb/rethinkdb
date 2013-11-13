@@ -138,17 +138,17 @@ private:
                    "Indexed order_by can only be performed on a TABLE.");
             rcheck(!seq.has(), base_exc_t::GENERIC,
                    "Indexed order_by can only be performed on a TABLE.");
-            sorting_t sorting = UNORDERED;
+            sorting_t sorting = sorting_t::UNORDERED;
             for (int i = 0; i < get_src()->optargs_size(); ++i) {
                 if (get_src()->optargs(i).key() == "index") {
                     if (get_src()->optargs(i).val().type() == Term::DESC) {
-                        sorting = DESCENDING;
+                        sorting = sorting_t::DESCENDING;
                     } else {
-                        sorting = ASCENDING;
+                        sorting = sorting_t::ASCENDING;
                     }
                 }
             }
-            r_sanity_check(sorting != UNORDERED);
+            r_sanity_check(sorting != sorting_t::UNORDERED);
             tbl->add_sorting(index->as_str(), sorting, this);
             if (index->as_str() != tbl->get_pkey()
                 && !comparisons.empty()) {
@@ -205,9 +205,14 @@ private:
         std::vector<counted_t<const datum_t> > arr;
         counted_t<const datum_t> last;
         batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
-        while (counted_t<const datum_t> d = s->next(env->env, batcher)) {
-            arr.push_back(std::move(d));
-            rcheck_array_size(arr, base_exc_t::GENERIC);
+        {
+            profile::sampler_t sampler("Evaluating elements in distinct.",
+                                       env->env->trace);
+            while (counted_t<const datum_t> d = s->next(env->env, batcher)) {
+                arr.push_back(std::move(d));
+                rcheck_array_size(arr, base_exc_t::GENERIC);
+                sampler.new_sample();
+            }
         }
         std::sort(arr.begin(), arr.end(),
                   std::bind(lt_cmp, env->env,

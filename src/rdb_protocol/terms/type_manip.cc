@@ -207,21 +207,27 @@ private:
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
             }
+
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
                 batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
-                while (counted_t<const datum_t> el = ds->next(env->env, batcher)) {
-                    arr.add(el);
+                {
+                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
+                    while (counted_t<const datum_t> el = ds->next(env->env, batcher)) {
+                        arr.add(el);
+                        sampler.new_sample();
+                    }
                 }
                 return new_val(arr.to_counted());
             }
 
             // SEQUENCE -> OBJECT
-            if (end_type == R_OBJECT_TYPE) {
-                if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
-                    datum_ptr_t obj(datum_t::R_OBJECT);
-                    batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+            if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
+                datum_ptr_t obj(datum_t::R_OBJECT);
+                batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+                {
+                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
                     while (counted_t<const datum_t> pair = ds->next(env->env, batcher)) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
@@ -232,9 +238,10 @@ private:
                                          key.c_str(),
                                          obj->get(key)->print().c_str(),
                                          keyval->print().c_str()));
+                        sampler.new_sample();
                     }
-                    return new_val(obj.to_counted());
                 }
+                return new_val(obj.to_counted());
             }
         }
 

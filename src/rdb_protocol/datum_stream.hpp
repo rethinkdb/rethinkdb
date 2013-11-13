@@ -278,7 +278,7 @@ private:
 class reader_t {
 public:
     explicit reader_t(
-        const namespace_repo_t<rdb_protocol_t>::access_t &ns_access,
+        const rdb_namespace_access_t &ns_access,
         bool use_outdated,
         scoped_ptr_t<readgen_t> &&readgen);
     void add_transformation(transform_variant_t &&tv);
@@ -292,7 +292,7 @@ private:
     rget_read_response_t do_read(env_t *env, const read_t &read);
     std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
 
-    namespace_repo_t<rdb_protocol_t>::access_t ns_access;
+    rdb_namespace_access_t ns_access;
     const bool use_outdated;
     transform_t transform;
 
@@ -308,11 +308,10 @@ private:
 class lazy_datum_stream_t : public datum_stream_t {
 public:
     lazy_datum_stream_t(
-        namespace_repo_t<rdb_protocol_t>::access_t *_ns_access,
+        rdb_namespace_access_t *_ns_access,
         bool _use_outdated,
         scoped_ptr_t<readgen_t> &&_readgen,
         const protob_t<const Backtrace> &bt_src);
-
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);

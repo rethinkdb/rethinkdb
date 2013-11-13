@@ -131,10 +131,13 @@ void write_to_broadcaster(size_t value_padding_length,
                           const std::string &value,
                           order_token_t otok,
                           signal_t *) {
-    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key),
-                                                                generate_document(value_padding_length, value),
-                                                                true),
-                                  DURABILITY_REQUIREMENT_DEFAULT);
+    rdb_protocol_t::write_t write(
+            rdb_protocol_t::point_write_t(
+                store_key_t(key),
+                generate_document(value_padding_length, value),
+                true),
+            DURABILITY_REQUIREMENT_DEFAULT,
+            profile_bool_t::PROFILE);
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -213,7 +216,8 @@ void run_backfill_test(size_t value_padding_length,
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)));
+        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)),
+                profile_bool_t::PROFILE);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
@@ -264,10 +268,13 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
 
         ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
 
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, SINGLE));
+        rdb_protocol_t::write_t write(
+            rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
+            profile_bool_t::PROFILE);
 
         fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
+        fifo_enforcer_sink_t::exit_write_t exiter(
+            &enforce.sink, enforce.source.enter_write());
         class : public broadcaster_t<rdb_protocol_t>::write_callback_t, public cond_t {
         public:
             void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {

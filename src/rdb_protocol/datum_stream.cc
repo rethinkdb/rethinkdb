@@ -17,7 +17,7 @@ const char *const empty_stream_msg =
 
 // RANGE/READGEN STUFF
 reader_t::reader_t(
-    const namespace_repo_t<rdb_protocol_t>::access_t &_ns_access,
+    const rdb_namespace_access_t &_ns_access,
     bool _use_outdated,
     scoped_ptr_t<readgen_t> &&_readgen)
     : ns_access(_ns_access),
@@ -494,15 +494,19 @@ counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
     datum_ptr_t arr(datum_t::R_ARRAY);
     batcher_t batcher = batcher_t::user_batcher(TERMINAL, env);
-    while (counted_t<const datum_t> d = next(env, batcher)) {
-        arr.add(d);
+    {
+        profile::sampler_t sampler("Evaluating as_array elements.", env->trace);
+        while (counted_t<const datum_t> d = next(env, batcher)) {
+            arr.add(d);
+            sampler.new_sample();
+        }
     }
     return arr.to_counted();
 }
 
 // LAZY_DATUM_STREAM_T
 lazy_datum_stream_t::lazy_datum_stream_t(
-    namespace_repo_t<rdb_protocol_t>::access_t *ns_access,
+    rdb_namespace_access_t *ns_access,
     bool use_outdated,
     scoped_ptr_t<readgen_t> &&readgen,
     const protob_t<const Backtrace> &bt_src)
@@ -914,8 +918,12 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
     }
     datum_ptr_t arr(datum_t::R_ARRAY);
     batcher_t batcher = batcher_t::user_batcher(TERMINAL, env);
-    while (counted_t<const datum_t> d = next(env, batcher)) {
-        arr.add(d);
+    {
+        profile::sampler_t sampler("Evaluating as_array elements.", env->trace);
+        while (counted_t<const datum_t> d = next(env, batcher)) {
+            arr.add(d);
+            sampler.new_sample();
+        }
     }
     return arr.to_counted();
 }

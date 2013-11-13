@@ -50,7 +50,9 @@ public:
         /* Check if we're doing a multi index or a normal index. */
         counted_t<val_t> multi_val = optarg(env, "multi");
         sindex_multi_bool_t multi =
-            (multi_val && multi_val->as_datum()->as_bool() ?  MULTI : SINGLE);
+            (multi_val && multi_val->as_datum()->as_bool()
+             ? sindex_multi_bool_t::MULTI
+             : sindex_multi_bool_t::SINGLE);
 
         bool success = table->sindex_create(env->env, name, index_func, multi);
         if (success) {

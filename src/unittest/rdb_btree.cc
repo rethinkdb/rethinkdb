@@ -47,7 +47,8 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         rdb_set(pk,
                 make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
-                superblock.get(), &response, &mod_report.info);
+                superblock.get(), &response, &mod_report.info,
+                static_cast<profile::trace_t *>(NULL));
 
         {
             scoped_ptr_t<buf_lock_t> sindex_block;
@@ -97,7 +98,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     N2(GET_FIELD, NVAR(one), NDATUM("sid"));
 
     ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
-    sindex_multi_bool_t multi_bool = SINGLE;
+    sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
     wm << m;
@@ -234,7 +235,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
             ql::batcher_t::user_batcher(ql::NORMAL, counted_t<const ql::datum_t>()),
             rdb_protocol_details::transform_t(),
             boost::optional<rdb_protocol_details::terminal_t>(),
-            ASCENDING,
+            sorting_t::ASCENDING,
             &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
@@ -297,7 +298,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
             ql::batcher_t::user_batcher(ql::NORMAL, counted_t<const ql::datum_t>()),
             rdb_protocol_details::transform_t(),
             boost::optional<rdb_protocol_details::terminal_t>(),
-            ASCENDING,
+            sorting_t::ASCENDING,
             &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream

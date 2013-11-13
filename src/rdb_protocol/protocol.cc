@@ -476,14 +476,14 @@ region_t read_t::get_region() const THROWS_NOTHING {
 
 struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     explicit rdb_r_shard_visitor_t(const hash_region_t<key_range_t> *_region,
-                                   read_t *_read_out)
-        : region(_region), read_out(_read_out) {}
+                                   profile_bool_t _profile, read_t *_read_out)
+        : region(_region), profile(_profile), read_out(_read_out) { }
 
     // The key was somehow already extracted from the arg.
     template <class T>
     bool keyed_read(const T &arg, const store_key_t &key) const {
         if (region_contains_key(*region, key)) {
-            *read_out = read_t(arg);
+            *read_out = read_t(arg, profile);
             return true;
         } else {
             return false;
@@ -501,7 +501,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *read_out = read_t(tmp);
+            *read_out = read_t(tmp, profile);
             return true;
         } else {
             return false;
@@ -521,12 +521,13 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     const hash_region_t<key_range_t> *region;
+    profile_bool_t profile;
     read_t *read_out;
 };
 
 bool read_t::shard(const hash_region_t<key_range_t> &region,
                    read_t *read_out) const THROWS_NOTHING {
-    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, read_out), read);
+    return boost::apply_visitor(rdb_r_shard_visitor_t(&region, profile, read_out), read);
 }
 
 /* A visitor to handle this unsharding process for us. */
@@ -578,7 +579,7 @@ public:
                  NULL,
                  interruptor,
                  ctx->machine_id,
-                 std::map<std::string, ql::wire_func_t>())
+                 ql::protob_t<Query>())
     { }
 
     void operator()(const point_read_t &) {
@@ -592,8 +593,9 @@ public:
         rget_read_response_t *rg_response
             = boost::get<rget_read_response_t>(&response_out->response);
         rg_response->truncated = false;
-        rg_response->key_range = read_t(rg).get_region().inner;
-        rg_response->last_considered_key = read_t(rg).get_region().inner.left;
+        rg_response->key_range = read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner;
+        rg_response->last_considered_key =
+            read_t(rg, profile_bool_t::DONT_PROFILE).get_region().inner.left;
 
         /* First check to see if any of the responses we're unsharding threw. */
         for (size_t i = 0; i < count; ++i) {
@@ -714,7 +716,7 @@ private:
         rg_response->result = stream_t();
         stream_t *res_stream = boost::get<stream_t>(&rg_response->result);
 
-        if (rg.sorting == UNORDERED) {
+        if (rg.sorting == sorting_t::UNORDERED) {
             for (size_t i = 0; i < count; ++i) {
                 // TODO: we're ignoring the limit when recombining.
                 auto rr = boost::get<rget_read_response_t>(&responses[i].response);
@@ -868,11 +870,27 @@ private:
 };
 
 void read_t::unshard(read_response_t *responses, size_t count,
-                     read_response_t *response, context_t *ctx,
+                     read_response_t *response_out, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
-    rdb_r_unshard_visitor_t v(responses, count, response, ctx, interruptor);
+    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
     boost::apply_visitor(v, read);
+
+    /* We've got some profiling to do. */
+    /* This is a tad hacky, some of the methods in rdb_r_unshard_visitor_t set
+     * these fields because they just do dumb copies. So we clear them before
+     * we set them here. */
+    response_out->n_shards = 0;
+    response_out->event_log.clear();
+    if (profile == profile_bool_t::PROFILE) {
+        for (size_t i = 0; i < count; ++i) {
+            response_out->event_log.insert(
+                response_out->event_log.end(),
+                responses[i].event_log.begin(),
+                responses[i].event_log.end());
+            response_out->n_shards += responses[i].n_shards;
+        }
+    }
 }
 
 /* write_t::get_region() implementation */
@@ -961,15 +979,15 @@ region_t write_t::get_region() const THROWS_NOTHING {
 struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
     rdb_w_shard_visitor_t(const region_t *_region,
                           durability_requirement_t _durability_requirement,
-                          write_t *_write_out)
+                          profile_bool_t _profile, write_t *_write_out)
         : region(_region),
           durability_requirement(_durability_requirement),
-          write_out(_write_out) {}
+          profile(_profile), write_out(_write_out) {}
 
     template <class T>
     bool keyed_write(const T &arg) const {
         if (region_contains_key(*region, arg.key)) {
-            *write_out = write_t(arg, durability_requirement);
+            *write_out = write_t(arg, durability_requirement, profile);
             return true;
         } else {
             return false;
@@ -991,7 +1009,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                     br.f.compile_wire_func(),
                     br.optargs,
                     br.return_vals),
-                durability_requirement);
+                durability_requirement,
+                profile);
             return true;
         } else {
             return false;
@@ -1010,7 +1029,8 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
             *write_out = write_t(
                 batched_insert_t(
                     std::move(shard_inserts), bi.pkey, bi.upsert, bi.return_vals),
-                durability_requirement);
+                durability_requirement,
+                profile);
             return true;
         } else {
             return false;
@@ -1032,7 +1052,7 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         if (!region_is_empty(intersection)) {
             T tmp = arg;
             tmp.region = intersection;
-            *write_out = write_t(tmp, durability_requirement);
+            *write_out = write_t(tmp, durability_requirement, profile);
             return true;
         } else {
             return false;
@@ -1053,12 +1073,13 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
 
     const region_t *region;
     durability_requirement_t durability_requirement;
+    profile_bool_t profile;
     write_t *write_out;
 };
 
 bool write_t::shard(const region_t &region,
                     write_t *write_out) const THROWS_NOTHING {
-    const rdb_w_shard_visitor_t v(&region, durability_requirement, write_out);
+    const rdb_w_shard_visitor_t v(&region, durability_requirement, profile, write_out);
     return boost::apply_visitor(v, write);
 }
 
@@ -1123,11 +1144,27 @@ private:
     write_response_t *const response_out;
 };
 
-void write_t::unshard(const write_response_t *responses, size_t count,
+void write_t::unshard(write_response_t *responses, size_t count,
                       write_response_t *response_out, context_t *, signal_t *)
     const THROWS_NOTHING {
     const rdb_w_unshard_visitor_t visitor(responses, count, response_out);
     boost::apply_visitor(visitor, write);
+
+    /* We've got some profiling to do. */
+    /* This is a tad hacky, some of the methods in rdb_w_unshard_visitor_t set
+     * these fields because they just do dumb copies. So we clear them before
+     * we set them here. */
+    response_out->n_shards = 0;
+    response_out->event_log.clear();
+    if (profile == profile_bool_t::PROFILE) {
+        for (size_t i = 0; i < count; ++i) {
+            response_out->event_log.insert(
+                response_out->event_log.end(),
+                responses[i].event_log.begin(),
+                responses[i].event_log.end());
+            response_out->n_shards += responses[i].n_shards;
+        }
+    }
 }
 
 store_t::store_t(serializer_t *serializer,
@@ -1187,7 +1224,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-        rdb_get(get.key, btree, txn, superblock, res);
+        rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
     }
 
     void operator()(const rget_read_t &rget) {
@@ -1235,7 +1272,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             //  we construct a filter function that ensures all returned items lie
             //  between sindex_start_value and sindex_end_value.
             ql::map_wire_func_t sindex_mapping;
-            sindex_multi_bool_t multi_bool = MULTI;
+            sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
             vector_read_stream_t read_stream(&sindex_mapping_data);
             int success = deserialize(&read_stream, &sindex_mapping);
             guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
@@ -1293,6 +1330,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        read_token_pair_t *_token_pair,
                        rdb_protocol_t::context_t *ctx,
                        read_response_t *_response,
+                       profile_bool_t profile,
                        signal_t *_interruptor) :
         response(_response),
         btree(_btree),
@@ -1311,8 +1349,21 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               std::map<std::string, ql::wire_func_t>())
+               profile)
     { }
+
+    ql::env_t *get_env() {
+        return &ql_env;
+    }
+
+    profile::event_log_t &&get_event_log() RVALUE_THIS {
+        if (ql_env.trace.has()) {
+            return std::move(*ql_env.trace).get_event_log();
+        } else {
+            static profile::event_log_t event_log;
+            return std::move(event_log);
+        }
+    }
 
 private:
     read_response_t *response;
@@ -1333,8 +1384,17 @@ void store_t::protocol_read(const read_t &read,
                             read_token_pair_t *token_pair,
                             signal_t *interruptor) {
     rdb_read_visitor_t v(
-        btree, this, txn, superblock, token_pair, ctx, response, interruptor);
-    boost::apply_visitor(v, read.read);
+        btree, this, txn, superblock, token_pair,
+        ctx, response, read.profile, interruptor);
+    {
+        profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
+        boost::apply_visitor(v, read.read);
+    }
+
+    response->n_shards = 1;
+    response->event_log = std::move(v).get_event_log();
+    //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
+    response->event_log.push_back(profile::stop_t());
 }
 
 class func_replacer_t : public btree_batched_replacer_t {
@@ -1396,7 +1456,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp, txn, &br.pkey),
-                superblock, br.keys, &replacer, &sindex_cb);
+                superblock, br.keys, &replacer, &sindex_cb,
+                ql_env.trace.get_or_null());
     }
 
     void operator()(const batched_insert_t &bi) {
@@ -1413,7 +1474,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp, txn, &bi.pkey),
-                superblock, keys, &replacer, &sindex_cb);
+                superblock, keys, &replacer, &sindex_cb,
+                ql_env.trace.get_or_null());
     }
 
     void operator()(const point_write_t &w) {
@@ -1422,9 +1484,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             boost::get<point_write_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(w.key);
-        rdb_set(w.key, w.data, w.overwrite, btree, timestamp,
-                txn, superblock->get(), res, &mod_report.info);
-        
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(),
+                res, &mod_report.info, ql_env.trace.get_or_null());
+
         update_sindexes(&mod_report);
     }
 
@@ -1435,7 +1497,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
         rdb_modification_report_t mod_report(d.key);
         rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res,
-                   &mod_report.info);
+                &mod_report.info, ql_env.trace.get_or_null());
 
         update_sindexes(&mod_report);
     }
@@ -1524,9 +1586,22 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               std::map<std::string, ql::wire_func_t>()),
+               ql::protob_t<Query>()),
         sindex_block_id((*superblock)->get_sindex_block_id())
     { }
+
+    ql::env_t *get_env() {
+        return &ql_env;
+    }
+
+    profile::event_log_t &&get_event_log() RVALUE_THIS {
+        if (ql_env.trace.has()) {
+            return std::move(*ql_env.trace).get_event_log();
+        } else {
+            static profile::event_log_t event_log;
+            return std::move(event_log);
+        }
+    }
 
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
@@ -1570,7 +1645,15 @@ void store_t::protocol_write(const write_t &write,
                              signal_t *interruptor) {
     rdb_write_visitor_t v(btree, this, txn, superblock, token_pair,
             timestamp.to_repli_timestamp(), ctx, response, interruptor);
-    boost::apply_visitor(v, write.write);
+    {
+        profile::starter_t start_write("Perform write on shard.", v.get_env()->trace);
+        boost::apply_visitor(v, write.write);
+    }
+
+    response->n_shards = 1;
+    response->event_log = std::move(v).get_event_log();
+    //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
+    response->event_log.push_back(profile::stop_t());
 }
 
 struct rdb_backfill_chunk_get_btree_repli_timestamp_visitor_t : public boost::static_visitor<repli_timestamp_t> {
@@ -1683,7 +1766,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
-                   txn, superblock, &response, &mod_report.info);
+                   txn, superblock, &response, &mod_report.info,
+                   static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
     }
@@ -1699,9 +1783,8 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         point_write_response_t response;
         rdb_modification_report_t mod_report(bf_atom.key);
         rdb_set(bf_atom.key, bf_atom.value, true,
-                btree, bf_atom.recency,
-                txn, superblock, &response,
-                &mod_report.info);
+                btree, bf_atom.recency, txn, superblock, &response,
+                &mod_report.info, static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
     }
@@ -1801,7 +1884,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
                            region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_response_t, response);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::read_response_t, response, event_log, n_shards);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_rangespec_t,
@@ -1819,7 +1902,7 @@ RDB_IMPL_ME_SERIALIZABLE_7(rdb_protocol_t::rget_read_t,
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
                            max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::read_t, read);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_delete_response_t, result);
@@ -1827,7 +1910,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_create_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_drop_response_t, success);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sync_response_t);
 
-RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::write_response_t, response);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_response_t, response, event_log, n_shards);
 
 RDB_IMPL_ME_SERIALIZABLE_5(rdb_protocol_t::batched_replace_t,
                            keys, pkey, f, optargs, return_vals);
@@ -1841,7 +1924,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region,
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sync_t, region);
 
-RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::write_t, write, durability_requirement);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_t, write, durability_requirement, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);

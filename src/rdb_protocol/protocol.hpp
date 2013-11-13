@@ -26,6 +26,7 @@
 #include "memcached/region.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
 #include "rdb_protocol/wire_func.hpp"
 #include "rdb_protocol/batching.hpp"
@@ -45,29 +46,43 @@ class traversal_progress_combiner_t;
 
 using query_language::shared_scoped_less_t;
 
-enum point_write_result_t {
+enum class profile_bool_t {
+    PROFILE,
+    DONT_PROFILE
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        profile_bool_t, int8_t,
+        profile_bool_t::PROFILE, profile_bool_t::DONT_PROFILE);
+
+enum class point_write_result_t {
     STORED,
     DUPLICATE
 };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_write_result_t, int8_t, STORED, DUPLICATE);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        point_write_result_t, int8_t,
+        point_write_result_t::STORED, point_write_result_t::DUPLICATE);
 
-enum point_delete_result_t {
+enum class point_delete_result_t {
     DELETED,
     MISSING
 };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(point_delete_result_t, int8_t, DELETED, MISSING);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        point_delete_result_t, int8_t,
+        point_delete_result_t::DELETED, point_delete_result_t::MISSING);
 
 RDB_DECLARE_SERIALIZABLE(Term);
 RDB_DECLARE_SERIALIZABLE(Datum);
 RDB_DECLARE_SERIALIZABLE(Backtrace);
 
-enum sorting_t {
+enum class sorting_t {
     UNORDERED,
     ASCENDING,
     DESCENDING
 };
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sorting_t, int8_t, UNORDERED, DESCENDING);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+        sorting_t, int8_t,
+        sorting_t::UNORDERED, sorting_t::DESCENDING);
 
 namespace ql {
 class datum_t;
@@ -75,7 +90,7 @@ class env_t;
 class primary_readgen_t;
 class readgen_t;
 class sindex_readgen_t;
-}
+} // namespace ql
 
 class datum_range_t {
 public:
@@ -170,9 +185,10 @@ struct rget_item_t {
 
 } // namespace rdb_protocol_details
 
-enum sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
+enum class sindex_multi_bool_t { SINGLE = 0, MULTI = 1};
 
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t, SINGLE, MULTI);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(sindex_multi_bool_t, int8_t,
+        sindex_multi_bool_t::SINGLE, sindex_multi_bool_t::MULTI);
 
 class cluster_semilattice_metadata_t;
 class auth_semilattice_metadata_t;
@@ -295,6 +311,8 @@ struct rdb_protocol_t {
                        rget_read_response_t,
                        distribution_read_response_t,
                        sindex_list_response_t> response;
+        profile::event_log_t event_log;
+        size_t n_shards;
 
         read_response_t() { }
         explicit read_response_t(
@@ -393,6 +411,7 @@ struct rdb_protocol_t {
                        rget_read_t,
                        distribution_read_t,
                        sindex_list_t> read;
+        profile_bool_t profile;
 
         region_t get_region() const THROWS_NOTHING;
         // Returns true if the read has any operation for this region.  Returns
@@ -406,11 +425,12 @@ struct rdb_protocol_t {
             THROWS_ONLY(interrupted_exc_t);
 
         read_t() { }
-        explicit read_t(const boost::variant<point_read_t,
-                                             rget_read_t,
-                                             distribution_read_t,
-                                             sindex_list_t> &r)
-            : read(r) { }
+        read_t(const boost::variant<point_read_t,
+                                    rget_read_t,
+                                    distribution_read_t,
+                                    sindex_list_t> &r,
+               profile_bool_t _profile)
+            : read(r), profile(_profile) { }
 
         // Only use snapshotting if we're doing a range get.
         bool use_snapshot() const { return boost::get<rget_read_t>(&read); }
@@ -467,6 +487,9 @@ struct rdb_protocol_t {
                        sindex_create_response_t,
                        sindex_drop_response_t,
                        sync_response_t> response;
+
+        profile::event_log_t event_log;
+        size_t n_shards;
 
         write_response_t() { }
         template<class T>
@@ -605,45 +628,62 @@ struct rdb_protocol_t {
                        sync_t> write;
 
         durability_requirement_t durability_requirement;
+        profile_bool_t profile;
 
         region_t get_region() const THROWS_NOTHING;
         // Returns true if the write had any side effects applicable to the
         // region, and a non-empty write was written to write_out.
         bool shard(const region_t &region,
                    write_t *write_out) const THROWS_NOTHING;
-        void unshard(const write_response_t *responses, size_t count,
+        void unshard(write_response_t *responses, size_t count,
                      write_response_t *response, context_t *cache, signal_t *)
             const THROWS_NOTHING;
 
         durability_requirement_t durability() const { return durability_requirement; }
 
         write_t() : durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const batched_replace_t &br,
-                         durability_requirement_t durability)
-            : write(br), durability_requirement(durability) { }
-        explicit write_t(const batched_insert_t &bi,
-                         durability_requirement_t durability)
-            : write(bi), durability_requirement(durability) { }
-        explicit write_t(const point_write_t &w,
-                         durability_requirement_t durability)
-            : write(w), durability_requirement(durability) { }
-        explicit write_t(const point_delete_t &d,
-                         durability_requirement_t durability)
-            : write(d), durability_requirement(durability) { }
-        explicit write_t(const sindex_create_t &c,
-                         durability_requirement_t = DURABILITY_REQUIREMENT_DEFAULT)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        explicit write_t(const sindex_drop_t &c,
-                         durability_requirement_t = DURABILITY_REQUIREMENT_DEFAULT)
-            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT) { }
-        // Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
-        // not have the desired effect (of writing unsaved data to disk).
-        // However there are cases where we use sync internally (such as when
-        // splitting up batched replaces/inserts) and want it to only have an
-        // effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard durability.
-        explicit write_t(const sync_t &c,
-                         durability_requirement_t durability)
-            : write(c), durability_requirement(durability) { }
+        write_t(const batched_replace_t &br,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(br), durability_requirement(durability), profile(_profile) { }
+        write_t(const batched_insert_t &bi,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(bi), durability_requirement(durability), profile(_profile) { }
+        write_t(const point_write_t &w,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(w), durability_requirement(durability), profile(_profile) { }
+        write_t(const point_delete_t &d,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(d), durability_requirement(durability), profile(_profile) { }
+        write_t(const sindex_create_t &c, profile_bool_t _profile)
+            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+              profile(_profile) { }
+        write_t(const sindex_drop_t &c, profile_bool_t _profile)
+            : write(c), durability_requirement(DURABILITY_REQUIREMENT_DEFAULT),
+              profile(_profile) { }
+        write_t(const sindex_create_t &c,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(c), durability_requirement(durability),
+              profile(_profile) { }
+        write_t(const sindex_drop_t &c,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(c), durability_requirement(durability),
+              profile(_profile) { }
+        /*  Note that for durability != DURABILITY_REQUIREMENT_HARD, sync might
+         *  not have the desired effect (of writing unsaved data to disk).
+         *  However there are cases where we use sync internally (such as when
+         *  splitting up batched replaces/inserts) and want it to only have an
+         *  effect if DURABILITY_REQUIREMENT_DEFAULT resolves to hard
+         *  durability. */
+        write_t(const sync_t &c,
+                durability_requirement_t durability,
+                profile_bool_t _profile)
+            : write(c), durability_requirement(durability), profile(_profile) { }
 
         RDB_DECLARE_ME_SERIALIZABLE;
     };
