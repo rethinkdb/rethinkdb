@@ -780,14 +780,15 @@ page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_nu
 }
 
 void page_txn_t::connect_preceder(page_txn_t *preceder) {
-    rassert(preceder != this);
-    // RSI: Is this the right condition to check?
-    if (!preceder->flush_complete_cond_.is_pulsed()) {
-        // RSP: performance
-        if (std::find(preceders_.begin(), preceders_.end(), preceder)
-            == preceders_.end()) {
-            preceders_.push_back(preceder);
-            preceder->subseqers_.push_back(this);
+    if (preceder != this) {
+        // RSI: Is this the right condition to check?
+        if (!preceder->flush_complete_cond_.is_pulsed()) {
+            // RSP: performance
+            if (std::find(preceders_.begin(), preceders_.end(), preceder)
+                == preceders_.end()) {
+                preceders_.push_back(preceder);
+                preceder->subseqers_.push_back(this);
+            }
         }
     }
 }
@@ -864,10 +865,10 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
 
             // Set the last modifier while current_page_ is non-null (and while we're the
             // exclusive holder).
-            {
-                page_txn_t *const previous_modifier
-                    = acq->current_page_->change_last_modifier(this);
+            page_txn_t *const previous_modifier
+                = acq->current_page_->change_last_modifier(this);
 
+            if (previous_modifier != this) {
                 // RSP: Performance (in the assertion).
                 rassert(pages_modified_last_.end()
                         == std::find(pages_modified_last_.begin(),
@@ -886,7 +887,6 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
                 }
             }
 
-
             // Declare readonly (so that we may declare acq snapshotted).
             acq->declare_readonly();
             acq->declare_snapshotted();
@@ -895,11 +895,15 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
             rassert(acq->current_page_ == NULL);
             // Steal the snapshotted page_ptr_t.
             page_ptr_t local = std::move(acq->snapshotted_page_);
+            // It's okay to have two dirtied_page_t's or touched_page_t's for the
+            // same block id -- compute_changes handles this.
             snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_version,
                                                                 block_id,
                                                                 std::move(local),
                                                                 repli_timestamp_t::invalid /* RSI: handle recency */));
         } else {
+            // It's okay to have two dirtied_page_t's or touched_page_t's for the
+            // same block id -- compute_changes handles this.
             touched_pages_.push_back(touched_page_t(block_version, block_id,
                                                     repli_timestamp_t::invalid /* RSI: handle recency */));
         }
@@ -916,6 +920,10 @@ void page_txn_t::announce_waiting_for_flush_if_we_should() {
 
 std::map<block_id_t, page_cache_t::block_change_t>
 page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
+    // We combine changes, using the block_version_t value to see which change
+    // happened later.  This even works if a single transaction acquired the same
+    // block twice.
+
     // The map of changes we make.
     std::map<block_id_t, block_change_t> changes;
 
@@ -933,7 +941,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
             if (!res.second) {
                 // The insertion failed -- we need to use the newer version.
                 auto const jt = res.first;
-                // The versions can't be the same for different write transactions.
+                // The versions can't be the same for different write operations.
                 rassert(jt->second.version != d.block_version,
                         "equal versions on block %" PRIi64 ": %" PRIu64,
                         d.block_id,
@@ -957,7 +965,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
             if (!res.second) {
                 // The insertion failed.  We need to combine the versions.
                 auto const jt = res.first;
-                // The versions can't be the same for different write transactions.
+                // The versions can't be the same for different write operations.
                 rassert(jt->second.version != t.block_version);
                 if (jt->second.version < t.block_version) {
                     // RSI: What if jt->second.tstamp > t.second?  Just like above,

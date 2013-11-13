@@ -216,7 +216,7 @@ public:
             check_value(&txn, b[1], "t6");
             check_value(&txn, b[2], "t6");
             check_value(&txn, b[3], "t7t14t15");
-            check_value(&txn, b[4], "t7t15t14");
+            check_value(&txn, b[4], "t7t15t14it14ii");
             check_value(&txn, b[5], "t8");
             check_value(&txn, b[6], "t1t2t9");
             check_value(&txn, b[7], "t2t5");
@@ -820,10 +820,15 @@ private:
             acq3.reset();
             bad1.pulse();
             bad2.wait();
-            auto acq4 = make_scoped<current_page_acq_t>(&txn14, b[4],
-                                                        alt_access_t::write);
-            check_and_append(acq4, "t7t15", "t14");
-            acq4.reset();
+            auto acq4i = make_scoped<current_page_acq_t>(&txn14, b[4],
+                                                         alt_access_t::write);
+            check_and_append(acq4i, "t7t15", "t14i");
+            // We try to re-acquire the same block!  While this txn still holds it!
+            auto acq4ii = make_scoped<current_page_acq_t>(&txn14, b[4],
+                                                          alt_access_t::write);
+            acq4i.reset();
+            check_and_append(acq4ii, "t7t15t14i", "t14ii");
+            acq4ii.reset();
         }
     }
 
