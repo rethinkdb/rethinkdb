@@ -116,6 +116,10 @@ reql_t reql_t::operator !() RVALUE_THIS {
     return std::move(*this).call(Term::NOT);
 }
 
+reql_t reql_t::do_(pb::dummy_var_t arg, reql_t &&body) RVALUE_THIS {
+        return fun(arg, std::move(body))(std::move(*this));
+}
+
 void reql_t::set_datum(const datum_t &d) {
     term = make_scoped<Term>();
     term->set_type(Term::DATUM);

@@ -139,6 +139,7 @@ public:
     REQL_METHOD(default_, DEFAULT)
 
     reql_t operator !() RVALUE_THIS;
+    reql_t do_(pb::dummy_var_t arg, reql_t &&body) RVALUE_THIS;
 
     template <class... T>
     void add_args(T &&... args) {
