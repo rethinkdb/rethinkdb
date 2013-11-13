@@ -498,6 +498,12 @@ class RqlTzinfo(datetime.tzinfo):
         self.offsetstr = offsetstr
         self.delta = datetime.timedelta(hours=hours, minutes=minutes)
 
+    def __copy__(self):
+        return RqlTzinfo(self.offsetstr)
+
+    def __deepcopy__(self, memo):
+        return RqlTzinfo(self.offsetstr)
+
     def utcoffset(self, dt):
         return self.delta
 

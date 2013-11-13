@@ -10,6 +10,8 @@
 #include "rdb_protocol/validate.hpp"
 
 #include "rdb_protocol/terms/terms.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
+#include "protob/protob.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -155,8 +157,11 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     unreachable();
 }
 
-void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
-         Response *res, stream_cache2_t *stream_cache2) {
+void run(protob_t<Query> q,
+         rdb_protocol_t::context_t *ctx,
+         signal_t *interruptor,
+         Response *res,
+         stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -166,11 +171,19 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
-    env_t *env = env_ptr.get();
     int64_t token = q->token();
 
     switch (q->type()) {
     case Query_QueryType_START: {
+        threadnum_t thread = get_thread_id();
+        scoped_ptr_t<ql::env_t> env(
+            new ql::env_t(
+                ctx->extproc_pool, ctx->ns_repo,
+                ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
+                ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
+                ctx->cluster_metadata, ctx->directory_read_manager,
+                interruptor, ctx->machine_id, q));
+
         counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
@@ -198,7 +211,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         }
 
         try {
-            scope_env_t scope_env(env, var_scope_t());
+            scope_env_t scope_env(env.get(), var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
@@ -211,8 +224,9 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                 if (env->trace.has()) {
                     env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
                 }
-                stream_cache2->insert(token, std::move(env_ptr), val->as_seq(env));
-                bool b = stream_cache2->serve(token, res, env->interruptor);
+                counted_t<datum_stream_t> seq = val->as_seq(env.get());
+                stream_cache2->insert(token, std::move(env), seq);
+                bool b = stream_cache2->serve(token, res, interruptor);
                 r_sanity_check(b);
             } else {
                 rfail_toplevel(base_exc_t::GENERIC,
@@ -230,7 +244,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
     } break;
     case Query_QueryType_CONTINUE: {
         try {
-            bool b = stream_cache2->serve(token, res, env->interruptor);
+            bool b = stream_cache2->serve(token, res, interruptor);
             rcheck_toplevel(b, base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
         } catch (const exc_t &e) {

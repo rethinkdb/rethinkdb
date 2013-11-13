@@ -7,6 +7,10 @@
 
 #include "rpc/connectivity/connectivity.hpp"
 
+
+#define MAX_OUTSTANDING_WRITES_PER_MULTIPLEXER_CLIENT_THREAD 4
+
+
 message_multiplexer_t::run_t::run_t(message_multiplexer_t *p) : parent(p) {
     guarantee(parent->run == NULL);
     parent->run = this;
@@ -49,7 +53,10 @@ message_multiplexer_t::client_t::run_t::~run_t() {
 }
 
 message_multiplexer_t::client_t::client_t(message_multiplexer_t *p, tag_t t) :
-    parent(p), tag(t), run(NULL)
+    parent(p),
+    tag(t),
+    run(NULL),
+    outstanding_writes_semaphores(MAX_OUTSTANDING_WRITES_PER_MULTIPLEXER_CLIENT_THREAD)
 {
     guarantee(parent->run == NULL);
     guarantee(parent->clients[tag] == NULL);
@@ -87,7 +94,11 @@ private:
 
 void message_multiplexer_t::client_t::send_message(peer_id_t dest, send_message_write_callback_t *callback) {
     tagged_message_writer_t writer(tag, callback);
-    parent->message_service->send_message(dest, &writer);
+    {
+        semaphore_acq_t outstanding_write_acq (outstanding_writes_semaphores.get());
+        parent->message_service->send_message(dest, &writer);
+        // Release outstanding_writes_semaphore
+    }
 }
 
 void message_multiplexer_t::client_t::kill_connection(peer_id_t peer) {

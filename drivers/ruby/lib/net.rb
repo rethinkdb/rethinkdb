@@ -149,7 +149,7 @@ module RethinkDB
         value = Shim.response_to_native(res, msg, opts)
       end
 
-      if res.has_profile?
+      if res.respond_to? :has_profile? and res.has_profile?
           {"profile" => Shim.datum_to_native(res.profile(), opts),
            "value" => value}
       else

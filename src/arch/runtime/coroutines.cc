@@ -19,6 +19,8 @@
 
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
+#include "thread_stack_pcs.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
@@ -126,6 +128,9 @@ coro_t::coro_t() :
 #ifndef NDEBUG
     , selfname_number(get_thread_id().threadnum + MAX_THREADS * ++coro_selfname_counter)
 #endif
+#ifdef CROSS_CORO_BACKTRACES
+    , spawn_backtrace_size(0)
+#endif
 {
     ++pm_allocated_coroutines;
 
@@ -172,10 +177,10 @@ void coro_t::run() {
         cglobals->total_coroutine_counts[coro->coroutine_type.c_str()]++;
         cglobals->active_coroutines.insert(coro);
 #endif
+        PROFILER_CORO_RESUME;
         coro->action_wrapper.run();
+        PROFILER_CORO_YIELD(0);
 #ifndef NDEBUG
-        // Pet the watchdog to reset it before execution moves
-        pet_watchdog();
         cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
         cglobals->active_coroutines.erase(coro);
 #endif
@@ -226,16 +231,13 @@ void coro_t::wait() {   /* class method */
     rassert(!self()->waiting_);
     self()->waiting_ = true;
 
-#ifndef NDEBUG
-        // Pet the watchdog to reset it before execution moves
-        pet_watchdog();
-#endif
-
+    PROFILER_CORO_YIELD(1);
     if (cglobals->prev_coro) {
         context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
     } else {
         context_switch(&self()->stack.context, &cglobals->scheduler);
     }
+    PROFILER_CORO_RESUME;
 
     rassert(self());
     rassert(self()->waiting_);
@@ -264,14 +266,12 @@ void coro_t::notify_now_deprecated() {
     cglobals->assert_finite_coro_waiting_counter = 0;
 #endif
 
+    if (coro_t::self() != NULL) {
+        PROFILER_CORO_YIELD(1);
+    }
     coro_t *prev_prev_coro = cglobals->prev_coro;
     cglobals->prev_coro = cglobals->current_coro;
     cglobals->current_coro = this;
-
-#ifndef NDEBUG
-    // Pet the watchdog to reset it before execution moves
-    pet_watchdog();
-#endif
 
     if (cglobals->prev_coro) {
         context_switch(&cglobals->prev_coro->stack.context, &this->stack.context);
@@ -282,6 +282,9 @@ void coro_t::notify_now_deprecated() {
     rassert(cglobals->current_coro == this);
     cglobals->current_coro = cglobals->prev_coro;
     cglobals->prev_coro = prev_prev_coro;
+    if (coro_t::self() != NULL) {
+        PROFILER_CORO_RESUME;
+    }
 
 #ifndef NDEBUG
     /* Restore old value of `assert_finite_coro_waiting_counter`. */
@@ -318,9 +321,27 @@ void coro_t::move_to_thread(threadnum_t thread) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
+#ifndef NDEBUG
+    /* Switch the coro counter to the new thread 1/2 */
+    rassert(cglobals->coro_count > 0);
+    cglobals->coro_count--;
+    rassert(cglobals->running_coroutine_counts[self()->coroutine_type.c_str()] > 0);
+    cglobals->running_coroutine_counts[self()->coroutine_type.c_str()]--;
+    rassert(cglobals->total_coroutine_counts[self()->coroutine_type.c_str()] > 0);
+    cglobals->total_coroutine_counts[self()->coroutine_type.c_str()]--;
+    rassert(cglobals->active_coroutines.find(self()) != cglobals->active_coroutines.end());
+    cglobals->active_coroutines.erase(self());
+#endif
     self()->current_thread_ = thread;
     self()->notify_later_ordered();
     wait();
+#ifndef NDEBUG
+    /* Switch the coro counter to the new thread 2/2 */
+    cglobals->coro_count++;
+    cglobals->running_coroutine_counts[self()->coroutine_type.c_str()]++;
+    cglobals->total_coroutine_counts[self()->coroutine_type.c_str()]++;
+    cglobals->active_coroutines.insert(self());
+#endif
 }
 
 void coro_t::on_thread_switch() {
@@ -371,6 +392,68 @@ coro_t * coro_t::get_coro() {
 
     ++pm_active_coroutines;
     return coro;
+}
+
+void coro_t::grab_spawn_backtrace() {
+#ifdef CROSS_CORO_BACKTRACES
+    // Skip a few constant frames at the beginning of the backtrace.
+    // This is purely a cosmetic thing, to make the backtraces
+    // nicer to look at and easier to read.
+    //
+    // The +2 comes together as follows:
+    // +1 for our own stack frame (`grab_spawn_backtrace()`)
+    // +1 for the fact that we get called from `get_and_init_coro()`
+    //    which is also not interesting at all.
+    const int num_frames_to_skip = NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE + 2;
+
+    const size_t buffer_size = static_cast<size_t>(CROSS_CORO_BACKTRACES_MAX_SIZE
+                                                   + num_frames_to_skip);
+    void *buffer[buffer_size];
+    spawn_backtrace_size = rethinkdb_backtrace(buffer, buffer_size);
+    if (spawn_backtrace_size < num_frames_to_skip) {
+        // Something is fishy if this happens... Probably RethinkDB was compiled
+        // with some optimizations enabled that inlined some functions or
+        // optimized away some stack frames, or the value of
+        // NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE is wrong, or we were called
+        // from an unexpected context.
+        rassert(spawn_backtrace_size >= num_frames_to_skip,
+            "Got an unexpected backtrace. See comment in coro_t::grab_spawn_backtrace(). "
+            "If you determine that this is acceptable in your specific case (e.g. "
+            "you are just debugging something), feel free to temporarily comment "
+            "this assertion.");
+        spawn_backtrace_size = num_frames_to_skip;
+    }
+    spawn_backtrace_size -= num_frames_to_skip;
+    rassert(spawn_backtrace_size >= 0);
+    rassert(spawn_backtrace_size <= CROSS_CORO_BACKTRACES_MAX_SIZE);
+    memcpy(spawn_backtrace, buffer + num_frames_to_skip, spawn_backtrace_size * sizeof(void *));
+
+    // If we have space left and were called from inside a coroutine,
+    // we also append the parent's spawn_backtrace.
+    int space_remaining = CROSS_CORO_BACKTRACES_MAX_SIZE - spawn_backtrace_size;
+    if (space_remaining > 0 && self() != NULL) {
+        spawn_backtrace_size += self()->copy_spawn_backtrace(spawn_backtrace + spawn_backtrace_size,
+                                                             space_remaining);
+    }
+#endif
+}
+
+#ifdef CROSS_CORO_BACKTRACES
+int coro_t::copy_spawn_backtrace(void **buffer_out, int size) const {
+#else
+int coro_t::copy_spawn_backtrace(void **, int) const {
+#endif
+#ifdef CROSS_CORO_BACKTRACES
+    guarantee(buffer_out != NULL);
+    guarantee(size >= 0);
+    int num_frames_to_store = std::min(size, spawn_backtrace_size);
+    memcpy(buffer_out,
+           spawn_backtrace,
+           static_cast<size_t>(num_frames_to_store) * sizeof(void *));
+    return num_frames_to_store;
+#else
+    return 0;
+#endif
 }
 
 #ifndef NDEBUG

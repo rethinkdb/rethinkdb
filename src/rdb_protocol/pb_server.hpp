@@ -9,7 +9,6 @@
 #include "protob/protob.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 
 namespace ql { template <class> class protob_t; }

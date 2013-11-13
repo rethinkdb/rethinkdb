@@ -61,6 +61,7 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     if (should_erase) {
         erase(key);
     }
+
     return true;
 }
 

@@ -181,9 +181,9 @@ class Connection extends events.EventEmitter
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
                         if profile?
-                            cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
+                            cb null, {profile: profile, value: cursor._endData(mkSeq(response, opts))}
                         else
-                            cb null, cursor._addData(mkSeq(response, opts))
+                            cb null, cursor._endData(mkSeq(response, opts))
                    ,"WAIT_COMPLETE": =>
                         @_delQuery(token)
                         cb null, null
