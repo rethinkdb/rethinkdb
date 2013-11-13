@@ -15,6 +15,5 @@
     }
 , "engines" : { "node": ">= 0.10.0" }
 , "dependencies" : { "protobufjs": ">= 1.1.4" }
-, "optionalDependencies" : { "node-protobuf": ">= 1.0.0" }
 , "browser": { "./native-protobuf": false }
 }
