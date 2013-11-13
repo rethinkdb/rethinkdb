@@ -293,6 +293,9 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         ql::env_t dummy_env(NULL);
         rdb_rget_slice(
             store->get_sindex_slice(sindex_id),
+            rdb_protocol_t::sindex_key_range(
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
+                store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
             txn.get(),
             sindex_sb.get(),
             &dummy_env, // env_t

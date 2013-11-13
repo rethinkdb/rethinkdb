@@ -1886,39 +1886,12 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
     uint64_t width = HASH_REGION_HASH_SIZE / num_cpu_shards;
 
     uint64_t beg = width * subregion_number;
-    uint64_t end = subregion_number + 1 == num_cpu_shards ? HASH_REGION_HASH_SIZE : beg + width;
+    uint64_t end = subregion_number + 1 == num_cpu_shards
+        ? HASH_REGION_HASH_SIZE : beg + width;
 
     return region_t(beg, end, key_range_t::universe());
 }
 
-<<<<<<< HEAD
-||||||| merged common ancestors
-hash_region_t<key_range_t> sindex_range_t::to_region() const {
-    return hash_region_t<key_range_t>(rdb_protocol_t::sindex_key_range(
-        start != NULL ? start->truncated_secondary() : store_key_t::min(),
-        end != NULL ? end->truncated_secondary() : store_key_t::max()));
-}
-
-bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
-    return (!start || (*start < *value || (*start == *value && !start_open))) &&
-           (!end   || (*value < *end   || (*value == *end && !end_open)));
-}
-
-=======
-hash_region_t<key_range_t> sindex_range_t::to_region() const {
-    return hash_region_t<key_range_t>(
-        rdb_protocol_t::sindex_key_range(
-            start != NULL ? start->truncated_secondary() : store_key_t::min(),
-            end != NULL ? end->truncated_secondary() : store_key_t::max()));
-}
-
-
-bool sindex_range_t::contains(counted_t<const ql::datum_t> value) const {
-    return (!start || (*start < *value || (*start == *value && !start_open))) &&
-           (!end   || (*value < *end   || (*value == *end && !end_open)));
-}
-
->>>>>>> next
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
@@ -1927,7 +1900,8 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
                            region, key_counts);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::read_response_t, response, event_log, n_shards);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::read_response_t,
+                           response, event_log, n_shards);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_rangespec_t,
@@ -1967,7 +1941,8 @@ RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::sindex_create_t, id, mapping, region,
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_drop_t, id, region);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sync_t, region);
 
-RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_t, write, durability_requirement, profile);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::write_t,
+                           write, durability_requirement, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_key_t, key);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::backfill_chunk_t::delete_range_t, range);

@@ -221,8 +221,8 @@ void run(protob_t<Query> q,
                     env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
-                counted_t<datum_stream_t> seq = val->as_seq(env);
-                if (counted_t<const datum_t> arr = seq->as_array(env)) {
+                counted_t<datum_stream_t> seq = val->as_seq(env.get());
+                if (counted_t<const datum_t> arr = seq->as_array(env.get())) {
                     res->set_type(Response_ResponseType_SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response());
                     if (env->trace.has()) {
