@@ -5,11 +5,18 @@
 #include <string>
 #include <vector>
 
+#define SLICE_ALT 0
+
+#if SLICE_ALT
+#include "buffer_cache/alt/alt.hpp"
+#else
 #include "buffer_cache/types.hpp"
+#endif
 #include "concurrency/fifo_checker.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
+// RSI: Why is this 2 << 16?  (and not 1 << 16?)
 const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
 
 class backfill_callback_t;
@@ -47,41 +54,76 @@ class btree_slice_t : public home_thread_mixin_debug_only_t {
 public:
     // Initializes a cache for use with btrees (by creating the superblock in block SUPERBLOCK_ID),
     // setting the initial value of the metainfo (with a single key/value pair).
+#if SLICE_ALT
+    static void create(alt::alt_cache_t *cache,
+                       const std::vector<char> &metainfo_key,
+                       const std::vector<char> &metainfo_value);
+#else
     static void create(cache_t *cache, const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value);
+#endif
 
     // Blocks
     // Creates a btree_slice_t on a cache with data in it putting the
     // superblock at the specified location
+#if SLICE_ALT
+    static void create(alt::alt_cache_t *cache,
+                       block_id_t superblock_id,
+                       alt::alt_txn_t *txn,
+                       const std::vector<char> &metainfo_key,
+                       const std::vector<char> &metainfo_value);
+#else
     static void create(cache_t *cache, block_id_t superblock_id, transaction_t *txn,
             const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value);
+#endif
 
     // Blocks
+#if SLICE_ALT
+    btree_slice_t(alt::alt_cache_t *cache, perfmon_collection_t *parent,
+                  const std::string &identifier,
+                  block_id_t superblock_id = SUPERBLOCK_ID);
+#else
     btree_slice_t(cache_t *cache, perfmon_collection_t *parent, const std::string &identifier, block_id_t superblock_id = SUPERBLOCK_ID);
+#endif
 
     // Blocks
     ~btree_slice_t();
 
+#if SLICE_ALT
+    alt::alt_cache_t *cache() { return cache_; }
+#else
     cache_t *cache() { return cache_; }
+#endif
+#if !SLICE_ALT
     cache_account_t *get_backfill_account() { return backfill_account.get(); }
+#endif
 
     order_checkpoint_t pre_begin_txn_checkpoint_;
 
     btree_stats_t stats;
 
     block_id_t get_superblock_id();
+
 private:
+#if SLICE_ALT
+    alt::alt_cache_t *cache_;
+#else
     cache_t *cache_;
+#endif
 
     block_id_t superblock_id_;
 
+#if !SLICE_ALT
     // Cache account to be used when backfilling.
     scoped_ptr_t<cache_account_t> backfill_account;
+#endif
 
     DISABLE_COPYING(btree_slice_t);
 
+#if !SLICE_ALT
     //Information for cache eviction
 public:
     eviction_priority_t root_eviction_priority;
+#endif
 };
 
 #endif /* BTREE_SLICE_HPP_ */
