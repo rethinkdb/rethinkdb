@@ -34,7 +34,7 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
         rdb_protocol_details::transform_t(),
         boost::optional<rdb_protocol_details::terminal_t>(),
         boost::optional<rdb_protocol_t::sindex_rangespec_t>(),
-        UNORDERED);
+        sorting_t::UNORDERED);
     rdb_protocol_t::read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);
     for (;;) {
         signal_timer_t start_poll;

@@ -41,8 +41,8 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response());
         }
-        if (env->trace.has()) {
-            env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
+        if (entry->env->trace.has()) {
+            entry->env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
         }
     } catch (const std::exception &e) {
         erase(key);

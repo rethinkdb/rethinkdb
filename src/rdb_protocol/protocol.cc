@@ -698,17 +698,17 @@ private:
             = boost::get<rget_read_response_t>(&response_out->response);
         // A vanilla range get
         // First we need to determine the cutoff key:
-        rg_response->last_considered_key =
-            rg.sorting != DESCENDING ? store_key_t::max() : store_key_t::min();
+        rg_response->last_considered_key = rg.sorting != sorting_t::DESCENDING
+            ? store_key_t::max() : store_key_t::min();
         for (size_t i = 0; i < count; ++i) {
             auto rr = boost::get<rget_read_response_t>(&responses[i].response);
             guarantee(rr != NULL);
 
             if (rr->truncated
                 && ((rg_response->last_considered_key > rr->last_considered_key
-                     && rg.sorting != DESCENDING)
+                     && rg.sorting != sorting_t::DESCENDING)
                     || (rg_response->last_considered_key < rr->last_considered_key
-                        && rg.sorting == DESCENDING))) {
+                        && rg.sorting == sorting_t::DESCENDING))) {
                 rg_response->last_considered_key = rr->last_considered_key;
             }
         }
@@ -726,9 +726,9 @@ private:
 
                 for (auto it = stream->begin(); it != stream->end(); ++it) {
                     if ((it->key <= rg_response->last_considered_key
-                         && rg.sorting != DESCENDING)
+                         && rg.sorting != sorting_t::DESCENDING)
                         || (it->key >= rg_response->last_considered_key
-                            && rg.sorting == DESCENDING)) {
+                            && rg.sorting == sorting_t::DESCENDING)) {
                         res_stream->push_back(*it);
                     }
                 }
@@ -749,8 +749,8 @@ private:
             }
 
             while (true) {
-                store_key_t key_to_beat =
-                    rg.sorting != DESCENDING ? store_key_t::max() : store_key_t::min();
+                store_key_t key_to_beat = rg.sorting != sorting_t::DESCENDING
+                    ? store_key_t::max() : store_key_t::min();
                 stream_t::const_iterator *value = NULL;
 
                 for (auto it = iterators.begin(); it != iterators.end(); ++it) {
@@ -758,10 +758,10 @@ private:
                         continue;
                     }
 
-                    if ((rg.sorting != DESCENDING
+                    if ((rg.sorting != sorting_t::DESCENDING
                          && it->first->key <= key_to_beat
                          && it->first->key <= rg_response->last_considered_key)
-                        || (rg.sorting == DESCENDING
+                        || (rg.sorting == sorting_t::DESCENDING
                             && it->first->key >= key_to_beat
                             && it->first->key >= rg_response->last_considered_key)) {
                         key_to_beat = it->first->key;

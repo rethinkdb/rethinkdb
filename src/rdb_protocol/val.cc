@@ -208,7 +208,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     try {
         rdb_protocol_t::read_response_t res;
         access->get_namespace_if().read(
-            &read, &res, order_token_t::ignore, env->interruptor);
+            read, &res, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::sindex_list_response_t *s_res =
             boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
         r_sanity_check(s_res);
@@ -258,10 +258,10 @@ counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> p
             rdb_protocol_t::point_read_t(store_key_t(pks)), env->profile());
     rdb_protocol_t::read_response_t res;
     if (use_outdated) {
-        access->get_namespace_if().read_outdated(&read, &res, env->interruptor);
+        access->get_namespace_if().read_outdated(read, &res, env->interruptor);
     } else {
         access->get_namespace_if().read(
-            &read, &res, order_token_t::ignore, env->interruptor);
+            read, &res, order_token_t::ignore, env->interruptor);
     }
     rdb_protocol_t::point_read_response_t *p_res =
         boost::get<rdb_protocol_t::point_read_response_t>(&res.response);

@@ -12,6 +12,81 @@
 
 namespace ql {
 
+
+/* rdb_namespace_interface_t methods */
+
+rdb_namespace_interface_t::rdb_namespace_interface_t(
+        namespace_interface_t<rdb_protocol_t> *internal, env_t *env)
+    : internal_(internal), env_(env) { }
+
+void rdb_namespace_interface_t::read(
+        const rdb_protocol_t::read_t &read,
+        rdb_protocol_t::read_response_t *response,
+        order_token_t tok,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    profile::starter_t starter("Perform read.", env_->trace);
+    profile::splitter_t splitter(env_->trace);
+    r_sanity_check(read.profile == env_->profile());
+    /* Do the actual read. */
+    internal_->read(read, response, tok, interruptor);
+    /* Append the results of the parallel tasks to the current trace */
+    splitter.give_splits(response->n_shards, response->event_log);
+}
+
+void rdb_namespace_interface_t::read_outdated(
+        const rdb_protocol_t::read_t &read,
+        rdb_protocol_t::read_response_t *response,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    profile::starter_t starter("Perform outdated read.", env_->trace);
+    profile::splitter_t splitter(env_->trace);
+    /* propagate whether or not we're doing profiles */
+    r_sanity_check(read.profile == env_->profile());
+    /* Do the actual read. */
+    internal_->read_outdated(read, response, interruptor);
+    /* Append the results of the profile to the current task */
+    splitter.give_splits(response->n_shards, response->event_log);
+}
+
+void rdb_namespace_interface_t::write(
+        rdb_protocol_t::write_t *write,
+        rdb_protocol_t::write_response_t *response,
+        order_token_t tok,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
+    profile::starter_t starter("Perform write", env_->trace);
+    profile::splitter_t splitter(env_->trace);
+    /* propagate whether or not we're doing profiles */
+    write->profile = env_->profile();
+    /* Do the actual read. */
+    internal_->write(*write, response, tok, interruptor);
+    /* Append the results of the profile to the current task */
+    splitter.give_splits(response->n_shards, response->event_log);
+}
+
+std::set<rdb_protocol_t::region_t> rdb_namespace_interface_t::get_sharding_scheme()
+    THROWS_ONLY(cannot_perform_query_exc_t) {
+    return internal_->get_sharding_scheme();
+}
+
+signal_t *rdb_namespace_interface_t::get_initial_ready_signal() {
+    return internal_->get_initial_ready_signal();
+}
+
+bool rdb_namespace_interface_t::has() {
+    return internal_;
+}
+
+rdb_namespace_access_t::rdb_namespace_access_t(uuid_u id, env_t *env)
+    : internal_(env->cluster_access.ns_repo, id, env->interruptor),
+      env_(env)
+{ }
+
+rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
+    return rdb_namespace_interface_t(internal_.get_namespace_if(), env_);
+}
+
 const char *const empty_stream_msg =
     "Cannot reduce over an empty stream with no base.";
 
@@ -45,9 +120,9 @@ rget_read_response_t reader_t::do_read(env_t *env, const read_t &read) {
     read_response_t res;
     try {
         if (use_outdated) {
-            ns_access.get_namespace_if()->read_outdated(read, &res, env->interruptor);
+            ns_access.get_namespace_if().read_outdated(read, &res, env->interruptor);
         } else {
-            ns_access.get_namespace_if()->read(
+            ns_access.get_namespace_if().read(
                 read, &res, order_token_t::ignore, env->interruptor);
         }
     } catch (const cannot_perform_query_exc_t &e) {
@@ -78,13 +153,13 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
     // update the range correctly in the case where we're reading a subportion
     // of the total range.
     store_key_t *key = &res.last_considered_key;
-    if (*key == store_key_t::max() && rr->sorting == ASCENDING) {
+    if (*key == store_key_t::max() && rr->sorting == sorting_t::ASCENDING) {
         if (!rng.right.unbounded) {
             *key = rng.right.key;
             bool b = key->decrement();
             r_sanity_check(b);
         }
-    } else if (*key == store_key_t::min() && rr->sorting == DESCENDING) {
+    } else if (*key == store_key_t::min() && rr->sorting == sorting_t::DESCENDING) {
         *key = rng.left;
     }
 
@@ -189,14 +264,16 @@ bool reader_t::is_finished() const { return finished; }
 readgen_t::readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,
     const datum_range_t &_original_datum_range,
+    profile_bool_t _profile,
     sorting_t _sorting)
     : global_optargs(_global_optargs),
       original_datum_range(_original_datum_range),
+      profile(_profile),
       sorting(_sorting) { }
 
 bool readgen_t::update_range(key_range_t *active_range,
                              const store_key_t &last_considered_key) const {
-    if (sorting != DESCENDING) {
+    if (sorting != sorting_t::DESCENDING) {
         active_range->left = last_considered_key;
     } else {
         active_range->right = key_range_t::right_bound_t(last_considered_key);
@@ -204,7 +281,7 @@ bool readgen_t::update_range(key_range_t *active_range,
 
     // TODO: mixing these non-const operations INTO THE CONDITIONAL is bad, and
     // confused me for a while when I tried moving some stuff around.
-    if (sorting != DESCENDING) {
+    if (sorting != sorting_t::DESCENDING) {
         if (!active_range->left.increment()
             || (!active_range->right.unbounded
                 && (active_range->right.key < active_range->left))) {
@@ -224,7 +301,7 @@ read_t readgen_t::next_read(
     const key_range_t &active_range,
     const transform_t &transform,
     const batcher_t &batcher) const {
-    return read_t(next_read_impl(active_range, transform, batcher));
+    return read_t(next_read_impl(active_range, transform, batcher), profile);
 }
 
 // TODO: this is how we did it before, but it sucks.
@@ -234,18 +311,21 @@ read_t readgen_t::terminal_read(
     const batcher_t &batcher) const {
     rget_read_t read = next_read_impl(original_keyrange(), transform, batcher);
     read.terminal = std::move(_terminal);
-    return read_t(read);
+    return read_t(read, profile);
 }
 
 primary_readgen_t::primary_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
     datum_range_t range,
+    profile_bool_t profile,
     sorting_t sorting)
-    : readgen_t(global_optargs, range, sorting) { }
+    : readgen_t(global_optargs, range, profile, sorting) { }
 scoped_ptr_t<readgen_t> primary_readgen_t::make(
     env_t *env, datum_range_t range, sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
-        new primary_readgen_t(env->global_optargs.get_all_optargs(), range, sorting));
+        new primary_readgen_t(
+            env->global_optargs.get_all_optargs(),
+            range, env->profile(), sorting));
 }
 
 rget_read_t primary_readgen_t::next_read_impl(
@@ -286,14 +366,16 @@ sindex_readgen_t::sindex_readgen_t(
     const std::map<std::string, wire_func_t> &global_optargs,
     const std::string &_sindex,
     datum_range_t range,
+    profile_bool_t profile,
     sorting_t sorting)
-    : readgen_t(global_optargs, range, sorting), sindex(_sindex) { }
+    : readgen_t(global_optargs, range, profile, sorting), sindex(_sindex) { }
 
 scoped_ptr_t<readgen_t> sindex_readgen_t::make(
     env_t *env, const std::string &sindex, datum_range_t range, sorting_t sorting) {
     return scoped_ptr_t<readgen_t>(
         new sindex_readgen_t(
-            env->global_optargs.get_all_optargs(), sindex, range, sorting));
+            env->global_optargs.get_all_optargs(),
+            sindex, range, env->profile(), sorting));
 }
 
 void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
@@ -305,14 +387,14 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
         sorter_t(sorting_t _sorting) : sorting(_sorting) { }
         bool operator()(const rget_item_t &l, const rget_item_t &r) {
             r_sanity_check(l.sindex_key && r.sindex_key);
-            return sorting == ASCENDING
+            return sorting == sorting_t::ASCENDING
                 ? (**l.sindex_key < **r.sindex_key)
                 : (**l.sindex_key > **r.sindex_key);
         }
     private:
         sorting_t sorting;
     };
-    if (sorting != UNORDERED) {
+    if (sorting != sorting_t::UNORDERED) {
         std::sort(vec->begin(), vec->end(), sorter_t(sorting));
     }
 }
@@ -336,12 +418,12 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     const std::vector<rget_item_t> &items,
     const transform_t &transform,
     const batcher_t &batcher) const {
-    if (sorting != UNORDERED && items.size() > 0) {
+    if (sorting != sorting_t::UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
         if (datum_t::key_is_truncated(key)) {
             std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
             key_range_t rng = active_range;
-            if (sorting == ASCENDING) {
+            if (sorting == sorting_t::ASCENDING) {
                 // We construct a right bound that's larger than the maximum
                 // possible row with this truncated sindex but smaller than the
                 // minimum possible row with a larger sindex.
@@ -365,7 +447,8 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                             sindex,
                             region_t(key_range_t(rng)),
                             original_datum_range),
-                        sorting));
+                        sorting),
+                    profile);
             }
         }
     }

@@ -23,6 +23,58 @@
 
 namespace ql {
 
+class env_t;
+
+/* This wraps a namespace_interface_t and makes it automatically handle getting
+ * profiling information from them. It acheives this by doing the following in
+ * its methods:
+ * - Set the explain field in the read_t/write_t object so that the shards know
+     whether or not to do profiling
+ * - Construct a splitter_t
+ * - Call the corresponding method on internal_
+ * - splitter_t::give_splits with the event logs from the shards
+ */
+class rdb_namespace_interface_t {
+public:
+    rdb_namespace_interface_t(
+            namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
+
+    void read(const rdb_protocol_t::read_t &,
+              rdb_protocol_t::read_response_t *response,
+              order_token_t tok,
+              signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read_outdated(const rdb_protocol_t::read_t &,
+                       rdb_protocol_t::read_response_t *response,
+                       signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(rdb_protocol_t::write_t *,
+               rdb_protocol_t::write_response_t *response,
+               order_token_t tok,
+               signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+
+    /* These calls are for the sole purpose of optimizing queries; don't rely
+    on them for correctness. They should not block. */
+    std::set<rdb_protocol_t::region_t> get_sharding_scheme()
+        THROWS_ONLY(cannot_perform_query_exc_t);
+    signal_t *get_initial_ready_signal();
+    /* Check if the internal value is null. */
+    bool has();
+private:
+    namespace_interface_t<rdb_protocol_t> *internal_;
+    env_t *env_;
+};
+
+class rdb_namespace_access_t {
+public:
+    rdb_namespace_access_t(uuid_u id, env_t *env);
+    rdb_namespace_interface_t get_namespace_if();
+private:
+    base_namespace_repo_t<rdb_protocol_t>::access_t internal_;
+    env_t *env_;
+};
+
 // This is a more selective subset of the list at the top of protocol.cc.
 typedef rdb_protocol_details::transform_t transform_t;
 typedef rdb_protocol_details::terminal_t terminal_t;
@@ -183,6 +235,7 @@ public:
     explicit readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
         const datum_range_t &original_datum_range,
+        profile_bool_t profile,
         sorting_t sorting);
     virtual ~readgen_t() { }
     read_t terminal_read(
@@ -216,6 +269,7 @@ public:
 protected:
     const std::map<std::string, wire_func_t> global_optargs;
     const datum_range_t original_datum_range;
+    const profile_bool_t profile;
     const sorting_t sorting;
 
 private:
@@ -230,10 +284,10 @@ public:
     static scoped_ptr_t<readgen_t> make(
         env_t *env,
         datum_range_t range = datum_range_t::universe(),
-        sorting_t sorting = UNORDERED);
+        sorting_t sorting = sorting_t::UNORDERED);
 private:
     primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
-                      datum_range_t range, sorting_t sorting);
+                      datum_range_t range, profile_bool_t profile, sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const transform_t &transform,
@@ -254,11 +308,12 @@ public:
         env_t *env,
         const std::string &sindex,
         datum_range_t range = datum_range_t::universe(),
-        sorting_t sorting = UNORDERED);
+        sorting_t sorting = sorting_t::UNORDERED);
 private:
     sindex_readgen_t(
         const std::map<std::string, wire_func_t> &global_optargs,
-        const std::string &sindex, datum_range_t sindex_range, sorting_t sorting);
+        const std::string &sindex, datum_range_t sindex_range,
+        profile_bool_t profile, sorting_t sorting);
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const transform_t &transform,
