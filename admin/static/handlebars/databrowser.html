@@ -1,5 +1,6 @@
 <script id="databrowser_view-template" type="text/x-handlebars-template">
     <div class="section">
+        <div class="main_error alert alert-error"></div>
         <div class="action_container">
         </div>
         <div class="loading_query">
@@ -12,7 +13,6 @@
 
 <script id="databrowser_actions_container-template" type="text/x-handlebars-template">
     <h1 class="title">Data browser</h1>
-
     <p>Select a table</p>
     <select class="list_namespaces">
     {{#each databases}}
@@ -121,5 +121,15 @@
         </td>
         {{/each}}
     </tr>
+</script>
+
+<script id="databrowser-error-template" type="text/x-handlebars-template">
+{{#if connection_not_open}}
+No open connection found. Try to <a href="#" class="reconnect">reconnect</a>.
+{{/if}}
+{{#if fail_open_connection}}
+Cannot open connection. Try to <a href="#" class="reconnect">reconnect</a>.
+{{/if}}
+
 </script>
 

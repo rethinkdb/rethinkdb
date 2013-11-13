@@ -8,9 +8,31 @@ module 'DataBrowserView', ->
     class @Container extends Backbone.View
         id: 'databrowser'
         template: Handlebars.templates['databrowser_view-template']
+        error_template: Handlebars.templates['databrowser-error-template']
         actions_template: Handlebars.templates['databrowser_actions_container-template']
         events:
             'change .list_namespaces': 'handle_select_namespace'
+            'click .close_error': 'hide_error'
+            'click .reconnect': 'reconnect'
+            
+        hide_error: =>
+            @$('.main_error').slideUp 'fast'
+
+        reconnect: (event) =>
+            event.preventDefault()
+            @driver_handler.connect()
+
+        show_error: (args) =>
+            that = @
+            if @$('.main_error').css('display') is 'block'
+                @$('.main_error').slideUp 'fast', ->
+                    that.$('.main_error').html that.error_template args
+                    that.$('.main_error').slideDown 'fast'
+            else
+                @$('.main_error').html @error_template args
+                @$('.main_error').slideDown 'fast'
+
+
         token: 0
         num_docs_per_page: 100
 
@@ -132,15 +154,18 @@ module 'DataBrowserView', ->
                 , @generate_callback_run(@token)
 
             else
-                #TODO
-                console.log 'Connection not ready'
+                @show_error
+                    connection_not_open: true
             
         success_on_connect: (connection) =>
+            if @$('.main_error').css('display') is 'block'
+                @$('.main_error').slideUp 'fast'
             @connection = connection
 
         error_on_connect: =>
-            # TODO
-            console.log 'Fail to open a new connection'
+            @show_error
+                fail_to_open_connection: true
+
 
         render_error: (query, err, js_error) =>
             @.$el.html @error_template
@@ -182,15 +207,10 @@ module 'DataBrowserView', ->
 
             return callback
             
-        callback_run: (err, cursor) =>
-            if (err)
-                # TODO
-                console.log err
-            else
-                console.log 'TOOD'
+        destroy: =>
+            @driver_handler.destroy()
+            @results_view.destroy()
 
-        #destroy: =>
-        #TODO!
 
     class @ResultView extends DataExplorerView.SharedResultView
         last_keys: []
@@ -293,16 +313,16 @@ module 'DataBrowserView', ->
                 asc: args.asc
 
         jump_page: (event) =>
-            #TODO check if selected, if it's the case, do nothing
             page = parseInt @$(event.currentTarget).val()
-            @container.get_results
-                db: @db
-                namespace: @namespace
-                primary_key: @primary_key
-                page: page
-                order_by: @order_by
-                sort_by_index: @sort_by_index
-                asc: @asc
+            if @page isnt page
+                @container.get_results
+                    db: @db
+                    namespace: @namespace
+                    primary_key: @primary_key
+                    page: page
+                    order_by: @order_by
+                    sort_by_index: @sort_by_index
+                    asc: @asc
 
         next_page: (event) =>
             event.preventDefault()
@@ -316,7 +336,6 @@ module 'DataBrowserView', ->
                 asc: @asc
 
 
-        # TODO Add check for the value of page
         previous_page: (event) =>
             event.preventDefault()
             @container.get_results
@@ -330,10 +349,10 @@ module 'DataBrowserView', ->
 
 
         initialize: (args) =>
-            @template_json_table = {}
-            #TODO Please... clean this
-            for key, value of @__proto__.__proto__.template_json_table
-                @template_json_table[key] = value
+            template_json_table = {}
+            for key, value of @template_json_table
+                template_json_table[key] = value
+            @template_json_table = template_json_table
 
             @template_json_table['tr_attr'] = Handlebars.templates['databrowser_result_json_table_tr_attr-template']
 
@@ -348,6 +367,9 @@ module 'DataBrowserView', ->
 
         render: =>
             return @
+
+        tag_record: (doc, i) =>
+            doc.record = @skip_value + i
 
         render_result: (args) =>
             # If args is not defined, we just switched between view (tree, table, raw), so we just need to re-display the same data
@@ -367,11 +389,6 @@ module 'DataBrowserView', ->
             # Extra variables for convenience purpose
             @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
             @skip_value = @page*@num_docs_per_page
-
-            # TODO Refactor DataExplorerView.Shared... to remove that
-            @metadata =
-                skip_value: @skip_value
-
 
             pages = []
             i = 0

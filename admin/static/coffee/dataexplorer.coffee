@@ -3016,7 +3016,7 @@ module 'DataExplorerView', ->
                         else
                             value = undefined
                     new_document.cells.push @json_to_table_get_td_value value, col
-                new_document.record = @metadata.skip_value + i
+                @tag_record new_document, i
                 document_list.push new_document
             return @template_json_table.tr_value
                 document: document_list
@@ -3202,7 +3202,8 @@ module 'DataExplorerView', ->
                     result: result
                     flatten_attr: flatten_attr
 
-
+        tag_record: (doc, i) =>
+            doc.record = @metadata.skip_value + i
 
         render_result: (args) =>
             if args? and args.results isnt undefined
