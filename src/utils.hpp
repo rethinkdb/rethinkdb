@@ -286,6 +286,18 @@ public:
     ~on_thread_t();
 };
 
+/* `with_priority_t` changes the priority of the current coroutine to the
+ value given in its constructor. When it is destructed, it restores the
+ original priority of the coroutine. */
+
+class with_priority_t {
+public:
+    explicit with_priority_t(int priority);
+    ~with_priority_t();
+private:
+    int previous_priority;
+};
+
 
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
@@ -427,7 +439,7 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 
 class debug_timer_t {
 public:
-    debug_timer_t(std::string _name = "");
+    explicit debug_timer_t(std::string _name = "");
     ~debug_timer_t();
     microtime_t tick(const std::string &tag);
 private:

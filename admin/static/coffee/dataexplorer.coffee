@@ -31,7 +31,7 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
-            'click .more_valid_results': 'show_more_results'
+            'click .more_results_link': 'show_more_results'
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'toggle_history'
@@ -274,19 +274,19 @@ module 'DataExplorerView', ->
 
         # Once we are done moving the doc, we could generate a .js in the makefile file with the data so we don't have to do an ajax request+all this stuff
         set_doc_description: (command, tag, suggestions) =>
-            if command['langs']['js']['body']?
-                if command['langs']['js']['body'].match(/(\)(\s)*)$/)
-                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
-                else
+            if command['body']?
+                dont_need_parenthesis = not (new RegExp(tag+'\\(')).test(command['body'])
+                if dont_need_parenthesis
                     full_tag = tag # Here full_tag is just the name of the tag
+                else
+                    full_tag = tag+'(' # full tag is the name plus a parenthesis (we will match the parenthesis too)
 
                 @descriptions[full_tag] =
                     name: tag
-                    dont_need_parenthesis: command['langs']['js']['dont_need_parenthesis']
-                    args: /.*(\(.*\))$/.exec(command['langs']['js']['body'])?[1].replace('$ARG', 'parentType')
+                    args: /.*(\(.*\))/.exec(command['body'])?[1]
                     description: @description_with_example_template
                         description: command['description']
-                        examples: if command['langs']['js']['examples']?.length >1 then command['langs']['js']['examples'].slice(0,1) else command['langs']['js']['examples']
+                        example: command['example']
 
             parents = {}
             returns = []
@@ -323,14 +323,14 @@ module 'DataExplorerView', ->
         # Method called on the content of reql_docs.json
         # Load the suggestions in @suggestions, @map_state, @descriptions
         set_docs: (data) =>
-            for group in data['sections']
-                for command in group['commands']
-                    tag = command['langs']['js']['name']
-                    if tag of @ignored_commands
-                        continue
-                    if tag is '()' # The parentheses will be added later
-                        tag = ''
-                    @set_doc_description command, tag, @suggestions
+            for key of data
+                command = data[key]
+                tag = command['name']
+                if tag of @ignored_commands
+                    continue
+                if tag is '()' # The parentheses will be added later
+                    tag = ''
+                @set_doc_description command, tag, @suggestions
 
             relations = data['types']
 
@@ -2282,6 +2282,7 @@ module 'DataExplorerView', ->
                 $(window).scrollTop(@.$('.results_container').offset().top)
             catch err
                 @.$('.loading_query_img').css 'display', 'none'
+                # We print the query here (the user just hit `more data`)
                 @results_view.render_error(@query, err)
 
         # Function that execute the queries in a synchronous way.
@@ -2309,14 +2310,15 @@ module 'DataExplorerView', ->
                 if @queries.length is 0
                     error = @query_error_template
                         no_query: true
-                    @results_view.render_error(null, error)
+                    @results_view.render_error(null, error, true)
                 else
                     @.$('.loading_query_img').show()
                     @execute_portion()
 
             catch err
                 @.$('.loading_query_img').hide()
-                @results_view.render_error(@query, err)
+                # Missing brackets, so we display everything (we don't know if we properly splitted the query)
+                @results_view.render_error(@query, err, true)
                 @save_query
                     query: @raw_query
                     broken_query: true
@@ -2332,7 +2334,11 @@ module 'DataExplorerView', ->
                     rdb_query = @evaluate(full_query)
                 catch err
                     @.$('.loading_query_img').hide()
-                    @results_view.render_error(@raw_queries[@index], err)
+                    if @queries.length > 1
+                        @results_view.render_error(@raw_queries[@index], err, true)
+                    else
+                        @results_view.render_error(null, err, true)
+
                     @save_query
                         query: @raw_query
                         broken_query: true
@@ -2358,7 +2364,8 @@ module 'DataExplorerView', ->
                         @.$('.loading_query_img').hide()
                         error = @query_error_template
                             last_non_query: true
-                        @results_view.render_error(@raw_queries[@index-1], error)
+                        @results_view.render_error(@raw_queries[@index-1], error, true)
+
                         @save_query
                             query: @raw_query
                             broken_query: true
@@ -2373,7 +2380,10 @@ module 'DataExplorerView', ->
 
                     if error?
                         @.$('.loading_query_img').hide()
-                        @results_view.render_error(@raw_queries[@index-1], error)
+                        if @queries.length > 1
+                            @results_view.render_error(@raw_queries[@index-1], error)
+                        else
+                            @results_view.render_error(null, error)
                         @save_query
                             query: @raw_query
                             broken_query: true
@@ -2424,7 +2434,10 @@ module 'DataExplorerView', ->
             get_result_callback = (error, data) =>
                 if @id_execution is id_execution
                     if error?
-                        @results_view.render_error(@query, error)
+                        if @queries.length > 1
+                            @results_view.render_error(@query, error)
+                        else
+                            @results_view.render_error(null, error)
                         return false
 
                     if data isnt undefined
@@ -2742,10 +2755,11 @@ module 'DataExplorerView', ->
             @container.saved_data.view = view
             @render_result()
 
-        render_error: (query, err) =>
+        render_error: (query, err, js_error) =>
             @.$el.html @error_template
                 query: query
                 error: err.toString().replace(/^(\s*)/, '')
+                js_error: js_error is true
             return @
 
         json_to_tree: (result) =>

@@ -4,7 +4,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/meta_utils.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"

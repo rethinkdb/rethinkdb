@@ -103,6 +103,9 @@ RQL_ERROR_BT ?= 0
 # but can be useful for analyzing performance issues.
 FULL_PERFMON ?= 0
 
+# Turn on the coroutine profiler
+CORO_PROFILING ?= 0
+
 # Sign the DSC file
 SIGN_PACKAGE ?= 1
 

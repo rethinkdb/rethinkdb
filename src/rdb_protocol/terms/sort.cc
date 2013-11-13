@@ -8,7 +8,6 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/term_walker.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"

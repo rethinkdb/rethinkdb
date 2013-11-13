@@ -36,6 +36,10 @@ tests:
     py: tbl.index_create('idi', r.row['id'])
     js: tbl.indexCreate('idi', r.row('id'))
     ot: ({'created':1})
+  - rb: tbl.index_create('kdi') {|row| [row[:id]]}
+    py: tbl.index_create('kdi', [r.row['id']])
+    js: tbl.indexCreate('kdi', [r.row('id')])
+    ot: ({'created':1})
   - rb: tbl.index_create('mi', :multi => True) {|row| row[:m]}
     py: tbl.index_create('mi', r.row['m'], multi=True)
     js: tbl.indexCreate('mi', r.row('m'), {"multi":true})
@@ -84,6 +88,10 @@ tests:
   - rb: tbl.get_all(-1)
     py: tbl.get_all(-1)
     js: tbl.getAll(-1)
+    ot: []
+  - rb: tbl.get_all([-1])
+    py: tbl.get_all([-1])
+    js: tbl.getAll([-1])
     ot: []
   - rb: tbl.get_all(1, :index => :id)[0][:id]
     py: tbl.get_all(1, index='id')[0]['id']

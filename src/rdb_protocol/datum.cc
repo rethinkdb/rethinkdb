@@ -1304,7 +1304,9 @@ counted_t<const datum_t> wire_datum_map_t::to_arr() const {
 }
 
 void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    /* Should be guaranteed by finalize. */
     r_sanity_check(state == SERIALIZABLE);
+    r_sanity_check(map.empty());
     msg << map_pb;
 }
 

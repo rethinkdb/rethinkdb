@@ -28,6 +28,7 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     if (it == streams.end()) return false;
     entry_t *entry = it->second;
     entry->last_activity = time(0);
+    bool should_erase = false;
     try {
         // Reset the env_t's interruptor to a good one before we use it.  This may be a
         // hack.  (I'd rather not have env_t be mutable this way -- could we construct
@@ -54,6 +55,7 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     } else {
         res->set_type(Response::SUCCESS_PARTIAL);
     }
+
     return true;
 }
 

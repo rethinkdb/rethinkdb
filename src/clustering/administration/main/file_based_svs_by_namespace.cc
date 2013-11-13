@@ -5,6 +5,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
+#include "serializer/merger.hpp"
 #include "utils.hpp"
 
 /* This object serves mostly as a container for arguments to the
@@ -106,7 +107,7 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         store_threads.push_back(next_thread(num_db_threads));
     }
 
-    scoped_ptr_t<standard_serializer_t> serializer;
+    scoped_ptr_t<serializer_t> serializer;
     scoped_ptr_t<serializer_multiplexer_t> multiplexer;
     scoped_ptr_t<multistore_ptr_t<protocol_t> > mptr;
     {
@@ -116,18 +117,22 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
         int res = access(serializer_filepath.permanent_path().c_str(), R_OK | W_OK);
         store_args_t<protocol_t> store_args(io_backender_, base_path_,
-                                            namespace_id, cache_size,
+                                            namespace_id, cache_size / num_stores,
                                             serializers_perfmon_collection, ctx);
         filepath_file_opener_t file_opener(serializer_filepath, io_backender_);
         if (res == 0) {
             // TODO: Could we handle failure when loading the serializer?  Right
             // now, we don't.
-            serializer.init(new standard_serializer_t(
-                                standard_serializer_t::dynamic_config_t(),
-                                &file_opener,
-                                serializers_perfmon_collection));
 
-            std::vector<standard_serializer_t *> ptrs;
+            serializer.init(new merger_serializer_t(
+                                scoped_ptr_t<serializer_t>(
+                                    new standard_serializer_t(
+                                        standard_serializer_t::dynamic_config_t(),
+                                        &file_opener,
+                                        serializers_perfmon_collection)),
+                                MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
+
+            std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
             multiplexer.init(new serializer_multiplexer_t(ptrs));
 
@@ -142,12 +147,15 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
         } else {
             standard_serializer_t::create(&file_opener,
                                           standard_serializer_t::static_config_t());
-            serializer.init(new standard_serializer_t(
-                                standard_serializer_t::dynamic_config_t(),
-                                &file_opener,
-                                serializers_perfmon_collection));
+            serializer.init(new merger_serializer_t(
+                                scoped_ptr_t<serializer_t>(
+                                    new standard_serializer_t(
+                                    standard_serializer_t::dynamic_config_t(),
+                                    &file_opener,
+                                    serializers_perfmon_collection)),
+                            MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
 
-            std::vector<standard_serializer_t *> ptrs;
+            std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
             serializer_multiplexer_t::create(ptrs, num_stores);
             multiplexer.init(new serializer_multiplexer_t(ptrs));

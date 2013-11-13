@@ -16,6 +16,16 @@ const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 threadnum_t get_thread_id();
 struct coro_globals_t;
 
+
+struct coro_profiler_mixin_t {
+#ifdef ENABLE_CORO_PROFILER
+    coro_profiler_mixin_t() : last_resumed_at(0), last_sample_at(0) { }
+    ticks_t last_resumed_at;
+    ticks_t last_sample_at;
+#endif
+};
+
+
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
 another fiber calls notify_*() on it.
@@ -23,7 +33,10 @@ another fiber calls notify_*() on it.
 coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
 on_thread_t for more safety. */
 
-class coro_t : private linux_thread_message_t, public intrusive_list_node_t<coro_t>, public home_thread_mixin_t {
+class coro_t : private coro_profiler_mixin_t,
+               private linux_thread_message_t,
+               public intrusive_list_node_t<coro_t>,
+               public home_thread_mixin_t {
 public:
     friend bool is_coroutine_stack_overflow(void *);
 
@@ -108,6 +121,13 @@ public:
     static void set_coroutine_stack_size(size_t size);
 
     artificial_stack_t * get_stack();
+    
+    void set_priority(int _priority) {
+        linux_thread_message_t::set_priority(_priority);
+    }
+    int get_priority() const {
+        return linux_thread_message_t::get_priority();
+    }
 
 private:
     /* When called from within a coroutine, schedules the coroutine to be run on
@@ -128,6 +148,14 @@ private:
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
         coro->action_wrapper.reset(action);
+        // If we were called from a coroutine, the new coroutine inherits our
+        // caller's priority.
+        if (self() != NULL) {
+            coro->set_priority(self()->get_priority());
+        } else {
+            // Otherwise, just reset to the default.
+            coro->set_priority(MESSAGE_SCHEDULER_DEFAULT_PRIORITY);
+        }
         return coro;
     }
 
@@ -137,6 +165,7 @@ private:
 
     static void run() NORETURN;
 
+    friend class coro_profiler_t;
     friend struct coro_globals_t;
     ~coro_t();
 

@@ -1,7 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
-#include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/op.hpp"
 
 namespace ql {

@@ -36,6 +36,15 @@ int query2_server_t::get_port() const {
     return server.get_port();
 }
 
+namespace ql {
+    // Predeclaration for run, only used here
+    void run(protob_t<Query> q,
+             rdb_protocol_t::context_t *ctx,
+             signal_t *interruptor,
+             Response *res,
+             stream_cache2_t *stream_cache2);
+}
+
 bool query2_server_t::handle(ql::protob_t<Query> q,
                              Response *response_out,
                              context_t *query2_context) {
@@ -49,17 +58,9 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
          noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
          noreply->as_bool());
     try {
-        threadnum_t thread = get_thread_id();
         guarantee(ctx->directory_read_manager);
-        scoped_ptr_t<ql::env_t> env(
-            new ql::env_t(
-                ctx->extproc_pool, ctx->ns_repo,
-                ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
-                ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
-                ctx->cluster_metadata, ctx->directory_read_manager,
-                interruptor, ctx->machine_id, q));
         // `ql::run` will set the status code
-        ql::run(q, std::move(env), response_out, stream_cache2);
+        ql::run(q, ctx, interruptor, response_out, stream_cache2);
     } catch (const ql::exc_t &e) {
         fill_error(response_out, Response::COMPILE_ERROR, e.what(), e.backtrace());
     } catch (const ql::datum_exc_t &e) {

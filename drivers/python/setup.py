@@ -1,51 +1,44 @@
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2013 RethinkDB, all rights reserved.
 
 from setuptools import setup, Extension
 from distutils.command.build_ext import build_ext
-from distutils.errors import DistutilsPlatformError, CCompilerError, DistutilsExecError
-import sys
+import os
+from subprocess import check_call
 
-class build_ext_nofail(build_ext):
-    # This class can replace the build_ext command with one that does not fail
-    # when the extension fails to build.
-
-    def run(self):
-        try:
-            build_ext.run(self)
-        except DistutilsPlatformError as e:
-            self._failed(e)
+class build_ext_genproto(build_ext):
+    # This class replaces the build_ext command with one that
+    # first generates the ql2.pb.{cpp,h} files if the correct
+    # environment variable is set.
 
     def build_extension(self, ext):
-        try:
+        if os.environ.get('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION') == 'cpp':
+            print "Calling protoc to generate ql2.pb.cc and ql2.pb.h"
+            check_call(['protoc', 'ql2.proto', '--cpp_out=.'])
+            ext.sources = ['./ql2.pb.cc'] + ext.sources
             build_ext.build_extension(self, ext)
-        except (CCompilerError, DistutilsExecError) as e:
-            self._failed(e)
         else:
-            try:
-                import google.protobuf.internal.cpp_message
-            except ImportError:
-                sys.stderr.write("*** WARNING: The installed protobuf library does not seem to include the C++ extension\n")
-                sys.stderr.write("*** WARNING: The RethinkDB driver will fallback to using the pure python implementation\n")
-
-    def _failed(self, e):
-            sys.stderr.write("*** WARNING: Unable to compile the C++ extension\n")
-            sys.stderr.write(str(e) + "\n")
-            sys.stderr.write("*** WARNING: Defaulting to the python implementation\n")
+            print "* * * * * * * * * * * * * * * * *"
+            print "* WARNING: The faster C++ protobuf backend is not enabled."
+            print "* WARNING: To enable it, run `export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp' and reinstall the rethinkdb package."
+            print "* WARNING: See http://rethinkdb.com/docs/driver-performance/ for more information."
+            print "* * * * * * * * * * * * * * * * *"
 
 setup(name="rethinkdb"
-     ,version="1.10.0-0"
-     ,description="This package provides the Python driver library for the RethinkDB database server."
-     ,url="http://rethinkdb.com"
-     ,maintainer="RethinkDB Inc."
-     ,maintainer_email="bugs@rethinkdb.com"
-     ,packages=['rethinkdb']
-     ,install_requires=['protobuf']
-     ,ext_modules=[Extension('rethinkdb_pbcpp', sources=['./rethinkdb/pbcpp.cpp', './rethinkdb/ql2.pb.cc'],
-                             include_dirs=['./rethinkdb'], libraries=['protobuf'])]
-     ,cmdclass={"build_ext":build_ext_nofail}
-     ,entry_points={'console_scripts': [
-            'rethinkdb-import = rethinkdb._import:main',
-            'rethinkdb-dump = rethinkdb._dump:main',
-            'rethinkdb-export = rethinkdb._export:main',
-            'rethinkdb-restore = rethinkdb._restore:main']}
-)
+      ,version = "1.10.0-999"
+      ,description = "This package provides the Python driver library for the RethinkDB database server."
+      ,url = "http://rethinkdb.com"
+      ,maintainer = "RethinkDB Inc."
+      ,maintainer_email = "bugs@rethinkdb.com"
+      ,packages = ['rethinkdb']
+      ,install_requires = ['protobuf']
+      ,entry_points = {'console_scripts': [
+          'rethinkdb-import = rethinkdb._import:main',
+          'rethinkdb-dump = rethinkdb._dump:main',
+          'rethinkdb-export = rethinkdb._export:main',
+          'rethinkdb-restore = rethinkdb._restore:main']}
+      ,cmdclass = {"build_ext":build_ext_genproto}
+      ,ext_modules = [Extension(
+          'rethinkdb/_pbcpp',
+          sources=['./rethinkdb/_pbcpp.cpp'],
+          include_dirs=['./'],
+          libraries=['protobuf'])])

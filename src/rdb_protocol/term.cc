@@ -4,12 +4,14 @@
 #include "rdb_protocol/counted_term.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 #include "rdb_protocol/term_walker.hpp"
 #include "rdb_protocol/validate.hpp"
 
 #include "rdb_protocol/terms/terms.hpp"
+#include "concurrency/cross_thread_watchable.hpp"
+#include "protob/protob.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -155,8 +157,11 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     unreachable();
 }
 
-void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
-         Response *res, stream_cache2_t *stream_cache2) {
+void run(protob_t<Query> q,
+         rdb_protocol_t::context_t *ctx,
+         signal_t *interruptor,
+         Response *res,
+         stream_cache2_t *stream_cache2) {
     try {
         validate_pb(*q);
     } catch (const base_exc_t &e) {
@@ -166,11 +171,19 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
-    env_t *env = env_ptr.get();
     int64_t token = q->token();
 
     switch (q->type()) {
     case Query_QueryType_START: {
+        threadnum_t thread = get_thread_id();
+        scoped_ptr_t<ql::env_t> env(
+            new ql::env_t(
+                ctx->extproc_pool, ctx->ns_repo,
+                ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
+                ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
+                ctx->cluster_metadata, ctx->directory_read_manager,
+                interruptor, ctx->machine_id, q));
+
         counted_t<term_t> root_term;
         try {
             Term *t = q->mutable_query();
@@ -198,7 +211,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
         }
 
         try {
-            scope_env_t scope_env(env, var_scope_t());
+            scope_env_t scope_env(env.get(), var_scope_t());
             counted_t<val_t> val = root_term->eval(&scope_env);
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
@@ -213,11 +226,12 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
                     res->set_type(Response_ResponseType_SUCCESS_ATOM);
                     arr->write_to_protobuf(res->add_response());
                     if (env->trace.has()) {
-                        env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
+                        env->trace->as_datum()->write_to_protobuf(
+                            res->mutable_profile());
                     }
                 } else {
-                    stream_cache2->insert(token, std::move(env_ptr), seq);
-                    bool b = stream_cache2->serve(token, res, env->interruptor);
+                    stream_cache2->insert(token, std::move(env), seq);
+                    bool b = stream_cache2->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }
             } else {
@@ -236,7 +250,7 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
     } break;
     case Query_QueryType_CONTINUE: {
         try {
-            bool b = stream_cache2->serve(token, res, env->interruptor);
+            bool b = stream_cache2->serve(token, res, interruptor);
             rcheck_toplevel(b, base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
         } catch (const exc_t &e) {
@@ -253,6 +267,27 @@ void run(protob_t<Query> q, scoped_ptr_t<env_t> &&env_ptr,
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
         }
+    } break;
+    case Query_QueryType_NOREPLY_WAIT: {
+        try {
+            rcheck_toplevel(!stream_cache2->contains(token),
+                            base_exc_t::GENERIC,
+                            strprintf("ERROR: duplicate token %" PRIi64, token));
+        } catch (const exc_t &e) {
+            fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
+            return;
+        } catch (const datum_exc_t &e) {
+            fill_error(res, Response::CLIENT_ERROR, e.what(), backtrace_t());
+            return;
+        }
+
+        // NOREPLY_WAIT is just a no-op.
+        // This works because we only evaluate one Query at a time
+        // on the connection level. Once we get to the NOREPLY_WAIT Query
+        // we know that all previous Queries have completed processing.
+
+        // Send back a WAIT_COMPLETE response.
+        res->set_type(Response_ResponseType_WAIT_COMPLETE);
     } break;
     default: unreachable();
     }

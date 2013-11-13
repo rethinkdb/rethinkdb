@@ -17,8 +17,13 @@ extproc_job_t::extproc_job_t(extproc_pool_t *_pool,
 
     worker_lock.create(pool->get_worker_semaphore(), &combined_interruptor);
 
-    worker_lock.get()->get_value()->acquired(&combined_interruptor);
-    worker_lock.get()->get_value()->run_job(worker_fn);
+    try {
+        worker_lock.get()->get_value()->acquired(&combined_interruptor);
+        worker_lock.get()->get_value()->run_job(worker_fn);
+    } catch (...) {
+        worker_lock.get()->get_value()->released(user_error, user_interruptor);
+        throw;
+    }
 }
 
 extproc_job_t::~extproc_job_t() {
