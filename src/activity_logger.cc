@@ -4,7 +4,7 @@
 
 log_event_t::log_event_t(const std::string &_msg, bool log_bt)
     : timestamp(current_microtime()), msg(_msg) {
-    if (log_bt) bt.init(new lazy_backtrace_t());
+    if (log_bt) bt.init(new lazy_backtrace_formatter_t());
 }
 std::string log_event_t::print(bool print_bt) {
     std::string bt_str = print_bt && bt.has() ? bt->addrs() : "";

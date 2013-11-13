@@ -30,7 +30,7 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     const int poll_ms = 10;
     rdb_protocol_t::rget_read_t empty_rget_read(
         hash_region_t<key_range_t>::universe());
-    rdb_protocol_t::read_t empty_read(empty_rget_read);
+    rdb_protocol_t::read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);
     for (;;) {
         signal_timer_t start_poll;
         start_poll.start(poll_ms);

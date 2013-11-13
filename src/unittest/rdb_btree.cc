@@ -48,7 +48,8 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         rdb_set(pk,
                 make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
-                superblock.get(), &response, &mod_report.info);
+                superblock.get(), &response, &mod_report.info,
+                static_cast<profile::trace_t *>(NULL));
 
         {
             scoped_ptr_t<buf_lock_t> sindex_block;
@@ -95,7 +96,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     ql::protob_t<const Term> mapping = ql::r::var(one)["sid"].release_counted();
     ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
-    sindex_multi_bool_t multi_bool = SINGLE;
+    sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
     wm << m;
@@ -221,12 +222,15 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
+        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
+         * which prevents to profiling code from crashing. */
+        ql::env_t dummy_env(NULL);
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
-            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
+            txn.get(), sindex_sb.get(), &dummy_env, rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(), sorting_t::ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
@@ -277,12 +281,15 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
+        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
+         * which prevents to profiling code from crashing. */
+        ql::env_t dummy_env(NULL);
         rdb_rget_slice(store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
-            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
+            txn.get(), sindex_sb.get(), &dummy_env, rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(), sorting_t::ASCENDING, &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);

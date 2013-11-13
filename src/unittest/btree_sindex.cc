@@ -190,7 +190,7 @@ void run_sindex_btree_store_api_test() {
             rdb_set(key, data, true, store.get_sindex_slice(id),
                     repli_timestamp_t::invalid, txn.get(),
                     sindex_super_block.get(), &response,
-                    &mod_info);
+                    &mod_info, static_cast<profile::trace_t *>(NULL));
         }
 
         {
@@ -217,7 +217,7 @@ void run_sindex_btree_store_api_test() {
             point_read_response_t response;
 
             rdb_get(key, store.get_sindex_slice(id), txn.get(),
-                    sindex_super_block.get(), &response);
+                    sindex_super_block.get(), &response, NULL);
 
             ASSERT_EQ(ql::datum_t(1.0), *response.data);
         }

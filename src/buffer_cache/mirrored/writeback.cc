@@ -285,14 +285,14 @@ public:
     void on_thread_switch() {
         assert_thread();
 
-        // Release the buffer
-        rassert(launch_cb.finished_.is_pulsed());
-        launch_cb.buf.reset();
+        // Note that we must hold on to the buffer until
+        // the serializer index_write has completed. At the point where
+        // on_io_complete() is called we have no such guarantee.
 
         // Release the throttling lock now that the block has been written to disk.
         // This allows queued up write transaction to get through again.
         throttling_acq.reset();
-        
+
         io_completed_ = true;
     }
     ~buf_writer_t() {

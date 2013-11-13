@@ -6,6 +6,12 @@ ar = util.ar
 varar = util.varar
 aropt = util.aropt
 
+if not setImmediate?
+    setImmediate = (cb) ->
+        setTimeout cb, 0
+
+
+# setImmediate is not defined in some browsers (including Chrome)
 
 class IterableResult
     hasNext: -> throw "Abstract Method"
@@ -89,7 +95,7 @@ class Cursor extends IterableResult
 
                 # Is there data waiting in our buffer?
                 chunk = @_chunks[0]
-                if not chunk?
+                if @_chunks.length == 1 && chunk.length == 1 && !@_endFlag
                     # We're out of data for now, let's fetch more (which will prompt us again)
                     @_promptCont()
                     return
@@ -117,7 +123,7 @@ class Cursor extends IterableResult
 
     ## Implement IterableResult
 
-    hasNext: ar () -> !@_endFlag || @_chunks[0]?
+    hasNext: ar () -> @_chunks[0]?
 
     next: ar (cb) ->
         nextCbCheck(cb)
@@ -132,17 +138,47 @@ class Cursor extends IterableResult
 
 # Used to wrap array results so they support the same iterable result
 # API as cursors.
+
 class ArrayResult extends IterableResult
-    hasNext: ar () -> (@__index < @.length)
+    # How many many results we return before resetting the stack with setImmediate
+    # The higher the better, but if it's too hight users will hit a maximum call stack size
+    stackSize: 100
+
+    # We store @__index as soon as the user starts using the cursor interface
+    hasNext: ar () ->
+        if not @__index?
+            @__index = 0
+        @__index < @length
+
     next: ar (cb) ->
         nextCbCheck(cb)
-        cb(null, @[@__proto__.__index++])
+
+        # If people call next
+        if not @__index?
+            @__index = 0
+
+        if @hasNext() is true
+            self = @
+            if self.__index%@stackSize is @stackSize-1
+                # Reset the stack
+                setImmediate ->
+                    cb(null, self[self.__index++])
+            else
+                cb(null, self[self.__index++])
+        else
+            cb new err.RqlDriverError "No more rows in the cursor."
+
+    toArray: ar (cb) ->
+        # IterableResult.toArray would create a copy
+        if @__index?
+            cb(null, @.slice(@__index, @.length))
+        else
+            cb(null, @)
 
     makeIterable: (response) ->
         for name, method of ArrayResult.prototype
             if name isnt 'constructor'
                 response.__proto__[name] = method
-        response.__proto__.__index = 0
         response
 
 nextCbCheck = (cb) ->

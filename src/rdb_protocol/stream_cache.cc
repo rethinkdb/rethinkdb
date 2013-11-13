@@ -28,40 +28,40 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     if (it == streams.end()) return false;
     entry_t *entry = it->second;
     entry->last_activity = time(0);
+    bool should_erase = false;
     try {
         // Reset the env_t's interruptor to a good one before we use it.  This may be a
         // hack.  (I'd rather not have env_t be mutable this way -- could we construct
         // a new env_t instead?  Why do we keep env_t's around anymore?)
         entry->env->interruptor = interruptor;
 
-        int chunk_size = 0;
-        if (entry->next_datum.has()) {
-            *res->add_response() = *entry->next_datum.get();
-            ++chunk_size;
-            entry->next_datum.reset();
-        }
-        while (counted_t<const datum_t> d = entry->stream->next(entry->env.get())) {
-            d->write_to_protobuf(res->add_response());
-            if (entry->max_chunk_size && ++chunk_size >= entry->max_chunk_size) {
-                if (counted_t<const datum_t> next_d = entry->stream->next(entry->env.get())) {
-                    r_sanity_check(!entry->next_datum.has());
-                    entry->next_datum.init(new Datum());
-                    next_d->write_to_protobuf(entry->next_datum.get());
-                    res->set_type(Response::SUCCESS_PARTIAL);
+        res->set_type(Response::SUCCESS_PARTIAL);
+        {
+            profile::sampler_t sampler("Evaluating stream elements.", entry->env->trace);
+            for (int chunk_size = 0;
+                 chunk_size < entry->max_chunk_size || entry->max_chunk_size == 0;
+                 ++chunk_size) {
+                counted_t<const datum_t> next_datum = entry->stream->next(entry->env.get());
+
+                if (next_datum.has()) {
+                    next_datum->write_to_protobuf(res->add_response());
+                } else {
+                    should_erase = true;
+                    res->set_type(Response::SUCCESS_SEQUENCE);
+                    break;
                 }
-                break;
+                sampler.new_sample();
             }
         }
     } catch (const std::exception &e) {
         erase(key);
         throw;
     }
-    if (!entry->next_datum.has()) {
+    
+    if (should_erase) {
         erase(key);
-        res->set_type(Response::SUCCESS_SEQUENCE);
-    } else {
-        r_sanity_check(res->type() == Response::SUCCESS_PARTIAL);
     }
+
     return true;
 }
 

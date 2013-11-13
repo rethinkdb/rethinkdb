@@ -111,8 +111,12 @@ void transform_visitor_t::operator()(const ql::map_wire_func_t &func) const {
 
 void transform_visitor_t::operator()(const ql::concatmap_wire_func_t &func) const {
     counted_t<ql::datum_stream_t> ds = func.compile_wire_func()->call(ql_env, arg)->as_seq(ql_env);
-    while (counted_t<const ql::datum_t> d = ds->next(ql_env)) {
-        out->push_back(d);
+    {
+        profile::sampler_t sampler("Evaluating elements in concat map.", ql_env->trace);
+        while (counted_t<const ql::datum_t> d = ds->next(ql_env)) {
+            out->push_back(d);
+            sampler.new_sample();
+        }
     }
 }
 
