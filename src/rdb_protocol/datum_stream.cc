@@ -187,7 +187,7 @@ bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
             rcheck_datum(
                 (items.size() + new_items.size()) < array_size_limit(),
                 base_exc_t::GENERIC,
-                strprintf("Too many entries (> %zu) with the same "
+                strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
                           "Example value:\n%s\n"
                           "Truncated key:\n%s",
@@ -231,19 +231,41 @@ reader_t::next_batch(env_t *env, const batcher_t &batcher) {
         toret.push_back(std::move(items[items_index].data));
         items_index += 1;
 
-        for (; items_index < items.size(); ++items_index) {
-            if (sindex) {
-                r_sanity_check(items[items_index].sindex_key);
-                if (**items[items_index].sindex_key != **sindex) {
-                    break; // batch is done
+        bool maybe_more_with_sindex = true;
+        while (maybe_more_with_sindex) {
+            for (; items_index < items.size(); ++items_index) {
+                if (sindex) {
+                    r_sanity_check(items[items_index].sindex_key);
+                    if (**items[items_index].sindex_key != **sindex) {
+                        break; // batch is done
+                    }
+                } else {
+                    r_sanity_check(!items[items_index].sindex_key);
+                    if (items[items_index].key != key) {
+                        break;
+                    }
                 }
-            } else {
-                r_sanity_check(!items[items_index].sindex_key);
-                if (items[items_index].key != key) {
-                    break;
-                }
+                toret.push_back(std::move(items[items_index].data));
+
+                rcheck_datum(
+                    toret.size() < array_size_limit(), base_exc_t::GENERIC,
+                    strprintf("Too many rows (> %zu) with the same value "
+                              "for index `%s`:\n%s",
+                              array_size_limit(),
+                              readgen->sindex_name().c_str(),
+                              // This is safe because you can't have duplicate
+                              // primary keys, so they will never exceed the
+                              // array limit.
+                              (*sindex)->trunc_print().c_str()));
             }
-            toret.push_back(std::move(items[items_index].data));
+            if (items_index >= items.size()) {
+                // If we consumed the whole batch without finding a new sindex,
+                // we might have more rows with the same sindex in the next
+                // batch, which we promptly load.
+                maybe_more_with_sindex = load_items(env, batcher);
+            } else {
+                maybe_more_with_sindex = false;
+            }
         }
     } break;
     default: unreachable();
@@ -724,7 +746,7 @@ std::vector<counted_t<const datum_t> >
 indexed_sort_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
     std::vector<counted_t<const datum_t> > ret;
     batcher_t local_batcher = batcher;
-    while (!batcher.should_send_batch()) {
+    while (!local_batcher.should_send_batch()) {
         if (index >= data.size()) {
             if (ret.size() > 0 && batcher.get_batch_type() == SINDEX_CONSTANT) {
                 // Never read more than one SINDEX_CONSTANT batch if we need to
