@@ -349,8 +349,12 @@ public:
 
     // Returns a block id.  The current_page_t for this block id, if present, has no
     // acquirers.
-    block_id_t acquire_block_id();
+    MUST_USE block_id_t acquire_block_id();
     void release_block_id(block_id_t block_id);
+
+    // Like acquire_block_id, only instead of being told what block id you acquired,
+    // you tell it which block id you're acquiring.  It must be available!
+    void acquire_chosen_block_id(block_id_t block_id);
 
 private:
     block_id_t next_new_block_id_;
@@ -440,6 +444,8 @@ public:
     block_size_t max_block_size() const;
 
 private:
+    current_page_t *internal_page_for_new_chosen(block_id_t block_id);
+
     friend class page_t;
     evicter_t &evicter() { return evicter_; }
 

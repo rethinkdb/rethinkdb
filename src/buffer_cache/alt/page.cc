@@ -59,12 +59,18 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
 
 current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
     block_id_t block_id = free_list_.acquire_block_id();
-    current_page_t *ret = page_for_new_chosen_block_id(block_id);
+    current_page_t *ret = internal_page_for_new_chosen(block_id);
     *block_id_out = block_id;
     return ret;
 }
 
 current_page_t *page_cache_t::page_for_new_chosen_block_id(block_id_t block_id) {
+    // Tell the free list this block id is taken.
+    free_list_.acquire_chosen_block_id(block_id);
+    return internal_page_for_new_chosen(block_id);
+}
+
+current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) {
     if (current_pages_.size() <= block_id) {
         current_pages_.resize(block_id + 1, NULL);
     }
@@ -722,6 +728,25 @@ block_id_t free_list_t::acquire_block_id() {
         block_id_t ret = free_ids_.back();
         free_ids_.pop_back();
         return ret;
+    }
+}
+
+void free_list_t::acquire_chosen_block_id(block_id_t block_id) {
+    if (block_id >= next_new_block_id_) {
+        const block_id_t old = next_new_block_id_;
+        next_new_block_id_ = block_id + 1;
+        for (block_id_t i = old; i < block_id; ++i) {
+            free_ids_.push_back(i);
+        }
+    } else {
+        for (auto it = free_ids_.begin(); it != free_ids_.end(); ++it) {
+            if (*it == block_id) {
+                free_ids_.erase(it);
+                return;
+            }
+        }
+        crash("acquire_chosen_block_id tried to use %" PR_BLOCK_ID
+              ", but it was taken.", block_id);
     }
 }
 
