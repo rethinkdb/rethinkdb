@@ -9,20 +9,25 @@
 
 template <class outer_type, class callable_type>
 class subview_watchable_t : public watchable_t<typename boost::result_of<callable_type(outer_type)>::type> {
+private:
+    typedef subview_watchable_t<outer_type, callable_type> this_t;
+    typedef watchable_t<outer_type> parent_watchable_t;
+    typedef typename boost::result_of<callable_type(outer_type)>::type value_t;
 public:
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
-        lens(l), parent(p->clone()) { }
+        lens(l), parent(p->clone()),
+        sub_to_parent(std::bind(&this_t::on_parent_change, this), parent->get_publisher()) { }
 
     subview_watchable_t *clone() const {
         return new subview_watchable_t(lens, parent.get());
     }
 
-    typename boost::result_of<callable_type(outer_type)>::type get() {
+    value_t get() {
         return lens(parent->get());
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
-        return parent->get_publisher();
+        return publisher_controller.get_publisher();
     }
 
     rwi_lock_assertion_t *get_rwi_lock_assertion() {
@@ -30,8 +35,19 @@ public:
     }
 
 private:
+    void on_parent_change() {
+        value_t new_value = get();
+        if (new_value != value) {
+            value = new_value;
+            publisher_controller.publish(&call_function);
+        }
+    }
+
+    publisher_controller_t<boost::function<void()> > publisher_controller;
+    value_t value;
     callable_type lens;
-    clone_ptr_t<watchable_t<outer_type> > parent;
+    clone_ptr_t<parent_watchable_t> parent;
+    publisher_t<boost::function<void()> >::subscription_t sub_to_parent;
 };
 
 template<class value_type>
