@@ -36,8 +36,8 @@ template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, string_read_stream_t *s) THROWS_NOTHING {
     uint8_t code = 0;
     {
-        int res = deserialize(s, &code);
-        guarantee(!res);  // We do unreachable below...
+        archive_result_t res = deserialize(s, &code);
+        guarantee_deserialization(res, "code");
     }
 
     switch (code) {
@@ -46,9 +46,10 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
             metadata_t initial_value = metadata_t();
             fifo_enforcer_state_t metadata_fifo_state;
             {
-                int res = deserialize(s, &initial_value);
-                guarantee(!res);  // In the spirit of unreachable...
+                archive_result_t res = deserialize(s, &initial_value);
+                guarantee_deserialization(res, "metadata");
                 res = deserialize(s, &metadata_fifo_state);
+                guarantee_deserialization(res, "metadata fifo state");
                 guarantee(!res);
             }
 
@@ -68,10 +69,10 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
             metadata_t new_value = metadata_t();
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
-                int res = deserialize(s, &new_value);
-                guarantee(!res);  // In the spirit of unreachable...
+                archive_result_t res = deserialize(s, &new_value);
+                guarantee_deserialization(res, "metadata");
                 res = deserialize(s, &metadata_fifo_token);
-                guarantee(!res);  // In the spirit of unreachable...
+                guarantee_deserialization(res, "metadata fifo state");
 
                 // TODO Don't fail catastrophically just because there's bad data on the stream.
             }

@@ -121,7 +121,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     wm << data;
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
-    guarantee_err(res == 0,
+    guarantee(res == 0,
                   "Serialization for json data failed... this shouldn't happen.\n");
 
     // TODO more copies, good lord
@@ -1057,10 +1057,10 @@ void rdb_update_single_sindex(
     ql::map_wire_func_t mapping;
     sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
-    int success = deserialize(&read_stream, &mapping);
-    guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+    archive_result_t success = deserialize(&read_stream, &mapping);
+    guarantee_deserialization(success, "sindex deserialize");
     success = deserialize(&read_stream, &multi);
-    guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+    guarantee_deserialization(success, "sindex deserialize");
 
     // TODO we just use a NULL environment here. People should not be able
     // to do anything that requires an environment like gets from other

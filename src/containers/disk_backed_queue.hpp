@@ -83,8 +83,8 @@ public:
         internal_.pop(&data_vec);
 
         vector_read_stream_t read_stream(&data_vec);
-        int res = deserialize(&read_stream, out);
-        guarantee_err(res == 0, "corruption in disk-backed queue");
+        archive_result_t res = deserialize(&read_stream, out);
+        guarantee_deserialization(res, "disk backed queue");
     }
 
     bool empty() {

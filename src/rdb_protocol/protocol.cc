@@ -305,8 +305,8 @@ void post_construct_and_drain_queue(
                 vector_read_stream_t read_stream(&data_vec);
 
                 rdb_sindex_change_t sindex_change;
-                int ser_res = deserialize(&read_stream, &sindex_change);
-                guarantee_err(ser_res == 0, "corruption in disk-backed queue");
+                archive_result_t ser_res = deserialize(&read_stream, &sindex_change);
+                guarantee_deserialization(ser_res, "disk-backed queue");
 
                 boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
                                      sindex_change);
@@ -1288,10 +1288,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ql::map_wire_func_t sindex_mapping;
             sindex_multi_bool_t multi_bool = sindex_multi_bool_t::MULTI;
             vector_read_stream_t read_stream(&sindex_mapping_data);
-            int success = deserialize(&read_stream, &sindex_mapping);
-            guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+            archive_result_t success = deserialize(&read_stream, &sindex_mapping);
+            guarantee_deserialization(success, "sindex description");
             success = deserialize(&read_stream, &multi_bool);
-            guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+            guarantee_deserialization(success, "sindex description");
 
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
