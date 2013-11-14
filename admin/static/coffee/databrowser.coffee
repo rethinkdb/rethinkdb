@@ -166,8 +166,9 @@ module 'DataBrowserView', ->
             if @$('.main_error').css('display') is 'block'
                 @$('.main_error').slideUp 'fast'
             @connection = connection
-            @on_connect_extra_cb()
-            @on_connect_extra_cb = null
+            if @on_connect_extra_cb?
+                @on_connect_extra_cb()
+                @on_connect_extra_cb = null
 
         error_on_connect: =>
             @show_error
