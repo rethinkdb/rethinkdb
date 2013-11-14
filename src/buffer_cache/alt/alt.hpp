@@ -109,7 +109,7 @@ public:
     ~alt_buf_lock_t();
 
     void swap(alt_buf_lock_t &other);
-    void reset();
+    void reset_buf_lock();
     bool empty() const;
 
     void snapshot_subtree();

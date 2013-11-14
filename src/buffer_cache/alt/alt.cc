@@ -124,7 +124,7 @@ void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
     std::swap(snapshot_node_, other.snapshot_node_);
 }
 
-void alt_buf_lock_t::reset() {
+void alt_buf_lock_t::reset_buf_lock() {
     alt_buf_lock_t tmp;
     swap(tmp);
 }

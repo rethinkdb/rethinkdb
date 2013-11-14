@@ -39,13 +39,16 @@ void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key
                       WRITE_DURABILITY_HARD);
 #endif
 
+#if SLICE_ALT
+    create(SUPERBLOCK_ID, alt_buf_parent_t(&txn), metainfo_key, metainfo_value);
+#else
     create(cache, SUPERBLOCK_ID, &txn, metainfo_key, metainfo_value);
+#endif
 }
 
 #if SLICE_ALT
-void btree_slice_t::create(alt_cache_t *cache,
-                           block_id_t superblock_id,
-                           alt_txn_t *txn,
+void btree_slice_t::create(block_id_t superblock_id,
+                           alt_buf_parent_t parent,
                            const std::vector<char> &metainfo_key,
                            const std::vector<char> &metainfo_value) {
 #else
@@ -53,7 +56,9 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
         const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value) {
 #endif
 #if SLICE_ALT
-    alt_buf_lock_t superblock(txn, superblock_id, alt_access_t::write);
+    // The superblock was already created by cache_t::create or by creating it and
+    // getting the block id.
+    alt_buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
 #else
     buf_lock_t superblock(txn, superblock_id, rwi_write);
 #endif

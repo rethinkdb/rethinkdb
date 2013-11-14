@@ -19,7 +19,7 @@ real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
 
 void real_superblock_t::release() {
 #if SLICE_ALT
-    sb_buf_.reset();
+    sb_buf_.reset_buf_lock();
 #else
     sb_buf_.release_if_acquired();
 #endif

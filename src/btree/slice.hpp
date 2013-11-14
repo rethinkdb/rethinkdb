@@ -66,15 +66,11 @@ public:
     // Creates a btree_slice_t on a cache with data in it putting the
     // superblock at the specified location
 #if SLICE_ALT
-private:
-    // RSI: Remove redundant cache parameter.
-    static void create(alt::alt_cache_t *cache,
-                       block_id_t superblock_id,
-                       alt::alt_txn_t *txn,
+    static void create(block_id_t superblock_id,
+                       alt::alt_buf_parent_t parent,
                        const std::vector<char> &metainfo_key,
                        const std::vector<char> &metainfo_value);
 
-public:
 #else
     static void create(cache_t *cache, block_id_t superblock_id, transaction_t *txn,
             const std::vector<char> &metainfo_key, const std::vector<char> &metainfo_value);
