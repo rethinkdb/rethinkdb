@@ -24,6 +24,8 @@ public:
     ~alt_cache_t();
 
     block_size_t max_block_size() const;
+    // RSI: Remove this.
+    block_size_t get_block_size() const { return max_block_size(); }
 
     page_cache_t page_cache_;
 
@@ -100,6 +102,7 @@ public:
     ~alt_buf_lock_t();
 
     void swap(alt_buf_lock_t &other);
+    void reset();
 
     void snapshot_subtree();
 

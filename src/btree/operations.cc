@@ -9,7 +9,11 @@
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
+#if SLICE_ALT
+real_superblock_t::real_superblock_t(alt::alt_buf_lock_t *sb_buf) {
+#else
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
+#endif
     sb_buf_.swap(*sb_buf);
 }
 

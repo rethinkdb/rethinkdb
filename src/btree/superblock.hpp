@@ -50,6 +50,12 @@ public:
         return sub_superblock->get_eviction_priority();
     }
 
+#if SLICE_ALT
+    alt::alt_buf_lock_t *expose_buf() {
+        return sub_superblock->expose_buf();
+    }
+#endif
+
 private:
     superblock_t *sub_superblock;
     int refcount;

@@ -8,6 +8,10 @@
 
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
+#include "btree/slice.hpp"  // RSI: Remove.  for SLICE_ALT
+#if SLICE_ALT
+#include "buffer_cache/alt/alt.hpp"
+#endif
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
@@ -42,6 +46,11 @@ public:
     virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
     virtual eviction_priority_t get_eviction_priority() = 0;
 
+#if SLICE_ALT
+    // RSI: Add buf_lock_parent_t or something.
+    virtual alt::alt_buf_lock_t *expose_buf() = 0;
+#endif
+
 private:
     DISABLE_COPYING(superblock_t);
 };
@@ -50,10 +59,18 @@ private:
    structure. */
 class real_superblock_t : public superblock_t {
 public:
+#if SLICE_ALT
+    explicit real_superblock_t(alt::alt_buf_lock_t *sb_buf);
+#else
     explicit real_superblock_t(buf_lock_t *sb_buf);
+#endif
 
     void release();
+#if SLICE_ALT
+    alt::alt_buf_lock_t *get() { return &sb_buf_; }
+#else
     buf_lock_t *get() { return &sb_buf_; }
+#endif
 
     block_id_t get_root_block_id() const;
     void set_root_block_id(const block_id_t new_root_block);
@@ -67,8 +84,16 @@ public:
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
 
+#if SLICE_ALT
+    alt::alt_buf_lock_t *expose_buf() { return &sb_buf_; }
+#endif
+
 private:
+#if SLICE_ALT
+    alt::alt_buf_lock_t sb_buf_;
+#else
     buf_lock_t sb_buf_;
+#endif
 };
 
 class btree_stats_t;

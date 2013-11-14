@@ -123,6 +123,11 @@ void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
     std::swap(snapshot_node_, other.snapshot_node_);
 }
 
+void alt_buf_lock_t::reset() {
+    alt_buf_lock_t tmp;
+    swap(tmp);
+}
+
 void alt_buf_lock_t::snapshot_subtree() {
     guarantee(txn_ != NULL);
     // RSI: Actually implement this.

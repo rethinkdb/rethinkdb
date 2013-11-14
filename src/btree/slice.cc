@@ -13,6 +13,12 @@
 #define BACKFILL_CACHE_PRIORITY 10
 
 #if SLICE_ALT
+using alt::alt_buf_lock_t;
+using alt::alt_cache_t;
+using alt::alt_txn_t;
+#endif
+
+#if SLICE_ALT
 void btree_slice_t::create(alt_cache_t *cache,
                            const std::vector<char> &metainfo_key,
                            const std::vector<char> &metainfo_value) {
