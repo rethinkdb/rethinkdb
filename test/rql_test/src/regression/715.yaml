@@ -9,19 +9,31 @@ tests:
     js: tbl.insert({})('inserted')
     ot: 1
 
-  - cd: tbl.insert({})['inserted']
-    js: tbl.insert({})('inserted')
+  - py: tbl.insert({})['inserted']
     runopts:
       noreply: false
     ot: 1
+  - js: tbl.insert({})('inserted')
+    runopts:
+      noreply: false
+    ot: 1
+  - rb: tbl.insert({})['inserted']
+    runopts:
+      noreply: 'false'
+    ot: 1
 
-  - cd: tbl.insert({})
+  - py: tbl.insert({})
     runopts:
       noreply: true
-    ot:
-      py: (None)
-      rb: (nil)
-      js: (undefined)
+    ot: (None)
+  - js: tbl.insert({})
+    runopts:
+      noreply: true
+    ot: (undefined)
+  - rb: tbl.insert({})
+    runopts:
+      noreply: 'true'
+    ot: (nil)
 
   - cd: tbl.count()
     ot: 3

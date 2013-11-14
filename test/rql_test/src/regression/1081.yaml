@@ -25,11 +25,11 @@ tests:
       ot: ({'created':1})
 
     - rb: r.table('1081').get_all(0, :index => 'password').typeof
-      ot: ("SELECTION")
+      ot: ("SELECTION<STREAM>")
     - rb: r.table('1081').get_all(0, :index => 'password').without('id').typeof
       ot: ("STREAM")
     - rb: r.table('1081').get_all(0, 0, :index => 'password').typeof
-      ot: ("SELECTION")
+      ot: ("SELECTION<STREAM>")
     - rb: r.table('1081').get_all(0, 0, :index => 'password').without('id').typeof
       ot: ("STREAM")
 

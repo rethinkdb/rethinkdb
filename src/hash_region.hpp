@@ -47,7 +47,8 @@ public:
     }
 
     // For use with a non-empty inner, I think.
-    explicit hash_region_t(const inner_region_t &_inner) : beg(0), end(HASH_REGION_HASH_SIZE), inner(_inner) {
+    explicit hash_region_t(const inner_region_t &_inner)
+        : beg(0), end(HASH_REGION_HASH_SIZE), inner(_inner) {
         guarantee(!region_is_empty(inner));
     }
 
