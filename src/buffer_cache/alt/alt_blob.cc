@@ -688,7 +688,7 @@ bool blob_t::traverse_to_dimensions(alt_buf_lock_t *parent, int levels,
 struct allocate_helper_t : public blob::traverse_helper_t {
     void preprocess(alt_buf_lock_t *parent, int levels,
                     alt_buf_lock_t *lock_out, block_id_t *block_id) {
-        alt_buf_lock_t temp_lock(parent, alt_access_t::write);
+        alt_buf_lock_t temp_lock(parent, alt_create_t::create);
         lock_out->swap(temp_lock);
         *block_id = lock_out->block_id();
         alt_buf_write_t lock_write(lock_out);
@@ -833,7 +833,7 @@ void blob_t::consider_small_shift(alt_buf_lock_t *parent, int levels,
 
 // Always returns levels + 1.
 int blob_t::add_level(alt_buf_lock_t *parent, int levels) {
-    alt_buf_lock_t lock(parent, alt_access_t::write);
+    alt_buf_lock_t lock(parent, alt_create_t::create);
     alt_buf_write_t lock_write(&lock);
     void *b = lock_write.get_data_write();
     if (levels == 0) {

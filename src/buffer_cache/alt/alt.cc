@@ -35,15 +35,15 @@ alt_buf_lock_t::alt_buf_lock_t()
       snapshot_node_(NULL) {
 }
 
-alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
+alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                block_id_t block_id,
                                alt_access_t access)
-    : txn_(txn),
+    : txn_(parent.txn_),
       cache_(txn_->cache()),
-      current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id, access)),
+      current_page_acq_(),
       snapshot_node_(NULL) {
-    // RSI: Obviously, we want to use snapshot_node_ at some point.
-    (void)snapshot_node_;
+    alt_buf_lock_t::wait_for_parent(parent, access);
+    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
@@ -62,6 +62,18 @@ bool is_subordinate(alt_access_t parent, alt_access_t child) {
     return parent == alt_access_t::write || child == alt_access_t::read;
 }
 
+void alt_buf_lock_t::wait_for_parent(alt_buf_parent_t parent, alt_access_t access) {
+    if (parent.lock_or_null_ != NULL) {
+        alt_buf_lock_t *lock = parent.lock_or_null_;
+        guarantee(is_subordinate(lock->access(), access));
+        if (access == alt_access_t::write) {
+            lock->write_acq_signal()->wait();
+        } else {
+            lock->read_acq_signal()->wait();
+        }
+    }
+}
+
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
                                block_id_t block_id,
                                alt_access_t access)
@@ -70,50 +82,39 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
       current_page_acq_(),
       snapshot_node_(NULL) {
 
-    guarantee(is_subordinate(parent->access(), access));
-
-    if (access == alt_access_t::write) {
-        parent->write_acq_signal()->wait();
-    } else {
-        parent->read_acq_signal()->wait();
-    }
+    alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), access);
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
 }
 
-alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
-                               alt_access_t access)
-    : txn_(txn),
+alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
+                               alt_create_t create)
+    : txn_(parent.txn_),
       cache_(txn_->cache()),
       current_page_acq_(),
       snapshot_node_(NULL) {
-    guarantee(access == alt_access_t::write);
-    current_page_acq_.init(new current_page_acq_t(txn->page_txn(), access));
+    guarantee(create == alt_create_t::create);
+    wait_for_parent(parent, alt_access_t::write);
+    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
+                                                  alt_access_t::write));
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
-                               alt_access_t access)
+                               alt_create_t create)
     : txn_(parent->txn_),
       cache_(txn_->cache()),
       current_page_acq_(),
       snapshot_node_(NULL) {
-    guarantee(access == alt_access_t::write);
+    guarantee(create == alt_create_t::create);
+    wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
 
-    // RSI: vvv Dedup this section with the other constructor.
-    guarantee(is_subordinate(parent->access(), access));
-
-    if (access == alt_access_t::write) {
-        parent->write_acq_signal()->wait();
-    } else {
-        parent->read_acq_signal()->wait();
-    }
-    // ^^^ Dedup this section.
-
-    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), access));
+    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
+                                                  alt_access_t::write));
 }
 
 alt_buf_lock_t::~alt_buf_lock_t() {
     // RSI: We'll have to do something with snapshot_node_ here.
+    (void)snapshot_node_;
 }
 
 void alt_buf_lock_t::swap(alt_buf_lock_t &other) {

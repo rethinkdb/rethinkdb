@@ -13,11 +13,12 @@
 
 #if DBQ_USE_ALT_CACHE
 using alt::alt_access_t;
+using alt::alt_buf_lock_t;
+using alt::alt_buf_parent_t;
+using alt::alt_buf_write_t;
 using alt::alt_cache_t;
 using alt::alt_create_t;
 using alt::alt_txn_t;
-using alt::alt_buf_lock_t;
-using alt::alt_buf_write_t;
 #endif
 
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
@@ -84,7 +85,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     }
 
 #if DBQ_USE_ALT_CACHE
-    auto _head = make_scoped<alt_buf_lock_t>(&txn, head_block_id,
+    auto _head = make_scoped<alt_buf_lock_t>(alt_buf_parent_t(&txn), head_block_id,
                                              alt_access_t::write);
     auto write = make_scoped<alt_buf_write_t>(_head.get());
     queue_block_t *head = static_cast<queue_block_t *>(write->get_data_write());
@@ -123,7 +124,8 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         write.reset();
         _head.reset();
         add_block_to_head(&txn);
-        _head.init(new alt_buf_lock_t(&txn, head_block_id, alt_access_t::write));
+        _head.init(new alt_buf_lock_t(alt_buf_parent_t(&txn), head_block_id,
+                                      alt_access_t::write));
         write.init(new alt_buf_write_t(_head.get()));
         head = static_cast<queue_block_t *>(write->get_data_write());
     }
@@ -167,7 +169,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
 #endif
 
 #if DBQ_USE_ALT_CACHE
-    auto _tail = make_scoped<alt_buf_lock_t>(&txn, tail_block_id,
+    auto _tail = make_scoped<alt_buf_lock_t>(alt_buf_parent_t(&txn), tail_block_id,
                                              alt_access_t::write);
     auto write = make_scoped<alt_buf_write_t>(_tail.get());
     queue_block_t *tail = static_cast<queue_block_t *>(write->get_data_write());
@@ -246,7 +248,7 @@ int64_t internal_disk_backed_queue_t::size() {
 
 #if DBQ_USE_ALT_CACHE
 void internal_disk_backed_queue_t::add_block_to_head(alt_txn_t *txn) {
-    alt_buf_lock_t _new_head(txn, alt_access_t::write);
+    alt_buf_lock_t _new_head(alt_buf_parent_t(txn), alt_create_t::create);
     alt_buf_write_t write(&_new_head);
     queue_block_t *new_head = static_cast<queue_block_t *>(write.get_data_write());
 #else
@@ -263,7 +265,8 @@ void internal_disk_backed_queue_t::add_block_to_head(transaction_t *txn) {
 #endif
     } else {
 #if DBQ_USE_ALT_CACHE
-        alt_buf_lock_t _old_head(txn, head_block_id, alt_access_t::write);
+        alt_buf_lock_t _old_head(alt_buf_parent_t(txn), head_block_id,
+                                 alt_access_t::write);
         alt_buf_write_t old_write(&_old_head);
         queue_block_t *old_head
             = static_cast<queue_block_t *>(old_write.get_data_write());
@@ -288,7 +291,8 @@ void internal_disk_backed_queue_t::remove_block_from_tail(transaction_t *txn) {
 #endif
     rassert(tail_block_id != NULL_BLOCK_ID);
 #if DBQ_USE_ALT_CACHE
-    alt_buf_lock_t _old_tail(txn, tail_block_id, alt_access_t::write);
+    alt_buf_lock_t _old_tail(alt_buf_parent_t(txn), tail_block_id,
+                             alt_access_t::write);
 #else
     buf_lock_t _old_tail(txn, tail_block_id, rwi_write);
 #endif

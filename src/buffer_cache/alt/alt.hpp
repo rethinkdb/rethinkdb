@@ -65,12 +65,19 @@ private:
     DISABLE_COPYING(alt_snapshot_node_t);
 };
 
+class alt_buf_parent_t;
+
 class alt_buf_lock_t {
 public:
     alt_buf_lock_t();
 
+    // RSI: These constructors definitely duplicate one another.  Too bad one
+    // constructor can't call another (in GCC 4.4).  Maybe we could still dedup
+    // these, though, or get rid of some.  (Make alt_access_t include create, and
+    // separate it from page_access_t?)
+
     // Nonblocking constructor.
-    alt_buf_lock_t(alt_txn_t *txn,
+    alt_buf_lock_t(alt_buf_parent_t parent,
                    block_id_t block_id,
                    alt_access_t access);
 
@@ -89,13 +96,13 @@ public:
     // Nonblocking constructor that acquires a block with a new block id.  (RSI: Is
     // this useful for _anything_?  We refer to the superblock by name.)  `access`
     // must be `write`.
-    alt_buf_lock_t(alt_txn_t *txn,
-                   alt_access_t access);
+    alt_buf_lock_t(alt_buf_parent_t parent,
+                   alt_create_t access);
 
     // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
     // pulsed.  Allocates a block with a new block id.  `access` must be `write`.
     alt_buf_lock_t(alt_buf_lock_t *parent,
-                   alt_access_t access);
+                   alt_create_t access);
 
 
 
@@ -137,6 +144,8 @@ public:
     alt_cache_t *cache() const { return cache_; }
 
 private:
+    static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
+
     friend class alt_buf_read_t;
     friend class alt_buf_write_t;
 
@@ -150,6 +159,18 @@ private:
     DISABLE_COPYING(alt_buf_lock_t);
 };
 
+
+class alt_buf_parent_t {
+public:
+    explicit alt_buf_parent_t(alt_buf_lock_t *lock)
+        : txn_(lock->txn()), lock_or_null_(lock) { }
+    explicit alt_buf_parent_t(alt_txn_t *txn)
+        : txn_(txn), lock_or_null_(NULL) { }
+private:
+    friend class alt_buf_lock_t;
+    alt_txn_t *txn_;
+    alt_buf_lock_t *lock_or_null_;
+};
 
 class alt_buf_read_t {
 public:
