@@ -211,7 +211,8 @@ private:
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
-                batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
+                batchspec_t batchspec
+                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
                 {
                     profile::sampler_t sampler("Coercing to array.", env->env->trace);
                     while (auto el = ds->next(env->env, batchspec)) {
@@ -225,7 +226,8 @@ private:
             // SEQUENCE -> OBJECT
             if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                 datum_ptr_t obj(datum_t::R_OBJECT);
-                batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
+                batchspec_t batchspec
+                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
                 {
                     profile::sampler_t sampler("Coercing to array.", env->env->trace);
                     while (auto pair = ds->next(env->env, batchspec)) {

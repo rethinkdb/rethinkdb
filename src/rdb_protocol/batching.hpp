@@ -13,7 +13,7 @@ namespace ql {
 class datum_t;
 class env_t;
 
-enum batch_type_t {
+enum class batch_type_t {
     // A normal batch.
     NORMAL = 0,
     // A batch fetched for a terminal or terminal-like term, e.g. a big batched
@@ -25,7 +25,8 @@ enum batch_type_t {
     // (This replaces that SORTING_HINT_NEXT stuff.)
     SINDEX_CONSTANT = 2
 };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(batch_type_t, int8_t, NORMAL, SINDEX_CONSTANT);
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
+    batch_type_t, int8_t, batch_type_t::NORMAL, batch_type_t::SINDEX_CONSTANT);
 
 class batcher_t {
 public:

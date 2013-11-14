@@ -85,7 +85,7 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
-            batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             counted_t<const datum_t> last_d;
             {
                 profile::sampler_t sampler("Find nth element.", env->env->trace);
@@ -113,7 +113,7 @@ public:
         op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        batchspec_t batchspec = batchspec_t::user(NORMAL, env->env);
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::NORMAL, env->env);
         bool is_empty = !arg(env, 0)->as_seq(env->env)->next(env->env, batchspec).has();
         return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
     }
@@ -442,7 +442,7 @@ private:
         }
         // This needs to be a terminal batch to avoid pathological behavior in
         // the worst case.
-        batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in contains.",
                                        env->env->trace);

@@ -163,7 +163,7 @@ private:
             rcheck(!comparisons.empty(), base_exc_t::GENERIC,
                    "Must specify something to order by.");
             std::vector<counted_t<const datum_t> > to_sort;
-            batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > data
                     = seq->next_batch(env->env, batchspec);
@@ -203,7 +203,7 @@ private:
         counted_t<datum_stream_t> s = arg(env, 0)->as_seq(env->env);
         std::vector<counted_t<const datum_t> > arr;
         counted_t<const datum_t> last;
-        batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in distinct.",
                                        env->env->trace);
