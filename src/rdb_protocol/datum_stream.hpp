@@ -4,22 +4,91 @@
 
 #include <algorithm>
 #include <deque>
+#include <list>
+#include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "rdb_protocol/stream.hpp"
+#include "errors.hpp"
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/function.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/variant/get.hpp>
 
-namespace query_language {
-class json_stream_t;
-}
+#include "clustering/administration/namespace_interface_repository.hpp"
+#include "rdb_protocol/protocol.hpp"
 
 namespace ql {
-typedef query_language::sorting_hint_t sorting_hint_t;
-typedef query_language::hinted_datum_t hinted_datum_t;
+
+class env_t;
+
+/* This wraps a namespace_interface_t and makes it automatically handle getting
+ * profiling information from them. It acheives this by doing the following in
+ * its methods:
+ * - Set the explain field in the read_t/write_t object so that the shards know
+     whether or not to do profiling
+ * - Construct a splitter_t
+ * - Call the corresponding method on internal_
+ * - splitter_t::give_splits with the event logs from the shards
+ */
+class rdb_namespace_interface_t {
+public:
+    rdb_namespace_interface_t(
+            namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
+
+    void read(const rdb_protocol_t::read_t &,
+              rdb_protocol_t::read_response_t *response,
+              order_token_t tok,
+              signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void read_outdated(const rdb_protocol_t::read_t &,
+                       rdb_protocol_t::read_response_t *response,
+                       signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+    void write(rdb_protocol_t::write_t *,
+               rdb_protocol_t::write_response_t *response,
+               order_token_t tok,
+               signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
+
+    /* These calls are for the sole purpose of optimizing queries; don't rely
+    on them for correctness. They should not block. */
+    std::set<rdb_protocol_t::region_t> get_sharding_scheme()
+        THROWS_ONLY(cannot_perform_query_exc_t);
+    signal_t *get_initial_ready_signal();
+    /* Check if the internal value is null. */
+    bool has();
+private:
+    namespace_interface_t<rdb_protocol_t> *internal_;
+    env_t *env_;
+};
+
+class rdb_namespace_access_t {
+public:
+    rdb_namespace_access_t(uuid_u id, env_t *env);
+    rdb_namespace_interface_t get_namespace_if();
+private:
+    base_namespace_repo_t<rdb_protocol_t>::access_t internal_;
+    env_t *env_;
+};
+
+// This is a more selective subset of the list at the top of protocol.cc.
+typedef rdb_protocol_details::transform_t transform_t;
+typedef rdb_protocol_details::terminal_t terminal_t;
+typedef rdb_protocol_details::rget_item_t rget_item_t;
+typedef rdb_protocol_details::transform_variant_t transform_variant_t;
+typedef rdb_protocol_details::terminal_variant_t terminal_variant_t;
+typedef rdb_protocol_t::read_t read_t;
+typedef rdb_protocol_t::sindex_rangespec_t sindex_rangespec_t;
+typedef rdb_protocol_t::rget_read_t rget_read_t;
+typedef rdb_protocol_t::read_response_t read_response_t;
+typedef rdb_protocol_t::rget_read_response_t rget_read_response_t;
+typedef rdb_protocol_t::region_t region_t;
 
 class scope_env_t;
-
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public pb_rcheckable_t {
 public:
@@ -42,7 +111,6 @@ public:
                                          counted_t<const datum_t> d,
                                          counted_t<func_t> r) = 0;
 
-
     // stream -> stream (always eager)
     counted_t<datum_stream_t> slice(size_t l, size_t r);
     counted_t<datum_stream_t> zip();
@@ -52,55 +120,23 @@ public:
     virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array(env_t *env) = 0;
 
-    // Gets the next element from the stream.  (Wrapper around `next_impl`.)
-    counted_t<const datum_t> next(env_t *env);
-
     // Gets the next elements from the stream.  (Returns zero elements only when
     // the end of the stream has been reached.  Otherwise, returns at least one
     // element.)  (Wrapper around `next_batch_impl`.)
-    std::vector<counted_t<const datum_t> > next_batch(env_t *env);
-
-    /* sorting_hint_next returns that same value that next would but in
-     * addition it tells you whether or not this is part of a batch which
-     * compare equal with respect to an index sorting. For example suppose you
-     * have data like so (ommitting the id field):
-     *
-     * {id: 0, sid: 1}, {id: 1, sid : 1}, {id: 2, sid : 2}, {id: 3, sid : 3} {id: 4, sid : 3}
-     *
-     * with a secondary index on the attribute "sid" this function will return:
-     * (START,    {id: 0, sid : 1})--+
-     * (CONTINUE, {id: 1, sid : 1})--+-- These 2 could be swapped
-     * (START,    {id: 2, sid : 2})
-     * (START,    {id: 3, sid : 3})--+
-     * (CONTINUE, {id: 4, sid : 3})--+-- These 2 could be swapped
-     * (CONTINUE, NULL)
-     *
-     * Why is this needed:
-     * This is needed in the case where you are sorting by an index but using a
-     * second attribute as a tiebreaker. For example:
-     *
-     * table.order_by("id", index="sid")
-     *
-     * the sort_datum_stream_t above us needs to get batches which have the
-     * same "sid" and then, only within those batches does it order by "id".
-     *
-     * Note: The only datum_stream_t that implements a meaningful version of
-     * this functions is lazy_datum_stream_t, that's because that's the only
-     * stream which could be used to do an indexed sort. Other implementations
-     * of datum_stream_t always return CONTINUE this is because there data is
-     * equivalent to data which has all compared equally and should all be
-     * sorted together by sort_datum_stream_t. */
-    virtual hinted_datum_t sorting_hint_next(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch(env_t *env, const batchspec_t &batchspec);
+    // Prefer `next_batch`.  Cannot be used in conjunction with `next_batch`.
+    virtual counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
+    virtual bool is_exhausted() const = 0;
 
 protected:
-    explicit datum_stream_t(const protob_t<const Backtrace> &bt_src)
-        : pb_rcheckable_t(bt_src) { }
+    explicit datum_stream_t(const protob_t<const Backtrace> &bt_src);
 
 private:
-    static const size_t MAX_BATCH_SIZE = 100;
-
-    // Returns NULL upon end of stream.
-    virtual counted_t<const datum_t> next_impl(env_t *env) = 0;
+    virtual std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec) = 0;
+    std::vector<counted_t<const datum_t> > batch_cache;
+    size_t batch_cache_index;
 };
 
 class eager_datum_stream_t : public datum_stream_t {
@@ -123,7 +159,7 @@ protected:
                                          counted_t<const datum_t> d,
                                          counted_t<func_t> r);
 
-    virtual bool is_array() { return true; }
+    virtual bool is_array() = 0;
     virtual counted_t<const datum_t> as_array(env_t *env);
 };
 
@@ -137,6 +173,9 @@ public:
             ? eager_datum_stream_t::as_array(env)
             : counted_t<const datum_t>();
     }
+    virtual bool is_exhausted() const {
+        return source->is_exhausted();
+    }
 
 protected:
     const counted_t<datum_stream_t> source;
@@ -147,10 +186,10 @@ public:
     map_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     counted_t<func_t> f;
-    counted_t<datum_stream_t> source;
 };
 
 class indexes_of_datum_stream_t : public wrapper_datum_stream_t {
@@ -158,11 +197,10 @@ public:
     indexes_of_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     counted_t<func_t> f;
-    counted_t<datum_stream_t> source;
-
     int64_t index;
 };
 
@@ -173,11 +211,11 @@ public:
                           counted_t<datum_stream_t> _source);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     counted_t<func_t> f;
     counted_t<func_t> default_filter_val;
-    counted_t<datum_stream_t> source;
 };
 
 class concatmap_datum_stream_t : public wrapper_datum_stream_t {
@@ -185,33 +223,150 @@ public:
     concatmap_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     counted_t<func_t> f;
-    counted_t<datum_stream_t> source;
     counted_t<datum_stream_t> subsource;
+};
+
+class readgen_t {
+public:
+    explicit readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
+        const datum_range_t &original_datum_range,
+        profile_bool_t profile,
+        sorting_t sorting);
+    virtual ~readgen_t() { }
+    read_t terminal_read(
+        const transform_t &transform,
+        terminal_t &&_terminal,
+        const batchspec_t &batchspec) const;
+    // This has to be on `readgen_t` because we sort differently depending on
+    // the kinds of reads we're doing.
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const = 0;
+
+    virtual read_t next_read(
+        const key_range_t &active_range,
+        const transform_t &transform,
+        const batchspec_t &batchspec) const;
+    // This generates a read that will read as many rows as we need to be able
+    // to do an sindex sort, or nothing if no such read is necessary.  Such a
+    // read should only be necessary when we're ordering by a secondary index
+    // and the last element read has a truncated value for that secondary index.
+    virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
+        const std::vector<rget_item_t> &items,
+        const transform_t &transform,
+        const batchspec_t &batchspec) const = 0;
+
+    virtual key_range_t original_keyrange() const = 0;
+    virtual std::string sindex_name() const = 0; // Used for error checking.
+
+    // Returns `true` if there is no more to read.
+    bool update_range(key_range_t *active_range,
+                      const store_key_t &last_considered_key) const;
+protected:
+    const std::map<std::string, wire_func_t> global_optargs;
+    const datum_range_t original_datum_range;
+    const profile_bool_t profile;
+    const sorting_t sorting;
+
+private:
+    virtual rget_read_t next_read_impl(
+        const key_range_t &active_range,
+        const transform_t &transform,
+        const batchspec_t &batchspec) const = 0;
+};
+
+class primary_readgen_t : public readgen_t {
+public:
+    static scoped_ptr_t<readgen_t> make(
+        env_t *env,
+        datum_range_t range = datum_range_t::universe(),
+        sorting_t sorting = sorting_t::UNORDERED);
+private:
+    primary_readgen_t(const std::map<std::string, wire_func_t> &global_optargs,
+                      datum_range_t range, profile_bool_t profile, sorting_t sorting);
+    virtual rget_read_t next_read_impl(
+        const key_range_t &active_range,
+        const transform_t &transform,
+        const batchspec_t &batchspec) const;
+    virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
+        const std::vector<rget_item_t> &items,
+        const transform_t &transform,
+        const batchspec_t &batchspec) const;
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
+    virtual key_range_t original_keyrange() const;
+    virtual std::string sindex_name() const; // Used for error checking.
+};
+
+class sindex_readgen_t : public readgen_t {
+public:
+    static scoped_ptr_t<readgen_t> make(
+        env_t *env,
+        const std::string &sindex,
+        datum_range_t range = datum_range_t::universe(),
+        sorting_t sorting = sorting_t::UNORDERED);
+private:
+    sindex_readgen_t(
+        const std::map<std::string, wire_func_t> &global_optargs,
+        const std::string &sindex, datum_range_t sindex_range,
+        profile_bool_t profile, sorting_t sorting);
+    virtual rget_read_t next_read_impl(
+        const key_range_t &active_range,
+        const transform_t &transform,
+        const batchspec_t &batchspec) const;
+    virtual boost::optional<read_t> sindex_sort_read(
+        const key_range_t &active_range,
+        const std::vector<rget_item_t> &items,
+        const transform_t &transform,
+        const batchspec_t &batchspec) const;
+    virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
+    virtual key_range_t original_keyrange() const;
+    virtual std::string sindex_name() const; // Used for error checking.
+
+    const std::string sindex;
+};
+
+class reader_t {
+public:
+    explicit reader_t(
+        const rdb_namespace_access_t &ns_access,
+        bool use_outdated,
+        scoped_ptr_t<readgen_t> &&readgen);
+    void add_transformation(transform_variant_t &&tv);
+    rget_read_response_t::result_t run_terminal(env_t *env, terminal_variant_t &&tv);
+    std::vector<counted_t<const datum_t> >
+    next_batch(env_t *env, const batchspec_t &batchspec);
+    bool is_finished() const;
+private:
+    // Returns `true` if there's data in `items`.
+    bool load_items(env_t *env, const batchspec_t &batchspec);
+    rget_read_response_t do_read(env_t *env, const read_t &read);
+    std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
+
+    rdb_namespace_access_t ns_access;
+    const bool use_outdated;
+    transform_t transform;
+
+    bool started, finished;
+    const scoped_ptr_t<const readgen_t> readgen;
+    key_range_t active_range;
+
+    // We need this to handle the SINDEX_CONSTANT case.
+    std::vector<rget_item_t> items;
+    size_t items_index;
 };
 
 class lazy_datum_stream_t : public datum_stream_t {
 public:
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        rdb_namespace_access_t *ns_access,
-                        sorting_t sorting, const protob_t<const Backtrace> &bt_src);
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        rdb_namespace_access_t *ns_access,
-                        const std::string &sindex_id, sorting_t sorting,
-                        const protob_t<const Backtrace> &bt_src);
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        rdb_namespace_access_t *ns_access,
-                        counted_t<const datum_t> left_bound, bool left_bound_open,
-                        counted_t<const datum_t> right_bound, bool right_bound_open,
-                        sorting_t sorting, const protob_t<const Backtrace> &bt_src);
-    lazy_datum_stream_t(env_t *env, bool use_outdated,
-                        rdb_namespace_access_t *ns_access,
-                        counted_t<const datum_t> left_bound, bool left_bound_open,
-                        counted_t<const datum_t> right_bound, bool right_bound_open,
-                        const std::string &sindex_id, sorting_t sorting,
-                        const protob_t<const Backtrace> &bt_src);
+    lazy_datum_stream_t(
+        rdb_namespace_access_t *_ns_access,
+        bool _use_outdated,
+        scoped_ptr_t<readgen_t> &&_readgen,
+        const protob_t<const Backtrace> &bt_src);
     virtual counted_t<datum_stream_t> filter(counted_t<func_t> f,
                                              counted_t<func_t> default_filter_val);
     virtual counted_t<datum_stream_t> map(counted_t<func_t> f);
@@ -231,29 +386,34 @@ public:
         return counted_t<const datum_t>();  // Cannot be converted implicitly.
     }
 
-protected:
-    virtual hinted_datum_t sorting_hint_next(env_t *env);
-
+    bool is_exhausted() const;
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
-
-    explicit lazy_datum_stream_t(const lazy_datum_stream_t *src);
-    // To make the 1.4 release, this class was basically made into a shim
-    // between the datum logic and the original json streams.
-    boost::shared_ptr<query_language::json_stream_t> json_stream;
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     rdb_protocol_t::rget_read_response_t::result_t run_terminal(
-            env_t *env,
-            const rdb_protocol_details::terminal_variant_t &t);
+        env_t *env, const rdb_protocol_details::terminal_variant_t &t);
+
+    // We use these to cache a batch so that `next` works.  There are a lot of
+    // things that are most easily written in terms of `next` that would
+    // otherwise have to do this caching themselves.
+    size_t current_batch_offset;
+    std::vector<counted_t<const datum_t> > current_batch;
+
+    reader_t reader;
 };
 
 class array_datum_stream_t : public eager_datum_stream_t {
 public:
     array_datum_stream_t(counted_t<const datum_t> _arr,
                          const protob_t<const Backtrace> &bt_src);
+    virtual bool is_exhausted() const;
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    virtual bool is_array();
+    virtual std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, UNUSED const batchspec_t &batchspec);
+    counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
 
     size_t index;
     counted_t<const datum_t> arr;
@@ -263,7 +423,8 @@ class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
     slice_datum_stream_t(size_t left, size_t right, counted_t<datum_stream_t> src);
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    virtual std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
     uint64_t index, left, right;
 };
 
@@ -271,100 +432,26 @@ class zip_datum_stream_t : public wrapper_datum_stream_t {
 public:
     explicit zip_datum_stream_t(counted_t<datum_stream_t> src);
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    virtual std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 };
 
-// This has to be constructed explicitly rather than invoking `.sort()`.  There
-// was a good reason for this involving header dependencies, but I don't
-// remember exactly what it was.
-static const size_t sort_el_limit = 1000000; // maximum number of elements we'll sort
-template<class T>
-class sort_datum_stream_t : public eager_datum_stream_t {
+class indexed_sort_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    sort_datum_stream_t(env_t *env,
-                        const T &_lt_cmp, counted_t<datum_stream_t> _src,
-                        const protob_t<const Backtrace> &bt_src)
-        : eager_datum_stream_t(bt_src),
-        lt_cmp(_lt_cmp), src(_src), is_arr_(false) {
-        r_sanity_check(src.has());
-        load_data(env);
-    }
-
-    counted_t<const datum_t> next_impl(env_t *env) {
-        if (data.empty()) {
-            load_data(env);
-            if (data.empty()) {
-                return counted_t<const datum_t>();
-            }
-        }
-
-        counted_t<const datum_t> res = data.front();
-        data.pop_front();
-        return res;
-    }
-
+    indexed_sort_datum_stream_t(
+        counted_t<datum_stream_t> stream, // Must be a table with a sorting applied.
+        std::function<bool(env_t *,
+                           const counted_t<const datum_t> &,
+                           const counted_t<const datum_t> &)> lt_cmp);
 private:
-    counted_t<const datum_t> as_array(env_t *env) {
-        return is_arr()
-            ? eager_datum_stream_t::as_array(env)
-            : counted_t<const datum_t>();
-    }
-    bool is_arr() {
-        return is_arr_;
-    }
-    void load_data(env_t *env) {
-        r_sanity_check(data.empty());
+    virtual std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
-        if (counted_t<const datum_t> arr = src->as_array(env)) {
-            if (is_arr_) {
-                /* We already loaded data from the array which means there's no
-                 * more data. */
-                return;
-            }
-            is_arr_ = true;
-            rcheck(arr->size() <= sort_el_limit,
-                   base_exc_t::GENERIC,
-                   strprintf("Can only sort at most %zu elements.",
-                             sort_el_limit));
-            for (size_t i = 0; i < arr->size(); ++i) {
-                data.push_back(arr->get(i));
-            }
-        } else {
-            if (next_element) {
-                data.push_back(next_element);
-                next_element = counted_t<const datum_t>();
-            }
-
-            for (;;) {
-                const hinted_datum_t d = src->sorting_hint_next(env);
-                if (!d.second) {
-                    break;
-                }
-
-                if (d.first == query_language::START && !data.empty()) {
-                    //debugf("Got a new value:\n %s\n", d.second->print().c_str());
-                    next_element = d.second;
-                    break;
-                } else {
-                    data.push_back(d.second);
-                    rcheck(data.size() <= sort_el_limit,
-                           base_exc_t::GENERIC,
-                           strprintf("Can only sort at most %zu elements.",
-                                     sort_el_limit));
-                }
-            }
-        }
-
-        std::sort(data.begin(), data.end(), std::bind(lt_cmp, env, std::placeholders::_1, std::placeholders::_2));
-    }
     std::function<bool(env_t *,
                        const counted_t<const datum_t> &,
                        const counted_t<const datum_t> &)> lt_cmp;
-    counted_t<datum_stream_t> src;
-
-    std::deque<counted_t<const datum_t> > data;
-    counted_t<const datum_t> next_element;
-    bool is_arr_;
+    size_t index;
+    std::vector<counted_t<const datum_t> > data;
 };
 
 class union_datum_stream_t : public datum_stream_t {
@@ -391,9 +478,11 @@ public:
                                          counted_t<func_t> r);
     virtual bool is_array();
     virtual counted_t<const datum_t> as_array(env_t *env);
+    virtual bool is_exhausted() const;
 
 private:
-    counted_t<const datum_t> next_impl(env_t *env);
+    std::vector<counted_t<const datum_t> >
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;

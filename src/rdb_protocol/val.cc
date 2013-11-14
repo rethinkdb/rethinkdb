@@ -18,6 +18,7 @@ table_t::table_t(env_t *env,
       db(_db),
       name(_name),
       use_outdated(_use_outdated),
+      bounds(datum_range_t::universe()),
       sorting(sorting_t::UNORDERED) {
     uuid_u db_id = db->id;
     name_string_t table_name;
@@ -207,7 +208,7 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     try {
         rdb_protocol_t::read_response_t res;
         access->get_namespace_if().read(
-            &read, &res, order_token_t::ignore, env->interruptor);
+            read, &res, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::sindex_list_response_t *s_res =
             boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
         r_sanity_check(s_res);
@@ -227,8 +228,9 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
 }
 
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
-    rcheck_target(parent, base_exc_t::GENERIC, !bounds && sorting == sorting_t::UNORDERED,
-            "sync can only be applied directly to a table.");
+    rcheck_target(parent, base_exc_t::GENERIC,
+                  bounds.is_universe() && sorting == sorting_t::UNORDERED,
+                  "sync can only be applied directly to a table.");
     // In order to get the guarantees that we expect from a user-facing command,
     // we always have to use hard durability in combination with sync.
     return sync_depending_on_durability(env, DURABILITY_REQUIREMENT_HARD);
@@ -237,7 +239,7 @@ MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
 MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
                 durability_requirement_t durability_requirement) {
     rdb_protocol_t::write_t write(
-            rdb_protocol_t::sync_t(), durability_requirement, env->profile());
+        rdb_protocol_t::sync_t(), durability_requirement, env->profile());
     rdb_protocol_t::write_response_t res;
     access->get_namespace_if().write(
         &write, &res, order_token_t::ignore, env->interruptor);
@@ -256,10 +258,10 @@ counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> p
             rdb_protocol_t::point_read_t(store_key_t(pks)), env->profile());
     rdb_protocol_t::read_response_t res;
     if (use_outdated) {
-        access->get_namespace_if().read_outdated(&read, &res, env->interruptor);
+        access->get_namespace_if().read_outdated(read, &res, env->interruptor);
     } else {
         access->get_namespace_if().read(
-            &read, &res, order_token_t::ignore, env->interruptor);
+            read, &res, order_token_t::ignore, env->interruptor);
     }
     rdb_protocol_t::point_read_response_t *p_res =
         boost::get<rdb_protocol_t::point_read_response_t>(&res.response);
@@ -275,20 +277,20 @@ counted_t<datum_stream_t> table_t::get_all(
     rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
             "Cannot chain get_all and other indexed operations.");
     r_sanity_check(sorting == sorting_t::UNORDERED);
-    r_sanity_check(!bounds);
+    r_sanity_check(bounds.is_universe());
 
     if (get_all_sindex_id == get_pkey()) {
         return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                value, false,
-                value, false,
-                sorting_t::UNORDERED, bt);
+            access.get(),
+            use_outdated,
+            primary_readgen_t::make(env, datum_range_t(value)),
+            bt);
     } else {
         return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                value, false,
-                value, false,
-                get_all_sindex_id, sorting_t::UNORDERED, bt);
+            access.get(),
+            use_outdated,
+            sindex_readgen_t::make(env, get_all_sindex_id, datum_range_t(value)),
+            bt);
     }
 }
 
@@ -307,54 +309,33 @@ void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
     sorting = _sorting;
 }
 
-void table_t::add_bounds(
-    counted_t<const datum_t> left_bound, bool left_bound_open,
-    counted_t<const datum_t> right_bound, bool right_bound_open,
-    const std::string &new_sindex_id, const rcheckable_t *parent) {
-
+void table_t::add_bounds(datum_range_t &&new_bounds,
+                         const std::string &new_sindex_id,
+                         const rcheckable_t *parent) {
     if (sindex_id) {
-        rcheck_target(parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
+        rcheck_target(
+            parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
             strprintf(
-                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
+                "Cannot use 2 indexes in the same operation.  Trying to use %s and %s.",
                 sindex_id->c_str(), new_sindex_id.c_str()));
+    } else {
+        sindex_id = new_sindex_id;
     }
 
-    rcheck_target(parent, base_exc_t::GENERIC, !bounds,
-            "Cannot chain multiple betweens to the same table.");
-
-    sindex_id = new_sindex_id;
-    bounds = std::make_pair(
-            bound_t(left_bound, left_bound_open),
-            bound_t(right_bound, right_bound_open));
+    rcheck_target(parent, base_exc_t::GENERIC, bounds.is_universe(),
+                  "Cannot chain multiple betweens to the same table.");
+    bounds = std::move(new_bounds);
 }
 
 counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
                                                    const protob_t<const Backtrace> &bt) {
-    if (!sindex_id || *sindex_id == get_pkey()) {
-        if (bounds) {
-            return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                bounds->first.value, bounds->first.bound_open,
-                bounds->second.value, bounds->second.bound_open,
-                sorting, bt);
-        } else {
-            return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                sorting, bt);
-        }
-    } else {
-        if (bounds) {
-            return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                bounds->first.value, bounds->first.bound_open,
-                bounds->second.value, bounds->second.bound_open,
-                *sindex_id, sorting, bt);
-        } else {
-            return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                *sindex_id, sorting, bt);
-        }
-    }
+    return make_counted<lazy_datum_stream_t>(
+        access.get(),
+        use_outdated,
+        (!sindex_id || *sindex_id == get_pkey())
+            ? primary_readgen_t::make(env, bounds, sorting)
+            : sindex_readgen_t::make(env, *sindex_id, bounds, sorting),
+        bt);
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }

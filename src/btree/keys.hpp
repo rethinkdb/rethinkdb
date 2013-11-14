@@ -44,7 +44,7 @@ public:
         assign(sz, buf);
     }
 
-    store_key_t(const store_key_t& _key) {
+    store_key_t(const store_key_t &_key) {
         assign(_key.size(), _key.contents());
     }
 
@@ -52,7 +52,7 @@ public:
         assign(key->size, key->contents);
     }
 
-    explicit store_key_t(const std::string& s) {
+    explicit store_key_t(const std::string &s) {
         assign(s.size(), reinterpret_cast<const uint8_t *>(s.data()));
     }
 
@@ -205,7 +205,8 @@ struct key_range_t {
     };
 
     key_range_t();   /* creates a range containing no keys */
-    key_range_t(bound_t, const store_key_t&, bound_t, const store_key_t&);
+    key_range_t(bound_t lm, const store_key_t &l,
+                bound_t rm, const store_key_t &r);
 
     static key_range_t empty() THROWS_NOTHING {
         return key_range_t();

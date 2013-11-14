@@ -1,6 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+// These unit tests need to access some private methods.
+#define private public
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
@@ -256,18 +259,20 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > >
         replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card())));
 
-    std::string sindex_id("sid");
+    std::string id("sid");
     {
         /* Create a secondary index object. */
         const ql::sym_t one(1);
         ql::protob_t<const Term> mapping = ql::r::var(one)["id"].release_counted();
         ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(
-                    sindex_id, m, sindex_multi_bool_t::SINGLE), profile_bool_t::PROFILE);
+        rdb_protocol_t::write_t write(
+            rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
+            profile_bool_t::PROFILE);
 
         fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
+        fifo_enforcer_sink_t::exit_write_t exiter(
+            &enforce.sink, enforce.source.enter_write());
         class : public broadcaster_t<rdb_protocol_t>::write_callback_t, public cond_t {
         public:
             void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {
@@ -329,9 +334,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)),
-                profile_bool_t::PROFILE);
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

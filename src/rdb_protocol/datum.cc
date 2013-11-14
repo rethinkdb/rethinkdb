@@ -47,11 +47,15 @@ datum_t::datum_t(const char *cstr)
     : type(R_STR), r_str(new std::string(cstr)) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
-    : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) { }
+    : type(R_ARRAY),
+      r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
+    rcheck_array_size(*r_array, base_exc_t::GENERIC);
+}
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
     : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(_object))) {
+      r_object(new std::map<std::string, counted_t<const datum_t> >(
+                   std::move(_object))) {
     maybe_sanitize_ptype();
 }
 
@@ -759,6 +763,7 @@ void datum_t::add(counted_t<const datum_t> val) {
     check_type(R_ARRAY);
     r_sanity_check(val.has());
     r_array->push_back(val);
+    rcheck_array_size(*r_array, base_exc_t::GENERIC);
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
