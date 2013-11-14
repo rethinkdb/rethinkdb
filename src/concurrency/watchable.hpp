@@ -127,6 +127,9 @@ public:
     this one by calling `lens` on it. */
     template<class callable_type>
     clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_t)>::type> > subview(const callable_type &lens);
+    // TODO! Document
+    template<class callable_type>
+    clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_t)>::type> > incremental_subview(const callable_type &lens);
 
     /* `run_until_satisfied()` repeatedly calls `fun` on the current value of
     `this` until either `fun` returns `true` or `interruptor` is pulsed. It's

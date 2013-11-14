@@ -46,6 +46,7 @@ public:
     }
 
 private:
+    // TODO (daniel): Document how incremental lenses work.
     class lensed_value_cache_t {
     public:
         lensed_value_cache_t(const callable_type &l, watchable_t<outer_type> *p) :
@@ -56,7 +57,7 @@ private:
                 this)) {
 
             typename watchable_t<outer_type>::freeze_t freeze(parent);
-            parent_changed = true; // Initializing here, so we definitely set the flag
+            on_parent_changed();   // Call here, so we get the current value
                                    // while having the parent freezed.
             parent_subscription.reset(parent, &freeze);
         }
@@ -69,10 +70,6 @@ private:
         }
 
         result_type *get() {
-            if (parent_changed) {
-                // TODO: Some kind of locking maybe?
-                compute_value();
-            }
             return &cached_value;
         }
 
@@ -87,29 +84,27 @@ private:
             GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
                 void operator()(const outer_type *val) {
-                    parent_changed = false;
-                    cached_value = lens(*val);
+                    lens(*val, &cached_value);
                 }
-                op_closure_t(callable_type &c1, bool &c2, result_type &c3) :
+                op_closure_t(callable_type &c1, result_type &c2) :
                     lens(c1),
-                    parent_changed(c2),
-                    cached_value(c3) {
+                    cached_value(c2) {
                 }
                 callable_type &lens;
-                bool &parent_changed;
                 result_type &cached_value;
             };
-            op_closure_t op(lens, parent_changed, cached_value);
+            op_closure_t op(lens, cached_value);
 
             parent->apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
         }
 
         void on_parent_changed() {
-            parent_changed = true;
+            // Eagerly update the value, so we don't miss any updates.
+            // This is necessary because incremental lenses are stateful.
+            compute_value();
         }
 
         callable_type lens;
-        bool parent_changed;
         result_type cached_value;
         typename watchable_t<outer_type>::subscription_t parent_subscription;
     };
@@ -121,12 +116,40 @@ private:
     boost::shared_ptr<lensed_value_cache_t> cache;
 };
 
+// TODO! Document
+template<class outer_type, class callable_type>
+class non_incremental_lens_wrapper_t {
+public:
+    typedef typename boost::result_of<callable_type(outer_type)>::type result_type;
+
+    explicit non_incremental_lens_wrapper_t(const callable_type &_inner) :
+        inner(_inner) {
+    }
+
+    void operator()(const outer_type &input, result_type *current_out) {
+        guarantee(current_out != NULL);
+        *current_out = inner(input);
+    }
+private:
+    callable_type inner;
+};
+
+template<class value_type>
+template<class callable_type>
+clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::type> > watchable_t<value_type>::incremental_subview(const callable_type &lens) {
+    assert_thread();
+    return clone_ptr_t<watchable_t<typename callable_type::result_type> >(
+        new subview_watchable_t<value_type, callable_type>(lens, this));
+}
+
 template<class value_type>
 template<class callable_type>
 clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::type> > watchable_t<value_type>::subview(const callable_type &lens) {
     assert_thread();
-    return clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::type> >(
-        new subview_watchable_t<value_type, callable_type>(lens, this));
+    typedef non_incremental_lens_wrapper_t<value_type, callable_type> wrapped_callable_type;
+    wrapped_callable_type wrapped_lens(lens);
+    return clone_ptr_t<watchable_t<typename wrapped_callable_type::result_type> >(
+        new subview_watchable_t<value_type, wrapped_callable_type>(wrapped_lens, this));
 }
 
 template<class value_type>
