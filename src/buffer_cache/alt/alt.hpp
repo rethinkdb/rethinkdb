@@ -169,6 +169,10 @@ public:
     }
     explicit alt_buf_parent_t(alt_txn_t *txn)
         : txn_(txn), lock_or_null_(NULL) { }
+
+    alt_txn_t *txn() const { return txn_; }
+    alt_cache_t *cache() const { return txn_->cache(); }
+
 private:
     friend class alt_buf_lock_t;
     alt_txn_t *txn_;
@@ -181,6 +185,11 @@ public:
     ~alt_buf_read_t();
 
     const void *get_data_read(uint32_t *block_size_out);
+    // RSI: Remove.
+    const void *get_data_read() {
+        uint32_t unused_block_size;
+        return get_data_read(&unused_block_size);
+    }
 
 private:
     alt_buf_lock_t *lock_;

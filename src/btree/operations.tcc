@@ -27,11 +27,13 @@
  * This is because it may need to use the superblock for some of its methods.
  * */
 #if SLICE_ALT
+// RSI: It seems like really we should pass the superblock_t via rvalue reference.
+// Is that possible?  (promise_t makes it hard.)
 template <class Value>
 void find_keyvalue_location_for_write(
-        transaction_t *txn, superblock_t *superblock, const btree_key_t *key,
+        superblock_t *superblock, const btree_key_t *key,
         keyvalue_location_t<Value> *keyvalue_location_out,
-        eviction_priority_t *root_eviction_priority, btree_stats_t *stats,
+        btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
 #else
@@ -43,43 +45,87 @@ void find_keyvalue_location_for_write(
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
 #endif
+#if SLICE_ALT
+    value_sizer_t<Value> sizer(superblock->expose_buf().cache()->max_block_size());
+#else
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
+#endif
 
     keyvalue_location_out->superblock = superblock;
     keyvalue_location_out->pass_back_superblock = pass_back_superblock;
 
+#if SLICE_ALT
+    ensure_stat_block(superblock);
+#else
     ensure_stat_block(txn, superblock, incr_priority(ZERO_EVICTION_PRIORITY));
+#endif
     keyvalue_location_out->stat_block = keyvalue_location_out->superblock->get_stat_block_id();
 
     keyvalue_location_out->stats = stats;
 
+#if SLICE_ALT
+    // RSI: Make sure we do the logic smart here -- don't needlessly hold both
+    // buffers.  (This finds the keyvalue for _write_ so that probably won't really
+    // happen.)
+    alt::alt_buf_lock_t last_buf;
+    alt::alt_buf_lock_t buf;
+#else
     buf_lock_t last_buf;
     buf_lock_t buf;
+#endif
     {
         profile::starter_t starter("Acquiring block for write.\n", trace);
+#if SLICE_ALT
+        get_root(&sizer, superblock, &buf);
+#else
         get_root(&sizer, txn, superblock, &buf, *root_eviction_priority);
+#endif
     }
 
     // Walk down the tree to the leaf.
-    while (node::is_internal(reinterpret_cast<const node_t *>(buf.get_data_read()))) {
+#if SLICE_ALT
+    for (;;) {
+        {
+            alt::alt_buf_read_t read(&buf);
+            if (!node::is_internal(static_cast<const node_t *>(read.get_data_read()))) {
+                break;
+            }
+        }
+#else
+    while (node::is_internal(static_cast<const node_t *>(buf.get_data_read()))) {
+#endif
         // Check if the node is overfull and proactively split it if it is (since this is an internal node).
         {
             profile::starter_t starter("Perhaps split node.", trace);
-            check_and_handle_split(&sizer, txn, &buf, &last_buf, superblock, key, reinterpret_cast<Value *>(NULL), root_eviction_priority);
+#if SLICE_ALT
+            // RSI: Ugh, we're passing the superblock, buf, and last_buf.  Really?
+            check_and_handle_split(&sizer, &buf, &last_buf, superblock, key, static_cast<Value *>(NULL));
+#else
+            check_and_handle_split(&sizer, txn, &buf, &last_buf, superblock, key, static_cast<Value *>(NULL), root_eviction_priority);
+#endif
         }
 
         // Check if the node is underfull, and merge/level if it is.
         {
             profile::starter_t starter("Perhaps merge nodes.", trace);
+#if SLICE_ALT
+            // RSI: Ugh, we're passing the superblock, buf, last_buf here too.
+            check_and_handle_underfull(&sizer, &buf, &last_buf, superblock, key);
+#else
             check_and_handle_underfull(&sizer, txn, &buf, &last_buf, superblock, key);
+#endif
         }
 
         // Release the superblock, if we've gone past the root (and haven't
         // already released it). If we're still at the root or at one of
         // its direct children, we might still want to replace the root, so
         // we can't release the superblock yet.
+#if SLICE_ALT
+        if (!last_buf.empty() && keyvalue_location_out->superblock) {
+#else
         if (last_buf.is_acquired() && keyvalue_location_out->superblock) {
-            if (pass_back_superblock) {
+#endif
+            if (pass_back_superblock != NULL) {
                 pass_back_superblock->pulse(superblock);
                 keyvalue_location_out->superblock = NULL;
             } else {
@@ -90,17 +136,36 @@ void find_keyvalue_location_for_write(
 
         // Release the old previous node (unless we're at the root), and set
         // the next previous node (which is the current node).
+#if SLICE_ALT
+        last_buf.reset_buf_lock();
+#endif
 
         // Look up and acquire the next node.
-        block_id_t node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf.get_data_read()), key);
+#if SLICE_ALT
+        block_id_t node_id;
+        {
+            alt::alt_buf_read_t read(&buf);
+            auto node = static_cast<const internal_node_t *>(read.get_data_read());
+            node_id = internal_node::lookup(node, key);
+        }
+#else
+        block_id_t node_id = internal_node::lookup(static_cast<const internal_node_t *>(buf.get_data_read()), key);
+#endif
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
         {
             profile::starter_t starter("Acquiring block for write.\n", trace);
+#if SLICE_ALT
+            alt::alt_buf_lock_t tmp(&buf, node_id, alt::alt_access_t::write);
+            // RSI: Use std::move assignment.
+            last_buf.swap(buf);
+            buf.swap(tmp);
+#else
             buf_lock_t tmp(txn, node_id, rwi_write);
             tmp.set_eviction_priority(incr_priority(buf.get_eviction_priority()));
             last_buf.swap(tmp);
             buf.swap(last_buf);
+#endif
         }
     }
 
@@ -108,7 +173,13 @@ void find_keyvalue_location_for_write(
         scoped_malloc_t<Value> tmp(sizer.max_possible_size());
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        bool key_found = leaf::lookup(&sizer, reinterpret_cast<const leaf_node_t *>(buf.get_data_read()), key, tmp.get());
+#if SLICE_ALT
+        alt::alt_buf_read_t read(&buf);
+        auto node = static_cast<const leaf_node_t *>(read.get_data_read());
+        bool key_found = leaf::lookup(&sizer, node, key, tmp.get());
+#else
+        bool key_found = leaf::lookup(&sizer, static_cast<const leaf_node_t *>(buf.get_data_read()), key, tmp.get());
+#endif
 
         if (key_found) {
             keyvalue_location_out->there_originally_was_value = true;
@@ -116,6 +187,7 @@ void find_keyvalue_location_for_write(
         }
     }
 
+    // RSI: keyvalue_location_out really saves last_buf?  Why??
     keyvalue_location_out->last_buf.swap(last_buf);
     keyvalue_location_out->buf.swap(buf);
 }

@@ -364,6 +364,22 @@ void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
 }
 
+#if SLICE_ALT
+void ensure_stat_block(superblock_t *sb) {
+    const block_id_t node_id = sb->get_stat_block_id();
+
+    if (node_id == NULL_BLOCK_ID) {
+        //Create a block
+        alt_buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
+        alt_buf_write_t write(&temp_lock);
+        //Make the stat block be the default constructed statblock
+        *static_cast<btree_statblock_t *>(write.get_data_write())
+            = btree_statblock_t();
+        sb->set_stat_block_id(temp_lock.block_id());
+    }
+}
+#endif
+
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
     rassert(ZERO_EVICTION_PRIORITY < stat_block_eviction_priority);
 
@@ -379,6 +395,28 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
         temp_lock.set_eviction_priority(stat_block_eviction_priority);
     }
 }
+
+#if SLICE_ALT
+void get_root(value_sizer_t<void> *sizer, superblock_t *sb, buf_lock_t *buf_out) {
+    guarantee(buf_out->empty());
+
+    const block_id_t node_id = sb->get_root_block_id();
+
+    if (node_id != NULL_BLOCK_ID) {
+        alt::alt_buf_lock_t temp_lock(sb->expose_buf(), node_id,
+                                      alt_access_t::write);
+        buf_out->swap(temp_lock);
+    } else {
+        buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
+        {
+            alt_buf_write_t write(&temp_lock);
+            leaf::init(sizer, static_cast<leaf_node_t *>(write.get_data_write()));
+        }
+        insert_root(temp_lock.block_id(), sb);
+        buf_out->swap(temp_lock);
+    }
+}
+#endif
 
 // Get a root block given a superblock, or make a new root if there isn't one.
 void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {

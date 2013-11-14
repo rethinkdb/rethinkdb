@@ -230,7 +230,11 @@ private:
     char *value_ptr;
 };
 
-void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
+#if SLICE_ALT
+// RSI: Have this return the buf_lock_t.
+void get_root(value_sizer_t<void> *sizer, superblock_t *sb, buf_lock_t *buf_out);
+#endif
+void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t *sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
 
 void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                             const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
@@ -252,6 +256,9 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 void insert_root(block_id_t root_id, superblock_t* sb);
 
 /* Create a stat block for the superblock if it doesn't already have one. */
+#if SLICE_ALT
+void ensure_stat_block(superblock_t *sb);
+#endif
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority);
 
 void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real_superblock_t> *got_superblock_out);
