@@ -377,7 +377,11 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
         scoped_array_t<char> temp_buffer(length);
         string->WriteUtf8(temp_buffer.data(), length);
 
-        result = make_counted<const ql::datum_t>(std::string(temp_buffer.data(), length));
+        try {
+            result = make_counted<const ql::datum_t>(std::string(temp_buffer.data(), length));
+        } catch (const ql::base_exc_t &ex) {
+            errmsg->assign(ex.what());
+        }
     } else if (value->IsObject()) {
         // This case is kinda weird. Objects can have stuff in them that isn't
         // represented in their JSON (eg. their prototype, v8 hidden fields).

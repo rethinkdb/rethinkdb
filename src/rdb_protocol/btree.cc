@@ -121,7 +121,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     wm << data;
     vector_stream_t stream;
     int res = send_write_message(&stream, &wm);
-    guarantee_err(res == 0,
+    guarantee(res == 0,
                   "Serialization for json data failed... this shouldn't happen.\n");
 
     // TODO more copies, good lord
@@ -633,6 +633,7 @@ public:
     rdb_rget_depth_first_traversal_callback_t(
         transaction_t *txn,
         ql::env_t *_ql_env,
+        const ql::batchspec_t &batchspec,
         const rdb_protocol_details::transform_t &_transform,
         boost::optional<rdb_protocol_details::terminal_t> _terminal,
         const key_range_t &range,
@@ -641,8 +642,8 @@ public:
         : bad_init(false),
           transaction(txn),
           response(_response),
-          cumulative_size(0),
           ql_env(_ql_env),
+          batcher(batchspec.to_batcher()),
           transform(_transform),
           terminal(_terminal),
           sorting(_sorting)
@@ -661,6 +662,7 @@ public:
     rdb_rget_depth_first_traversal_callback_t(
         transaction_t *txn,
         ql::env_t *_ql_env,
+        const ql::batchspec_t &batchspec,
         const rdb_protocol_details::transform_t &_transform,
         boost::optional<rdb_protocol_details::terminal_t> _terminal,
         const key_range_t &range,
@@ -668,13 +670,13 @@ public:
         sorting_t _sorting,
         ql::map_wire_func_t _sindex_function,
         sindex_multi_bool_t _sindex_multi,
-        sindex_range_t _sindex_range,
+        datum_range_t _sindex_range,
         rget_read_response_t *_response)
         : bad_init(false),
           transaction(txn),
           response(_response),
-          cumulative_size(0),
           ql_env(_ql_env),
+          batcher(batchspec.to_batcher()),
           transform(_transform),
           terminal(_terminal),
           sorting(_sorting),
@@ -688,10 +690,9 @@ public:
 
     void init(const key_range_t &range) {
         try {
-            if (forward(sorting)) {
+            if (!reversed(sorting)) {
                 response->last_considered_key = range.left;
             } else {
-                guarantee(backward(sorting));
                 if (!range.right.unbounded) {
                     response->last_considered_key = range.right.key;
                 } else {
@@ -740,8 +741,8 @@ public:
 
             waiter.wait_interruptible();
 
-            if ((response->last_considered_key < store_key && forward(sorting)) ||
-                (response->last_considered_key > store_key && backward(sorting))) {
+            if ((response->last_considered_key < store_key && !reversed(sorting)) ||
+                (response->last_considered_key > store_key && reversed(sorting))) {
                 response->last_considered_key = store_key;
             }
 
@@ -750,13 +751,15 @@ public:
 
             counted_t<const ql::datum_t> sindex_value;
             if (sindex_function) {
-                sindex_value = sindex_function->call(ql_env, first_value.get())->as_datum();
+                sindex_value =
+                    sindex_function->call(ql_env, first_value.get())->as_datum();
                 guarantee(sindex_range);
                 guarantee(sindex_multi);
 
                 if (sindex_multi == sindex_multi_bool_t::MULTI &&
                     sindex_value->get_type() == ql::datum_t::R_ARRAY) {
-                        boost::optional<uint64_t> tag = ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
+                        boost::optional<uint64_t> tag =
+                            ql::datum_t::extract_tag(key_to_unescaped_str(store_key));
                         guarantee(tag);
                         guarantee(sindex_value->size() > *tag);
                         sindex_value = sindex_value->get(*tag);
@@ -804,9 +807,9 @@ public:
                                               store_key, datum));
                     }
 
-                    cumulative_size += estimate_rget_response_size(datum);
+                    batcher.note_el(datum);
                 }
-                return cumulative_size < rget_max_chunk_size;
+                return !batcher.should_send_batch();
             } else {
                 try {
                     for (auto jt = data.begin(); jt != data.end(); ++jt) {
@@ -837,15 +840,15 @@ public:
     bool bad_init;
     transaction_t *transaction;
     rget_read_response_t *response;
-    size_t cumulative_size;
     ql::env_t *ql_env;
+    ql::batcher_t batcher;
     rdb_protocol_details::transform_t transform;
     boost::optional<rdb_protocol_details::terminal_t> terminal;
     sorting_t sorting;
 
     /* Only present if we're doing a sindex read.*/
     boost::optional<key_range_t> primary_key_range;
-    boost::optional<sindex_range_t> sindex_range;
+    boost::optional<datum_range_t> sindex_range;
     counted_t<ql::func_t> sindex_function;
     boost::optional<sindex_multi_bool_t> sindex_multi;
 
@@ -860,7 +863,6 @@ public:
     void operator()(const ql::datum_exc_t &) const { }
     void operator()(const std::vector<ql::wire_datum_map_t> &) const { }
     void operator()(const rget_read_response_t::empty_t &) const { }
-    void operator()(const rget_read_response_t::vec_t &) const { }
     void operator()(const counted_t<const ql::datum_t> &) const { }
 
     void operator()(ql::wire_datum_map_t &dm) const {  // NOLINT(runtime/references)
@@ -870,55 +872,46 @@ public:
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env,
+                    ql::env_t *ql_env, const ql::batchspec_t &batchspec,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     sorting_t sorting,
                     rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(
-            txn, ql_env, transform, terminal, range, sorting, response);
+        txn, ql_env, batchspec, transform, terminal, range, sorting, response);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
-            (forward(sorting) ? FORWARD : BACKWARD));
+                               (!reversed(sorting) ? FORWARD : BACKWARD));
 
-    if (callback.cumulative_size >= rget_max_chunk_size) {
-        response->truncated = true;
-    } else {
-        response->truncated = false;
-    }
+    response->truncated = callback.batcher.should_send_batch();
 
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
-    const sindex_range_t &sindex_range,
+    const datum_range_t &sindex_range,
     const rdb_protocol_t::region_t &sindex_region,
     transaction_t *txn,
     superblock_t *superblock,
     ql::env_t *ql_env,
+    const ql::batchspec_t &batchspec,
     const rdb_protocol_details::transform_t &transform,
     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
     const ql::map_wire_func_t &sindex_func,
     sindex_multi_bool_t sindex_multi,
-    rget_read_response_t *response)
-{
+    rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, transform, terminal, sindex_region.inner, pk_range,
+        txn, ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
         sorting, sindex_func, sindex_multi, sindex_range, response);
-
     btree_concurrent_traversal(
         slice, txn, superblock, sindex_region.inner, &callback,
-        (forward(sorting) ? FORWARD : BACKWARD));
+        (!reversed(sorting) ? FORWARD : BACKWARD));
 
-    if (callback.cumulative_size >= rget_max_chunk_size) {
-        response->truncated = true;
-    } else {
-        response->truncated = false;
-    }
+    response->truncated = callback.batcher.should_send_batch();
 
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
@@ -1064,10 +1057,10 @@ void rdb_update_single_sindex(
     ql::map_wire_func_t mapping;
     sindex_multi_bool_t multi = sindex_multi_bool_t::MULTI;
     vector_read_stream_t read_stream(&sindex->sindex.opaque_definition);
-    int success = deserialize(&read_stream, &mapping);
-    guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+    archive_result_t success = deserialize(&read_stream, &mapping);
+    guarantee_deserialization(success, "sindex deserialize");
     success = deserialize(&read_stream, &multi);
-    guarantee(success == ARCHIVE_SUCCESS, "Corrupted sindex description.");
+    guarantee_deserialization(success, "sindex deserialize");
 
     // TODO we just use a NULL environment here. People should not be able
     // to do anything that requires an environment like gets from other

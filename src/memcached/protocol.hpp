@@ -68,14 +68,20 @@ public:
     };
 
     struct read_t {
-        typedef boost::variant<get_query_t, rget_query_t, distribution_get_query_t> query_t;
+        typedef boost::variant<get_query_t,
+                               rget_query_t,
+                               distribution_get_query_t> query_t;
 
         region_t get_region() const THROWS_NOTHING;
-        // Returns true if the read had any applicability to the region, and a non-empty
-        // read was written to read_out.
+        // Returns true if the read had any applicability to the region, and a
+        // non-empty read was written to read_out.
         bool shard(const region_t &regions,
                    read_t *read_out) const THROWS_NOTHING;
-        void unshard(const read_response_t *responses, size_t count, read_response_t *response, context_t *ctx, signal_t *) const THROWS_NOTHING;
+        void unshard(const read_response_t *responses,
+                     size_t count,
+                     read_response_t *response,
+                     context_t *ctx,
+                     signal_t *) const THROWS_NOTHING;
 
         read_t() { }
         read_t(const read_t& r) : query(r.query), effective_time(r.effective_time) { }

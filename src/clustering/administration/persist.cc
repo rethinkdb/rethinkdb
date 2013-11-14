@@ -68,8 +68,8 @@ static void read_blob(transaction_t *txn, const char *ref, int maxreflen, T *val
     buffer_group_t group;
     blob.expose_all(txn, rwi_read, &group, &acq_group);
     buffer_group_read_stream_t ss(const_view(&group));
-    int res = deserialize(&ss, value_out);
-    guarantee(res == 0);
+    archive_result_t res = deserialize(&ss, value_out);
+    guarantee_deserialization(res, "T (template code)");
 }
 
 template <class metadata_t>
