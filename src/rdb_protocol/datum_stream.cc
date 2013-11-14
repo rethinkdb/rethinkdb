@@ -302,7 +302,7 @@ bool readgen_t::update_range(key_range_t *active_range,
     }
 
     // TODO: mixing these non-const operations INTO THE CONDITIONAL is bad, and
-    // confused me for a while when I tried moving some stuff around.
+    // confused me (mlucy) for a while when I tried moving some stuff around.
     if (sorting != sorting_t::DESCENDING) {
         if (!active_range->left.increment()
             || (!active_range->right.unbounded
