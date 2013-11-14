@@ -37,7 +37,7 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
         std::vector<counted_t<const datum_t> > ds
             = entry->stream->next_batch(
                 entry->env.get(),
-                batcher_t::user_batcher(NORMAL, entry->env.get()));
+                batchspec_t::user(NORMAL, entry->env.get()));
         for (auto d = ds.begin(); d != ds.end(); ++d) {
             (*d)->write_to_protobuf(res->add_response());
         }

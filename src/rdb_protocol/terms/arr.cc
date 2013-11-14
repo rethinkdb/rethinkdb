@@ -85,13 +85,13 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
-            batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+            batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
             counted_t<const datum_t> last_d;
             {
                 profile::sampler_t sampler("Find nth element.", env->env->trace);
                 for (int32_t i = 0; ; ++i) {
                     sampler.new_sample();
-                    counted_t<const datum_t> d = s->next(env->env, batcher);
+                    counted_t<const datum_t> d = s->next(env->env, batchspec);
                     if (!d.has()) {
                         rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
                                strprintf("Index out of bounds: %d", n));
@@ -113,8 +113,8 @@ public:
         op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        batcher_t batcher = batcher_t::user_batcher(NORMAL, env->env);
-        bool is_empty = !arg(env, 0)->as_seq(env->env)->next(env->env, batcher).has();
+        batchspec_t batchspec = batchspec_t::user(NORMAL, env->env);
+        bool is_empty = !arg(env, 0)->as_seq(env->env)->next(env->env, batchspec).has();
         return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
     }
     virtual const char *name() const { return "is_empty"; }
@@ -442,11 +442,11 @@ private:
         }
         // This needs to be a terminal batch to avoid pathological behavior in
         // the worst case.
-        batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+        batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in contains.",
                                        env->env->trace);
-            while (counted_t<const datum_t> el = seq->next(env->env, batcher)) {
+            while (counted_t<const datum_t> el = seq->next(env->env, batchspec)) {
                 for (auto it = required_els.begin(); it != required_els.end(); ++it) {
                     if (**it == *el) {
                         std::swap(*it, required_els.back());

@@ -35,10 +35,10 @@ public:
         std::vector<counted_t<const datum_t> > result;
         result.reserve(num);
         size_t element_number = 0;
-        batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+        batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
         {
             profile::sampler_t sampler("Sampling elements.", env->env->trace);
-            while (counted_t<const datum_t> row = seq->next(env->env, batcher)) {
+            while (counted_t<const datum_t> row = seq->next(env->env, batchspec)) {
                 element_number++;
                 if (result.size() < num) {
                     result.push_back(row);

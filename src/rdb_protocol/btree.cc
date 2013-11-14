@@ -633,7 +633,7 @@ public:
     rdb_rget_depth_first_traversal_callback_t(
         transaction_t *txn,
         ql::env_t *_ql_env,
-        const ql::batcher_t &_batcher,
+        const ql::batchspec_t &batchspec,
         const rdb_protocol_details::transform_t &_transform,
         boost::optional<rdb_protocol_details::terminal_t> _terminal,
         const key_range_t &range,
@@ -643,7 +643,7 @@ public:
           transaction(txn),
           response(_response),
           ql_env(_ql_env),
-          batcher(_batcher),
+          batcher(batchspec.to_batcher()),
           transform(_transform),
           terminal(_terminal),
           sorting(_sorting)
@@ -662,7 +662,7 @@ public:
     rdb_rget_depth_first_traversal_callback_t(
         transaction_t *txn,
         ql::env_t *_ql_env,
-        const ql::batcher_t &_batcher,
+        const ql::batchspec_t &batchspec,
         const rdb_protocol_details::transform_t &_transform,
         boost::optional<rdb_protocol_details::terminal_t> _terminal,
         const key_range_t &range,
@@ -676,7 +676,7 @@ public:
           transaction(txn),
           response(_response),
           ql_env(_ql_env),
-          batcher(_batcher),
+          batcher(batchspec.to_batcher()),
           transform(_transform),
           terminal(_terminal),
           sorting(_sorting),
@@ -874,14 +874,14 @@ public:
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env, const ql::batcher_t &batcher,
+                    ql::env_t *ql_env, const ql::batchspec_t &batchspec,
                     const rdb_protocol_details::transform_t &transform,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     sorting_t sorting,
                     rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, batcher, transform, terminal, range, sorting, response);
+        txn, ql_env, batchspec, transform, terminal, range, sorting, response);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
                                (sorting != sorting_t::DESCENDING ? FORWARD : BACKWARD));
 
@@ -897,7 +897,7 @@ void rdb_rget_secondary_slice(
     transaction_t *txn,
     superblock_t *superblock,
     ql::env_t *ql_env,
-    const ql::batcher_t &batcher,
+    const ql::batchspec_t &batchspec,
     const rdb_protocol_details::transform_t &transform,
     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
     const key_range_t &pk_range,
@@ -907,7 +907,7 @@ void rdb_rget_secondary_slice(
     rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, batcher, transform, terminal, sindex_region.inner, pk_range,
+        txn, ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
         sorting, sindex_func, sindex_multi, sindex_range, response);
     btree_concurrent_traversal(
         slice, txn, superblock, sindex_region.inner, &callback,

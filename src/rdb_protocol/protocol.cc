@@ -1251,7 +1251,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (!rget.sindex) {
             // Normal rget
             rdb_rget_slice(btree, rget.region.inner, txn, superblock,
-                           &ql_env, rget.batcher, rget.transform, rget.terminal,
+                           &ql_env, rget.batchspec, rget.transform, rget.terminal,
                            rget.sorting, res);
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
@@ -1294,7 +1294,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
                 rget.sindex->original_range, rget.sindex->region,
-                txn, sindex_sb.get(), &ql_env, rget.batcher, rget.transform,
+                txn, sindex_sb.get(), &ql_env, rget.batchspec, rget.transform,
                 rget.terminal, rget.region.inner, rget.sorting,
                 sindex_mapping, multi_bool, res);
         }
@@ -1913,7 +1913,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(datum_range_t,
                            empty_ok(left_bound), empty_ok(right_bound),
                            left_bound_type, right_bound_type);
 RDB_IMPL_ME_SERIALIZABLE_7(rdb_protocol_t::rget_read_t,
-                           region, optargs, batcher,
+                           region, optargs, batchspec,
                            transform, terminal, sindex, sorting);
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,

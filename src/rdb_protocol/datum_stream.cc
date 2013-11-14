@@ -110,9 +110,9 @@ rget_read_response_t::result_t
 reader_t::run_terminal(env_t *env, terminal_variant_t &&tv) {
     r_sanity_check(!started);
     started = finished = true;
-    batcher_t batcher = batcher_t::user_batcher(TERMINAL, env);
+    batchspec_t batchspec = batchspec_t::user(TERMINAL, env);
     rget_read_response_t res
-        = do_read(env, readgen->terminal_read(transform, std::move(tv), batcher));
+        = do_read(env, readgen->terminal_read(transform, std::move(tv), batchspec));
     return std::move(res.result);
 }
 
@@ -169,16 +169,16 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
     return std::move(*v);
 }
 
-bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
+bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     started = true;
     if (items_index >= items.size() && !finished) { // read some more
         items_index = 0;
         items = do_range_read(
-            env, readgen->next_read(active_range, transform, batcher));
+            env, readgen->next_read(active_range, transform, batchspec));
         // Everything below this point can handle `items` being empty (this is
         // good hygiene anyway).
         while (boost::optional<read_t> read
-               = readgen->sindex_sort_read(active_range, items, transform, batcher)) {
+               = readgen->sindex_sort_read(active_range, items, transform, batchspec)) {
             std::vector<rget_item_t> new_items = do_range_read(env, *read);
             if (new_items.size() == 0) {
                 break;
@@ -208,15 +208,15 @@ bool reader_t::load_items(env_t *env, const batcher_t &batcher) {
 }
 
 std::vector<counted_t<const datum_t> >
-reader_t::next_batch(env_t *env, const batcher_t &batcher) {
+reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     started = true;
-    if (!load_items(env, batcher)) {
+    if (!load_items(env, batchspec)) {
         return std::vector<counted_t<const datum_t> >();
     }
     r_sanity_check(items_index < items.size());
 
     std::vector<counted_t<const datum_t> > toret;
-    switch (batcher.get_batch_type()) {
+    switch (batchspec.get_batch_type()) {
     case NORMAL: // fallthru
     case TERMINAL: {
         toret.reserve(items.size() - items_index);
@@ -262,7 +262,7 @@ reader_t::next_batch(env_t *env, const batcher_t &batcher) {
                 // If we consumed the whole batch without finding a new sindex,
                 // we might have more rows with the same sindex in the next
                 // batch, which we promptly load.
-                maybe_more_with_sindex = load_items(env, batcher);
+                maybe_more_with_sindex = load_items(env, batchspec);
             } else {
                 maybe_more_with_sindex = false;
             }
@@ -322,16 +322,16 @@ bool readgen_t::update_range(key_range_t *active_range,
 read_t readgen_t::next_read(
     const key_range_t &active_range,
     const transform_t &transform,
-    const batcher_t &batcher) const {
-    return read_t(next_read_impl(active_range, transform, batcher), profile);
+    const batchspec_t &batchspec) const {
+    return read_t(next_read_impl(active_range, transform, batchspec), profile);
 }
 
 // TODO: this is how we did it before, but it sucks.
 read_t readgen_t::terminal_read(
     const transform_t &transform,
     terminal_t &&_terminal,
-    const batcher_t &batcher) const {
-    rget_read_t read = next_read_impl(original_keyrange(), transform, batcher);
+    const batchspec_t &batchspec) const {
+    rget_read_t read = next_read_impl(original_keyrange(), transform, batchspec);
     read.terminal = std::move(_terminal);
     return read_t(read, profile);
 }
@@ -353,11 +353,11 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
 rget_read_t primary_readgen_t::next_read_impl(
     const key_range_t &active_range,
     const transform_t &transform,
-    const batcher_t &batcher) const {
+    const batchspec_t &batchspec) const {
     return rget_read_t(
         region_t(active_range),
         global_optargs,
-        batcher,
+        batchspec,
         transform,
         boost::optional<terminal_t>(),
         boost::optional<sindex_rangespec_t>(),
@@ -369,7 +369,7 @@ boost::optional<read_t> primary_readgen_t::sindex_sort_read(
     UNUSED const key_range_t &active_range,
     UNUSED const std::vector<rget_item_t> &items,
     UNUSED const transform_t &transform,
-    UNUSED const batcher_t &batcher) const {
+    UNUSED const batchspec_t &batchspec) const {
     return boost::optional<read_t>();
 }
 void primary_readgen_t::sindex_sort(UNUSED std::vector<rget_item_t> *vec) const {
@@ -424,11 +424,11 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
 rget_read_t sindex_readgen_t::next_read_impl(
     const key_range_t &active_range,
     const transform_t &transform,
-    const batcher_t &batcher) const {
+    const batchspec_t &batchspec) const {
     return rget_read_t(
         region_t::universe(),
         global_optargs,
-        batcher,
+        batchspec,
         transform,
         boost::optional<terminal_t>(),
         sindex_rangespec_t(sindex, region_t(active_range), original_datum_range),
@@ -439,7 +439,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
     const key_range_t &active_range,
     const std::vector<rget_item_t> &items,
     const transform_t &transform,
-    const batcher_t &batcher) const {
+    const batchspec_t &batchspec) const {
     if (sorting != sorting_t::UNORDERED && items.size() > 0) {
         const store_key_t &key = items[items.size() - 1].key;
         if (datum_t::key_is_truncated(key)) {
@@ -462,7 +462,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
                     rget_read_t(
                         region_t::universe(),
                         global_optargs,
-                        batcher.with_new_batch_type(SINDEX_CONSTANT),
+                        batchspec.with_new_batch_type(SINDEX_CONSTANT),
                         transform,
                         boost::optional<terminal_t>(),
                         sindex_rangespec_t(
@@ -502,13 +502,13 @@ datum_stream_t::datum_stream_t(const protob_t<const Backtrace> &bt_src)
 
 
 std::vector<counted_t<const datum_t> >
-datum_stream_t::next_batch(env_t *env, const batcher_t &batcher) {
+datum_stream_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     DEBUG_ONLY_CODE(env->do_eval_callback());
     env->throw_if_interruptor_pulsed();
     // Cannot mix `next` and `next_batch`.
     r_sanity_check(batch_cache_index == 0 && batch_cache.size() == 0);
     try {
-        return next_batch_impl(env, batcher);
+        return next_batch_impl(env, batchspec);
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
         unreachable();
@@ -516,10 +516,10 @@ datum_stream_t::next_batch(env_t *env, const batcher_t &batcher) {
 }
 
 counted_t<const datum_t> datum_stream_t::next(
-    env_t *env, const batcher_t &batcher) {
+    env_t *env, const batchspec_t &batchspec) {
     if (batch_cache_index >= batch_cache.size()) {
         r_sanity_check(batch_cache_index == 0);
-        batch_cache = next_batch(env, batcher);
+        batch_cache = next_batch(env, batchspec);
         if (batch_cache_index >= batch_cache.size()) {
             return counted_t<const datum_t>();
         }
@@ -538,8 +538,8 @@ counted_t<const datum_t> datum_stream_t::next(
 
 counted_t<const datum_t> eager_datum_stream_t::count(env_t *env) {
     size_t acc = 0;
-    batcher_t batcher = batcher_t::user_batcher(TERMINAL, env);
-    while (counted_t<const datum_t> d = next(env, batcher)) {
+    batchspec_t batchspec = batchspec_t::user(TERMINAL, env);
+    while (counted_t<const datum_t> d = next(env, batchspec)) {
         acc += 1;
     }
     return make_counted<datum_t>(static_cast<double>(acc));
@@ -548,13 +548,13 @@ counted_t<const datum_t> eager_datum_stream_t::count(env_t *env) {
 counted_t<const datum_t> eager_datum_stream_t::reduce(env_t *env,
                                                       counted_t<val_t> base_val,
                                                       counted_t<func_t> f) {
-    batcher_t batcher = batcher_t::user_batcher(TERMINAL, env);
+    batchspec_t batchspec = batchspec_t::user(TERMINAL, env);
     counted_t<const datum_t> base = base_val.has()
         ? base_val->as_datum()
-        : next(env, batcher);
+        : next(env, batchspec);
     rcheck(base.has(), base_exc_t::NON_EXISTENCE, empty_stream_msg);
 
-    while (counted_t<const datum_t> rhs = next(env, batcher)) {
+    while (counted_t<const datum_t> rhs = next(env, batchspec)) {
         base = f->call(env, base, rhs)->as_datum();
     }
     return base;
@@ -566,8 +566,8 @@ counted_t<const datum_t> eager_datum_stream_t::gmr(env_t *env,
                                                    counted_t<const datum_t> base,
                                                    counted_t<func_t> reduce) {
     wire_datum_map_t wd_map;
-    batcher_t batcher = batcher_t::user_batcher(TERMINAL, env);
-    while (counted_t<const datum_t> el = next(env, batcher)) {
+    batchspec_t batchspec = batchspec_t::user(TERMINAL, env);
+    while (counted_t<const datum_t> el = next(env, batchspec)) {
         counted_t<const datum_t> el_group = group->call(env, el)->as_datum();
         counted_t<const datum_t> el_map = map->call(env, el)->as_datum();
         if (!wd_map.has(el_group)) {
@@ -598,10 +598,10 @@ counted_t<datum_stream_t> eager_datum_stream_t::concatmap(counted_t<func_t> f) {
 
 counted_t<const datum_t> eager_datum_stream_t::as_array(env_t *env) {
     datum_ptr_t arr(datum_t::R_ARRAY);
-    batcher_t batcher = batcher_t::user_batcher(TERMINAL, env);
+    batchspec_t batchspec = batchspec_t::user(TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating as_array elements.", env->trace);
-        while (counted_t<const datum_t> d = next(env, batcher)) {
+        while (counted_t<const datum_t> d = next(env, batchspec)) {
             arr.add(d);
             sampler.new_sample();
         }
@@ -692,10 +692,10 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(
 }
 
 std::vector<counted_t<const datum_t> >
-lazy_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
+lazy_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     // Should never mix `next` with `next_batch`.
     r_sanity_check(current_batch_offset == 0 && current_batch.size() == 0);
-    return reader.next_batch(env, batcher);
+    return reader.next_batch(env, batchspec);
 }
 
 bool lazy_datum_stream_t::is_exhausted() const {
@@ -708,7 +708,7 @@ array_datum_stream_t::array_datum_stream_t(counted_t<const datum_t> _arr,
     : eager_datum_stream_t(bt_source), index(0), arr(_arr) { }
 
 counted_t<const datum_t> array_datum_stream_t::next(
-    UNUSED env_t *env, UNUSED const batcher_t &batcher) {
+    UNUSED env_t *env, UNUSED const batchspec_t &batchspec) {
     return index < arr->size() ? arr->get(index++) : counted_t<const datum_t>();
 }
 
@@ -717,13 +717,13 @@ bool array_datum_stream_t::is_exhausted() const {
 }
 
 std::vector<counted_t<const datum_t> >
-array_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
+array_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     std::vector<counted_t<const datum_t> > v;
-    batcher_t local_batcher = batcher;
-    while (counted_t<const datum_t> d = next(env, batcher)) {
-        local_batcher.note_el(d);
+    batcher_t batcher = batchspec.to_batcher();
+    while (counted_t<const datum_t> d = next(env, batchspec)) {
+        batcher.note_el(d);
         v.push_back(std::move(d));
-        if (local_batcher.should_send_batch()) {
+        if (batcher.should_send_batch()) {
             break;
         }
     }
@@ -743,18 +743,19 @@ indexed_sort_datum_stream_t::indexed_sort_datum_stream_t(
     : wrapper_datum_stream_t(stream), lt_cmp(_lt_cmp), index(0) { }
 
 std::vector<counted_t<const datum_t> >
-indexed_sort_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
+indexed_sort_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     std::vector<counted_t<const datum_t> > ret;
-    batcher_t local_batcher = batcher;
-    while (!local_batcher.should_send_batch()) {
+    batcher_t batcher = batchspec.to_batcher();
+    while (!batcher.should_send_batch()) {
         if (index >= data.size()) {
-            if (ret.size() > 0 && batcher.get_batch_type() == SINDEX_CONSTANT) {
+            if (ret.size() > 0 && batchspec.get_batch_type() == SINDEX_CONSTANT) {
                 // Never read more than one SINDEX_CONSTANT batch if we need to
                 // return an SINDEX_CONSTANT batch.
                 return ret;
             }
             index = 0;
-            data = source->next_batch(env, batcher.with_new_batch_type(SINDEX_CONSTANT));
+            data = source->next_batch(
+                env, batchspec.with_new_batch_type(SINDEX_CONSTANT));
             if (index >= data.size()) {
                 return ret;
             }
@@ -762,8 +763,8 @@ indexed_sort_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batche
                       std::bind(lt_cmp, env,
                                 std::placeholders::_1, std::placeholders::_2));
         }
-        for (; index < data.size() && !local_batcher.should_send_batch(); ++index) {
-            local_batcher.note_el(data[index]);
+        for (; index < data.size() && !batcher.should_send_batch(); ++index) {
+            batcher.note_el(data[index]);
             ret.push_back(std::move(data[index]));
         }
     }
@@ -777,8 +778,8 @@ map_datum_stream_t::map_datum_stream_t(counted_t<func_t> _f,
     guarantee(f.has() && source.has());
 }
 std::vector<counted_t<const datum_t> >
-map_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
-    std::vector<counted_t<const datum_t> > v = source->next_batch(env, batcher);
+map_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
+    std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
     for (auto it = v.begin(); it != v.end(); ++it) {
         *it = f->call(env, *it)->as_datum();
     }
@@ -793,10 +794,10 @@ indexes_of_datum_stream_t::indexes_of_datum_stream_t(counted_t<func_t> _f,
 }
 
 std::vector<counted_t<const datum_t> >
-indexes_of_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
+indexes_of_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     std::vector<counted_t<const datum_t> > ret;
     while (ret.size() == 0) {
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batcher);
+        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
         if (v.size() == 0) {
             break;
         }
@@ -819,10 +820,10 @@ filter_datum_stream_t::filter_datum_stream_t(counted_t<func_t> _f,
 }
 
 std::vector<counted_t<const datum_t> >
-filter_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
+filter_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     std::vector<counted_t<const datum_t> > ret;
     while (ret.size() == 0) {
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batcher);
+        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
         if (v.size() == 0) {
             break;
         }
@@ -843,17 +844,17 @@ concatmap_datum_stream_t::concatmap_datum_stream_t(counted_t<func_t> _f,
 }
 
 std::vector<counted_t<const datum_t> >
-concatmap_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
+concatmap_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     for (;;) {
         if (!subsource.has()) {
-            counted_t<const datum_t> arg = source->next(env, batcher);
+            counted_t<const datum_t> arg = source->next(env, batchspec);
             if (!arg.has()) {
                 return std::vector<counted_t<const datum_t> >();
             }
             subsource = f->call(env, arg)->as_seq(env);
         }
         std::vector<counted_t<const datum_t> > v
-            = subsource->next_batch(env, batcher);
+            = subsource->next_batch(env, batchspec);
         if (v.size() != 0) {
             return v;
         } else {
@@ -869,13 +870,13 @@ slice_datum_stream_t::slice_datum_stream_t(size_t _left, size_t _right,
       left(_left), right(_right) { }
 
 std::vector<counted_t<const datum_t> >
-slice_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
+slice_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     if (left >= right || index >= right) {
         return std::vector<counted_t<const datum_t> >();
     }
 
     while (index < left) {
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batcher);
+        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
         if (v.size() == 0) {
             return v;
         }
@@ -893,7 +894,7 @@ slice_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
     }
 
     while (index < right) {
-        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batcher);
+        std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
         if (v.size() == 0) {
             return v;
         }
@@ -912,8 +913,8 @@ zip_datum_stream_t::zip_datum_stream_t(counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src) { }
 
 std::vector<counted_t<const datum_t> >
-zip_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
-    std::vector<counted_t<const datum_t> > v = source->next_batch(env, batcher);
+zip_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
+    std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
     for (auto it = v.begin(); it != v.end(); ++it) {
         auto left = (*it)->get("left", NOTHROW);
         auto right = (*it)->get("right", NOTHROW);
@@ -1022,10 +1023,10 @@ counted_t<const datum_t> union_datum_stream_t::as_array(env_t *env) {
         return counted_t<const datum_t>();
     }
     datum_ptr_t arr(datum_t::R_ARRAY);
-    batcher_t batcher = batcher_t::user_batcher(TERMINAL, env);
+    batchspec_t batchspec = batchspec_t::user(TERMINAL, env);
     {
         profile::sampler_t sampler("Evaluating as_array elements.", env->trace);
-        while (counted_t<const datum_t> d = next(env, batcher)) {
+        while (counted_t<const datum_t> d = next(env, batchspec)) {
             arr.add(d);
             sampler.new_sample();
         }
@@ -1043,10 +1044,10 @@ bool union_datum_stream_t::is_exhausted() const {
 }
 
 std::vector<counted_t<const datum_t> >
-union_datum_stream_t::next_batch_impl(env_t *env, const batcher_t &batcher) {
+union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
     for (; streams_index < streams.size(); ++streams_index) {
         std::vector<counted_t<const datum_t> > batch
-            = streams[streams_index]->next_batch(env, batcher);
+            = streams[streams_index]->next_batch(env, batchspec);
         if (batch.size() != 0) {
             return batch;
         }

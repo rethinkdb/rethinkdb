@@ -124,9 +124,9 @@ public:
     // the end of the stream has been reached.  Otherwise, returns at least one
     // element.)  (Wrapper around `next_batch_impl`.)
     std::vector<counted_t<const datum_t> >
-    next_batch(env_t *env, const batcher_t &batcher);
+    next_batch(env_t *env, const batchspec_t &batchspec);
     // Prefer `next_batch`.  Cannot be used in conjunction with `next_batch`.
-    virtual counted_t<const datum_t> next(env_t *env, const batcher_t &batcher);
+    virtual counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
     virtual bool is_exhausted() const = 0;
 
 protected:
@@ -134,7 +134,7 @@ protected:
 
 private:
     virtual std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher) = 0;
+    next_batch_impl(env_t *env, const batchspec_t &batchspec) = 0;
     std::vector<counted_t<const datum_t> > batch_cache;
     size_t batch_cache_index;
 };
@@ -187,7 +187,7 @@ public:
 
 private:
     std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     counted_t<func_t> f;
 };
@@ -198,7 +198,7 @@ public:
 
 private:
     std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     counted_t<func_t> f;
     int64_t index;
@@ -212,7 +212,7 @@ public:
 
 private:
     std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     counted_t<func_t> f;
     counted_t<func_t> default_filter_val;
@@ -224,7 +224,7 @@ public:
 
 private:
     std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     counted_t<func_t> f;
     counted_t<datum_stream_t> subsource;
@@ -241,7 +241,7 @@ public:
     read_t terminal_read(
         const transform_t &transform,
         terminal_t &&_terminal,
-        const batcher_t &batcher) const;
+        const batchspec_t &batchspec) const;
     // This has to be on `readgen_t` because we sort differently depending on
     // the kinds of reads we're doing.
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const = 0;
@@ -249,7 +249,7 @@ public:
     virtual read_t next_read(
         const key_range_t &active_range,
         const transform_t &transform,
-        const batcher_t &batcher) const;
+        const batchspec_t &batchspec) const;
     // This generates a read that will read as many rows as we need to be able
     // to do an sindex sort, or nothing if no such read is necessary.  Such a
     // read should only be necessary when we're ordering by a secondary index
@@ -258,7 +258,7 @@ public:
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const transform_t &transform,
-        const batcher_t &batcher) const = 0;
+        const batchspec_t &batchspec) const = 0;
 
     virtual key_range_t original_keyrange() const = 0;
     virtual std::string sindex_name() const = 0; // Used for error checking.
@@ -276,7 +276,7 @@ private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const transform_t &transform,
-        const batcher_t &batcher) const = 0;
+        const batchspec_t &batchspec) const = 0;
 };
 
 class primary_readgen_t : public readgen_t {
@@ -291,12 +291,12 @@ private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const transform_t &transform,
-        const batcher_t &batcher) const;
+        const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const transform_t &transform,
-        const batcher_t &batcher) const;
+        const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
     virtual std::string sindex_name() const; // Used for error checking.
@@ -317,12 +317,12 @@ private:
     virtual rget_read_t next_read_impl(
         const key_range_t &active_range,
         const transform_t &transform,
-        const batcher_t &batcher) const;
+        const batchspec_t &batchspec) const;
     virtual boost::optional<read_t> sindex_sort_read(
         const key_range_t &active_range,
         const std::vector<rget_item_t> &items,
         const transform_t &transform,
-        const batcher_t &batcher) const;
+        const batchspec_t &batchspec) const;
     virtual void sindex_sort(std::vector<rget_item_t> *vec) const;
     virtual key_range_t original_keyrange() const;
     virtual std::string sindex_name() const; // Used for error checking.
@@ -339,11 +339,11 @@ public:
     void add_transformation(transform_variant_t &&tv);
     rget_read_response_t::result_t run_terminal(env_t *env, terminal_variant_t &&tv);
     std::vector<counted_t<const datum_t> >
-    next_batch(env_t *env, const batcher_t &batcher);
+    next_batch(env_t *env, const batchspec_t &batchspec);
     bool is_finished() const;
 private:
     // Returns `true` if there's data in `items`.
-    bool load_items(env_t *env, const batcher_t &batcher);
+    bool load_items(env_t *env, const batchspec_t &batchspec);
     rget_read_response_t do_read(env_t *env, const read_t &read);
     std::vector<rget_item_t> do_range_read(env_t *env, const read_t &read);
 
@@ -389,7 +389,7 @@ public:
     bool is_exhausted() const;
 private:
     std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     rdb_protocol_t::rget_read_response_t::result_t run_terminal(
         env_t *env, const rdb_protocol_details::terminal_variant_t &t);
@@ -412,8 +412,8 @@ public:
 private:
     virtual bool is_array();
     virtual std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, UNUSED const batcher_t &batcher);
-    counted_t<const datum_t> next(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, UNUSED const batchspec_t &batchspec);
+    counted_t<const datum_t> next(env_t *env, const batchspec_t &batchspec);
 
     size_t index;
     counted_t<const datum_t> arr;
@@ -424,7 +424,7 @@ public:
     slice_datum_stream_t(size_t left, size_t right, counted_t<datum_stream_t> src);
 private:
     virtual std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
     uint64_t index, left, right;
 };
 
@@ -433,7 +433,7 @@ public:
     explicit zip_datum_stream_t(counted_t<datum_stream_t> src);
 private:
     virtual std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 };
 
 class indexed_sort_datum_stream_t : public wrapper_datum_stream_t {
@@ -445,7 +445,7 @@ public:
                            const counted_t<const datum_t> &)> lt_cmp);
 private:
     virtual std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     std::function<bool(env_t *,
                        const counted_t<const datum_t> &,
@@ -482,7 +482,7 @@ public:
 
 private:
     std::vector<counted_t<const datum_t> >
-    next_batch_impl(env_t *env, const batcher_t &batcher);
+    next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
     std::vector<counted_t<datum_stream_t> > streams;
     size_t streams_index;

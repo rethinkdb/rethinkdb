@@ -350,18 +350,18 @@ struct rdb_protocol_t {
     // by branching on whether an optional is full sucks.
     class rget_read_t {
     public:
-        rget_read_t() : batcher(ql::batcher_t::empty_batcher_for_serialization()) { }
+        rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
         rget_read_t(const region_t &_region,
                     const std::map<std::string, ql::wire_func_t> &_optargs,
-                    const ql::batcher_t &_batcher,
+                    const ql::batchspec_t &_batchspec,
                     const rdb_protocol_details::transform_t &_transform,
                     boost::optional<rdb_protocol_details::terminal_t> &&_terminal,
                     boost::optional<sindex_rangespec_t> &&_sindex,
                     sorting_t _sorting)
             : region(_region),
               optargs(_optargs),
-              batcher(_batcher),
+              batchspec(_batchspec),
               transform(_transform),
               terminal(std::move(_terminal)),
               sindex(std::move(_sindex)),
@@ -369,7 +369,7 @@ struct rdb_protocol_t {
 
         region_t region; // We need this even for sindex reads due to sharding.
         std::map<std::string, ql::wire_func_t> optargs;
-        ql::batcher_t batcher; // used to size batches
+        ql::batchspec_t batchspec; // used to size batches
 
         // We use these two for lazy maps, reductions, etc.
         rdb_protocol_details::transform_t transform;

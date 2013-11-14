@@ -211,10 +211,10 @@ private:
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
-                batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+                batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
                 {
                     profile::sampler_t sampler("Coercing to array.", env->env->trace);
-                    while (counted_t<const datum_t> el = ds->next(env->env, batcher)) {
+                    while (auto el = ds->next(env->env, batchspec)) {
                         arr.add(el);
                         sampler.new_sample();
                     }
@@ -225,10 +225,10 @@ private:
             // SEQUENCE -> OBJECT
             if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
                 datum_ptr_t obj(datum_t::R_OBJECT);
-                batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+                batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
                 {
                     profile::sampler_t sampler("Coercing to array.", env->env->trace);
-                    while (counted_t<const datum_t> pair = ds->next(env->env, batcher)) {
+                    while (auto pair = ds->next(env->env, batchspec)) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj.add(key, keyval);

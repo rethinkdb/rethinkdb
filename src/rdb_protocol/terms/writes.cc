@@ -99,10 +99,10 @@ private:
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row inserts.");
 
-            batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+            batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = datum_stream->next_batch(env->env, batcher);
+                    = datum_stream->next_batch(env->env, batchspec);
                 if (datums.empty()) {
                     break;
                 }
@@ -183,10 +183,10 @@ private:
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
-            batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+            batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = ds->next_batch(env->env, batcher);
+                    = ds->next_batch(env->env, batchspec);
                 if (datums.empty()) {
                     break;
                 }
@@ -214,11 +214,11 @@ private:
 
         counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
-        batcher_t batcher = batcher_t::user_batcher(TERMINAL, env->env);
+        batchspec_t batchspec = batchspec_t::user(TERMINAL, env->env);
         {
             profile::sampler_t sampler("Evaluating elements in for each.",
                                        env->env->trace);
-            while (counted_t<const datum_t> row = ds->next(env->env, batcher)) {
+            while (counted_t<const datum_t> row = ds->next(env->env, batchspec)) {
                 counted_t<val_t> v
                     = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
                 try {

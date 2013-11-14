@@ -27,7 +27,7 @@ rdb_protocol_t::read_t make_sindex_read(
         rdb_protocol_t::rget_read_t(
             rdb_protocol_t::region_t::universe(),
             std::map<std::string, ql::wire_func_t>(),
-            ql::batcher_t::user_batcher(ql::NORMAL, counted_t<const ql::datum_t>()),
+            ql::batchspec_t::user(ql::NORMAL, counted_t<const ql::datum_t>()),
             transform_t(),
             boost::optional<terminal_t>(),
             rdb_protocol_t::sindex_rangespec_t(

@@ -29,12 +29,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(batch_type_t, int8_t, NORMAL, SINDEX_CONST
 
 class batcher_t {
 public:
-    static batcher_t user_batcher(batch_type_t batch_type,
-                                  const counted_t<const datum_t> &conf);
-    static batcher_t user_batcher(batch_type_t batch_type, env_t *env);
-    static batcher_t empty_batcher_for_serialization() { return batcher_t(); }
-    batcher_t with_new_batch_type(batch_type_t new_batch_type) const;
-
     template<class T>
     bool note_el(const T &t) {
         seen_one_el = true;
@@ -43,17 +37,35 @@ public:
         return should_send_batch();
     }
     bool should_send_batch() const;
+    batcher_t(batcher_t &&) = default;
+private:
+    DISABLE_COPYING(batcher_t);
+    friend class batchspec_t;
+    batcher_t(batch_type_t batch_type, int64_t els, int64_t size, microtime_t end_time);
+
+    const batch_type_t batch_type;
+    bool seen_one_el;
+    int64_t els_left, size_left;
+    const microtime_t end_time;
+};
+
+class batchspec_t {
+public:
+    static batchspec_t user(batch_type_t batch_type,
+                            const counted_t<const datum_t> &conf);
+    static batchspec_t user(batch_type_t batch_type, env_t *env);
+    static batchspec_t empty() { return batchspec_t(); }
     batch_type_t get_batch_type() const { return batch_type; }
-    RDB_MAKE_ME_SERIALIZABLE_5(batch_type, seen_one_el, els_left, size_left, end_time);
+    batchspec_t with_new_batch_type(batch_type_t new_batch_type) const;
+    batcher_t to_batcher() const;
+    RDB_MAKE_ME_SERIALIZABLE_4(batch_type, els_left, size_left, end_time);
 private:
     // I made this private and accessible through a static function because it
     // was being accidentally default-initialized.
-    batcher_t() { } // USE ONLY FOR SERIALIZATION
-
-    batcher_t(batch_type_t batch_type, int64_t els, int64_t size, microtime_t end_time);
+    batchspec_t() { } // USE ONLY FOR SERIALIZATION
+    batchspec_t(batch_type_t batch_type, int64_t els, int64_t size, microtime_t end);
 
     batch_type_t batch_type;
-    bool seen_one_el;
     int64_t els_left, size_left;
     microtime_t end_time;
 };
