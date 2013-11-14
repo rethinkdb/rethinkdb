@@ -87,7 +87,7 @@ block_id_t real_superblock_t::get_sindex_block_id() {
 
 void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
 #if SLICE_ALT
-    alt_buf_write_t(&sb_buf_);
+    alt_buf_write_t write(&sb_buf_);
     btree_superblock_t *sb_data
         = static_cast<btree_superblock_t *>(write.get_data_write());
 #else
