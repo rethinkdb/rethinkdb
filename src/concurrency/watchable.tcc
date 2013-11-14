@@ -46,6 +46,7 @@ public:
     }
 
 private:
+    // TODO (daniel): Document how incremental lenses work.
     class lensed_value_cache_t {
     public:
         lensed_value_cache_t(const callable_type &l, watchable_t<outer_type> *p) :
@@ -88,7 +89,7 @@ private:
             struct op_closure_t {
                 void operator()(const outer_type *val) {
                     parent_changed = false;
-                    cached_value = lens(*val);
+                    cached_value = lens(*val, static_cast<const result_type *>(&cached_value));
                 }
                 op_closure_t(callable_type &c1, bool &c2, result_type &c3) :
                     lens(c1),

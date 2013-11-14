@@ -35,7 +35,7 @@ namespace_repo_t<protocol_t>::~namespace_repo_t() { }
 
 template <class protocol_t>
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reactor_business_cards(
-        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, const namespace_id_t &n_id) {
+        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, const void *, const namespace_id_t &n_id) {
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > res;
     for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.begin();
                                                                                                     it != ns_directory_metadata.end();
@@ -152,7 +152,7 @@ void namespace_repo_t<protocol_t>::create_and_destroy_namespace_interface(
     reverse. Fortunately RAII works really nicely here. */
     on_thread_t switch_to_home_thread(home_thread());
     clone_ptr_t<watchable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > > subview =
-        namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards<protocol_t>, _1, namespace_id));
+        namespaces_directory_metadata->subview(boost::bind(&get_reactor_business_cards<protocol_t>, _1, _2, namespace_id));
     cross_thread_watchable_variable_t<std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > > cross_thread_watchable(subview, thread);
     on_thread_t switch_back(thread);
 

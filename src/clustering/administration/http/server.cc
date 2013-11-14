@@ -16,7 +16,7 @@
 #include "http/routing_app.hpp"
 #include "rpc/semilattice/view/field.hpp"
 
-std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
+std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const std::map<peer_id_t, cluster_directory_metadata_t> &md, const void *) {
     std::map<peer_id_t, log_server_business_card_t> out;
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.begin(); it != md.end(); it++) {
         out.insert(std::make_pair(it->first, it->second.log_mailbox));
@@ -24,7 +24,7 @@ std::map<peer_id_t, log_server_business_card_t> get_log_mailbox(const std::map<p
     return out;
 }
 
-std::map<peer_id_t, machine_id_t> get_machine_id(const std::map<peer_id_t, cluster_directory_metadata_t> &md) {
+std::map<peer_id_t, machine_id_t> get_machine_id(const std::map<peer_id_t, cluster_directory_metadata_t> &md, const void *) {
     std::map<peer_id_t, machine_id_t> out;
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator it = md.begin(); it != md.end(); it++) {
         out.insert(std::make_pair(it->first, it->second.machine_id));

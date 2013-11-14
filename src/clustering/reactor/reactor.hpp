@@ -144,7 +144,7 @@ private:
             signal_t *interruptor) THROWS_NOTHING;
 
     static boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > extract_broadcaster_from_reactor_business_card_primary(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard);
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard, const void *);
 
     /* Shared between all three roles (primary, secondary, nothing) */
 
@@ -186,7 +186,7 @@ private:
 
 
 template<class protocol_t, class activity_t>
-boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
+boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &bcards, const void *, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = bcards.find(p_id);
     if (it == bcards.end()) {
         return boost::optional<boost::optional<activity_t> >();
@@ -207,7 +207,7 @@ boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcar
 template <class protocol_t>
 template <class activity_t>
 clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > reactor_t<protocol_t>::get_directory_entry_view(peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    return directory_echo_mirror.get_internal()->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, p_id, ra_id));
+    return directory_echo_mirror.get_internal()->subview(boost::bind(&extract_activity_from_reactor_bcard<protocol_t, activity_t>, _1, _2, p_id, ra_id));
 }
 
 

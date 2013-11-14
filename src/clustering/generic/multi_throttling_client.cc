@@ -97,7 +97,7 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::s
 }
 
 template <class request_type, class inner_client_business_card_type>
-boost::optional<boost::optional<registrar_business_card_t<typename multi_throttling_business_card_t<request_type, inner_client_business_card_type>::client_business_card_t> > > multi_throttling_client_t<request_type, inner_client_business_card_type>::extract_registrar_business_card(const boost::optional<boost::optional<mt_business_card_t> > &bcard) {
+boost::optional<boost::optional<registrar_business_card_t<typename multi_throttling_business_card_t<request_type, inner_client_business_card_type>::client_business_card_t> > > multi_throttling_client_t<request_type, inner_client_business_card_type>::extract_registrar_business_card(const boost::optional<boost::optional<mt_business_card_t> > &bcard, const void *) {
     if (bcard) {
         if (bcard.get()) {
             return boost::make_optional(boost::make_optional(bcard.get().get().registrar));

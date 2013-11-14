@@ -20,12 +20,12 @@ namespace unittest {
 namespace {
 
 boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > wrap_broadcaster_in_optional(
-        const boost::optional<broadcaster_business_card_t<dummy_protocol_t> > &inner) {
+        const boost::optional<broadcaster_business_card_t<dummy_protocol_t> > &inner, const void *) {
     return boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >(inner);
 }
 
 boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > > wrap_replier_in_optional(
-        const boost::optional<replier_business_card_t<dummy_protocol_t> > &inner) {
+        const boost::optional<replier_business_card_t<dummy_protocol_t> > &inner, const void *) {
     return boost::optional<boost::optional<replier_business_card_t<dummy_protocol_t> > >(inner);
 }
 

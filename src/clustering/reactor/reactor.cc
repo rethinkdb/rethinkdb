@@ -8,8 +8,9 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 
+// TODO! Make incremental
 template<class key_t, class value_t>
-std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
+std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map, const void *) {
     std::map<key_t, value_t> res;
     for (typename std::map<key_t, boost::optional<value_t> >::const_iterator it = map.begin(); it != map.end(); it++) {
         if (it->second) {
@@ -256,7 +257,7 @@ reactor_t<protocol_t>::backfill_candidate_t::backfill_location_t::backfill_locat
     : backfiller(b), peer_id(p), activity_id(i) { }
 
 template<class protocol_t>
-boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
+boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reactor_t<protocol_t>::extract_broadcaster_from_reactor_business_card_primary(const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard, const void *) {
     if (!bcard) {
         return boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > >();
     }

@@ -352,7 +352,7 @@ void cluster_namespace_interface_t<protocol_t>::update_registrants(bool is_start
 
 template <class protocol_t>
 boost::optional<boost::optional<master_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const void *, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<master_business_card_t<protocol_t> > > ret;
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
     if (it != map.end()) {
@@ -372,7 +372,7 @@ cluster_namespace_interface_t<protocol_t>:: extract_master_business_card(const s
 
 template <class protocol_t>
 boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const void *, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > ret;
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
     if (it != map.end()) {
@@ -392,7 +392,7 @@ cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_f
 
 template <class protocol_t>
 boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > >
-cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
+cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &map, const void *, const peer_id_t &peer, const reactor_activity_id_t &activity_id) {
     boost::optional<boost::optional<direct_reader_business_card_t<protocol_t> > > ret;
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = map.find(peer);
     if (it != map.end()) {
@@ -421,11 +421,11 @@ void cluster_namespace_interface_t<protocol_t>::relationship_coroutine(peer_id_t
         scoped_ptr_t<resource_access_t<direct_reader_business_card_t<protocol_t> > > direct_reader_access;
         if (is_primary) {
             master_access.init(new master_access_t<protocol_t>(mailbox_manager,
-                                                               directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, peer_id, activity_id)),
+                                                               directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_master_business_card, _1, _2, peer_id, activity_id)),
                                                                lock.get_drain_signal()));
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, peer_id, activity_id))));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_primary, _1, _2, peer_id, activity_id))));
         } else {
-            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary, _1, peer_id, activity_id))));
+            direct_reader_access.init(new resource_access_t<direct_reader_business_card_t<protocol_t> >(directory_view->subview(boost::bind(&cluster_namespace_interface_t<protocol_t>::extract_direct_reader_business_card_from_secondary, _1, _2, peer_id, activity_id))));
         }
 
         relationship_t relationship_record;
