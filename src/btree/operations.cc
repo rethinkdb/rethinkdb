@@ -10,6 +10,12 @@
 #include "containers/archive/vector_stream.hpp"
 
 #if SLICE_ALT
+using alt::alt_buf_lock_t;
+using alt::alt_buf_read_t;
+using alt::alt_buf_write_t;
+#endif
+
+#if SLICE_ALT
 real_superblock_t::real_superblock_t(alt::alt_buf_lock_t *sb_buf) {
 #else
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
