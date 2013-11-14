@@ -56,6 +56,7 @@ namespace alt {
 
 enum class alt_access_t;
 class alt_buf_lock_t;
+class alt_buf_parent_t;
 class alt_buf_read_t;
 class alt_buf_write_t;
 
@@ -170,53 +171,56 @@ public:
     // must not be destroyed until the buffers are finished being
     // used.  If you want to expose the region in a _readonly_
     // fashion, use a const_cast!  I am so sorry.
-    void expose_region(alt_buf_lock_t *parent, alt_access_t mode, int64_t offset,
+    void expose_region(alt::alt_buf_parent_t root,
+                       alt_access_t mode, int64_t offset,
                        int64_t size, buffer_group_t *buffer_group_out,
                        blob_acq_t *acq_group_out);
-    void expose_all(alt_buf_lock_t *parent, alt_access_t mode,
+    void expose_all(alt_buf_parent_t root, alt_access_t mode,
                     buffer_group_t *buffer_group_out,
                     blob_acq_t *acq_group_out);
 
     // Appends size bytes of garbage data to the blob.
-    void append_region(alt_buf_lock_t *parent, int64_t size);
+    void append_region(alt::alt_buf_parent_t root, int64_t size);
 
     // Prepends size bytes of garbage data to the blob.
-    void prepend_region(alt_buf_lock_t *parent, int64_t size);
+    void prepend_region(alt::alt_buf_parent_t root, int64_t size);
 
     // Removes size bytes of data from the end of the blob.  size must
     // be <= valuesize().
-    void unappend_region(alt_buf_lock_t *parent, int64_t size);
+    void unappend_region(alt::alt_buf_parent_t root, int64_t size);
 
     // Removes size bytes of data from the beginning of the blob.
     // size must be <= valuesize().
-    void unprepend_region(alt_buf_lock_t *parent, int64_t size);
+    void unprepend_region(alt::alt_buf_parent_t root, int64_t size);
 
     // Empties the blob, making its valuesize() be zero.  Equivalent
     // to unappend_region(txn, valuesize()) or unprepend_region(txn,
     // valuesize()).  In particular, you can be sure that the blob
     // holds no internal blocks, once it has been cleared.
-    void clear(alt_buf_lock_t *parent);
+    void clear(alt::alt_buf_parent_t root);
 
     // Writes over the portion of the blob, starting at offset, with
     // the contents of the string val. Caller is responsible for making
     // sure this portion of the blob exists
-    void write_from_string(const std::string &val, alt_buf_lock_t *parent,
+    void write_from_string(const std::string &val, alt_buf_parent_t root,
                            int64_t offset);
 
 private:
-    bool traverse_to_dimensions(alt_buf_lock_t *parent, int levels,
+    bool traverse_to_dimensions(alt::alt_buf_parent_t parent, int levels,
                                 int64_t old_offset, int64_t old_size,
                                 int64_t new_offset, int64_t new_size,
                                 blob::traverse_helper_t *helper);
-    bool allocate_to_dimensions(alt_buf_lock_t *parent, int levels,
+    bool allocate_to_dimensions(alt::alt_buf_parent_t parent, int levels,
                                 int64_t new_offset, int64_t new_size);
-    bool shift_at_least(alt_buf_lock_t *parent, int levels, int64_t min_shift);
-    void consider_big_shift(alt_buf_lock_t *parent, int levels, int64_t *min_shift);
-    void consider_small_shift(alt_buf_lock_t *parent, int levels, int64_t *min_shift);
-    void deallocate_to_dimensions(alt_buf_lock_t *parent, int levels,
+    bool shift_at_least(alt::alt_buf_parent_t parent, int levels, int64_t min_shift);
+    void consider_big_shift(alt::alt_buf_parent_t parent, int levels,
+                            int64_t *min_shift);
+    void consider_small_shift(alt::alt_buf_parent_t parent, int levels,
+                              int64_t *min_shift);
+    void deallocate_to_dimensions(alt::alt_buf_parent_t parent, int levels,
                                   int64_t new_offset, int64_t new_size);
-    int add_level(alt_buf_lock_t *parent, int levels);
-    bool remove_level(alt_buf_lock_t *parent, int *levels_ref);
+    int add_level(alt::alt_buf_parent_t parent, int levels);
+    bool remove_level(alt::alt_buf_parent_t parent, int *levels_ref);
 
     char *ref_;
     int maxreflen_;

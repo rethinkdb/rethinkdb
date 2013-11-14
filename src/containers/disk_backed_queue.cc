@@ -104,7 +104,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
 #if DBQ_USE_ALT_CACHE
     // RSI: Wrong parent?  Can we just make the blob later?
     alt::blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
-    blob.append_region(_head.get(), stream.vector().size());
+    blob.append_region(alt_buf_parent_t(_head.get()), stream.vector().size());
 #else
     blob_t blob(cache->get_block_size(), buffer, MAX_REF_SIZE);
     blob.append_region(&txn, stream.vector().size());
@@ -112,7 +112,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     std::string sered_data(stream.vector().begin(), stream.vector().end());
 
 #if DBQ_USE_ALT_CACHE
-    blob.write_from_string(sered_data, _head.get(), 0);
+    blob.write_from_string(sered_data, alt_buf_parent_t(_head.get()), 0);
 #else
     blob.write_from_string(sered_data, &txn, 0);
 #endif
@@ -201,7 +201,8 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
 #endif
         buffer_group_t blob_group;
 #if DBQ_USE_ALT_CACHE
-        blob.expose_all(_tail.get(), alt_access_t::read, &blob_group, &acq_group);
+        blob.expose_all(alt_buf_parent_t(_tail.get()), alt_access_t::read,
+                        &blob_group, &acq_group);
 #else
         blob.expose_all(&txn, rwi_read, &blob_group, &acq_group);
 #endif
@@ -220,7 +221,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
 #endif
 
 #if DBQ_USE_ALT_CACHE
-    blob.clear(_tail.get());
+    blob.clear(alt_buf_parent_t(_tail.get()));
 #else
     blob.clear(&txn);
 #endif
