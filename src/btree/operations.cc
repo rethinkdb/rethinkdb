@@ -26,49 +26,84 @@ void real_superblock_t::release() {
 }
 
 block_id_t real_superblock_t::get_root_block_id() const {
+#if SLICE_ALT
+    alt_buf_read_t read(&sb_buf_);
+    return static_cast<const btree_superblock_t *>(read.get_data_read())->root_block;
+#else
     rassert(sb_buf_.is_acquired());
     return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block;
+#endif
 }
 
 void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
+#if SLICE_ALT
+    alt_buf_write_t write(&sb_buf_);
+    btree_superblock_t *sb_data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
+#else
     rassert(sb_buf_.is_acquired());
     btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+#endif
     sb_data->root_block = new_root_block;
 }
 
 block_id_t real_superblock_t::get_stat_block_id() const {
+#if SLICE_ALT
+    alt_buf_read_t read(&sb_buf_);
+    return static_cast<const btree_superblock_t *>(read.get_data_read())->stat_block;
+#else
     rassert(sb_buf_.is_acquired());
     return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block;
+#endif
 }
 
 void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
+#if SLICE_ALT
+    alt_buf_write_t write(&sb_buf_);
+    btree_superblock_t *sb_data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
+#else
     rassert(sb_buf_.is_acquired());
     btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+#endif
     sb_data->stat_block = new_stat_block;
 }
 
 block_id_t real_superblock_t::get_sindex_block_id() const {
+#if SLICE_ALT
+    alt_buf_read_t read(&sb_buf_);
+    return static_cast<const btree_superblock_t *>(read.get_data_read())->sindex_block;
+#else
     rassert(sb_buf_.is_acquired());
     return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
+#endif
 }
 
 void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
-    rassert(sb_buf_.is_acquired());
-
+#if SLICE_ALT
+    alt_buf_write_t(&sb_buf_);
+    btree_superblock_t *sb_data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
+#else
     rassert(sb_buf_.is_acquired());
     btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
+#endif
     sb_data->sindex_block = new_sindex_block;
 }
 
+#if !SLICE_ALT
 void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
     rassert(sb_buf_.is_acquired());
     sb_buf_.set_eviction_priority(eviction_priority);
 }
+#endif
 
+#if !SLICE_ALT
 eviction_priority_t real_superblock_t::get_eviction_priority() {
     rassert(sb_buf_.is_acquired());
     return sb_buf_.get_eviction_priority();
 }
+#endif
 
 
 bool find_superblock_metainfo_entry(char *beg, char *end, const std::vector<char> &key, char **verybeg_ptr_out,  uint32_t **size_ptr_out, char **beg_ptr_out, char **end_ptr_out) {

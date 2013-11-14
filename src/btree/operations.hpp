@@ -43,8 +43,10 @@ public:
     virtual block_id_t get_sindex_block_id() const = 0;
     virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
+#if !SLICE_ALT
     virtual void set_eviction_priority(eviction_priority_t eviction_priority) = 0;
     virtual eviction_priority_t get_eviction_priority() = 0;
+#endif
 
 #if SLICE_ALT
     // RSI: Add buf_lock_parent_t or something.
@@ -81,8 +83,10 @@ public:
     block_id_t get_sindex_block_id() const;
     void set_sindex_block_id(block_id_t new_block_id);
 
+#if !SLICE_ALT
     void set_eviction_priority(eviction_priority_t eviction_priority);
     eviction_priority_t get_eviction_priority();
+#endif
 
 #if SLICE_ALT
     alt::alt_buf_lock_t *expose_buf() { return &sb_buf_; }

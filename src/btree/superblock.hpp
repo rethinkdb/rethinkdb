@@ -42,6 +42,7 @@ public:
         sub_superblock->set_stat_block_id(new_stat_block);
     }
 
+#if !SLICE_ALT
     void set_eviction_priority(eviction_priority_t eviction_priority) {
         sub_superblock->set_eviction_priority(eviction_priority);
     }
@@ -49,6 +50,7 @@ public:
     eviction_priority_t get_eviction_priority() {
         return sub_superblock->get_eviction_priority();
     }
+#endif
 
 #if SLICE_ALT
     alt::alt_buf_lock_t *expose_buf() {
