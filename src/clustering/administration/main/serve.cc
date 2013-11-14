@@ -14,6 +14,7 @@
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/main/incremental_lens.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/network_logger.hpp"
@@ -226,6 +227,7 @@ bool do_serve(
         perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
         // Namespace repos
+        // TODO!
 
         mock::dummy_protocol_t::context_t dummy_ctx;
         namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,

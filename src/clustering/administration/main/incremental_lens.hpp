@@ -3,7 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_MAIN_INCREMENTAL_LENS_HPP_
 
 #include <map>
-#include <list>
+#include <set>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -12,28 +12,49 @@
 template <class key_type, class inner_type>
 class change_tracking_map_t {
 public:
+    change_tracking_map_t() : current_version(0) { }
+
     // Write operations
+    void begin_version() {
+        changed_keys.clear();
+        ++current_version;
+    }
     void set_value(const key_type &key, const inner_type &value) {
-        changed_keys.push_back(key);
+        rassert (current_version > 0, "You must call begin_version() before "
+            "performing any changes.");
+        changed_keys.insert(key);
         inner[key] = value;
     }
     void delete_value(const key_type &key) {
-        changed_keys.push_back(key);
+        rassert (current_version > 0, "You must call begin_version() before "
+            "performing any changes.");
+        changed_keys.insert(key);
         inner.erase(key);
     }
     void clear() {
+        rassert (current_version > 0, "You must call begin_version() before "
+            "performing any changes.");
         for (auto it = inner.begin(); it != inner.end(); ++it) {
-            changed_keys.push_back(it->first);
+            changed_keys.insert(it->first);
         }
         inner.clear();
     }
 
     const std::map<key_type, inner_type> &get_inner() const { return inner; }
-    const std::list<key_type> &get_changed_peers() const { return changed_keys; }
+    const std::set<key_type> &get_changed_peers() const { return changed_keys; }
+    unsigned int get_current_version() const { return current_version; }
+
+    // TODO (daniel): Remove this, unless we really need it.
+    static std::map<key_type, inner_type> inner_extractor(
+        const change_tracking_map_t<key_type, inner_type> &ctm) {
+
+        return ctm.get_inner();
+    }
 
 private:
     std::map<key_type, inner_type> inner;
-    std::list<key_type> changed_keys;
+    std::set<key_type> changed_keys;
+    unsigned int current_version;
 };
 
 template <class key_type, class inner_type, class callable_type>
@@ -48,7 +69,20 @@ public:
 
     void operator()(const change_tracking_map_t<key_type, inner_type> &input,
                     result_type *current_out) {
-        guarantee(current != NULL);
+        guarantee(current_out != NULL);
+        // Begin a new version and verify that we are in sync
+        current_out->begin_version();
+        /* Right now we expect that we are called on the output exactly once after
+         * each change to the input and that we do not miss any version.
+         * If this should change in the future, we could instead of crashing here
+         * just recompute the whole output to get back in sync. That would
+         * destroy our performance guarantees though, and should be a rare process.
+         */
+        guarantee(current_out->get_current_version() == input.get_current_version(),
+            "incremental_map_lens_t got out of sync with input. "
+            "Our current version: %u, Input version: %u",
+            current_out->get_current_version(),
+            input.get_current_version());
         // Update changed peers only
         for (auto it = input.get_changed_keys().begin(); it != input.get_changed_keys().end(); ++it) {
             auto input_value_it = input.get_inner().find(*it);

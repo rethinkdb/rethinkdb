@@ -6,6 +6,7 @@
 
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"
+#include "clustering/administration/main/incremental_lens.hpp"
 
 template<class inner_t, class outer_t>
 class field_copier_t {
@@ -56,6 +57,38 @@ public:
 
 private:
     inner_t outer_t::*const field;
+};
+
+// TODO! This is the incremental version of field_getter_t
+template<class inner_t, class outer_t>
+class inner_field_getter_t {
+public:
+    explicit inner_field_getter_t(inner_t outer_t::*f) : field(f) { }
+
+    inner_t operator()(const outer_t &outer) const {
+        return outer.*field;
+    }
+
+    /* Support `boost::result_of`'s protocol for indicating functor return types
+    so that we work with `watchable_t::subview()`. */
+    template<class T>
+    class result {
+    public:
+        typedef inner_t type;
+    };
+
+private:
+    inner_t outer_t::*const field;
+};
+template<class inner_t, class outer_t>
+class incremental_field_getter_t
+    : public incremental_map_lens_t<peer_id_t, inner_t, inner_t> {
+public:
+    incremental_field_getter_t(inner_t outer_t::*f) :
+        incremental_map_lens_t<peer_id_t, inner_t, inner_t >(
+            inner_field_getter_t<inner_t, outer_t>(f)) {
+        
+    };
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_WATCHABLE_FIELDS_HPP_ */
