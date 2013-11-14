@@ -346,8 +346,6 @@ struct rdb_protocol_t {
         RDB_DECLARE_ME_SERIALIZABLE;
     };
 
-    // TODO: this should maybe be multiple types.  Determining the type of read
-    // by branching on whether an optional is full sucks.
     class rget_read_t {
     public:
         rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
@@ -376,6 +374,8 @@ struct rdb_protocol_t {
         boost::optional<rdb_protocol_details::terminal_t> terminal;
 
         // This is non-empty if we're doing an sindex read.
+        // TODO: `read_t` should maybe be multiple types.  Determining the type
+        // of read by branching on whether an optional is full sucks.
         boost::optional<sindex_rangespec_t> sindex;
 
         sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
