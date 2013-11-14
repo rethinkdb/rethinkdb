@@ -230,6 +230,9 @@ private:
     counted_t<datum_stream_t> subsource;
 };
 
+// This class generates the `read_t`s used in range reads.  It's used by
+// `reader_t` below.  Its subclasses are the different types of range reads we
+// need to do.
 class readgen_t {
 public:
     explicit readgen_t(
