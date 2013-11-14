@@ -26,6 +26,7 @@
  * keyvalue_location_t that's passed in (keyvalue_location_out) is destroyed.
  * This is because it may need to use the superblock for some of its methods.
  * */
+#if SLICE_ALT
 template <class Value>
 void find_keyvalue_location_for_write(
         transaction_t *txn, superblock_t *superblock, const btree_key_t *key,
@@ -33,6 +34,15 @@ void find_keyvalue_location_for_write(
         eviction_priority_t *root_eviction_priority, btree_stats_t *stats,
         profile::trace_t *trace,
         promise_t<superblock_t *> *pass_back_superblock = NULL) {
+#else
+template <class Value>
+void find_keyvalue_location_for_write(
+        transaction_t *txn, superblock_t *superblock, const btree_key_t *key,
+        keyvalue_location_t<Value> *keyvalue_location_out,
+        eviction_priority_t *root_eviction_priority, btree_stats_t *stats,
+        profile::trace_t *trace,
+        promise_t<superblock_t *> *pass_back_superblock = NULL) {
+#endif
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
 
     keyvalue_location_out->superblock = superblock;

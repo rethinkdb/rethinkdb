@@ -50,7 +50,7 @@ public:
 
 #if SLICE_ALT
     // RSI: Add buf_lock_parent_t or something.
-    virtual alt::alt_buf_lock_t *expose_buf() = 0;
+    virtual alt::alt_buf_parent_t expose_buf() = 0;
 #endif
 
 private:
@@ -89,7 +89,7 @@ public:
 #endif
 
 #if SLICE_ALT
-    alt::alt_buf_lock_t *expose_buf() { return &sb_buf_; }
+    alt::alt_buf_parent_t expose_buf() { return alt::alt_buf_parent_t(&sb_buf_); }
 #endif
 
 private:

@@ -163,7 +163,10 @@ private:
 class alt_buf_parent_t {
 public:
     explicit alt_buf_parent_t(alt_buf_lock_t *lock)
-        : txn_(lock->txn()), lock_or_null_(lock) { }
+        : txn_(lock->txn()), lock_or_null_(lock) {
+        guarantee(lock != NULL);
+        guarantee(!lock->empty());
+    }
     explicit alt_buf_parent_t(alt_txn_t *txn)
         : txn_(txn), lock_or_null_(NULL) { }
 private:

@@ -53,7 +53,7 @@ public:
 #endif
 
 #if SLICE_ALT
-    alt::alt_buf_lock_t *expose_buf() {
+    alt_buf_parent_t expose_buf() {
         return sub_superblock->expose_buf();
     }
 #endif
