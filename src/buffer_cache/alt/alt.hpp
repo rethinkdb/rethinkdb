@@ -103,6 +103,7 @@ public:
 
     void swap(alt_buf_lock_t &other);
     void reset();
+    bool empty() const;
 
     void snapshot_subtree();
 

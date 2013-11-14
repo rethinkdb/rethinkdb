@@ -18,7 +18,11 @@ real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
 }
 
 void real_superblock_t::release() {
+#if SLICE_ALT
+    sb_buf_.reset();
+#else
     sb_buf_.release_if_acquired();
+#endif
 }
 
 block_id_t real_superblock_t::get_root_block_id() const {

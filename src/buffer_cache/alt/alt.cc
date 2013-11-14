@@ -128,25 +128,29 @@ void alt_buf_lock_t::reset() {
     swap(tmp);
 }
 
+bool alt_buf_lock_t::empty() const {
+    return txn_ == NULL;
+}
+
 void alt_buf_lock_t::snapshot_subtree() {
-    guarantee(txn_ != NULL);
+    guarantee(!empty());
     // RSI: Actually implement this.
 }
 
 alt_buf_read_t::alt_buf_read_t(alt_buf_lock_t *lock)
     : lock_(lock) {
-    guarantee(lock_->txn_ != NULL);
+    guarantee(!lock_->empty());
 }
 
 alt_buf_read_t::~alt_buf_read_t() {
-    guarantee(lock_->txn_ != NULL);
+    guarantee(!lock_->empty());
 }
 
 const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
-    guarantee(lock_->txn_ != NULL);
+    guarantee(!lock_->empty());
     lock_->current_page_acq_->read_acq_signal()->wait();
     page_t *page = lock_->current_page_acq_->current_page_for_read();
-    guarantee(lock_->txn_ != NULL);
+    guarantee(!lock_->empty());
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache_->page_cache_);
     }
@@ -157,19 +161,19 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
 
 alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
     : lock_(lock) {
-    guarantee(lock_->txn_ != NULL);
+    guarantee(!lock_->empty());
 }
 
 alt_buf_write_t::~alt_buf_write_t() {
-    guarantee(lock_->txn_ != NULL);
+    guarantee(!lock_->empty());
 }
 
 void *alt_buf_write_t::get_data_write(uint32_t block_size) {
-    guarantee(lock_->txn_ != NULL);
+    guarantee(!lock_->empty());
     // RSI: Use block_size somehow.
     (void)block_size;
     lock_->current_page_acq_->write_acq_signal()->wait();
-    guarantee(lock_->txn_ != NULL);
+    guarantee(!lock_->empty());
     page_t *page = lock_->current_page_acq_->current_page_for_write();
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache_->page_cache_);
