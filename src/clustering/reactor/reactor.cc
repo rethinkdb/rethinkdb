@@ -1,8 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/reactor/reactor.hpp"
 
-#include <functional>
-
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
@@ -11,13 +9,14 @@
 #include "concurrency/cross_thread_watchable.hpp"
 
 template<class key_t, class value_t>
-value_t get_value_from_map(const key_t &key, const std::map<key_t, value_t> &map) {
-    auto it = map.find(key);
-    if (it != map.end()) {
-        return it->second;
-    } else {
-        return value_t();
+std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
+    std::map<key_t, value_t> res;
+    for (typename std::map<key_t, boost::optional<value_t> >::const_iterator it = map.begin(); it != map.end(); it++) {
+        if (it->second) {
+            res.insert(std::make_pair(it->first, it->second.get()));
+        }
     }
+    return res;
 }
 
 template<class protocol_t>
@@ -26,9 +25,7 @@ reactor_t<protocol_t>::reactor_t(
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
         ack_checker_t *ack_checker_,
-        const namespace_id_t &_namespace_id,
-        clone_ptr_t<watchable_t<std::map<namespace_id_t,
-                per_reactor_directory_t> > > rd,
+        clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > rd,
         branch_history_manager_t<protocol_t> *bhm,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
         multistore_ptr_t<protocol_t> *_underlying_svs,
@@ -42,10 +39,7 @@ reactor_t<protocol_t>::reactor_t(
     mailbox_manager(mm),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t<protocol_t> >()),
-    directory_echo_mirror(mailbox_manager, rd->subview(std::bind(
-        &get_value_from_map<namespace_id_t, per_reactor_directory_t >,
-        _namespace_id,
-        std::placeholders::_1))),
+    directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >)),
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),

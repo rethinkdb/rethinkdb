@@ -16,7 +16,6 @@
 #include "rpc/semilattice/view.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/translator.hpp"
-#include "clustering/reactor/reactor.hpp"
 
 /* This files contains the class reactor driver whose job is to create and
  * destroy reactors based on blueprints given to the server. */
@@ -106,10 +105,6 @@ private:
 
     typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_map_t;
 
-    typedef typename reactor_t<protocol_t>::per_reactor_directory_t per_reactor_directory_t;
-    static std::map<namespace_id_t, per_reactor_directory_t> split_directory(
-        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss);
-
     void delete_reactor_data(
             auto_drainer_t::lock_t lock,
             typename reactor_map_t::auto_type *thing_to_delete,
@@ -120,7 +115,6 @@ private:
     io_backender_t *const io_backender;
     mailbox_manager_t *const mbox_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
-    clone_ptr_t<watchable_t<std::map<namespace_id_t, per_reactor_directory_t> > > per_reactor_directory_views;
     branch_history_manager_t<protocol_t> *branch_history_manager;
     clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_view;
