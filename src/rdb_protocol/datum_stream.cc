@@ -153,13 +153,13 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
     // update the range correctly in the case where we're reading a subportion
     // of the total range.
     store_key_t *key = &res.last_considered_key;
-    if (*key == store_key_t::max() && rr->sorting == sorting_t::ASCENDING) {
+    if (*key == store_key_t::max() && !reversed(rr->sorting)) {
         if (!rng.right.unbounded) {
             *key = rng.right.key;
             bool b = key->decrement();
             r_sanity_check(b);
         }
-    } else if (*key == store_key_t::min() && rr->sorting == sorting_t::DESCENDING) {
+    } else if (*key == store_key_t::min() && reversed(rr->sorting)) {
         *key = rng.left;
     }
 
@@ -295,7 +295,7 @@ readgen_t::readgen_t(
 
 bool readgen_t::update_range(key_range_t *active_range,
                              const store_key_t &last_considered_key) const {
-    if (sorting != sorting_t::DESCENDING) {
+    if (!reversed(sorting)) {
         active_range->left = last_considered_key;
     } else {
         active_range->right = key_range_t::right_bound_t(last_considered_key);
@@ -303,7 +303,7 @@ bool readgen_t::update_range(key_range_t *active_range,
 
     // TODO: mixing these non-const operations INTO THE CONDITIONAL is bad, and
     // confused me (mlucy) for a while when I tried moving some stuff around.
-    if (sorting != sorting_t::DESCENDING) {
+    if (!reversed(sorting)) {
         if (!active_range->left.increment()
             || (!active_range->right.unbounded
                 && (active_range->right.key < active_range->left))) {
@@ -409,9 +409,9 @@ void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
         sorter_t(sorting_t _sorting) : sorting(_sorting) { }
         bool operator()(const rget_item_t &l, const rget_item_t &r) {
             r_sanity_check(l.sindex_key && r.sindex_key);
-            return sorting == sorting_t::ASCENDING
-                ? (**l.sindex_key < **r.sindex_key)
-                : (**l.sindex_key > **r.sindex_key);
+            return reversed(sorting)
+                ? (**l.sindex_key > **r.sindex_key)
+                : (**l.sindex_key < **r.sindex_key);
         }
     private:
         sorting_t sorting;
@@ -445,7 +445,7 @@ boost::optional<read_t> sindex_readgen_t::sindex_sort_read(
         if (datum_t::key_is_truncated(key)) {
             std::string skey = datum_t::extract_secondary(key_to_unescaped_str(key));
             key_range_t rng = active_range;
-            if (sorting == sorting_t::ASCENDING) {
+            if (!reversed(sorting)) {
                 // We construct a right bound that's larger than the maximum
                 // possible row with this truncated sindex but smaller than the
                 // minimum possible row with a larger sindex.

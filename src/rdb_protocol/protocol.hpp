@@ -79,6 +79,8 @@ enum class sorting_t {
     ASCENDING,
     DESCENDING
 };
+// UNORDERED sortings aren't reversed
+bool reversed(sorting_t sorting);
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         sorting_t, int8_t,
