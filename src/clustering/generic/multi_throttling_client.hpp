@@ -49,7 +49,7 @@ public:
     void spawn_request(const request_type &request, ticket_acq_t *ticket_acq, signal_t *interruptor);
 
 private:
-    static boost::optional<boost::optional<registrar_business_card_t<client_business_card_t> > > extract_registrar_business_card(const boost::optional<boost::optional<mt_business_card_t> > &bcard, const void *);
+    static boost::optional<boost::optional<registrar_business_card_t<client_business_card_t> > > extract_registrar_business_card(const boost::optional<boost::optional<mt_business_card_t> > &bcard);
 
     void on_give_tickets(int count);
 

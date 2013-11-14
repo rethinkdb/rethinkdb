@@ -33,7 +33,7 @@ public:
 };
 
 boost::optional<boost::optional<registrar_business_card_t<std::string> > > wrap_in_optional(
-        const boost::optional<registrar_business_card_t<std::string> > &inner, const void *) {
+        const boost::optional<registrar_business_card_t<std::string> > &inner) {
     return boost::optional<boost::optional<registrar_business_card_t<std::string> > >(inner);
 }
 

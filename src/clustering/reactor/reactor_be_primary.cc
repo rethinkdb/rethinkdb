@@ -75,7 +75,7 @@ void reactor_t<protocol_t>::update_best_backfiller(const region_map_t<protocol_t
 
 template<class protocol_t>
 boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extract_backfiller_from_reactor_business_card_secondary(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::secondary_without_primary_t> > &bcard, const void *) {
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::secondary_without_primary_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >();
     } else if (!bcard.get()) {
@@ -90,7 +90,7 @@ boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extra
 
 template<class protocol_t>
 boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extract_backfiller_from_reactor_business_card_nothing(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::nothing_when_safe_t> > &bcard, const void *) {
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::nothing_when_safe_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >();
     } else if (!bcard.get()) {

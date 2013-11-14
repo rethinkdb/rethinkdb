@@ -171,11 +171,6 @@ public:
         value = _value;
         publisher_controller.publish(&call_function);
     }
-    void set_value(value_t &&_value) {
-        DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
-        value = std::move(_value);
-        publisher_controller.publish(&call_function);
-    }
 
     // Applies an atomic modification to the value.
     // `op` must return true if the value was modified,

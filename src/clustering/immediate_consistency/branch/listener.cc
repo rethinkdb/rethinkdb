@@ -316,7 +316,7 @@ signal_t *listener_t<protocol_t>::get_broadcaster_lost_signal() {
 
 template <class protocol_t>
 boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >
-listener_t<protocol_t>::get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t<protocol_t> > > &replier_bcard, const void *) {
+listener_t<protocol_t>::get_backfiller_from_replier_bcard(const boost::optional<boost::optional<replier_business_card_t<protocol_t> > > &replier_bcard) {
     if (!replier_bcard) {
         return boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > >();
     } else if (!replier_bcard.get()) {
@@ -330,7 +330,7 @@ listener_t<protocol_t>::get_backfiller_from_replier_bcard(const boost::optional<
 
 template <class protocol_t>
 boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > >
-listener_t<protocol_t>::get_registrar_from_broadcaster_bcard(const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &broadcaster_bcard, const void *) {
+listener_t<protocol_t>::get_registrar_from_broadcaster_bcard(const boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > &broadcaster_bcard) {
     if (!broadcaster_bcard) {
         return boost::optional<boost::optional<registrar_business_card_t<listener_business_card_t<protocol_t> > > >();
     } else if (!broadcaster_bcard.get()) {

@@ -18,7 +18,7 @@ namespace unittest {
 namespace {
 
 boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > wrap_in_optional(
-        const boost::optional<broadcaster_business_card_t<dummy_protocol_t> > &inner, const void *) {
+        const boost::optional<broadcaster_business_card_t<dummy_protocol_t> > &inner) {
     return boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > >(inner);
 }
 

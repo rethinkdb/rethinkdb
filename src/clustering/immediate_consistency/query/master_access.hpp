@@ -59,7 +59,7 @@ private:
             typename master_business_card_t<protocol_t>::inner_client_business_card_t
             > mt_business_card_t;
     static boost::optional<boost::optional<mt_business_card_t> > extract_multi_throttling_business_card(
-            const boost::optional<boost::optional<master_business_card_t<protocol_t> > > &bcard, const void *) {
+            const boost::optional<boost::optional<master_business_card_t<protocol_t> > > &bcard) {
         if (bcard) {
             if (bcard.get()) {
                 return boost::optional<boost::optional<mt_business_card_t> >(boost::optional<mt_business_card_t>(

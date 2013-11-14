@@ -53,7 +53,7 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(
 
 template<class protocol_t>
 boost::optional<boost::optional<replier_business_card_t<protocol_t> > > extract_replier_from_reactor_business_card_primary(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard, const void *) {
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::primary_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >();
     }
@@ -71,7 +71,7 @@ boost::optional<boost::optional<replier_business_card_t<protocol_t> > > extract_
 
 template<class protocol_t>
 boost::optional<boost::optional<replier_business_card_t<protocol_t> > > extract_replier_from_reactor_business_card_secondary(
-        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t> > &bcard, const void *) {
+        const boost::optional<boost::optional<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t> > &bcard) {
     if (!bcard) {
         return boost::optional<boost::optional<replier_business_card_t<protocol_t> > >();
     }
