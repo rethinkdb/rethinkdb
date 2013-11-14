@@ -13,6 +13,7 @@
 #define BACKFILL_CACHE_PRIORITY 10
 
 #if SLICE_ALT
+using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_cache_t;
 using alt::alt_txn_t;
@@ -57,9 +58,14 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
     buf_lock_t superblock(txn, superblock_id, rwi_write);
 #endif
 
+    // RSI: Figure out whether we should
+    // superblock.touch_recency(repli_timestamp_t::distance_past).  How exactly
+    // should that work?
+#if !SLICE_ALT
     // Initialize the replication time barrier to 0 so that if we are a slave,
     // we will begin by pulling ALL updates from master.
     superblock.touch_recency(repli_timestamp_t::distant_past);
+#endif
 
 #if SLICE_ALT
     alt_buf_write_t sb_write(&superblock);
