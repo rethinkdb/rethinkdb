@@ -36,7 +36,7 @@ template <class> class test_reactor_t;
 template<class protocol_t>
 class test_cluster_directory_t {
 public:
-    boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > reactor_directory;
+    directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > reactor_directory;
 
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_directory);
 };
@@ -70,7 +70,7 @@ public:
 
     void set_all_blueprints(const blueprint_t<protocol_t> &bp);
 
-    static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > extract_reactor_business_cards_no_optional(
+    static std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > extract_reactor_business_cards_from_test_cluster_directory(
             const std::map<peer_id_t, test_cluster_directory_t<protocol_t> > &input);
 
     void make_namespace_interface(int i, scoped_ptr_t<cluster_namespace_interface_t<protocol_t> > *out);
