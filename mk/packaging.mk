@@ -128,12 +128,13 @@ build-osx: install-osx
 	mkdir -p $(OSX_PACKAGE_DIR)/install
 	pkgbuild --root $(OSX_PACKAGE_DIR)/pkg --identifier rethinkdb $(OSX_PACKAGE_DIR)/install/rethinkdb.pkg
 	mkdir $(OSX_PACKAGE_DIR)/dmg
-	productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb.pkg
+	productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg
 # TODO: the PREFIX should not be hardcoded in the uninstall script
 	cp $(OSX_PACKAGING_DIR)/uninstall-rethinkdb.sh $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
 	chmod +x $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
 	cp $(TOP)/NOTES $(OSX_PACKAGE_DIR)/dmg/
-	hdiutil create -volname RethinkDB -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
+	cp $(TOP)/COPYRIGHT $(OSX_PACKAGE_DIR)/dmg/
+	hdiutil create -volname RethinkDB-$(RETHINKDB_VERSION) -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
 
 ##### Source distribution
 
