@@ -215,20 +215,20 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
     }
     r_sanity_check(items_index < items.size());
 
-    std::vector<counted_t<const datum_t> > toret;
+    std::vector<counted_t<const datum_t> > res;
     switch (batchspec.get_batch_type()) {
     case batch_type_t::NORMAL: // fallthru
     case batch_type_t::TERMINAL: {
-        toret.reserve(items.size() - items_index);
+        res.reserve(items.size() - items_index);
         for (; items_index < items.size(); ++items_index) {
-            toret.push_back(std::move(items[items_index].data));
+            res.push_back(std::move(items[items_index].data));
         }
     } break;
     case batch_type_t::SINDEX_CONSTANT: {
         boost::optional<counted_t<const ql::datum_t> > sindex
             = std::move(items[items_index].sindex_key);
         store_key_t key = std::move(items[items_index].key);
-        toret.push_back(std::move(items[items_index].data));
+        res.push_back(std::move(items[items_index].data));
         items_index += 1;
 
         bool maybe_more_with_sindex = true;
@@ -245,10 +245,10 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
                         break;
                     }
                 }
-                toret.push_back(std::move(items[items_index].data));
+                res.push_back(std::move(items[items_index].data));
 
                 rcheck_datum(
-                    toret.size() < array_size_limit(), base_exc_t::GENERIC,
+                    res.size() < array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
                               array_size_limit(),
@@ -277,8 +277,8 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
         tmp.swap(items);
     }
 
-    finished = (toret.size() == 0) ? true : finished;
-    return toret;
+    finished = (res.size() == 0) ? true : finished;
+    return res;
 }
 
 bool reader_t::is_finished() const { return finished; }
