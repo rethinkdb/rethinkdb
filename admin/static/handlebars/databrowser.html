@@ -16,6 +16,7 @@
     <p>Select a table</p>
     <select class="list_namespaces">
     {{#each databases}}
+        <option value=""></option>
         <optgroup label="{{name}}" value="{{name}}">
         {{#each namespaces}}
             <option value="{{name}}" data-primary_key="{{primary_key}}">{{name}}</option>
