@@ -143,16 +143,20 @@ class Connection extends events.EventEmitter
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
+                console.log("Response for cursor token: " + String(token))
                 pb.ResponseTypeSwitch(response, {
                      "SUCCESS_PARTIAL": =>
+                        console.log("partial cursor")
                         cursor._addData(mkSeq(response, opts))
                     ,"SUCCESS_SEQUENCE": =>
+                        console.log("complete cursor")
                         cursor._endData(mkSeq(response, opts))
                         @_delQuery(token)
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )
             else if cb?
+                console.log("Response for cb token: " + String(token))
                 # Behavior varies considerably based on response type
                 pb.ResponseTypeSwitch(response, {
                     "COMPILE_ERROR": =>
@@ -173,6 +177,7 @@ class Connection extends events.EventEmitter
                         cb null, response
                         @_delQuery(token)
                    ,"SUCCESS_PARTIAL": =>
+                        console.log("New cursor")
                         cursor = new cursors.Cursor @, token
                         @outstandingCallbacks[token].cursor = cursor
                         if profile?
@@ -180,6 +185,7 @@ class Connection extends events.EventEmitter
                         else
                             cb null, cursor._addData(mkSeq(response, opts))
                    ,"SUCCESS_SEQUENCE": =>
+                        console.log("New and complete cursor")
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
                         if profile?
@@ -193,6 +199,7 @@ class Connection extends events.EventEmitter
                     => cb new err.RqlDriverError "Unknown response type"
                 )
         else
+            console.log("Response for unknown token: " + String(token))
             # Unexpected token
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
@@ -314,12 +321,14 @@ class Connection extends events.EventEmitter
         if (not opts.noreply?) or !opts.noreply
             @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}
 
+        console.log("startQuery")
         @_sendQuery(query)
 
         if opts.noreply? and opts.noreply and typeof(cb) is 'function'
             cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
+        console.log("continueQuery, token: " + String(token))
         query =
             type: "CONTINUE"
             token: token
@@ -327,6 +336,7 @@ class Connection extends events.EventEmitter
         @_sendQuery(query)
 
     _endQuery: (token) ->
+        console.log("endQuery, token: " + String(token))
         query =
             type: "STOP"
             token: token

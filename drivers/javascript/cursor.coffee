@@ -68,6 +68,9 @@ class Cursor extends IterableResult
     _addData: (chunk) ->
         @_addChunk chunk
 
+        if @_chunks.length == 1
+            @_promptCont()
+
         @_contFlag = false
         @_promptNext()
         @
@@ -95,24 +98,25 @@ class Cursor extends IterableResult
 
                 # Is there data waiting in our buffer?
                 chunk = @_chunks[0]
-                if @_chunks.length == 1 && chunk.length == 1 && !@_endFlag
+                if @_chunks.length == 1
                     # We're out of data for now, let's fetch more (which will prompt us again)
                     @_promptCont()
-                    return
-                else
+                
+                    if chunk.length == 1 && !@_endFlag
+                        return
 
-                    # After this point there is at least one row in the chunk
+                # After this point there is at least one row in the chunk
 
-                    row = chunk.shift()
-                    cb = @_cbQueue.shift()
+                row = chunk.shift()
+                cb = @_cbQueue.shift()
 
-                    # Did we just empty the chunk?
-                    if chunk[0] is undefined
-                        # We're done with this chunk, discard it
-                        @_chunks.shift()
+                # Did we just empty the chunk?
+                if chunk[0] is undefined
+                    # We're done with this chunk, discard it
+                    @_chunks.shift()
 
-                    # Finally we can invoke the callback with the row
-                    cb null, row
+                # Finally we can invoke the callback with the row
+                cb null, row
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
