@@ -337,6 +337,9 @@ struct rdb_protocol_t {
     struct sindex_rangespec_t {
         sindex_rangespec_t() { }
         sindex_rangespec_t(const std::string &_id,
+                           // This is the region in the sindex keyspace.  It's
+                           // sometimes smaller than the datum range below when
+                           // dealing with truncated keys.
                            const region_t &_region,
                            const datum_range_t _original_range)
             : id(_id), region(_region), original_range(_original_range) { }
