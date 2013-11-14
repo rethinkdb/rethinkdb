@@ -31,7 +31,7 @@ void real_superblock_t::release() {
 #endif
 }
 
-block_id_t real_superblock_t::get_root_block_id() const {
+block_id_t real_superblock_t::get_root_block_id() {
 #if SLICE_ALT
     alt_buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->root_block;
@@ -53,7 +53,7 @@ void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
     sb_data->root_block = new_root_block;
 }
 
-block_id_t real_superblock_t::get_stat_block_id() const {
+block_id_t real_superblock_t::get_stat_block_id() {
 #if SLICE_ALT
     alt_buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->stat_block;
@@ -75,7 +75,7 @@ void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
     sb_data->stat_block = new_stat_block;
 }
 
-block_id_t real_superblock_t::get_sindex_block_id() const {
+block_id_t real_superblock_t::get_sindex_block_id() {
 #if SLICE_ALT
     alt_buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->sindex_block;

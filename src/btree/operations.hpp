@@ -34,13 +34,13 @@ public:
     // Release the superblock if possible (otherwise do nothing)
     virtual void release() = 0;
 
-    virtual block_id_t get_root_block_id() const = 0;
-    virtual void set_root_block_id(const block_id_t new_root_block) = 0;
+    virtual block_id_t get_root_block_id() = 0;
+    virtual void set_root_block_id(block_id_t new_root_block) = 0;
 
-    virtual block_id_t get_stat_block_id() const = 0;
+    virtual block_id_t get_stat_block_id() = 0;
     virtual void set_stat_block_id(block_id_t new_stat_block) = 0;
 
-    virtual block_id_t get_sindex_block_id() const = 0;
+    virtual block_id_t get_sindex_block_id() = 0;
     virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
 #if !SLICE_ALT
@@ -74,13 +74,13 @@ public:
     buf_lock_t *get() { return &sb_buf_; }
 #endif
 
-    block_id_t get_root_block_id() const;
-    void set_root_block_id(const block_id_t new_root_block);
+    block_id_t get_root_block_id();
+    void set_root_block_id(block_id_t new_root_block);
 
-    block_id_t get_stat_block_id() const;
+    block_id_t get_stat_block_id();
     void set_stat_block_id(block_id_t new_stat_block);
 
-    block_id_t get_sindex_block_id() const;
+    block_id_t get_sindex_block_id();
     void set_sindex_block_id(block_id_t new_block_id);
 
 #if !SLICE_ALT
