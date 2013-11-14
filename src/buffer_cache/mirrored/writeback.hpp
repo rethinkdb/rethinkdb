@@ -76,14 +76,14 @@ public:
 
         bool safe_to_unload() const { return !dirty && !recency_dirty; }
         
-        scoped_ptr_t<adjustable_semaphore_acq_t> extract_throttling_acq() {
+        scoped_ptr_t<semaphore_acq_t> extract_throttling_acq() {
             return std::move(throttling_acq);
         }
 
     private:
         bool dirty;
         bool recency_dirty;
-        scoped_ptr_t<adjustable_semaphore_acq_t> throttling_acq;
+        scoped_ptr_t<semaphore_acq_t> throttling_acq;
 
     private:
         DISABLE_COPYING(local_buf_t);

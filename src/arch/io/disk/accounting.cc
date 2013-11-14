@@ -38,7 +38,7 @@ private:
     // because the number of outstanding requests has been exceeded
     intrusive_list_t<action_t> throttled_queue;
     unlimited_fifo_queue_t<action_t *, intrusive_list_t<action_t> > queue;
-    semaphore_t outstanding_requests_limiter;
+    static_semaphore_t outstanding_requests_limiter;
     accounting_queue_t<action_t *>::account_t account;
     auto_drainer_t::lock_t accounter_lock;
 

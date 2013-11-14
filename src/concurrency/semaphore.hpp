@@ -15,6 +15,22 @@ public:
 #define SEMAPHORE_NO_LIMIT (-1)
 
 class semaphore_t {
+public:
+    virtual ~semaphore_t() { }
+
+    virtual void lock(semaphore_available_callback_t *cb, int count = 1) = 0;
+    virtual void co_lock(int count = 1) = 0;
+    virtual void co_lock_interruptible(signal_t *interruptor, int count = 1) = 0;
+    virtual void unlock(int count = 1) = 0;
+    virtual void lock_now(int count = 1) = 0;
+    virtual void force_lock(int count = 1) = 0;
+};
+
+
+/* `static_semaphore_t` is a `semaphore_t` with a fixed capacity that has
+ to be provided at the time of construction. */
+
+class static_semaphore_t : public semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;
         int count;
@@ -32,12 +48,15 @@ class semaphore_t {
 #endif
 
 public:
-    explicit semaphore_t(int cap) : capacity(cap), current(0)
+    explicit static_semaphore_t(int cap) : capacity(cap), current(0)
 #ifndef NDEBUG
                          , in_callback(false)
 #endif
     {
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
+    }
+    ~static_semaphore_t() {
+        rassert(waiters.empty());
     }
 
     void lock(semaphore_available_callback_t *cb, int count = 1);
@@ -48,6 +67,7 @@ public:
 
     void unlock(int count = 1);
     void lock_now(int count = 1);
+    void force_lock(int count = 1);
 };
 
 /* `adjustable_semaphore_t` is a `semaphore_t` where you can change the
@@ -56,7 +76,7 @@ than the current number of objects that hold the semaphore, then new objects
 will be allowed to enter at `trickle_fraction` of the rate that the objects are
 leaving until the number of objects drops to the desired capacity. */
 
-class adjustable_semaphore_t {
+class adjustable_semaphore_t : public semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;
         int count;
@@ -84,6 +104,9 @@ public:
         rassert(trickle_fraction <= 1.0 && trickle_fraction >= 0.0);
         rassert(capacity >= 0 || capacity == SEMAPHORE_NO_LIMIT);
     }
+    ~adjustable_semaphore_t() {
+        rassert(waiters.empty());
+    }
 
     void lock(semaphore_available_callback_t *cb, int count = 1);
 
@@ -91,9 +114,7 @@ public:
     void co_lock_interruptible(signal_t *interruptor, int count = 1);
 
     void unlock(int count = 1);
-
     void lock_now(int count = 1);
-
     void force_lock(int count = 1);
 
     void set_capacity(int new_capacity);
@@ -107,12 +128,12 @@ private:
 };
 
 
-class adjustable_semaphore_acq_t {
+class semaphore_acq_t {
 public:
-    adjustable_semaphore_acq_t(adjustable_semaphore_t *_acquiree, int _count = 1, bool _force = false) :
-                acquiree(_acquiree),
-                count(_count) {
-                    
+    semaphore_acq_t(semaphore_t *_acquiree, int _count = 1, bool _force = false) :
+        acquiree(_acquiree),
+        count(_count) {
+
         if (_force) {
             acquiree->force_lock(count);
         } else {
@@ -120,22 +141,23 @@ public:
         }
     }
 
-    adjustable_semaphore_acq_t(adjustable_semaphore_acq_t &&movee) :
-                acquiree(movee.acquiree),
-                count(movee.count) {
+    semaphore_acq_t(semaphore_acq_t &&movee) :
+        acquiree(movee.acquiree),
+        count(movee.count) {
+
         movee.acquiree = NULL;
     }
 
-    ~adjustable_semaphore_acq_t() {
+    ~semaphore_acq_t() {
         if (acquiree) {
             acquiree->unlock(count);
         }
     }
 
 private:
-    adjustable_semaphore_t *acquiree;
+    semaphore_t *acquiree;
     int count;
-    DISABLE_COPYING(adjustable_semaphore_acq_t);
+    DISABLE_COPYING(semaphore_acq_t);
 };
 
 #endif /* CONCURRENCY_SEMAPHORE_HPP_ */

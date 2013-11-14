@@ -38,14 +38,14 @@ public:
           failure_cond_(failure_cond) { }
 
     void handle_pair_coro(scoped_key_value_t *fragile_keyvalue,
-                          adjustable_semaphore_acq_t *fragile_acq,
+                          semaphore_acq_t *fragile_acq,
                           fifo_enforcer_write_token_t token,
                           auto_drainer_t::lock_t) {
         // This is called by coro_t::spawn_now_dangerously. We need to get these
         // values before the caller's stack frame is destroyed.
         scoped_key_value_t keyvalue = std::move(*fragile_keyvalue);
 
-        adjustable_semaphore_acq_t semaphore_acq(std::move(*fragile_acq));
+        semaphore_acq_t semaphore_acq(std::move(*fragile_acq));
 
         fifo_enforcer_sink_t::exit_write_t exit_write(&sink_, token);
 
@@ -69,7 +69,7 @@ public:
         fifo_enforcer_write_token_t token = source_.enter_write();
         // ... and wait for the semaphore, we don't want too many things loading
         // values at once.
-        adjustable_semaphore_acq_t acq(&semaphore_);
+        semaphore_acq_t acq(&semaphore_);
 
         coro_t::spawn_now_dangerously(
             std::bind(&concurrent_traversal_adapter_t::handle_pair_coro,
