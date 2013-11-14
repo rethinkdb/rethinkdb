@@ -2,8 +2,6 @@
 #ifndef RPC_DIRECTORY_READ_MANAGER_HPP_
 #define RPC_DIRECTORY_READ_MANAGER_HPP_
 
-#include <map>
-
 #include "errors.hpp"
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/shared_ptr.hpp>
@@ -15,6 +13,7 @@
 #include "containers/scoped.hpp"
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/connectivity/messages.hpp"
+#include "containers/incremental_lenses.hpp"
 
 template<class metadata_t>
 class directory_read_manager_t :
@@ -25,7 +24,7 @@ public:
     explicit directory_read_manager_t(connectivity_service_t *connectivity_service) THROWS_NOTHING;
     ~directory_read_manager_t() THROWS_NOTHING;
 
-    clone_ptr_t<watchable_t<std::map<peer_id_t, metadata_t> > > get_root_view() THROWS_NOTHING {
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, metadata_t> > > get_root_view() THROWS_NOTHING {
         return variable.get_watchable();
     }
 
@@ -65,7 +64,7 @@ private:
     /* The connectivity service telling us which peers are connected */
     connectivity_service_t *connectivity_service;
 
-    watchable_variable_t<std::map<peer_id_t, metadata_t> > variable;
+    watchable_variable_t<change_tracking_map_t<peer_id_t, metadata_t> > variable;
     mutex_assertion_t variable_lock;
 
     boost::ptr_map<peer_id_t, session_t> sessions;

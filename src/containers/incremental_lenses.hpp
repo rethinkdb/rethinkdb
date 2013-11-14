@@ -1,12 +1,13 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_MAIN_INCREMENTAL_LENS_HPP_
-#define CLUSTERING_ADMINISTRATION_MAIN_INCREMENTAL_LENS_HPP_
+#ifndef CONTAINERS_INCREMENTAL_LENSES_HPP_
+#define CONTAINERS_INCREMENTAL_LENSES_HPP_
 
 #include <map>
 #include <set>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
+#include <boost/utility/result_of.hpp>
 
 // TODO: Document the classes
 template <class key_type, class inner_type>
@@ -25,6 +26,13 @@ public:
         changed_keys.insert(key);
         inner[key] = value;
     }
+    // Same as above but with move semantics
+    void set_value(const key_type &key, inner_type &&value) {
+        rassert (current_version > 0, "You must call begin_version() before "
+            "performing any changes.");
+        changed_keys.insert(key);
+        inner[key] = std::move(value);
+    }
     void delete_value(const key_type &key) {
         rassert (current_version > 0, "You must call begin_version() before "
             "performing any changes.");
@@ -41,7 +49,7 @@ public:
     }
 
     const std::map<key_type, inner_type> &get_inner() const { return inner; }
-    const std::set<key_type> &get_changed_peers() const { return changed_keys; }
+    const std::set<key_type> &get_changed_keys() const { return changed_keys; }
     unsigned int get_current_version() const { return current_version; }
 
     // TODO (daniel): Remove this, unless we really need it.
@@ -100,4 +108,4 @@ private:
     callable_type inner_lens;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_MAIN_INCREMENTAL_LENS_HPP_ */
+#endif /* CONTAINERS_INCREMENTAL_LENSES_HPP_ */

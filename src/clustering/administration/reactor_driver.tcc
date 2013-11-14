@@ -47,7 +47,7 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
 template <class protocol_t>
 class per_thread_ack_info_t {
 public:
-    per_thread_ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
+    per_thread_ack_info_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                           const semilattice_watchable_t<machines_semilattice_metadata_t> &machines_view,
                           const semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > &namespaces_view,
                           threadnum_t dest_thread)
@@ -56,8 +56,9 @@ public:
           namespaces_view_(clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > >(namespaces_view.clone()), dest_thread) { }
 
     // TODO: Just get the value directly.
+    // /\/\/\/\ What does this mean? (~daniel)
     std::map<peer_id_t, machine_id_t> get_machine_id_translation_table() {
-        return machine_id_translation_table_.get_watchable()->get();
+        return machine_id_translation_table_.get_watchable()->get().get_inner();
     }
 
     machines_semilattice_metadata_t get_machines_view() {
@@ -69,7 +70,7 @@ public:
     }
 
 private:
-    cross_thread_watchable_variable_t<std::map<peer_id_t, machine_id_t> > machine_id_translation_table_;
+    cross_thread_watchable_variable_t<change_tracking_map_t<peer_id_t, machine_id_t> > machine_id_translation_table_;
     cross_thread_watchable_variable_t<machines_semilattice_metadata_t> machines_view_;
     cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view_;
     DISABLE_COPYING(per_thread_ack_info_t);
@@ -78,7 +79,7 @@ private:
 template <class protocol_t>
 class ack_info_t : public home_thread_mixin_t {
 public:
-    ack_info_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
+    ack_info_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machines_view,
                const boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > &namespaces_view)
         : machine_id_translation_table_(machine_id_translation_table),
@@ -95,7 +96,7 @@ public:
     }
 
 private:
-    clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table_;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table_;
     semilattice_watchable_t<machines_semilattice_metadata_t> machines_view_;
     semilattice_watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > namespaces_view_;
 
@@ -279,19 +280,26 @@ public:
     }
 
 private:
-    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(
-            const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss) {
-        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > out;
-        for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); it++) {
-            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::const_iterator jt =
-                it->second.reactor_bcards.find(namespace_id_);
-            if (jt == it->second.reactor_bcards.end()) {
-                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >()));
+    typedef change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory_result_type;
+    void extract_reactor_directory(
+            const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss,
+            change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > *current_out) {
+        guarantee(current_out != NULL);
+        current_out->begin_version();
+
+        for (auto it = nss.get_changed_keys().begin(); it != nss.get_changed_keys().end(); ++it) {
+            auto jt = nss.get_inner().find(*it);
+            if (jt == nss.get_inner().end()) {
+                current_out->delete_value(*it);
             } else {
-                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(jt->second)));
+                auto kt = jt->second.reactor_bcards.find(namespace_id_);
+                if (kt == jt->second.reactor_bcards.end()) {
+                    current_out->set_value(*it, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >());
+                } else {
+                    current_out->set_value(*it, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(kt->second));
+                }
             }
         }
-        return out;
     }
 
     void on_change_reactor_directory() {
@@ -330,7 +338,8 @@ private:
             io_backender,
             parent_->mbox_manager,
             this,
-            parent_->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
+            parent_->directory_view->template incremental_subview<extract_reactor_directory_result_type>(
+                boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1, _2)),
             parent_->branch_history_manager,
             watchable.get_watchable(),
             svs_.get(), namespace_collection, ctx));
@@ -397,11 +406,11 @@ template <class protocol_t>
 reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
                                                io_backender_t *_io_backender,
                                                mailbox_manager_t *_mbox_manager,
-                                               const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
+                                               const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &_directory_view,
                                                branch_history_manager_t<protocol_t> *_branch_history_manager,
                                                boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _namespaces_view,
                                                boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view_,
-                                               const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
+                                               const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table,
                                                svs_by_namespace_t<protocol_t> *_svs_by_namespace,
                                                perfmon_collection_repo_t *_perfmon_collection_repo,
                                                typename protocol_t::context_t *_ctx)
@@ -421,7 +430,7 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
       translation_table_subscription(boost::bind(&reactor_driver_t<protocol_t>::on_change, this)),
       perfmon_collection_repo(_perfmon_collection_repo)
 {
-    watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
+    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
     translation_table_subscription.reset(machine_id_translation_table, &freeze);
     on_change();
 }
@@ -476,7 +485,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                 continue;
             }
 
-            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table->get());
+            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table->get().get_inner());
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we

@@ -6,7 +6,7 @@
 
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"
-#include "clustering/administration/main/incremental_lens.hpp"
+#include "containers/incremental_lenses.hpp"
 
 template<class inner_t, class outer_t>
 class field_copier_t {
@@ -82,10 +82,10 @@ private:
 };
 template<class inner_t, class outer_t>
 class incremental_field_getter_t
-    : public incremental_map_lens_t<peer_id_t, inner_t, inner_t> {
+    : public incremental_map_lens_t<peer_id_t, outer_t, inner_field_getter_t<inner_t, outer_t> > {
 public:
     incremental_field_getter_t(inner_t outer_t::*f) :
-        incremental_map_lens_t<peer_id_t, inner_t, inner_t >(
+        incremental_map_lens_t<peer_id_t, outer_t, inner_field_getter_t<inner_t, outer_t> >(
             inner_field_getter_t<inner_t, outer_t>(f)) {
         
     };

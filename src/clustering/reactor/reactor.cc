@@ -9,14 +9,17 @@
 #include "concurrency/cross_thread_watchable.hpp"
 
 template<class key_t, class value_t>
-std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::optional<value_t> > &map) {
-    std::map<key_t, value_t> res;
-    for (typename std::map<key_t, boost::optional<value_t> >::const_iterator it = map.begin(); it != map.end(); it++) {
-        if (it->second) {
-            res.insert(std::make_pair(it->first, it->second.get()));
+void collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optional<value_t> > &map, change_tracking_map_t<key_t, value_t> *current_out) {
+    guarantee(current_out != NULL);
+    current_out->begin_version();
+    for (auto it = current_out->get_changed_keys().begin(); it != current_out->get_changed_keys().end(); it++) {
+        auto jt = map.get_inner().find(*it);
+        if (jt != map.get_inner().end() && jt->second) {
+            current_out->set_value(*it, jt->second.get());
+        } else {
+            current_out->delete_value(*it);
         }
     }
-    return res;
 }
 
 template<class protocol_t>
@@ -25,7 +28,7 @@ reactor_t<protocol_t>::reactor_t(
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
         ack_checker_t *ack_checker_,
-        clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > rd,
+        clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > rd,
         branch_history_manager_t<protocol_t> *bhm,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
         multistore_ptr_t<protocol_t> *_underlying_svs,
@@ -39,7 +42,10 @@ reactor_t<protocol_t>::reactor_t(
     mailbox_manager(mm),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t<protocol_t> >()),
-    directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >)),
+    directory_echo_mirror(mailbox_manager, rd->template incremental_subview< // TODO: Try to simplify this again
+        change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >,
+        typeof &collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > >(
+        &collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >)),
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
@@ -207,8 +213,8 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
 }
 
 template<class protocol_t>
-bool we_see_our_bcard(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &bcards, peer_id_t me) {
-    return std_contains(bcards, me);
+bool we_see_our_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &bcards, peer_id_t me) {
+    return std_contains(bcards.get_inner(), me);
 }
 
 template<class protocol_t>

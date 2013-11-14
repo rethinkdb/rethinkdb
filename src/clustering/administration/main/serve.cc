@@ -14,7 +14,7 @@
 #include "clustering/administration/main/initial_join.hpp"
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "clustering/administration/main/incremental_lens.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "clustering/administration/network_logger.hpp"
@@ -181,8 +181,8 @@ bool do_serve(
         auto_reconnector_t auto_reconnector(
             &connectivity_cluster,
             connectivity_cluster_run.get(),
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
             metadata_field(&cluster_semilattice_metadata_t::machines, semilattice_manager_cluster.get_root_view()));
 
         field_copier_t<std::list<local_issue_t>, cluster_directory_metadata_t> copy_local_issues_to_cluster(
@@ -227,18 +227,17 @@ bool do_serve(
         perfmon_collection_repo_t perfmon_repo(&get_global_perfmon_collection());
 
         // Namespace repos
-        // TODO!
 
         mock::dummy_protocol_t::context_t dummy_ctx;
         namespace_repo_t<mock::dummy_protocol_t> dummy_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
             &dummy_ctx);
 
         memcached_protocol_t::context_t mc_ctx;
         namespace_repo_t<memcached_protocol_t> memcached_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
             &mc_ctx);
 
         rdb_protocol_t::context_t rdb_ctx(&extproc_pool,
@@ -249,8 +248,8 @@ bool do_serve(
                                           machine_id);
 
         namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
-            directory_read_manager.get_root_view()->subview(
-                field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+            directory_read_manager.get_root_view()->incremental_subview(
+                incremental_field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>, cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
             &rdb_ctx);
 
         //This is an annoying chicken and egg problem here
@@ -272,17 +271,17 @@ bool do_serve(
                     base_path,
                     io_backender,
                     &mailbox_manager,
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>,
-                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
+                    directory_read_manager.get_root_view()->incremental_subview(
+                        incremental_field_getter_t<namespaces_directory_metadata_t<mock::dummy_protocol_t>,
+                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::dummy_namespaces)),
                     cluster_metadata_file->get_dummy_branch_history_manager(),
                     metadata_field(&cluster_semilattice_metadata_t::dummy_namespaces,
                                    semilattice_manager_cluster.get_root_view()),
                     metadata_field(&cluster_semilattice_metadata_t::machines,
                                    semilattice_manager_cluster.get_root_view()),
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<machine_id_t,
-                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                    directory_read_manager.get_root_view()->incremental_subview(
+                        incremental_field_getter_t<machine_id_t,
+                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
                     dummy_svs_source.get(),
                     &perfmon_repo,
                     reinterpret_cast<mock::dummy_protocol_t::context_t *>(NULL)));
@@ -305,17 +304,17 @@ bool do_serve(
                     base_path,
                     io_backender,
                     &mailbox_manager,
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>,
-                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
+                    directory_read_manager.get_root_view()->incremental_subview(
+                        incremental_field_getter_t<namespaces_directory_metadata_t<memcached_protocol_t>,
+                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::memcached_namespaces)),
                     cluster_metadata_file->get_memcached_branch_history_manager(),
                     metadata_field(&cluster_semilattice_metadata_t::memcached_namespaces,
                                    semilattice_manager_cluster.get_root_view()),
                     metadata_field(&cluster_semilattice_metadata_t::machines,
                                    semilattice_manager_cluster.get_root_view()),
-                    directory_read_manager.get_root_view()->subview(
-                        field_getter_t<machine_id_t,
-                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                    directory_read_manager.get_root_view()->incremental_subview(
+                        incremental_field_getter_t<machine_id_t,
+                                                   cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
                     memcached_svs_source.get(),
                     &perfmon_repo,
                     reinterpret_cast<memcached_protocol_t::context_t *>(NULL)));
@@ -338,17 +337,17 @@ bool do_serve(
                         base_path,
                         io_backender,
                         &mailbox_manager,
-                        directory_read_manager.get_root_view()->subview(
-                            field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>,
-                                           cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
+                        directory_read_manager.get_root_view()->incremental_subview(
+                            incremental_field_getter_t<namespaces_directory_metadata_t<rdb_protocol_t>,
+                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::rdb_namespaces)),
                         cluster_metadata_file->get_rdb_branch_history_manager(),
                         metadata_field(&cluster_semilattice_metadata_t::rdb_namespaces,
                                        semilattice_manager_cluster.get_root_view()),
                         metadata_field(&cluster_semilattice_metadata_t::machines,
                                        semilattice_manager_cluster.get_root_view()),
-                        directory_read_manager.get_root_view()->subview(
-                            field_getter_t<machine_id_t,
-                                           cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
+                        directory_read_manager.get_root_view()->incremental_subview(
+                            incremental_field_getter_t<machine_id_t,
+                                                       cluster_directory_metadata_t>(&cluster_directory_metadata_t::machine_id)),
                         rdb_svs_source.get(),
                         &perfmon_repo,
                         &rdb_ctx));

@@ -3,21 +3,21 @@
 
 network_logger_t::network_logger_t(
         peer_id_t our_peer_id,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &dv,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &dv,
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &sv) :
     us(our_peer_id),
     directory_view(dv), semilattice_view(sv),
     directory_subscription(boost::bind(&network_logger_t::on_change, this)),
     semilattice_subscription(boost::bind(&network_logger_t::on_change, this))
 {
-    watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> >::freeze_t directory_freeze(directory_view);
-    guarantee(directory_view->get().empty());
+    watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> >::freeze_t directory_freeze(directory_view);
+    guarantee(directory_view->get().get_inner().empty());
     directory_subscription.reset(directory_view, &directory_freeze);
     semilattice_subscription.reset(semilattice_view);
 }
 
 void network_logger_t::on_change() {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_view->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_view->get().get_inner();
     machines_semilattice_metadata_t semilattice = semilattice_view->get();
 
     std::set<machine_id_t> servers_seen;

@@ -13,7 +13,7 @@
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
     connectivity_service(conn_serv),
-    variable(std::map<peer_id_t, metadata_t>()),
+    variable(change_tracking_map_t<peer_id_t, metadata_t>()),
     connectivity_subscription(this) {
     connectivity_service_t::peers_list_freeze_t freeze(connectivity_service);
     guarantee(connectivity_service->get_peers_list().empty());
@@ -116,13 +116,13 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     if (got_initialization) {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-        /* C++11: auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool { ... }
+        /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
         Because we cannot use C++11 lambdas yet due to missing support in
         GCC 4.4, this is the messy work-around: */
         struct op_closure_t {
-            bool operator()(std::map<peer_id_t, metadata_t> *map) {
-                size_t num_erased = map->erase(peer);
-                guarantee(num_erased == 1);
+            bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                map->begin_version();
+                map->delete_value(peer);
                 return true;
             }
             op_closure_t(peer_id_t &c1) :
@@ -160,14 +160,13 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-        /* C++11: auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool { ... }
+        /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
         Because we cannot use C++11 lambdas yet due to missing support in
         GCC 4.4, this is the messy work-around: */
         struct op_closure_t {
-            bool operator()(std::map<peer_id_t, metadata_t> *map) {
-                std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
-                    = map->insert(std::make_pair(peer, std::move(*initial_value)));
-                guarantee(res.second);
+            bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                map->begin_version();
+                map->set_value(peer, std::move(*initial_value));
                 return true;
             }
             op_closure_t(peer_id_t &c1,
@@ -231,18 +230,20 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-            /* C++11: auto op = [&] (std::map<peer_id_t, metadata_t> *map) -> bool { ... }
+            /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
             Because we cannot use C++11 lambdas yet due to missing support in
             GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
-                bool operator()(std::map<peer_id_t, metadata_t> *map) {
-                    typename std::map<peer_id_t, metadata_t>::iterator var_it = map->find(peer);
-                    if (var_it == map->end()) {
+                bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                    typename std::map<peer_id_t, metadata_t>::const_iterator var_it
+                        = map->get_inner().find(peer);
+                    if (var_it == map->get_inner().end()) {
                         guarantee(!std_contains(sessions, peer));
                         //The session was deleted we can ignore this update.
                         return false;
                     }
-                    var_it->second = std::move(*new_value);
+                    map->begin_version();
+                    map->set_value(peer, std::move(*new_value));
                     return true;
                 }
                 op_closure_t(peer_id_t &c1,

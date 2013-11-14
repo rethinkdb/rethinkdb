@@ -10,11 +10,9 @@
 #include "concurrency/cond_var.hpp"
 #include "concurrency/wait_any.hpp"
 
-template <class outer_type, class callable_type>
-class subview_watchable_t : public watchable_t<typename boost::result_of<callable_type(outer_type)>::type> {
+template <class result_type, class outer_type, class callable_type>
+class subview_watchable_t : public watchable_t<result_type> {
 public:
-    typedef typename boost::result_of<callable_type(outer_type)>::type result_type;
-
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
         cache(new lensed_value_cache_t(l, p)) {
     }
@@ -53,7 +51,7 @@ private:
             parent(p->clone()),
             lens(l),
             parent_subscription(boost::bind(
-                &subview_watchable_t<outer_type, callable_type>::lensed_value_cache_t::on_parent_changed,
+                &subview_watchable_t<result_type, outer_type, callable_type>::lensed_value_cache_t::on_parent_changed,
                 this)) {
 
             typename watchable_t<outer_type>::freeze_t freeze(parent);
@@ -144,10 +142,18 @@ private:
 
 template<class value_type>
 template<class callable_type>
-clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::type> > watchable_t<value_type>::incremental_subview(const callable_type &lens) {
+clone_ptr_t<watchable_t<typename callable_type::result_type> > watchable_t<value_type>::incremental_subview(const callable_type &lens) {
     assert_thread();
     return clone_ptr_t<watchable_t<typename callable_type::result_type> >(
-        new subview_watchable_t<value_type, callable_type>(lens, this));
+        new subview_watchable_t<typename callable_type::result_type, value_type, callable_type>(lens, this));
+}
+
+template<class value_type>
+template<class result_type, class callable_type>
+clone_ptr_t<watchable_t<result_type> > watchable_t<value_type>::incremental_subview(const callable_type &lens) {
+    assert_thread();
+    return clone_ptr_t<watchable_t<result_type> >(
+        new subview_watchable_t<result_type, value_type, callable_type>(lens, this));
 }
 
 template<class value_type>
@@ -157,7 +163,7 @@ clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::ty
     typedef non_incremental_lens_wrapper_t<value_type, callable_type> wrapped_callable_type;
     wrapped_callable_type wrapped_lens(lens);
     return clone_ptr_t<watchable_t<typename wrapped_callable_type::result_type> >(
-        new subview_watchable_t<value_type, wrapped_callable_type>(wrapped_lens, this));
+        new subview_watchable_t<typename wrapped_callable_type::result_type, value_type, wrapped_callable_type>(wrapped_lens, this));
 }
 
 template<class value_type>

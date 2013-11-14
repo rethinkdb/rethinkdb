@@ -48,7 +48,7 @@ std::string admin_cluster_link_t::peer_id_to_machine_name(const std::string& pee
         if (peer == connectivity_cluster.get_me()) {
             result.assign("admin_cli");
         } else {
-            std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+            std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
             std::map<peer_id_t, cluster_directory_metadata_t>::iterator i = directory.find(peer);
 
             if (i != directory.end()) {
@@ -235,7 +235,7 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
                                               bool prioritize_distribution) {
     std::string error;
     try {
-        fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get(), change_request_id, prioritize_distribution);
+        fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get().get_inner(), change_request_id, prioritize_distribution);
     } catch (const missing_machine_exc_t &ex) {
         error = strprintf("Warning: %s", ex.what());
     }
@@ -309,7 +309,7 @@ admin_cluster_link_t::~admin_cluster_link_t() {
 }
 
 metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::address_t admin_cluster_link_t::choose_sync_peer() {
-    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = directory.begin(); i != directory.end(); ++i) {
         if (i->second.peer_type == SERVER_PEER) {
@@ -322,7 +322,7 @@ metadata_change_handler_t<cluster_semilattice_metadata_t>::request_mailbox_t::ad
 }
 
 metadata_change_handler_t<auth_semilattice_metadata_t>::request_mailbox_t::address_t admin_cluster_link_t::choose_auth_sync_peer() {
-    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    const std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
 
     for (std::map<peer_id_t, cluster_directory_metadata_t>::const_iterator i = directory.begin(); i != directory.end(); ++i) {
         if (i->second.peer_type == SERVER_PEER) {
@@ -380,7 +380,7 @@ void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& 
 void admin_cluster_link_t::sync_from() {
     try {
         cond_t interruptor;
-        std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+        std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
 
         if (sync_peer_id.is_nil() || directory.count(sync_peer_id) == 0) {
             choose_sync_peer();
@@ -1217,7 +1217,7 @@ struct admin_stats_request_t {
 };
 
 void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::command_data_t& data) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
     boost::ptr_map<machine_id_t, admin_stats_request_t> request_map;
     std::set<machine_id_t> machine_filters;
@@ -1331,7 +1331,7 @@ void admin_cluster_link_t::do_admin_list_stats(const admin_command_parser_t::com
 }
 
 void admin_cluster_link_t::do_admin_list_directory(const admin_command_parser_t::command_data_t& data) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
     bool long_format = data.params.count("long");
     std::vector<std::vector<std::string> > table;
@@ -1775,7 +1775,7 @@ void admin_cluster_link_t::add_namespaces(const std::string&,
 }
 
 std::map<machine_id_t, admin_cluster_link_t::machine_info_t> admin_cluster_link_t::build_machine_info(const cluster_semilattice_metadata_t& cluster_metadata) {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     std::map<machine_id_t, machine_info_t> results;
 
     // Initialize each machine, reachable machines are in the directory
@@ -3569,7 +3569,7 @@ size_t admin_cluster_link_t::get_machine_count_in_datacenter(const cluster_semil
 }
 
 size_t admin_cluster_link_t::available_machine_count() {
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_read_manager->get_root_view()->get().get_inner();
     cluster_semilattice_metadata_t cluster_metadata = cluster_metadata_view->get();
     size_t count = 0;
 
