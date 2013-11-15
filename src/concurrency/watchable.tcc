@@ -57,7 +57,7 @@ private:
             assert_thread();
         }
 
-        result_type *get() {
+        const result_type *get() {
             assert_thread();
             return &cached_value;
         }
