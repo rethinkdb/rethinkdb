@@ -1306,6 +1306,10 @@ void post_construct_secondary_indexes(
 
     post_construct_traversal_helper_t helper(store,
             sindexes_to_post_construct, &local_interruptor, interruptor);
+    /* Notice the ordering of progress_tracker and insertion_sentries matters.
+     * insertion_sentries puts pointers in the progress tracker map. Once
+     * insertion_sentries is destructed nothing has a reference to
+     * progress_tracker so we know it's safe to destruct it. */
     parallel_traversal_progress_t progress_tracker;
     helper.progress = &progress_tracker;
 
