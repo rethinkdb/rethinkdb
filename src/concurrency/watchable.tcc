@@ -20,8 +20,7 @@ public:
     typedef typename boost::result_of<callable_type(outer_type)>::type result_type;
 
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
-        cache(new lensed_value_cache_t(l, p)),
-        sub_to_parent(std::bind(&this_t::on_parent_change, this), p->get_publisher()) { }
+        cache(new lensed_value_cache_t(l, p)) { }
 
     subview_watchable_t *clone() const {
         return new subview_watchable_t(cache);
@@ -42,7 +41,7 @@ public:
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
-        return publisher_controller.get_publisher();
+        return cache->get_publisher();
     }
 
     rwi_lock_assertion_t *get_rwi_lock_assertion() {
@@ -57,32 +56,19 @@ private:
             lens(l),
             parent_subscription(boost::bind(
                 &subview_watchable_t<outer_type, callable_type>::lensed_value_cache_t::on_parent_changed,
-                this)) {
-
-            typename watchable_t<outer_type>::freeze_t freeze(parent);
-            parent_changed = true; // Initializing here, so we definitely set the flag
-                                   // while having the parent freezed.
-            parent_subscription.reset(parent, &freeze);
-        }
+                this), p->get_publisher()) { }
 
         ~lensed_value_cache_t() {
-            {
-                on_thread_t t(parent->home_thread());
-                parent_subscription.reset();
-            }
-        }
-
-        // TODO!
-        result_type get_outdated_value() {
-            return cached_value;
+            // TODO! Add a bunch of assert_threads here and in other places.
+            // Also change the boost::shared_ptr into a counted_t
         }
 
         result_type *get() {
-            if (parent_changed) {
-                // TODO: Some kind of locking maybe?
-                compute_value();
-            }
             return &cached_value;
+        }
+
+        publisher_t<boost::function<void()> > *get_publisher() {
+            return publisher_controller.get_publisher();
         }
 
         clone_ptr_t<watchable_t<outer_type> > parent;
@@ -96,48 +82,38 @@ private:
             GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
                 void operator()(const outer_type *val) {
-                    parent_changed = false;
                     cached_value = lens(*val);
                 }
-                op_closure_t(callable_type &c1, bool &c2, result_type &c3) :
+                op_closure_t(callable_type &c1, result_type &c2) :
                     lens(c1),
-                    parent_changed(c2),
-                    cached_value(c3) {
+                    cached_value(c2) {
                 }
                 callable_type &lens;
-                bool &parent_changed;
                 result_type &cached_value;
             };
-            op_closure_t op(lens, parent_changed, cached_value);
+            op_closure_t op(lens, cached_value);
 
             parent->apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
         }
 
         void on_parent_changed() {
-            parent_changed = true;
+            const value_t old_value = cached_value;
+            compute_value();
+            if (cached_value != old_value) {
+                publisher_controller.publish(&call_function);
+            }
         }
 
         callable_type lens;
-        bool parent_changed;
         result_type cached_value;
-        typename watchable_t<outer_type>::subscription_t parent_subscription;
+        publisher_controller_t<boost::function<void()> > publisher_controller;
+        publisher_t<boost::function<void()> >::subscription_t parent_subscription;
     };
 
     subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
-        cache(_cache),
-        sub_to_parent(std::bind(&this_t::on_parent_change, this), _cache->parent->get_publisher()) { }
-
-    void on_parent_change() {
-        value_t old_value = cache->get_outdated_value();
-        const value_t *new_value = cache->get();
-        if (*new_value != old_value) {
-            publisher_controller.publish(&call_function);
-        }
-    }
+        cache(_cache) { }
 
     boost::shared_ptr<lensed_value_cache_t> cache;
-    publisher_controller_t<boost::function<void()> > publisher_controller;
-    publisher_t<boost::function<void()> >::subscription_t sub_to_parent;
 };
 
 template<class value_type>
