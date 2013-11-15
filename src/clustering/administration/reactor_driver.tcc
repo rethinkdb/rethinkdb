@@ -507,7 +507,29 @@ void reactor_driver_t<protocol_t>::on_change() {
                     namespace_id_t tmp = it->first;
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
-                    reactor_data.find(it->first)->second->watchable.set_value(bp);
+                    bool blueprint_changed = false;
+
+                    /* C++11: auto op = [&] (const blueprint_t<protocol_t> *old_bp) -> void { ... }
+                    Because we cannot use C++11 lambdas yet due to missing support in
+                    GCC 4.4, this is the messy work-around: */
+                    struct op_closure_t {
+                        void operator()(const blueprint_t<protocol_t> *old_bp) {
+                            blueprint_changed = *old_bp == bp;
+                        }
+                        op_closure_t(bool &c1, blueprint_t<protocol_t> &c2) :
+                            blueprint_changed(c1),
+                            bp(c2) {
+                        }
+                        bool &blueprint_changed;
+                        blueprint_t<protocol_t> &bp;
+                    };
+                    op_closure_t op(blueprint_changed, bp);
+
+                    reactor_data.find(it->first)->second->watchable.apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+
+                    if (blueprint_changed) {
+                        reactor_data.find(it->first)->second->watchable.set_value(bp);
+                    }
                 }
             } else {
                 /* The blueprint does not mentions us so we destroy the
