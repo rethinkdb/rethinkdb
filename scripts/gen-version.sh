@@ -69,16 +69,17 @@ version=''
 [ -f "${version_file}" ] && version=$(cat "$version_file")
 if [ -z "$version" -a "$repo_available" = 1 ]; then
   version="$(git describe --tags --match "v[0-9]*" --abbrev=6 HEAD 2> /dev/null || true)"
-  case "$version" in
-    *$lf*)
-      exit 1 ;;
-    v[0-9]*)
-      git update-index -q --refresh > /dev/null || true
-      [ -n "$(git diff-index --name-only HEAD -- || true)" ] && version="${version}-dirty"
-      ;;
-  esac
+else
+  version="$(head -n1 NOTES | awk '{print $3}' || true)"
 fi
-
+case "$version" in
+  *$lf*)
+    exit 1 ;;
+  v[0-9]*)
+    git update-index -q --refresh > /dev/null || true
+    [ -n "$(git diff-index --name-only HEAD -- || true)" ] && version="${version}-dirty"
+    ;;
+esac
 
 if [ -z "$version" ]; then
   echo "$0: Warning: could not determine the version, using the default version '${default_version}' (defined in $0)" >&2
