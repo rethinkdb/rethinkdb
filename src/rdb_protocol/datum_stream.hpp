@@ -428,6 +428,7 @@ public:
 private:
     virtual std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
+    virtual bool is_exhausted() const;
     uint64_t index, left, right;
 };
 

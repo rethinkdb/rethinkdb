@@ -58,6 +58,7 @@ public:
     static batchspec_t empty() { return batchspec_t(); }
     batch_type_t get_batch_type() const { return batch_type; }
     batchspec_t with_new_batch_type(batch_type_t new_batch_type) const;
+    batchspec_t with_at_most(int64_t max_els) const;
     batcher_t to_batcher() const;
     RDB_MAKE_ME_SERIALIZABLE_4(batch_type, els_left, size_left, end_time);
 private:

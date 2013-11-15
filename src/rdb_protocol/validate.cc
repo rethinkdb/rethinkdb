@@ -100,7 +100,7 @@ void validate_pb(const Datum &d) {
     } else {
         check_not_has(d, has_r_num, "r_num");
     }
-    if (d.type() == Datum::R_STR) {
+    if (d.type() == Datum::R_STR || d.type() == Datum::R_JSON) {
         check_has(d, has_r_str, "r_str");
     } else {
         check_not_has(d, has_r_str, "r_str");

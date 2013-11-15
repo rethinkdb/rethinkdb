@@ -50,6 +50,10 @@ batchspec_t batchspec_t::with_new_batch_type(batch_type_t new_batch_type) const 
     return batchspec_t(new_batch_type, els_left, size_left, end_time);
 }
 
+batchspec_t batchspec_t::with_at_most(int64_t max_els) const {
+    return batchspec_t(batch_type, std::min(els_left, max_els), size_left, end_time);
+}
+
 batcher_t batchspec_t::to_batcher() const {
     microtime_t real_end_time =
         batch_type == batch_type_t::NORMAL && end_time > current_microtime()
