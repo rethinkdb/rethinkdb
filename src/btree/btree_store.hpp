@@ -242,6 +242,16 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+#if SLICE_ALT
+    void drop_all_sindexes(
+        write_token_pair_t *token_pair,
+        superblock_t *super_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+#endif
+
     void drop_all_sindexes(
         write_token_pair_t *token_pair,
         transaction_t *txn,

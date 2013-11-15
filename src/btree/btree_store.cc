@@ -735,6 +735,16 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
     return true;
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+void btree_store_t<protocol_t>::drop_all_sindexes(
+        write_token_pair_t *token_pair,
+        superblock_t *super_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+#else
 template <class protocol_t>
 void btree_store_t<protocol_t>::drop_all_sindexes(
         write_token_pair_t *token_pair,
@@ -744,18 +754,36 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
         value_deleter_t *deleter,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+#endif
     assert_thread();
 
     /* First get the sindex block. */
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    acquire_sindex_block_for_write(token_pair, &sindex_block,
+                                   super_block->get_sindex_block_id(), interruptor);
+#else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
+#endif
 
     /* Remove reference in the super block */
     std::map<std::string, secondary_index_t> sindexes;
+#if SLICE_ALT
+    get_secondary_indexes(sindex_block.get(), &sindexes);
+#else
     get_secondary_indexes(txn, sindex_block.get(), &sindexes);
+#endif
 
+#if SLICE_ALT
+    delete_all_secondary_indexes(sindex_block.get());
+#else
     delete_all_secondary_indexes(txn, sindex_block.get());
+#endif
+    // RSI: Apparently we wanted to release sindex_block so that others may proceed.
+#if !SLICE_ALT
     sindex_block->release(); //So others may proceed
+#endif
 
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -764,20 +792,40 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
 
         {
+#if SLICE_ALT
+            alt_buf_lock_t sindex_superblock_lock(sindex_block.get(),
+                                                  it->second.superblock,
+                                                  alt_access_t::write);
+#else
             buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
+#endif
             real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
+#if SLICE_ALT
+            erase_all(sizer, sindex_slice,
+                      deleter, &sindex_superblock, interruptor);
+#else
             erase_all(sizer, sindex_slice,
                       deleter, txn, &sindex_superblock, interruptor);
+#endif
         }
 
         secondary_index_slices.erase(it->first);
 
         {
+#if SLICE_ALT
+            alt_buf_lock_t sindex_superblock_lock(sindex_block.get(),
+                                                  it->second.superblock,
+                                                  alt_access_t::write);
+#else
             buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
+#endif
             sindex_superblock_lock.mark_deleted();
         }
     }
+#if SLICE_ALT
+    sindex_block->reset_buf_lock();
+#endif
 }
 
 template <class protocol_t>
