@@ -310,7 +310,7 @@ class Connection(object):
             time_format = opts['time_format']
 
         # Sequence responses
-        elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
+        if response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
             value = Cursor(self, query, term, opts)
             value._extend(response)
 
