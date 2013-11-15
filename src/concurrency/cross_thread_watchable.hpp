@@ -102,6 +102,98 @@ private:
     DISABLE_COPYING(cross_thread_watchable_variable_t);
 };
 
+
+
+
+/// Hack hack hack
+template <class value_t>
+class eq_cross_thread_watchable_variable_t
+{
+public:
+    eq_cross_thread_watchable_variable_t(const clone_ptr_t<watchable_t<value_t> > &watchable,
+                                      threadnum_t _dest_thread);
+
+    clone_ptr_t<watchable_t<value_t> > get_watchable() {
+        return clone_ptr_t<watchable_t<value_t> >(watchable.clone());
+    }
+
+    threadnum_t home_thread() { return watchable_thread; }
+
+private:
+    friend class eq_cross_thread_watcher_subscription_t;
+    void on_value_changed();
+    void deliver(value_t new_value);
+
+    static void call(const boost::function<void()> &f) {
+        f();
+    }
+
+    class w_t : public watchable_t<value_t> {
+    public:
+        explicit w_t(eq_cross_thread_watchable_variable_t<value_t> *p) : parent(p) { }
+
+        w_t *clone() const {
+            return new w_t(parent);
+        }
+        value_t get() {
+            return parent->value;
+        }
+        publisher_t<boost::function<void()> > *get_publisher() {
+            return parent->publisher_controller.get_publisher();
+        }
+        rwi_lock_assertion_t *get_rwi_lock_assertion() {
+            return &parent->rwi_lock_assertion;
+        }
+        void rethread(threadnum_t thread) {
+            home_thread_mixin_t::real_home_thread = thread;
+        }
+        eq_cross_thread_watchable_variable_t<value_t> *parent;
+    };
+
+    clone_ptr_t<watchable_t<value_t> > original;
+    publisher_controller_t<boost::function<void()> > publisher_controller;
+    rwi_lock_assertion_t rwi_lock_assertion;
+    value_t value;
+    w_t watchable;
+
+    threadnum_t watchable_thread;
+    threadnum_t dest_thread;
+
+    /* This object's constructor rethreads our internal components to our other
+    thread, and then reverses it in the destructor. It must be a separate object
+    instead of logic in the constructor/destructor because its destructor must
+    be run after `drainer`'s destructor. */
+    class rethreader_t {
+    public:
+        explicit rethreader_t(eq_cross_thread_watchable_variable_t *p) :
+            parent(p)
+        {
+            parent->watchable.rethread(parent->dest_thread);
+            parent->rwi_lock_assertion.rethread(parent->dest_thread);
+            parent->publisher_controller.rethread(parent->dest_thread);
+        }
+        ~rethreader_t() {
+            parent->watchable.rethread(parent->watchable_thread);
+            parent->rwi_lock_assertion.rethread(parent->watchable_thread);
+            parent->publisher_controller.rethread(parent->watchable_thread);
+        }
+    private:
+        eq_cross_thread_watchable_variable_t *parent;
+    } rethreader;
+
+    /* The destructor for `subs` must be run before the destructor for `drainer`
+    because `drainer`'s destructor will block until all the
+    `auto_drainer_t::lock_t` objects are gone, and `subs`'s callback holds an
+    `auto_drainer_t::lock_t`. */
+    typename watchable_t<value_t>::subscription_t subs;
+
+    single_value_producer_t<value_t> value_producer;
+    boost_function_callback_t<value_t> deliver_cb;
+    coro_pool_t<value_t> messanger_pool;
+
+    DISABLE_COPYING(eq_cross_thread_watchable_variable_t);
+};
+
 #include "concurrency/cross_thread_watchable.tcc"
 
 #endif  // CONCURRENCY_CROSS_THREAD_WATCHABLE_HPP_
