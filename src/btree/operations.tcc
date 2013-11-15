@@ -157,9 +157,8 @@ void find_keyvalue_location_for_write(
             profile::starter_t starter("Acquiring block for write.\n", trace);
 #if SLICE_ALT
             alt::alt_buf_lock_t tmp(&buf, node_id, alt::alt_access_t::write);
-            // RSI: Use std::move assignment.
-            last_buf.swap(buf);
-            buf.swap(tmp);
+            last_buf = std::move(buf);
+            buf = std::move(tmp);
 #else
             buf_lock_t tmp(txn, node_id, rwi_write);
             tmp.set_eviction_priority(incr_priority(buf.get_eviction_priority()));
@@ -233,8 +232,7 @@ void find_keyvalue_location_for_read(
         alt::alt_buf_lock_t tmp(superblock->expose_buf(), root_id,
                                 alt::alt_access_t::read);
         superblock->release();
-        // RSI: Use std::move here thx.
-        buf.swap(tmp);
+        buf = std::move(tmp);
 #else
         buf_lock_t tmp(txn, root_id, rwi_read);
         tmp.set_eviction_priority(root_eviction_priority);
@@ -286,8 +284,7 @@ void find_keyvalue_location_for_read(
 #if SLICE_ALT
             alt::alt_buf_lock_t tmp(&buf, node_id, alt::alt_access_t::read);
             buf.reset_buf_lock();
-            // RSI: Make this std::move assignment.
-            buf.swap(tmp);
+            buf = std::move(tmp);
 #else
             buf_lock_t tmp(txn, node_id, rwi_read);
             tmp.set_eviction_priority(incr_priority(buf.get_eviction_priority()));
@@ -323,8 +320,11 @@ void find_keyvalue_location_for_read(
     const bool value_found = leaf::lookup(&sizer, leaf, key, value.get());
 #endif
     if (value_found) {
-        // RSI: Use std::move assignment for buf.
+#if SLICE_ALT
+        keyvalue_location_out->buf = std::move(buf);
+#else
         keyvalue_location_out->buf.swap(buf);
+#endif
         keyvalue_location_out->there_originally_was_value = true;
         keyvalue_location_out->value = std::move(value);
     }

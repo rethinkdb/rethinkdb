@@ -17,6 +17,7 @@ using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_parent_t;
 using alt::alt_cache_t;
+using alt::alt_create_t;
 using alt::alt_txn_t;
 #endif
 
@@ -121,9 +122,18 @@ btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent,
 #endif
     : stats(parent, identifier),
       cache_(c),
+#if SLICE_ALT
+      superblock_id_(_superblock_id) {
+#else
       superblock_id_(_superblock_id),
       root_eviction_priority(INITIAL_ROOT_EVICTION_PRIORITY) {
+#endif
+#if SLICE_ALT
+    // RSI: Implement create_cache_account or something (fix read/write throttling
+    // too, thanks.)
+#else
     cache()->create_cache_account(BACKFILL_CACHE_PRIORITY, &backfill_account);
+#endif
 
     pre_begin_txn_checkpoint_.set_tagappend("pre_begin_txn");
 }

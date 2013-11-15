@@ -266,8 +266,23 @@ void ensure_stat_block(superblock_t *sb);
 #endif
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority);
 
+#if SLICE_ALT
+// RSI: return the scoped_ptr_t.
+void get_btree_superblock(alt::alt_txn_t *txn, alt::alt_access_t access,
+                          scoped_ptr_t<real_superblock_t> *got_superblock_out);
+#endif
 void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
+#if SLICE_ALT
+void get_btree_superblock_and_txn(btree_slice_t *slice,
+                                  access_t superblock_access,
+                                  int expected_change_count,
+                                  repli_timestamp_t tstamp,
+                                  order_token_t token,
+                                  write_durability_t durability,
+                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                  scoped_ptr_t<transaction_t> *txn_out);
+#endif
 void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
                                   access_t superblock_access, int expected_change_count,
                                   repli_timestamp_t tstamp, order_token_t token,

@@ -10,13 +10,16 @@
 #include "containers/archive/vector_stream.hpp"
 
 #if SLICE_ALT
+using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_read_t;
 using alt::alt_buf_write_t;
+using alt::alt_create_t;
+using alt::alt_txn_t;
 #endif
 
 #if SLICE_ALT
-real_superblock_t::real_superblock_t(alt::alt_buf_lock_t *sb_buf) {
+real_superblock_t::real_superblock_t(alt_buf_lock_t *sb_buf) {
 #else
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
 #endif
@@ -397,17 +400,18 @@ void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t
 }
 
 #if SLICE_ALT
-void get_root(value_sizer_t<void> *sizer, superblock_t *sb, buf_lock_t *buf_out) {
+void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
+              alt_buf_lock_t *buf_out) {
     guarantee(buf_out->empty());
 
     const block_id_t node_id = sb->get_root_block_id();
 
     if (node_id != NULL_BLOCK_ID) {
-        alt::alt_buf_lock_t temp_lock(sb->expose_buf(), node_id,
-                                      alt_access_t::write);
+        alt_buf_lock_t temp_lock(sb->expose_buf(), node_id,
+                                 alt_access_t::write);
         buf_out->swap(temp_lock);
     } else {
-        buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
+        alt_buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
         {
             alt_buf_write_t write(&temp_lock);
             leaf::init(sizer, static_cast<leaf_node_t *>(write.get_data_write()));
@@ -570,13 +574,44 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
     }
 }
 
+#if SLICE_ALT
+void get_btree_superblock(alt_txn_t *txn, alt_access_t access,
+                          scoped_ptr_t<real_superblock_t> *got_superblock_out) {
+    alt_buf_lock_t tmp_buf(alt_buf_parent_t(txn), SUPERBLOCK_ID, access);
+    scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(&tmp_buf));
+    *got_superblock_out = std::move(tmp_sb);
+}
+#else
 void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real_superblock_t> *got_superblock_out) {
     buf_lock_t tmp_buf(txn, SUPERBLOCK_ID, access);
     scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(&tmp_buf));
     tmp_sb->set_eviction_priority(ZERO_EVICTION_PRIORITY);
     got_superblock_out->init(tmp_sb.release());
 }
+#endif
 
+#if SLICE_ALT
+void get_btree_superblock_and_txn(btree_slice_t *slice,
+                                  alt_access_t superblock_access,
+                                  int expected_change_count,
+                                  repli_timestamp_t tstamp,
+                                  order_token_t token,
+                                  write_durability_t durability,
+                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                  scoped_ptr_t<transaction_t> *txn_out) {
+    slice->assert_thread();
+
+    const order_token_t pre_begin_txn_token
+        = slice->pre_begin_txn_checkpoint_.check_through(token);
+    alt_txn_t *txn = new alt_txn_t(slice->cache());
+    // RSI: Support all the stuff this old line does.
+    // transaction_t *txn = new transaction_t(slice->cache(), txn_access, expected_change_count, tstamp,
+    //                                        pre_begin_txn_token, durability);
+    txn_out->init(txn);
+
+    get_btree_superblock(txn, superblock_access, got_superblock_out);
+}
+#else
 void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
                                   access_t superblock_access,
                                   int expected_change_count,
@@ -593,6 +628,7 @@ void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
 
     get_btree_superblock(txn, superblock_access, got_superblock_out);
 }
+#endif
 
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
