@@ -494,7 +494,11 @@ void reactor_driver_t<protocol_t>::on_change() {
                 continue;
             }
 
-            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table->get().get_inner());
+            blueprint_t<protocol_t> bp;
+            auto op = [&](const change_tracking_map_t<peer_id_t, machine_id_t> *map) -> void {
+                bp = translate_blueprint(pbp, map->get_inner());
+            };
+            machine_id_translation_table->apply_read(op);
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
