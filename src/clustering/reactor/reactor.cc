@@ -51,10 +51,9 @@ reactor_t<protocol_t>::reactor_t(
     mailbox_manager(mm),
     ack_checker(ack_checker_),
     directory_echo_writer(mailbox_manager, cow_ptr_t<reactor_business_card_t<protocol_t> >()),
-    directory_echo_mirror(mailbox_manager, rd->template incremental_subview< // TODO: Try to simplify this again
-        change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >,
-        typeof &collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > >(
-        &collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >)),
+    directory_echo_mirror(mailbox_manager, rd->template incremental_subview<
+        change_tracking_map_t<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > (
+            &collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >)),
     branch_history_manager(bhm),
     blueprint_watchable(b),
     underlying_svs(_underlying_svs),
