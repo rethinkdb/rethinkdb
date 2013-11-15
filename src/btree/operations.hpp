@@ -124,17 +124,25 @@ public:
     promise_t<superblock_t *> *pass_back_superblock;
 
     // The parent buf of buf, if buf is not the root node.  This is hacky.
+#if SLICE_ALT
+    alt::alt_buf_lock_t last_buf;
+#else
     buf_lock_t last_buf;
+#endif
 
     // The buf owning the leaf node which contains the value.
+#if SLICE_ALT
+    alt::alt_buf_lock_t buf;
+#else
     buf_lock_t buf;
+#endif
 
     bool there_originally_was_value;
     // If the key/value pair was found, a pointer to a copy of the
     // value, otherwise NULL.
     scoped_malloc_t<Value> value;
 
-    void swap(keyvalue_location_t& other) {
+    void swap(keyvalue_location_t &other) {
         std::swap(superblock, other.superblock);
         std::swap(stat_block, other.stat_block);
         last_buf.swap(other.last_buf);

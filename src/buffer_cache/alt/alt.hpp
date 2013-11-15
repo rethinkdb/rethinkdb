@@ -18,7 +18,7 @@ enum class alt_create_t {
     create,
 };
 
-class alt_cache_t {
+class alt_cache_t : public home_thread_mixin_t {
 public:
     explicit alt_cache_t(serializer_t *serializer);
     ~alt_cache_t();
