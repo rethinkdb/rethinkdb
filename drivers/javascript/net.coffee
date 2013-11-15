@@ -15,7 +15,9 @@ aropt = util.aropt
 
 deconstructDatum = (datum, opts) ->
     pb.DatumTypeSwitch(datum, {
-        "R_NULL": =>
+        "R_JSON": =>
+            JSON.parse(datum.r_str)
+       ,"R_NULL": =>
             null
        ,"R_BOOL": =>
             datum.r_bool
@@ -337,6 +339,7 @@ class Connection extends events.EventEmitter
         @_sendQuery(query)
 
     _sendQuery: (query) ->
+        query.accepts_r_json = true
 
         # Serialize protobuf
         data = pb.SerializeQuery(query)
