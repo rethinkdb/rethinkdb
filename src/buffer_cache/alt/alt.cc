@@ -117,6 +117,22 @@ alt_buf_lock_t::~alt_buf_lock_t() {
     (void)snapshot_node_;
 }
 
+alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t &&movee)
+    : txn_(movee.txn_), cache_(movee.cache_),
+      current_page_acq_(std::move(movee.current_page_acq_)),
+      snapshot_node_(movee.snapshot_node_) {
+    movee.txn_ = NULL;
+    movee.cache_ = NULL;
+    movee.current_page_acq_.reset();
+    movee.snapshot_node_ = NULL;
+}
+
+alt_buf_lock_t &alt_buf_lock_t::operator=(alt_buf_lock_t &&movee) {
+    alt_buf_lock_t tmp(std::move(movee));
+    swap(tmp);
+    return *this;
+}
+
 void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
     std::swap(txn_, other.txn_);
     std::swap(cache_, other.cache_);

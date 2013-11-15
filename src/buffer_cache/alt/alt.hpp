@@ -108,6 +108,9 @@ public:
 
     ~alt_buf_lock_t();
 
+    alt_buf_lock_t(alt_buf_lock_t &&movee);
+    alt_buf_lock_t &operator=(alt_buf_lock_t &&movee);
+
     void swap(alt_buf_lock_t &other);
     void reset_buf_lock();
     bool empty() const;
