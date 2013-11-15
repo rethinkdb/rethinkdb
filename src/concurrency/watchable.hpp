@@ -108,11 +108,6 @@ public:
 
     virtual value_t get() = 0;
 
-    virtual void apply_atomic_op(const std::function<bool(value_t*)> &op) {
-        value_t v = get();
-        guarantee(op(&v) == false);
-    }
-
     virtual void apply_read(const std::function<void(const value_t*)> &read) {
         value_t v = get();
         read(&v);
@@ -209,9 +204,6 @@ private:
         }
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
             return &parent->rwi_lock_assertion;
-        }
-        void apply_atomic_op(const std::function<bool(value_t*)> &op) {
-            return parent->apply_atomic_op(op);
         }
         void apply_read(const std::function<void(const value_t*)> &read) {
             parent->apply_read(read);

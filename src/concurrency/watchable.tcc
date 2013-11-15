@@ -30,11 +30,6 @@ public:
         return *cache->get();
     }
 
-    void apply_atomic_op(const std::function<bool(result_type*)> &op) {
-        ASSERT_NO_CORO_WAITING;
-        guarantee(op(cache->get()) == false);
-    }
-
     virtual void apply_read(const std::function<void(const result_type*)> &read) {
         ASSERT_NO_CORO_WAITING;
         read(cache->get());
@@ -49,57 +44,67 @@ public:
     }
 
 private:
-    class lensed_value_cache_t {
+    class lensed_value_cache_t : public home_thread_mixin_t {
     public:
         lensed_value_cache_t(const callable_type &l, watchable_t<outer_type> *p) :
             parent(p->clone()),
             lens(l),
             parent_subscription(boost::bind(
                 &subview_watchable_t<outer_type, callable_type>::lensed_value_cache_t::on_parent_changed,
-                this), p->get_publisher()) { }
+                this), parent->get_publisher()) { }
 
         ~lensed_value_cache_t() {
-            // TODO! Add a bunch of assert_threads here and in other places.
-            // Also change the boost::shared_ptr into a counted_t
+            assert_thread();
         }
 
         result_type *get() {
+            assert_thread();
             return &cached_value;
         }
 
         publisher_t<boost::function<void()> > *get_publisher() {
+            assert_thread();
             return publisher_controller.get_publisher();
         }
 
         clone_ptr_t<watchable_t<outer_type> > parent;
 
     private:
-        void compute_value() {
+        bool compute_value() {
             // The closure is to avoid copying the whole value from the parent.
 
+            bool value_changed = false;
             /* C++11: auto op = [&] (const outer_type *val) -> void { ... }
             Because we cannot use C++11 lambdas yet due to missing support in
             GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
                 void operator()(const outer_type *val) {
-                    cached_value = lens(*val);
+                    value_t new_value = lens(*val);
+                    value_changed = new_value != cached_value;
+                    if (value_changed) {
+                        cached_value = std::move(new_value);
+                    }
                 }
-                op_closure_t(callable_type &c1, result_type &c2) :
+                op_closure_t(callable_type &c1, bool &c2, result_type &c3) :
                     lens(c1),
-                    cached_value(c2) {
+                    value_changed(c2),
+                    cached_value(c3) {
                 }
                 callable_type &lens;
+                bool &value_changed;
                 result_type &cached_value;
             };
-            op_closure_t op(lens, cached_value);
+            op_closure_t op(lens, value_changed, cached_value);
 
             parent->apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+
+            return value_changed;
         }
 
         void on_parent_changed() {
-            const value_t old_value = cached_value;
-            compute_value();
-            if (cached_value != old_value) {
+            assert_thread();
+            const bool value_changed = compute_value();
+            if (value_changed) {
                 publisher_controller.publish(&call_function);
             }
         }
