@@ -15,6 +15,7 @@
 #if SLICE_ALT
 using alt::alt_access_t;
 using alt::alt_buf_lock_t;
+using alt::alt_buf_parent_t;
 using alt::alt_cache_t;
 using alt::alt_txn_t;
 #endif
@@ -73,12 +74,16 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
 #endif
 
 #if SLICE_ALT
-    alt_buf_write_t sb_write(&superblock);
+    alt::alt_buf_write_t sb_write(&superblock);
     auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());
 #else
     btree_superblock_t *sb = static_cast<btree_superblock_t *>(superblock.get_data_write());
 #endif
+#if SLICE_ALT
+    bzero(sb, parent.cache()->get_block_size().value());
+#else
     bzero(sb, cache->get_block_size().value());
+#endif
 
     // sb->metainfo_blob has been properly zeroed.
     sb->magic = btree_superblock_t::expected_magic;
@@ -86,14 +91,22 @@ void btree_slice_t::create(cache_t *cache, block_id_t superblock_id, transaction
     sb->stat_block = NULL_BLOCK_ID;
     sb->sindex_block = NULL_BLOCK_ID;
 
+#if SLICE_ALT
+    set_superblock_metainfo(&superblock, metainfo_key, metainfo_value);
+#else
     set_superblock_metainfo(txn, &superblock, metainfo_key, metainfo_value);
+#endif
 
 #if SLICE_ALT
-    alt_buf_lock_t sindex_block(&superblock, alt_access_t::write);
+    alt::alt_buf_lock_t sindex_block(&superblock, alt_create_t::create);
 #else
     buf_lock_t sindex_block(txn);
 #endif
+#if SLICE_ALT
+    initialize_secondary_indexes(&sindex_block);
+#else
     initialize_secondary_indexes(txn, &sindex_block);
+#endif
     sb->sindex_block = sindex_block.get_block_id();
 }
 

@@ -247,6 +247,11 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out);
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
+#if SLICE_ALT
+void set_superblock_metainfo(alt::alt_buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             const std::vector<char> &value);
+#endif
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
 
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);

@@ -192,58 +192,138 @@ void find_keyvalue_location_for_write(
     keyvalue_location_out->buf.swap(buf);
 }
 
+#if SLICE_ALT
+template <class Value>
+void find_keyvalue_location_for_read(
+        superblock_t *superblock, const btree_key_t *key,
+        keyvalue_location_t<Value> *keyvalue_location_out,
+        btree_stats_t *stats, profile::trace_t *trace) {
+#else
 template <class Value>
 void find_keyvalue_location_for_read(
         transaction_t *txn, superblock_t *superblock, const btree_key_t *key,
         keyvalue_location_t<Value> *keyvalue_location_out,
         eviction_priority_t root_eviction_priority, btree_stats_t *stats,
         profile::trace_t *trace) {
+#endif
     stats->pm_keys_read.record();
+#if SLICE_ALT
+    value_sizer_t<Value> sizer(superblock->expose_buf().cache()->max_block_size());
+#else
     value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
+#endif
 
-    block_id_t node_id = superblock->get_root_block_id();
-    rassert(node_id != SUPERBLOCK_ID);
+    const block_id_t root_id = superblock->get_root_block_id();
+    rassert(root_id != SUPERBLOCK_ID);
 
-    if (node_id == NULL_BLOCK_ID) {
+    if (root_id == NULL_BLOCK_ID) {
         // There is no root, so the tree is empty.
         superblock->release();
         return;
     }
 
+#if SLICE_ALT
+    alt::alt_buf_lock_t buf;
+#else
     buf_lock_t buf;
+#endif
     {
         profile::starter_t starter("Acquire a block for read.", trace);
-        buf_lock_t tmp(txn, node_id, rwi_read);
+#if SLICE_ALT
+        alt::alt_buf_lock_t tmp(superblock->expose_buf(), root_id,
+                                alt::alt_access_t::read);
+        superblock->release();
+        // RSI: Use std::move here thx.
+        buf.swap(tmp);
+#else
+        buf_lock_t tmp(txn, root_id, rwi_read);
         tmp.set_eviction_priority(root_eviction_priority);
         buf.swap(tmp);
+#endif
     }
 
+#if !SLICE_ALT
     superblock->release();
+#endif
 
 #ifndef NDEBUG
-    node::validate(&sizer, reinterpret_cast<const node_t *>(buf.get_data_read()));
+#if SLICE_ALT
+    {
+        alt::alt_buf_read_t read(&buf);
+        node::validate(&sizer, static_cast<const node_t *>(read.get_data_read()));
+    }
+#else
+    node::validate(&sizer, static_cast<const node_t *>(buf.get_data_read()));
+#endif
 #endif  // NDEBUG
 
-    while (node::is_internal(reinterpret_cast<const node_t *>(buf.get_data_read()))) {
-        node_id = internal_node::lookup(reinterpret_cast<const internal_node_t *>(buf.get_data_read()), key);
+#if SLICE_ALT
+    for (;;) {
+        {
+            alt::alt_buf_read_t read(&buf);
+            if (!node::is_internal(static_cast<const node_t *>(read.get_data_read()))) {
+                break;
+            }
+        }
+#else
+    while (node::is_internal(static_cast<const node_t *>(buf.get_data_read()))) {
+#endif
+#if SLICE_ALT
+        block_id_t node_id;
+        {
+            alt::alt_buf_read_t read(&buf);
+            const internal_node_t *node
+                = static_cast<const internal_node_t *>(read.get_data_read());
+            node_id = internal_node::lookup(node, key);
+        }
+#else
+        const block_id_t node_id = internal_node::lookup(static_cast<const internal_node_t *>(buf.get_data_read()), key);
+#endif
         rassert(node_id != NULL_BLOCK_ID && node_id != SUPERBLOCK_ID);
 
         {
             profile::starter_t starter("Acquire a block for read.", trace);
+#if SLICE_ALT
+            alt::alt_buf_lock_t tmp(&buf, node_id, alt::alt_access_t::read);
+            buf.reset_buf_lock();
+            // RSI: Make this std::move assignment.
+            buf.swap(tmp);
+#else
             buf_lock_t tmp(txn, node_id, rwi_read);
             tmp.set_eviction_priority(incr_priority(buf.get_eviction_priority()));
             buf.swap(tmp);
+#endif
         }
 
 #ifndef NDEBUG
-        node::validate(&sizer, reinterpret_cast<const node_t *>(buf.get_data_read()));
+#if SLICE_ALT
+        {
+            alt::alt_buf_read_t read(&buf);
+            node::validate(&sizer, static_cast<const node_t *>(read.get_data_read()));
+        }
+#else
+        node::validate(&sizer, static_cast<const node_t *>(buf.get_data_read()));
+#endif
 #endif  // NDEBUG
     }
 
     // Got down to the leaf, now probe it.
-    const leaf_node_t *leaf = reinterpret_cast<const leaf_node_t *>(buf.get_data_read());
+#if SLICE_ALT
     scoped_malloc_t<Value> value(sizer.max_possible_size());
-    if (leaf::lookup(&sizer, leaf, key, value.get())) {
+    bool value_found;
+    {
+        alt::alt_buf_read_t read(&buf);
+        const leaf_node_t *leaf
+            = static_cast<const leaf_node_t *>(read.get_data_read());
+        value_found = leaf::lookup(&sizer, leaf, key, value.get());
+    }
+#else
+    const leaf_node_t *leaf = static_cast<const leaf_node_t *>(buf.get_data_read());
+    scoped_malloc_t<Value> value(sizer.max_possible_size());
+    const bool value_found = leaf::lookup(&sizer, leaf, key, value.get());
+#endif
+    if (value_found) {
+        // RSI: Use std::move assignment for buf.
         keyvalue_location_out->buf.swap(buf);
         keyvalue_location_out->there_originally_was_value = true;
         keyvalue_location_out->value = std::move(value);
