@@ -326,7 +326,7 @@ typedef boost::variant<rdb_modification_report_t,
         sindex_change_t;
 
 void add_status(const single_sindex_status_t &new_status,
-     single_sindex_status_t *status_out) {
+    single_sindex_status_t *status_out) {
     status_out->blocks_remaining += new_status.blocks_remaining;
     status_out->blocks_total += new_status.blocks_total;
     status_out->ready &= new_status.ready;
@@ -865,7 +865,7 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
-    if (ctx) {
+    if (ctx == NULL) {
         rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
         boost::apply_visitor(v, read);
     } else {
