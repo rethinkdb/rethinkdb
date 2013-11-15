@@ -626,6 +626,17 @@ THROWS_NOTHING {
     return found;
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
+        write_token_pair_t *token_pair,
+        const std::string &id,
+        superblock_t *super_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+#else
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         write_token_pair_t *token_pair,
@@ -636,38 +647,90 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         value_deleter_t *deleter,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+#endif
     assert_thread();
 
     /* First get the sindex block. */
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+#else
     scoped_ptr_t<buf_lock_t> sindex_block;
+#endif
+#if SLICE_ALT
+    acquire_sindex_block_for_write(token_pair, &sindex_block,
+                                   super_block->get_sindex_block_id(), interruptor);
+#else
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
+#endif
 
     /* Remove reference in the super block */
     secondary_index_t sindex;
+#if SLICE_ALT
+    if (!::get_secondary_index(sindex_block.get(), id, &sindex)) {
+#else
     if (!::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
+#endif
         return false;
     } else {
+#if SLICE_ALT
+        delete_secondary_index(sindex_block.get(), id);
+#else
         delete_secondary_index(txn, sindex_block.get(), id);
+#endif
+        // RSI: Ahem?  We can't release sindex_block here with the alt cache -- since
+        // we re-acquire the sindex_superblock_lock over and over again.  Why do we
+        // re-acquire the sindex_superblock_lock over and over again?
+
+        // RSI: (We MUST release the sindex block right away so that others can
+        // proceed, yes.)
+
+        // RSI: Does the cache let us mark a parent deleted and then acquire the
+        // child of that block?  Logically it seems that once you've "detached" the
+        // child from the parent, you could just acquire the child with the txn as
+        // parent.
+#if !SLICE_ALT
         sindex_block->release(); //So others may proceed
+#endif
 
         /* Make sure we have a record of the slice. */
         guarantee(std_contains(secondary_index_slices, id));
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
 
         {
+#if SLICE_ALT
+            alt_buf_lock_t sindex_superblock_lock(sindex_block.get(),
+                                                  sindex.superblock,
+                                                  alt_access_t::write);
+#else
             buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
+#endif
             real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
+#if SLICE_ALT
+            erase_all(sizer, sindex_slice,
+                      deleter, &sindex_superblock, interruptor);
+#else
             erase_all(sizer, sindex_slice,
                       deleter, txn, &sindex_superblock, interruptor);
+#endif
         }
 
         secondary_index_slices.erase(id);
 
         {
+#if SLICE_ALT
+            alt_buf_lock_t sindex_superblock_lock(sindex_block.get(),
+                                                  sindex.superblock,
+                                                  alt_access_t::write);
+#else
             buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
+#endif
             sindex_superblock_lock.mark_deleted();
         }
+#if SLICE_ALT
+        // RSI: Yeah, we don't want to do this here, thanks.
+        sindex_block->reset_buf_lock();
+#endif
     }
     return true;
 }

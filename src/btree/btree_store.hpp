@@ -221,6 +221,17 @@ public:
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
+#if SLICE_ALT
+    bool drop_sindex(
+        write_token_pair_t *token_pair,
+        const std::string &id,
+        superblock_t *super_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+#endif
+
     bool drop_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
