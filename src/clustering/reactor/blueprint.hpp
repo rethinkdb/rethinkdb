@@ -28,6 +28,9 @@ public:
 
     role_map_t peers_roles;
 
+    // TODO (daniel): This is just something I implemented to test a change in
+    // the reactor_driver_t. Check if we still need it after jdoliner's
+    // changes.
     bool operator==(const blueprint_t &o) const { return peers_roles == o.peers_roles; }
     bool operator!=(const blueprint_t &o) const { return !(*this == o); }
 };

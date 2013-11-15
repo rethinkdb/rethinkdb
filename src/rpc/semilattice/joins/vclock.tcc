@@ -103,6 +103,12 @@ T vclock_t<T>::get() const {
 }
 
 template <class T>
+const T &vclock_t<T>::get_ref() const {
+    throw_if_conflict();
+    return values.begin()->second;
+}
+
+template <class T>
 T &vclock_t<T>::get_mutable() {
     throw_if_conflict();
     return values.begin()->second;

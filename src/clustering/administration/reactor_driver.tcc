@@ -446,6 +446,7 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
+    std::map<peer_id_t, machine_id_t> machine_id_translation_table_value = machine_id_translation_table->get();
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator
              it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
@@ -466,17 +467,17 @@ void reactor_driver_t<protocol_t>::on_change() {
                     reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
                 it->first));
         } else if (!it->second.is_deleted()) {
-            persistable_blueprint_t<protocol_t> pbp;
+            const persistable_blueprint_t<protocol_t> *pbp = NULL;
 
             try {
-                pbp = it->second.get_ref().blueprint.get();
+                pbp = &it->second.get_ref().blueprint.get_ref();
             } catch (const in_conflict_exc_t &) {
                 //Nothing to do for this namespaces, its blueprint is in
                 //conflict.
                 continue;
             }
 
-            blueprint_t<protocol_t> bp = translate_blueprint(pbp, machine_id_translation_table->get());
+            blueprint_t<protocol_t> bp = translate_blueprint(*pbp, machine_id_translation_table_value);
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
