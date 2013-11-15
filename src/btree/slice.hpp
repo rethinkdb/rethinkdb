@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#define SLICE_ALT 1
+#define SLICE_ALT 0
 
 #if SLICE_ALT
 #include "buffer_cache/alt/alt.hpp"
