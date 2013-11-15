@@ -581,6 +581,7 @@ void broadcaster_t<protocol_t>::single_read(
     signal_t *interruptor)
     THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t)
 {
+    guarantee(!read.all_read());
     order_token.assert_read_mode();
 
     dispatchee_t *reader;
@@ -664,7 +665,7 @@ void broadcaster_t<protocol_t>::all_read(
 
             /* Notice this is a bit of a hack here, we're passing a default
              * constructed context here to the UNSHARD function. This is
-             * because onlyworks if the unsharding of all_reads doesn't require
+             * only works if the unsharding of all_reads doesn't require
              * anything fancy like reads to other databases. Should we ever
              * have need for a real context here it's not too hard to add but
              * for the time being I can't see an actual use case so I'm not
