@@ -8,6 +8,12 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
+#if SLICE_ALT
+using alt::alt_buf_lock_t;
+using alt::alt_buf_parent_t;
+using alt::alt_create_t;
+#endif
+
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
         std::string sindex_name)
     : info(strprintf("Sindex: %s was accessed before it was finished post constructing.",
@@ -373,6 +379,17 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
                       interruptor);
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+MUST_USE bool btree_store_t<protocol_t>::add_sindex(
+        write_token_pair_t *token_pair,
+        const std::string &id,
+        const secondary_index_t::opaque_definition_t &definition,
+        superblock_t *super_block,
+        scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+#else
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         write_token_pair_t *token_pair,
@@ -383,17 +400,32 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
+#endif
     assert_thread();
 
+#if SLICE_ALT
+    acquire_sindex_block_for_write(token_pair, sindex_block_out,
+                                   super_block->get_sindex_block_id(), interruptor);
+#else
     acquire_sindex_block_for_write(token_pair, txn, sindex_block_out,
                                    super_block->get_sindex_block_id(), interruptor);
+#endif
 
     secondary_index_t sindex;
+#if SLICE_ALT
+    if (::get_secondary_index(sindex_block_out->get(), id, &sindex)) {
+#else
     if (::get_secondary_index(txn, sindex_block_out->get(), id, &sindex)) {
+#endif
         return false; // sindex was already created
     } else {
         {
+#if SLICE_ALT
+            alt_buf_lock_t sindex_superblock(sindex_block_out->get(),
+                                             alt_create_t::create);
+#else
             buf_lock_t sindex_superblock(txn);
+#endif
             sindex.superblock = sindex_superblock.get_block_id();
             /* The buf lock is destroyed here which is important becase it allows
              * us to reacquire later when we make a btree_store. */
@@ -406,14 +438,24 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
          * something that would give a better error if someone did try to use
          * it... on the other hand this code isn't exactly idiot proof even
          * with that. */
+#if SLICE_ALT
+        btree_slice_t::create(sindex.superblock,
+                              alt_buf_parent_t(sindex_block_out->get()),
+                              std::vector<char>(), std::vector<char>());
+#else
         btree_slice_t::create(txn->get_cache(), sindex.superblock,
                               txn, std::vector<char>(), std::vector<char>());
+#endif
         secondary_index_slices.insert(
             id, new btree_slice_t(cache.get(), &perfmon_collection, id));
 
         sindex.post_construction_complete = false;
 
+#if SLICE_ALT
+        ::set_secondary_index(sindex_block_out->get(), id, sindex);
+#else
         ::set_secondary_index(txn, sindex_block_out->get(), id, sindex);
+#endif
         return true;
     }
 }

@@ -163,6 +163,17 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+#if SLICE_ALT
+    MUST_USE bool add_sindex(
+        write_token_pair_t *token_pair,
+        const std::string &id,
+        const secondary_index_t::opaque_definition_t &definition,
+        superblock_t *super_block,
+        scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+#endif
+
     MUST_USE bool add_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
