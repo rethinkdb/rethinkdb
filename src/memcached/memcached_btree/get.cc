@@ -38,7 +38,7 @@ get_result_t memcached_get(const store_key_t &store_key, btree_slice_t *slice, e
     // acquire blobs as children of this.
 #if SLICE_ALT
     counted_t<data_buffer_t> dp
-        = value_to_data_buffer(value, buf_parent_t(&kv_location.buf));
+        = value_to_data_buffer(value, alt::alt_buf_parent_t(&kv_location.buf));
 #else
     counted_t<data_buffer_t> dp = value_to_data_buffer(value, txn);
 #endif

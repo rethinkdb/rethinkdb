@@ -330,11 +330,26 @@ void find_keyvalue_location_for_read(
     }
 }
 
+#if SLICE_ALT
+template <class Value>
+void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
+                           const btree_key_t *key, repli_timestamp_t tstamp,
+                           bool expired,
+                           key_modification_callback_t<Value> *km_callback) {
+#else
 template <class Value>
 void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
-    value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
+#endif
 
-    key_modification_proof_t km_proof = km_callback->value_modification(txn, kv_loc, key);
+    value_sizer_t<Value> sizer(kv_loc->buf.cache()->get_block_size());
+
+#if SLICE_ALT
+    key_modification_proof_t km_proof
+        = km_callback->value_modification(kv_loc, key);
+#else
+    key_modification_proof_t km_proof
+        = km_callback->value_modification(txn, kv_loc, key);
+#endif
 
     /* how much this keyvalue change affects the total population of the btree
      * (should be -1, 0 or 1) */
@@ -347,10 +362,23 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         // for the value.  Not necessary when deleting, because the
         // node won't grow.
 
+#if SLICE_ALT
+        check_and_handle_split(&sizer, &kv_loc->buf, &kv_loc->last_buf,
+                               kv_loc->superblock, key, kv_loc->value.get());
+#else
         check_and_handle_split(&sizer, txn, &kv_loc->buf, &kv_loc->last_buf, kv_loc->superblock, key, kv_loc->value.get(), root_eviction_priority);
+#endif
 
-        rassert(!leaf::is_full(&sizer, reinterpret_cast<const leaf_node_t *>(kv_loc->buf.get_data_read()),
+#if SLICE_ALT
+        {
+            alt::alt_buf_read_t read(&kv_loc->buf);
+            auto leaf_node = static_cast<const leaf_node_t *>(read.get_data_read());
+            rassert(!leaf::is_full(&sizer, leaf_node, key, kv_loc->value.get()));
+        }
+#else
+        rassert(!leaf::is_full(&sizer, static_cast<const leaf_node_t *>(kv_loc->buf.get_data_read()),
                 key, kv_loc->value.get()));
+#endif
 
         if (kv_loc->there_originally_was_value) {
             population_change = 0;
@@ -358,12 +386,20 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
             population_change = 1;
         }
 
-        leaf::insert(&sizer,
-                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_write()),
-                     key,
-                     kv_loc->value.get(),
-                     tstamp,
-                     km_proof);
+        {
+#if SLICE_ALT
+            alt::alt_buf_write_t write(&kv_loc->buf);
+            auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
+#else
+            auto leaf_node = static_cast<leaf_node_t *>(kv_loc->buf.get_data_write());
+#endif
+            leaf::insert(&sizer,
+                         leaf_node,
+                         key,
+                         kv_loc->value.get(),
+                         tstamp,
+                         km_proof);
+        }
 
         kv_loc->stats->pm_keys_set.record();
     } else {
@@ -371,20 +407,36 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
         if (kv_loc->there_originally_was_value) {
             if (!expired) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
-                leaf::remove(&sizer,
-                             static_cast<leaf_node_t *>(kv_loc->buf.get_data_write()),
-                             key,
-                             tstamp,
-                             km_proof);
+                {
+#if SLICE_ALT
+                    alt::alt_buf_write_t write(&kv_loc->buf);
+                    auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
+#else
+                    auto leaf_node = static_cast<leaf_node_t *>(kv_loc->buf.get_data_write());
+#endif
+                    leaf::remove(&sizer,
+                                 leaf_node,
+                                 key,
+                                 tstamp,
+                                 km_proof);
+                }
                 population_change = -1;
                 kv_loc->stats->pm_keys_set.record();
             } else {
                 // TODO: Oh god oh god get rid of "expired".
                 // Expirations do an erase, not a delete.
-                leaf::erase_presence(&sizer,
-                                     static_cast<leaf_node_t *>(kv_loc->buf.get_data_write()),
-                                     key,
-                                     km_proof);
+                {
+#if SLICE_ALT
+                    alt::alt_buf_write_t write(&kv_loc->buf);
+                    auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
+#else
+                    auto leaf_node = static_cast<leaf_node_t *>(kv_loc->buf.get_data_write());
+#endif
+                    leaf::erase_presence(&sizer,
+                                         leaf_node,
+                                         key,
+                                         km_proof);
+                }
                 population_change = 0;
                 kv_loc->stats->pm_keys_expired.record();
             }
@@ -395,11 +447,27 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 
     // Check to see if the leaf is underfull (following a change in
     // size or a deletion, and merge/level if it is.
+#if SLICE_ALT
+    check_and_handle_underfull(&sizer, &kv_loc->buf, &kv_loc->last_buf,
+                               kv_loc->superblock, key);
+#else
     check_and_handle_underfull(&sizer, txn, &kv_loc->buf, &kv_loc->last_buf, kv_loc->superblock, key);
+#endif
 
     //Modify the stats block
+#if SLICE_ALT
+    // RSI: Should we _actually_ pass kv_loc->buf as the parent?
+    // RSI: This was opened with some buffer_cache_order_mode_ignore flag.
+    alt::alt_buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block,
+                              alt::alt_access_t::write);
+    alt::alt_buf_write_t stat_block_write(&stat_block);
+    auto stat_block_buf
+        = static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
+    stat_block_buf->population += population_change;
+#else
     buf_lock_t stat_block(txn, kv_loc->stat_block, rwi_write, buffer_cache_order_mode_ignore);
-    reinterpret_cast<btree_statblock_t *>(stat_block.get_data_write())->population += population_change;
+    static_cast<btree_statblock_t *>(stat_block.get_data_write())->population += population_change;
+#endif
 }
 
 template <class Value>

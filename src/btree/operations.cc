@@ -12,6 +12,7 @@
 #if SLICE_ALT
 using alt::alt_access_t;
 using alt::alt_buf_lock_t;
+using alt::alt_buf_parent_t;
 using alt::alt_buf_read_t;
 using alt::alt_buf_write_t;
 using alt::alt_create_t;
@@ -598,7 +599,10 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   order_token_t token,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<transaction_t> *txn_out) {
+                                  scoped_ptr_t<alt_txn_t> *txn_out) {
+    (void)expected_change_count;  // RSI: Use this.
+    (void)tstamp;  // RSI: Use this.
+    (void)durability;  // RSI: Use this.
     slice->assert_thread();
 
     const order_token_t pre_begin_txn_token

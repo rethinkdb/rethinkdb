@@ -163,7 +163,8 @@ private:
 };
 
 
-
+// RSI: This type is stupid because the only subclass is
+// null_key_modification_callback_t is null_key_modification_callback_t?
 template <class Value>
 class key_modification_callback_t {
 public:
@@ -171,7 +172,11 @@ public:
     // scoped_malloc_t.  It's the caller's responsibility to have
     // destroyed any blobs that the value might reference, before
     // calling this here, so that this callback can reacquire them.
+#if SLICE_ALT
+    virtual key_modification_proof_t value_modification(keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
+#else
     virtual key_modification_proof_t value_modification(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key) = 0;
+#endif
 
     key_modification_callback_t() { }
 protected:
@@ -185,7 +190,13 @@ private:
 
 template <class Value>
 class null_key_modification_callback_t : public key_modification_callback_t<Value> {
+#if SLICE_ALT
+    key_modification_proof_t
+    value_modification(UNUSED keyvalue_location_t<Value> *kv_loc,
+                       UNUSED const btree_key_t *key) {
+#else
     key_modification_proof_t value_modification(UNUSED transaction_t *txn, UNUSED keyvalue_location_t<Value> *kv_loc, UNUSED const btree_key_t *key) {
+#endif
         // do nothing
         return key_modification_proof_t::real_proof();
     }
@@ -240,13 +251,28 @@ private:
 
 #if SLICE_ALT
 // RSI: Have this return the buf_lock_t.
-void get_root(value_sizer_t<void> *sizer, superblock_t *sb, buf_lock_t *buf_out);
+void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
+              alt::alt_buf_lock_t *buf_out);
 #endif
 void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t *sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority);
 
+#if SLICE_ALT
+void check_and_handle_split(value_sizer_t<void> *sizer,
+                            alt::alt_buf_lock_t *buf,
+                            alt::alt_buf_lock_t *last_buf,
+                            superblock_t *sb,
+                            const btree_key_t *key, void *new_value);
+#endif
 void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                             const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
 
+#if SLICE_ALT
+void check_and_handle_underfull(value_sizer_t<void> *sizer,
+                                alt::alt_buf_lock_t *buf,
+                                alt::alt_buf_lock_t *last_buf,
+                                superblock_t *sb,
+                                const btree_key_t *key);
+#endif
 void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                                 const btree_key_t *key);
