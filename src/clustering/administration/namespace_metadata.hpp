@@ -210,6 +210,9 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
+template <class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t<protocol_t>,
+    reactor_bcards);
 
 // ctx-less json adapter concept for namespaces_directory_metadata_t
 template <class protocol_t>

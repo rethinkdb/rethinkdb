@@ -8,6 +8,7 @@
 #include "concurrency/signal.hpp"
 #include "containers/uuid.hpp"
 #include "protocol_api.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
 #include "utils.hpp"
@@ -139,6 +140,10 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_3(region, initial_timestamp, origin);
 };
 
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_3(
+    branch_birth_certificate_t<protocol_t>, region, initial_timestamp, origin);
+
 /* `branch_history_manager_t` is a repository of the all the branches' birth
 certificates. It's basically a map from `branch_id_t`s to
 `branch_birth_certificate_t<protocol_t>`s, but with the added responsibility of
@@ -163,6 +168,9 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(branches);
 };
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_1(branch_history_t<protocol_t>, branches);
 
 template <class protocol_t>
 class branch_history_manager_t : public home_thread_mixin_t {

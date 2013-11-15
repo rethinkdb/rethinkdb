@@ -10,6 +10,7 @@
 #include "concurrency/watchable.hpp"
 #include "containers/clone_ptr.hpp"
 #include "http/json.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class local_issue_t {
@@ -26,6 +27,9 @@ public:
 
     RDB_DECLARE_ME_SERIALIZABLE;
 };
+
+RDB_MAKE_EQUALITY_COMPARABLE_4(local_issue_t,
+    type, critical, description, timestamp);
 
 class local_issue_tracker_t {
 public:
