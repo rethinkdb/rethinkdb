@@ -288,6 +288,8 @@ class Connection(object):
         if not self.socket:
             raise RqlDriverError("Connection is closed.")
 
+        query.accepts_r_json = True
+
         # Send protobuf
         query_protobuf = query.SerializeToString()
         query_header = struct.pack("<L", len(query_protobuf))
