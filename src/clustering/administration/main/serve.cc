@@ -71,7 +71,7 @@ bool do_serve(
     const peer_address_set_t &joins,
     service_address_ports_t address_ports,
     std::string web_assets,
-    signal_t *stop_cond,
+    os_signal_cond_t *stop_cond,
     const boost::optional<std::string> &config_file) {
     try {
         extproc_pool_t extproc_pool(get_num_threads());
@@ -437,7 +437,20 @@ bool do_serve(
 
                     stop_cond->wait_lazily_unordered();
 
-                    logINF("Server got SIGINT; shutting down...\n");
+
+                    if (stop_cond->get_source_signo() == SIGINT) {
+                        logINF("Server got SIGINT from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+                    } else if (stop_cond->get_source_signo() == SIGTERM) {
+                        logINF("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+
+                    } else {
+                        logINF("Server got signal %d from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_signo(),
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+                    }
+
                 }
 
                 cond_t non_interruptor;
@@ -469,7 +482,7 @@ bool serve(io_backender_t *io_backender,
            const peer_address_set_t &joins,
            service_address_ports_t address_ports,
            std::string web_assets,
-           signal_t *stop_cond,
+           os_signal_cond_t *stop_cond,
            const boost::optional<std::string>& config_file) {
     return do_serve(io_backender,
                     true,
@@ -486,7 +499,7 @@ bool serve(io_backender_t *io_backender,
 bool serve_proxy(const peer_address_set_t &joins,
                  service_address_ports_t address_ports,
                  std::string web_assets,
-                 signal_t *stop_cond,
+                 os_signal_cond_t *stop_cond,
                  const boost::optional<std::string>& config_file) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.

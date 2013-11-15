@@ -9,6 +9,8 @@
 #include "clustering/administration/persist.hpp"
 #include "arch/address.hpp"
 
+class os_signal_cond_t;
+
 class invalid_port_exc_t : public std::exception {
 public:
     invalid_port_exc_t(const std::string& name, int port, int port_offset) {
@@ -90,13 +92,13 @@ bool serve(io_backender_t *io_backender,
            const peer_address_set_t &joins,
            service_address_ports_t ports,
            std::string web_assets,
-           signal_t *stop_cond,
+           os_signal_cond_t *stop_cond,
            const boost::optional<std::string>& config_file);
 
 bool serve_proxy(const peer_address_set_t &joins,
                  service_address_ports_t ports,
                  std::string web_assets,
-                 signal_t *stop_cond,
+                 os_signal_cond_t *stop_cond,
                  const boost::optional<std::string>& config_file);
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_ */

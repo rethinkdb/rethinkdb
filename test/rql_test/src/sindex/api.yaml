@@ -64,7 +64,7 @@ tests:
   - rb: tbl.get(1).typeof
     py: tbl.get(1).type_of()
     js: tbl.get(1).typeOf()
-    ot: ('SINGLE_SELECTION')
+    ot: ('SELECTION<OBJECT>')
   - rb: tbl.get(1).update{nil}
     py: tbl.get(1).update(lambda x:None)
     js: tbl.get(1).update(function(x) { return null;})
@@ -112,11 +112,11 @@ tests:
   - rb: tbl.get_all(1, :index => :id).typeof
     py: tbl.get_all(1, index='id').type_of()
     js: tbl.getAll(1, {index:'id'}).typeOf()
-    ot: ('SELECTION')
+    ot: ('SELECTION<ARRAY>')
   - rb: tbl.get_all(1).typeof
     py: tbl.get_all(1).type_of()
     js: tbl.getAll(1).typeOf()
-    ot: ('SELECTION')
+    ot: ('SELECTION<ARRAY>')
   - rb: tbl.get_all(1, :index => :id).update{nil}
     py: tbl.get_all(1, index='id').update(lambda x:None)
     js: tbl.getAll(1, {index:'id'}).update(function(x) { return null; })
@@ -193,7 +193,7 @@ tests:
   - rb: tbl.get_all(1, :index => :ci).typeof
     py: tbl.get_all(1, index='ci').type_of()
     js: tbl.getAll(1, {index:'ci'}).typeOf()
-    ot: ('SELECTION')
+    ot: ('SELECTION<STREAM>')
   - rb: tbl.get_all(1, :index => :ci).update{nil}
     py: tbl.get_all(1, index='ci').update(lambda x:None)
     js: tbl.getAll(1, {index:'ci'}).update(function(x) { return null; })

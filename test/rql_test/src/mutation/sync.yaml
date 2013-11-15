@@ -18,14 +18,30 @@ tests:
       ot: ({'synced':1})
     - cd: tbl_soft.sync()
       ot: ({'synced':1})
-    - cd: tbl.sync()
+    - py: tbl.sync()
       ot: ({'synced':1})
       runopts:
         durability: soft
-    - cd: tbl.sync()
+    - js: tbl.sync()
+      ot: ({'synced':1})
+      runopts:
+        durability: soft
+    - rb: tbl.sync()
+      ot: ({'synced':1})
+      runopts:
+        durability: '"soft"'
+    - py: tbl.sync()
       ot: ({'synced':1})
       runopts:
         durability: hard
+    - js: tbl.sync()
+      ot: ({'synced':1})
+      runopts:
+        durability: hard
+    - rb: tbl.sync()
+      ot: ({'synced':1})
+      runopts:
+        durability: '"hard"'
 
     # This is of type table, but sync should still fail (because it makes little sense)
     - cd: tbl.between(1, 2).sync()
