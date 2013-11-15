@@ -9,6 +9,7 @@
 #include "stl_utils.hpp"
 
 #if SLICE_ALT
+using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_parent_t;
 using alt::alt_create_t;
@@ -460,6 +461,19 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
     }
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+void btree_store_t<protocol_t>::set_sindexes(
+        write_token_pair_t *token_pair,
+        const std::map<std::string, secondary_index_t> &sindexes,
+        superblock_t *superblock,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
+        std::set<std::string> *created_sindexes_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+#else
 template <class protocol_t>
 void btree_store_t<protocol_t>::set_sindexes(
         write_token_pair_t *token_pair,
@@ -472,34 +486,66 @@ void btree_store_t<protocol_t>::set_sindexes(
         std::set<std::string> *created_sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
+#endif
     assert_thread();
 
     /* Get the sindex block which we will need to modify. */
+#if SLICE_ALT
+    acquire_sindex_block_for_write(token_pair, sindex_block_out,
+                                   superblock->get_sindex_block_id(), interruptor);
+#else
     acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, superblock->get_sindex_block_id(), interruptor);
+#endif
 
     std::map<std::string, secondary_index_t> existing_sindexes;
+#if SLICE_ALT
+    ::get_secondary_indexes(sindex_block_out->get(), &existing_sindexes);
+#else
     ::get_secondary_indexes(txn, sindex_block_out->get(), &existing_sindexes);
+#endif
 
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
         if (!std_contains(sindexes, it->first)) {
+#if SLICE_ALT
+            delete_secondary_index(sindex_block_out->get(), it->first);
+#else
             delete_secondary_index(txn, sindex_block_out->get(), it->first);
+#endif
 
             guarantee(std_contains(secondary_index_slices, it->first));
             btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
 
             {
+#if SLICE_ALT
+                alt_buf_lock_t sindex_superblock_lock(sindex_block_out->get(),
+                                                      it->second.superblock,
+                                                      alt_access_t::write);
+#else
                 buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
+#endif
                 real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
+#if SLICE_ALT
+                erase_all(sizer, sindex_slice,
+                          deleter, &sindex_superblock,
+                          interruptor);
+#else
                 erase_all(sizer, sindex_slice,
                           deleter, txn, &sindex_superblock,
                           interruptor);
+#endif
             }
 
             secondary_index_slices.erase(it->first);
 
             {
+#if SLICE_ALT
+                alt_buf_lock_t sindex_superblock_lock(sindex_block_out->get(),
+                                                      it->second.superblock,
+                                                      alt_access_t::write);
+#else
                 buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
+#endif
                 sindex_superblock_lock.mark_deleted();
             }
         }
@@ -509,20 +555,35 @@ void btree_store_t<protocol_t>::set_sindexes(
         if (!std_contains(existing_sindexes, it->first)) {
             secondary_index_t sindex(it->second);
             {
+#if SLICE_ALT
+                alt_buf_lock_t sindex_superblock(sindex_block_out->get(),
+                                                 alt_create_t::create);
+#else
                 buf_lock_t sindex_superblock(txn);
+#endif
                 sindex.superblock = sindex_superblock.get_block_id();
                 /* The buf lock is destroyed here which is important becase it allows
                  * us to reacquire later when we make a btree_store. */
             }
 
+#if SLICE_ALT
+            btree_slice_t::create(sindex.superblock,
+                                  alt_buf_parent_t(sindex_block_out->get()),
+                                  std::vector<char>(), std::vector<char>());
+#else
             btree_slice_t::create(txn->get_cache(), sindex.superblock, txn,
                     std::vector<char>(), std::vector<char>());
+#endif
             std::string id = it->first;
             secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, it->first));
 
             sindex.post_construction_complete = false;
 
+#if SLICE_ALT
+            ::set_secondary_index(sindex_block_out->get(), it->first, sindex);
+#else
             ::set_secondary_index(txn, sindex_block_out->get(), it->first, sindex);
+#endif
 
             created_sindexes_out->insert(it->first);
         }

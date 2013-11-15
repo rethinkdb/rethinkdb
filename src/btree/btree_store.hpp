@@ -184,6 +184,19 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+#if SLICE_ALT
+    void set_sindexes(
+        write_token_pair_t *token_pair,
+        const std::map<std::string, secondary_index_t> &sindexes,
+        superblock_t *superblock,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
+        std::set<std::string> *created_sindexes_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+#endif
+
     void set_sindexes(
         write_token_pair_t *token_pair,
         const std::map<std::string, secondary_index_t> &sindexes,

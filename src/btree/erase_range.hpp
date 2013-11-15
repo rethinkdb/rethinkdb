@@ -4,6 +4,7 @@
 
 #include "errors.hpp"
 #include "btree/node.hpp"
+#include "btree/slice.hpp"  // RSI: for SLICE_ALT
 #include "buffer_cache/types.hpp"
 
 class btree_slice_t;
@@ -50,10 +51,18 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                signal_t *interruptor,
                                bool release_superblock = true);
 
+#if SLICE_ALT
+void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
+               value_deleter_t *deleter,
+               superblock_t *superblock,
+               signal_t *interruptor,
+               bool release_superblock = true);
+#else
 void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
                value_deleter_t *deleter, transaction_t *txn,
                superblock_t *superblock,
                signal_t *interruptor,
                bool release_superblock = true);
+#endif
 
 #endif  // BTREE_ERASE_RANGE_HPP_
