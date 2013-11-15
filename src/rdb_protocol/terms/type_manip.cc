@@ -24,6 +24,7 @@ static const int MAX_TYPE = 10;
 static const int DB_TYPE = val_t::type_t::DB * MAX_TYPE;
 static const int TABLE_TYPE = val_t::type_t::TABLE * MAX_TYPE;
 static const int SELECTION_TYPE = val_t::type_t::SELECTION * MAX_TYPE;
+static const int ARRAY_SELECTION_TYPE = SELECTION_TYPE + datum_t::R_ARRAY;
 static const int SEQUENCE_TYPE = val_t::type_t::SEQUENCE * MAX_TYPE;
 static const int SINGLE_SELECTION_TYPE = val_t::type_t::SINGLE_SELECTION * MAX_TYPE;
 static const int DATUM_TYPE = val_t::type_t::DATUM * MAX_TYPE;
@@ -41,9 +42,10 @@ public:
     coerce_map_t() {
         map["DB"] = DB_TYPE;
         map["TABLE"] = TABLE_TYPE;
-        map["SELECTION"] = SELECTION_TYPE;
+        map["SELECTION<STREAM>"] = SELECTION_TYPE;
+        map["SELECTION<ARRAY>"] = ARRAY_SELECTION_TYPE;
         map["STREAM"] = SEQUENCE_TYPE;
-        map["SINGLE_SELECTION"] = SINGLE_SELECTION_TYPE;
+        map["SELECTION<OBJECT>"] = SINGLE_SELECTION_TYPE;
         map["DATUM"] = DATUM_TYPE;
         map["FUNCTION"] = FUNC_TYPE;
         CT_ASSERT(val_t::type_t::FUNC < MAX_TYPE);
@@ -205,12 +207,15 @@ private:
                       "Cannot coerce %s to %s (failed to produce intermediate stream).",
                       get_name(start_type).c_str(), get_name(end_type).c_str());
             }
+
             // SEQUENCE -> ARRAY
             if (end_type == R_ARRAY_TYPE || end_type == DATUM_TYPE) {
                 datum_ptr_t arr(datum_t::R_ARRAY);
+                batchspec_t batchspec
+                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
                 {
                     profile::sampler_t sampler("Coercing to array.", env->env->trace);
-                    while (counted_t<const datum_t> el = ds->next(env->env)) {
+                    while (auto el = ds->next(env->env, batchspec)) {
                         arr.add(el);
                         sampler.new_sample();
                     }
@@ -219,26 +224,26 @@ private:
             }
 
             // SEQUENCE -> OBJECT
-            if (end_type == R_OBJECT_TYPE) {
-                if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
-                    datum_ptr_t obj(datum_t::R_OBJECT);
-                    {
-                        profile::sampler_t sampler("Coercing to array.", env->env->trace);
-                        while (counted_t<const datum_t> pair = ds->next(env->env)) {
-                            std::string key = pair->get(0)->as_str();
-                            counted_t<const datum_t> keyval = pair->get(1);
-                            bool b = obj.add(key, keyval);
-                            rcheck(!b, base_exc_t::GENERIC,
-                                   strprintf("Duplicate key %s in coerced object.  "
-                                             "(got %s and %s as values)",
-                                             key.c_str(),
-                                             obj->get(key)->print().c_str(),
-                                             keyval->print().c_str()));
-                            sampler.new_sample();
-                        }
+            if (start_type == R_ARRAY_TYPE && end_type == R_OBJECT_TYPE) {
+                datum_ptr_t obj(datum_t::R_OBJECT);
+                batchspec_t batchspec
+                    = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+                {
+                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
+                    while (auto pair = ds->next(env->env, batchspec)) {
+                        std::string key = pair->get(0)->as_str();
+                        counted_t<const datum_t> keyval = pair->get(1);
+                        bool b = obj.add(key, keyval);
+                        rcheck(!b, base_exc_t::GENERIC,
+                               strprintf("Duplicate key %s in coerced object.  "
+                                         "(got %s and %s as values)",
+                                         key.c_str(),
+                                         obj->get(key)->print().c_str(),
+                                         keyval->print().c_str()));
+                        sampler.new_sample();
                     }
-                    return new_val(obj.to_counted());
                 }
+                return new_val(obj.to_counted());
             }
         }
 
@@ -252,6 +257,10 @@ int val_type(counted_t<val_t> v) {
     int t = v->get_type().raw_type * MAX_TYPE;
     if (t == DATUM_TYPE) {
         t += v->as_datum()->get_type();
+    } else if (t == SELECTION_TYPE) {
+        if (v->sequence()->is_array()) {
+            t += datum_t::R_ARRAY;
+        }
     }
     return t;
 }
@@ -267,7 +276,8 @@ private:
             counted_t<const datum_t> d = v->as_datum();
             return new_val(make_counted<const datum_t>(d->get_type_name()));
         } else {
-            return new_val(make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
+            return new_val(
+                make_counted<const datum_t>(get_name(val_type(arg(env, 0)))));
         }
     }
     virtual const char *name() const { return "typeof"; }
@@ -293,22 +303,30 @@ private:
         case TABLE_TYPE: {
             counted_t<table_t> table = v->as_table();
             b |= info.add("name", make_counted<datum_t>(std::string(table->name)));
-            b |= info.add("primary_key", make_counted<datum_t>(std::string(table->get_pkey())));
+            b |= info.add("primary_key",
+                          make_counted<datum_t>(std::string(table->get_pkey())));
             b |= info.add("indexes", table->sindex_list(env->env));
             b |= info.add("db", val_info(env, new_val(table->db)));
         } break;
         case SELECTION_TYPE: {
-            b |= info.add("table", val_info(env, new_val(v->as_selection(env->env).first)));
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_selection(env->env).first)));
+        } break;
+        case ARRAY_SELECTION_TYPE: {
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_selection(env->env).first)));
         } break;
         case SINGLE_SELECTION_TYPE: {
-            b |= info.add("table", val_info(env, new_val(v->as_single_selection().first)));
+            b |= info.add("table",
+                          val_info(env, new_val(v->as_single_selection().first)));
         } break;
         case SEQUENCE_TYPE: {
             // No more info.
         } break;
 
         case FUNC_TYPE: {
-            b |= info.add("source_code", make_counted<datum_t>(v->as_func()->print_source()));
+            b |= info.add("source_code",
+                          make_counted<datum_t>(v->as_func()->print_source()));
         } break;
 
         case R_NULL_TYPE:   // fallthru
@@ -321,7 +339,7 @@ private:
             b |= info.add("value", make_counted<datum_t>(v->as_datum()->print()));
         } break;
 
-        default: unreachable();
+        default: r_sanity_check(false);
         }
         r_sanity_check(!b);
         return info.to_counted();

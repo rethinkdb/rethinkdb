@@ -41,7 +41,6 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                  str.c_str());
 }
 
-
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -100,9 +99,10 @@ private:
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row inserts.");
 
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = datum_stream->next_batch(env->env);
+                    = datum_stream->next_batch(env->env, batchspec);
                 if (datums.empty()) {
                     break;
                 }
@@ -118,7 +118,7 @@ private:
 
                 counted_t<const datum_t> replace_stats = t->batched_insert(
                     env->env, std::move(datums), upsert, durability_requirement, false);
-                stats = stats->merge(replace_stats);
+                stats = stats->merge(replace_stats, stats_merge);
             }
         }
 
@@ -183,9 +183,10 @@ private:
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = ds->next_batch(env->env);
+                    = ds->next_batch(env->env, batchspec);
                 if (datums.empty()) {
                     break;
                 }
@@ -213,10 +214,13 @@ private:
 
         counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         {
-            profile::sampler_t sampler("Evaluating elements in for each.", env->env->trace);
-            while (counted_t<const datum_t> row = ds->next(env->env)) {
-                counted_t<val_t> v = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
+            profile::sampler_t sampler("Evaluating elements in for each.",
+                                       env->env->trace);
+            while (counted_t<const datum_t> row = ds->next(env->env, batchspec)) {
+                counted_t<val_t> v
+                    = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
                 try {
                     counted_t<const datum_t> d = v->as_datum();
                     if (d->get_type() == datum_t::R_OBJECT) {

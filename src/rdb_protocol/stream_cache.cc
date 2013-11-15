@@ -28,38 +28,31 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
     if (it == streams.end()) return false;
     entry_t *entry = it->second;
     entry->last_activity = time(0);
-    bool should_erase = false;
     try {
         // Reset the env_t's interruptor to a good one before we use it.  This may be a
         // hack.  (I'd rather not have env_t be mutable this way -- could we construct
         // a new env_t instead?  Why do we keep env_t's around anymore?)
         entry->env->interruptor = interruptor;
 
-        res->set_type(Response::SUCCESS_PARTIAL);
-        {
-            profile::sampler_t sampler("Evaluating stream elements.", entry->env->trace);
-            for (int chunk_size = 0;
-                 chunk_size < entry->max_chunk_size || entry->max_chunk_size == 0;
-                 ++chunk_size) {
-                counted_t<const datum_t> next_datum = entry->stream->next(entry->env.get());
-
-                if (next_datum.has()) {
-                    next_datum->write_to_protobuf(res->add_response());
-                } else {
-                    should_erase = true;
-                    res->set_type(Response::SUCCESS_SEQUENCE);
-                    break;
-                }
-                sampler.new_sample();
-            }
+        std::vector<counted_t<const datum_t> > ds
+            = entry->stream->next_batch(
+                entry->env.get(),
+                batchspec_t::user(batch_type_t::NORMAL, entry->env.get()));
+        for (auto d = ds.begin(); d != ds.end(); ++d) {
+            (*d)->write_to_protobuf(res->add_response());
+        }
+        if (entry->env->trace.has()) {
+            entry->env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
         }
     } catch (const std::exception &e) {
         erase(key);
         throw;
     }
-    
-    if (should_erase) {
+    if (entry->stream->is_exhausted()) {
         erase(key);
+        res->set_type(Response::SUCCESS_SEQUENCE);
+    } else {
+        res->set_type(Response::SUCCESS_PARTIAL);
     }
 
     return true;
@@ -71,8 +64,8 @@ void stream_cache2_t::maybe_evict() {
 
 stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> &&env_ptr,
                                   counted_t<datum_stream_t> _stream)
-    : last_activity(_last_activity), env(std::move(env_ptr)), stream(_stream),
-      max_chunk_size(DEFAULT_MAX_CHUNK_SIZE), max_age(DEFAULT_MAX_AGE) { }
+    : last_activity(_last_activity), env(std::move(env_ptr)),
+      stream(_stream), max_age(DEFAULT_MAX_AGE) { }
 
 stream_cache2_t::entry_t::~entry_t() { }
 

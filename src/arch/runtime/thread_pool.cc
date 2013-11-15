@@ -8,6 +8,7 @@
 #include <sys/time.h>
 
 #include "arch/barrier.hpp"
+#include "arch/os_signal.hpp"
 #include "arch/io/timer_provider.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime.hpp"
@@ -41,8 +42,8 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
     guarantee_xerr(res == 0, res, "Could not create shutdown cond mutex");
 }
 
-linux_thread_message_t *linux_thread_pool_t::set_interrupt_message(linux_thread_message_t *m) {
-    linux_thread_message_t *o;
+os_signal_cond_t *linux_thread_pool_t::set_interrupt_message(os_signal_cond_t *m) {
+    os_signal_cond_t *o;
     {
         spinlock_acq_t acq(&thread_pool->interrupt_message_lock);
 
@@ -207,7 +208,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 
     linux_thread_pool_t::thread_pool = this;   // So signal handlers can find us
     {
-        struct sigaction sa = make_sa_handler(0, &linux_thread_pool_t::interrupt_handler);
+        struct sigaction sa = make_sa_sigaction(SA_SIGINFO, &linux_thread_pool_t::interrupt_handler);
 
         int res = sigaction(SIGTERM, &sa, NULL);
         guarantee_err(res == 0, "Could not install TERM handler");
@@ -292,7 +293,7 @@ void linux_thread_pool_t::run_thread_pool(linux_thread_message_t *initial_messag
 // there would be no issues with potential race conditions because the signal
 // would just be pulled out in the main poll/epoll loop. But as long as this works,
 // there's no real reason to change it.
-void linux_thread_pool_t::interrupt_handler(int) {
+void linux_thread_pool_t::interrupt_handler(int signo, siginfo_t *siginfo, void *) {
     /* The interrupt handler should run on the main thread, the same thread that
     run() was called on. */
     rassert(linux_thread_pool_t::thread_id == -1, "The interrupt handler was called on the wrong thread.");
@@ -304,10 +305,13 @@ void linux_thread_pool_t::interrupt_handler(int) {
     to send the same thread message twice until it has been received the first time
     (because of the intrusive list), and we could hypothetically get two SIGINTs
     in quick succession. */
-    linux_thread_message_t *interrupt_msg = self->set_interrupt_message(NULL);
+    os_signal_cond_t *interrupt_signal = self->set_interrupt_message(NULL);
+    interrupt_signal->source_signo = signo;
+    interrupt_signal->source_pid = siginfo->si_pid;
+    interrupt_signal->source_uid = siginfo->si_uid;
 
-    if (interrupt_msg) {
-        self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_msg);
+    if (interrupt_signal != NULL) {
+        self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_signal);
     }
 }
 
