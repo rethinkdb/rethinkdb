@@ -474,7 +474,8 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
     proof->assert_is_holding(&mutex);
 
     if (readable_dispatchees.empty()) {
-        throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
+        throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
+            "the primary mirror should be always readable.");
     }
     *dispatchee_out = readable_dispatchees.head();
 
@@ -493,7 +494,8 @@ void broadcaster_t<protocol_t>::get_all_readable_dispatchees(
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
     if (readable_dispatchees.empty()) {
-        throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
+        throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
+            "the primary mirror should be always readable.");
     }
 
     dispatchee_t *dispatchee = readable_dispatchees.head();
