@@ -500,7 +500,7 @@ struct rdb_protocol_t {
         // Only use snapshotting if we're doing a range get.
         bool use_snapshot() const THROWS_NOTHING { return boost::get<rget_read_t>(&read); }
 
-        // Returns true if this read should be sent to every
+        // Returns true if this read should be sent to every replica.
         bool all_read() const THROWS_NOTHING { return boost::get<sindex_status_t>(&read); }
 
         RDB_DECLARE_ME_SERIALIZABLE;
