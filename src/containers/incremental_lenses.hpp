@@ -78,28 +78,26 @@ public:
     void operator()(const change_tracking_map_t<key_type, inner_type> &input,
                     result_type *current_out) {
         guarantee(current_out != NULL);
-        // Begin a new version and verify that we are in sync
+
+        const bool do_init = current_out->get_current_version() == 0;
+        // Begin a new version
         current_out->begin_version();
-        /* Right now we expect that we are called on the output exactly once after
-         * each change to the input and that we do not miss any version.
-         * If this should change in the future, we could instead of crashing here
-         * just recompute the whole output to get back in sync. That would
-         * destroy our performance guarantees though, and should be a rare process.
-         */
-        guarantee(current_out->get_current_version() == input.get_current_version(),
-            "incremental_map_lens_t got out of sync with input. "
-            "Our current version: %u, Input version: %u",
-            current_out->get_current_version(),
-            input.get_current_version());
-        // Update changed peers only
-        for (auto it = input.get_changed_keys().begin(); it != input.get_changed_keys().end(); ++it) {
-            auto input_value_it = input.get_inner().find(*it);
-            if (input_value_it == input.get_inner().end()) {
-                // The peer was deleted
-                current_out->delete_value(*it);
-            } else {
-                // The peer was added or changed, (re-)compute it.
-                current_out->set_value(*it, inner_lens(input_value_it->second));
+
+        if (do_init) {
+            for (auto it = input.get_inner().begin(); it != input.get_inner().end(); ++it) {
+                current_out->set_value(it->first, inner_lens(it->second));
+            }
+        } else {
+            // Update changed peers only
+            for (auto it = input.get_changed_keys().begin(); it != input.get_changed_keys().end(); ++it) {
+                auto input_value_it = input.get_inner().find(*it);
+                if (input_value_it == input.get_inner().end()) {
+                    // The peer was deleted
+                    current_out->delete_value(*it);
+                } else {
+                    // The peer was added or changed, (re-)compute it.
+                    current_out->set_value(*it, inner_lens(input_value_it->second));
+                }
             }
         }
     }

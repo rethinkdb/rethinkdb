@@ -285,9 +285,18 @@ private:
             const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss,
             change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > *current_out) {
         guarantee(current_out != NULL);
+        const bool do_init = current_out->get_current_version() == 0;
+        std::set<peer_id_t> keys_to_update;
         current_out->begin_version();
+        if (do_init) {
+            for (auto it = nss.get_inner().begin(); it != nss.get_inner().end(); ++it) {
+                keys_to_update.insert(it->first);
+            }
+        } else {
+            keys_to_update = nss.get_changed_keys();
+        }
 
-        for (auto it = nss.get_changed_keys().begin(); it != nss.get_changed_keys().end(); ++it) {
+        for (auto it = keys_to_update.begin(); it != keys_to_update.end(); ++it) {
             auto jt = nss.get_inner().find(*it);
             if (jt == nss.get_inner().end()) {
                 current_out->delete_value(*it);
