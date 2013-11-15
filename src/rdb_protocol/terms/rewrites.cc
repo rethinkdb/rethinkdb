@@ -6,31 +6,28 @@
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
 namespace ql {
 
-// This file implements terms that are rewritten into other terms.  See
-// pb_utils.hpp for explanations of the macros.
+// This file implements terms that are rewritten into other terms.
 
 class rewrite_term_t : public term_t {
 public:
     rewrite_term_t(compile_env_t *env, protob_t<const Term> term, argspec_t argspec,
-                   protob_t<Term> (*rewrite)(protob_t<const Term> in,
-                                             protob_t<Term> out,
-                                             const pb_rcheckable_t *bt_src))
+                   r::reql_t (*rewrite)(protob_t<const Term> in,
+                                        const pb_rcheckable_t *bt_src,
+                                        protob_t<const Term> optargs_in))
         : term_t(term), in(term), out(make_counted_term()) {
         int args_size = in->args_size();
         rcheck(argspec.contains(args_size),
                base_exc_t::GENERIC,
                strprintf("Expected %s but found %d.",
                          argspec.print().c_str(), args_size));
-        protob_t<Term> optarg_inheritor = rewrite(in, out, this);
+        out->Swap(&rewrite(in, this, in).get());
         propagate(out.get()); // duplicates `in` backtrace (see `pb_rcheckable_t`)
-        for (int i = 0; i < in->optargs_size(); ++i) {
-            *optarg_inheritor->add_optargs() = in->optargs(i);
-        }
         real = compile_term(env, out);
     }
 
@@ -57,20 +54,19 @@ public:
     groupby_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  const pb_rcheckable_t *bt_src) {
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
         std::string dc;
-        Term dc_arg;
-        parse_dc(&in->args(2), &dc, &dc_arg, bt_src);
-        Term *arg = out.get();
-        arg = final_wrap(arg, dc, &dc_arg);
-        N4(GROUPED_MAP_REDUCE,
-           *arg = in->args(0),
-           *arg = in->args(1),
-           map_fn(arg, dc, &dc_arg),
-           reduce_fn(arg, dc, &dc_arg));
-        return out;
+        r::reql_t dc_arg = parse_dc(&in->args(2), &dc, bt_src);
+        r::reql_t gmr =
+            r::expr(in->args(0)).grouped_map_reduce(
+                in->args(1),
+                map_fn(dc, &dc_arg),
+                reduce_fn(dc, &dc_arg));
+        r::reql_t term = final_wrap(std::move(gmr), dc, &dc_arg);
+        term.copy_optargs_from_term(*optargs_in);
+        return term;
     }
 
 private:
@@ -78,8 +74,8 @@ private:
     // This logic is ugly because we need to handle both MAKE_OBJ and R_OBJECT
     // as syntax rather than just parsing them both into an object (since we're
     // doing this at compile-time rather than runtime).
-    static void parse_dc(const Term *t, std::string *dc_out,
-                         Term *dc_arg_out, const pb_rcheckable_t *bt_src) {
+    static r::reql_t parse_dc(const Term *t, std::string *dc_out,
+                              const pb_rcheckable_t *bt_src) {
         std::string errmsg = "Invalid aggregator for GROUPBY.";
         if (t->type() == Term::MAKE_OBJ) {
             rcheck_target(bt_src, base_exc_t::GENERIC,
@@ -90,7 +86,7 @@ private:
                 bt_src, base_exc_t::GENERIC,
                 *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                 strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
-            *dc_arg_out = ap->val();
+            return r::expr(ap->val());
         } else if (t->type() == Term::DATUM) {
             rcheck_target(bt_src, base_exc_t::GENERIC, t->has_datum(), errmsg);
             const Datum *d = &t->datum();
@@ -104,8 +100,7 @@ private:
                 bt_src, base_exc_t::GENERIC,
                 *dc_out == "SUM" || *dc_out == "AVG" || *dc_out == "COUNT",
                 strprintf("Unrecognized GROUPBY aggregator `%s`.", dc_out->c_str()));
-            dc_arg_out->set_type(Term::DATUM);
-            *dc_arg_out->mutable_datum() = ap->val();
+            return r::expr(ap->val());
         } else {
             rcheck_target(bt_src, base_exc_t::GENERIC,
                           t->type() == Term::MAKE_OBJ, errmsg);
@@ -113,70 +108,62 @@ private:
         }
     }
 
-    static void map_fn(Term *arg,
-                       const std::string &dc, const Term *dc_arg) {
-        sym_t obj;
-        arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_OBJ, &obj);
+    static r::reql_t map_fn(const std::string &dc, const r::reql_t *dc_arg) {
+        auto obj = pb::dummy_var_t::GROUPBY_MAP_OBJ;
         if (dc == "COUNT") {
-            NDATUM(1.0);
+            return r::fun(obj, r::expr(1.0));
         } else if (dc == "SUM") {
-            sym_t attr;
-            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_ATTR, &attr);
-               N3(BRANCH,
-                  N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-                  N2(GET_FIELD, NVAR(obj), NVAR(attr)),
-                  NDATUM(0.0)),
-               *arg = *dc_arg);
+            auto attr = pb::dummy_var_t::GROUPBY_MAP_ATTR;
+            return
+                r::fun(obj,
+                    dc_arg->copy().do_(attr,
+                        r::branch(
+                            r::var(obj).has_fields(r::var(attr)),
+                            r::var(obj)[r::var(attr)],
+                            0.0)));
         } else if (dc == "AVG") {
-            sym_t attr;
-            N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_MAP_ATTR, &attr);
-               N3(BRANCH,
-                  N2(HAS_FIELDS, NVAR(obj), NVAR(attr)),
-                  N2(MAKE_ARRAY, N2(GET_FIELD, NVAR(obj), NVAR(attr)), NDATUM(1.0)),
-                  N2(MAKE_ARRAY, NDATUM(0.0), NDATUM(0.0))),
-               *arg = *dc_arg);
-        } else if (dc == "AVG") {
+            auto attr = pb::dummy_var_t::GROUPBY_MAP_ATTR;
+            return
+                r::fun(obj,
+                    dc_arg->copy().do_(attr,
+                        r::branch(
+                            r::var(obj).has_fields(r::var(attr)),
+                            r::array(r::var(obj)[r::var(attr)], 1.0),
+                            r::array(0.0, 0.0))));
         } else { unreachable(); }
     }
-    static void reduce_fn(Term *arg,
-                          const std::string &dc, UNUSED const Term *dc_arg) {
-        sym_t a;
-        sym_t b;
-        arg = pb::set_func(arg,
-                           pb::dummy_var_t::GROUPBY_REDUCE_A, &a,
-                           pb::dummy_var_t::GROUPBY_REDUCE_B, &b);
+    static r::reql_t reduce_fn(const std::string &dc, UNUSED const r::reql_t *dc_arg) {
+        auto a = pb::dummy_var_t::GROUPBY_REDUCE_A;
+        auto b = pb::dummy_var_t::GROUPBY_REDUCE_B;
         if (dc == "COUNT" || dc == "SUM") {
-            N2(ADD, NVAR(a), NVAR(b));
+            return r::fun(a, b, r::var(a) + r::var(b));
         } else if (dc == "AVG") {
-            N2(MAKE_ARRAY,
-               N2(ADD, N2(NTH, NVAR(a), NDATUM(0.0)),
-                       N2(NTH, NVAR(b), NDATUM(0.0))),
-               N2(ADD, N2(NTH, NVAR(a), NDATUM(1.0)),
-                       N2(NTH, NVAR(b), NDATUM(1.0))));
+            return
+                r::fun(a, b,
+                    r::array(r::var(a).nth(0) + r::var(b).nth(0),
+                        r::var(a).nth(1) + r::var(b).nth(1)));
         } else { unreachable(); }
     }
-    static Term *final_wrap(Term *arg,
-                            const std::string &dc, UNUSED const Term *dc_arg) {
+    static r::reql_t final_wrap(r::reql_t arg,
+                                const std::string &dc, UNUSED const r::reql_t *dc_arg) {
         if (dc == "COUNT" || dc == "SUM") {
             return arg;
         }
 
-        Term *argout = NULL;
         if (dc == "AVG") {
-            sym_t obj;
-            sym_t val;
-            N2(MAP, argout = arg, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_FINAL_OBJ, &obj);
-               OPT2(MAKE_OBJ,
-                    "group", N2(GET_FIELD, NVAR(obj), NDATUM("group")),
-                    "reduction",
-                    N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::GROUPBY_FINAL_VAL, &val);
-                       N2(DIV, N2(NTH, NVAR(val), NDATUM(0.0)),
-                               N2(NTH, NVAR(val), NDATUM(1.0))),
-                       N2(GET_FIELD, NVAR(obj), NDATUM("reduction")))));
+            auto obj = pb::dummy_var_t::GROUPBY_FINAL_OBJ;
+            auto val = pb::dummy_var_t::GROUPBY_FINAL_VAL;
+            return
+                std::move(arg).map(
+                    r::fun(obj,
+                        r::object(
+                            r::optarg("group", r::var(obj)["group"]),
+                            r::optarg("reduction",
+                                r::var(obj)["reduction"].do_(val,
+                                    r::var(val).nth(0) / r::var(val).nth(1))))));
         } else {
             unreachable();
         }
-        return argout;
     }
     virtual const char *name() const { return "groupby"; }
 };
@@ -186,29 +173,28 @@ public:
     inner_join_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *const left = &in->args(0);
-        const Term *const right = &in->args(1);
-        const Term *const func = &in->args(2);
-        sym_t n;
-        sym_t m;
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             UNUSED const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
+        const Term &left = in->args(0);
+        const Term &right = in->args(1);
+        const Term &func = in->args(2);
+        auto n = pb::dummy_var_t::INNERJOIN_N;
+        auto m = pb::dummy_var_t::INNERJOIN_M;
 
-        Term *arg = out.get();
-        // `left`.concatmap { |n|
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::INNERJOIN_N, &n);
-           // `right`.concatmap { |m|
-           N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, pb::dummy_var_t::INNERJOIN_M, &m);
-              // r.branch(
-              N3(BRANCH,
-                 // r.funcall(`func`, n, m),
-                 N3(FUNCALL, *arg = *func, NVAR(n), NVAR(m)),
-                 // [{:left => n, :right => m}],
-                 N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
-                 // [])}}
-                 N0(MAKE_ARRAY))));
-        return out;
+        r::reql_t term =
+            r::expr(left).concat_map(
+                r::fun(n,
+                    r::expr(right).concat_map(
+                        r::fun(m,
+                            r::branch(
+                                r::expr(func)(r::var(n), r::var(m)),
+                                r::array(r::object(
+                                        r::optarg("left", n), r::optarg("right", m))),
+                                r::array())))));
+
+        term.copy_optargs_from_term(*optargs_in);
+        return term;
     }
 
     virtual const char *name() const { return "inner_join"; }
@@ -219,45 +205,35 @@ public:
     outer_join_term_t(compile_env_t *env, const protob_t<const Term> &term) :
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *const left = &in->args(0);
-        const Term *const right = &in->args(1);
-        const Term *const func = &in->args(2);
-        sym_t n;
-        sym_t m;
-        sym_t lst;
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             UNUSED const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
+        const Term &left = in->args(0);
+        const Term &right = in->args(1);
+        const Term &func = in->args(2);
+        auto n = pb::dummy_var_t::OUTERJOIN_N;
+        auto m = pb::dummy_var_t::OUTERJOIN_M;
+        auto lst = pb::dummy_var_t::OUTERJOIN_LST;
 
-        Term *arg = out.get();
+        r::reql_t inner_concat_map =
+            r::expr(right).concat_map(
+                r::fun(m,
+                    r::branch(
+                        r::expr(func)(n, m),
+                        r::array(r::object(r::optarg("left", n), r::optarg("right", m))),
+                        r::array())));
 
-        // `left`.concatmap { |n|
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::OUTERJOIN_N, &n);
-           // r.funcall(lambda { |lst
-           N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::OUTERJOIN_M, &lst);
-              // r.branch(
-              N3(BRANCH,
-                 // r.gt(r.count(lst), 0),
-                 N2(GT, N1(COUNT, NVAR(lst)), NDATUM(0.0)),
-                 // lst,
-                 NVAR(lst),
-                 // [{:left => n}])},
-                 N1(MAKE_ARRAY, OPT1(MAKE_OBJ, "left", NVAR(n)))),
-              // r.coerce_to(
-              N2(COERCE_TO,
-                 // `right`.concatmap { |m|
-                 N2(CONCATMAP, *arg = *right, arg = pb::set_func(arg, pb::dummy_var_t::OUTERJOIN_LST, &m);
-                    // r.branch(
-                    N3(BRANCH,
-                       // r.funcall(`func`, n, m),
-                       N3(FUNCALL, *arg = *func, NVAR(n), NVAR(m)),
-                       // [{:left => n, :right => m}],
-                       N1(MAKE_ARRAY, OPT2(MAKE_OBJ, "left", NVAR(n), "right", NVAR(m))),
-                       // [])},
-                       N0(MAKE_ARRAY))),
-                 // "ARRAY"))}
-                 NDATUM("ARRAY"))));
-        return out;
+        r::reql_t term =
+            r::expr(left).concat_map(
+                r::fun(n,
+                    std::move(inner_concat_map).coerce_to("ARRAY").do_(lst,
+                        r::branch(
+                            r::expr(lst).count() > 0,
+                            lst,
+                            r::array(r::object(r::optarg("left", n)))))));
+
+        term.copy_optargs_from_term(*optargs_in);
+        return term;
     }
 
     virtual const char *name() const { return "outer_join"; }
@@ -269,28 +245,28 @@ public:
         rewrite_term_t(env, term, argspec_t(3), rewrite) { }
 private:
 
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  UNUSED const pb_rcheckable_t *bt_src) {
-        const Term *const left = &in->args(0);
-        const Term *const left_attr = &in->args(1);
-        const Term *const right = &in->args(2);
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             UNUSED const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
+        const Term &left = in->args(0);
+        const Term &left_attr = in->args(1);
+        const Term &right = in->args(2);
 
-        sym_t row;
-        sym_t v;
+        auto row = pb::dummy_var_t::EQJOIN_ROW;
+        auto v = pb::dummy_var_t::EQJOIN_V;
 
-        Term *arg = out.get();
-        Term *optarg_inheritor = NULL;
-        N2(CONCATMAP, *arg = *left, arg = pb::set_func(arg, pb::dummy_var_t::EQJOIN_ROW, &row);
-           N2(MAP,
-              optarg_inheritor = arg;
-              N2(GET_ALL, *arg = *right, N2(FUNCALL, *arg = *left_attr, NVAR(row));
-                  OPT1(FUNCALL, "_SHORTCUT_", NDATUM(static_cast<double>(GET_FIELD_SHORTCUT)))),
+        r::reql_t get_all =
+            r::expr(right).get_all(
+                r::expr(left_attr)(row, r::optarg("_SHORTCUT_", GET_FIELD_SHORTCUT)));
 
-              arg = pb::set_func(arg, pb::dummy_var_t::EQJOIN_V, &v);
-              OPT2(MAKE_OBJ, "left", NVAR(row), "right", NVAR(v))));
-        r_sanity_check(optarg_inheritor != NULL);
-        return out.make_child(optarg_inheritor);
+        get_all.copy_optargs_from_term(*optargs_in);
+
+        return
+            r::expr(left).concat_map(
+                r::fun(row,
+                    std::move(get_all).map(
+                        r::fun(v,
+                            r::object(r::optarg("left", row), r::optarg("right", v))))));
     }
     virtual const char *name() const { return "inner_join"; }
 };
@@ -301,14 +277,15 @@ public:
         : rewrite_term_t(env, term, argspec_t(1), rewrite) { }
 private:
 
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  UNUSED const pb_rcheckable_t *bt_src) {
-        sym_t x;
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             UNUSED const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
+        auto x = pb::dummy_var_t::IGNORED;
 
-        Term *arg = out.get();
-        N2(REPLACE, *arg = in->args(0), pb::set_null(pb::set_func(arg, pb::dummy_var_t::IGNORED, &x)));
-        return out;
+        r::reql_t term = r::expr(in->args(0)).replace(r::fun(x, r::null()));
+
+        term.copy_optargs_from_term(*optargs_in);
+        return term;
      }
      virtual const char *name() const { return "delete"; }
 };
@@ -318,28 +295,29 @@ public:
     update_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  UNUSED const pb_rcheckable_t *bt_src) {
-        sym_t old_row;
-        sym_t new_row;
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             UNUSED const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
+        auto old_row = pb::dummy_var_t::UPDATE_OLDROW;
+        auto new_row = pb::dummy_var_t::UPDATE_NEWROW;
 
-        Term *arg = out.get();
-        N2(REPLACE, *arg = in->args(0), arg = pb::set_func(arg, pb::dummy_var_t::UPDATE_OLDROW, &old_row);
-           N3(BRANCH,
-              N2(EQ, NVAR(old_row), NDATUM(datum_t::R_NULL)),
-              NDATUM(datum_t::R_NULL),
-              N2(FUNCALL, arg = pb::set_func(arg, pb::dummy_var_t::UPDATE_NEWROW, &new_row);
-                 N3(BRANCH,
-                    N2(EQ, NVAR(new_row), NDATUM(datum_t::R_NULL)),
-                    NVAR(old_row),
-                    N2(MERGE, NVAR(old_row), NVAR(new_row))),
-                 N2(FUNCALL, *arg = in->args(1), NVAR(old_row));
-                 OPT1(FUNCALL, "_EVAL_FLAGS_",
-                      NDATUM(static_cast<double>(LITERAL_OK))))
-              OPT1(FUNCALL, "_EVAL_FLAGS_",
-                NDATUM(static_cast<double>(LITERAL_OK)))));
-        return out;
+        r::reql_t term =
+            r::expr(in->args(0)).replace(
+                r::fun(old_row,
+                    r::branch(
+                        r::null() == old_row,
+                        r::null(),
+                        r::fun(new_row,
+                            r::branch(
+                                r::null() == new_row,
+                                old_row,
+                                r::expr(old_row).merge(new_row)))(
+                                    r::expr(in->args(1))(old_row,
+                                        r::optarg("_EVAL_FLAGS_", LITERAL_OK)),
+                                    r::optarg("_EVAL_FLAGS_", LITERAL_OK)))));
+
+        term.copy_optargs_from_term(*optargs_in);
+        return term;
     }
     virtual const char *name() const { return "update"; }
 };
@@ -349,13 +327,15 @@ public:
     skip_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  UNUSED const pb_rcheckable_t *bt_src) {
-        Term *arg = out.get();
-        N3(SLICE, *arg = in->args(0), *arg = in->args(1), NDATUM(-1.0));
-        OPT1(SLICE, "right_bound", NDATUM("closed"));
-        return out;
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             UNUSED const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
+        r::reql_t term =
+            r::expr(in->args(0)).slice(in->args(1), -1,
+                r::optarg("right_bound", "closed"));
+
+        term.copy_optargs_from_term(*optargs_in);
+        return term;
      }
      virtual const char *name() const { return "skip"; }
 };
@@ -365,16 +345,18 @@ public:
     difference_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(2), rewrite) { }
 private:
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  UNUSED const pb_rcheckable_t *bt_src) {
-        sym_t row;
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             UNUSED const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
+        auto row = pb::dummy_var_t::DIFFERENCE_ROW;
 
-        Term *arg = out.get();
-        N2(FILTER, *arg = in->args(0), arg = pb::set_func(arg, pb::dummy_var_t::DIFFERENCE_ROW, &row);
-           N1(NOT, N2(CONTAINS, *arg = in->args(1), NVAR(row))));
+        r::reql_t term =
+            r::expr(in->args(0)).filter(
+                r::fun(row,
+                    !r::expr(in->args(1)).contains(row)));
 
-        return out;
+        term.copy_optargs_from_term(*optargs_in);
+        return term;
     }
 
      virtual const char *name() const { return "difference"; }
@@ -385,22 +367,17 @@ public:
     with_fields_term_t(compile_env_t *env, const protob_t<const Term> &term)
         : rewrite_term_t(env, term, argspec_t(1, -1), rewrite) { }
 private:
-    static protob_t<Term> rewrite(protob_t<const Term> in,
-                                  const protob_t<Term> out,
-                                  UNUSED const pb_rcheckable_t *bt_src) {
-        Term *arg = out.get();
-        Term *pluck = arg;
-        Term *has_fields = NULL;
-        N1(PLUCK,
-           has_fields = arg;
-           N1(HAS_FIELDS, *arg = in->args(0)));
-        r_sanity_check(has_fields != NULL);
-        for (int i = 1; i < in->args_size(); ++i) {
-            *pluck->add_args() = in->args(i);
-            *has_fields->add_args() = in->args(i);
-        }
-        return out.make_child(has_fields);
+    static r::reql_t rewrite(protob_t<const Term> in,
+                             UNUSED const pb_rcheckable_t *bt_src,
+                             protob_t<const Term> optargs_in) {
 
+        r::reql_t has_fields = r::expr(in->args(0)).has_fields();
+        has_fields.copy_args_from_term(*in, 1);
+        has_fields.copy_optargs_from_term(*optargs_in);
+        r::reql_t pluck = std::move(has_fields).pluck();
+        pluck.copy_args_from_term(*in, 1);
+
+        return pluck;
     }
      virtual const char *name() const { return "with_fields"; }
 };

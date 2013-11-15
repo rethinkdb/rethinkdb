@@ -10,10 +10,11 @@
 #include <boost/optional.hpp>
 
 #include "clustering/immediate_consistency/branch/metadata.hpp"
-#include "clustering/immediate_consistency/query/master_metadata.hpp"
 #include "clustering/immediate_consistency/query/direct_reader_metadata.hpp"
+#include "clustering/immediate_consistency/query/master_metadata.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "http/json/json_adapter.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"
 
 /* `reactor_business_card_t` is the way that each peer tells peers what's
@@ -37,7 +38,10 @@ public:
     peer_id_t peer_id;
     reactor_activity_id_t activity_id;
     RDB_MAKE_ME_SERIALIZABLE_3(backfill_session_id, peer_id, activity_id);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_3(backfill_location_t,
+        backfill_session_id, peer_id, activity_id);
 };
+
 template <class protocol_t>
 class primary_when_safe_t {
 public:
@@ -48,6 +52,7 @@ public:
     { }
     std::vector<backfill_location_t> backfills_waited_on;
     RDB_MAKE_ME_SERIALIZABLE_1(backfills_waited_on);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(primary_when_safe_t<protocol_t>, backfills_waited_on);
 };
 
 /* This peer is currently a primary in working order. */
@@ -82,6 +87,8 @@ public:
     boost::optional<direct_reader_business_card_t<protocol_t> > direct_reader;
 
     RDB_MAKE_ME_SERIALIZABLE_4(broadcaster, replier, master, direct_reader);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_4(primary_t<protocol_t>,
+        broadcaster, replier, master, direct_reader);
 };
 
 /* This peer is currently a secondary in working order. */
@@ -101,6 +108,8 @@ public:
     direct_reader_business_card_t<protocol_t> direct_reader;
 
     RDB_MAKE_ME_SERIALIZABLE_3(branch_id, replier, direct_reader);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_3(secondary_up_to_date_t<protocol_t>,
+        branch_id, replier, direct_reader);
 };
 
 /* This peer would like to be a secondary but cannot because it failed to
@@ -121,6 +130,8 @@ public:
     branch_history_t<protocol_t> branch_history;
 
     RDB_MAKE_ME_SERIALIZABLE_4(current_state, backfiller, direct_reader, branch_history);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_4(secondary_without_primary_t<protocol_t>,
+        current_state, backfiller, direct_reader, branch_history);
 };
 
 /* This peer is in the process of becoming a secondary, barring failures it
@@ -136,6 +147,7 @@ public:
 
     backfill_location_t backfill;
     RDB_MAKE_ME_SERIALIZABLE_1(backfill);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(secondary_backfilling_t<protocol_t>, backfill);
 };
 
 /* This peer would like to erase its data and not do any job for this
@@ -158,6 +170,8 @@ public:
     branch_history_t<protocol_t> branch_history;
 
     RDB_MAKE_ME_SERIALIZABLE_3(current_state, backfiller, branch_history);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_3(nothing_when_safe_t<protocol_t>,
+        current_state, backfiller, branch_history);
 };
 
 /* This peer is in the process of erasing data that it previously held,
@@ -167,6 +181,7 @@ template <class protocol_t>
 class nothing_when_done_erasing_t {
 public:
     RDB_MAKE_ME_SERIALIZABLE_0();
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_0(nothing_when_done_erasing_t<protocol_t>);
 };
 
 /* This peer has no data for the shard, is not backfilling and is not a
@@ -175,6 +190,7 @@ template <class protocol_t>
 class nothing_t {
 public:
     RDB_MAKE_ME_SERIALIZABLE_0();
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_0(nothing_t<protocol_t>);
 };
 
 
@@ -206,6 +222,7 @@ struct reactor_activity_entry_t {
     reactor_activity_entry_t() { }
 
     RDB_MAKE_ME_SERIALIZABLE_2(region, activity);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_2(reactor_activity_entry_t<protocol_t>, region, activity);
 };
 
 template<class protocol_t>
@@ -226,6 +243,8 @@ public:
     activity_map_t activities;
 
     RDB_MAKE_ME_SERIALIZABLE_1(activities);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(reactor_business_card_t<protocol_t>, activities);
 };
+
 
 #endif /* CLUSTERING_REACTOR_METADATA_HPP_ */

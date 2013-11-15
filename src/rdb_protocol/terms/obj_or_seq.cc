@@ -9,6 +9,7 @@
 #include "rdb_protocol/pathspec.hpp"
 #include "rdb_protocol/pb_utils.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
+#include "rdb_protocol/minidriver.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -28,41 +29,29 @@ public:
                          poly_type_t _poly_type, argspec_t argspec)
         : op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
           poly_type(_poly_type), func(make_counted_term()) {
-        sym_t varnum;
-        Term *arg = pb::set_func(func.get(), pb::dummy_var_t::OBJORSEQ_VARNUM, &varnum);
-        Term *body = NULL;
+
+        auto varnum = pb::dummy_var_t::OBJORSEQ_VARNUM;
+
+        // body is a new reql expression similar to term except that the first argument
+        // is replaced by a new variable.
+        // For example, foo.pluck('a') becomes varnum.pluck('a')
+        r::reql_t body = r::var(varnum).call(term->type());
+        body.copy_args_from_term(*term, 1);
+        body.add_arg(r::optarg("_NO_RECURSE_", r::boolean(true)));
+
         switch (poly_type) {
         case MAP: {
-            body = arg;
-            *arg = *term;
-            Term_AssocPair *ap = arg->add_optargs();
-            ap->set_key("_NO_RECURSE_");
-            arg = ap->mutable_val();
-            NDATUM_BOOL(true);
+            func->Swap(&r::fun(varnum, std::move(body)).get());
         } break;
         case FILTER: {
-            body = arg;
-            *arg = *term;
-            Term_AssocPair *ap = arg->add_optargs();
-            ap->set_key("_NO_RECURSE_");
-            arg = ap->mutable_val();
-            NDATUM_BOOL(true);
+            func->Swap(&r::fun(varnum, std::move(body)).get());
         } break;
         case SKIP_MAP: {
-            N2(DEFAULT,
-               N1(MAKE_ARRAY,
-                  body = arg;
-                  *arg = *term;
-                  Term_AssocPair *ap = arg->add_optargs();
-                  ap->set_key("_NO_RECURSE_");
-                  arg = ap->mutable_val();
-                  NDATUM_BOOL(true)),
-               N0(MAKE_ARRAY));
+            func->Swap(&r::fun(varnum, r::array(std::move(body)).default_(r::array())).get());
         } break;
         default: unreachable();
         }
-        r_sanity_check(body != NULL);
-        pb::set_var(pb::reset(body->mutable_args(0)), varnum);
+
         prop_bt(func.get());
     }
 private:

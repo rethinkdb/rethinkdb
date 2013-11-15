@@ -924,7 +924,7 @@ void btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lo
         {
             vector_read_stream_t key(&i->first);
             DEBUG_VAR archive_result_t res = deserialize(&key, &region);
-            rassert(!res, "res = %d", res);
+            guarantee_deserialization(res, "region");
         }
 
         result.push_back(std::make_pair(region, binary_blob_t(value.begin(), value.end())));

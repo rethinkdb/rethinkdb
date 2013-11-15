@@ -12,12 +12,16 @@
 
 template <class outer_type, class callable_type>
 class subview_watchable_t : public watchable_t<typename boost::result_of<callable_type(outer_type)>::type> {
+private:
+    typedef subview_watchable_t<outer_type, callable_type> this_t;
+    typedef watchable_t<outer_type> parent_watchable_t;
+    typedef typename boost::result_of<callable_type(outer_type)>::type value_t;
 public:
     typedef typename boost::result_of<callable_type(outer_type)>::type result_type;
 
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
-        cache(new lensed_value_cache_t(l, p)) {
-    }
+        cache(new lensed_value_cache_t(l, p)),
+        sub_to_parent(std::bind(&this_t::on_parent_change, this), p->get_publisher()) { }
 
     subview_watchable_t *clone() const {
         return new subview_watchable_t(cache);
@@ -38,7 +42,7 @@ public:
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
-        return cache->parent->get_publisher();
+        return publisher_controller.get_publisher();
     }
 
     rwi_lock_assertion_t *get_rwi_lock_assertion() {
@@ -66,6 +70,11 @@ private:
                 on_thread_t t(parent->home_thread());
                 parent_subscription.reset();
             }
+        }
+
+        // TODO!
+        result_type get_outdated_value() {
+            return cached_value;
         }
 
         result_type *get() {
@@ -115,10 +124,20 @@ private:
     };
 
     subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
-        cache(_cache) {
+        cache(_cache),
+        sub_to_parent(std::bind(&this_t::on_parent_change, this), _cache->parent->get_publisher()) { }
+
+    void on_parent_change() {
+        value_t old_value = cache->get_outdated_value();
+        const value_t *new_value = cache->get();
+        if (*new_value != old_value) {
+            publisher_controller.publish(&call_function);
+        }
     }
 
     boost::shared_ptr<lensed_value_cache_t> cache;
+    publisher_controller_t<boost::function<void()> > publisher_controller;
+    publisher_t<boost::function<void()> >::subscription_t sub_to_parent;
 };
 
 template<class value_type>
