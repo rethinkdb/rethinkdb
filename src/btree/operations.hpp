@@ -20,6 +20,8 @@
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
+// RSI: This code doesn't use the notion of "parent transaction" at all, and it must.
+
 class btree_slice_t;
 
 template <class> class promise_t;
@@ -324,10 +326,22 @@ void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<transaction_t> *txn_out);
 
+#if SLICE_ALT
+void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
+                                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                                  scoped_ptr_t<alt::alt_txn_t> *txn_out);
+#endif
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<transaction_t> *txn_out);
 
+#if SLICE_ALT
+void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
+                                              order_token_t token,
+                                              cache_snapshotted_t snapshotted,
+                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                              scoped_ptr_t<alt::alt_txn_t> *txn_out);
+#endif
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,

@@ -341,7 +341,11 @@ template <class Value>
 void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
 #endif
 
+#if SLICE_ALT
     value_sizer_t<Value> sizer(kv_loc->buf.cache()->get_block_size());
+#else
+    value_sizer_t<Value> sizer(txn->get_cache()->get_block_size());
+#endif
 
 #if SLICE_ALT
     key_modification_proof_t km_proof

@@ -50,7 +50,11 @@ struct memcached_get_cas_oper_t : public memcached_modify_oper_t, public home_th
         }
 
         // Deliver the value to the client via the promise_t we got.
+#if SLICE_ALT
         counted_t<data_buffer_t> dp = value_to_data_buffer(value->get(), leaf);
+#else
+        counted_t<data_buffer_t> dp = value_to_data_buffer(value->get(), txn);
+#endif
         res->pulse(get_result_t(dp, (*value)->mcflags(), cas_to_report));
 
         // Return whether we made a change to the value.
@@ -79,7 +83,11 @@ void co_memcached_get_cas(const store_key_t &key, cas_t proposed_cas,
                           transaction_t *txn, superblock_t *superblock) {
 #endif
     memcached_get_cas_oper_t oper(proposed_cas, res);
+#if SLICE_ALT
     run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, superblock);
+#else
+    run_memcached_modify_oper(&oper, slice, key, proposed_cas, effective_time, timestamp, txn, superblock);
+#endif
 }
 
 #if SLICE_ALT

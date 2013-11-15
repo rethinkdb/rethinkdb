@@ -634,6 +634,28 @@ void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
 }
 #endif
 
+#if SLICE_ALT
+void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
+                                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                                  scoped_ptr_t<alt_txn_t> *txn_out) {
+    (void)token;  // RSI: Use this parameter.
+    slice->assert_thread();
+    alt_txn_t *txn = new alt_txn_t(slice->cache());
+    // RSI: Support all the stuff this old line does.  (What's rwi_read_sync, here?)
+    // transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
+    //                                        slice->pre_begin_txn_checkpoint_.check_through(token));
+    txn_out->init(txn);
+    // RSI: Support the use of this account, if applicable.
+    // txn->set_account(slice->get_backfill_account());
+
+    // RSI: This used rwi_read_sync instead of rwi_read -- what does this mean?
+    get_btree_superblock(txn, alt_access_t::read, got_superblock_out);
+    // RSI: This is bad -- we want to backfill, we don't want to snapshot from the
+    // superblock (and therefore secondary indexes)-- we really want to snapshot the
+    // subtree underneath the root node.
+    (*got_superblock_out)->get()->snapshot_subtree();
+}
+#else
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<transaction_t> *txn_out) {
@@ -647,7 +669,32 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_to
 
     get_btree_superblock(txn, rwi_read_sync, got_superblock_out);
 }
+#endif
 
+#if SLICE_ALT
+// RSI: This function is possibly stupid: it's nonsensical to talk about the entire
+// cache being snapshotted -- we want some subtree to be snapshotted, at least.
+void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
+                                              order_token_t token,
+                                              cache_snapshotted_t snapshotted,
+                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
+                                              scoped_ptr_t<alt_txn_t> *txn_out) {
+    (void)token;  // RSI: Make this be used.
+    slice->assert_thread();
+    alt_txn_t *txn = new alt_txn_t(slice->cache());
+    // RSI: Support the use of the order token.
+    // transaction_t *txn = new transaction_t(slice->cache(), access,
+    //                                        slice->pre_begin_txn_checkpoint_.check_through(token));
+    txn_out->init(txn);
+
+    get_btree_superblock(txn, alt_access_t::read, got_superblock_out);
+
+    // RSI: As mentioned, snapshotting here is stupid.
+    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
+        (*got_superblock_out)->get()->snapshot_subtree();
+    }
+}
+#else
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
@@ -664,3 +711,4 @@ void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t acc
 
     get_btree_superblock(txn, access, got_superblock_out);
 }
+#endif
