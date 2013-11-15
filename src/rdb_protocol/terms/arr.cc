@@ -179,7 +179,8 @@ private:
             }
             uint64_t real_r = fake_r;
             if (fake_r < -1) {
-                rfail(base_exc_t::GENERIC, "Cannot use a right index < -1 on a stream.");
+                rfail(base_exc_t::GENERIC,
+                      "Cannot use a right index < -1 on a stream.");
             } else if (fake_r == -1) {
                 rcheck(!right_open(env), base_exc_t::GENERIC,
                        "Cannot slice to an open right index of -1 on a stream.");

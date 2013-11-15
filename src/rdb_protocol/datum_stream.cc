@@ -865,7 +865,7 @@ concatmap_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchsp
 }
 
 // SLICE_DATUM_STREAM_T
-slice_datum_stream_t::slice_datum_stream_t(size_t _left, size_t _right,
+slice_datum_stream_t::slice_datum_stream_t(uint64_t _left, uint64_t _right,
                                            counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src), index(0),
       left(_left), right(_right) { }
