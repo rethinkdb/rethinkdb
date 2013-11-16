@@ -24,17 +24,12 @@ template <class> class multistore_ptr_t;
 template<class protocol_t>
 class reactor_t : public home_thread_mixin_t {
 public:
-    typedef std::map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >
-        per_reactor_directory_t;
-
     reactor_t(
             const base_path_t& base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
             ack_checker_t *ack_checker,
-            const namespace_id_t &_namespace_id,
-            clone_ptr_t<watchable_t<std::map<namespace_id_t,
-                per_reactor_directory_t> > > reactor_directory,
+            clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > reactor_directory,
             branch_history_manager_t<protocol_t> *branch_history_manager,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
             multistore_ptr_t<protocol_t> *_underlying_svs,

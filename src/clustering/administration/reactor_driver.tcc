@@ -7,7 +7,6 @@
 #include <map>
 #include <set>
 #include <utility>
-#include <functional>
 
 #include "clustering/administration/machine_id_to_peer_id.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -280,6 +279,21 @@ public:
     }
 
 private:
+    std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory(
+            const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss) {
+        std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > out;
+        for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); it++) {
+            typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::const_iterator jt =
+                it->second.reactor_bcards.find(namespace_id_);
+            if (jt == it->second.reactor_bcards.end()) {
+                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >()));
+            } else {
+                out.insert(std::make_pair(it->first, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(jt->second)));
+            }
+        }
+        return out;
+    }
+
     void on_change_reactor_directory() {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
 
@@ -316,8 +330,7 @@ private:
             io_backender,
             parent_->mbox_manager,
             this,
-            namespace_id_,
-            parent_->per_reactor_directory_views,
+            parent_->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
             parent_->branch_history_manager,
             watchable.get_watchable(),
             svs_.get(), namespace_collection, ctx));
@@ -396,8 +409,6 @@ reactor_driver_t<protocol_t>::reactor_driver_t(const base_path_t &_base_path,
       io_backender(_io_backender),
       mbox_manager(_mbox_manager),
       directory_view(_directory_view),
-      per_reactor_directory_views(_directory_view->subview(&
-          reactor_driver_t<protocol_t>::split_directory)),
       branch_history_manager(_branch_history_manager),
       machine_id_translation_table(_machine_id_translation_table),
       namespaces_view(_namespaces_view),
@@ -430,23 +441,6 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
     lock.assert_is_holding(&drainer);
     delete thing_to_delete;
     svs_by_namespace->destroy_svs(namespace_id);
-}
-
-template<class protocol_t>
-std::map<namespace_id_t, typename reactor_driver_t<protocol_t>::per_reactor_directory_t>
-reactor_driver_t<protocol_t>::split_directory(
-    const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss) {
-
-    std::map<namespace_id_t, per_reactor_directory_t> out;
-    for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it = nss.begin(); it != nss.end(); it++) {
-        for (auto jt = it->second.reactor_bcards.begin();
-             jt != it->second.reactor_bcards.end();
-             ++jt) {
-
-            out[jt->first].insert(std::make_pair(it->first, jt->second));
-        }
-    }
-    return out;
 }
 
 template<class protocol_t>
