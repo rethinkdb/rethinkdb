@@ -51,7 +51,10 @@ private:
             lens(l),
             parent_subscription(boost::bind(
                 &subview_watchable_t<outer_type, callable_type>::lensed_value_cache_t::on_parent_changed,
-                this), parent->get_publisher()) { }
+                this), parent->get_publisher()) {
+
+            compute_value();
+        }
 
         ~lensed_value_cache_t() {
             assert_thread();
