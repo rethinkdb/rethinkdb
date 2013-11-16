@@ -280,7 +280,18 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 const btree_key_t *key);
 
 // Metainfo functions
+#if SLICE_ALT
+bool get_superblock_metainfo(alt::alt_buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             std::vector<char> *value_out);
+#endif
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out);
+
+#if SLICE_ALT
+void get_superblock_metainfo(
+    alt::alt_buf_lock_t *superblock,
+    std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
+#endif
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
 
 #if SLICE_ALT
@@ -315,13 +326,13 @@ void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real
 
 #if SLICE_ALT
 void get_btree_superblock_and_txn(btree_slice_t *slice,
-                                  access_t superblock_access,
+                                  alt::alt_access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
                                   order_token_t token,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<transaction_t> *txn_out);
+                                  scoped_ptr_t<alt::alt_txn_t> *txn_out);
 #endif
 void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
                                   access_t superblock_access, int expected_change_count,

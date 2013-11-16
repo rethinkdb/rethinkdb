@@ -12,7 +12,9 @@
 using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_parent_t;
+using alt::alt_cache_t;
 using alt::alt_create_t;
+using alt::alt_txn_t;
 #endif
 
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
@@ -46,9 +48,14 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     }
 
     // TODO: Don't specify cache dynamic config here.
+    // RSI: Remove or replace cache_dynamic_config.
     cache_dynamic_config.max_size = cache_target;
     cache_dynamic_config.max_dirty_size = cache_target / 2;
+#if SLICE_ALT
+    cache.init(new alt_cache_t(serializer));
+#else
     cache.init(new cache_t(serializer, cache_dynamic_config, &perfmon_collection));
+#endif
 
     if (create) {
         vector_stream_t key;
@@ -109,13 +116,27 @@ void btree_store_t<protocol_t>::read(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> superblock;
 
+#if SLICE_ALT
+    acquire_superblock_for_read(&token_pair->main_read_token, &txn, &superblock,
+                                interruptor,
+                                read.use_snapshot());
+#else
     acquire_superblock_for_read(rwi_read, &token_pair->main_read_token, &txn, &superblock, interruptor,
                                 read.use_snapshot());
+#endif
 
+#if SLICE_ALT
+    DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock.get());)
+#else
     DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());)
+#endif
 
     // Ugly hack
     scoped_ptr_t<superblock_t> superblock2;
@@ -138,12 +159,23 @@ void btree_store_t<protocol_t>::write(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
-    acquire_superblock_for_write(timestamp.to_repli_timestamp(), expected_change_count, durability, token_pair, &txn, &real_superblock, interruptor);
+    acquire_superblock_for_write(timestamp.to_repli_timestamp(),
+                                 expected_change_count, durability, token_pair,
+                                 &txn, &real_superblock, interruptor);
 
+#if SLICE_ALT
+    check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
+                              real_superblock.get());
+#else
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), real_superblock.get());
+#endif
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
     protocol_write(write, response, timestamp, btree.get(), txn.get(), &superblock, token_pair, interruptor);
 }
@@ -159,15 +191,35 @@ bool btree_store_t<protocol_t>::send_backfill(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_backfill(&token_pair->main_read_token, &txn, &superblock, interruptor);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+#else
     scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_read(token_pair, txn.get(), &sindex_block, superblock->get_sindex_block_id(), interruptor);
+#endif
+#if SLICE_ALT
+    acquire_sindex_block_for_read(token_pair, superblock->expose_buf(),
+                                  &sindex_block, superblock->get_sindex_block_id(),
+                                  interruptor);
+#else
+    acquire_sindex_block_for_read(token_pair, txn.get(),
+                                  &sindex_block, superblock->get_sindex_block_id(),
+                                  interruptor);
+#endif
 
     region_map_t<protocol_t, binary_blob_t> unmasked_metainfo;
+#if SLICE_ALT
+    get_metainfo_internal(superblock->get(), &unmasked_metainfo);
+#else
     get_metainfo_internal(txn.get(), superblock->get(), &unmasked_metainfo);
+#endif
     region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(metainfo)) {
         protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), sindex_block.get(), btree.get(), txn.get(), progress, interruptor);
@@ -219,7 +271,11 @@ void btree_store_t<protocol_t>::reset_data(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> superblock;
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
@@ -241,8 +297,16 @@ void btree_store_t<protocol_t>::reset_data(
                                  interruptor);
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
+#if SLICE_ALT
+    get_metainfo_internal(superblock->get(), &old_metainfo);
+#else
     get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
+#endif
+#if SLICE_ALT
+    update_metainfo(old_metainfo, new_metainfo, superblock.get());
+#else
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
+#endif
 
     protocol_reset_data(subregion,
                         btree.get(),
@@ -313,8 +377,13 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         read_token_pair_t *token_pair,
+#if SLICE_ALT
+        alt_buf_parent_t parent,
+        scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
+#else
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
+#endif
         block_id_t sindex_block_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
@@ -326,7 +395,12 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->sindex_read_token);
 
     /* Finally acquire the block. */
+#if SLICE_ALT
+    sindex_block_out->init(new alt_buf_lock_t(parent, sindex_block_id,
+                                              alt_access_t::read));
+#else
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_read));
+#endif
 }
 
 template <class protocol_t>
@@ -405,7 +479,8 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
     assert_thread();
 
 #if SLICE_ALT
-    acquire_sindex_block_for_write(token_pair, sindex_block_out,
+    acquire_sindex_block_for_write(token_pair, super_block->expose_buf(),
+                                   sindex_block_out,
                                    super_block->get_sindex_block_id(), interruptor);
 #else
     acquire_sindex_block_for_write(token_pair, txn, sindex_block_out,
@@ -491,7 +566,8 @@ void btree_store_t<protocol_t>::set_sindexes(
 
     /* Get the sindex block which we will need to modify. */
 #if SLICE_ALT
-    acquire_sindex_block_for_write(token_pair, sindex_block_out,
+    acquire_sindex_block_for_write(token_pair, superblock->expose_buf(),
+                                   sindex_block_out,
                                    superblock->get_sindex_block_id(), interruptor);
 #else
     acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, superblock->get_sindex_block_id(), interruptor);
@@ -657,7 +733,8 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
     scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
 #if SLICE_ALT
-    acquire_sindex_block_for_write(token_pair, &sindex_block,
+    acquire_sindex_block_for_write(token_pair, super_block->expose_buf(),
+                                   &sindex_block,
                                    super_block->get_sindex_block_id(), interruptor);
 #else
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
@@ -760,7 +837,8 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
     /* First get the sindex block. */
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, &sindex_block,
+    acquire_sindex_block_for_write(token_pair, super_block->expose_buf(),
+                                   &sindex_block,
                                    super_block->get_sindex_block_id(), interruptor);
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
@@ -1237,23 +1315,37 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
+#if !SLICE_ALT
         transaction_t *txn,
+#endif
         real_superblock_t *superblock) const
         THROWS_NOTHING {
     assert_thread();
+#if SLICE_ALT
+    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
+    update_metainfo(old_metainfo, new_metainfo, superblock);
+#else
     metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn, superblock);
     update_metainfo(old_metainfo, new_metainfo, txn, superblock);
+#endif
 }
 
 template <class protocol_t>
-typename btree_store_t<protocol_t>::metainfo_t btree_store_t<protocol_t>::check_metainfo(
+typename btree_store_t<protocol_t>::metainfo_t
+btree_store_t<protocol_t>::check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+#if !SLICE_ALT
         transaction_t *txn,
+#endif
         real_superblock_t *superblock) const
         THROWS_NOTHING {
     assert_thread();
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
+#if SLICE_ALT
+    get_metainfo_internal(superblock->get(), &old_metainfo);
+#else
     get_metainfo_internal(txn, superblock->get(), &old_metainfo);
+#endif
 #ifndef NDEBUG
     metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
 #endif
@@ -1308,18 +1400,42 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
                                                 signal_t *interruptor,
                                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_read(token,
+                                &txn, &superblock,
+                                interruptor,
+                                false /* RSI: christ */);
+
+    get_metainfo_internal(superblock->get(), out);
+#else
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor, false);
 
     get_metainfo_internal(txn.get(), superblock->get(), out);
+#endif
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+void btree_store_t<protocol_t>::
+get_metainfo_internal(alt_buf_lock_t *sb_buf,
+                      region_map_t<protocol_t, binary_blob_t> *out)
+    const THROWS_NOTHING {
+#else
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING {
+#endif
     assert_thread();
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
+#if SLICE_ALT
+    // TODO: this is inefficient, cut out the middleman (vector)
+    get_superblock_metainfo(sb_buf, &kv_pairs);
+#else
     get_superblock_metainfo(txn, sb_buf, &kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
+#endif
 
     std::vector<std::pair<typename protocol_t::region_t, binary_blob_t> > result;
     for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
@@ -1346,6 +1462,18 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<real_superblock_t> superblock;
+    acquire_superblock_for_write(alt_access_t::write,
+                                 repli_timestamp_t::invalid,
+                                 1,
+                                 WRITE_DURABILITY_HARD,
+                                 token,
+                                 &txn,
+                                 &superblock,
+                                 interruptor);
+#else
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(rwi_write, rwi_write,
@@ -1356,12 +1484,28 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                  &txn,
                                  &superblock,
                                  interruptor);
+#endif
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
+#if SLICE_ALT
+    get_metainfo_internal(superblock->get(), &old_metainfo);
+    update_metainfo(old_metainfo, new_metainfo, superblock.get());
+#else
     get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
+#endif
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_superblock_for_read(
+        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+        scoped_ptr_t<alt_txn_t> *txn_out,
+        scoped_ptr_t<real_superblock_t> *sb_out,
+        signal_t *interruptor,
+        bool use_snapshot)
+        THROWS_ONLY(interrupted_exc_t) {
+#else
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_read(
         access_t access,
@@ -1371,6 +1515,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
         signal_t *interruptor,
         bool use_snapshot)
         THROWS_ONLY(interrupted_exc_t) {
+#endif
 
     assert_thread();
     btree->assert_thread();
@@ -1383,14 +1528,23 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
 
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
+#if SLICE_ALT
+    get_btree_superblock_and_txn_for_reading(
+        btree.get(), order_token, cache_snapshotted, sb_out, txn_out);
+#else
     get_btree_superblock_and_txn_for_reading(
         btree.get(), access, order_token, cache_snapshotted, sb_out, txn_out);
+#endif
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> *txn_out,
+#else
         scoped_ptr_t<transaction_t> *txn_out,
+#endif
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -1413,42 +1567,78 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         int expected_change_count,
         const write_durability_t durability,
         write_token_pair_t *token_pair,
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> *txn_out,
+#else
         scoped_ptr_t<transaction_t> *txn_out,
+#endif
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
+#if SLICE_ALT
+    acquire_superblock_for_write(alt_access_t::write, timestamp,
+                                 expected_change_count, durability,
+                                 token_pair, txn_out, sb_out, interruptor);
+#else
     acquire_superblock_for_write(rwi_write, rwi_write, timestamp, expected_change_count, durability,
             token_pair, txn_out, sb_out, interruptor);
+#endif
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_write(
+#if SLICE_ALT
+        alt_access_t superblock_access,
+#else
         access_t txn_access,
         access_t superblock_access,
+#endif
         repli_timestamp_t timestamp,
         int expected_change_count,
         const write_durability_t durability,
         write_token_pair_t *token_pair,
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> *txn_out,
+#else
         scoped_ptr_t<transaction_t> *txn_out,
+#endif
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 
+#if SLICE_ALT
+    acquire_superblock_for_write(superblock_access, timestamp,
+                                 expected_change_count, durability,
+                                 &token_pair->main_write_token, txn_out, sb_out,
+                                 interruptor);
+#else
     acquire_superblock_for_write(txn_access, superblock_access, timestamp, expected_change_count, durability,
             &token_pair->main_write_token, txn_out, sb_out, interruptor);
+#endif
+    // RSI: Do whatever (*txn_out)->set_token_pair does.
+#if !SLICE_ALT
     (*txn_out)->set_token_pair(token_pair);
+#endif
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_write(
+#if SLICE_ALT
+        alt_access_t superblock_access,
+#else
         access_t txn_access,
         access_t superblock_access,
+#endif
         repli_timestamp_t timestamp,
         int expected_change_count,
         write_durability_t durability,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> *txn_out,
+#else
         scoped_ptr_t<transaction_t> *txn_out,
+#endif
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -1462,7 +1652,13 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
     order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
+#if SLICE_ALT
+    get_btree_superblock_and_txn(btree.get(), superblock_access,
+                                 expected_change_count, timestamp, order_token,
+                                 durability, sb_out, txn_out);
+#else
     get_btree_superblock_and_txn(btree.get(), txn_access, superblock_access, expected_change_count, timestamp, order_token, durability, sb_out, txn_out);
+#endif
 }
 
 /* store_view_t interface */

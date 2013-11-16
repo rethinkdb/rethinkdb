@@ -138,6 +138,16 @@ public:
             const write_message_t& value,
             const mutex_t::acq_t *acq);
 
+#if SLICE_ALT
+    void acquire_sindex_block_for_read(
+            read_token_pair_t *token_pair,
+            alt::alt_buf_parent_t parent,
+            scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
+            block_id_t sindex_block_id,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+#endif
+
     void acquire_sindex_block_for_read(
             read_token_pair_t *token_pair,
             transaction_t *txn,
@@ -145,6 +155,16 @@ public:
             block_id_t sindex_block_id,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
+
+#if SLICE_ALT
+    void acquire_sindex_block_for_write(
+            write_token_pair_t *token_pair,
+            alt::alt_buf_parent_t parent,
+            scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
+            block_id_t sindex_block_id,
+            signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t);
+#endif
 
     void acquire_sindex_block_for_write(
             write_token_pair_t *token_pair,
@@ -468,7 +488,23 @@ public:
                                      write_token_pair_t *token_pair,
                                      signal_t *interruptor) = 0;
 
-    void get_metainfo_internal(transaction_t* txn, buf_lock_t* sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
+#if SLICE_ALT
+    void get_metainfo_internal(alt::alt_buf_lock_t *sb_buf,
+                               region_map_t<protocol_t, binary_blob_t> *out)
+        const THROWS_NOTHING;
+#else
+    void get_metainfo_internal(transaction_t* txn, buf_lock_t *sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
+#endif
+
+#if SLICE_ALT
+    void acquire_superblock_for_read(
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            scoped_ptr_t<alt::alt_txn_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor,
+            bool use_snapshot)
+            THROWS_ONLY(interrupted_exc_t);
+#endif
 
     void acquire_superblock_for_read(
             access_t access,
@@ -479,12 +515,33 @@ public:
             bool use_snapshot)
             THROWS_ONLY(interrupted_exc_t);
 
+#if SLICE_ALT
+    void acquire_superblock_for_backfill(
+            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+            scoped_ptr_t<alt::alt_txn_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+#endif
+
     void acquire_superblock_for_backfill(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             scoped_ptr_t<transaction_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
+
+#if SLICE_ALT
+    void acquire_superblock_for_write(
+            repli_timestamp_t timestamp,
+            int expected_change_count,
+            write_durability_t durability,
+            write_token_pair_t *token_pair,
+            scoped_ptr_t<alt::alt_txn_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+#endif
 
     void acquire_superblock_for_write(
             repli_timestamp_t timestamp,
@@ -495,6 +552,19 @@ public:
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
+
+#if SLICE_ALT
+    void acquire_superblock_for_write(
+            alt::alt_access_t superblock_access,  // RSI: redundant
+            repli_timestamp_t timestamp,
+            int expected_change_count,
+            write_durability_t durability,
+            write_token_pair_t *token_pair,
+            scoped_ptr_t<alt::alt_txn_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+#endif
 
     void acquire_superblock_for_write(
             access_t txn_access,
@@ -508,6 +578,19 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 private:
+#if SLICE_ALT
+    void acquire_superblock_for_write(
+            alt::alt_access_t superblock_access,  // RSI: redundant
+            repli_timestamp_t timestamp,
+            int expected_change_count,
+            write_durability_t durability,
+            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
+            scoped_ptr_t<alt::alt_txn_t> *txn_out,
+            scoped_ptr_t<real_superblock_t> *sb_out,
+            signal_t *interruptor)
+            THROWS_ONLY(interrupted_exc_t);
+#endif
+
     void acquire_superblock_for_write(
             access_t txn_access,
             access_t superblock_access,
@@ -524,13 +607,17 @@ public:
     void check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
+#if !SLICE_ALT
         transaction_t *txn,
+#endif
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     metainfo_t check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
+#if !SLICE_ALT
         transaction_t *txn,
+#endif
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
@@ -551,7 +638,11 @@ public:
     perfmon_collection_t perfmon_collection;
     // Mind the constructor ordering. We must destruct the cache and btree
     // before we destruct perfmon_collection
+#if SLICE_ALT
+    scoped_ptr_t<alt::alt_cache_t> cache;
+#else
     scoped_ptr_t<cache_t> cache;
+#endif
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
     base_path_t base_path_;

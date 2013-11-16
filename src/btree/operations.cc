@@ -185,7 +185,50 @@ void superblock_metainfo_iterator_t::operator++() {
     }
 }
 
-bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out) {
+#if SLICE_ALT
+bool get_superblock_metainfo(alt_buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             std::vector<char> *value_out) {
+    std::vector<char> metainfo;
+
+    {
+        alt_buf_read_t read(superblock);
+        const btree_superblock_t *data
+            = static_cast<const btree_superblock_t *>(read.get_data_read());
+
+        // The const cast is okay because we access the data with alt_access_t::read.
+        alt::blob_t blob(superblock->cache()->get_block_size(),
+                         const_cast<char *>(data->metainfo_blob),
+                         btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+
+        alt::blob_acq_t acq;
+        buffer_group_t group;
+        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read, &group, &acq);
+
+        int64_t group_size = group.get_size();
+        metainfo.resize(group_size);
+        buffer_group_t group_cpy;
+        group_cpy.add_buffer(group_size, metainfo.data());
+
+        buffer_group_copy_data(&group_cpy, const_view(&group));
+    }
+
+    uint32_t *size;
+    char *verybeg, *info_begin, *info_end;
+    if (find_superblock_metainfo_entry(metainfo.data(),
+                                       metainfo.data() + metainfo.size(),
+                                       key, &verybeg, &size,
+                                       &info_begin, &info_end)) {
+        value_out->assign(info_begin, info_end);
+        return true;
+    } else {
+        return false;
+    }
+}
+#else
+bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             std::vector<char> *value_out) {
     const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
 
     // The const cast is okay because we access the data with rwi_read
@@ -215,7 +258,44 @@ bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         return false;
     }
 }
+#endif
 
+#if SLICE_ALT
+void get_superblock_metainfo(
+        alt_buf_lock_t *superblock,
+        std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
+    std::vector<char> metainfo;
+    {
+        alt_buf_read_t read(superblock);
+        const btree_superblock_t *data
+            = static_cast<const btree_superblock_t *>(read.get_data_read());
+
+        // The const cast is okay because we access the data with rwi_read
+        // and don't write to the blob.
+        alt::blob_t blob(superblock->cache()->get_block_size(),
+                         const_cast<char *>(data->metainfo_blob),
+                         btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+        alt::blob_acq_t acq;
+        buffer_group_t group;
+        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
+                        &group, &acq);
+
+        int64_t group_size = group.get_size();
+        metainfo.resize(group_size);
+
+        buffer_group_t group_cpy;
+        group_cpy.add_buffer(group_size, metainfo.data());
+
+        buffer_group_copy_data(&group_cpy, const_view(&group));
+    }
+
+    for (superblock_metainfo_iterator_t kv_iter(metainfo.data(), metainfo.data() + metainfo.size()); !kv_iter.is_end(); ++kv_iter) {
+        superblock_metainfo_iterator_t::key_t key = kv_iter.key();
+        superblock_metainfo_iterator_t::value_t value = kv_iter.value();
+        kv_pairs_out->push_back(std::make_pair(std::vector<char>(key.second, key.second + key.first), std::vector<char>(value.second, value.second + value.first)));
+    }
+}
+#else
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
     const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
 
@@ -242,6 +322,7 @@ void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::ve
         kv_pairs_out->push_back(std::make_pair(std::vector<char>(key.second, key.second + key.first), std::vector<char>(value.second, value.second + value.first)));
     }
 }
+#endif
 
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value) {
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
