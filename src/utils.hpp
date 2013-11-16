@@ -492,4 +492,11 @@ private:
 #define RVALUE_THIS
 #endif
 
+template <class T>
+double safe_to_double(T val) {
+    double res = static_cast<double>(val);
+    guarantee(val == static_cast<T>(res));
+    return res;
+}
+
 #endif // UTILS_HPP_

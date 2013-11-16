@@ -245,16 +245,12 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
             }
             std::map<std::string, counted_t<const datum_t> > status;
             if (it->second.blocks_remaining != 0) {
-                r_sanity_check(
-                    it->second.blocks_remaining < std::numeric_limits<double>::max());
-                r_sanity_check(
-                    it->second.blocks_total < std::numeric_limits<double>::max());
                 status["blocks_remaining"] =
                     make_counted<const datum_t>(
-                        static_cast<double>(it->second.blocks_remaining));
+                        safe_to_double(it->second.blocks_remaining));
                 status["blocks_total"] =
                     make_counted<const datum_t>(
-                        static_cast<double>(it->second.blocks_total));
+                        safe_to_double(it->second.blocks_remaining));
             }
             status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL, it->second.ready);
             std::string index_name = it->first;
