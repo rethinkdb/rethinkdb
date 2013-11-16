@@ -291,7 +291,11 @@ void set_superblock_metainfo(alt::alt_buf_lock_t *superblock,
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
 
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
+#if SLICE_ALT
+void clear_superblock_metainfo(alt::alt_buf_lock_t *superblock);
+#else
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
+#endif
 
 /* Set sb to have root id as its root block and release sb */
 void insert_root(block_id_t root_id, superblock_t* sb);

@@ -275,15 +275,38 @@ public:
         std::map<std::string, secondary_index_t> *sindexes_out)
     THROWS_NOTHING;
 
+#if SLICE_ALT
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
             block_id_t sindex_block_id,
             read_token_pair_t *token_pair,
-            transaction_t *txn_out,
+            alt::alt_buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out, // Optional, may be NULL
             signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+#endif
+
+    MUST_USE bool acquire_sindex_superblock_for_read(
+            const std::string &id,
+            block_id_t sindex_block_id,
+            read_token_pair_t *token_pair,
+            transaction_t *txn,
+            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            std::vector<char> *opaque_definition_out, // Optional, may be NULL
+            signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+
+#if SLICE_ALT
+    MUST_USE bool acquire_sindex_superblock_for_write(
+            const std::string &id,
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            alt::alt_buf_parent_t parent,
+            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
+            signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+#endif
 
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
@@ -308,6 +331,16 @@ public:
 
     typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
 
+#if SLICE_ALT
+    void acquire_all_sindex_superblocks_for_write(
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            alt::alt_buf_parent_t parent,
+            sindex_access_vector_t *sindex_sbs_out,
+            signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+#endif
+
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
@@ -316,11 +349,28 @@ public:
             signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
+#if SLICE_ALT
+    void acquire_all_sindex_superblocks_for_write(
+            alt::alt_buf_lock_t *sindex_block,
+            sindex_access_vector_t *sindex_sbs_out)
+    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+#endif
+
     void acquire_all_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
+
+#if SLICE_ALT
+    void aquire_post_constructed_sindex_superblocks_for_write(
+            block_id_t sindex_block_id,
+            write_token_pair_t *token_pair,
+            alt::alt_buf_parent_t parent,
+            sindex_access_vector_t *sindex_sbs_out,
+            signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+#endif
 
     void aquire_post_constructed_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
@@ -330,11 +380,26 @@ public:
             signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
+#if SLICE_ALT
+    void aquire_post_constructed_sindex_superblocks_for_write(
+            alt::alt_buf_lock_t *sindex_block,
+            sindex_access_vector_t *sindex_sbs_out)
+    THROWS_NOTHING;
+#endif
+
     void aquire_post_constructed_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING;
+
+#if SLICE_ALT
+    bool acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
+            alt::alt_buf_lock_t *sindex_block,
+            sindex_access_vector_t *sindex_sbs_out)
+    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+#endif
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
@@ -342,6 +407,14 @@ public:
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
+
+#if SLICE_ALT
+    bool acquire_sindex_superblocks_for_write(
+            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
+            alt::alt_buf_lock_t *sindex_block,
+            sindex_access_vector_t *sindex_sbs_out)
+    THROWS_ONLY(sindex_not_post_constructed_exc_t);
+#endif
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
@@ -460,6 +533,12 @@ public:
         transaction_t *txn,
         real_superblock_t *superblock) const
         THROWS_NOTHING;
+
+#if SLICE_ALT
+    void update_metainfo(const metainfo_t &old_metainfo,
+                         const metainfo_t &new_metainfo,
+                         real_superblock_t *superbloc) const THROWS_NOTHING;
+#endif
 
     void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
 

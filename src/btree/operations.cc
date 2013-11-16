@@ -6,6 +6,10 @@
 #include <stdint.h>
 
 #include "btree/slice.hpp"
+#if SLICE_ALT
+#include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/alt_blob.hpp"
+#endif
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
@@ -357,12 +361,23 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
     }
 }
 
+#if SLICE_ALT
+void clear_superblock_metainfo(alt_buf_lock_t *superblock) {
+    alt_buf_write_t write(superblock);
+    auto data = static_cast<btree_superblock_t *>(write.get_data_write());
+    alt::blob_t blob(superblock->cache()->get_block_size(),
+                     data->metainfo_blob,
+                     btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+    blob.clear(alt_buf_parent_t(superblock));
+}
+#else
 void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
     blob_t blob(txn->get_cache()->get_block_size(),
                 data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob.clear(txn);
 }
+#endif
 
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
