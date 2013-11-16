@@ -233,11 +233,11 @@ $(TC_PROTOC_INT_EXE): $(PROTOC_DIR)
 
 $(GPERFTOOLS_SRC_DIR):
 	$P DOWNLAOD gperftools
-	$(GETURL) http://gperftools.googlecode.com/files/gperftools-2.0.tar.gz | ( \
+	$(GETURL) http://gperftools.googlecode.com/files/gperftools-2.1.tar.gz | ( \
 	  cd $(TC_SRC_DIR) && \
 	  tar -xzf - && \
 	  rm -rf gperftools && \
-	  mv gperftools-2.0 gperftools )
+	  mv gperftools-2.1 gperftools )
 
 $(LIBUNWIND_SRC_DIR):
 	$P DOWNLOAD libunwind

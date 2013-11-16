@@ -8,6 +8,7 @@
 #include "containers/scoped.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 #include "utils.hpp"
 
 typedef int32_t directory_echo_version_t;
@@ -26,7 +27,10 @@ private:
         internal(i), version(v), ack_mailbox(am) { }
     directory_echo_version_t version;
     mailbox_addr_t<void(peer_id_t, directory_echo_version_t)> ack_mailbox;
+public:
     RDB_MAKE_ME_SERIALIZABLE_3(internal, version, ack_mailbox);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_3(directory_echo_wrapper_t<internal_t>,
+        internal, version, ack_mailbox);
 };
 
 template<class internal_t>

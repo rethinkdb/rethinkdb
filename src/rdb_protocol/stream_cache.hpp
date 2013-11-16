@@ -33,18 +33,12 @@ private:
 
     struct entry_t {
         ~entry_t(); // `env_t` is incomplete
-#ifndef NDEBUG
-        static const int DEFAULT_MAX_CHUNK_SIZE = 5;
-#else
-        static const int DEFAULT_MAX_CHUNK_SIZE = 1000;
-#endif // NDEBUG
         static const time_t DEFAULT_MAX_AGE = 0; // 0 = never evict
         entry_t(time_t _last_activity, scoped_ptr_t<env_t> &&env_ptr,
                 counted_t<datum_stream_t> _stream);
         time_t last_activity;
         scoped_ptr_t<env_t> env;
         counted_t<datum_stream_t> stream;
-        int max_chunk_size; // Size of 0 = unlimited
         time_t max_age;
     private:
         DISABLE_COPYING(entry_t);

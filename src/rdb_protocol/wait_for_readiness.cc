@@ -9,10 +9,9 @@
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/signal.hpp"
 #include "containers/uuid.hpp"
+#include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
-
-
 
 void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                                   uuid_u namespace_id,
@@ -29,7 +28,13 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
 
     const int poll_ms = 10;
     rdb_protocol_t::rget_read_t empty_rget_read(
-        hash_region_t<key_range_t>::universe());
+        hash_region_t<key_range_t>::universe(),
+        std::map<std::string, ql::wire_func_t>(),
+        ql::batchspec_t::user(ql::batch_type_t::NORMAL, counted_t<const ql::datum_t>()),
+        rdb_protocol_details::transform_t(),
+        boost::optional<rdb_protocol_details::terminal_t>(),
+        boost::optional<rdb_protocol_t::sindex_rangespec_t>(),
+        sorting_t::UNORDERED);
     rdb_protocol_t::read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);
     for (;;) {
         signal_timer_t start_poll;
@@ -38,20 +43,26 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
         try {
             // Make sure the namespace still exists in the metadata, if not, abort
             {
-                // TODO: use a cross thread watchable instead?  not exactly pressed for time here...
+                // TODO: use a cross thread watchable instead?  not exactly
+                // pressed for time here...
                 on_thread_t rethread(semilattice_metadata->home_thread());
                 cluster_semilattice_metadata_t metadata = semilattice_metadata->get();
-                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&metadata.rdb_namespaces);
-                std::map<namespace_id_t, deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> > >::iterator
+                cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t
+                    change(&metadata.rdb_namespaces);
+                std::map<namespace_id_t,
+                         deletable_t<namespace_semilattice_metadata_t<rdb_protocol_t> >
+                         >::iterator
                     nsi = change.get()->namespaces.find(namespace_id);
                 rassert(nsi != change.get()->namespaces.end());
                 if (nsi->second.is_deleted()) throw interrupted_exc_t();
             }
 
-            base_namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_id, interruptor);
+            base_namespace_repo_t<rdb_protocol_t>::access_t ns_access(
+                ns_repo, namespace_id, interruptor);
             rdb_protocol_t::read_response_t read_res;
             // TODO: We should not use order_token_t::ignore.
-            ns_access.get_namespace_if()->read(empty_read, &read_res, order_token_t::ignore, interruptor);
+            ns_access.get_namespace_if()->read(
+                empty_read, &read_res, order_token_t::ignore, interruptor);
             break;
         } catch (const cannot_perform_query_exc_t &e) { } // continue loop
     }

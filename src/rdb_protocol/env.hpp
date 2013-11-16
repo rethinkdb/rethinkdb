@@ -13,7 +13,7 @@
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/stream.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/val.hpp"
 
 class extproc_pool_t;
@@ -34,47 +34,11 @@ public:
     // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(const std::string &key, const Term &val);
     void init_optargs(const std::map<std::string, wire_func_t> &_optargs);
-    counted_t<val_t> get_optarg(env_t *env, const std::string &key); // returns NULL if no entry
+    // returns NULL if no entry
+    counted_t<val_t> get_optarg(env_t *env, const std::string &key);
     const std::map<std::string, wire_func_t> &get_all_optargs();
 private:
     std::map<std::string, wire_func_t> optargs;
-};
-
-/* This wraps a namespace_interface_t and makes it automatically handle getting
- * profiling information from them. It acheives this by doing the following in its methods:
- * 
- * - Set the explain field in the read_t/write_t object so that the shards know whether or not to do profiling
- * - Construct a splitter_t
- * - Call the corresponding method on internal_
- * - splitter_t::give_splits with the event logs from the shards
- */
-class rdb_namespace_interface_t {
-public:
-    rdb_namespace_interface_t(
-            namespace_interface_t<rdb_protocol_t> *internal, env_t *env);
-
-    void read(rdb_protocol_t::read_t *, rdb_protocol_t::read_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void read_outdated(rdb_protocol_t::read_t *, rdb_protocol_t::read_response_t *response, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-    void write(rdb_protocol_t::write_t *, rdb_protocol_t::write_response_t *response, order_token_t tok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t);
-
-    /* These calls are for the sole purpose of optimizing queries; don't rely
-    on them for correctness. They should not block. */
-    std::set<rdb_protocol_t::region_t> get_sharding_scheme() THROWS_ONLY(cannot_perform_query_exc_t);
-    signal_t *get_initial_ready_signal();
-    /* Check if the internal value is null. */
-    bool has();
-private:
-    namespace_interface_t<rdb_protocol_t> *internal_;
-    env_t *env_;
-};
-
-class rdb_namespace_access_t {
-public:
-    rdb_namespace_access_t(uuid_u id, env_t *env);
-    rdb_namespace_interface_t get_namespace_if();
-private:
-    base_namespace_repo_t<rdb_protocol_t>::access_t internal_;
-    env_t *env_;
 };
 
 class cluster_access_t {
@@ -177,7 +141,6 @@ public:
     // The global optargs values passed to .run(...) in the Python, Ruby, and JS
     // drivers.
     global_optargs_t global_optargs;
-
 
     // A pool used for running external JS jobs.  Inexplicably this isn't inside of
     // js_runner_t.

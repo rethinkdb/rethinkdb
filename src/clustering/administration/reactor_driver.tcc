@@ -281,10 +281,12 @@ public:
 
 private:
     typedef change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory_result_type;
-    void extract_reactor_directory(
+    bool extract_reactor_directory(
             const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss,
             change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > *current_out) {
         guarantee(current_out != NULL);
+
+        bool anything_changed = false;
         const bool do_init = current_out->get_current_version() == 0;
         std::set<peer_id_t> keys_to_update;
         current_out->begin_version();
@@ -292,6 +294,7 @@ private:
             for (auto it = nss.get_inner().begin(); it != nss.get_inner().end(); ++it) {
                 keys_to_update.insert(it->first);
             }
+            anything_changed = true;
         } else {
             keys_to_update = nss.get_changed_keys();
         }
@@ -300,15 +303,35 @@ private:
             auto jt = nss.get_inner().find(*it);
             if (jt == nss.get_inner().end()) {
                 current_out->delete_value(*it);
+                anything_changed = true;
             } else {
+                auto existing_it = current_out->get_inner().find(*it);
+                boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >
+                    old_value;
+                bool has_old_value = false;
+                if (existing_it == current_out->get_inner().end()) {
+                    anything_changed = true;
+                } else if (!anything_changed) {
+                    old_value = std::move(existing_it->second);
+                    has_old_value = true;
+                }
+
                 auto kt = jt->second.reactor_bcards.find(namespace_id_);
                 if (kt == jt->second.reactor_bcards.end()) {
                     current_out->set_value(*it, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >());
                 } else {
                     current_out->set_value(*it, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(kt->second));
                 }
+
+                if (has_old_value) {
+                    if (old_value != current_out->get_inner().find(*it)->second) {
+                        anything_changed = true;
+                    }
+                }
             }
         }
+
+        return anything_changed;
     }
 
     void on_change_reactor_directory() {
@@ -464,6 +487,7 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
 template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
+    std::map<peer_id_t, machine_id_t> machine_id_translation_table_value = machine_id_translation_table->get().get_inner();
 
     for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator
              it =  namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
@@ -484,21 +508,17 @@ void reactor_driver_t<protocol_t>::on_change() {
                     reactor_map_t::auto_type(reactor_data.release(reactor_data.find(it->first))),
                 it->first));
         } else if (!it->second.is_deleted()) {
-            persistable_blueprint_t<protocol_t> pbp;
+            const persistable_blueprint_t<protocol_t> *pbp = NULL;
 
             try {
-                pbp = it->second.get_ref().blueprint.get();
+                pbp = &it->second.get_ref().blueprint.get_ref();
             } catch (const in_conflict_exc_t &) {
                 //Nothing to do for this namespaces, its blueprint is in
                 //conflict.
                 continue;
             }
 
-            blueprint_t<protocol_t> bp;
-            auto op = [&](const change_tracking_map_t<peer_id_t, machine_id_t> *map) -> void {
-                bp = translate_blueprint(pbp, map->get_inner());
-            };
-            machine_id_translation_table->apply_read(op);
+            blueprint_t<protocol_t> bp = translate_blueprint(*pbp, machine_id_translation_table_value);
 
             if (std_contains(bp.peers_roles, mbox_manager->get_connectivity_service()->get_me())) {
                 /* Either construct a new reactor (if this is a namespace we
@@ -529,7 +549,26 @@ void reactor_driver_t<protocol_t>::on_change() {
                     namespace_id_t tmp = it->first;
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
-                    reactor_data.find(it->first)->second->watchable.set_value(bp);
+                    /* C++11: auto op = [&] (blueprint_t<protocol_t> *bp_out) -> bool { ... }
+                    Because we cannot use C++11 lambdas yet due to missing support in
+                    GCC 4.4, this is the messy work-around: */
+                    struct op_closure_t {
+                        bool operator()(blueprint_t<protocol_t> *bp_out) {
+                            guarantee(bp_out != NULL);
+                            const bool blueprint_changed = *bp_out == bp;
+                            if (blueprint_changed) {
+                                *bp_out = bp;
+                            }
+                            return blueprint_changed;
+                        }
+                        op_closure_t(blueprint_t<protocol_t> &c1) :
+                            bp(c1) {
+                        }
+                        blueprint_t<protocol_t> &bp;
+                    };
+                    op_closure_t op(bp);
+
+                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
                 }
             } else {
                 /* The blueprint does not mentions us so we destroy the

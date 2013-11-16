@@ -110,6 +110,9 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
 
                     testName = testPair[2];
                     runopts = testPair[3];
+                    if (!runopts) {
+                        runopts = {batch_conf: {max_els: 3}}
+                    }
 
                     try {
                         var exp_val = testPair[1];

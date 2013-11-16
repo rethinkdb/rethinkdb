@@ -9,8 +9,9 @@
 #include "concurrency/cross_thread_watchable.hpp"
 
 template<class key_t, class value_t>
-void collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optional<value_t> > &map, change_tracking_map_t<key_t, value_t> *current_out) {
+bool collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optional<value_t> > &map, change_tracking_map_t<key_t, value_t> *current_out) {
     guarantee(current_out != NULL);
+    bool anything_changed = false;
     const bool do_init = current_out->get_current_version() == 0;
     std::set<key_t> keys_to_update;
     current_out->begin_version();
@@ -18,6 +19,7 @@ void collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optiona
         for (auto it = map.get_inner().begin(); it != map.get_inner().end(); ++it) {
             keys_to_update.insert(it->first);
         }
+        anything_changed = true;
     } else {
         keys_to_update = map.get_changed_keys();
     }
@@ -25,10 +27,13 @@ void collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optiona
         auto jt = map.get_inner().find(*it);
         if (jt != map.get_inner().end() && jt->second) {
             current_out->set_value(*it, jt->second.get());
+            anything_changed = true; // TODO! Do this properly
         } else {
             current_out->delete_value(*it);
+            anything_changed = true;
         }
     }
+    return anything_changed;
 }
 
 template<class protocol_t>

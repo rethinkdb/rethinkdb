@@ -303,10 +303,11 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
     svs->new_read_token(&read_token);
     region_map_t<protocol_t, binary_blob_t> metainfo_blob;
     svs->do_get_metainfo(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
-    region_map_t<protocol_t, version_range_t> metainfo = to_version_range_map(metainfo_blob);
-    region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
 
     on_thread_t th2(this->home_thread());
+
+    region_map_t<protocol_t, version_range_t> metainfo = to_version_range_map(metainfo_blob);
+    region_map_t<protocol_t, backfill_candidate_t> best_backfillers = region_map_transform<protocol_t, version_range_t, backfill_candidate_t>(metainfo, &reactor_t<protocol_t>::make_backfill_candidate_from_version_range);
 
     /* This waits until every other peer is ready to accept us as the
      * primary and there is a unique coherent latest verstion of the

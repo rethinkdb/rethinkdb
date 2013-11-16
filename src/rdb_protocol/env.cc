@@ -66,17 +66,20 @@ bool global_optargs_t::add_optarg(const std::string &key, const Term &val) {
     propagate_backtrace(arg.get(), &val.GetExtension(ql2::extension::backtrace));
 
     compile_env_t empty_compile_env((var_visibility_t()));
-    counted_t<func_term_t> func_term = make_counted<func_term_t>(&empty_compile_env, arg);
+    counted_t<func_term_t> func_term
+        = make_counted<func_term_t>(&empty_compile_env, arg);
     counted_t<func_t> func = func_term->eval_to_func(var_scope_t());
 
     optargs[key] = wire_func_t(func);
     return false;
 }
 
-void global_optargs_t::init_optargs(const std::map<std::string, wire_func_t> &_optargs) {
+void global_optargs_t::init_optargs(
+    const std::map<std::string, wire_func_t> &_optargs) {
     r_sanity_check(optargs.size() == 0);
     optargs = _optargs;
 }
+
 counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key){
     if (!optargs.count(key)) {
         return counted_t<val_t>();
@@ -85,82 +88,6 @@ counted_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &key
 }
 const std::map<std::string, wire_func_t> &global_optargs_t::get_all_optargs() {
     return optargs;
-}
-
-/* rdb_namespace_interface_t methods */
-
-rdb_namespace_interface_t::rdb_namespace_interface_t(
-        namespace_interface_t<rdb_protocol_t> *internal, env_t *env)
-    : internal_(internal), env_(env) { }
-
-void rdb_namespace_interface_t::read(
-        rdb_protocol_t::read_t *read,
-        rdb_protocol_t::read_response_t *response,
-        order_token_t tok,
-        signal_t *interruptor) 
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform read.", env_->trace);
-    profile::splitter_t splitter(env_->trace);
-    /* propagate whether or not we're doing profiles */
-    read->profile = env_->profile();
-    /* Do the actual read. */
-    internal_->read(*read, response, tok, interruptor);
-    /* Append the results of the parallel tasks to the current trace */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
- 
-
-void rdb_namespace_interface_t::read_outdated(
-        rdb_protocol_t::read_t *read,
-        rdb_protocol_t::read_response_t *response,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform outdated read.", env_->trace);
-    profile::splitter_t splitter(env_->trace);
-    /* propagate whether or not we're doing profiles */
-    read->profile = env_->profile();
-    /* Do the actual read. */
-    internal_->read_outdated(*read, response, interruptor);
-    /* Append the results of the profile to the current task */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
-
-void rdb_namespace_interface_t::write(
-        rdb_protocol_t::write_t *write,
-        rdb_protocol_t::write_response_t *response,
-        order_token_t tok,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-    profile::starter_t starter("Perform write", env_->trace);
-    profile::splitter_t splitter(env_->trace);
-    /* propagate whether or not we're doing profiles */
-    write->profile = env_->profile();
-    /* Do the actual read. */
-    internal_->write(*write, response, tok, interruptor);
-    /* Append the results of the profile to the current task */
-    splitter.give_splits(response->n_shards, response->event_log);
-}
-
-std::set<rdb_protocol_t::region_t> rdb_namespace_interface_t::get_sharding_scheme()
-    THROWS_ONLY(cannot_perform_query_exc_t) {
-    return internal_->get_sharding_scheme();
-}
-
-signal_t *rdb_namespace_interface_t::get_initial_ready_signal() {
-    return internal_->get_initial_ready_signal();
-}
-
-bool rdb_namespace_interface_t::has() {
-    return internal_;
-}
-
-rdb_namespace_access_t::rdb_namespace_access_t(uuid_u id, env_t *env)
-    : internal_(env->cluster_access.ns_repo, id, env->interruptor),
-      env_(env)
-{ }
-
-rdb_namespace_interface_t rdb_namespace_access_t::get_namespace_if() {
-    return rdb_namespace_interface_t(internal_.get_namespace_if(), env_);
 }
 
 void env_t::set_eval_callback(eval_callback_t *callback) {
@@ -305,7 +232,8 @@ env_t::env_t(signal_t *_interruptor)
     cluster_access(NULL,
                    clone_ptr_t<watchable_t<cow_ptr_t<ns_metadata_t> > >(),
                    clone_ptr_t<watchable_t<databases_semilattice_metadata_t> >(),
-                   boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
+                   boost::shared_ptr<
+                       semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >(),
                    NULL,
                    uuid_u()),
     interruptor(_interruptor),

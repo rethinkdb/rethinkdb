@@ -142,6 +142,9 @@ if __name__ == "__main__":
     print "    friend class mailbox_t<T>;"
     print
     print "    RDB_MAKE_ME_SERIALIZABLE_1(addr);"
+    print "    bool operator==(const mailbox_addr_t<T> &other) const {"
+    print "        return addr == other.addr;"
+    print "    }"
     print
     print "private:"
     print "    friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);"

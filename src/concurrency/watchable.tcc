@@ -14,8 +14,7 @@ template <class result_type, class outer_type, class callable_type>
 class subview_watchable_t : public watchable_t<result_type> {
 public:
     subview_watchable_t(const callable_type &l, watchable_t<outer_type> *p) :
-        cache(new lensed_value_cache_t(l, p)) {
-    }
+        cache(new lensed_value_cache_t(l, p)) { }
 
     subview_watchable_t *clone() const {
         return new subview_watchable_t(cache);
@@ -25,18 +24,13 @@ public:
         return *cache->get();
     }
 
-    void apply_atomic_op(const std::function<bool(result_type*)> &op) {
-        ASSERT_NO_CORO_WAITING;
-        guarantee(op(cache->get()) == false);
-    }
-
     virtual void apply_read(const std::function<void(const result_type*)> &read) {
         ASSERT_NO_CORO_WAITING;
         read(cache->get());
     }
 
     publisher_t<boost::function<void()> > *get_publisher() {
-        return cache->parent->get_publisher();
+        return cache->get_publisher();
     }
 
     rwi_lock_assertion_t *get_rwi_lock_assertion() {
@@ -45,71 +39,78 @@ public:
 
 private:
     // TODO (daniel): Document how incremental lenses work.
-    class lensed_value_cache_t {
+    class lensed_value_cache_t : public home_thread_mixin_t {
     public:
         lensed_value_cache_t(const callable_type &l, watchable_t<outer_type> *p) :
             parent(p->clone()),
             lens(l),
             parent_subscription(boost::bind(
                 &subview_watchable_t<result_type, outer_type, callable_type>::lensed_value_cache_t::on_parent_changed,
-                this)) {
+                this), parent->get_publisher()) {
 
-            typename watchable_t<outer_type>::freeze_t freeze(parent);
-            on_parent_changed();   // Call here, so we get the current value
-                                   // while having the parent freezed.
-            parent_subscription.reset(parent, &freeze);
+            compute_value();
         }
 
         ~lensed_value_cache_t() {
-            {
-                on_thread_t t(parent->home_thread());
-                parent_subscription.reset();
-            }
+            assert_thread();
         }
 
-        result_type *get() {
+        const result_type *get() {
+            assert_thread();
             return &cached_value;
+        }
+
+        publisher_t<boost::function<void()> > *get_publisher() {
+            assert_thread();
+            return publisher_controller.get_publisher();
         }
 
         clone_ptr_t<watchable_t<outer_type> > parent;
 
     private:
-        void compute_value() {
+        bool compute_value() {
             // The closure is to avoid copying the whole value from the parent.
 
+            bool value_changed = false;
             /* C++11: auto op = [&] (const outer_type *val) -> void { ... }
             Because we cannot use C++11 lambdas yet due to missing support in
             GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
                 void operator()(const outer_type *val) {
-                    lens(*val, &cached_value);
+                    value_changed = lens(*val, &cached_value);
                 }
-                op_closure_t(callable_type &c1, result_type &c2) :
+                op_closure_t(callable_type &c1, bool &c2, result_type &c3) :
                     lens(c1),
-                    cached_value(c2) {
+                    value_changed(c2),
+                    cached_value(c3) {
                 }
                 callable_type &lens;
+                bool &value_changed;
                 result_type &cached_value;
             };
-            op_closure_t op(lens, cached_value);
+            op_closure_t op(lens, value_changed, cached_value);
 
             parent->apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+
+            return value_changed;
         }
 
         void on_parent_changed() {
-            // Eagerly update the value, so we don't miss any updates.
-            // This is necessary because incremental lenses are stateful.
-            compute_value();
+            assert_thread();
+            const bool value_changed = compute_value();
+            if (value_changed) {
+                publisher_controller.publish(&call_function);
+            }
         }
 
         callable_type lens;
         result_type cached_value;
-        typename watchable_t<outer_type>::subscription_t parent_subscription;
+        publisher_controller_t<boost::function<void()> > publisher_controller;
+        publisher_t<boost::function<void()> >::subscription_t parent_subscription;
     };
 
     subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
-        cache(_cache) {
-    }
+        cache(_cache) { }
 
     boost::shared_ptr<lensed_value_cache_t> cache;
 };
@@ -132,9 +133,12 @@ public:
         inner(_inner) {
     }
 
-    void operator()(const outer_type &input, result_type *current_out) {
+    bool operator()(const outer_type &input, result_type *current_out) {
         guarantee(current_out != NULL);
+        // TODO (daniel): Check in which cases this is really helpful
+        result_type old_value = *current_out;
         *current_out = inner(input);
+        return old_value != *current_out;
     }
 private:
     callable_type inner;
