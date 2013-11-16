@@ -123,7 +123,7 @@ reql_t reql_t::do_(pb::dummy_var_t arg, reql_t &&body) RVALUE_THIS {
 void reql_t::set_datum(const datum_t &d) {
     term = make_scoped<Term>();
     term->set_type(Term::DATUM);
-    d.write_to_protobuf(term->mutable_datum());
+    d.write_to_protobuf(term->mutable_datum(), use_json_t::NO);
 }
 
 reql_t db(const std::string &name) {

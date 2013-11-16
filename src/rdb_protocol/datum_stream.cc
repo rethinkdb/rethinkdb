@@ -865,17 +865,18 @@ concatmap_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchsp
 }
 
 // SLICE_DATUM_STREAM_T
-slice_datum_stream_t::slice_datum_stream_t(size_t _left, size_t _right,
+slice_datum_stream_t::slice_datum_stream_t(uint64_t _left, uint64_t _right,
                                            counted_t<datum_stream_t> _src)
     : wrapper_datum_stream_t(_src), index(0),
       left(_left), right(_right) { }
 
 std::vector<counted_t<const datum_t> >
-slice_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
+slice_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &_batchspec) {
     if (left >= right || index >= right) {
         return std::vector<counted_t<const datum_t> >();
     }
 
+    const batchspec_t batchspec = _batchspec.with_at_most(right - index);
     while (index < left) {
         std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
         if (v.size() == 0) {
@@ -897,7 +898,7 @@ slice_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
     while (index < right) {
         std::vector<counted_t<const datum_t> > v = source->next_batch(env, batchspec);
         if (v.size() == 0) {
-            return v;
+            break;
         }
         index += v.size();
         if (index > right) {
@@ -907,6 +908,10 @@ slice_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
     }
 
     return std::vector<counted_t<const datum_t> >();
+}
+
+bool slice_datum_stream_t::is_exhausted() const {
+    return left >= right || index >= right || source->is_exhausted();
 }
 
 // ZIP_DATUM_STREAM_T

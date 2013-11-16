@@ -6,6 +6,14 @@ require 'timeout'
 # $f = File.open("fuzz_seed.rb", "w")
 
 module RethinkDB
+  def self.new_query(type, token)
+    q = Query.new
+    q.type = type
+    q.accepts_r_json = true
+    q.token = token
+    return q
+  end
+
   module Faux_Abort
     class Abort
     end
@@ -70,9 +78,7 @@ module RethinkDB
       while true
         @results.each(&block)
         return self if !@more
-        q = Query.new
-        q.type = Query::QueryType::CONTINUE
-        q.token = @token
+        q = RethinkDB::new_query(Query::QueryType::CONTINUE, @token)
         res = @conn.run_internal q
         @results = Shim.response_to_native(res, @msg, @opts)
         if res.type == Response::ResponseType::SUCCESS_SEQUENCE
@@ -117,10 +123,8 @@ module RethinkDB
     def run(msg, opts)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = Query.new
-      q.type = Query::QueryType::START
+      q = RethinkDB::new_query(Query::QueryType::START, @@token_cnt += 1)
       q.query = msg
-      q.token = @@token_cnt += 1
 
       all_opts = @default_opts.merge(opts)
       if all_opts.keys.include?(:noreply)
@@ -213,7 +217,7 @@ module RethinkDB
           (opts.keys - [:noreply_wait]).to_s
       end
       opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
-      
+
       self.noreply_wait() if opts[:noreply_wait]
       @socket.close if @socket
       @socket = TCPSocket.open(@host, @port)
@@ -232,7 +236,7 @@ module RethinkDB
           (opts.keys - [:noreply_wait]).to_s
       end
       opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
-      
+
       self.noreply_wait() if opts[:noreply_wait]
       @listener.terminate if @listener
       @listener = nil
@@ -242,9 +246,7 @@ module RethinkDB
 
     def noreply_wait
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = Query.new
-      q.type = Query::QueryType::NOREPLY_WAIT
-      q.token = @@token_cnt += 1
+      q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, @@token_cnt += 1)
       res = run_internal(q)
       if res.type != Response::ResponseType::WAIT_COMPLETE
         raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")

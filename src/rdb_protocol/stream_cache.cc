@@ -10,11 +10,12 @@ bool stream_cache2_t::contains(int64_t key) {
 }
 
 void stream_cache2_t::insert(int64_t key,
+                             use_json_t use_json,
                              scoped_ptr_t<env_t> &&val_env,
                              counted_t<datum_stream_t> val_stream) {
     maybe_evict();
-    std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res =
-        streams.insert(key, new entry_t(time(0), std::move(val_env), val_stream));
+    std::pair<boost::ptr_map<int64_t, entry_t>::iterator, bool> res = streams.insert(
+        key, new entry_t(time(0), use_json, std::move(val_env), val_stream));
     guarantee(res.second);
 }
 
@@ -39,16 +40,17 @@ bool stream_cache2_t::serve(int64_t key, Response *res, signal_t *interruptor) {
                 entry->env.get(),
                 batchspec_t::user(batch_type_t::NORMAL, entry->env.get()));
         for (auto d = ds.begin(); d != ds.end(); ++d) {
-            (*d)->write_to_protobuf(res->add_response());
+            (*d)->write_to_protobuf(res->add_response(), entry->use_json);
         }
         if (entry->env->trace.has()) {
-            entry->env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
+            entry->env->trace->as_datum()->write_to_protobuf(
+                res->mutable_profile(), entry->use_json);
         }
     } catch (const std::exception &e) {
         erase(key);
         throw;
     }
-    if (entry->stream->is_exhausted()) {
+    if (entry->stream->is_exhausted() || res->response_size() == 0) {
         erase(key);
         res->set_type(Response::SUCCESS_SEQUENCE);
     } else {
@@ -62,10 +64,15 @@ void stream_cache2_t::maybe_evict() {
     // We never evict right now.
 }
 
-stream_cache2_t::entry_t::entry_t(time_t _last_activity, scoped_ptr_t<env_t> &&env_ptr,
+stream_cache2_t::entry_t::entry_t(time_t _last_activity,
+                                  use_json_t _use_json,
+                                  scoped_ptr_t<env_t> &&env_ptr,
                                   counted_t<datum_stream_t> _stream)
-    : last_activity(_last_activity), env(std::move(env_ptr)),
-      stream(_stream), max_age(DEFAULT_MAX_AGE) { }
+    : last_activity(_last_activity),
+      use_json(_use_json),
+      env(std::move(env_ptr)),
+      stream(_stream),
+      max_age(DEFAULT_MAX_AGE) { }
 
 stream_cache2_t::entry_t::~entry_t() { }
 

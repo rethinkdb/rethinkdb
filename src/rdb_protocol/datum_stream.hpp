@@ -424,10 +424,11 @@ private:
 
 class slice_datum_stream_t : public wrapper_datum_stream_t {
 public:
-    slice_datum_stream_t(size_t left, size_t right, counted_t<datum_stream_t> src);
+    slice_datum_stream_t(uint64_t left, uint64_t right, counted_t<datum_stream_t> src);
 private:
     virtual std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
+    virtual bool is_exhausted() const;
     uint64_t index, left, right;
 };
 

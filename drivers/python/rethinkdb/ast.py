@@ -559,7 +559,9 @@ class Datum(RqlQuery):
     @staticmethod
     def deconstruct(datum, time_format='native'):
         d_type = datum.type
-        if d_type == p.Datum.R_OBJECT:
+        if d_type == p.Datum.R_JSON:
+            return py_json.loads(datum.r_str)
+        elif d_type == p.Datum.R_OBJECT:
             obj = { }
             for pair in datum.r_object:
                 obj[pair.key] = Datum.deconstruct(pair.val, time_format)
