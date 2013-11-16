@@ -117,7 +117,8 @@ public:
     virtual const char *name() const { return "sindex_status"; }
 };
 
-ticks_t poll_ticks = 10000;
+/* We wait 10 seconds between polls to the indexes. */
+int64_t poll_ms = 10000;
 
 bool all_ready(counted_t<const datum_t> statuses) {
     for (size_t i = 0; i < statuses->size(); ++i) {
@@ -145,7 +146,7 @@ public:
             if (all_ready(statuses)) {
                 return new_val(statuses);
             } else {
-                nap(poll_ticks, env->env->interruptor);
+                nap(poll_ms, env->env->interruptor);
             }
         }
     }
