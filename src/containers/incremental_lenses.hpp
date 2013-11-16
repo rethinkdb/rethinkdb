@@ -118,7 +118,7 @@ public:
                     current_out->set_value(*it, inner_lens(input_value_it->second));
 
                     if (has_old_value) {
-                        if (old_value != current_out->get_inner().find(*it)->second) {
+                        if (!(old_value == current_out->get_inner().find(*it)->second)) {
                             anything_changed = true;
                         }
                     }
