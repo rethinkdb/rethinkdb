@@ -21,7 +21,9 @@ module RethinkDB
         else
           obj
         end
-      else raise RqlRuntimeError, "Unimplemented."
+      when dt::R_JSON then
+        JSON.parse("[" + d.r_str + "]")[0]
+      else raise RqlRuntimeError, "#{dt} Unimplemented."
       end
     end
 

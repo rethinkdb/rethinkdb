@@ -14,7 +14,9 @@ public:
         scoped_cJSON_t cjson(cJSON_Parse(data.c_str()));
         rcheck(cjson.get() != NULL, base_exc_t::GENERIC,
                strprintf("Failed to parse \"%s\" as JSON.",
-                 (data.size() > 40 ? (data.substr(0, 37) + "...").c_str() : data.c_str())));
+                 (data.size() > 40
+                  ? (data.substr(0, 37) + "...").c_str()
+                  : data.c_str())));
         return new_val(make_counted<const datum_t>(cjson.get()));
     }
 

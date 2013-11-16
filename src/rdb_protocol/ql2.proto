@@ -68,6 +68,11 @@ message Query {
     // either true or false).
     optional bool OBSOLETE_noreply = 4 [default = false];
 
+    // If this is set to [true], then [Datum] values will sometimes be
+    // of [DatumType] [R_JSON] (see below).  This can provide enormous
+    // speedups in languages with poor protobuf libraries.
+    optional bool accepts_r_json = 5 [default = false];
+
     message AssocPair {
         optional string key = 1;
         optional Term val = 2;
@@ -154,6 +159,10 @@ message Datum {
         R_STR    = 4;
         R_ARRAY  = 5;
         R_OBJECT = 6;
+        // This [DatumType] will only be used if [accepts_r_json] is
+        // set to [true] in [Query].  [r_str] will be filled with a
+        // JSON encoding of the [Datum].
+        R_JSON   = 7; // uses r_str
     }
     optional DatumType type = 1;
     optional bool r_bool = 2;

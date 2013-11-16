@@ -46,6 +46,8 @@ enum throw_bool_t { NOTHROW = 0, THROW = 1};
 // CLOBBER: Overwrite existing values.
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1};
 
+enum class use_json_t { NO = 0, YES = 1 };
+
 // A `datum_t` is basically a JSON value, although we may extend it later.
 class datum_t : public slow_atomic_countable_t<datum_t> {
 public:
@@ -78,7 +80,7 @@ public:
 
     ~datum_t();
 
-    void write_to_protobuf(Datum *out) const;
+    void write_to_protobuf(Datum *out, use_json_t use_json) const;
 
     type_t get_type() const;
     bool is_ptype() const;

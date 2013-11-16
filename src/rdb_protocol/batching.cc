@@ -18,7 +18,9 @@ batchspec_t::batchspec_t(
       size_left(size),
       end_time(_batch_type == batch_type_t::NORMAL
                ? _end_time
-               : std::numeric_limits<decltype(batchspec_t().end_time)>::max()) { }
+               : std::numeric_limits<decltype(batchspec_t().end_time)>::max()) {
+    r_sanity_check(els_left >= 1);
+}
 
 batchspec_t batchspec_t::user(batch_type_t batch_type,
                               const counted_t<const datum_t> &conf) {
@@ -48,6 +50,15 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
 
 batchspec_t batchspec_t::with_new_batch_type(batch_type_t new_batch_type) const {
     return batchspec_t(new_batch_type, els_left, size_left, end_time);
+}
+
+batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
+    int64_t max_els = std::min(uint64_t(std::numeric_limits<int64_t>::max()), _max_els);
+    return batchspec_t(
+        batch_type,
+        std::max<int64_t>(1, std::min(els_left, max_els)),
+        size_left,
+        end_time);
 }
 
 batcher_t batchspec_t::to_batcher() const {
