@@ -52,13 +52,6 @@ public:
     const std::set<key_type> &get_changed_keys() const { return changed_keys; }
     unsigned int get_current_version() const { return current_version; }
 
-    // TODO (daniel): Remove this, unless we really need it.
-    static std::map<key_type, inner_type> inner_extractor(
-        const change_tracking_map_t<key_type, inner_type> &ctm) {
-
-        return ctm.get_inner();
-    }
-
 private:
     std::map<key_type, inner_type> inner;
     std::set<key_type> changed_keys;

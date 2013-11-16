@@ -135,10 +135,14 @@ public:
 
     bool operator()(const outer_type &input, result_type *current_out) {
         guarantee(current_out != NULL);
-        // TODO (daniel): Check in which cases this is really helpful
-        result_type old_value = *current_out;
+        // TODO: Remove unused variant
+        // 1. With comparison:
+        /*result_type old_value = *current_out;
         *current_out = inner(input);
-        return old_value != *current_out;
+        return old_value != *current_out;*/
+        // 2. Without comparison:
+        current_out = inner(input);
+        return true;
     }
 private:
     callable_type inner;
