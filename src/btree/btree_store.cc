@@ -142,7 +142,12 @@ void btree_store_t<protocol_t>::read(
     scoped_ptr_t<superblock_t> superblock2;
     superblock2.init(superblock.release());
 
+#if SLICE_ALT
+    protocol_read(read, response, btree.get(), superblock2.get(),
+                  token_pair, interruptor);
+#else
     protocol_read(read, response, btree.get(), txn.get(), superblock2.get(), token_pair, interruptor);
+#endif
 }
 
 template <class protocol_t>

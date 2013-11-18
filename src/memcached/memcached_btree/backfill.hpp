@@ -3,6 +3,7 @@
 #define MEMCACHED_MEMCACHED_BTREE_BACKFILL_HPP_
 
 #include "btree/keys.hpp"
+#include "btree/slice.hpp"  // RSI: for SLICE_ALT
 #include "containers/data_buffer.hpp"
 #include "repli_timestamp.hpp"
 #include "memcached/queries.hpp"
@@ -53,9 +54,15 @@ void memcached_backfill(btree_slice_t *slice,
                         const key_range_t& key_range,
                         repli_timestamp_t since_when,
                         backfill_callback_t *callback,
+#if !SLICE_ALT
                         transaction_t *txn,
+#endif
                         superblock_t *superblock,
+#if SLICE_ALT
+                        alt::alt_buf_lock_t *sindex_block,
+#else
                         buf_lock_t *sindex_block,
+#endif
                         parallel_traversal_progress_t *p,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 

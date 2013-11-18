@@ -124,6 +124,8 @@ public:
     // RSI: Remove get_block_id().
     block_id_t get_block_id() const { return block_id(); }
 
+    repli_timestamp_t get_recency() const;
+
     alt_access_t access() const {
         guarantee(txn_ != NULL);
         return current_page_acq_->access();

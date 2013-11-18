@@ -427,17 +427,35 @@ namespace {
 
 struct read_visitor_t : public boost::static_visitor<read_response_t> {
     read_response_t operator()(const get_query_t& get) {
+#if SLICE_ALT
+        return read_response_t(
+            memcached_get(get.key, btree, effective_time, superblock));
+#else
         return read_response_t(
             memcached_get(get.key, btree, effective_time, txn, superblock));
+#endif
     }
 
     read_response_t operator()(const rget_query_t& rget) {
+#if SLICE_ALT
+        return read_response_t(
+            memcached_rget_slice(btree, rget.region.inner, rget.maximum,
+                                 effective_time, superblock));
+#else
         return read_response_t(
             memcached_rget_slice(btree, rget.region.inner, rget.maximum, effective_time, txn, superblock));
+#endif
     }
 
     read_response_t operator()(const distribution_get_query_t& dget) {
+#if SLICE_ALT
+        distribution_result_t dstr
+            = memcached_distribution_get(btree, dget.max_depth,
+                                         dget.region.inner.left, effective_time,
+                                         superblock);
+#else
         distribution_result_t dstr = memcached_distribution_get(btree, dget.max_depth, dget.region.inner.left, effective_time, txn, superblock);
+#endif
         for (std::map<store_key_t, int64_t>::iterator it = dstr.key_counts.begin(); it != dstr.key_counts.end(); ) {
             if (!dget.region.inner.contains_key(store_key_t(it->first))) {
                 dstr.key_counts.erase(it++);
@@ -457,23 +475,37 @@ struct read_visitor_t : public boost::static_visitor<read_response_t> {
     }
 
     read_visitor_t(btree_slice_t *_btree,
+#if !SLICE_ALT
                    transaction_t *_txn,
+#endif
                    superblock_t *_superblock,
                    exptime_t _effective_time) :
         btree(_btree),
+#if !SLICE_ALT
         txn(_txn),
+#endif
         superblock(_superblock),
         effective_time(_effective_time) { }
 
 private:
     btree_slice_t *btree;
+#if !SLICE_ALT
     transaction_t *txn;
+#endif
     superblock_t *superblock;
     exptime_t effective_time;
 };
 
 }   /* anonymous namespace */
 
+#if SLICE_ALT
+void store_t::protocol_read(const read_t &read,
+                            read_response_t *response,
+                            btree_slice_t *btree,
+                            superblock_t *superblock,
+                            read_token_pair_t *token_pair,
+                            UNUSED signal_t *interruptor) {
+#else
 void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
@@ -481,10 +513,15 @@ void store_t::protocol_read(const read_t &read,
                             superblock_t *superblock,
                             read_token_pair_t *token_pair,
                             UNUSED signal_t *interruptor) {
+#endif
     /* Memcached doesn't have any secondary structures so right now we just
      * immediately destroy the token so that no one has to wait. */
     token_pair->sindex_read_token.reset();
+#if SLICE_ALT
+    read_visitor_t v(btree, superblock, read.effective_time);
+#else
     read_visitor_t v(btree, txn, superblock, read.effective_time);
+#endif
     *response = boost::apply_visitor(v, read.query);
 }
 

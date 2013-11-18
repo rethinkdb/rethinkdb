@@ -296,6 +296,7 @@ public:
 
     block_id_t block_id() const { return block_id_; }
     alt_access_t access() const { return access_; }
+    repli_timestamp_t recency() const;
 
     void mark_deleted();
 

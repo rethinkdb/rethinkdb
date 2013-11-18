@@ -7,6 +7,13 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/fifo_checker.hpp"
 
+#if SLICE_ALT
+using alt::alt_access_t;
+using alt::alt_buf_lock_t;
+using alt::alt_buf_parent_t;
+using alt::alt_buf_write_t;
+#endif
+
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
     erase_range_helper_t(value_sizer_t<void> *sizer, key_tester_t *tester,
@@ -18,12 +25,25 @@ public:
           right_inclusive_or_null_(right_inclusive_or_null)
     { }
 
+#if SLICE_ALT
+    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+                        const btree_key_t *l_excl,
+                        const btree_key_t *r_incl,
+                        signal_t *,
+                        int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
+#else
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *l_excl,
                         const btree_key_t *r_incl,
                         signal_t *,
                         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
-        leaf_node_t *node = reinterpret_cast<leaf_node_t *>(leaf_node_buf->get_data_write());
+#endif
+#if SLICE_ALT
+        alt_buf_write_t write(leaf_node_buf);
+        leaf_node_t *node = static_cast<leaf_node_t *>(write.get_data_write());
+#else
+        leaf_node_t *node = static_cast<leaf_node_t *>(leaf_node_buf->get_data_write());
+#endif
 
         std::vector<store_key_t> keys_to_delete;
 
@@ -47,7 +67,11 @@ public:
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
             bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
             guarantee(found);
+#if SLICE_ALT
+            deleter_->delete_value(alt_buf_parent_t(leaf_node_buf), value.get());
+#else
             deleter_->delete_value(txn, value.get());
+#endif
             leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
                                  key_modification_proof_t::real_proof());
         }
@@ -55,7 +79,11 @@ public:
         *population_change_out = -static_cast<int>(keys_to_delete.size());
     }
 
+#if SLICE_ALT
+    void postprocess_internal_node(UNUSED alt_buf_lock_t *internal_node_buf) {
+#else
     void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
+#endif
         // We don't want to do anything here.
     }
 
@@ -73,8 +101,13 @@ public:
         cb->no_more_interesting_children();
     }
 
+#if SLICE_ALT
+    alt_access_t btree_superblock_mode() { return alt_access_t::write; }
+    alt_access_t btree_node_mode() { return alt_access_t::write; }
+#else
     access_t btree_superblock_mode() { return rwi_write; }
     access_t btree_node_mode() { return rwi_write; }
+#endif
 
     ~erase_range_helper_t() { }
 
@@ -114,15 +147,27 @@ void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
                                value_deleter_t *deleter,
                                const btree_key_t *left_exclusive_or_null,
                                const btree_key_t *right_inclusive_or_null,
-                               transaction_t *txn, superblock_t *superblock,
+#if !SLICE_ALT
+                               transaction_t *txn,
+#endif
+                               superblock_t *superblock,
                                signal_t *interruptor,
                                bool release_superblock) {
-    erase_range_helper_t helper(sizer, tester, deleter, left_exclusive_or_null, right_inclusive_or_null);
+    erase_range_helper_t helper(sizer, tester, deleter,
+                                left_exclusive_or_null, right_inclusive_or_null);
+#if SLICE_ALT
+    btree_parallel_traversal(superblock, slice, &helper, interruptor,
+                             release_superblock);
+#else
     btree_parallel_traversal(txn, superblock, slice, &helper, interruptor, release_superblock);
+#endif
 }
 
 void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
-               value_deleter_t *deleter, transaction_t *txn,
+               value_deleter_t *deleter,
+#if !SLICE_ALT
+               transaction_t *txn,
+#endif
                superblock_t *superblock,
                signal_t *interruptor,
                bool release_superblock) {
@@ -131,6 +176,10 @@ void erase_all(value_sizer_t<void> *sizer, btree_slice_t *slice,
     } always_true_tester;
 
     btree_erase_range_generic(sizer, slice, &always_true_tester,
-                              deleter, NULL, NULL, txn, superblock,
+                              deleter, NULL, NULL,
+#if !SLICE_ALT
+                              txn,
+#endif
+                              superblock,
                               interruptor, release_superblock);
 }

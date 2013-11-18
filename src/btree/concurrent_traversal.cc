@@ -132,7 +132,10 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible() THROWS_ON
     ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
 }
 
-bool btree_concurrent_traversal(btree_slice_t *slice, transaction_t *transaction,
+bool btree_concurrent_traversal(btree_slice_t *slice,
+#if !SLICE_ALT
+                                transaction_t *transaction,
+#endif
                                 superblock_t *superblock, const key_range_t &range,
                                 concurrent_traversal_callback_t *cb,
                                 direction_t direction) {
@@ -140,8 +143,13 @@ bool btree_concurrent_traversal(btree_slice_t *slice, transaction_t *transaction
     bool failure_seen;
     {
         concurrent_traversal_adapter_t adapter(cb, &failure_cond);
+#if SLICE_ALT
+        failure_seen = !btree_depth_first_traversal(slice, superblock,
+                                                    range, &adapter, direction);
+#else
         failure_seen = !btree_depth_first_traversal(slice, transaction, superblock,
                                                     range, &adapter, direction);
+#endif
     }
     // Now that adapter is destroyed, the operations that might have failed have all
     // drained.  (If we fail, we try to report it to btree_depth_first_traversal (to

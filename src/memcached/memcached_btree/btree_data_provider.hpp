@@ -15,7 +15,8 @@ namespace alt { class alt_buf_parent_t; }
 #if SLICE_ALT
 counted_t<data_buffer_t> value_to_data_buffer(const memcached_value_t *value,
                                               alt::alt_buf_parent_t parent);
-#endif
+#else
 counted_t<data_buffer_t> value_to_data_buffer(const memcached_value_t *value, transaction_t *transaction);
+#endif
 
 #endif // MEMCACHED_MEMCACHED_BTREE_BTREE_DATA_PROVIDER_HPP_

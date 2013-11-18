@@ -183,6 +183,14 @@ public:
         virtual ~store_t();
 
     private:
+#if SLICE_ALT
+        void protocol_read(const read_t &read,
+                           read_response_t *response,
+                           btree_slice_t *btree,
+                           superblock_t *superblock,
+                           read_token_pair_t *token,
+                           signal_t *interruptor);
+#else
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
@@ -190,7 +198,17 @@ public:
                            superblock_t *superblock,
                            read_token_pair_t *token,
                            signal_t *interruptor);
+#endif
 
+#if SLICE_ALT
+        void protocol_write(const write_t &write,
+                            write_response_t *response,
+                            transition_timestamp_t timestamp,
+                            btree_slice_t *btree,
+                            scoped_ptr_t<superblock_t> *superblock,
+                            write_token_pair_t *token,
+                            signal_t *interruptor);
+#else
         void protocol_write(const write_t &write,
                             write_response_t *response,
                             transition_timestamp_t timestamp,
@@ -199,7 +217,7 @@ public:
                             scoped_ptr_t<superblock_t> *superblock,
                             write_token_pair_t *token,
                             signal_t *interruptor);
-
+#endif
         void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,

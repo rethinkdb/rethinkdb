@@ -154,6 +154,11 @@ void alt_buf_lock_t::snapshot_subtree() {
     // RSI: Actually implement this.
 }
 
+repli_timestamp_t alt_buf_lock_t::get_recency() const {
+    guarantee(!empty());
+    return current_page_acq_->recency();
+}
+
 alt_buf_read_t::alt_buf_read_t(alt_buf_lock_t *lock)
     : lock_(lock) {
     guarantee(!lock_->empty());

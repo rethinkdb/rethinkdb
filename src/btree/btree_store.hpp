@@ -447,6 +447,14 @@ public:
         return &(secondary_index_slices.at(id));
     }
 
+#if SLICE_ALT
+    virtual void protocol_read(const typename protocol_t::read_t &read,
+                               typename protocol_t::read_response_t *response,
+                               btree_slice_t *btree,
+                               superblock_t *superblock,
+                               read_token_pair_t *token_pair,
+                               signal_t *interruptor) = 0;
+#else
     virtual void protocol_read(const typename protocol_t::read_t &read,
                                typename protocol_t::read_response_t *response,
                                btree_slice_t *btree,
@@ -454,7 +462,17 @@ public:
                                superblock_t *superblock,
                                read_token_pair_t *token_pair,
                                signal_t *interruptor) = 0;
+#endif
 
+#if SLICE_ALT
+    virtual void protocol_write(const typename protocol_t::write_t &write,
+                                typename protocol_t::write_response_t *response,
+                                transition_timestamp_t timestamp,
+                                btree_slice_t *btree,
+                                scoped_ptr_t<superblock_t> *superblock,
+                                write_token_pair_t *token_pair,
+                                signal_t *interruptor) = 0;
+#else
     virtual void protocol_write(const typename protocol_t::write_t &write,
                                 typename protocol_t::write_response_t *response,
                                 transition_timestamp_t timestamp,
@@ -463,6 +481,7 @@ public:
                                 scoped_ptr_t<superblock_t> *superblock,
                                 write_token_pair_t *token_pair,
                                 signal_t *interruptor) = 0;
+#endif
 
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,

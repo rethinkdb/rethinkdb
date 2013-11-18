@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 #define BTREE_DEPTH_FIRST_TRAVERSAL_HPP_
 
@@ -11,12 +11,22 @@ class superblock_t;
 
 namespace profile { class trace_t; }
 
+#if SLICE_ALT
+class counted_buf_lock_t : public alt::alt_buf_lock_t,
+                           public single_threaded_countable_t<counted_buf_lock_t> {
+public:
+    template <class... Args>
+    counted_buf_lock_t(Args &&... args)
+        : alt::alt_buf_lock_t(std::forward<Args>(args)...) { }
+};
+#else
 class counted_buf_lock_t : public buf_lock_t,
                            public single_threaded_countable_t<counted_buf_lock_t> {
 public:
     template <class... Args>
     counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
 };
+#endif
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
 // contains said key/value pair.
@@ -75,8 +85,15 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(direction_t, int8_t, FORWARD, BACKWARD);
 
 /* Returns `true` if we reached the end of the btree or range, and `false` if
 `cb->handle_value()` returned `false`. */
+#if SLICE_ALT
+bool btree_depth_first_traversal(btree_slice_t *slice, superblock_t *superblock,
+                                 const key_range_t &range,
+                                 depth_first_traversal_callback_t *cb,
+                                 direction_t direction);
+#else
 bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
         superblock_t *superblock, const key_range_t &range,
         depth_first_traversal_callback_t *cb, direction_t direction);
+#endif
 
 #endif /* BTREE_DEPTH_FIRST_TRAVERSAL_HPP_ */

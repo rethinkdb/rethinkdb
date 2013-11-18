@@ -195,6 +195,13 @@ page_t *current_page_acq_t::current_page_for_read() {
     return current_page_->the_page_for_read(help());
 }
 
+repli_timestamp_t current_page_acq_t::recency() const {
+    rassert(snapshotted_page_.has() || current_page_ != NULL);
+    read_cond_.wait();
+    // RSI: Give this a real implementation.
+    return repli_timestamp_t::distant_past;
+}
+
 page_t *current_page_acq_t::current_page_for_write() {
     rassert(access_ == alt_access_t::write);
     rassert(current_page_ != NULL);
