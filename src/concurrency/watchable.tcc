@@ -141,7 +141,7 @@ public:
         *current_out = inner(input);
         return old_value != *current_out;*/
         // 2. Without comparison:
-        current_out = inner(input);
+        *current_out = inner(input);
         return true;
     }
 private:
