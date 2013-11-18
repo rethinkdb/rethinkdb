@@ -197,8 +197,8 @@ page_t *current_page_acq_t::current_page_for_read() {
 
 repli_timestamp_t current_page_acq_t::recency() const {
     rassert(snapshotted_page_.has() || current_page_ != NULL);
-    read_cond_.wait();
-    // RSI: Give this a real implementation.
+    // RSI: Give this a real implementation.  (Make it not have to wait for
+    // read_cond_ -- don't allow touch_recency.)
     return repli_timestamp_t::distant_past;
 }
 

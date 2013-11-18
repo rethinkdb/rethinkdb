@@ -139,6 +139,30 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         }
     };
 
+#if SLICE_ALT
+    void filter_interesting_children(alt_buf_parent_t parent,
+                                     ranged_block_ids_t *ids_source,
+                                     interesting_children_callback_t *cb) {
+        assert_thread();
+
+        int num_block_ids = ids_source->num_block_ids();
+        for (int i = 0; i < num_block_ids; ++i) {
+            const btree_key_t *left, *right;
+            block_id_t id;
+            ids_source->get_block_id_and_bounding_interval(i, &id, &left, &right);
+            if (overlaps(left, right, key_range_.left, key_range_.right)) {
+                // RSI: Acquire the lock with some "don't-load-the-page directive".
+                repli_timestamp_t recency;
+                {
+                    alt_buf_lock_t lock(parent, id, alt_access_t::read);
+                    recency = lock.get_recency();
+                }
+                cb->receive_interesting_child(i);
+            }
+        }
+        cb->no_more_interesting_children();
+    }
+#else
     void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
         assert_thread();
         annoying_t *fsm = new annoying_t;
@@ -151,7 +175,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             if (overlaps(left, right, key_range_.left, key_range_.right)) {
                 fsm->block_ids[i] = id;
             } else {
-                fsm->block_ids[i] = NULL_BLOCK_ID;
+               fsm->block_ids[i] = NULL_BLOCK_ID;
             }
         }
 
@@ -164,6 +188,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         txn->get_subtree_recencies(fsm->block_ids.data(), num_block_ids, fsm->recencies.data(), fsm);
         done_cond.wait();
     }
+#endif
 
     // Checks if (x_left, x_right] intersects [y_left, y_right).  If
     // it returns false, the intersection may be non-empty.

@@ -462,8 +462,9 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 #if SLICE_ALT
     // RSI: Should we _actually_ pass kv_loc->buf as the parent?
     // RSI: This was opened with some buffer_cache_order_mode_ignore flag.
+    // RSI: See parallel_traversal.cc for another use of the stat block.
     alt::alt_buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block,
-                              alt::alt_access_t::write);
+                                   alt::alt_access_t::write);
     alt::alt_buf_write_t stat_block_write(&stat_block);
     auto stat_block_buf
         = static_cast<btree_statblock_t *>(stat_block_write.get_data_write());

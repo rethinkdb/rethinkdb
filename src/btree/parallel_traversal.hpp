@@ -78,8 +78,13 @@ public:
     void receive_interesting_child(int child_index);
     void no_more_interesting_children();
 
-    interesting_children_callback_t(traversal_state_t *_state, parent_releaser_t *_releaser, int _level, const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
-        : state(_state), releaser(_releaser), level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
+    interesting_children_callback_t(
+            traversal_state_t *_state,
+            parent_releaser_t *_releaser,
+            int _level,
+            const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
+        : state(_state), releaser(_releaser),
+          level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
 
 private:
     void on_in_line();
@@ -118,7 +123,10 @@ struct btree_traversal_helper_t {
 
     virtual void postprocess_internal_node(alt::alt_buf_lock_t *internal_node_buf) = 0;
 
-    virtual void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) = 0;
+    virtual void filter_interesting_children(
+            alt::alt_buf_parent_t parent,
+            ranged_block_ids_t *ids_source,
+            interesting_children_callback_t *cb) = 0;
 
     virtual alt::alt_access_t btree_superblock_mode() = 0;
     virtual alt::alt_access_t btree_node_mode() = 0;

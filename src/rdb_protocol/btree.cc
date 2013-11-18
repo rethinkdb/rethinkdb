@@ -1282,7 +1282,13 @@ public:
 
     void postprocess_internal_node(buf_lock_t *) { }
 
+#if SLICE_ALT
+    void filter_interesting_children(alt_buf_parent_t,
+                                     ranged_block_ids_t *ids_source,
+                                     interesting_children_callback_t *cb) {
+#else
     void filter_interesting_children(UNUSED transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
+#endif
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
             cb->receive_interesting_child(i);
         }

@@ -84,7 +84,13 @@ public:
         }
     }
 
-    void filter_interesting_children(transaction_t *, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
+#if SLICE_ALT
+    void filter_interesting_children(alt_buf_parent_t,
+#else
+    void filter_interesting_children(transaction_t *,
+#endif
+                                     ranged_block_ids_t *ids_source,
+                                     interesting_children_callback_t *cb) {
         if (ids_source->get_level() < depth_limit) {
             int num_block_ids = ids_source->num_block_ids();
             for (int i = 0; i < num_block_ids; ++i) {
