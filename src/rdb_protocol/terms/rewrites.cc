@@ -147,7 +147,7 @@ private:
     static r::reql_t final_wrap(r::reql_t arg,
                                 const std::string &dc, UNUSED const r::reql_t *dc_arg) {
         if (dc == "COUNT" || dc == "SUM") {
-            return arg;
+            return std::move(arg);
         }
 
         if (dc == "AVG") {

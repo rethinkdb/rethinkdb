@@ -38,7 +38,12 @@ public:
         return should_send_batch();
     }
     bool should_send_batch() const;
-    batcher_t(batcher_t &&) = default;
+    batcher_t(batcher_t &&other) :
+        batch_type(std::move(other.batch_type)),
+        seen_one_el(std::move(other.seen_one_el)),
+        els_left(std::move(other.els_left)),
+        size_left(std::move(other.size_left)),
+        end_time(std::move(other.end_time)) { }
 private:
     DISABLE_COPYING(batcher_t);
     friend class batchspec_t;

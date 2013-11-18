@@ -400,24 +400,25 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
             sindex, range, env->profile(), sorting));
 }
 
+class sindex_compare_t {
+public:
+    sindex_compare_t(sorting_t _sorting) : sorting(_sorting) { }
+    bool operator()(const rget_item_t &l, const rget_item_t &r) {
+        r_sanity_check(l.sindex_key && r.sindex_key);
+        return reversed(sorting)
+            ? (**l.sindex_key > **r.sindex_key)
+            : (**l.sindex_key < **r.sindex_key);
+    }
+private:
+    sorting_t sorting;
+};
+
 void sindex_readgen_t::sindex_sort(std::vector<rget_item_t> *vec) const {
     if (vec->size() == 0) {
         return;
     }
-    class sorter_t {
-    public:
-        sorter_t(sorting_t _sorting) : sorting(_sorting) { }
-        bool operator()(const rget_item_t &l, const rget_item_t &r) {
-            r_sanity_check(l.sindex_key && r.sindex_key);
-            return reversed(sorting)
-                ? (**l.sindex_key > **r.sindex_key)
-                : (**l.sindex_key < **r.sindex_key);
-        }
-    private:
-        sorting_t sorting;
-    };
     if (sorting != sorting_t::UNORDERED) {
-        std::sort(vec->begin(), vec->end(), sorter_t(sorting));
+        std::sort(vec->begin(), vec->end(), sindex_compare_t(sorting));
     }
 }
 
