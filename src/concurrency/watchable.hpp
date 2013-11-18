@@ -122,7 +122,17 @@ public:
     this one by calling `lens` on it. */
     template<class callable_type>
     clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_t)>::type> > subview(const callable_type &lens);
-    // TODO! Document
+    /* `incremental_subview()` is like `subview()`. However it takes an incremental lens.
+    An incremental lens has the signature
+    `bool(const input_type &, result_type *current_out)`.
+    In contrast to a regular (non-incremental) lens it therefore has access to
+    the current value of the output value and can modify it in-place.
+    It should return true if `current_out` has been modified, and false otherwise.
+    We have two variants of this. The first one is a short-cut for incremental lenses
+    which contain a `result_type` typedef. In this case, result_type does not have
+    to be specified explicitly when calling `incremental_subview()`. Otherwise
+    the second variant must be used and `result_type` be specified as a template
+    parameter. */
     template<class callable_type>
     clone_ptr_t<watchable_t<typename callable_type::result_type> > incremental_subview(const callable_type &lens);
     template<class result_type, class callable_type>

@@ -59,7 +59,12 @@ private:
     inner_t outer_t::*const field;
 };
 
-// TODO! This is the incremental version of field_getter_t
+// `incremental_field_getter_t` does the same as field_getter_t, except that
+// it is implemented as an incremental lense and operates on a 
+// `change_tracking_map_t` instead of an `std::map`.
+// `inner_field_getter_t` provides a mapping function, which is applied by
+// `incremental_field_getter_t` to every value of a given map. It simply
+// extracts a given field from the provided value.
 template<class inner_t, class outer_t>
 class inner_field_getter_t {
 public:

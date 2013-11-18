@@ -26,8 +26,14 @@ bool collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optiona
     for (auto it = keys_to_update.begin(); it != keys_to_update.end(); it++) {
         auto jt = map.get_inner().find(*it);
         if (jt != map.get_inner().end() && jt->second) {
-            current_out->set_value(*it, jt->second.get());
-            anything_changed = true; // TODO! Do this properly
+            // Check if the new value is actually different from the old one
+            auto existing_it = current_out->get_inner().find(*it);
+            bool has_changed = existing_it == current_out->get_inner().end()
+                || !(existing_it->second == jt->second.get());
+            if (has_changed) {
+                current_out->set_value(*it, jt->second.get());
+                anything_changed = true;
+            }
         } else {
             current_out->delete_value(*it);
             anything_changed = true;

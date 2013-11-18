@@ -119,14 +119,6 @@ private:
 template<class outer_type, class callable_type>
 class non_incremental_lens_wrapper_t {
 public:
-    // TODO! Change result_type logic to the following:
-    /*
-    template<class T>
-    class result {
-    public:
-        typedef std::map<peer_id_t, inner_t> type;
-    };
-     */
     typedef typename boost::result_of<callable_type(outer_type)>::type result_type;
 
     explicit non_incremental_lens_wrapper_t(const callable_type &_inner) :

@@ -111,7 +111,6 @@ public:
         *this = other;
     }
 
-    // TODO! Get rid of this again
     /* Move assignment operator */
     cluster_directory_metadata_t &operator=(cluster_directory_metadata_t &&other) {
         dummy_namespaces = std::move(other.dummy_namespaces);
