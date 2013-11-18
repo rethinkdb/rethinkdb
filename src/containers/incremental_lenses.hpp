@@ -48,9 +48,20 @@ public:
         inner.clear();
     }
 
+    // Getters
     const std::map<key_type, inner_type> &get_inner() const { return inner; }
     const std::set<key_type> &get_changed_keys() const { return changed_keys; }
     unsigned int get_current_version() const { return current_version; }
+
+    // Operators
+    bool operator==(const change_tracking_map_t &o) const {
+        return o.current_version == current_version
+            && o.changed_keys == changed_keys
+            && o.inner == inner;
+    }
+    bool operator!=(const change_tracking_map_t &o) const {
+        return !(o == *this);
+    }
 
 private:
     std::map<key_type, inner_type> inner;
