@@ -38,7 +38,10 @@ public:
         return should_send_batch();
     }
     bool should_send_batch() const;
-    batcher_t(batcher_t &&) = default;
+    batcher_t(batcher_t &&other) :
+        batch_type(other.batch_type), seen_one_el(other.seen_one_el),
+        els_left(other.els_left), size_left(other.size_left),
+        end_time(other.end_time) {};
 private:
     DISABLE_COPYING(batcher_t);
     friend class batchspec_t;

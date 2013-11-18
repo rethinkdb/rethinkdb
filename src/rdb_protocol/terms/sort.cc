@@ -3,6 +3,7 @@
 
 #include <string>
 #include <utility>
+#include <boost/bind.hpp>
 
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/error.hpp"
@@ -53,6 +54,7 @@ private:
     enum order_direction_t { ASC, DESC };
     class lt_cmp_t {
     public:
+        typedef bool result_type;
         explicit lt_cmp_t(
             std::vector<std::pair<order_direction_t, counted_t<func_t> > > _comparisons)
             : comparisons(std::move(_comparisons)) { }
@@ -174,8 +176,7 @@ private:
                 rcheck(to_sort.size() < array_size_limit(), base_exc_t::GENERIC,
                        strprintf("Array over size limit %zu.", to_sort.size()).c_str());
             }
-            auto fn = std::bind(lt_cmp, env->env,
-                                std::placeholders::_1, std::placeholders::_2);
+            auto fn = boost::bind(lt_cmp, env->env, _1, _2);
             std::sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
                 make_counted<const datum_t>(std::move(to_sort)), backtrace());
