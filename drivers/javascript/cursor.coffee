@@ -1,5 +1,6 @@
 err = require('./errors')
 util = require('./util')
+pb = require('./protobuf')
 
 # Import some names to this namespace for convienience
 ar = util.ar
@@ -10,6 +11,51 @@ if not setImmediate?
     setImmediate = (cb) ->
         setTimeout cb, 0
 
+deconstructDatum = (datum, opts) ->
+    pb.DatumTypeSwitch(datum, {
+        "R_JSON": =>
+            JSON.parse(datum.r_str)
+       ,"R_NULL": =>
+            null
+       ,"R_BOOL": =>
+            datum.r_bool
+       ,"R_NUM": =>
+            datum.r_num
+       ,"R_STR": =>
+            datum.r_str
+       ,"R_ARRAY": =>
+            deconstructDatum(dt, opts) for dt in datum.r_array
+       ,"R_OBJECT": =>
+            obj = {}
+            for pair in datum.r_object
+                obj[pair.key] = deconstructDatum(pair.val, opts)
+
+            # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
+            # second layer of type switching here on the obfuscated field "$reql_type$"
+            switch obj['$reql_type$']
+                when 'TIME'
+                    switch opts.timeFormat
+                        # Default is native
+                        when 'native', undefined
+                            if not obj['epoch_time']?
+                                throw new err.RqlDriverError "pseudo-type TIME #{obj} object missing expected field 'epoch_time'."
+
+                            # We ignore the timezone field of the pseudo-type TIME object. JS dates do not support timezones.
+                            # By converting to a native date object we are intentionally throwing out timezone information.
+
+                            # field "epoch_time" is in seconds but the Date constructor expects milliseconds
+                            (new Date(obj['epoch_time']*1000))
+                        when 'raw'
+                            # Just return the raw (`{'$reql_type$'...}`) object
+                            obj
+                        else
+                            throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
+                else
+                    # Regular object or unknown pseudo type
+                    obj
+        },
+            => throw new err.RqlDriverError "Unknown Datum type"
+        )
 
 # setImmediate is not defined in some browsers (including Chrome)
 
@@ -189,6 +235,6 @@ nextCbCheck = (cb) ->
     unless typeof cb is 'function'
         throw new err.RqlDriverError "Argument to next must be a function."
 
-
+module.exports.deconstructDatum = deconstructDatum
 module.exports.Cursor = Cursor
 module.exports.makeIterable = ArrayResult::makeIterable

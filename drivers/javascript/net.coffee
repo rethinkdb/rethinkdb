@@ -12,52 +12,7 @@ r = require('./ast')
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
-
-deconstructDatum = (datum, opts) ->
-    pb.DatumTypeSwitch(datum, {
-        "R_JSON": =>
-            JSON.parse(datum.r_str)
-       ,"R_NULL": =>
-            null
-       ,"R_BOOL": =>
-            datum.r_bool
-       ,"R_NUM": =>
-            datum.r_num
-       ,"R_STR": =>
-            datum.r_str
-       ,"R_ARRAY": =>
-            deconstructDatum(dt, opts) for dt in datum.r_array
-       ,"R_OBJECT": =>
-            obj = {}
-            for pair in datum.r_object
-                obj[pair.key] = deconstructDatum(pair.val, opts)
-
-            # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
-            # second layer of type switching here on the obfuscated field "$reql_type$"
-            switch obj['$reql_type$']
-                when 'TIME'
-                    switch opts.timeFormat
-                        # Default is native
-                        when 'native', undefined
-                            if not obj['epoch_time']?
-                                throw new err.RqlDriverError "pseudo-type TIME #{obj} object missing expected field 'epoch_time'."
-
-                            # We ignore the timezone field of the pseudo-type TIME object. JS dates do not support timezones.
-                            # By converting to a native date object we are intentionally throwing out timezone information.
-
-                            # field "epoch_time" is in seconds but the Date constructor expects milliseconds
-                            (new Date(obj['epoch_time']*1000))
-                        when 'raw'
-                            # Just return the raw (`{'$reql_type$'...}`) object
-                            obj
-                        else
-                            throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
-                else
-                    # Regular object or unknown pseudo type
-                    obj
-        },
-            => throw new err.RqlDriverError "Unknown Datum type"
-        )
+deconstructDatum = cursors.deconstructDatum
 
 class Connection extends events.EventEmitter
     DEFAULT_HOST: 'localhost'
@@ -143,20 +98,16 @@ class Connection extends events.EventEmitter
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
-                console.log("Response for cursor token: " + String(token))
                 pb.ResponseTypeSwitch(response, {
                      "SUCCESS_PARTIAL": =>
-                        console.log("partial cursor")
                         cursor._addData(mkSeq(response, opts))
                     ,"SUCCESS_SEQUENCE": =>
-                        console.log("complete cursor")
                         cursor._endData(mkSeq(response, opts))
                         @_delQuery(token)
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )
             else if cb?
-                console.log("Response for cb token: " + String(token))
                 # Behavior varies considerably based on response type
                 pb.ResponseTypeSwitch(response, {
                     "COMPILE_ERROR": =>
@@ -177,7 +128,6 @@ class Connection extends events.EventEmitter
                         cb null, response
                         @_delQuery(token)
                    ,"SUCCESS_PARTIAL": =>
-                        console.log("New cursor")
                         cursor = new cursors.Cursor @, token
                         @outstandingCallbacks[token].cursor = cursor
                         if profile?
@@ -185,7 +135,6 @@ class Connection extends events.EventEmitter
                         else
                             cb null, cursor._addData(mkSeq(response, opts))
                    ,"SUCCESS_SEQUENCE": =>
-                        console.log("New and complete cursor")
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
                         if profile?
@@ -199,7 +148,6 @@ class Connection extends events.EventEmitter
                     => cb new err.RqlDriverError "Unknown response type"
                 )
         else
-            console.log("Response for unknown token: " + String(token))
             # Unexpected token
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
@@ -321,14 +269,12 @@ class Connection extends events.EventEmitter
         if (not opts.noreply?) or !opts.noreply
             @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}
 
-        console.log("startQuery")
         @_sendQuery(query)
 
         if opts.noreply? and opts.noreply and typeof(cb) is 'function'
             cb null # There is no error and result is `undefined`
 
     _continueQuery: (token) ->
-        console.log("continueQuery, token: " + String(token))
         query =
             type: "CONTINUE"
             token: token
@@ -336,7 +282,6 @@ class Connection extends events.EventEmitter
         @_sendQuery(query)
 
     _endQuery: (token) ->
-        console.log("endQuery, token: " + String(token))
         query =
             type: "STOP"
             token: token
