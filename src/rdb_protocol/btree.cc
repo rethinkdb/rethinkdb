@@ -114,28 +114,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      transaction_t *txn,
                      rdb_modification_info_t *mod_info_out) {
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
-<<<<<<< HEAD
     memset(new_value.get(), 0, blob::btree_maxreflen);
-||||||| merged common ancestors
-    bzero(new_value.get(), blob::btree_maxreflen);
-
-    // TODO unnecessary copies they must go away.
-    write_message_t wm;
-    wm << data;
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee_err(res == 0, "Serialization for json data failed... this shouldn't happen.\n");
-=======
-    bzero(new_value.get(), blob::btree_maxreflen);
-
-    // TODO unnecessary copies they must go away.
-    write_message_t wm;
-    wm << data;
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0,
-                  "Serialization for json data failed... this shouldn't happen.\n");
->>>>>>> next
 
     blob_t blob(txn->get_cache()->get_block_size(),
                 new_value->value_ref(), blob::btree_maxreflen);
