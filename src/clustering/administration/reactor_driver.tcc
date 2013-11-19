@@ -300,19 +300,23 @@ private:
         }
 
         for (auto it = keys_to_update.begin(); it != keys_to_update.end(); ++it) {
+            auto existing_it = current_out->get_inner().find(*it);
             auto jt = nss.get_inner().find(*it);
             if (jt == nss.get_inner().end()) {
-                current_out->delete_value(*it);
-                anything_changed = true;
+                if (existing_it != current_out->get_inner().end()) {
+                    current_out->delete_value(*it);
+                    anything_changed = true;
+                }
             } else {
-                auto existing_it = current_out->get_inner().find(*it);
+                // This is to determine if the value has changed or not
                 boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >
                     old_value;
                 bool has_old_value = false;
                 if (existing_it == current_out->get_inner().end()) {
+                    // New value
                     anything_changed = true;
                 } else if (!anything_changed) {
-                    old_value = std::move(existing_it->second);
+                    old_value = existing_it->second;
                     has_old_value = true;
                 }
 

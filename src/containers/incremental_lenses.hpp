@@ -98,15 +98,17 @@ public:
             // Update changed peers only
             for (auto it = input.get_changed_keys().begin(); it != input.get_changed_keys().end(); ++it) {
                 auto input_value_it = input.get_inner().find(*it);
+                auto existing_it = current_out->get_inner().find(*it);
                 if (input_value_it == input.get_inner().end()) {
                     // The peer was deleted
-                    current_out->delete_value(*it);
-                    anything_changed = true;
+                    if (existing_it != current_out->get_inner().end()) {
+                        current_out->delete_value(*it);
+                        anything_changed = true;
+                    }
                 } else {
                     // This is to determine if the value has changed or not
                     inner_result_type old_value;
                     bool has_old_value = false;
-                    auto existing_it = current_out->get_inner().find(*it);
                     if (existing_it == current_out->get_inner().end()) {
                         // New value
                         anything_changed = true;
@@ -114,7 +116,7 @@ public:
                         // Changed value. We must check for changes later. Keep a copy
                         // of the old value around.
                         // We can use move here because we are going to overwrite it anyways
-                        old_value = std::move(existing_it->second);
+                        old_value = existing_it->second;
                         has_old_value = true;
                     }
 
