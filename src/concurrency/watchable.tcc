@@ -46,9 +46,11 @@ private:
             lens(l),
             parent_subscription(boost::bind(
                 &subview_watchable_t<result_type, outer_type, callable_type>::lensed_value_cache_t::on_parent_changed,
-                this), parent->get_publisher()) {
-
+                this)) {
+            typename watchable_t<outer_type>::freeze_t freeze(parent);
+            ASSERT_FINITE_CORO_WAITING;
             compute_value();
+            parent_subscription.reset(parent, &freeze);
         }
 
         ~lensed_value_cache_t() {
@@ -106,7 +108,7 @@ private:
         callable_type lens;
         result_type cached_value;
         publisher_controller_t<boost::function<void()> > publisher_controller;
-        publisher_t<boost::function<void()> >::subscription_t parent_subscription;
+        typename watchable_t<outer_type>::subscription_t parent_subscription;
     };
 
     subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
