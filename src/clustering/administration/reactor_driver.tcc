@@ -56,7 +56,7 @@ public:
           namespaces_view_(clone_ptr_t<watchable_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > >(namespaces_view.clone()), dest_thread) { }
 
     // TODO: Just get the value directly.
-    // /\/\/\/\ What does this mean? (~daniel)
+    // ^^^^^^^^^ What does this mean? (~daniel)
     std::map<peer_id_t, machine_id_t> get_machine_id_translation_table() {
         return machine_id_translation_table_.get_watchable()->get().get_inner();
     }
@@ -346,7 +346,7 @@ private:
         GCC 4.4, this is the messy work-around: */
         struct op_closure_t {
             bool operator()(namespaces_directory_metadata_t<protocol_t> *directory) {
-                directory->reactor_bcards.find(namespace_id_)->second = std::move(reactor_->get_reactor_directory()->get());
+                directory->reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
                 return true;
             }
             op_closure_t(const namespace_id_t &c1, scoped_ptr_t<reactor_t<protocol_t> > &c2) :
