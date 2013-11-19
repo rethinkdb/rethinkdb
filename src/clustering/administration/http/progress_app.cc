@@ -3,6 +3,7 @@
 
 #include "errors.hpp"
 #include <boost/optional.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>
@@ -85,7 +86,7 @@ public:
 /* A visitor to send out requests for the backfill progress of a reactor activity. */
 class send_backfill_requests_t : public boost::static_visitor<void> {
 public:
-    send_backfill_requests_t(std::map<peer_id_t, cluster_directory_metadata_t> _directory,
+    send_backfill_requests_t(const boost::shared_ptr<std::map<peer_id_t, cluster_directory_metadata_t> > &_directory,
                              namespace_id_t _n_id,
                              machine_id_t _m_id,
                              reactor_activity_id_t _a_id,
@@ -110,7 +111,7 @@ private:
 
     void handle_request_internal(const reactor_business_card_details::backfill_location_t& loc) const;
 
-    std::map<peer_id_t, cluster_directory_metadata_t> directory;
+    boost::shared_ptr<std::map<peer_id_t, cluster_directory_metadata_t> > directory;
     namespace_id_t n_id;
     machine_id_t m_id;
     reactor_activity_id_t a_id;
@@ -121,8 +122,8 @@ private:
 };
 
 void send_backfill_requests_t::handle_request_internal(const reactor_business_card_details::backfill_location_t& loc) const {
-    auto directory_it = directory.find(loc.peer_id);
-    if (directory_it == directory.end()) {
+    auto directory_it = directory->find(loc.peer_id);
+    if (directory_it == directory->end()) {
         return;
     }
 
@@ -252,20 +253,22 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
         ++it;
     }
 
-    std::map<peer_id_t, cluster_directory_metadata_t> directory = directory_metadata->get().get_inner();
+    boost::shared_ptr<std::map<peer_id_t, cluster_directory_metadata_t> > directory(
+        new std::map<peer_id_t, cluster_directory_metadata_t>());
+    *directory = directory_metadata->get().get_inner();
     /* Iterate through the peers. */
-    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator p_it = directory.begin();
-         p_it != directory.end();
+    for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator p_it = directory->begin();
+         p_it != directory->end();
          ++p_it) {
         /* Check to see if this matches the requested machine_id (or if we
          * didn't specify a specific machine but want all the machines). */
         if (!requested_machine_id || requested_machine_id == p_it->second.machine_id) {
 
             typedef std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > > reactor_bcard_map_t;
-            reactor_bcard_map_t bcard_map = p_it->second.rdb_namespaces.reactor_bcards;
+            const reactor_bcard_map_t &bcard_map = p_it->second.rdb_namespaces.reactor_bcards;
 
             /* Iterate through the machine's reactor's business_cards to see which ones are doing backfills. */
-            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::iterator n_it = bcard_map.begin();
+            for (std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<rdb_protocol_t> > > >::const_iterator n_it = bcard_map.begin();
                  n_it != bcard_map.end();
                  ++n_it) {
                 /* Check to see if this matches the requested namespace (or
