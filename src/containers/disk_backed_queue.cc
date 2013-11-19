@@ -102,7 +102,6 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
 
     blob_t blob(txn.get_cache()->get_block_size(), buffer, MAX_REF_SIZE);
     {
-        // RSI: Reduce copying here.  (We copy into buf_out, then deserialize.)
         blob_acq_t acq_group;
         buffer_group_t blob_group;
         blob.expose_all(&txn, rwi_read, &blob_group, &acq_group);

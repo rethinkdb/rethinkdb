@@ -89,6 +89,8 @@ public:
 
 private:
     T *value_out_;
+
+    DISABLE_COPYING(deserializing_viewer_t);
 };
 
 template <class T>
