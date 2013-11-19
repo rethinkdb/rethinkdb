@@ -30,6 +30,10 @@
 
 #include "btree/keys.hpp"
 
+#if SLICE_ALT
+using namespace alt;  // RSI
+#endif
+
 typedef memcached_protocol_t::store_t store_t;
 typedef memcached_protocol_t::region_t region_t;
 
@@ -530,35 +534,71 @@ namespace {
 // TODO: get rid of this extra response_t copy on the stack
 struct write_visitor_t : public boost::static_visitor<write_response_t> {
     write_response_t operator()(const get_cas_mutation_t &m) {
+#if SLICE_ALT
+        return write_response_t(
+            memcached_get_cas(m.key, btree, proposed_cas, effective_time, timestamp,
+                              superblock));
+#else
         return write_response_t(
             memcached_get_cas(m.key, btree, proposed_cas, effective_time, timestamp, txn, superblock));
+#endif
     }
     write_response_t operator()(const sarc_mutation_t &m) {
+#if SLICE_ALT
+        return write_response_t(
+            memcached_set(m.key, btree, m.data, m.flags, m.exptime, m.add_policy,
+                          m.replace_policy, m.old_cas, proposed_cas, effective_time,
+                          timestamp, superblock));
+#else
         return write_response_t(
             memcached_set(m.key, btree, m.data, m.flags, m.exptime, m.add_policy, m.replace_policy, m.old_cas, proposed_cas, effective_time, timestamp, txn, superblock));
+#endif
     }
     write_response_t operator()(const incr_decr_mutation_t &m) {
+#if SLICE_ALT
+        return write_response_t(
+            memcached_incr_decr(m.key, btree, (m.kind == incr_decr_INCR), m.amount,
+                                proposed_cas, effective_time, timestamp, superblock));
+#else
         return write_response_t(
             memcached_incr_decr(m.key, btree, (m.kind == incr_decr_INCR), m.amount, proposed_cas, effective_time, timestamp, txn, superblock));
+#endif
     }
     write_response_t operator()(const append_prepend_mutation_t &m) {
+#if SLICE_ALT
+        return write_response_t(
+            memcached_append_prepend(m.key, btree, m.data,
+                                     (m.kind == append_prepend_APPEND), proposed_cas,
+                                     effective_time, timestamp, superblock));
+#else
         return write_response_t(
             memcached_append_prepend(m.key, btree, m.data, (m.kind == append_prepend_APPEND), proposed_cas, effective_time, timestamp, txn, superblock));
+#endif
     }
     write_response_t operator()(const delete_mutation_t &m) {
         guarantee(proposed_cas == INVALID_CAS);
+#if SLICE_ALT
+        return write_response_t(
+            memcached_delete(m.key, m.dont_put_in_delete_queue, btree,
+                             effective_time, timestamp, superblock));
+#else
         return write_response_t(
             memcached_delete(m.key, m.dont_put_in_delete_queue, btree, effective_time, timestamp, txn, superblock));
+#endif
     }
 
     write_visitor_t(btree_slice_t *_btree,
+#if !SLICE_ALT
                     transaction_t *_txn,
+#endif
                     superblock_t *_superblock,
                     cas_t _proposed_cas,
                     exptime_t _effective_time,
                     repli_timestamp_t _timestamp) :
         btree(_btree),
+#if !SLICE_ALT
         txn(_txn),
+#endif
         superblock(_superblock),
         proposed_cas(_proposed_cas),
         effective_time(_effective_time),
@@ -566,7 +606,9 @@ struct write_visitor_t : public boost::static_visitor<write_response_t> {
 
 private:
     btree_slice_t *btree;
+#if !SLICE_ALT
     transaction_t *txn;
+#endif
     superblock_t *superblock;
     cas_t proposed_cas;
     exptime_t effective_time;
@@ -579,7 +621,9 @@ void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
+#if !SLICE_ALT
                              transaction_t *txn,
+#endif
                              scoped_ptr_t<superblock_t> *superblock,
                              write_token_pair_t *token_pair,
                              UNUSED signal_t *interruptor) {
@@ -588,7 +632,12 @@ void store_t::protocol_write(const write_t &write,
     token_pair->sindex_write_token.reset();
 
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
+#if SLICE_ALT
+    write_visitor_t v(btree, superblock->get(), write.proposed_cas,
+                      write.effective_time, timestamp.to_repli_timestamp());
+#else
     write_visitor_t v(btree, txn, superblock->get(), write.proposed_cas, write.effective_time, timestamp.to_repli_timestamp());
+#endif
     *response = boost::apply_visitor(v, write.mutation);
 }
 
@@ -622,15 +671,30 @@ private:
     DISABLE_COPYING(memcached_backfill_callback_t);
 };
 
+#if SLICE_ALT
+void call_memcached_backfill(
+        int i, btree_slice_t *btree,
+        const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
+        memcached_backfill_callback_t *callback, superblock_t *superblock,
+        alt_buf_lock_t *sindex_block,
+        memcached_protocol_t::backfill_progress_t *progress,
+        signal_t *interruptor) {
+#else
 static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
         memcached_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, buf_lock_t *sindex_block, memcached_protocol_t::backfill_progress_t *progress,
         signal_t *interruptor) {
+#endif
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owner(p);
     progress->add_constituent(&p_owner);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
+#if SLICE_ALT
+        memcached_backfill(btree, regions[i].first.inner, timestamp, callback,
+                           superblock, sindex_block, p, interruptor);
+#else
         memcached_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, sindex_block, p, interruptor);
+#endif
     } catch (const interrupted_exc_t &) {
         /* do nothing; `protocol_send_backfill()` will notice and deal with it.
         */
@@ -638,6 +702,16 @@ static void call_memcached_backfill(int i, btree_slice_t *btree, const std::vect
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
+#if SLICE_ALT
+void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
+                                     chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
+                                     superblock_t *superblock,
+                                     alt_buf_lock_t *sindex_block,
+                                     btree_slice_t *btree,
+                                     backfill_progress_t *progress,
+                                     signal_t *interruptor)
+                                     THROWS_ONLY(interrupted_exc_t) {
+#else
 void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                      chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
@@ -647,6 +721,7 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
+#endif
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
 
     if (regions.size() > 0) {
@@ -656,8 +731,16 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
         // because adjacent regions often have the same value. On the other hand
         // it's harmless, because caching is basically perfect.
         refcount_superblock_t refcount_wrapper(superblock, regions.size());
+#if SLICE_ALT
+        // RSI: Use std::bind.
+        pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
+                                         btree, regions, &callback,
+                                         &refcount_wrapper, sindex_block, progress,
+                                         interruptor));
+#else
         pmap(regions.size(), boost::bind(&call_memcached_backfill, _1,
                                          btree, regions, &callback, txn, &refcount_wrapper, sindex_block, progress, interruptor));
+#endif
 
         /* if interruptor was pulsed in `call_memcached_backfill()`, it returned
         normally anyway. So now we have to check manually. */
@@ -670,42 +753,72 @@ void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, st
 namespace {
 
 struct receive_backfill_visitor_t : public boost::static_visitor<> {
+#if SLICE_ALT
+    receive_backfill_visitor_t(btree_slice_t *_btree, superblock_t *_superblock,
+                               signal_t *_interruptor)
+        : btree(_btree), superblock(_superblock), interruptor(_interruptor) { }
+#else
     receive_backfill_visitor_t(btree_slice_t *_btree, transaction_t *_txn,
                                superblock_t *_superblock, signal_t *_interruptor)
         : btree(_btree), txn(_txn),
           superblock(_superblock), interruptor(_interruptor) { }
+#endif
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
+#if SLICE_ALT
+        memcached_delete(delete_key.key, true, btree, 0, delete_key.recency,
+                         superblock);
+#else
         memcached_delete(delete_key.key, true, btree, 0, delete_key.recency, txn, superblock);
+#endif
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         hash_range_key_tester_t tester(delete_range.range);
+#if SLICE_ALT
+        memcached_erase_range(btree, &tester, delete_range.range.inner,
+                              superblock, interruptor);
+#else
         memcached_erase_range(btree, &tester, delete_range.range.inner, txn, superblock, interruptor);
+#endif
     }
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
         const backfill_atom_t& bf_atom = kv.backfill_atom;
+#if SLICE_ALT
+        memcached_set(bf_atom.key, btree,
+            bf_atom.value, bf_atom.flags, bf_atom.exptime,
+            add_policy_yes, replace_policy_yes, INVALID_CAS,
+            bf_atom.cas_or_zero, 0, bf_atom.recency,
+            superblock);
+#else
         memcached_set(bf_atom.key, btree,
             bf_atom.value, bf_atom.flags, bf_atom.exptime,
             add_policy_yes, replace_policy_yes, INVALID_CAS,
             bf_atom.cas_or_zero, 0, bf_atom.recency,
             txn, superblock);
+#endif
     }
+
 private:
     struct hash_range_key_tester_t : public key_tester_t {
-        explicit hash_range_key_tester_t(const region_t &delete_range) : delete_range_(delete_range) { }
+        explicit hash_range_key_tester_t(const region_t &delete_range)
+            : delete_range_(delete_range) { }
         bool key_should_be_erased(const btree_key_t *key) {
             uint64_t h = hash_region_hasher(key->contents, key->size);
             return delete_range_.beg <= h && h < delete_range_.end
                 && delete_range_.inner.contains_key(key->contents, key->size);
         }
 
+        // RSI: fix this const reference bullshit.
         const region_t &delete_range_;
 
     private:
         DISABLE_COPYING(hash_range_key_tester_t);
     };
+
     btree_slice_t *btree;
+#if !SLICE_ALT
     transaction_t *txn;
+#endif
     superblock_t *superblock;
     signal_t *interruptor;
 };
@@ -713,13 +826,20 @@ private:
 }   /* anonymous namespace */
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
+#if !SLICE_ALT
                                         transaction_t *txn,
+#endif
                                         superblock_t *superblock,
                                         write_token_pair_t *token_pair,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
     token_pair->sindex_write_token.reset();
+#if SLICE_ALT
+    boost::apply_visitor(receive_backfill_visitor_t(btree, superblock, interruptor),
+                         chunk.val);
+#else
     boost::apply_visitor(receive_backfill_visitor_t(btree, txn, superblock, interruptor), chunk.val);
+#endif
 }
 
 namespace {
@@ -744,14 +864,21 @@ private:
 
 void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
+#if !SLICE_ALT
                                   transaction_t *txn,
+#endif
                                   superblock_t *superblock,
                                   write_token_pair_t *token_pair,
                                   signal_t *interruptor) {
     token_pair->sindex_write_token.reset();
 
     hash_key_tester_t key_tester(subregion.beg, subregion.end);
+#if SLICE_ALT
+    memcached_erase_range(btree, &key_tester, subregion.inner,
+                          superblock, interruptor);
+#else
     memcached_erase_range(btree, &key_tester, subregion.inner, txn, superblock, interruptor);
+#endif
 }
 
 class generic_debug_print_visitor_t : public boost::static_visitor<void> {
@@ -759,7 +886,7 @@ public:
     explicit generic_debug_print_visitor_t(printf_buffer_t *buf) : buf_(buf) { }
 
     template <class T>
-    void operator()(const T& x) {
+    void operator()(const T &x) {
         debug_print(buf_, x);
     }
 

@@ -483,6 +483,16 @@ public:
                                 signal_t *interruptor) = 0;
 #endif
 
+#if SLICE_ALT
+    virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
+                                        chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
+                                        superblock_t *superblock,
+                                        alt::alt_buf_lock_t *sindex_block,
+                                        btree_slice_t *btree,
+                                        typename protocol_t::backfill_progress_t *progress,
+                                        signal_t *interruptor)
+                                        THROWS_ONLY(interrupted_exc_t) = 0;
+#else
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                         superblock_t *superblock,
@@ -492,9 +502,12 @@ public:
                                         typename protocol_t::backfill_progress_t *progress,
                                         signal_t *interruptor)
                                         THROWS_ONLY(interrupted_exc_t) = 0;
+#endif
 
     virtual void protocol_receive_backfill(btree_slice_t *btree,
+#if !SLICE_ALT
                                            transaction_t *txn,
+#endif
                                            superblock_t *superblock,
                                            write_token_pair_t *token_pair,
                                            signal_t *interruptor,
@@ -502,7 +515,9 @@ public:
 
     virtual void protocol_reset_data(const typename protocol_t::region_t& subregion,
                                      btree_slice_t *btree,
+#if !SLICE_ALT
                                      transaction_t *txn,
+#endif
                                      superblock_t *superblock,
                                      write_token_pair_t *token_pair,
                                      signal_t *interruptor) = 0;

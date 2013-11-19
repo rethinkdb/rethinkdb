@@ -182,7 +182,12 @@ void btree_store_t<protocol_t>::write(
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), real_superblock.get());
 #endif
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
+#if SLICE_ALT
+    protocol_write(write, response, timestamp, btree.get(), &superblock,
+                   token_pair, interruptor);
+#else
     protocol_write(write, response, timestamp, btree.get(), txn.get(), &superblock, token_pair, interruptor);
+#endif
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
@@ -227,7 +232,11 @@ bool btree_store_t<protocol_t>::send_backfill(
 #endif
     region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(metainfo)) {
+#if SLICE_ALT
+        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), sindex_block.get(), btree.get(), progress, interruptor);
+#else
         protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), sindex_block.get(), btree.get(), txn.get(), progress, interruptor);
+#endif
         return true;
     }
     return false;
@@ -259,7 +268,9 @@ void btree_store_t<protocol_t>::receive_backfill(
                                  interruptor);
 
     protocol_receive_backfill(btree.get(),
+#if !SLICE_ALT
                               txn.get(),
+#endif
                               superblock.get(),
                               token_pair,
                               interruptor,
@@ -315,7 +326,9 @@ void btree_store_t<protocol_t>::reset_data(
 
     protocol_reset_data(subregion,
                         btree.get(),
+#if !SLICE_ALT
                         txn.get(),
+#endif
                         superblock.get(),
                         token_pair,
                         interruptor);
