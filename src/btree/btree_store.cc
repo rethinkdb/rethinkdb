@@ -334,10 +334,27 @@ void btree_store_t<protocol_t>::reset_data(
                         interruptor);
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+void btree_store_t<protocol_t>::lock_sindex_queue(alt_buf_lock_t *sindex_block,
+                                                  mutex_t::acq_t *acq) {
+#else
 template <class protocol_t>
 void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq) {
+#endif
     assert_thread();
+#if SLICE_ALT
+    // RSI: WTF should we do here?  Why is there a mutex?
+
+    // RSI: Do we really need to wait for write acquisition?
+
+    // RSI: Should we be able to "get in line" for the mutex and release the sindex
+    // block or something?
+    guarantee(!sindex_block->empty());
+    sindex_block->write_acq_signal()->wait();
+#else
     guarantee(sindex_block->is_acquired());
+#endif
     acq->reset(&sindex_queue_mutex);
 }
 

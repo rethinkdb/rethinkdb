@@ -391,18 +391,43 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
     }
 }
 
+#if SLICE_ALT
+void delete_superblock_metainfo(alt_buf_lock_t *superblock,
+                                const std::vector<char> &key) {
+#else
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key) {
+#endif
+#if SLICE_ALT
+    alt_buf_write_t write(superblock);
+    btree_superblock_t *const data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
+#else
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
+#endif
 
+#if SLICE_ALT
+    alt::blob_t blob(superblock->cache()->get_block_size(),
+                     data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+#else
     blob_t blob(txn->get_cache()->get_block_size(),
                 data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+#endif
 
     std::vector<char> metainfo;
 
     {
+#if SLICE_ALT
+        alt::blob_acq_t acq;
+#else
         blob_acq_t acq;
+#endif
         buffer_group_t group;
+#if SLICE_ALT
+        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
+                        &group, &acq);
+#else
         blob.expose_all(txn, rwi_read, &group, &acq);
+#endif
 
         int64_t group_size = group.get_size();
         metainfo.resize(group_size);
@@ -413,7 +438,11 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
+#if SLICE_ALT
+    blob.clear(alt_buf_parent_t(superblock));
+#else
     blob.clear(txn);
+#endif
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -427,12 +456,25 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
         std::vector<char>::iterator q = metainfo.begin() + (info_end - metainfo.data());
         metainfo.erase(p, q);
 
+#if SLICE_ALT
+        blob.append_region(alt_buf_parent_t(superblock), metainfo.size());
+#else
         blob.append_region(txn, metainfo.size());
+#endif
 
         {
+#if SLICE_ALT
+            alt::blob_acq_t acq;
+#else
             blob_acq_t acq;
+#endif
             buffer_group_t write_group;
+#if SLICE_ALT
+            blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::write,
+                            &write_group, &acq);
+#else
             blob.expose_all(txn, rwi_write, &write_group, &acq);
+#endif
 
             buffer_group_t group_cpy;
             group_cpy.add_buffer(metainfo.size(), metainfo.data());

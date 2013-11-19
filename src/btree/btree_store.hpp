@@ -121,7 +121,11 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
+#if SLICE_ALT
+    void lock_sindex_queue(alt::alt_buf_lock_t *sindex_block, mutex_t::acq_t *acq);
+#else
     void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
+#endif
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -382,6 +386,7 @@ public:
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
+    // RSI: Rename to acquire, not aquire.
 #if SLICE_ALT
     void aquire_post_constructed_sindex_superblocks_for_write(
             block_id_t sindex_block_id,

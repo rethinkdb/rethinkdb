@@ -168,16 +168,25 @@ private:
 
 class alt_buf_parent_t {
 public:
+    alt_buf_parent_t() : txn_(NULL), lock_or_null_(NULL) { }
+
     explicit alt_buf_parent_t(alt_buf_lock_t *lock)
         : txn_(lock->txn()), lock_or_null_(lock) {
         guarantee(lock != NULL);
         guarantee(!lock->empty());
     }
+    // RSI: Replace this constructor with a create_dangerously static method.
     explicit alt_buf_parent_t(alt_txn_t *txn)
         : txn_(txn), lock_or_null_(NULL) { }
 
-    alt_txn_t *txn() const { return txn_; }
-    alt_cache_t *cache() const { return txn_->cache(); }
+    alt_txn_t *txn() const {
+        guarantee(txn_ != NULL);
+        return txn_;
+    }
+    alt_cache_t *cache() const {
+        guarantee(txn_ != NULL);
+        return txn_->cache();
+    }
 
 private:
     friend class alt_buf_lock_t;

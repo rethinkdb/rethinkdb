@@ -55,9 +55,15 @@ public:
         guarantee(buf_.has());
         return value_;
     }
+#if SLICE_ALT
+    alt::alt_buf_parent_t expose_buf() {
+        guarantee(buf_.has());
+        return alt::alt_buf_parent_t(buf_.get());
+    }
+#endif
 
-    // Releases the hold on the buf_lock_t, after which key() and value() may not be
-    // used.
+    // Releases the hold on the buf_lock_t, after which key(), value(), and
+    // expose_buf() may not be used.
     void reset() { buf_.reset(); }
 
 private:

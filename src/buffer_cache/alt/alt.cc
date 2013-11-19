@@ -38,7 +38,7 @@ alt_buf_lock_t::alt_buf_lock_t()
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                block_id_t block_id,
                                alt_access_t access)
-    : txn_(parent.txn_),
+    : txn_(parent.txn()),
       cache_(txn_->cache()),
       current_page_acq_(),
       snapshot_node_(NULL) {
@@ -89,7 +89,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                alt_create_t create)
-    : txn_(parent.txn_),
+    : txn_(parent.txn()),
       cache_(txn_->cache()),
       current_page_acq_(),
       snapshot_node_(NULL) {

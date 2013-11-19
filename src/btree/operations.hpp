@@ -298,10 +298,16 @@ void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::ve
 void set_superblock_metainfo(alt::alt_buf_lock_t *superblock,
                              const std::vector<char> &key,
                              const std::vector<char> &value);
-#endif
+#else
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value);
+#endif
 
+#if SLICE_ALT
+void delete_superblock_metainfo(alt::alt_buf_lock_t *superblock,
+                                const std::vector<char> &key);
+#else
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key);
+#endif
 #if SLICE_ALT
 void clear_superblock_metainfo(alt::alt_buf_lock_t *superblock);
 #else
