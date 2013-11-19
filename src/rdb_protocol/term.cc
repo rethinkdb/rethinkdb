@@ -171,16 +171,18 @@ void run(protob_t<Query> q,
 #ifdef INSTRUMENT
     debugf("Query: %s\n", q->DebugString().c_str());
 #endif // INSTRUMENT
+
     int64_t token = q->token();
+    use_json_t use_json = q->accepts_r_json() ? use_json_t::YES : use_json_t::NO;
 
     switch (q->type()) {
     case Query_QueryType_START: {
-        threadnum_t thread = get_thread_id();
+        threadnum_t th = get_thread_id();
         scoped_ptr_t<ql::env_t> env(
             new ql::env_t(
                 ctx->extproc_pool, ctx->ns_repo,
-                ctx->cross_thread_namespace_watchables[thread.threadnum]->get_watchable(),
-                ctx->cross_thread_database_watchables[thread.threadnum]->get_watchable(),
+                ctx->cross_thread_namespace_watchables[th.threadnum]->get_watchable(),
+                ctx->cross_thread_database_watchables[th.threadnum]->get_watchable(),
                 ctx->cluster_metadata, ctx->directory_read_manager,
                 interruptor, ctx->machine_id, q));
 
@@ -216,21 +218,22 @@ void run(protob_t<Query> q,
             if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
                 res->set_type(Response_ResponseType_SUCCESS_ATOM);
                 counted_t<const datum_t> d = val->as_datum();
-                d->write_to_protobuf(res->add_response());
+                d->write_to_protobuf(res->add_response(), use_json);
                 if (env->trace.has()) {
-                    env->trace->as_datum()->write_to_protobuf(res->mutable_profile());
+                    env->trace->as_datum()->write_to_protobuf(
+                        res->mutable_profile(), use_json);
                 }
             } else if (val->get_type().is_convertible(val_t::type_t::SEQUENCE)) {
                 counted_t<datum_stream_t> seq = val->as_seq(env.get());
                 if (counted_t<const datum_t> arr = seq->as_array(env.get())) {
                     res->set_type(Response_ResponseType_SUCCESS_ATOM);
-                    arr->write_to_protobuf(res->add_response());
+                    arr->write_to_protobuf(res->add_response(), use_json);
                     if (env->trace.has()) {
                         env->trace->as_datum()->write_to_protobuf(
-                            res->mutable_profile());
+                            res->mutable_profile(), use_json);
                     }
                 } else {
-                    stream_cache2->insert(token, std::move(env), seq);
+                    stream_cache2->insert(token, use_json, std::move(env), seq);
                     bool b = stream_cache2->serve(token, res, interruptor);
                     r_sanity_check(b);
                 }

@@ -85,7 +85,9 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
-            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+            batchspec_t batchspec =
+                batchspec_t::user(batch_type_t::TERMINAL, env->env).with_at_most(
+                    int64_t(n)+1);
             counted_t<const datum_t> last_d;
             {
                 profile::sampler_t sampler("Find nth element.", env->env->trace);
@@ -177,7 +179,8 @@ private:
             }
             uint64_t real_r = fake_r;
             if (fake_r < -1) {
-                rfail(base_exc_t::GENERIC, "Cannot use a right index < -1 on a stream.");
+                rfail(base_exc_t::GENERIC,
+                      "Cannot use a right index < -1 on a stream.");
             } else if (fake_r == -1) {
                 rcheck(!right_open(env), base_exc_t::GENERIC,
                        "Cannot slice to an open right index of -1 on a stream.");

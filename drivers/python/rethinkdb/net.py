@@ -288,6 +288,8 @@ class Connection(object):
         if not self.socket:
             raise RqlDriverError("Connection is closed.")
 
+        query.accepts_r_json = True
+
         # Send protobuf
         query_protobuf = query.SerializeToString()
         query_header = struct.pack("<L", len(query_protobuf))
@@ -308,7 +310,7 @@ class Connection(object):
             time_format = opts['time_format']
 
         # Sequence responses
-        elif response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
+        if response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
             value = Cursor(self, query, term, opts)
             value._extend(response)
 
