@@ -209,7 +209,7 @@
 // How many bytes of buffering space we can use per disk when reading the LBA. If it's set
 // too high, then RethinkDB will eat a lot of memory at startup. This is bad because tcmalloc
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
-#define LBA_READ_BUFFER_SIZE                      GIGABYTE
+#define LBA_READ_BUFFER_SIZE                      (128 * MEGABYTE)
 
 #define COROUTINE_STACK_SIZE                      131072
 
