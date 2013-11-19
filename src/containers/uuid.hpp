@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_UUID_HPP_
 #define CONTAINERS_UUID_HPP_
 
@@ -35,6 +35,7 @@ private:
 };
 
 
+
 bool operator==(const uuid_u& x, const uuid_u& y);
 inline bool operator!=(const uuid_u& x, const uuid_u& y) { return !(x == y); }
 bool operator<(const uuid_u& x, const uuid_u& y);
@@ -55,6 +56,15 @@ uuid_u str_to_uuid(const std::string &str);
 MUST_USE bool str_to_uuid(const std::string &str, uuid_u *out);
 
 bool is_uuid(const std::string& str);
+
+
+typedef uuid_u namespace_id_t;
+typedef uuid_u database_id_t;
+typedef uuid_u machine_id_t;
+typedef uuid_u datacenter_id_t;
+typedef uuid_u backfill_session_id_t;
+typedef uuid_u branch_id_t;
+typedef uuid_u reactor_activity_id_t;
 
 
 #endif  // CONTAINERS_UUID_HPP_

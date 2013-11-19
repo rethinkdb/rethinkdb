@@ -115,53 +115,92 @@ mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t,
     // Do nothing
 }
 
-void mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::point_replace_t &r) {
-    response->response = rdb_protocol_t::point_replace_response_t();
-    rdb_protocol_t::point_replace_response_t *res = boost::get<rdb_protocol_t::point_replace_response_t>(&response->response);
-    ql::map_wire_func_t *f = const_cast<ql::map_wire_func_t *>(&r.f);
-
-    counted_t<const ql::datum_t> num_records = make_counted<ql::datum_t>(1.0);
-    ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
-
-    counted_t<const ql::datum_t> old_val;
-    if (data->find(r.key) != data->end()) {
-        old_val = make_counted<ql::datum_t>(data->at(r.key)->get());
-    } else {
-        old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
-    }
-
-    counted_t<const ql::datum_t> new_val = f->compile_wire_func()->call(env, old_val)->as_datum();
-    data->erase(r.key);
-
-    bool not_added;
-    if (new_val->get_type() == ql::datum_t::R_OBJECT) {
-        data->insert(std::make_pair(r.key, new scoped_cJSON_t(new_val->as_json())));
-        if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp.add("inserted", num_records);
+void mock_namespace_interface_t::write_visitor_t::operator()(
+    const rdb_protocol_t::batched_replace_t &r) {
+    counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+    for (auto it = r.keys.begin(); it != r.keys.end(); ++it) {
+        ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
+        counted_t<const ql::datum_t> old_val;
+        if (data->find(*it) != data->end()) {
+            old_val = make_counted<ql::datum_t>(data->at(*it)->get());
         } else {
-            if (*old_val == *new_val) {
-                not_added = resp.add("unchanged", num_records);
+            old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+        }
+
+        counted_t<const ql::datum_t> new_val
+            = r.f.compile_wire_func()->call(env, old_val)->as_datum();
+        data->erase(*it);
+
+        bool err;
+        if (new_val->get_type() == ql::datum_t::R_OBJECT) {
+            data->insert(std::make_pair(*it, new scoped_cJSON_t(new_val->as_json())));
+            if (old_val->get_type() == ql::datum_t::R_NULL) {
+                err = resp.add("inserted", make_counted<const ql::datum_t>(1.0));
             } else {
-                not_added = resp.add("replaced", num_records);
+                if (*old_val == *new_val) {
+                    err = resp.add("unchanged", make_counted<const ql::datum_t>(1.0));
+                } else {
+                    err = resp.add("replaced", make_counted<const ql::datum_t>(1.0));
+                }
             }
-        }
-    } else if (new_val->get_type() == ql::datum_t::R_NULL) {
-        if (old_val->get_type() == ql::datum_t::R_NULL) {
-            not_added = resp.add("skipped", num_records);
+        } else if (new_val->get_type() == ql::datum_t::R_NULL) {
+            if (old_val->get_type() == ql::datum_t::R_NULL) {
+                err = resp.add("skipped", make_counted<const ql::datum_t>(1.0));
+            } else {
+                err = resp.add("deleted", make_counted<const ql::datum_t>(1.0));
+            }
         } else {
-            not_added = resp.add("deleted", num_records);
+            throw cannot_perform_query_exc_t(
+                "value being inserted is neither an object nor an empty value");
         }
-    } else {
-        throw cannot_perform_query_exc_t(
-            "value being inserted is neither an object nor an empty value");
+        guarantee(!err);
+        stats = stats->merge(resp.to_counted(), ql::stats_merge);
     }
-
-    guarantee(!not_added);
-    resp->write_to_protobuf(res);
+    response->response = stats;
 }
 
-void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::batched_replaces_t &) {
-    throw cannot_perform_query_exc_t("unimplemented");
+void mock_namespace_interface_t::write_visitor_t::operator()(
+    const rdb_protocol_t::batched_insert_t &bi) {
+    counted_t<const ql::datum_t> stats(new ql::datum_t(ql::datum_t::R_OBJECT));
+    for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
+        store_key_t key((*it)->get(bi.pkey)->print_primary());
+        ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
+        counted_t<const ql::datum_t> old_val;
+        if (data->find(key) != data->end()) {
+            old_val = make_counted<ql::datum_t>(data->at(key)->get());
+        } else {
+            old_val = make_counted<ql::datum_t>(ql::datum_t::R_NULL);
+        }
+
+        counted_t<const ql::datum_t> new_val = *it;
+        data->erase(key);
+
+        bool err;
+        if (new_val->get_type() == ql::datum_t::R_OBJECT) {
+            data->insert(std::make_pair(key, new scoped_cJSON_t(new_val->as_json())));
+            if (old_val->get_type() == ql::datum_t::R_NULL) {
+                err = resp.add("inserted", make_counted<const ql::datum_t>(1.0));
+            } else {
+                if (*old_val == *new_val) {
+                    err = resp.add("unchanged", make_counted<const ql::datum_t>(1.0));
+                } else {
+                    err = resp.add("replaced", make_counted<const ql::datum_t>(1.0));
+                }
+            }
+        } else if (new_val->get_type() == ql::datum_t::R_NULL) {
+            if (old_val->get_type() == ql::datum_t::R_NULL) {
+                err = resp.add("skipped", make_counted<const ql::datum_t>(1.0));
+            } else {
+                err = resp.add("deleted", make_counted<const ql::datum_t>(1.0));
+            }
+        } else {
+            throw cannot_perform_query_exc_t(
+                "value being inserted is neither an object nor an empty value");
+        }
+        guarantee(!err);
+        stats = stats->merge(resp.to_counted(), ql::stats_merge);
+    }
+    response->response = stats;
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::point_write_t &) {
@@ -177,6 +216,10 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_
 }
 
 void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sindex_drop_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sync_t &) {
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
@@ -273,7 +316,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            NULL,
                            &interruptor,
                            test_env->machine_id,
-                           std::map<std::string, ql::wire_func_t>()));
+                           ql::protob_t<Query>()));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas

@@ -46,8 +46,8 @@ class TermBase
         # Parse out run options from connOrOptions object
         if connOrOptions? and connOrOptions.constructor is Object
             for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>}."
+                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'profile']
+                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>}."
             conn = connOrOptions.connection
             opts = connOrOptions
         else
@@ -57,7 +57,7 @@ class TermBase
         # This only checks that the argument is of the right type, connection
         # closed errors will be handled elsewhere
         unless conn? and conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>}."
+            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>}."
 
         # We only require a callback if noreply isn't set
         if not opts.noreply and typeof(cb) isnt 'function'
@@ -166,9 +166,8 @@ class RDBVal extends TermBase
         # Look for opts dict
         perhapsOptDict = attrsAndOpts[attrsAndOpts.length - 1]
         if perhapsOptDict and
-                ((perhapsOptDict instanceof Object) and
-                not (perhapsOptDict instanceof TermBase) and
-                not (perhapsOptDict instanceof Function))
+                (Object::toString.call(perhapsOptDict) is '[object Object]') and
+                not (perhapsOptDict instanceof TermBase)
             opts = perhapsOptDict
             attrs = attrsAndOpts[0...(attrsAndOpts.length - 1)]
 
@@ -201,7 +200,7 @@ class RDBVal extends TermBase
         # Look for opts dict
         perhapsOptDict = keysAndOpts[keysAndOpts.length - 1]
         if perhapsOptDict and
-                ((perhapsOptDict instanceof Object) and not (perhapsOptDict instanceof TermBase))
+                ((Object::toString.call(perhapsOptDict) is '[object Object]') and not (perhapsOptDict instanceof TermBase))
             opts = perhapsOptDict
             keys = keysAndOpts[0...(keysAndOpts.length - 1)]
 
@@ -212,14 +211,21 @@ class RDBVal extends TermBase
     # This behavior can be manually overridden with either direct JSON serialization
     # or ReQL datum serialization by first wrapping the argument with `r.expr` or `r.json`.
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.exprJSON(doc)
-    indexCreate: varar(1, 2, (name, defun) ->
-        if defun?
-            new IndexCreate {}, @, name, funcWrap(defun)
+    indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
+        if opts?
+            new IndexCreate opts, @, name, funcWrap(defun_or_opts)
+        else if defun_or_opts?
+            if (Object::toString.call(defun_or_opts) is '[object Object]') and not (defun_or_opts instanceof Function) and not (defun_or_opts instanceof TermBase)
+                new IndexCreate defun_or_opts, @, name
+            else
+                new IndexCreate {}, @, name, funcWrap(defun_or_opts)
         else
             new IndexCreate {}, @, name
         )
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
+
+    sync: ar () -> new Sync {}, @
 
     toISO8601: ar () -> new ToISO8601 {}, @
     toEpochTime: ar () -> new ToEpochTime {}, @
@@ -499,7 +505,7 @@ class Skip extends RDBOp
 
 class Limit extends RDBOp
     tt: "LIMIT"
-    st: 'limit'
+    mt: 'limit'
 
 class GetField extends RDBOp
     tt: "GET_FIELD"
@@ -702,6 +708,10 @@ class IndexDrop extends RDBOp
 class IndexList extends RDBOp
     tt: "INDEX_LIST"
     mt: 'indexList'
+
+class Sync extends RDBOp
+    tt: "SYNC"
+    mt: 'sync'
 
 class FunCall extends RDBOp
     tt: "FUNCALL"

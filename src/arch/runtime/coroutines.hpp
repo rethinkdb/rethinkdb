@@ -13,8 +13,24 @@
 
 const size_t MAX_COROUTINE_STACK_SIZE = 8*1024*1024;
 
-int get_thread_id();
+// Enable cross-coroutine backtraces in debug mode.
+#ifndef NDEBUG
+#define CROSS_CORO_BACKTRACES            1
+#endif
+#define CROSS_CORO_BACKTRACES_MAX_SIZE  64
+
+threadnum_t get_thread_id();
 struct coro_globals_t;
+
+
+struct coro_profiler_mixin_t {
+#ifdef ENABLE_CORO_PROFILER
+    coro_profiler_mixin_t() : last_resumed_at(0), last_sample_at(0) { }
+    ticks_t last_resumed_at;
+    ticks_t last_sample_at;
+#endif
+};
+
 
 /* A coro_t represents a fiber of execution within a thread. Create one with spawn_*(). Within a
 coroutine, call wait() to return control to the scheduler; the coroutine will be resumed when
@@ -23,7 +39,10 @@ another fiber calls notify_*() on it.
 coro_t objects can switch threads with move_to_thread(), but it is recommended that you use
 on_thread_t for more safety. */
 
-class coro_t : private linux_thread_message_t, public intrusive_list_node_t<coro_t>, public home_thread_mixin_t {
+class coro_t : private coro_profiler_mixin_t,
+               private linux_thread_message_t,
+               public intrusive_list_node_t<coro_t>,
+               public home_thread_mixin_t {
 public:
     friend bool is_coroutine_stack_overflow(void *);
 
@@ -108,17 +127,33 @@ public:
     static void set_coroutine_stack_size(size_t size);
 
     artificial_stack_t * get_stack();
+    
+    void set_priority(int _priority) {
+        linux_thread_message_t::set_priority(_priority);
+    }
+    int get_priority() const {
+        return linux_thread_message_t::get_priority();
+    }
+
+    /* Copies the backtrace from the time of spawning the coroutine into
+    `buffer_out`, which has to be allocated before calling the function.
+    `size` must contain the maximum number of entries to store.
+    Returns how many entries have been deposited into `buffer_out`. */
+    int copy_spawn_backtrace(void **buffer_out, int size) const;
 
 private:
     /* When called from within a coroutine, schedules the coroutine to be run on
     the given thread and then suspends the coroutine until that other thread
     picks it up again. Do not call this directly; use `on_thread_t` instead. */
     friend class on_thread_t;
-    static void move_to_thread(int thread);
+    static void move_to_thread(threadnum_t thread);
 
-    // Contructor sets up the stack, get_and_init_coro will load a function to be run
+    // Constructor sets up the stack, get_and_init_coro will load a function to be run
     //  at which point the coroutine can be notified
     coro_t();
+
+    // Generates a spawn-time backtrace and stores it into `spawn_backtrace`.
+    void grab_spawn_backtrace();
 
     // If this function footprint ever changes, you may need to update the parse_coroutine_info function
     template<class Callable>
@@ -127,7 +162,18 @@ private:
 #ifndef NDEBUG
         coro->parse_coroutine_type(__PRETTY_FUNCTION__);
 #endif
+        coro->grab_spawn_backtrace();
         coro->action_wrapper.reset(action);
+
+        // If we were called from a coroutine, the new coroutine inherits our
+        // caller's priority.
+        if (self() != NULL) {
+            coro->set_priority(self()->get_priority());
+        } else {
+            // Otherwise, just reset to the default.
+            coro->set_priority(MESSAGE_SCHEDULER_DEFAULT_PRIORITY);
+        }
+
         return coro;
     }
 
@@ -137,6 +183,7 @@ private:
 
     static void run() NORETURN;
 
+    friend class coro_profiler_t;
     friend struct coro_globals_t;
     ~coro_t();
 
@@ -144,7 +191,7 @@ private:
 
     artificial_stack_t stack;
 
-    int current_thread_;
+    threadnum_t current_thread_;
 
     // Sanity check variables
     bool notified_;
@@ -156,6 +203,11 @@ private:
     int64_t selfname_number;
     std::string coroutine_type;
     void parse_coroutine_type(const char *coroutine_function);
+#endif
+
+#ifdef CROSS_CORO_BACKTRACES
+    int spawn_backtrace_size;
+    void *spawn_backtrace[CROSS_CORO_BACKTRACES_MAX_SIZE];
 #endif
 
     DISABLE_COPYING(coro_t);

@@ -3,17 +3,25 @@
 
 #include <float.h>
 #include <math.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include <algorithm>
 
+#include "errors.hpp"
+#include <boost/detail/endian.hpp>
+
+#include "containers/archive/string_stream.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/proto_utils.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/pseudo_literal.hpp"
 #include "stl_utils.hpp"
 
+
 namespace ql {
+
+const size_t tag_size = 8;
 
 const std::set<std::string> datum_t::_allowed_pts = std::set<std::string>();
 
@@ -39,11 +47,15 @@ datum_t::datum_t(const char *cstr)
     : type(R_STR), r_str(new std::string(cstr)) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
-    : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) { }
+    : type(R_ARRAY),
+      r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
+    rcheck_array_size(*r_array, base_exc_t::GENERIC);
+}
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
     : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(_object))) {
+      r_object(new std::map<std::string, counted_t<const datum_t> >(
+                   std::move(_object))) {
     maybe_sanitize_ptype();
 }
 
@@ -128,6 +140,7 @@ void datum_t::init_json(cJSON *json) {
     case cJSON_String: {
         init_str();
         *r_str = json->valuestring;
+        check_str_validity(*r_str);
     } break;
     case cJSON_Array: {
         init_array();
@@ -352,6 +365,21 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
                         trunc_print().c_str())));
 }
 
+void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
+                                   const std::string &pkey) const {
+    counted_t<const datum_t> pk = get(pkey, NOTHROW);
+    rcheck(pk.has(), base_exc_t::GENERIC,
+           strprintf("Inserted object must have primary key `%s`:\n%s",
+                     pkey.c_str(), print().c_str()));
+    if (old_val.has() && old_val->get_type() != R_NULL) {
+        counted_t<const datum_t> old_pk = old_val->get(pkey, NOTHROW);
+        r_sanity_check(old_pk.has());
+        rcheck(*old_pk == *pk, base_exc_t::GENERIC,
+               strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
+                         pkey.c_str(), old_val->print().c_str(), print().c_str()));
+    }
+}
+
 std::string datum_t::print_primary() const {
     std::string s;
     switch (get_type()) {
@@ -384,8 +412,24 @@ std::string datum_t::print_primary() const {
     return s;
 }
 
-std::string datum_t::print_secondary(const store_key_t &primary_key) const {
-    std::string s;
+std::string datum_t::mangle_secondary(const std::string &secondary,
+                                      const std::string &primary,
+        const std::string &tag) {
+    guarantee(secondary.size() < UINT8_MAX);
+    guarantee(secondary.size() + primary.size() < UINT8_MAX);
+
+    uint8_t pk_offset = static_cast<uint8_t>(secondary.size()),
+            tag_offset = static_cast<uint8_t>(primary.size()) + pk_offset;
+
+    std::string res = secondary + primary + tag +
+           std::string(1, pk_offset) + std::string(1, tag_offset);
+    guarantee(res.size() <= MAX_KEY_SIZE);
+    return res;
+}
+
+std::string datum_t::print_secondary(const store_key_t &primary_key,
+                                     boost::optional<uint64_t> tag_num) const {
+    std::string secondary_key_string;
     std::string primary_key_string = key_to_unescaped_str(primary_key);
 
     if (primary_key_string.length() > rdb_protocol_t::MAX_PRIMARY_KEY_SIZE) {
@@ -396,15 +440,15 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
     }
 
     if (type == R_NUM) {
-        num_to_str_key(&s);
+        num_to_str_key(&secondary_key_string);
     } else if (type == R_STR) {
-        str_to_str_key(&s);
+        str_to_str_key(&secondary_key_string);
     } else if (type == R_BOOL) {
-        bool_to_str_key(&s);
+        bool_to_str_key(&secondary_key_string);
     } else if (type == R_ARRAY) {
-        array_to_str_key(&s);
+        array_to_str_key(&secondary_key_string);
     } else if (type == R_OBJECT && is_ptype()) {
-        pt_to_str_key(&s);
+        pt_to_str_key(&secondary_key_string);
     } else {
         type_error(strprintf(
             "Secondary keys must be a number, string, bool, pseudotype, or array "
@@ -412,30 +456,69 @@ std::string datum_t::print_secondary(const store_key_t &primary_key) const {
             get_type_name().c_str(), trunc_print().c_str()));
     }
 
-    s = s.substr(0, MAX_KEY_SIZE - primary_key_string.length() - 1) +
-        std::string(1, '\0') + primary_key_string;
+    std::string tag_string;
+    if (tag_num) {
+        static_assert(sizeof(*tag_num) == tag_size,
+                "tag_size constant is assumed to be the size of a uint64_t.");
+#ifndef BOOST_LITTLE_ENDIAN
+        static_assert(false, "This piece of code will break on big-endian systems.");
+#endif
+        tag_string.assign(reinterpret_cast<const char *>(&*tag_num), tag_size);
+    }
 
-    return s;
+    secondary_key_string =
+        secondary_key_string.substr(0, trunc_size(primary_key_string.length()));
+
+    return mangle_secondary(secondary_key_string, primary_key_string, tag_string);
 }
 
-std::string datum_t::unprint_secondary(
-        const std::string &secondary_and_primary) {
-    size_t separator = secondary_and_primary.find_last_of('\0');
+struct components_t {
+    std::string secondary;
+    std::string primary;
+    boost::optional<uint64_t> tag_num;
+};
 
-    return secondary_and_primary.substr(separator + 1, std::string::npos);
+void parse_secondary(const std::string &key, components_t *components) {
+    uint8_t start_of_tag = key[key.size() - 1],
+            start_of_primary = key[key.size() - 2];
+
+    guarantee(start_of_primary < start_of_tag);
+
+    components->secondary = key.substr(0, start_of_primary);
+    components->primary = key.substr(start_of_primary, start_of_tag - start_of_primary);
+
+    std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
+    if (tag_str.size() != 0) {
+#ifndef BOOST_LITTLE_ENDIAN
+        static_assert(false, "This piece of code will break on little endian systems.");
+#endif
+        components->tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
+    }
 }
 
-std::string datum_t::extract_secondary(
-        const std::string &secondary_and_primary) {
-    size_t separator = secondary_and_primary.find_last_of('\0');
-
-    return secondary_and_primary.substr(0, separator);
+std::string datum_t::extract_primary(const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.primary;
 }
 
-// This function returns a store_key_t suitable for searching by a secondary-index.
-//  This is needed because secondary indexes may be truncated, but the amount truncated
-//  depends on the length of the primary key.  Since we do not know how much was truncated,
-//  we have to truncate the maximum amount, then return all matches and filter them out later.
+std::string datum_t::extract_secondary(const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.secondary;
+}
+
+boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
+    components_t components;
+    parse_secondary(secondary, &components);
+    return components.tag_num;
+}
+
+// This function returns a store_key_t suitable for searching by a
+// secondary-index.  This is needed because secondary indexes may be truncated,
+// but the amount truncated depends on the length of the primary key.  Since we
+// do not know how much was truncated, we have to truncate the maximum amount,
+// then return all matches and filter them out later.
 store_key_t datum_t::truncated_secondary() const {
     std::string s;
     if (type == R_NUM) {
@@ -455,11 +538,8 @@ store_key_t datum_t::truncated_secondary() const {
             print().c_str(), get_type_name().c_str()));
     }
 
-    // If the key does not need truncation, add a null byte at the end to filter out more
-    //  potential results
-    if (s.length() < max_trunc_size()) {
-        s += std::string(1, '\0');
-    } else {
+    // Truncate the key if necessary
+    if (s.length() >= max_trunc_size()) {
         s.erase(max_trunc_size());
     }
 
@@ -684,6 +764,7 @@ void datum_t::add(counted_t<const datum_t> val) {
     check_type(R_ARRAY);
     r_sanity_check(val.has());
     r_array->push_back(val);
+    rcheck_array_size(*r_array, base_exc_t::GENERIC);
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
@@ -750,7 +831,6 @@ int derived_cmp(T a, T b) {
 }
 
 
-
 int datum_t::cmp(const datum_t &rhs) const {
     if (is_ptype() && !rhs.is_ptype()) {
         return 1;
@@ -813,12 +893,12 @@ int datum_t::cmp(const datum_t &rhs) const {
     }
 }
 
-bool datum_t::operator== (const datum_t &rhs) const { return cmp(rhs) == 0;  }
-bool datum_t::operator!= (const datum_t &rhs) const { return cmp(rhs) != 0;  }
-bool datum_t::operator<  (const datum_t &rhs) const { return cmp(rhs) == -1; }
-bool datum_t::operator<= (const datum_t &rhs) const { return cmp(rhs) != 1;  }
-bool datum_t::operator>  (const datum_t &rhs) const { return cmp(rhs) == 1;  }
-bool datum_t::operator>= (const datum_t &rhs) const { return cmp(rhs) != -1; }
+bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
+bool datum_t::operator!=(const datum_t &rhs) const { return cmp(rhs) != 0; }
+bool datum_t::operator<(const datum_t &rhs) const { return cmp(rhs) < 0; }
+bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
+bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
+bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,
@@ -856,6 +936,10 @@ void datum_t::init_from_pb(const Datum *d) {
         *r_str = d->r_str();
         check_str_validity(*r_str);
     } break;
+    case Datum::R_JSON: {
+        scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
+        init_json(cjson.get());
+    } break;
     case Datum::R_ARRAY: {
         init_array();
         for (int i = 0; i < d->r_array_size(); ++i) {
@@ -881,50 +965,70 @@ void datum_t::init_from_pb(const Datum *d) {
 }
 
 size_t datum_t::max_trunc_size() {
-    return MAX_KEY_SIZE - rdb_protocol_t::MAX_PRIMARY_KEY_SIZE - 1;
+    return trunc_size(rdb_protocol_t::MAX_PRIMARY_KEY_SIZE);
+}
+
+size_t datum_t::trunc_size(size_t primary_key_size) {
+    //The 2 in this function is necessary because of the offsets which are
+    //included at the end of the key so that we can extract the primary key and
+    //the tag num from secondary keys.
+    return MAX_KEY_SIZE - primary_key_size - tag_size - 2;
 }
 
 bool datum_t::key_is_truncated(const store_key_t &key) {
-    return key.size() == MAX_KEY_SIZE;
+    std::string key_str = key_to_unescaped_str(key);
+    if (extract_tag(key_str)) {
+        return key.size() == MAX_KEY_SIZE;
+    } else {
+        return key.size() == MAX_KEY_SIZE - tag_size;
+    }
 }
 
-void datum_t::write_to_protobuf(Datum *d) const {
-    switch (get_type()) {
-    case R_NULL: {
-        d->set_type(Datum::R_NULL);
-    } break;
-    case R_BOOL: {
-        d->set_type(Datum::R_BOOL);
-        d->set_r_bool(r_bool);
-    } break;
-    case R_NUM: {
-        d->set_type(Datum::R_NUM);
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        r_sanity_check(isfinite(r_num));
-        d->set_r_num(r_num);
-    } break;
-    case R_STR: {
-        d->set_type(Datum::R_STR);
-        d->set_r_str(*r_str);
-    } break;
-    case R_ARRAY: {
-        d->set_type(Datum::R_ARRAY);
-        for (size_t i = 0; i < r_array->size(); ++i) {
-            (*r_array)[i]->write_to_protobuf(d->add_r_array());
+void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
+    switch (use_json) {
+    case use_json_t::NO: {
+        switch (get_type()) {
+        case R_NULL: {
+            d->set_type(Datum::R_NULL);
+        } break;
+        case R_BOOL: {
+            d->set_type(Datum::R_BOOL);
+            d->set_r_bool(r_bool);
+        } break;
+        case R_NUM: {
+            d->set_type(Datum::R_NUM);
+            // so we can use `isfinite` in a GCC 4.4.3-compatible way
+            using namespace std;  // NOLINT(build/namespaces)
+            r_sanity_check(isfinite(r_num));
+            d->set_r_num(r_num);
+        } break;
+        case R_STR: {
+            d->set_type(Datum::R_STR);
+            d->set_r_str(*r_str);
+        } break;
+        case R_ARRAY: {
+            d->set_type(Datum::R_ARRAY);
+            for (size_t i = 0; i < r_array->size(); ++i) {
+                (*r_array)[i]->write_to_protobuf(d->add_r_array(), use_json);
+            }
+        } break;
+        case R_OBJECT: {
+            d->set_type(Datum::R_OBJECT);
+            // We use rbegin and rend so that things print the way we expect.
+            for (auto it = r_object->rbegin(); it != r_object->rend(); ++it) {
+                Datum_AssocPair *ap = d->add_r_object();
+                ap->set_key(it->first);
+                it->second->write_to_protobuf(ap->mutable_val(), use_json);
+            }
+        } break;
+        case UNINITIALIZED: // fallthru
+        default: unreachable();
         }
     } break;
-    case R_OBJECT: {
-        d->set_type(Datum::R_OBJECT);
-        // We use rbegin and rend so that things print the way we expect.
-        for (std::map<std::string, counted_t<const datum_t> >::const_reverse_iterator
-                 it = r_object->rbegin(); it != r_object->rend(); ++it) {
-            Datum_AssocPair *ap = d->add_r_object();
-            ap->set_key(it->first);
-            it->second->write_to_protobuf(ap->mutable_val());
-        }
+    case use_json_t::YES: {
+        d->set_type(Datum::R_JSON);
+        d->set_r_str(as_json().PrintUnformatted());
     } break;
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -944,36 +1048,39 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(datum_serialized_type_t, int8_t,
                                       datum_serialized_type_t::R_ARRAY,
                                       datum_serialized_type_t::INT_POSITIVE);
 
-
 // This must be kept in sync with operator<<(write_message_t &, const counted_t<const
 // datum_T> &).
 size_t serialized_size(const counted_t<const datum_t> &datum) {
     r_sanity_check(datum.has());
-    const size_t typesize = 1;  // 1 byte for the type.
+    size_t sz = 1; // 1 byte for the type
     switch (datum->get_type()) {
-    case datum_t::R_ARRAY:
-        return typesize + serialized_size(datum->as_array());
-    case datum_t::R_BOOL:
-        return typesize + serialized_size_t<bool>::value;
-    case datum_t::R_NULL:
-        return typesize;
+    case datum_t::R_ARRAY: {
+        sz += serialized_size(datum->as_array());
+    } break;
+    case datum_t::R_BOOL: {
+        sz += serialized_size_t<bool>::value;
+    } break;
+    case datum_t::R_NULL: break;
     case datum_t::R_NUM: {
         double d = datum->as_num();
         int64_t i;
         if (number_as_integer(d, &i)) {
-            return typesize + varint_uint64_serialized_size(abs(i));
+            sz += varint_uint64_serialized_size(abs(i));
         } else {
-            return typesize + serialized_size_t<double>::value;
+            sz += serialized_size_t<double>::value;
         }
     } break;
-    case datum_t::R_OBJECT:
-        return typesize + serialized_size(datum->as_object());
-    case datum_t::R_STR:
-        return typesize + serialized_size(datum->as_str());
+    case datum_t::R_OBJECT: {
+        sz += serialized_size(datum->as_object());
+    } break;
+    case datum_t::R_STR: {
+        sz += serialized_size(datum->as_str());
+    } break;
     case datum_t::UNINITIALIZED:  // fall through
     default:
         unreachable();
     }
+    return sz;
 }
 
 write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> &datum) {
@@ -997,7 +1104,10 @@ write_message_t &operator<<(write_message_t &wm, const counted_t<const datum_t> 
         int64_t i;
         if (number_as_integer(value, &i)) {
             // We serialize the signed-zero double, -0.0, with INT_NEGATIVE.
-            if (std::signbit(value)) {
+
+            // so we can use `signbit` in a GCC 4.4.3-compatible way
+            using namespace std;  // NOLINT(build/namespaces)
+            if (signbit(value)) {
                 wm << datum_serialized_type_t::INT_NEGATIVE;
                 serialize_varint_uint64(&wm, -i);
             } else {
@@ -1186,8 +1296,8 @@ void wire_datum_map_t::finalize() {
     r_sanity_check(state == COMPILED);
     while (!map.empty()) {
         map_pb.push_back(std::make_pair(Datum(), Datum()));
-        map.begin()->first->write_to_protobuf(&map_pb.back().first);
-        map.begin()->second->write_to_protobuf(&map_pb.back().second);
+        map.begin()->first->write_to_protobuf(&map_pb.back().first, use_json_t::NO);
+        map.begin()->second->write_to_protobuf(&map_pb.back().second, use_json_t::NO);
         map.erase(map.begin());
     }
     state = SERIALIZABLE;
@@ -1207,7 +1317,9 @@ counted_t<const datum_t> wire_datum_map_t::to_arr() const {
 }
 
 void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    /* Should be guaranteed by finalize. */
     r_sanity_check(state == SERIALIZABLE);
+    r_sanity_check(map.empty());
     msg << map_pb;
 }
 
@@ -1216,6 +1328,36 @@ archive_result_t wire_datum_map_t::rdb_deserialize(read_stream_t *s) {
     if (res) return res;
     state = SERIALIZABLE;
     return ARCHIVE_SUCCESS;
+}
+
+// `key` is unused because this is passed to `datum_t::merge`, which takes a
+// generic conflict resolution function, but this particular conflict resolution
+// function doesn't care about they key (although we could add some
+// error-checking using the key in the future).
+counted_t<const datum_t> stats_merge(UNUSED const std::string &key,
+                                     counted_t<const datum_t> l,
+                                     counted_t<const datum_t> r) {
+    if (l->get_type() == datum_t::R_NUM && r->get_type() == datum_t::R_NUM) {
+        return make_counted<datum_t>(l->as_num() + r->as_num());
+    } else if (l->get_type() == datum_t::R_ARRAY && r->get_type() == datum_t::R_ARRAY) {
+        datum_ptr_t arr(datum_t::R_ARRAY);
+        for (size_t i = 0; i < l->size(); ++i) {
+            arr.add(l->get(i));
+        }
+        for (size_t i = 0; i < r->size(); ++i) {
+            arr.add(r->get(i));
+        }
+        return arr.to_counted();
+    }
+
+    // Merging a string is left-preferential, which is just a no-op.
+    rcheck_datum(
+        l->get_type() == datum_t::R_STR && r->get_type() == datum_t::R_STR,
+        base_exc_t::GENERIC,
+        strprintf("Cannot merge statistics `%s` (type %s) and `%s` (type %s).",
+                  l->trunc_print().c_str(), l->get_type_name().c_str(),
+                  r->trunc_print().c_str(), r->get_type_name().c_str()));
+    return l;
 }
 
 } // namespace ql

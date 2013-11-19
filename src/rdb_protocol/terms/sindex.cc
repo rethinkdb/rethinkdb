@@ -6,7 +6,7 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
@@ -18,7 +18,7 @@ namespace ql {
 class sindex_create_term_t : public op_term_t {
 public:
     sindex_create_term_t(compile_env_t *env, const protob_t<const Term> &term)
-        : op_term_t(env, term, argspec_t(2, 3)) { }
+        : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi"})) { }
 
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<table_t> table = arg(env, 0)->as_table();
@@ -32,12 +32,10 @@ public:
         if (num_args() == 3) {
             index_func = arg(env, 2)->as_func();
         } else {
-            protob_t<Term> func_term = make_counted_term();
-            {
-                sym_t x;
-                Term *arg = pb::set_func(func_term.get(), pb::dummy_var_t::SINDEXCREATE_X, &x);
-                N2(GET_FIELD, NVAR(x), NDATUM(name_datum));
-            }
+
+            pb::dummy_var_t x = pb::dummy_var_t::SINDEXCREATE_X;
+            protob_t<Term> func_term = r::fun(x, r::var(x)[name_datum]).release_counted();
+
             prop_bt(func_term.get());
             compile_env_t empty_compile_env((var_visibility_t()));
             counted_t<func_term_t> func_term_term = make_counted<func_term_t>(&empty_compile_env,
@@ -47,7 +45,14 @@ public:
         }
         r_sanity_check(index_func.has());
 
-        bool success = table->sindex_create(env->env, name, index_func);
+        /* Check if we're doing a multi index or a normal index. */
+        counted_t<val_t> multi_val = optarg(env, "multi");
+        sindex_multi_bool_t multi =
+            (multi_val && multi_val->as_datum()->as_bool()
+             ? sindex_multi_bool_t::MULTI
+             : sindex_multi_bool_t::SINGLE);
+
+        bool success = table->sindex_create(env->env, name, index_func, multi);
         if (success) {
             datum_ptr_t res(datum_t::R_OBJECT);
             UNUSED bool b = res.add("created", make_counted<datum_t>(1.0));

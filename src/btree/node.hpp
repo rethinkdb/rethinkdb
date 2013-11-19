@@ -27,7 +27,6 @@ public:
 
     virtual int size(const void *value) const = 0;
     virtual bool fits(const void *value, int length_available) const = 0;
-    virtual bool deep_fsck(block_getter_t *getter, const void *value, int length_available, std::string *msg_out) const = 0;
     virtual int max_possible_size() const = 0;
     virtual block_magic_t btree_leaf_magic() const = 0;
     virtual block_size_t block_size() const = 0;
@@ -51,7 +50,7 @@ struct btree_superblock_t {
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 
     static const block_magic_t expected_magic;
-};
+} __attribute__((packed));
 
 struct btree_statblock_t {
     //The total number of keys in the btree

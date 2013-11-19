@@ -59,18 +59,60 @@ r.connect({port:port}, function(err, c) {
 
             // This is getting unruley but we want to make sure that array results
             // support the connection api too
-            r([1,2,3]).run(c, function(err, res) {
+            
+            var ar_to_send = []
+            var limit=10000; // Keep a "big" value to try hitting `maximum call stack exceed`
+            for(var i=0; i<limit; i++) {
+                ar_to_send.push(i);
+            }
+            r(ar_to_send).run(c, function(err, res) {
+                var i = 0;
+                res.each(function(err, res2) {
+                    assert(res2 === ar_to_send[i])
+                    i++;
+                })
+            })
+
+            // Test the toArray
+            limit = 3;
+            var ar_to_send2 = [0, 1, 2]
+            r(ar_to_send2).run(c, function(err, res) {
+                res.toArray(function(err, res2) {
+                    // Make sure we didn't create a copy here
+                    assert(res === res2);
+
+                    // Test values
+                    for(var i=0; i<ar_to_send2.length; i++) {
+                        assert(ar_to_send2[i] === res2[i]);
+                    }
+                })
+                res.next( function(err, row) {
+                    assert(row === ar_to_send2[0])
+                    res.toArray(function(err, res2) {
+                        // Make sure we didn't create a copy here
+                        assert(res2.length === (ar_to_send2.length-1));
+
+                        // Test values
+                        for(var i=0; i<res2.length; i++) {
+                            assert(ar_to_send2[i+1] === res2[i]);
+                        }
+                    })
+                })
+
+
+            })
+
+            // Test that we really have an array and can play with it
+            limit = 3;
+            var ar_to_send3 = [0, 1, 2]
+            r(ar_to_send3).run(c, function(err, res) {
                 assertNoError(err);
 
                 // yes, res is an array that supports array ops
-                res.push(4, 5);
-                res.toArray(function(err, res) {
-                    assertNoError(err);
-                    assert(res.length == 5);
-                    for (var i = 1; i <= 5; ++i) {
-                        assert(res[i - 1] == i);
-                    }
-                });
+                res.push(limit, limit+1);
+                assert(res[limit] === limit);
+                assert(res[limit+1] === limit+1);
+                assert(res.length == (limit+2));
             });
 
             // These simply test that we appropriately check arg numbers for

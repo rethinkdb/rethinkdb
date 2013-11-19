@@ -7,6 +7,7 @@
 
 #include <string>
 
+#include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
 
 typedef int fd_t;
@@ -14,16 +15,30 @@ typedef int fd_t;
 
 class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {
 public:
-    linux_thread_message_t()
+    linux_thread_message_t(int _priority)
+        : priority(_priority),
+        is_ordered(false)
 #ifndef NDEBUG
-        : reloop_count_(0)
+        , reloop_count_(0)
+#endif
+        { }
+    linux_thread_message_t()
+        : priority(MESSAGE_SCHEDULER_DEFAULT_PRIORITY),
+        is_ordered(false)
+#ifndef NDEBUG
+        , reloop_count_(0)
 #endif
         { }
     virtual void on_thread_switch() = 0;
+    
+    void set_priority(int _priority) { priority = _priority; }
+    int get_priority() const { return priority; }
 protected:
     virtual ~linux_thread_message_t() {}
 private:
     friend class linux_message_hub_t;
+    int priority;
+    bool is_ordered; // Used internally by the message hub
 #ifndef NDEBUG
     int reloop_count_;
 #endif
@@ -32,14 +47,6 @@ private:
 typedef linux_thread_message_t thread_message_t;
 
 int get_cpu_count();
-
-#ifndef NDEBUG
-// Functions to keep track of running thread_message_t routines using get_clock_cycles
-void enable_watchdog(); // Enables watchdog printouts (off by default to avoid command-line spam)
-void start_watchdog(); // Starts time supervision
-void disarm_watchdog(); // Suspends time supervision until the next pet or start
-void pet_watchdog(); // Checks for long-running routines and restarts time supervision
-#endif
 
 // More pollution of runtime_utils.hpp.
 #ifndef NDEBUG

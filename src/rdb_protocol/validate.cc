@@ -1,8 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/error.hpp"
+#include "rdb_protocol/validate.hpp"
 #include "utils.hpp"
 
-#include "rdb_protocol/validate.hpp"
-#include "rdb_protocol/error.hpp"
 
 #define check_has(pb, has_field, field) do {                            \
         auto const &check_has_tmp = (pb);                               \
@@ -10,7 +11,7 @@
             check_has_tmp.has_field(),                                  \
             ql::base_exc_t::GENERIC,                                    \
             strprintf("MALFORMED PROTOBUF (missing field `%s`):\n%s",   \
-                      field, check_has_tmp.DebugString().c_str()));     \
+                      (field), check_has_tmp.DebugString().c_str()));   \
     } while (0)
 
 #define check_not_has(pb, has_field, field) do {                        \
@@ -19,17 +20,23 @@
             !check_not_has_tmp.has_field(),                             \
             ql::base_exc_t::GENERIC,                                    \
             strprintf("MALFORMED PROTOBUF (spurious field `%s`):\n%s",  \
-                      field, check_not_has_tmp.DebugString().c_str())); \
+                      (field),                                          \
+                      check_not_has_tmp.DebugString().c_str()));        \
     } while (0)
 
-#define check_empty(pb, field_size, field) do {                         \
-        auto const &check_empty_tmp = (pb);                             \
+#define check_size(expected_size, pb, field_size, field) do {           \
+        auto const &check_size_tmp = (pb);                              \
+        const int check_size_expected = (expected_size);                \
         rcheck_toplevel(                                                \
-            check_empty_tmp.field_size() == 0,                          \
+            check_size_tmp.field_size() == check_size_expected,         \
             ql::base_exc_t::GENERIC,                                    \
-            strprintf("MALFORMED PROTOBUF (non-empty field `%s`):\n%s", \
-                      field, check_empty_tmp.DebugString().c_str()));   \
-    } while (0)
+            strprintf("MALFORMED PROTOBUF (expected field `%s` "        \
+                      "to have size %d):\n%s",                          \
+                      (field), check_size_expected,                     \
+                      check_size_tmp.DebugString().c_str()));           \
+    } while(0)
+
+#define check_empty(pb, field_size, field) check_size(0, pb, field_size, field)
 
 void validate_pb(const Query &q) {
     check_has(q, has_type, "type");
@@ -93,7 +100,7 @@ void validate_pb(const Datum &d) {
     } else {
         check_not_has(d, has_r_num, "r_num");
     }
-    if (d.type() == Datum::R_STR) {
+    if (d.type() == Datum::R_STR || d.type() == Datum::R_JSON) {
         check_has(d, has_r_str, "r_str");
     } else {
         check_not_has(d, has_r_str, "r_str");
@@ -120,12 +127,37 @@ void validate_pb(const Datum::AssocPair &ap) {
     validate_pb(ap.val());
 }
 
+void validate_var_term(const Term &t) {
+    check_empty(t, optargs_size, "optargs");
+    check_size(1, t, args_size, "args");
+    const Term &arg0 = t.args(0);
+    rcheck_toplevel(arg0.type() == Term::DATUM && arg0.has_datum() &&
+                    arg0.datum().type() == Datum::R_NUM &&
+                    arg0.datum().has_r_num(),
+                    ql::base_exc_t::GENERIC,
+                    strprintf("MALFORMED PROTOBUF (expected VAR term "
+                              "to have DATUM of type R_NUM):\n%s",
+                              t.DebugString().c_str()));
+    double number = arg0.datum().r_num();
+    int64_t i;
+    if (!ql::number_as_integer(number, &i) || i < 0) {
+        rfail_toplevel(ql::base_exc_t::GENERIC,
+                       "MALFORMED PROTOBUF (VAR term should have "
+                       "a positive integer value):\n%s",
+                       t.DebugString().c_str());
+    }
+}
+
 void validate_pb(const Term &t) {
     check_has(t, has_type, "type");
     if (t.type() == Term::DATUM) {
         check_has(t, has_datum, "datum");
     } else {
         check_not_has(t, has_datum, "datum");
+        if (t.type() == Term::VAR) {
+            validate_var_term(t);
+            return;
+        }
     }
     for (int i = 0; i < t.args_size(); ++i) {
         validate_pb(t.args(i));

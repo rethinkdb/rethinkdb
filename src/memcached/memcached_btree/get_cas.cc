@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/get_cas.hpp"
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
 
+#include "arch/runtime/coroutines.hpp"
 #include "buffer_cache/buffer_cache.hpp"
 #include "concurrency/promise.hpp"
 #include "memcached/memcached_btree/btree_data_provider.hpp"

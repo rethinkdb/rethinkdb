@@ -27,8 +27,6 @@ timestamp will be a number that the `broadcaster_t` increments every time a
 write operation passes through it. (Warning: The timestamp is usually not zero
 for a new `broadcaster_t`.) */
 
-typedef uuid_u branch_id_t;
-
 class version_t {
 public:
     version_t() { }

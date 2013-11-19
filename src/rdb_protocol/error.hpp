@@ -84,6 +84,7 @@ private:
 };
 
 // Use these macros to return errors to users.
+// TODO: all these arguments should be in parentheses inside the expansion.
 #define rcheck_target(target, type, pred, msg) do {                  \
         (pred)                                                       \
         ? (void)0                                                    \
@@ -107,6 +108,10 @@ private:
         ? (void)0                                                     \
         : ql::runtime_fail(type, stringify(pred),                     \
                            __FILE__, __LINE__, (msg));                \
+    } while (0)
+#define rcheck_array_size(arr, type) do {                               \
+        rcheck((arr).size() < array_size_limit(), type,                 \
+               strprintf("Array over size limit `%zu`.", array_size_limit()).c_str()); \
     } while (0)
 
 #define rcheck(pred, type, msg) rcheck_target(this, type, pred, msg)
@@ -154,9 +159,10 @@ base_exc_t::type_t exc_type(const counted_t<val_t> &v);
 #ifndef NDEBUG
 #define r_sanity_check(test) guarantee(test)
 #else
-#define r_sanity_check(test) do {               \
-    if (!(test)) {                              \
-        ::ql::runtime_sanity_check_failed();    \
+#define r_sanity_check(test) do {                       \
+        if (!(test)) {                                  \
+            ::ql::runtime_sanity_check_failed();        \
+        }                                               \
     } while (0)
 #endif // NDEBUG
 

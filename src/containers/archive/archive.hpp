@@ -38,6 +38,10 @@ enum archive_result_t {
     ARCHIVE_GENERIC_ERROR = 1,
 };
 
+const char *archive_result_as_str(archive_result_t archive_result);
+
+void guarantee_deserialization(archive_result_t archive_result, const char *name_of_value);
+
 // We wrap things in this class for making friend declarations more
 // compilable under gcc-4.5.
 class archive_deserializer_t {
@@ -268,5 +272,13 @@ struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
 write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid);
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid);
 
+struct in_addr;
+struct in6_addr;
+
+write_message_t &operator<<(write_message_t &msg, const in_addr &addr);
+MUST_USE archive_result_t deserialize(read_stream_t *s, in_addr *addr);
+
+write_message_t &operator<<(write_message_t &msg, const in6_addr &addr);
+MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

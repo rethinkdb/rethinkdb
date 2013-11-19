@@ -35,7 +35,7 @@ void runtime_fail(base_exc_t::type_t type,
 }
 
 void runtime_sanity_check_failed() {
-    lazy_backtrace_t bt;
+    lazy_backtrace_formatter_t bt;
     throw exc_t(base_exc_t::GENERIC,
                 "SANITY CHECK FAILED (server is buggy).  Backtrace:\n" + bt.addrs(),
                 backtrace_t());

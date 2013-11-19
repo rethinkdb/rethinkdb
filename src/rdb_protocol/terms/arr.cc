@@ -69,7 +69,8 @@ uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out
 
 class nth_term_t : public op_term_t {
 public:
-    nth_term_t(compile_env_t *env, const protob_t<const Term> &term) : op_term_t(env, term, argspec_t(2)) { }
+    nth_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         counted_t<val_t> v = arg(env, 0);
@@ -84,17 +85,24 @@ private:
                    base_exc_t::GENERIC,
                    strprintf("Cannot use an index < -1 (%d) on a stream.", n));
 
+            batchspec_t batchspec =
+                batchspec_t::user(batch_type_t::TERMINAL, env->env).with_at_most(
+                    int64_t(n)+1);
             counted_t<const datum_t> last_d;
-            for (int32_t i = 0; ; ++i) {
-                counted_t<const datum_t> d = s->next(env->env);
-                if (!d.has()) {
-                    rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
-                           strprintf("Index out of bounds: %d", n));
-                    return new_val(last_d);
+            {
+                profile::sampler_t sampler("Find nth element.", env->env->trace);
+                for (int32_t i = 0; ; ++i) {
+                    sampler.new_sample();
+                    counted_t<const datum_t> d = s->next(env->env, batchspec);
+                    if (!d.has()) {
+                        rcheck(n == -1 && last_d.has(), base_exc_t::GENERIC,
+                               strprintf("Index out of bounds: %d", n));
+                        return new_val(last_d);
+                    }
+                    if (i == n) return new_val(d);
+                    last_d = d;
+                    r_sanity_check(n == -1 || i < n);
                 }
-                if (i == n) return new_val(d);
-                last_d = d;
-                r_sanity_check(n == -1 || i < n);
             }
         }
     }
@@ -107,8 +115,9 @@ public:
         op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-      bool is_empty = !arg(env, 0)->as_seq(env->env)->next(env->env).has();
-      return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::NORMAL, env->env);
+        bool is_empty = !arg(env, 0)->as_seq(env->env)->next(env->env, batchspec).has();
+        return new_val(make_counted<const datum_t>(datum_t::type_t::R_BOOL, is_empty));
     }
     virtual const char *name() const { return "is_empty"; }
 };
@@ -170,7 +179,8 @@ private:
             }
             uint64_t real_r = fake_r;
             if (fake_r < -1) {
-                rfail(base_exc_t::GENERIC, "Cannot use a right index < -1 on a stream.");
+                rfail(base_exc_t::GENERIC,
+                      "Cannot use a right index < -1 on a stream.");
             } else if (fake_r == -1) {
                 rcheck(!right_open(env), base_exc_t::GENERIC,
                        "Cannot slice to an open right index of -1 on a stream.");
@@ -433,23 +443,33 @@ private:
                 required_els.push_back(v->as_datum());
             }
         }
-        while (counted_t<const datum_t> el = seq->next(env->env)) {
-            for (auto it = required_els.begin(); it != required_els.end(); ++it) {
-                if (**it == *el) {
-                    std::swap(*it, required_els.back());
-                    required_els.pop_back();
-                    break; // Bag semantics for contains.
+        // This needs to be a terminal batch to avoid pathological behavior in
+        // the worst case.
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+        {
+            profile::sampler_t sampler("Evaluating elements in contains.",
+                                       env->env->trace);
+            while (counted_t<const datum_t> el = seq->next(env->env, batchspec)) {
+                for (auto it = required_els.begin(); it != required_els.end(); ++it) {
+                    if (**it == *el) {
+                        std::swap(*it, required_els.back());
+                        required_els.pop_back();
+                        break; // Bag semantics for contains.
+                    }
                 }
-            }
-            for (auto it = required_funcs.begin(); it != required_funcs.end(); ++it) {
-                if ((*it)->call(env->env, el)->as_bool()) {
-                    std::swap(*it, required_funcs.back());
-                    required_funcs.pop_back();
-                    break; // Bag semantics for contains.
+                for (auto it = required_funcs.begin();
+                     it != required_funcs.end();
+                     ++it) {
+                    if ((*it)->call(env->env, el)->as_bool()) {
+                        std::swap(*it, required_funcs.back());
+                        required_funcs.pop_back();
+                        break; // Bag semantics for contains.
+                    }
                 }
-            }
-            if (required_els.size() == 0 && required_funcs.size() == 0) {
-                return new_val_bool(true);
+                if (required_els.size() == 0 && required_funcs.size() == 0) {
+                    return new_val_bool(true);
+                }
+                sampler.new_sample();
             }
         }
         return new_val_bool(false);

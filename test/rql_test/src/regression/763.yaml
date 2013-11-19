@@ -4,10 +4,10 @@ tests:
       def: tbl = r.table('foo')
 
     - js: tbl.indexCreate()
-      ot: err("RqlDriverError", "Expected between 1 and 2 argument(s) but found 0.")
+      ot: err("RqlDriverError", "Expected between 1 and 3 argument(s) but found 0.")
 
-    - js: tbl.indexCreate('a', 'b', 'c')
-      ot: err("RqlDriverError", "Expected between 1 and 2 argument(s) but found 3.")
+    - js: tbl.indexCreate('a', 'b', 'c', 'd')
+      ot: err("RqlDriverError", "Expected between 1 and 3 argument(s) but found 4.")
 
     - js: tbl.indexCreate('a', 'b')
       ot: err("RqlRuntimeError", "Expected type FUNCTION but found DATUM.")

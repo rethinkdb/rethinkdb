@@ -45,11 +45,11 @@ std::string service_address_ports_t::get_addresses_string() const {
 
     // Get the actual list for printing if we're listening on all addresses.
     if (is_bind_all()) {
-        actual_addresses = ip_address_t::get_local_addresses(std::set<ip_address_t>(), true);
+        actual_addresses = get_local_ips(std::set<ip_address_t>(), true);
     }
 
     for (std::set<ip_address_t>::const_iterator i = actual_addresses.begin(); i != actual_addresses.end(); ++i) {
-        result += (first ? "" : ", " ) + i->as_dotted_decimal();
+        result += (first ? "" : ", " ) + i->to_string();
         first = false;
     }
 
@@ -71,7 +71,7 @@ bool do_serve(
     const peer_address_set_t &joins,
     service_address_ports_t address_ports,
     std::string web_assets,
-    signal_t *stop_cond,
+    os_signal_cond_t *stop_cond,
     const boost::optional<std::string> &config_file) {
     try {
         extproc_pool_t extproc_pool(get_num_threads());
@@ -124,16 +124,17 @@ bool do_serve(
         metadata_change_handler_t<cluster_semilattice_metadata_t> metadata_change_handler(&mailbox_manager, semilattice_manager_cluster.get_root_view());
         metadata_change_handler_t<auth_semilattice_metadata_t> auth_change_handler(&mailbox_manager, auth_manager_cluster.get_root_view());
 
-        watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(
-            cluster_directory_metadata_t(
-                machine_id,
-                connectivity_cluster.get_me(),
-                get_ips(),
-                stat_manager.get_address(),
-                metadata_change_handler.get_request_mailbox_address(),
-                auth_change_handler.get_request_mailbox_address(),
-                log_server.get_business_card(),
-                i_am_a_server ? SERVER_PEER : PROXY_PEER));
+        scoped_ptr_t<cluster_directory_metadata_t> initial_directory(
+            new cluster_directory_metadata_t(machine_id,
+                                             connectivity_cluster.get_me(),
+                                             get_ips(),
+                                             stat_manager.get_address(),
+                                             metadata_change_handler.get_request_mailbox_address(),
+                                             auth_change_handler.get_request_mailbox_address(),
+                                             log_server.get_business_card(),
+                                             i_am_a_server ? SERVER_PEER : PROXY_PEER));
+
+        watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
 
         message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
@@ -157,6 +158,15 @@ bool do_serve(
                 &message_multiplexer_run,
                 address_ports.client_port,
                 &heartbeat_manager));
+
+            // Update the directory with the ip addresses that we are passing to peers
+            std::set<ip_and_port_t> ips = connectivity_cluster_run->get_ips();
+            initial_directory->ips.clear();
+            for (auto it = ips.begin(); it != ips.end(); ++it) {
+                initial_directory->ips.push_back(it->ip().to_string());
+            }
+            our_root_directory_variable.set_value(*initial_directory);
+            initial_directory.reset();
         } catch (const address_in_use_exc_t &ex) {
             throw address_in_use_exc_t(strprintf("Could not bind to cluster port: %s", ex.what()));
         }
@@ -427,7 +437,20 @@ bool do_serve(
 
                     stop_cond->wait_lazily_unordered();
 
-                    logINF("Server got SIGINT; shutting down...\n");
+
+                    if (stop_cond->get_source_signo() == SIGINT) {
+                        logINF("Server got SIGINT from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+                    } else if (stop_cond->get_source_signo() == SIGTERM) {
+                        logINF("Server got SIGTERM from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+
+                    } else {
+                        logINF("Server got signal %d from pid %d, uid %d; shutting down...\n",
+                               stop_cond->get_source_signo(),
+                               stop_cond->get_source_pid(), stop_cond->get_source_uid());
+                    }
+
                 }
 
                 cond_t non_interruptor;
@@ -459,7 +482,7 @@ bool serve(io_backender_t *io_backender,
            const peer_address_set_t &joins,
            service_address_ports_t address_ports,
            std::string web_assets,
-           signal_t *stop_cond,
+           os_signal_cond_t *stop_cond,
            const boost::optional<std::string>& config_file) {
     return do_serve(io_backender,
                     true,
@@ -476,7 +499,7 @@ bool serve(io_backender_t *io_backender,
 bool serve_proxy(const peer_address_set_t &joins,
                  service_address_ports_t address_ports,
                  std::string web_assets,
-                 signal_t *stop_cond,
+                 os_signal_cond_t *stop_cond,
                  const boost::optional<std::string>& config_file) {
     // TODO: filepath doesn't _seem_ ignored.
     // filepath and persistent_file are ignored for proxies, so we use the empty string & NULL respectively.

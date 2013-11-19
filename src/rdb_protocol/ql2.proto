@@ -48,12 +48,16 @@ message VersionDummy { // We need to wrap it like this for some
 // * A [CONTINUE] query with the same token as a [START] query that returned
 //   [SUCCESS_PARTIAL] in its [Response].
 // * A [STOP] query with the same token as a [START] query that you want to stop.
+// * A [NOREPLY_WAIT] query with a unique per-connection token. The server answers
+//   with a [WAIT_COMPLETE] [Response].
 message Query {
     enum QueryType {
         START    = 1; // Start a new query.
         CONTINUE = 2; // Continue a query that returned [SUCCESS_PARTIAL]
                       // (see [Response]).
         STOP     = 3; // Stop a query partway through executing.
+        NOREPLY_WAIT = 4;
+                      // Wait for noreply operations to finish.
     }
     optional QueryType type = 1;
     // A [Term] is how we represent the operations we want a query to perform.
@@ -63,6 +67,11 @@ message Query {
     // to `global_optargs` instead (the key "noreply" should map to
     // either true or false).
     optional bool OBSOLETE_noreply = 4 [default = false];
+
+    // If this is set to [true], then [Datum] values will sometimes be
+    // of [DatumType] [R_JSON] (see below).  This can provide enormous
+    // speedups in languages with poor protobuf libraries.
+    optional bool accepts_r_json = 5 [default = false];
 
     message AssocPair {
         optional string key = 1;
@@ -96,6 +105,7 @@ message Response {
                               // the same token as this response, you will get
                               // more of the sequence.  Keep sending [CONTINUE]
                               // queries until you get back [SUCCESS_SEQUENCE].
+        WAIT_COMPLETE    = 4; // A [NOREPLY_WAIT] query completed.
 
         // These response types indicate failure.
         CLIENT_ERROR  = 16; // Means the client is buggy.  An example is if the
@@ -125,8 +135,17 @@ message Response {
     // specifies either the index of a positional argument or the name of an
     // optional argument.  (Those words will make more sense if you look at the
     // [Term] message below.)
-
     optional Backtrace backtrace = 4; // Contains n [Frame]s when you get back an error.
+
+    // If the [global_optargs] in the [Query] that this [Response] is a
+    // response to contains a key "profile" which maps to a static value of
+    // true then [profile] will contain a [Datum] which provides profiling
+    // information about the execution of the query. This field should be
+    // returned to the user along with the result that would normally be
+    // returned (a datum or a cursor). In official drivers this is accomplished
+    // by putting them inside of an object with "value" mapping to the return
+    // value and "profile" mapping to the profile object.
+    optional Datum profile = 5;
 }
 
 // A [Datum] is a chunk of data that can be serialized to disk or returned to
@@ -140,6 +159,10 @@ message Datum {
         R_STR    = 4;
         R_ARRAY  = 5;
         R_OBJECT = 6;
+        // This [DatumType] will only be used if [accepts_r_json] is
+        // set to [true] in [Query].  [r_str] will be filled with a
+        // JSON encoding of the [Datum].
+        R_JSON   = 7; // uses r_str
     }
     optional DatumType type = 1;
     optional bool r_bool = 2;
@@ -209,12 +232,14 @@ message Term {
         MAKE_OBJ   = 3; // {...} -> OBJECT
 
         // * Compound types
+
         // Takes an integer representing a variable and returns the value stored
         // in that variable.  It's the responsibility of the client to translate
-        // from their local representation of a variable to a unique integer for
-        // that variable.  (We do it this way instead of letting clients provide
-        // variable names as strings to discourage variable-capturing client
-        // libraries, and because it's more efficient on the wire.)
+        // from their local representation of a variable to a unique _non-negative_
+        // integer for that variable.  (We do it this way instead of letting
+        // clients provide variable names as strings to discourage
+        // variable-capturing client libraries, and because it's more efficient
+        // on the wire.)
         VAR          = 10; // !NUMBER -> DATUM
         // Takes some javascript code and executes it.
         JAVASCRIPT   = 11; // STRING {timeout: !NUMBER} -> DATUM |
@@ -301,7 +326,10 @@ message Term {
 
         // Sequence Ops
         // Get all elements of a sequence between two values.
-        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {:index:!STRING} -> StreamSelection
+        // Half-open by default, but the openness of either side can be
+        // changed by passing 'closed' or 'open for `right_bound` or
+        // `left_bound`.
+        BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
         REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
 
@@ -404,10 +432,13 @@ message Term {
         // omit the first argument to use the default database.)
         TABLE_LIST   = 62; // Database -> ARRAY
                            //  -> ARRAY
+        // Ensures that previously issued soft-durability writes are complete and 
+        // written to disk.
+        SYNC     = 138; // Table -> OBJECT
 
         // * Secondary indexes OPs
         // Creates a new secondary index with a particular name and definition.
-        INDEX_CREATE = 75; // Table, STRING, Function(1) -> OBJECT
+        INDEX_CREATE = 75; // Table, STRING, Function(1), {multi:BOOL} -> OBJECT
         // Drops a secondary index with a particular name from the specified table.
         INDEX_DROP   = 76; // Table, STRING -> OBJECT
         // Lists all secondary indexes on a particular table.

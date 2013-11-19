@@ -82,7 +82,6 @@ if __name__ == "__main__":
     print
 
     print "#include \"containers/archive/archive.hpp\""
-    print "#include \"containers/archive/stl_types.hpp\""
     print
 
     print """
@@ -111,6 +110,7 @@ the class scope. */
     print "    archive_result_t deserialize(read_stream_t *s, type_t *thing)"
     print
     print "#define RDB_DECLARE_ME_SERIALIZABLE \\"
+    print "    friend class write_message_t; \\"
     print "    void rdb_serialize(write_message_t &msg /* NOLINT */) const; \\"
     print "    friend class archive_deserializer_t; \\"
     print "    archive_result_t rdb_deserialize(read_stream_t *s)"

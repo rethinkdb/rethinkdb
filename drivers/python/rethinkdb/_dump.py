@@ -2,10 +2,11 @@
 import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
-usage = "'rethinkdb dump` creates an archive of data from a rethinkdb cluster\n\
-  rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
+info = "'rethinkdb dump' creates an archive of data from a RethinkDB cluster"
+usage = "rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
 
 def print_dump_help():
+    print info
     print usage
     print ""
     print "  -h [ --help ]                    print this help"
@@ -16,16 +17,18 @@ def print_dump_help():
     print "                                   rethinkdb_dump_DATE_TIME.tar.gz)"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
     print "                                   be specified multiple times)"
+    print "  --clients NUM_CLIENTS            number of tables to export simultaneously (defaults"
+    print "                                   to 3)"
     print ""
     print "EXAMPLES:"
     print "rethinkdb dump -c mnemosyne:39500"
-    print "  archive all data from a cluster running on host 'mnemosyne' with a client port at 39500"
+    print "  Archive all data from a cluster running on host 'mnemosyne' with a client port at 39500."
     print ""
     print "rethinkdb dump -e test -f rdb_dump.tar.gz"
-    print "  archive only the 'test' database from a local cluster into a named file"
+    print "  Archive only the 'test' database from a local cluster into a named file."
     print ""
     print "rethinkdb dump -c hades -e test.subscribers -a hunter2"
-    print "  archive a specific table from a cluster running on host 'hades' which requires authorization"
+    print "  Archive a specific table from a cluster running on host 'hades' which requires authorization."
 
 def parse_options():
     parser = OptionParser(add_help_option=False, usage=usage)
@@ -33,12 +36,14 @@ def parse_options():
     parser.add_option("-a", "--auth", dest="auth_key", metavar="key", default="", type="string")
     parser.add_option("-f", "--file", dest="out_file", metavar="file", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
+
+    parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
     # Check validity of arguments
     if len(args) != 0:
-        raise RuntimeError("no positional arguments supported")
+        raise RuntimeError("Error: No positional arguments supported. Unrecognized option '%s'" % args[0])
 
     if options.help:
         print_dump_help()
@@ -51,7 +56,7 @@ def parse_options():
     if len(host_port) == 1:
         host_port = (host_port[0], "28015") # If just a host, use the default port
     if len(host_port) != 2:
-        raise RuntimeError("invalid 'host:port' format")
+        raise RuntimeError("Error: Invalid 'host:port' format: %s" % options.host)
     (res["host"], res["port"]) = host_port
 
     # Verify valid output file
@@ -62,24 +67,30 @@ def parse_options():
         res["out_file"] = os.path.abspath(options.out_file)
 
     if os.path.exists(res["out_file"]):
-        raise RuntimeError("output file already exists")
+        raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
+
+    # Verify valid client count
+    if options.clients < 1:
+       raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
+    res["clients"] = options.clients
 
     res["tables"] = options.tables
     res["auth_key"] = options.auth_key
     return res
 
-def do_export(export_script, temp_dir, options):
+def do_export(temp_dir, options):
     print "Exporting to directory..."
-    export_args = [export_script]
+    export_args = ["rethinkdb-export"]
     export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
     export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
     export_args.extend(["--auth", options["auth_key"]])
+    export_args.extend(["--clients", str(options["clients"])])
     for table in options["tables"]:
         export_args.extend(["--export", table])
 
     res = subprocess.call(export_args)
     if res != 0:
-        raise RuntimeError("rethinkdb export failed")
+        raise RuntimeError("Error: rethinkdb-export failed")
 
     # 'Done' message will be printed by the export script
 
@@ -96,27 +107,21 @@ def do_zip(temp_dir, options):
     tar_args.append(options["temp_filename"])
     res = subprocess.call(tar_args)
     if res != 0:
-        raise RuntimeError("tar of export directory failed")
+        raise RuntimeError("Error: tar of export directory failed")
     print "  Done (%d seconds)" % (time.time() - start_time)
 
 def run_rethinkdb_export(options):
-    # Find the export script
-    export_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "rethinkdb-export"))
-
-    if not os.path.exists(export_script):
-        raise RuntimeError("could not find export script")
-
     # Create a temporary directory to store the intermediary results
     temp_dir = tempfile.mkdtemp()
     res = -1
 
     # Print a warning about the capabilities of dump, so no one is confused (hopefully)
-    print "NOTE: `rethinkdb dump` only dumps data and does *not* dump secondary indexes or"
+    print "NOTE: 'rethinkdb-dump' only dumps data and does *not* dump secondary indexes or"
     print " cluster metadata.  You will need to recreate your secondary indexes and cluster"
-    print " setup yourself after you run `rethinkdb restore`."
+    print " setup yourself after you run 'rethinkdb-restore'."
 
     try:
-        do_export(export_script, temp_dir, options)
+        do_export(temp_dir, options)
         do_zip(temp_dir, options)
     except KeyboardInterrupt:
         time.sleep(0.2)
@@ -127,10 +132,16 @@ def run_rethinkdb_export(options):
 def main():
     try:
         options = parse_options()
+    except RuntimeError as ex:
+        print >> sys.stderr, "Usage: %s" % usage
+        print >> sys.stderr, ex
+        return 1
+
+    try:
         start_time = time.time()
         run_rethinkdb_export(options)
     except RuntimeError as ex:
-        print ex
+        print >> sys.stderr, ex
         return 1
     return 0
 

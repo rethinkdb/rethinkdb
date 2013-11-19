@@ -1,13 +1,12 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef RDB_PROTOCOL_PARSER_HPP_
 #define RDB_PROTOCOL_PARSER_HPP_
 
-#include "clustering/administration/metadata.hpp"
-#include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 #include "http/http.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "protocol_api.hpp"
+
+template <class> class semilattice_read_view_t;
 
 namespace rdb_protocol {
 

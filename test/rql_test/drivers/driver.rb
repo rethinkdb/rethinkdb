@@ -145,7 +145,11 @@ $test_count = 0
 $success_count = 0
 
 def test src, expected, name, opthash=nil
-  $opthash = opthash
+  if opthash
+    $opthash = Hash[opthash.map{|k,v| [k, eval(v, $defines)]}]
+  else
+    $opthash = {batch_conf: {max_els: 3}}
+  end
   $test_count += 1
   begin
     query = eval src, $defines

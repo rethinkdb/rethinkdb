@@ -10,6 +10,7 @@
 #include <boost/function.hpp>
 #include <boost/ptr_container/ptr_map.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "arch/runtime/runtime.hpp"
 #include "arch/timing.hpp"
@@ -17,6 +18,10 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "containers/archive/archive.hpp"
 #include "http/http.hpp"
+
+class auth_key_t;
+class auth_semilattice_metadata_t;
+template <class> class semilattice_readwrite_view_t;
 
 enum protob_server_callback_mode_t {
     INLINE, //protobs that arrive will be called inline
@@ -105,7 +110,6 @@ private:
 template <class request_t, class response_t, class context_t>
 class protob_server_t : public http_app_t {
 public:
-    // TODO: Function pointers?  Really?
     protob_server_t(const std::set<ip_address_t> &local_addresses,
                     int port,
                     boost::function<bool(request_t, response_t *, context_t *)> _f,  // NOLINT(readability/casting)
@@ -133,7 +137,7 @@ private:
 
     /* WARNING: The order here is fragile. */
     cond_t main_shutting_down_cond;
-    signal_t *shutdown_signal() { return &shutting_down_conds[get_thread_id()]; }
+    signal_t *shutdown_signal() { return &shutting_down_conds[get_thread_id().threadnum]; }
     boost::ptr_vector<cross_thread_signal_t> shutting_down_conds;
     auto_drainer_t auto_drainer;
     struct pulse_on_destruct_t {

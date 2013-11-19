@@ -490,7 +490,9 @@ void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real
     got_superblock_out->init(tmp_sb.release());
 }
 
-void get_btree_superblock_and_txn(btree_slice_t *slice, access_t access, int expected_change_count,
+void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
+                                  access_t superblock_access,
+                                  int expected_change_count,
                                   repli_timestamp_t tstamp, order_token_t token,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
@@ -498,11 +500,11 @@ void get_btree_superblock_and_txn(btree_slice_t *slice, access_t access, int exp
     slice->assert_thread();
 
     const order_token_t pre_begin_txn_token = slice->pre_begin_txn_checkpoint_.check_through(token);
-    transaction_t *txn = new transaction_t(slice->cache(), access, expected_change_count, tstamp,
+    transaction_t *txn = new transaction_t(slice->cache(), txn_access, expected_change_count, tstamp,
                                            pre_begin_txn_token, durability);
     txn_out->init(txn);
 
-    get_btree_superblock(txn, access, got_superblock_out);
+    get_btree_superblock(txn, superblock_access, got_superblock_out);
 }
 
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,

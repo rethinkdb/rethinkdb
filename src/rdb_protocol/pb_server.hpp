@@ -6,13 +6,9 @@
 #include <set>
 #include <string>
 
-#include "clustering/administration/metadata.hpp"
-#include "clustering/administration/namespace_interface_repository.hpp"
-#include "clustering/administration/namespace_metadata.hpp"
 #include "protob/protob.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/protocol.hpp"
-#include "rdb_protocol/ql2.hpp"
 #include "rdb_protocol/stream_cache.hpp"
 
 namespace ql { template <class> class protob_t; }

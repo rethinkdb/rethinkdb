@@ -17,6 +17,7 @@
 #include "arch/timer.hpp"
 
 class linux_thread_t;
+class os_signal_cond_t;
 
 /* coro_runtime_t is borrowed from coroutines.hpp.  Please only
 construct one coro_runtime_t per thread. Coroutines can only be used
@@ -44,7 +45,7 @@ public:
     // same thread that initial_message was delivered to, and interrupt_message will be set to
     // NULL. If you want to receive notification of further SIGINTs or SIGTERMs, you must call
     // set_interrupt_message() again. Returns the previous value of interrupt_message.
-    static MUST_USE linux_thread_message_t *set_interrupt_message(linux_thread_message_t *interrupt_message);
+    static MUST_USE os_signal_cond_t *set_interrupt_message(os_signal_cond_t *interrupt_message);
 
     // Blocks while threads are working. Only returns after shutdown() is called. initial_message
     // is a thread message that will be delivered to thread zero after all of the event queues
@@ -66,10 +67,10 @@ private:
 #endif
 
     static void *start_thread(void*);
-    static void interrupt_handler(int);
+    static void interrupt_handler(int signo, siginfo_t *siginfo, void *);
     static void sigsegv_handler(int, siginfo_t *, void *) NORETURN;
     spinlock_t interrupt_message_lock;
-    linux_thread_message_t *interrupt_message;
+    os_signal_cond_t *interrupt_message;
 
     // Used to signal the main thread for shutdown
     volatile bool do_shutdown;

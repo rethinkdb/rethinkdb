@@ -403,21 +403,70 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts, c
 
 // Note that this defaults to the peer port if no port is specified
 //  (at the moment, this is only used for parsing --join directives)
+// Possible formats:
+//  host only: newton
+//  host and port: newton:60435
+//  IPv4 addr only: 192.168.0.1
+//  IPv4 addr and port: 192.168.0.1:60435
+//  IPv6 addr only: ::dead:beef
+//  IPv6 addr only: [::dead:beef]
+//  IPv6 addr and port: [::dead:beef]:60435
+//  IPv4-mapped IPv6 addr only: ::ffff:192.168.0.1
+//  IPv4-mapped IPv6 addr only: [::ffff:192.168.0.1]
+//  IPv4-mapped IPv6 addr and port: [::ffff:192.168.0.1]:60435
 host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
                                     const std::string &value, int default_port) {
-    size_t colon_loc = value.find_first_of(':');
-    if (colon_loc != std::string::npos) {
-        std::string host = value.substr(0, colon_loc);
-        int port = atoi(value.substr(colon_loc + 1).c_str());
-        if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
-            return host_and_port_t(host, port_t(port));
+    // First disambiguate IPv4 vs IPv6
+    size_t colon_count = std::count(value.begin(), value.end(), ':');
+
+    if (colon_count < 2) {
+        // IPv4 will have 1 or less colons
+        size_t colon_loc = value.find_last_of(':');
+        if (colon_loc != std::string::npos) {
+            std::string host = value.substr(0, colon_loc);
+            int port = atoi(value.substr(colon_loc + 1).c_str());
+            if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
+                return host_and_port_t(host, port_t(port));
+            }
+        } else if (value.size() != 0) {
+            return host_and_port_t(value, port_t(default_port));
         }
-    } else if (value.size() != 0) {
-        return host_and_port_t(value, port_t(default_port));
+    } else {
+        // IPv6 will have 2 or more colons
+        size_t last_colon_loc = value.find_last_of(':');
+        size_t start_bracket_loc = value.find_first_of('[');
+        size_t end_bracket_loc = value.find_last_of(']');
+
+        if (start_bracket_loc > end_bracket_loc) {
+            // Error condition fallthrough
+        } else if (start_bracket_loc == std::string::npos || end_bracket_loc == std::string::npos) {
+            // No brackets, therefore no port, just parse the whole thing as a hostname
+            return host_and_port_t(value, port_t(default_port));
+        } else if (last_colon_loc < end_bracket_loc) {
+            // Brackets, but no port, verify no other characters outside the brackets
+            if (value.find_last_not_of(" \t\r\n[", start_bracket_loc) == std::string::npos &&
+                value.find_first_not_of(" \t\r\n]", end_bracket_loc) == std::string::npos) {
+                std::string host = value.substr(start_bracket_loc + 1, end_bracket_loc - start_bracket_loc - 1);
+                return host_and_port_t(host, port_t(default_port));
+            }
+        } else {
+            // Brackets and port
+            std::string host = value.substr(start_bracket_loc + 1, end_bracket_loc - start_bracket_loc - 1);
+            std::string remainder = value.substr(end_bracket_loc + 1);
+            size_t remainder_colon_loc = remainder.find_first_of(':');
+            int port = atoi(remainder.substr(remainder_colon_loc + 1).c_str());
+
+            // Verify no characters before the brackets and up to the port colon
+            if (port != 0 && port <= MAX_PORT && remainder_colon_loc == 0 &&
+                value.find_last_not_of(" \t\r\n[", start_bracket_loc) == std::string::npos) {
+                return host_and_port_t(host, port_t(port));
+            }
+        }
     }
 
+
     throw options::value_error_t(source, option_name,
-                                 strprintf("Option '%s' has invalid host and port number '%s'",
+                                 strprintf("Option '%s' has invalid host and port format '%s'",
                                            option_name.c_str(), value.c_str()));
 }
 
@@ -440,25 +489,25 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
             all = true;
         } else {
             // Verify that all specified addresses are valid ip addresses
-            struct in_addr addr;
-            if (inet_pton(AF_INET, bind_options[i].c_str(), &addr) == 1) {
-                if (addr.s_addr == INADDR_ANY) {
+            try {
+                ip_address_t addr(bind_options[i]);
+                if (addr.is_any()) {
                     all = true;
                 } else {
-                    set_filter.insert(ip_address_t(addr));
+                    set_filter.insert(addr);
                 }
-            } else {
+            } catch (const invalid_address_exc_t &ex) {
                 throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", bind_options[i].c_str()));
             }
         }
     }
 
-    std::set<ip_address_t> result = ip_address_t::get_local_addresses(set_filter, all);
+    std::set<ip_address_t> result = get_local_ips(set_filter, all);
 
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
         if (result.find(*i) == result.end()) {
-            throw address_lookup_exc_t(strprintf("could not find bind ip address '%s'", i->as_dotted_decimal().c_str()));
+            throw address_lookup_exc_t(strprintf("could not find bind ip address '%s'", i->to_string().c_str()));
         }
     }
 
@@ -1426,8 +1475,8 @@ void run_backup_script(const std::string& script_name, char * const arguments[])
     if (res == -1) {
         fprintf(stderr,
                 "Error when launching %s: %s\n"
-                "The %s command depends on the python driver, which much be installed.\n"
-                "Instructions for installing the python driver are available here:\n"
+                "The %s command depends on the RethinkDB Python driver, which must be installed.\n"
+                "Instructions for installing the RethinkDB Python driver are available here:\n"
                 "http://www.rethinkdb.com/docs/install-drivers/python/\n",
                 script_name.c_str(),
                 errno_string(errno).c_str(),

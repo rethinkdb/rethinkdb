@@ -15,7 +15,9 @@ aropt = util.aropt
 
 deconstructDatum = (datum, opts) ->
     pb.DatumTypeSwitch(datum, {
-        "R_NULL": =>
+        "R_JSON": =>
+            JSON.parse(datum.r_str)
+       ,"R_NULL": =>
             null
        ,"R_BOOL": =>
             datum.r_bool
@@ -50,11 +52,9 @@ deconstructDatum = (datum, opts) ->
                             obj
                         else
                             throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
-                when undefined
-                    # Regular object
-                    obj
                 else
-                    throw new err.RqlDriverError "Unknown psudo-type #{obj['$reql_type$']}."
+                    # Regular object or unknown pseudo type
+                    obj
         },
             => throw new err.RqlDriverError "Unknown Datum type"
         )
@@ -137,6 +137,9 @@ class Connection extends events.EventEmitter
 
     _processResponse: (response) ->
         token = response.token
+        profile = response.profile
+        if profile?
+            profile = deconstructDatum(profile, {})
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
@@ -165,16 +168,27 @@ class Connection extends events.EventEmitter
                         response = mkAtom response, opts
                         if Array.isArray response
                             response = cursors.makeIterable response
+                        if profile?
+                            response = {profile: profile, value: response}
                         cb null, response
                         @_delQuery(token)
                    ,"SUCCESS_PARTIAL": =>
                         cursor = new cursors.Cursor @, token
                         @outstandingCallbacks[token].cursor = cursor
-                        cb null, cursor._addData(mkSeq(response, opts))
+                        if profile?
+                            cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
+                        else
+                            cb null, cursor._addData(mkSeq(response, opts))
                    ,"SUCCESS_SEQUENCE": =>
                         cursor = new cursors.Cursor @, token
                         @_delQuery(token)
-                        cb null, cursor._endData(mkSeq(response, opts))
+                        if profile?
+                            cb null, {profile: profile, value: cursor._endData(mkSeq(response, opts))}
+                        else
+                            cb null, cursor._endData(mkSeq(response, opts))
+                   ,"WAIT_COMPLETE": =>
+                        @_delQuery(token)
+                        cb null, null
                 },
                     => cb new err.RqlDriverError "Unknown response type"
                 )
@@ -182,15 +196,79 @@ class Connection extends events.EventEmitter
             # Unexpected token
             @emit 'error', new err.RqlDriverError "Unexpected token #{token}."
 
-    close: ar () ->
-        @open = false
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            unless Object::toString.call(opts) is '[object Object]'
+                throw new err.RqlDriverError "First argument to two-argument `close` must be an object."
+            cb = callback
+        else if Object::toString.call(optsOrCallback) is '[object Object]'
+            opts = optsOrCallback
+            cb = null
+        else
+            opts = {}
+            cb = optsOrCallback
+
+        for own key of opts
+            unless key in ['noreplyWait']
+                throw new err.RqlDriverError "First argument to two-argument `close` must be { noreplyWait: <bool> }."
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
+
+        wrappedCb = (args...) =>
+            @open = false
+            if cb?
+                cb(args...)
+
+        noreplyWait = ((not opts.noreplyWait?) or opts.noreplyWait) and @open
+        if noreplyWait
+            @noreplyWait(wrappedCb)
+        else
+            wrappedCb()
+    )
+
+    noreplyWait: ar (callback) ->
+        unless typeof callback is 'function'
+            throw new err.RqlDriverError "First argument to noreplyWait must be a callback function."
+        unless @open
+            callback(new err.RqlDriverError "Connection is closed.")
+            return
+        
+        # Assign token
+        token = @nextToken++
+
+        # Construct query
+        query = {}
+        query.type = "NOREPLY_WAIT"
+        query.token = token
+
+        # Save callback
+        @outstandingCallbacks[token] = {cb:callback, root:null, opts:null}
+
+        @_sendQuery(query)
 
     cancel: ar () ->
         @outstandingCallbacks = {}
 
-    reconnect: ar (callback) ->
-        cb = => @constructor.call(@, {host:@host, port:@port}, callback)
-        setTimeout(cb, 0)
+    reconnect: (varar 1, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
+        else
+            opts = {}
+            cb = optsOrCallback
+
+        unless typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `reconnect` must be a callback function."
+
+        closeCb = (err) =>
+            if err?
+                cb(err)
+            else
+                constructCb = => @constructor.call(@, {host:@host, port:@port}, cb)
+                setTimeout(constructCb, 0)
+        @close(opts, closeCb)
+    )
 
     use: ar (db) ->
         @db = db
@@ -226,6 +304,12 @@ class Connection extends events.EventEmitter
                 val: r.expr(!!opts.noreply).build()
             query.global_optargs.push(pair)
 
+        if opts.profile?
+            pair =
+                key: 'profile'
+                val: r.expr(!!opts.profile).build()
+            query.global_optargs.push(pair)
+
         # Save callback
         if (not opts.noreply?) or !opts.noreply
             @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}
@@ -255,6 +339,7 @@ class Connection extends events.EventEmitter
         @_sendQuery(query)
 
     _sendQuery: (query) ->
+        query.accepts_r_json = true
 
         # Serialize protobuf
         data = pb.SerializeQuery(query)
@@ -283,7 +368,7 @@ class TcpConnection extends Connection
         super(host, callback)
 
         if @rawSocket?
-            @close()
+            @close({noreplyWait: false})
 
         @rawSocket = net.connect @port, @host
         @rawSocket.setNoDelay()
@@ -331,11 +416,30 @@ class TcpConnection extends Connection
 
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
-        @rawSocket.on 'close', => @open = false; @emit 'close'
+        @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
+    
+    close: (varar 0, 2, (optsOrCallback, callback) ->
+        if callback?
+            opts = optsOrCallback
+            cb = callback
+        else if Object::toString.call(optsOrCallback) is '[object Object]'
+            opts = optsOrCallback
+            cb = null
+        else
+            opts = {}
+            cb = optsOrCallback
+        unless not cb? or typeof cb is 'function'
+            throw new err.RqlDriverError "Final argument to `close` must be a callback function or object."
 
-    close: () ->
-        super()
-        @rawSocket.end()
+        wrappedCb = (args...) =>
+            @rawSocket.end()
+            if cb?
+                cb(args...)
+
+        # This would simply be super(opts, wrappedCb), if we were not in the varar
+        # anonymous function
+        TcpConnection.__super__.close.call(this, opts, wrappedCb)
+    )
 
     cancel: () ->
         @rawSocket.destroy()
@@ -402,7 +506,7 @@ class HttpConnection extends Connection
 # The only exported function of this module
 module.exports.connect = ar (host, callback) ->
     # Host must be a string or an object
-    unless typeof(host) is 'string' or typeof(host) is 'object'
+    unless typeof(host) is 'string' or Object::toString.call(host) is '[object Object]'
         throw new err.RqlDriverError "First argument to `connect` must be a string giving the "+
                                      "host to `connect` to or an object giving `host` and `port`."
 

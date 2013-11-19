@@ -19,7 +19,7 @@ class ack_checker_t;
 template <class> class listener_t;
 template <class> class semilattice_readwrite_view_t;
 template <class> class multistore_ptr_t;
-struct mailbox_manager_t;
+class mailbox_manager_t;
 
 /* Each shard has a `broadcaster_t` on its primary machine. Each machine sends
 queries via `cluster_namespace_interface_t` over the network to the `master_t`

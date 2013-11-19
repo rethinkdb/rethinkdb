@@ -16,6 +16,7 @@
 
 #include "extproc/js_job.hpp"
 #include "rdb_protocol/rdb_protocol_json.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "extproc/extproc_job.hpp"
 
@@ -376,7 +377,11 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
         scoped_array_t<char> temp_buffer(length);
         string->WriteUtf8(temp_buffer.data(), length);
 
-        result = make_counted<const ql::datum_t>(std::string(temp_buffer.data(), length));
+        try {
+            result = make_counted<const ql::datum_t>(std::string(temp_buffer.data(), length));
+        } catch (const ql::base_exc_t &ex) {
+            errmsg->assign(ex.what());
+        }
     } else if (value->IsObject()) {
         // This case is kinda weird. Objects can have stuff in them that isn't
         // represented in their JSON (eg. their prototype, v8 hidden fields).
@@ -405,6 +410,9 @@ counted_t<const ql::datum_t> js_make_datum(const v8::Handle<v8::Value> &value,
         } else if (value->IsRegExp()) {
             // We can't represent regular expressions in datums
             errmsg->assign("Cannot convert RegExp to ql::datum_t.");
+        } else if (value->IsDate()) {
+            result = ql::pseudo::make_time(value->NumberValue() / 1000,
+                                           "+00:00");
         } else {
             // Treat it as a dictionary.
             v8::Handle<v8::Object> objh = value->ToObject();
@@ -498,18 +506,24 @@ v8::Handle<v8::Value> js_from_datum(const counted_t<const ql::datum_t> &datum) {
         return array;
     }
     case ql::datum_t::type_t::R_OBJECT: {
-        v8::Handle<v8::Object> obj = v8::Object::New();
-        const std::map<std::string, counted_t<const ql::datum_t> > &source_map = datum->as_object();
+        if (datum->is_ptype(ql::pseudo::time_string)) {
+            double epoch_time = ql::pseudo::time_to_epoch_time(datum);
+            v8::Handle<v8::Value> date = v8::Date::New(epoch_time * 1000);
+            return date;
+        } else {
+            v8::Handle<v8::Object> obj = v8::Object::New();
+            const std::map<std::string, counted_t<const ql::datum_t> > &source_map = datum->as_object();
 
-        for (auto it = source_map.begin(); it != source_map.end(); ++it) {
-            v8::HandleScope scope;
-            v8::Handle<v8::Value> key = v8::String::New(it->first.c_str());
-            v8::Handle<v8::Value> val = js_from_datum(it->second);
-            guarantee(!key.IsEmpty() && !val.IsEmpty());
-            obj->Set(key, val);
+            for (auto it = source_map.begin(); it != source_map.end(); ++it) {
+                v8::HandleScope scope;
+                v8::Handle<v8::Value> key = v8::String::New(it->first.c_str());
+                v8::Handle<v8::Value> val = js_from_datum(it->second);
+                guarantee(!key.IsEmpty() && !val.IsEmpty());
+                obj->Set(key, val);
+            }
+
+            return obj;
         }
-
-        return obj;
     }
 
     case ql::datum_t::type_t::UNINITIALIZED:
