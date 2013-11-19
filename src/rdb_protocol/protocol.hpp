@@ -775,7 +775,9 @@ struct rdb_protocol_t {
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
+#if !SLICE_ALT
                            transaction_t *txn,
+#endif
                            superblock_t *superblock,
                            read_token_pair_t *token_pair,
                            signal_t *interruptor);
@@ -785,11 +787,23 @@ struct rdb_protocol_t {
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
+#if !SLICE_ALT
                             transaction_t *txn,
+#endif
                             scoped_ptr_t<superblock_t> *superblock,
                             write_token_pair_t *token_pair,
                             signal_t *interruptor);
 
+#if SLICE_ALT
+        void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
+                                    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
+                                    superblock_t *superblock,
+                                    alt::alt_buf_lock_t *sindex_block,
+                                    btree_slice_t *btree,
+                                    backfill_progress_t *progress,
+                                    signal_t *interruptor)
+                                    THROWS_ONLY(interrupted_exc_t);
+#else
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,
@@ -799,9 +813,12 @@ struct rdb_protocol_t {
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)
                                     THROWS_ONLY(interrupted_exc_t);
+#endif
 
         void protocol_receive_backfill(btree_slice_t *btree,
+#if !SLICE_ALT
                                        transaction_t *txn,
+#endif
                                        superblock_t *superblock,
                                        write_token_pair_t *token_pair,
                                        signal_t *interruptor,
@@ -809,7 +826,9 @@ struct rdb_protocol_t {
 
         void protocol_reset_data(const region_t& subregion,
                                  btree_slice_t *btree,
+#if !SLICE_ALT
                                  transaction_t *txn,
+#endif
                                  superblock_t *superblock,
                                  write_token_pair_t *token_pair,
                                  signal_t *interruptor);
