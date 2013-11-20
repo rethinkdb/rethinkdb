@@ -38,7 +38,12 @@ public:
     }
 
 private:
-    // TODO (daniel): Document how incremental lenses work.
+    // lensed_value_cache_t is a cache for the result of a lens applied to
+    // a given parent watchable. It is implemented for incremental lenses only.
+    // (`non_incremental_lens_wrapper_t` can be used to apply it to non-incremental
+    // lenses as well).
+    // The cached value is recomputed only after the parent has published a new
+    // value.
     class lensed_value_cache_t : public home_thread_mixin_t {
     public:
         lensed_value_cache_t(const callable_type &l, watchable_t<outer_type> *p) :
@@ -114,10 +119,18 @@ private:
     subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
         cache(_cache) { }
 
+    // If you clone a subview_watchable_t, all clones share the same cache.
+    // As a consequence, the lens is only applied once for the whole family
+    // of clones, not once per instance of subview_watchable_t. This should save
+    // some CPU and memory as well.
     boost::shared_ptr<lensed_value_cache_t> cache;
 };
 
-// TODO! Document
+/* Given a non-incremental lens with the type signature
+ * `result_type(input_type)`, `non_incremental_lens_wrapper_t` converts
+ * it into an incremental lens with type signature
+ * `bool(const input_type &, result_type *)` and otherwise equivalent semantics
+ * (as much as possible). */
 template<class outer_type, class callable_type>
 class non_incremental_lens_wrapper_t {
 public:
