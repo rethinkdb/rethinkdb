@@ -33,7 +33,7 @@
             <div class="option_description" data-option="electric_punctuation">Auto-insert pair brackets, parentheses, and quotes</div></li>
         <li data-option="profiler">
             <div class="checkbox-container"><input type="checkbox" data-option="profiler" id="profiler" {{#if profiler}} checked=true{{/if}}><label for="profiler" data-option="profiler"></label></div> 
-            <div class="option_description" data-option="profiler">Profile each query</div></li>
+            <div class="option_description" data-option="profiler">Enable query profiler</div></li>
     </ul>
 </script>
 
@@ -214,11 +214,11 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     </div>
     <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
     <div class="tab-content">  
-        <div class="results active profile_view_container">
+        <div class="results profile_view_container">
             <div class="results_wrap profile_view"><div class="profile_container"></div>
             </div>
         </div>
-        <div class="results active tree_view_container">
+        <div class="results tree_view_container">
             <div class="results_wrap tree_view"><div class="json_tree_container"></div>
             </div>
         </div>
@@ -232,7 +232,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         </div>
     </div>
     {{#if show_more_data}}
-    <div class="more_results more_valid_results">
+    <div class="info more_valid_results">
         <p class="more_results_paragraph">More data is available. <a href="#" class="more_results_link">Load the next batch &rarr;</a></p>
     </div>
     {{else}}
@@ -251,7 +251,9 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 </script>
 
 <script id="dataexplorer-no_profile-template" type="text/x-handlebars-template">
-    <a href="#" class="open_options">Activate</a> the profiler in the option and re-run the query to see its profile.
+    <div class="info activate_profiler">
+        <a href="#" class="open_options">Activate</a> the query profiler option and re-run the query to see its profile.
+    </div>
 </script>
 
 <script id="dataexplorer-cursor_timed_out-template" type="text/x-handlebars-template">

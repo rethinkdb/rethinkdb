@@ -1561,18 +1561,23 @@ TODO: retire this
                 margin: -30px 0px 10px 0px;
             }
         }
-        .more_results{
+        .more_valid_results{
+            float: right;
+            .more_results_paragraph{
+                margin: 0px;
+                padding: 0px;
+            }
+        }
+        .info{
             text-align: left;
             margin: 7px 0px 0px 0px;
             padding: 7px 19px 7px 15px;
             border-left: 4px solid #9FCADF;
             background: #ecf2f7;
-            float: right;
             font-family: @sans;
-            .more_results_paragraph{
-                margin: 0px;
-                padding: 0px;
-            }
+        }
+        .activate_profiler{
+            display: inline-block;
         }
     }
     .change_view_container{
@@ -1606,6 +1611,7 @@ TODO: retire this
     .results{
         margin: 15px 0px 0px 0px;
         padding: 0px;
+        font-family: @sans;
         overflow: auto;
         width: 100%;
         .json_tree_container{

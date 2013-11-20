@@ -3283,9 +3283,9 @@ module 'DataExplorerView', ->
                 num_results: num_results
 
             if @view is 'profile'
-                @$('.more_results').hide()
+                @$('.more_valid_results').hide()
             else
-                @$('.more_results').show()
+                @$('.more_valid_results').show()
 
             switch @view
                 when 'profile'
