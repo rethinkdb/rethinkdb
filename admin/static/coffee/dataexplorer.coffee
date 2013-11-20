@@ -17,6 +17,7 @@ module 'DataExplorerView', ->
             profiler: true
         history: []
         focus_on_codemirror: true
+        last_query_has_profile: true
         #saved_data: {}
 
 
@@ -2341,7 +2342,7 @@ module 'DataExplorerView', ->
                     @id_execution++ # Update the id_execution and use it to tag the callbacks
                     rdb_global_callback = @generate_rdb_global_callback @id_execution
                     # Date are displayed in their raw format for now.
-                    console.log @state.options.profiler
+                    @state.last_query_has_profile = @state.options.profiler
                     rdb_query.private_run {connection: @driver_handler.connection, timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fire more than once
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
@@ -2365,12 +2366,6 @@ module 'DataExplorerView', ->
         generate_rdb_global_callback: (id_execution) =>
             rdb_global_callback = (error, results) =>
                 if @id_execution is id_execution # We execute the query only if it is the last one
-                    if results.profile?
-                        cursor = results.value
-                        @profile = results.profile
-                    else
-                        cursor = results
-                        @profile = null # @profile is null if the user deactivated the profiler
                     get_result_callback = @generate_get_result_callback id_execution
 
                     if error?
@@ -2384,6 +2379,14 @@ module 'DataExplorerView', ->
                             broken_query: true
 
                         return false
+
+                    if results.profile? and @state.last_query_has_profile is true
+                        cursor = results.value
+                        @profile = results.profile
+                    else
+                        cursor = results
+                        @profile = null # @profile is null if the user deactivated the profiler
+
                     
                     if @index is @queries.length # @index was incremented in execute_portion
                         if cursor?
