@@ -16,6 +16,7 @@
 #include "clustering/reactor/reactor.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "rpc/semilattice/view/field.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "utils.hpp"
@@ -280,62 +281,18 @@ public:
     }
 
 private:
-    typedef change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > extract_reactor_directory_result_type;
-    bool extract_reactor_directory(
-            const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &nss,
-            change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > *current_out) {
-        guarantee(current_out != NULL);
+    typedef boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >
+        extract_reactor_directory_per_peer_result_type;
 
-        bool anything_changed = false;
-        const bool do_init = current_out->get_current_version() == 0;
-        std::set<peer_id_t> keys_to_update;
-        current_out->begin_version();
-        if (do_init) {
-            for (auto it = nss.get_inner().begin(); it != nss.get_inner().end(); ++it) {
-                keys_to_update.insert(it->first);
-            }
-            anything_changed = true;
+    extract_reactor_directory_per_peer_result_type extract_reactor_directory_per_peer(
+        const namespaces_directory_metadata_t<protocol_t> &nss) {
+
+        auto it = nss.reactor_bcards.find(namespace_id_);
+        if (it == nss.reactor_bcards.end()) {
+            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >();
         } else {
-            keys_to_update = nss.get_changed_keys();
+            return boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(it->second);
         }
-
-        for (auto it = keys_to_update.begin(); it != keys_to_update.end(); ++it) {
-            auto existing_it = current_out->get_inner().find(*it);
-            auto jt = nss.get_inner().find(*it);
-            if (jt == nss.get_inner().end()) {
-                if (existing_it != current_out->get_inner().end()) {
-                    current_out->delete_value(*it);
-                    anything_changed = true;
-                }
-            } else {
-                // This is to determine if the value has changed or not
-                boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >
-                    old_value;
-                bool has_old_value = false;
-                if (existing_it == current_out->get_inner().end()) {
-                    // New value
-                    anything_changed = true;
-                } else if (!anything_changed) {
-                    old_value = existing_it->second;
-                    has_old_value = true;
-                }
-
-                auto kt = jt->second.reactor_bcards.find(namespace_id_);
-                if (kt == jt->second.reactor_bcards.end()) {
-                    current_out->set_value(*it, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >());
-                } else {
-                    current_out->set_value(*it, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >(kt->second));
-                }
-
-                if (has_old_value) {
-                    if (old_value != current_out->get_inner().find(*it)->second) {
-                        anything_changed = true;
-                    }
-                }
-            }
-        }
-
-        return anything_changed;
     }
 
     void on_change_reactor_directory() {
@@ -369,13 +326,20 @@ private:
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
 
+        const auto extract_reactor_directory_per_peer_fun =
+            boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,
+                        this, _1);
+        incremental_map_lens_t<peer_id_t,
+                               namespaces_directory_metadata_t<protocol_t>,
+                               typeof extract_reactor_directory_per_peer_fun>
+            extract_reactor_directory(extract_reactor_directory_per_peer_fun);
+
         reactor_.init(new reactor_t<protocol_t>(
             base_path,
             io_backender,
             parent_->mbox_manager,
             this,
-            parent_->directory_view->template incremental_subview<extract_reactor_directory_result_type>(
-                boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1, _2)),
+            parent_->directory_view->incremental_subview(extract_reactor_directory),
             parent_->branch_history_manager,
             watchable.get_watchable(),
             svs_.get(), namespace_collection, ctx));

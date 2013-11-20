@@ -197,7 +197,7 @@
     {{#if has_multiple_types}}
     <p class="details"><span class="bad">{{num_types_conflicts}}</span> <a href="#" class="show_details">{{pluralize_noun "conflict type" num_types_conflicts}}</a> </p>
     {{else}}
-    <p class="details"><span class="bad">{{num_conflicts}}</span> {{type}} {{pluralize_verb_to_have num_conflicts}} conflicts</p>
+    <p class="details"><span class="bad">{{num_conflicts}}</span> {{pluralize_noun type num_conflicts}} {{pluralize_verb_to_have num_conflicts}} conflicts</p>
     {{/if}}
     {{else}}
     <p class="message"><span class="good">0</span> issues detected</p>
