@@ -14,6 +14,7 @@ module 'DataExplorerView', ->
         options:
             suggestions: true
             electric_punctuation: false # False by default
+            profiler: true
         history: []
         focus_on_codemirror: true
         #saved_data: {}
@@ -484,6 +485,7 @@ module 'DataExplorerView', ->
                     show_query_warning: @show_query_warning
                     results: @state.results
                     metadata: @state.metadata
+                    profile: @state.profile
                 }).$el
                 # The query in code mirror is set in init_after_dom_rendered (because we can't set it now)
             else
@@ -2339,7 +2341,8 @@ module 'DataExplorerView', ->
                     @id_execution++ # Update the id_execution and use it to tag the callbacks
                     rdb_global_callback = @generate_rdb_global_callback @id_execution
                     # Date are displayed in their raw format for now.
-                    rdb_query.private_run {connection: @driver_handler.connection, timeFormat: "raw"}, rdb_global_callback # @rdb_global_callback can be fire more than once
+                    console.log @state.options.profiler
+                    rdb_query.private_run {connection: @driver_handler.connection, timeFormat: "raw", profile: @state.options.profiler}, rdb_global_callback # @rdb_global_callback can be fire more than once
                     return true
                 else if rdb_query instanceof DataExplorerView.DriverHandler
                     # Nothing to do
@@ -2360,8 +2363,14 @@ module 'DataExplorerView', ->
         # Create a callback for when a query returns
         # We tag the callback to make sure that we display the results only of the last query executed by the user
         generate_rdb_global_callback: (id_execution) =>
-            rdb_global_callback = (error, cursor) =>
+            rdb_global_callback = (error, results) =>
                 if @id_execution is id_execution # We execute the query only if it is the last one
+                    if results.profile?
+                        cursor = results.value
+                        @profile = results.profile
+                    else
+                        cursor = results
+                        @profile = null # @profile is null if the user deactivated the profiler
                     get_result_callback = @generate_get_result_callback id_execution
 
                     if error?
@@ -2395,7 +2404,7 @@ module 'DataExplorerView', ->
                             @state.query = @query
                             @state.results = @current_results
                             @state.metadata =
-                                limit_value: if @current_results?.length? then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
+                                limit_value: if Object::toString.call(@results) is '[object Array]' then @current_results.length else 1 # If @current_results.length is not defined, we have a single value
                                 skip_value: @skip_value
                                 execution_time: new Date() - @start_time
                                 query: @query
@@ -2404,6 +2413,7 @@ module 'DataExplorerView', ->
                             @results_view.render_result
                                 results: @current_results # The first parameter is null ( = query, so we don't display it)
                                 metadata: @state.metadata
+                                profile: @profile
 
                             # Successful query, let's save it in the history
                             @save_query
@@ -2448,6 +2458,7 @@ module 'DataExplorerView', ->
                     @results_view.render_result
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
                         metadata: @state.metadata
+                        profile: @profile
 
                     # Successful query, let's save it in the history
                     @save_query
@@ -2693,6 +2704,7 @@ module 'DataExplorerView', ->
         mouse_down: false
 
         events: ->
+            'click .link_to_profile_view': 'show_profile'
             'click .link_to_tree_view': 'show_tree'
             'click .link_to_table_view': 'show_table'
             'click .link_to_raw_view': 'show_raw'
@@ -2767,6 +2779,9 @@ module 'DataExplorerView', ->
         show_tree: (event) =>
             event.preventDefault()
             @set_view 'tree'
+        show_profile: (event) =>
+            event.preventDefault()
+            @set_view 'profile'
         show_table: (event) =>
             event.preventDefault()
             @set_view 'table'
@@ -3085,6 +3100,9 @@ module 'DataExplorerView', ->
             else if @view is 'tree'
                 content_name = '.json_tree'
                 content_container = '.tree_view_container'
+            else if @view is 'profile'
+                content_name = '.json_tree'
+                content_container = '.profile_view_container'
             else if @view is 'raw'
                 @$('.wrapper_scrollbar').hide()
                 # There is no scrolbar with the raw view
@@ -3166,7 +3184,12 @@ module 'DataExplorerView', ->
         error_template: Handlebars.templates['dataexplorer-error-template']
         template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
+        no_profile_template: Handlebars.templates['dataexplorer-no_profile-template']
         primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
+
+        events: ->
+            _.extend super,
+                'click .open_options': 'open_options'
 
         current_result: []
 
@@ -3181,6 +3204,15 @@ module 'DataExplorerView', ->
 
             @last_keys = @container.state.last_keys # Arrays of the last keys displayed
             @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+
+        open_options: (event) =>
+            event.preventDefault()
+            if @container.options_view.state is 'hidden'
+                @container.toggle_options()
+            else
+                @container.options_view.$('.option_description[data-option="profiler"]').click()
+
+            #TODO Scroll to
 
 
         render_error: (query, err, js_error) =>
@@ -3213,6 +3245,8 @@ module 'DataExplorerView', ->
             if args? and args.results isnt undefined
                 @results = args.results
                 @results_array = null # if @results is not an array (possible starting from 1.4), we will transform @results_array to [@results] for the table view
+            if args? and args.profile isnt undefined
+                @profile = args.profile
             if args?.metadata?
                 @metadata = args.metadata
             if args?.metadata?.skip_value?
@@ -3232,7 +3266,7 @@ module 'DataExplorerView', ->
 
             num_results = @metadata.skip_value
             if @metadata.has_more_data isnt true
-                if @results?.length?
+                if Object::toString.call(@results) is '[object Array]'
                     num_results += @results.length
                 else # @results can be a single value or null
                     num_results += 1
@@ -3246,6 +3280,15 @@ module 'DataExplorerView', ->
                 num_results: num_results
 
             switch @view
+                when 'profile'
+                    if @profile is null
+                        @.$('.profile_container').html @no_profile_template()
+                    else
+                        @.$('.profile_container').html @json_to_tree @profile
+                    @$('.results').hide()
+                    @$('.profile_view_container').show()
+                    @.$('.link_to_profile_view').addClass 'active'
+                    @.$('.link_to_profile_view').parent().addClass 'active'
                 when 'tree'
                     @.$('.json_tree_container').html @json_to_tree @results
                     @$('.results').hide()
@@ -3366,25 +3409,6 @@ module 'DataExplorerView', ->
                 @options[new_target] = new_value
                 if window.localStorage?
                     window.localStorage.options = JSON.stringify @options
-
-        toggle_suggestions: =>
-            @options.suggestions = not @options.suggestions
-            if @$('.content').css('display') is 'block'
-                @$('#suggestions').prop 'checked', @options.suggestions
-
-        toggle_view: =>
-            that = @
-            if @state is 'visible'
-                @state = 'hidden'
-                @$('.content').slideUp 'fast', ->
-                    if that.state is 'hidden'
-                        that.$('.nano_border').hide() # In case the user trigger hide/show really fast
-                        that.$('.arrow_options').hide() # In case the user trigger hide/show really fast
-            else
-                @state = 'visible'
-                @$('.arrow_options').show()
-                @$('.nano_border').show()
-                @$('.content').slideDown 'fast'
 
         render: (displayed) =>
             @$el.html @dataexplorer_options_template @options
