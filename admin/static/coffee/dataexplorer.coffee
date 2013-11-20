@@ -3282,6 +3282,11 @@ module 'DataExplorerView', ->
                 no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
                 num_results: num_results
 
+            if @view is 'profile'
+                @$('.more_results').hide()
+            else
+                @$('.more_results').show()
+
             switch @view
                 when 'profile'
                     if @profile is null
