@@ -12,7 +12,10 @@ r = require('./ast')
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
-deconstructDatum = cursors.deconstructDatum
+deconstructDatum = util.deconstructDatum
+mkAtom = util.mkAtom
+mkErr = util.mkErr
+mkSeq = util.mkSeq
 
 class Connection extends events.EventEmitter
     DEFAULT_HOST: 'localhost'
@@ -69,19 +72,6 @@ class Connection extends events.EventEmitter
             @_processResponse response
 
             @buffer = @buffer.slice(4 + responseLength)
-
-    mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
-
-    mkSeq = (response, opts) -> (deconstructDatum(res, opts) for res in response.response)
-
-    mkErr = (ErrClass, response, root) ->
-        msg = mkAtom response
-        bt = for frame in response.backtrace.frames
-                if frame.type is "POS"
-                    parseInt frame.pos
-                else
-                    frame.opt
-        new ErrClass msg, root, bt
 
     _delQuery: (token) ->
         # This query is done, delete this cursor
