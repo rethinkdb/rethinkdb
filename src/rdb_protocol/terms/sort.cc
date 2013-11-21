@@ -60,8 +60,10 @@ private:
             : comparisons(std::move(_comparisons)) { }
 
         bool operator()(env_t *env,
+                        profile::sampler_t *sampler,
                         counted_t<const datum_t> l,
                         counted_t<const datum_t> r) const {
+            sampler->new_sample();
             for (auto it = comparisons.begin(); it != comparisons.end(); ++it) {
                 counted_t<const datum_t> lval;
                 counted_t<const datum_t> rval;
@@ -176,7 +178,8 @@ private:
                 rcheck(to_sort.size() < array_size_limit(), base_exc_t::GENERIC,
                        strprintf("Array over size limit %zu.", to_sort.size()).c_str());
             }
-            auto fn = boost::bind(lt_cmp, env->env, _1, _2);
+            profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
+            auto fn = boost::bind(lt_cmp, env->env, &sampler, _1, _2);
             std::sort(to_sort.begin(), to_sort.end(), fn);
             seq = make_counted<array_datum_stream_t>(
                 make_counted<const datum_t>(std::move(to_sort)), backtrace());
