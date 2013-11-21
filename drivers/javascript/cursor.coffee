@@ -2,11 +2,12 @@ err = require('./errors')
 util = require('./util')
 pb = require('./protobuf')
 
-# Import some names to this namespace for convienience
+# Import some names to this namespace for convenience
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
 
+# setImmediate is not defined in some browsers (including Chrome)
 if not setImmediate?
     setImmediate = (cb) ->
         setTimeout cb, 0
@@ -57,7 +58,14 @@ deconstructDatum = (datum, opts) ->
             => throw new err.RqlDriverError "Unknown Datum type"
         )
 
-# setImmediate is not defined in some browsers (including Chrome)
+mkErr = (ErrClass, response, root) ->
+    msg = deconstructDatum response.response[0]
+    bt = for frame in response.backtrace.frames
+        if frame.type is "POS"
+            parseInt frame.pos
+        else
+            frame.opt
+    new ErrClass msg, root, bt
 
 class IterableResult
     hasNext: -> throw "Abstract Method"
@@ -97,83 +105,112 @@ class IterableResult
                 cb null, arr
 
 class Cursor extends IterableResult
-    constructor: (conn, token) ->
+    stackSize: 100
+
+    constructor: (conn, token, opts, root) ->
         @_conn = conn
         @_token = token
+        @_opts = opts
+        @_root = root
 
-        @_chunks = []
+        @_responses = []
+        @_responseIndex = 0
+        @_outstandingRequests = 0
+        @_iterations = 0
         @_endFlag = false
         @_contFlag = false
         @_cont = null
         @_cbQueue = []
 
-    _addChunk: (chunk) ->
-        if chunk.length > 0
-            @_chunks.push chunk
+    _addResponse: (response) ->
+        @_responses.push response
 
-    _addData: (chunk) ->
-        @_addChunk chunk
-
-        if @_chunks.length == 1
-            @_promptCont()
+        pb.ResponseTypeSwitch(response, {
+            "SUCCESS_PARTIAL": =>
+                @_endFlag = false
+            },
+                => @_endFlag = true
+        )
 
         @_contFlag = false
         @_promptNext()
         @
 
-    _endData: (chunk) ->
-        @_addChunk chunk
-        @_endFlag = true
+    _getCallback: ->
+        @_iterations += 1
+        cb = @_cbQueue.shift()
 
-        @_contFlag = true
-        @_promptNext()
-        @
+        if @_iterations % 100 == 99
+            immediateCb = ((err, row) -> setImmediate -> cb(err, row))
+            return immediateCb
+        else
+            return cb
+
+    _handleRow: ->
+        response = @_responses[0]
+
+        row = deconstructDatum(response.response[@_responseIndex], @_opts)
+        cb = @_getCallback()
+
+        @_responseIndex += 1
+
+        # If we're done with this response, discard it
+        if @_responseIndex == response.response.length
+            @_responses.shift()
+            @_responseIndex = 0
+
+        cb null, row
 
     _promptNext: ->
-
         # If there are no more waiting callbacks, just wait until the next event
         while @_cbQueue[0]?
-
             # If there's no more data let's notify the waiting callback
             if not @hasNext()
                 cb = @_cbQueue.shift()
                 cb new err.RqlDriverError "No more rows in the cursor."
             else
+                # Try to get a row out of the responses
+                response = @_responses[0]
 
-                # We haven't processed all the data, let's try to give it to the callback
-
-                # Is there data waiting in our buffer?
-                chunk = @_chunks[0]
-                if @_chunks.length == 1
+                if @_responses.length == 1
                     # We're out of data for now, let's fetch more (which will prompt us again)
                     @_promptCont()
-                
-                    if chunk.length == 1 && !@_endFlag
+
+                    if !@_endFlag && response.response? && @_responseIndex == response.response.length - 1
                         return
 
-                # After this point there is at least one row in the chunk
-
-                row = chunk.shift()
-                cb = @_cbQueue.shift()
-
-                # Did we just empty the chunk?
-                if chunk[0] is undefined
-                    # We're done with this chunk, discard it
-                    @_chunks.shift()
-
-                # Finally we can invoke the callback with the row
-                cb null, row
+                # Error responses are not discarded, and the error will be sent to all future callbacks
+                pb.ResponseTypeSwitch(response, {
+                    "SUCCESS_PARTIAL": =>
+                        @_handleRow()
+                    ,"SUCCESS_SEQUENCE": =>
+                        @_handleRow()
+                    ,"COMPILE_ERROR": =>
+                        cb = @_getCallback()
+                        cb mkErr(err.RqlCompileError, response, @_root)
+                    ,"CLIENT_ERROR": =>
+                        cb = @_getCallback()
+                        cb mkErr(err.RqlClientError, response, @_root)
+                    ,"RUNTIME_ERROR": =>
+                        cb = @_getCallback()
+                        cb mkErr(err.RqlRuntimeError, response, @_root)
+                    },
+                        =>
+                            cb = @_getCallback()
+                            cb new err.RqlDriverError "Unknown response type for cursor"
+                )
 
     _promptCont: ->
         # Let's ask the server for more data if we haven't already
-        unless @_contFlag
-            @_conn._continueQuery(@_token)
+        if !@_contFlag && !@_endFlag
             @_contFlag = true
+            @_outstandingRequests += 1
+            @_conn._continueQuery(@_token)
 
 
     ## Implement IterableResult
 
-    hasNext: ar () -> @_chunks[0]?
+    hasNext: ar () -> @_responses[0]?
 
     next: ar (cb) ->
         nextCbCheck(cb)
@@ -182,6 +219,7 @@ class Cursor extends IterableResult
 
     close: ar () ->
         unless @_endFlag
+            @_outstandingRequests += 1
             @_conn._endQuery(@_token)
 
     toString: ar () -> "[object Cursor]"

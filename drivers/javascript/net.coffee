@@ -98,15 +98,11 @@ class Connection extends events.EventEmitter
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
-                pb.ResponseTypeSwitch(response, {
-                     "SUCCESS_PARTIAL": =>
-                        cursor._addData(mkSeq(response, opts))
-                    ,"SUCCESS_SEQUENCE": =>
-                        cursor._endData(mkSeq(response, opts))
-                        @_delQuery(token)
-                },
-                    => cb new err.RqlDriverError "Unknown response type"
-                )
+                cursor._addResponse(response)
+
+                if cursor._endFlag && cursor._outstandingRequests == 0
+                    @_delQuery(token)
+
             else if cb?
                 # Behavior varies considerably based on response type
                 pb.ResponseTypeSwitch(response, {
@@ -128,19 +124,19 @@ class Connection extends events.EventEmitter
                         cb null, response
                         @_delQuery(token)
                    ,"SUCCESS_PARTIAL": =>
-                        cursor = new cursors.Cursor @, token
+                        cursor = new cursors.Cursor @, token, opts, root
                         @outstandingCallbacks[token].cursor = cursor
                         if profile?
-                            cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
+                            cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
-                            cb null, cursor._addData(mkSeq(response, opts))
+                            cb null, cursor._addResponse(response)
                    ,"SUCCESS_SEQUENCE": =>
-                        cursor = new cursors.Cursor @, token
+                        cursor = new cursors.Cursor @, token, opts, root
                         @_delQuery(token)
                         if profile?
-                            cb null, {profile: profile, value: cursor._endData(mkSeq(response, opts))}
+                            cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
-                            cb null, cursor._endData(mkSeq(response, opts))
+                            cb null, cursor._addResponse(response)
                    ,"WAIT_COMPLETE": =>
                         @_delQuery(token)
                         cb null, null
@@ -285,11 +281,6 @@ class Connection extends events.EventEmitter
         query =
             type: "STOP"
             token: token
-
-        # Overwrite the callback for this token
-        @outstandingCallbacks[token] = {cb: (() =>
-            @_delQuery(token)
-        ), root:null, opts:{}}
 
         @_sendQuery(query)
 
