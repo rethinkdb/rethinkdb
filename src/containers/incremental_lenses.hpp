@@ -9,7 +9,14 @@
 #include <boost/bind.hpp>
 #include <boost/utility/result_of.hpp>
 
-// TODO! Document the classes
+/* `change_tracking_map_t` is like an `std::map`. However it keeps track
+ * of which keys have been modified.
+ * You can get access to the map's data through `get_inner()`.
+ * Before changing any of the values, you must call `begin_version()`.
+ * This resets the set of changed keys. It is therefore important that whatever
+ * processes the changes to the change_tracking_map is called once per call to
+ * begin_version, because it could otherwise miss some changes.
+ */
 template <class key_type, class inner_type>
 class change_tracking_map_t {
 public:
@@ -69,6 +76,15 @@ private:
     unsigned int current_version;
 };
 
+
+/* Given an `inner_lens`, the `incremental_map_lens_t` maintains a mapped
+ * version of a change_tracking_map, where each value v_out of the output is
+ * inner_lens(v_in). It tries to reduce computational costs by only applying
+ * inner_lens to values in the input map that are marked as changed.
+ *
+ * `incremental_map_lens_t` is designed for being used in the context of a
+ * `subview_watchable_t`.
+ */
 template <class key_type, class inner_type, class callable_type>
 class incremental_map_lens_t {
 public:
