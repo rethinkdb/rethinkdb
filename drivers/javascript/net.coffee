@@ -90,7 +90,7 @@ class Connection extends events.EventEmitter
             if cursor?
                 cursor._addResponse(response)
 
-                if cursor._endFlag && cursor._outstandingRequests == 0
+                if cursor._endFlag && cursor._outstandingRequests is 0
                     @_delQuery(token)
 
             else if cb?

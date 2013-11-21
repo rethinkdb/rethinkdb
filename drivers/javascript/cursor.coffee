@@ -88,7 +88,7 @@ class Cursor extends IterableResult
         @_iterations += 1
         cb = @_cbQueue.shift()
 
-        if @_iterations % 100 == 99
+        if @_iterations % @stackSize is @stackSize - 1
             immediateCb = ((err, row) -> setImmediate -> cb(err, row))
             return immediateCb
         else
@@ -102,7 +102,7 @@ class Cursor extends IterableResult
         @_responseIndex += 1
 
         # If we're done with this response, discard it
-        if @_responseIndex == response.response.length
+        if @_responseIndex is response.response.length
             @_responses.shift()
             @_responseIndex = 0
 
@@ -119,11 +119,13 @@ class Cursor extends IterableResult
                 # Try to get a row out of the responses
                 response = @_responses[0]
 
-                if @_responses.length == 1
-                    # We're out of data for now, let's fetch more (which will prompt us again)
+                if @_responses.length is 1
+                    # We're low on data, prebuffer
                     @_promptCont()
 
-                    if !@_endFlag && response.response? && @_responseIndex == response.response.length - 1
+                    if !@_endFlag && response.response? && @_responseIndex is response.response.length - 1
+                        # Only one row left and we aren't at the end of the stream, we have to hold
+                        #  onto this so we know if there's more data for hasNext
                         return
 
                 # Error responses are not discarded, and the error will be sent to all future callbacks
@@ -131,7 +133,7 @@ class Cursor extends IterableResult
                     "SUCCESS_PARTIAL": =>
                         @_handleRow()
                     ,"SUCCESS_SEQUENCE": =>
-                        if response.response.length == 0
+                        if response.response.length is 0
                             @_responses.shift()
                         else
                             @_handleRow()
