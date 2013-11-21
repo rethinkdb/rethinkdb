@@ -185,7 +185,8 @@ private:
 };
 
 
-// TODO: Make this an incremental lens
+// TODO: This could easily be an incremental lens. It doesn't seem overly critical for
+// performance though, so let's belay that until it turns out to be necessary.
 template<class protocol_t, class activity_t>
 boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
     typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = bcards.get_inner().find(p_id);
