@@ -15,7 +15,7 @@ var r = require('../../../build/packages/js/rethinkdb');
 
 var assertNoError = function(err) {
     if (err) {
-        throw new Error("Error "+err+" not expected")
+        throw new Error("Error '"+err+"' not expected")
     }
 };
 
