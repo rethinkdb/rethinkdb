@@ -144,7 +144,6 @@ public:
 
 #if SLICE_ALT
     void acquire_sindex_block_for_read(
-            read_token_pair_t *token_pair,
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id,
@@ -162,7 +161,6 @@ public:
 
 #if SLICE_ALT
     void acquire_sindex_block_for_write(
-            write_token_pair_t *token_pair,
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id,
@@ -180,7 +178,6 @@ public:
 
 #if SLICE_ALT
     MUST_USE bool add_sindex(
-        write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         superblock_t *super_block,
@@ -199,7 +196,6 @@ public:
 
 #if SLICE_ALT
     MUST_USE bool add_sindex(
-        write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         superblock_t *super_block,
@@ -220,7 +216,6 @@ public:
 
 #if SLICE_ALT
     void set_sindexes(
-        write_token_pair_t *token_pair,
         const std::map<std::string, secondary_index_t> &sindexes,
         superblock_t *superblock,
         value_sizer_t<void> *sizer,
@@ -271,7 +266,6 @@ public:
 
 #if SLICE_ALT
     bool drop_sindex(
-        write_token_pair_t *token_pair,
         const std::string &id,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
@@ -292,7 +286,6 @@ public:
 
 #if SLICE_ALT
     void drop_all_sindexes(
-        write_token_pair_t *token_pair,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
@@ -314,7 +307,6 @@ public:
     // we end up acquiring it twice, the second time when we use the secondary
     // indexes?
     void get_sindexes(
-        read_token_pair_t *token_pair,
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out,
         signal_t *interruptor)
@@ -346,7 +338,6 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
             block_id_t sindex_block_id,
-            read_token_pair_t *token_pair,
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out, // Optional, may be NULL
@@ -368,7 +359,6 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             signal_t *interruptor)
@@ -401,7 +391,6 @@ public:
 #if SLICE_ALT
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
             alt::alt_buf_parent_t parent,
             sindex_access_vector_t *sindex_sbs_out,
             signal_t *interruptor)
@@ -429,11 +418,9 @@ public:
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 #endif
 
-    // RSI: Rename to acquire, not acquire.
 #if SLICE_ALT
     void acquire_post_constructed_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
             alt::alt_buf_parent_t parent,
             sindex_access_vector_t *sindex_sbs_out,
             signal_t *interruptor)

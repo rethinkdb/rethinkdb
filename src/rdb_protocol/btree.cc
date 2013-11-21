@@ -753,7 +753,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 #endif
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
+#if !SLICE_ALT
                      write_token_pair_t *token_pair,
+#endif
                      signal_t *interruptor) {
     /* This is guaranteed because the way the keys are calculated below would
      * lead to a single key being deleted even if the range was empty. */
@@ -765,7 +767,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 #if SLICE_ALT
         scoped_ptr_t<alt_buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(
-            token_pair, superblock->expose_buf(),
+            superblock->expose_buf(),
             &sindex_block, superblock->get_sindex_block_id(),
             interruptor);
 
@@ -1268,22 +1270,45 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         btree_store_t<rdb_protocol_t> *store,
+#if !SLICE_ALT
         write_token_pair_t *token_pair,
-        transaction_t *txn, block_id_t sindex_block_id,
+#endif
+#if SLICE_ALT
+        alt_buf_parent_t superblock,
+#else
+        transaction_t *txn,
+#endif
+        block_id_t sindex_block_id,
         auto_drainer_t::lock_t lock)
-    : store_(store), token_pair_(token_pair),
-      txn_(txn), sindex_block_id_(sindex_block_id),
-      lock_(lock)
-{ }
+    : lock_(lock), store_(store)
+#if !SLICE_ALT
+      , token_pair_(token_pair)
+      , txn_(txn)
+      , sindex_block_id_(sindex_block_id)
+#endif
+{
+#if SLICE_ALT
+    // RSI: No need for this to be a scoped_ptr_t, is there?
+    cond_t dummy_interruptor;
+    store->acquire_sindex_block_for_write(superblock, &sindex_block_,
+                                          sindex_block_id, &dummy_interruptor);
+    // RSI: Could we just release the sindex_block_ right here?
+    store_->acquire_post_constructed_sindex_superblocks_for_write(
+            sindex_block_.get(), &sindexes_);
+#endif
+}
 
 rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
+#if !SLICE_ALT
     if (token_pair_->sindex_write_token.has()) {
         token_pair_->sindex_write_token.reset();
     }
+#endif
 }
 
 void rdb_modification_report_cb_t::on_mod_report(
         const rdb_modification_report_t &mod_report) {
+#if !SLICE_ALT
     if (!sindex_block_.has()) {
         // Don't allow interruption here, or we may end up with inconsistent data
         cond_t dummy_interruptor;
@@ -1294,6 +1319,7 @@ void rdb_modification_report_cb_t::on_mod_report(
         store_->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block_.get(), txn_, &sindexes_);
     }
+#endif
 
     mutex_t::acq_t acq;
     store_->lock_sindex_queue(sindex_block_.get(), &acq);
@@ -1302,7 +1328,11 @@ void rdb_modification_report_cb_t::on_mod_report(
     wm << rdb_sindex_change_t(mod_report);
     store_->sindex_queue_push(wm, &acq);
 
+#if SLICE_ALT
+    rdb_update_sindexes(sindexes_, &mod_report);
+#else
     rdb_update_sindexes(sindexes_, &mod_report, txn_);
+#endif
 }
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
@@ -1328,7 +1358,9 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
         const rdb_modification_report_t *modification,
+#if !SLICE_ALT
         transaction_t *txn,
+#endif
         auto_drainer_t::lock_t) {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
@@ -1368,6 +1400,14 @@ void rdb_update_single_sindex(
                 {
                     keyvalue_location_t<rdb_value_t> kv_location;
 
+#if SLICE_ALT
+                    find_keyvalue_location_for_write(super_block,
+                                                     it->btree_key(),
+                                                     &kv_location,
+                                                     &sindex->btree->stats,
+                                                     env.trace.get_or_null(),
+                                                     &return_superblock_local);
+#else
                     find_keyvalue_location_for_write(txn, super_block,
                                                      it->btree_key(),
                                                      &kv_location,
@@ -1375,10 +1415,17 @@ void rdb_update_single_sindex(
                                                      &sindex->btree->stats,
                                                      env.trace.get_or_null(),
                                                      &return_superblock_local);
+#endif
 
                     if (kv_location.value.has()) {
+#if SLICE_ALT
+                        // RSI: Does sindex->btree get used anywhere anymore?
+                        kv_location_delete(&kv_location, *it,
+                            repli_timestamp_t::distant_past, NULL);
+#else
                         kv_location_delete(&kv_location, *it,
                             sindex->btree, repli_timestamp_t::distant_past, txn, NULL);
+#endif
                     }
                     // The keyvalue location gets destroyed here.
                 }
@@ -1402,6 +1449,14 @@ void rdb_update_single_sindex(
                 {
                     keyvalue_location_t<rdb_value_t> kv_location;
 
+#if SLICE_ALT
+                    find_keyvalue_location_for_write(super_block,
+                                                     it->btree_key(),
+                                                     &kv_location,
+                                                     &sindex->btree->stats,
+                                                     env.trace.get_or_null(),
+                                                     &return_superblock_local);
+#else
                     find_keyvalue_location_for_write(txn, super_block,
                                                      it->btree_key(),
                                                      &kv_location,
@@ -1409,10 +1464,17 @@ void rdb_update_single_sindex(
                                                      &sindex->btree->stats,
                                                      env.trace.get_or_null(),
                                                      &return_superblock_local);
+#endif
 
+#if SLICE_ALT
+                    kv_location_set(&kv_location, *it,
+                                    modification->info.added.second,
+                                    repli_timestamp_t::distant_past);
+#else
                     kv_location_set(&kv_location, *it,
                                     modification->info.added.second, sindex->btree,
                                     repli_timestamp_t::distant_past, txn);
+#endif
                     // The keyvalue location gets destroyed here.
                 }
                 super_block = return_superblock_local.wait();
@@ -1423,18 +1485,29 @@ void rdb_update_single_sindex(
     }
 }
 
+#if SLICE_ALT
+void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
+                         const rdb_modification_report_t *modification) {
+#else
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
         transaction_t *txn) {
+#endif
     {
         auto_drainer_t drainer;
 
         for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
                                                     it != sindexes.end();
                                                     ++it) {
+#if SLICE_ALT
+            coro_t::spawn_sometime(std::bind(
+                        &rdb_update_single_sindex, &*it,
+                        modification, auto_drainer_t::lock_t(&drainer)));
+#else
             coro_t::spawn_sometime(boost::bind(
                         &rdb_update_single_sindex, &*it,
                         modification, txn, auto_drainer_t::lock_t(&drainer)));
+#endif
         }
     }
 
@@ -1442,8 +1515,13 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
      * deleted blob if it exists. */
     std::vector<char> ref_cpy(modification->info.deleted.second);
     if (modification->info.deleted.first) {
+#if SLICE_ALT
+        ref_cpy.insert(ref_cpy.end(), alt::blob::btree_maxreflen - ref_cpy.size(), 0);
+        guarantee(ref_cpy.size() == static_cast<size_t>(alt::blob::btree_maxreflen));
+#else
         ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
+#endif
 
         rdb_value_deleter_t deleter;
         deleter.delete_value(txn, ref_cpy.data());

@@ -95,7 +95,9 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 
 #if SLICE_ALT
         scoped_ptr_t<alt_buf_lock_t> sindex_block;
-        acquire_sindex_block_for_read(&token_pair, superblock->expose_buf(),
+        // RSI: Before we passed a token pair and made acquiring the sindex block
+        // interruptible.  Do any callers not pass a dummy interruptor?
+        acquire_sindex_block_for_read(superblock->expose_buf(),
                                       &sindex_block,
                                       superblock->get_sindex_block_id(),
                                       &dummy_interruptor);
@@ -236,7 +238,8 @@ bool btree_store_t<protocol_t>::send_backfill(
     scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
 #if SLICE_ALT
-    acquire_sindex_block_for_read(token_pair, superblock->expose_buf(),
+    // RSI: We don't actually use interruptor in the called function anymore.
+    acquire_sindex_block_for_read(superblock->expose_buf(),
                                   &sindex_block, superblock->get_sindex_block_id(),
                                   interruptor);
 #else
@@ -279,8 +282,12 @@ void btree_store_t<protocol_t>::receive_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
+    // RSI: Make sure that protocol_receive_backfill acquires the secondary index
+    // block at the right time.
+#if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
         token_destroyer(&token_pair->sindex_write_token);
+#endif
 
     // We don't want hard durability, this is a backfill chunk, and nobody
     // wants chunk-by-chunk acks.
@@ -319,8 +326,12 @@ void btree_store_t<protocol_t>::reset_data(
 #endif
     scoped_ptr_t<real_superblock_t> superblock;
 
+    // RSI: Make sure protocol_reset_data acquires the secondary index block at the
+    // right time.
+#if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
         token_destroyer(&token_pair->sindex_write_token);
+#endif
 
     // We're passing 2 for the expected_change_count based on the
     // reasoning that we're probably going to touch a leaf-node-sized
@@ -436,7 +447,9 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
+#if !SLICE_ALT
         read_token_pair_t *token_pair,
+#endif
 #if SLICE_ALT
         alt_buf_parent_t parent,
         scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
@@ -445,14 +458,23 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
 #endif
         block_id_t sindex_block_id,
+#if SLICE_ALT
+        UNUSED signal_t *interruptor)  // RSI: Before, interruptor was used when
+                                       // waiting for the sindex_read_token.  Right
+                                       // here, there's no way to interrupt trying to
+                                       // acquire a block.
+#else
         signal_t *interruptor)
+#endif
     THROWS_ONLY(interrupted_exc_t) {
+#if !SLICE_ALT
     /* First wait for our turn. */
     wait_interruptible(token_pair->sindex_read_token.get(), interruptor);
 
     /* Make sure others will be allowed to proceed after this function is
      * completes. */
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->sindex_read_token);
+#endif
 
     /* Finally acquire the block. */
 #if SLICE_ALT
@@ -465,7 +487,9 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
+#if !SLICE_ALT
         write_token_pair_t *token_pair,
+#endif
 #if SLICE_ALT
         alt_buf_parent_t parent,
         scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
@@ -474,15 +498,24 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
 #endif
         block_id_t sindex_block_id,
+#if SLICE_ALT
+        UNUSED signal_t *interruptor)  // RSI: Before, interruptor was used when
+                                       // waiting for the sindex_write_token.  Right
+                                       // here, there's no way to interrupt trying to
+                                       // acquire a block.  That happens elsewhere.
+#else
         signal_t *interruptor)
+#endif
     THROWS_ONLY(interrupted_exc_t) {
 
+#if !SLICE_ALT
     /* First wait for our turn. */
     wait_interruptible(token_pair->sindex_write_token.get(), interruptor);
 
     /* Make sure others will be allowed to proceed after this function is
      * completes. */
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->sindex_write_token);
+#endif
 
     /* Finally acquire the block. */
 #if SLICE_ALT
@@ -508,7 +541,6 @@ bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::m
 #if SLICE_ALT
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::add_sindex(
-        write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         superblock_t *super_block,
@@ -531,7 +563,7 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
 
-    return add_sindex(token_pair, id, definition,
+    return add_sindex(id, definition,
                       super_block, &sindex_block,
                       interruptor);
 #else
@@ -546,7 +578,6 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
 #if SLICE_ALT
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::add_sindex(
-        write_token_pair_t *token_pair,
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         superblock_t *super_block,
@@ -568,7 +599,8 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
     assert_thread();
 
 #if SLICE_ALT
-    acquire_sindex_block_for_write(token_pair, super_block->expose_buf(),
+    // RSI: Callee doesn't use interruptor.
+    acquire_sindex_block_for_write(super_block->expose_buf(),
                                    sindex_block_out,
                                    super_block->get_sindex_block_id(), interruptor);
 #else
@@ -628,7 +660,6 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
 #if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::set_sindexes(
-        write_token_pair_t *token_pair,
         const std::map<std::string, secondary_index_t> &sindexes,
         superblock_t *superblock,
         value_sizer_t<void> *sizer,
@@ -655,7 +686,8 @@ void btree_store_t<protocol_t>::set_sindexes(
 
     /* Get the sindex block which we will need to modify. */
 #if SLICE_ALT
-    acquire_sindex_block_for_write(token_pair, superblock->expose_buf(),
+    // RSI: Callee doesn't use interruptor.
+    acquire_sindex_block_for_write(superblock->expose_buf(),
                                    sindex_block_out,
                                    superblock->get_sindex_block_id(), interruptor);
 #else
@@ -824,7 +856,6 @@ THROWS_NOTHING {
 #if SLICE_ALT
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
-        write_token_pair_t *token_pair,
         const std::string &id,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
@@ -852,7 +883,8 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
     scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
 #if SLICE_ALT
-    acquire_sindex_block_for_write(token_pair, super_block->expose_buf(),
+    // RSI: Callee doesn't use interruptor.
+    acquire_sindex_block_for_write(super_block->expose_buf(),
                                    &sindex_block,
                                    super_block->get_sindex_block_id(), interruptor);
 #else
@@ -934,7 +966,6 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
 #if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::drop_all_sindexes(
-        write_token_pair_t *token_pair,
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
@@ -956,7 +987,8 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
     /* First get the sindex block. */
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, super_block->expose_buf(),
+    // RSI: Callee doesn't use interruptor.
+    acquire_sindex_block_for_write(super_block->expose_buf(),
                                    &sindex_block,
                                    super_block->get_sindex_block_id(), interruptor);
 #else
@@ -1028,7 +1060,6 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
 #if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
-        read_token_pair_t *token_pair,
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out,
         signal_t *interruptor)
@@ -1045,7 +1076,8 @@ void btree_store_t<protocol_t>::get_sindexes(
 #endif
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    acquire_sindex_block_for_read(token_pair, super_block->expose_buf(),
+    // RSI: We don't actually use interruptor in this called function anymore.
+    acquire_sindex_block_for_read(super_block->expose_buf(),
                                   &sindex_block,
                                   super_block->get_sindex_block_id(),
                                   interruptor);
@@ -1085,7 +1117,6 @@ template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         const std::string &id,
         block_id_t sindex_block_id,
-        read_token_pair_t *token_pair,
         alt_buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out,
@@ -1112,7 +1143,8 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
 #if SLICE_ALT
-    acquire_sindex_block_for_read(token_pair, parent, &sindex_block,
+    // RSI: We don't actually use interruptor in this called function anymore.
+    acquire_sindex_block_for_read(parent, &sindex_block,
                                   sindex_block_id, interruptor);
 #else
     acquire_sindex_block_for_read(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
@@ -1152,7 +1184,6 @@ template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
         block_id_t sindex_block_id,
-        write_token_pair_t *token_pair,
         alt_buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         signal_t *interruptor)
@@ -1173,7 +1204,8 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     /* Get the sindex block. */
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, parent, &sindex_block,
+    // RSI: Callee doesn't use interruptor.
+    acquire_sindex_block_for_write(parent, &sindex_block,
                                    sindex_block_id, interruptor);
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
@@ -1209,7 +1241,6 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
-        write_token_pair_t *token_pair,
         alt_buf_parent_t parent,
         sindex_access_vector_t *sindex_sbs_out,
         signal_t *interruptor)
@@ -1229,7 +1260,8 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
     /* Get the sindex block. */
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, parent, &sindex_block,
+    // RSI: Callee doesn't use interruptor.
+    acquire_sindex_block_for_write(parent, &sindex_block,
                                    sindex_block_id, interruptor);
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
@@ -1274,7 +1306,6 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
-        write_token_pair_t *token_pair,
         alt_buf_parent_t parent,
         sindex_access_vector_t *sindex_sbs_out,
         signal_t *interruptor)
@@ -1292,7 +1323,8 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
 
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, parent, &sindex_block,
+    // RSI: Callee doesn't use interruptor.
+    acquire_sindex_block_for_write(parent, &sindex_block,
                                    sindex_block_id, interruptor);
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
@@ -1830,8 +1862,10 @@ void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_si
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_read_token_pair(read_token_pair_t *token_pair_out) {
     assert_thread();
+#if !SLICE_ALT
     fifo_enforcer_read_token_t token = sindex_token_source.enter_read();
     token_pair_out->sindex_read_token.create(&sindex_token_sink, token);
+#endif
 
     new_read_token(&(token_pair_out->main_read_token));
 }
@@ -1839,8 +1873,10 @@ void btree_store_t<protocol_t>::new_read_token_pair(read_token_pair_t *token_pai
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_write_token_pair(write_token_pair_t *token_pair_out) {
     assert_thread();
+#if !SLICE_ALT
     fifo_enforcer_write_token_t token = sindex_token_source.enter_write();
     token_pair_out->sindex_write_token.create(&sindex_token_sink, token);
+#endif
 
     new_write_token(&(token_pair_out->main_write_token));
 }

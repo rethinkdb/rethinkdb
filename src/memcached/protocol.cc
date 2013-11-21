@@ -507,7 +507,7 @@ void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
                             superblock_t *superblock,
-                            read_token_pair_t *token_pair,
+                            UNUSED read_token_pair_t *token_pair,  // RSI: This is unused!
                             UNUSED signal_t *interruptor) {
 #else
 void store_t::protocol_read(const read_t &read,
@@ -518,9 +518,11 @@ void store_t::protocol_read(const read_t &read,
                             read_token_pair_t *token_pair,
                             UNUSED signal_t *interruptor) {
 #endif
+#if !SLICE_ALT
     /* Memcached doesn't have any secondary structures so right now we just
      * immediately destroy the token so that no one has to wait. */
     token_pair->sindex_read_token.reset();
+#endif
 #if SLICE_ALT
     read_visitor_t v(btree, superblock, read.effective_time);
 #else
@@ -625,11 +627,17 @@ void store_t::protocol_write(const write_t &write,
                              transaction_t *txn,
 #endif
                              scoped_ptr_t<superblock_t> *superblock,
+#if SLICE_ALT
+                             UNUSED write_token_pair_t *token_pair,  // RSI: unused!
+#else
                              write_token_pair_t *token_pair,
+#endif
                              UNUSED signal_t *interruptor) {
+#if !SLICE_ALT
     /* Memcached doesn't have any secondary structures so right now we just
      * immediately destroy the token so that no one has to wait. */
     token_pair->sindex_write_token.reset();
+#endif
 
     // TODO: should this be calling to_repli_timestamp on a transition_timestamp_t?  Does this not use the timestamp-before, when we'd want the timestamp-after?
 #if SLICE_ALT
@@ -830,10 +838,16 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         transaction_t *txn,
 #endif
                                         superblock_t *superblock,
+#if SLICE_ALT
+                                        UNUSED write_token_pair_t *token_pair,  // RSI: unused!
+#else
                                         write_token_pair_t *token_pair,
+#endif
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
+#if !SLICE_ALT
     token_pair->sindex_write_token.reset();
+#endif
 #if SLICE_ALT
     boost::apply_visitor(receive_backfill_visitor_t(btree, superblock, interruptor),
                          chunk.val);
@@ -868,9 +882,15 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   transaction_t *txn,
 #endif
                                   superblock_t *superblock,
+#if SLICE_ALT
+                                  UNUSED write_token_pair_t *token_pair,  // RSI: unused!
+#else
                                   write_token_pair_t *token_pair,
+#endif
                                   signal_t *interruptor) {
+#if !SLICE_ALT
     token_pair->sindex_write_token.reset();
+#endif
 
     hash_key_tester_t key_tester(subregion.beg, subregion.end);
 #if SLICE_ALT

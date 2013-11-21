@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "btree/slice.hpp"  // RSI: For SLICE_ALT.
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -325,12 +326,19 @@ private:
  * they acquire the primary. This could in theory be acquired as 2 seperate
  * objects but this would be twice as much typing and runs the risk that people
  * pass one exit read in to a function that accesses the other. */
+// RSI: Update this comment ^^
 struct read_token_pair_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token, sindex_read_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
+#if !SLICE_ALT
+    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> sindex_read_token;
+#endif
 };
 
 struct write_token_pair_t {
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token, sindex_write_token;
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
+#if !SLICE_ALT
+    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> sindex_write_token;
+#endif
 };
 
 // Specifies the durability requirements of a write operation.

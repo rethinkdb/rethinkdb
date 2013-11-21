@@ -213,7 +213,9 @@ void run_sindex_btree_store_api_test() {
                                                &txn, &super_block, &dummy_interuptor);
 
             UNUSED bool b = store.add_sindex(
+#if !SLICE_ALT
                 &token_pair,
+#endif
                 id,
                 std::vector<char>(),
 #if !SLICE_ALT
@@ -241,7 +243,7 @@ void run_sindex_btree_store_api_test() {
 #if SLICE_ALT
             scoped_ptr_t<alt_buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(
-                    &token_pair, super_block->expose_buf(), &sindex_block,
+                    super_block->expose_buf(), &sindex_block,
                     super_block->get_sindex_block_id(), &dummy_interuptor);
 #else
             scoped_ptr_t<buf_lock_t> sindex_block;
@@ -278,7 +280,7 @@ void run_sindex_btree_store_api_test() {
 
 #if SLICE_ALT
             bool sindex_exists = store.acquire_sindex_superblock_for_write(id,
-                    super_block->get_sindex_block_id(), &token_pair,
+                    super_block->get_sindex_block_id(),
                     super_block->expose_buf(),
                     &sindex_super_block, &dummy_interuptor);
 #else
@@ -334,7 +336,7 @@ void run_sindex_btree_store_api_test() {
 
 #if SLICE_ALT
             bool sindex_exists = store.acquire_sindex_superblock_for_read(id,
-                    main_sb->get_sindex_block_id(), &token_pair,
+                    main_sb->get_sindex_block_id(),
                     main_sb->expose_buf(), &sindex_super_block,
                     static_cast<std::vector<char>*>(NULL), &dummy_interuptor);
 #else
@@ -380,11 +382,11 @@ void run_sindex_btree_store_api_test() {
         rdb_value_deleter_t deleter;
 
 #if SLICE_ALT
-        store.drop_sindex( &token_pair, *it,
+        store.drop_sindex(*it,
                 super_block.get(), &sizer,
                 &deleter, &dummy_interuptor);
 #else
-        store.drop_sindex( &token_pair, *it,
+        store.drop_sindex(&token_pair, *it,
                 txn.get(), super_block.get(), &sizer,
                 &deleter, &dummy_interuptor);
 #endif

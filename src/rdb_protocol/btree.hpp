@@ -231,7 +231,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 #endif
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
+#if !SLICE_ALT
                      write_token_pair_t *token_pair,
+#endif
                      signal_t *interruptor);
 
 /* RGETS */
@@ -323,9 +325,16 @@ typedef boost::variant<rdb_modification_report_t,
  * modify the secondary while they perform an operation. */
 class rdb_modification_report_cb_t {
 public:
+#if SLICE_ALT
+    rdb_modification_report_cb_t(
+            btree_store_t<rdb_protocol_t> *store,
+            alt::alt_buf_parent_t superblock, block_id_t sindex_block,
+            auto_drainer_t::lock_t lock);
+#else
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
             transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
+#endif
 
     void on_mod_report(const rdb_modification_report_t &mod_report);
 
@@ -333,24 +342,38 @@ public:
 private:
 
     /* Fields initialized by the constructor. */
+    auto_drainer_t::lock_t lock_;
     btree_store_t<rdb_protocol_t> *store_;
+#if !SLICE_ALT
     write_token_pair_t *token_pair_;
     transaction_t *txn_;
     block_id_t sindex_block_id_;
-    auto_drainer_t::lock_t lock_;
+#endif
+#if SLICE_ALT
+    scoped_ptr_t<alt::alt_buf_lock_t> sindex_block_;
+#endif
 
     // RSI: Figure out how this is used.  Does the caller release the superblock?
     // How do we ensure that sindex ordering is correct?
 
     /* Fields initialized by calls to on_mod_report */
+#if !SLICE_ALT
     scoped_ptr_t<buf_lock_t> sindex_block_;
+#endif
     btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
 };
 
+#if SLICE_ALT
+void rdb_update_sindexes(
+        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const rdb_modification_report_t *modification);
+
+#else
 void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
         transaction_t *txn);
+#endif
 
 void rdb_erase_range_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,

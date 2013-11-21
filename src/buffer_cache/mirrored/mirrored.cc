@@ -1077,10 +1077,12 @@ mc_transaction_t::~mc_transaction_t() {
          * transaction. */
         guarantee(!token_pair->main_write_token.has());
 
+#if !SLICE_ALT
         /* If the below is failing then someone has gotten a token pair and not
          * used the sindex portion of it. This is a crash because otherwise it's
          * likely to be a deadlock. */
         guarantee(!token_pair->sindex_write_token.has());
+#endif
     }
 
     cache->stats->pm_transactions_active.end(&start_time);

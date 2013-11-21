@@ -258,18 +258,26 @@ void dummy_protocol_t::store_t::new_write_token(object_buffer_t<fifo_enforcer_si
 
 void dummy_protocol_t::store_t::new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING {
     assert_thread();
-    fifo_enforcer_read_token_t main_token = main_token_source.enter_read(),
-                                secondary_token = secondary_token_source.enter_read();
+    fifo_enforcer_read_token_t main_token = main_token_source.enter_read();
+#if !SLICE_ALT
+    fifo_enforcer_read_token_t secondary_token = secondary_token_source.enter_read();
+#endif
     token_pair_out->main_read_token.create(&main_token_sink, main_token);
+#if !SLICE_ALT
     token_pair_out->sindex_read_token.create(&secondary_token_sink, secondary_token);
+#endif
 }
 
 void dummy_protocol_t::store_t::new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING {
     assert_thread();
-    fifo_enforcer_write_token_t main_token = main_token_source.enter_write(),
-                                secondary_token = secondary_token_source.enter_write();
+    fifo_enforcer_write_token_t main_token = main_token_source.enter_write();
+#if !SLICE_ALT
+    fifo_enforcer_write_token_t secondary_token = secondary_token_source.enter_write();
+#endif
     token_pair_out->main_write_token.create(&main_token_sink, main_token);
+#if !SLICE_ALT
     token_pair_out->sindex_write_token.create(&secondary_token_sink, secondary_token);
+#endif
 }
 
 void dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
@@ -319,7 +327,9 @@ void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_p
 
     {
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->main_read_token);
+#if !SLICE_ALT
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_read_token);
+#endif
 
         wait_interruptible(token_pair->main_read_token.get(), interruptor);
         order_sink.check_out(order_token);
@@ -385,7 +395,9 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
 
     {
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
+#if !SLICE_ALT
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
+#endif
 
         wait_interruptible(token_pair->main_write_token.get(), interruptor);
 
@@ -425,7 +437,9 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
     rassert(region_is_superset(get_region(), start_point.get_domain()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->main_read_token);
+#if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_read_token);
+#endif
 
     wait_interruptible(token_pair->main_read_token.get(), interruptor);
 
@@ -463,7 +477,9 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
 
 void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, write_token_pair_t *token_pair, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
+#if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
+#endif
 
     rassert(get_region().keys.count(chunk.key) != 0);
 
@@ -482,7 +498,9 @@ void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &sub
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
+#if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer2(&token_pair->sindex_write_token);
+#endif
 
     wait_interruptible(token_pair->main_write_token.get(), interruptor);
 
