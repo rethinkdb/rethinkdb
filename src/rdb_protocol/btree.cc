@@ -1485,29 +1485,18 @@ void rdb_update_single_sindex(
     }
 }
 
-#if SLICE_ALT
-void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
-                         const rdb_modification_report_t *modification) {
-#else
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
         transaction_t *txn) {
-#endif
     {
         auto_drainer_t drainer;
 
         for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
                                                     it != sindexes.end();
                                                     ++it) {
-#if SLICE_ALT
-            coro_t::spawn_sometime(std::bind(
-                        &rdb_update_single_sindex, &*it,
-                        modification, auto_drainer_t::lock_t(&drainer)));
-#else
             coro_t::spawn_sometime(boost::bind(
                         &rdb_update_single_sindex, &*it,
                         modification, txn, auto_drainer_t::lock_t(&drainer)));
-#endif
         }
     }
 
@@ -1515,15 +1504,12 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
      * deleted blob if it exists. */
     std::vector<char> ref_cpy(modification->info.deleted.second);
     if (modification->info.deleted.first) {
-#if SLICE_ALT
-        ref_cpy.insert(ref_cpy.end(), alt::blob::btree_maxreflen - ref_cpy.size(), 0);
-        guarantee(ref_cpy.size() == static_cast<size_t>(alt::blob::btree_maxreflen));
-#else
         ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
-#endif
 
         rdb_value_deleter_t deleter;
+        // RSI: Is it safe to delete a detached value?  There definitely could be
+        // something snapshotting the blob.
         deleter.delete_value(txn, ref_cpy.data());
     }
 }
