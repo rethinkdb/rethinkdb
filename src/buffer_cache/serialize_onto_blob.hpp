@@ -23,7 +23,7 @@ template <class T>
 void deserialize_from_group(const const_buffer_group_t *group, T *value_out) {
     buffer_group_read_stream_t stream(group);
     archive_result_t res = deserialize(&stream, value_out);
-    guarantee_deserialization(res, "T (buffer group).");
+    guarantee_deserialization(res, "T (from a buffer group)");
     guarantee(stream.entire_stream_consumed(),
               "Corrupted value in storage (deserialization terminated early).");
 };
