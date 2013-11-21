@@ -9,7 +9,7 @@
 #include <boost/bind.hpp>
 #include <boost/utility/result_of.hpp>
 
-// TODO: Document the classes
+// TODO! Document the classes
 template <class key_type, class inner_type>
 class change_tracking_map_t {
 public:

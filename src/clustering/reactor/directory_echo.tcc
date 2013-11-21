@@ -142,8 +142,7 @@ void directory_echo_mirror_t<internal_t>::on_change() {
             subview_value(c2),
             drainer(c3),
             anything_changed(c4),
-            parent(c5) {
-        }
+            parent(c5) { }
         std::map<peer_id_t, directory_echo_version_t> &last_seen;
         change_tracking_map_t<peer_id_t, internal_t> &subview_value;
         auto_drainer_t &drainer;

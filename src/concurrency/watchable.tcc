@@ -89,8 +89,7 @@ private:
                 op_closure_t(callable_type &c1, bool &c2, result_type &c3) :
                     lens(c1),
                     value_changed(c2),
-                    cached_value(c3) {
-                }
+                    cached_value(c3) { }
                 callable_type &lens;
                 bool &value_changed;
                 result_type &cached_value;

@@ -127,8 +127,7 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
                 return true;
             }
             op_closure_t(peer_id_t &c1) :
-                peer(c1) {
-            }
+                peer(c1) { }
             peer_id_t &peer;
         };
         op_closure_t op(peer);
@@ -173,8 +172,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
             op_closure_t(peer_id_t &c1,
                          const boost::shared_ptr<metadata_t> &c2) :
                 peer(c1),
-                initial_value(c2) {
-            }
+                initial_value(c2) { }
             peer_id_t &peer;
             const boost::shared_ptr<metadata_t> &initial_value;
         };
@@ -252,8 +250,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
                              boost::ptr_map<peer_id_t, session_t> &c3) :
                     peer(c1),
                     new_value(c2),
-                    sessions(c3) {
-                }
+                    sessions(c3) { }
                 peer_id_t &peer;
                 const boost::shared_ptr<metadata_t> &new_value;
                 boost::ptr_map<peer_id_t, session_t> &sessions;

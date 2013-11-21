@@ -308,8 +308,7 @@ private:
             }
             op_closure_t(const namespace_id_t &c1, scoped_ptr_t<reactor_t<protocol_t> > &c2) :
                 namespace_id_(c1),
-                reactor_(c2) {
-            }
+                reactor_(c2) { }
             const namespace_id_t &namespace_id_;
             scoped_ptr_t<reactor_t<protocol_t> > &reactor_;
         };
@@ -365,8 +364,7 @@ private:
                 }
                 op_closure_t(const namespace_id_t &c1, scoped_ptr_t<reactor_t<protocol_t> > &c2) :
                     namespace_id_(c1),
-                    reactor_(c2) {
-                }
+                    reactor_(c2) { }
                 const namespace_id_t &namespace_id_;
                 scoped_ptr_t<reactor_t<protocol_t> > &reactor_;
             };
@@ -530,8 +528,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                             return blueprint_changed;
                         }
                         op_closure_t(blueprint_t<protocol_t> &c1) :
-                            bp(c1) {
-                        }
+                            bp(c1) { }
                         blueprint_t<protocol_t> &bp;
                     };
                     op_closure_t op(bp);
