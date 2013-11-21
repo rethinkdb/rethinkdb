@@ -148,7 +148,6 @@ class Cursor extends IterableResult
 
     _handleRow: ->
         response = @_responses[0]
-
         row = deconstructDatum(response.response[@_responseIndex], @_opts)
         cb = @_getCallback()
 
@@ -166,7 +165,7 @@ class Cursor extends IterableResult
         while @_cbQueue[0]?
             # If there's no more data let's notify the waiting callback
             if not @hasNext()
-                cb = @_cbQueue.shift()
+                cb = @_getCallback()
                 cb new err.RqlDriverError "No more rows in the cursor."
             else
                 # Try to get a row out of the responses
@@ -184,18 +183,25 @@ class Cursor extends IterableResult
                     "SUCCESS_PARTIAL": =>
                         @_handleRow()
                     ,"SUCCESS_SEQUENCE": =>
-                        @_handleRow()
+                        if response.response.length == 0
+                            @_responses.shift()
+                        else
+                            @_handleRow()
                     ,"COMPILE_ERROR": =>
+                        @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlCompileError, response, @_root)
                     ,"CLIENT_ERROR": =>
+                        @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlClientError, response, @_root)
                     ,"RUNTIME_ERROR": =>
+                        @_responses.shift()
                         cb = @_getCallback()
                         cb mkErr(err.RqlRuntimeError, response, @_root)
                     },
                         =>
+                            @_responses.shift()
                             cb = @_getCallback()
                             cb new err.RqlDriverError "Unknown response type for cursor"
                 )
@@ -210,7 +216,7 @@ class Cursor extends IterableResult
 
     ## Implement IterableResult
 
-    hasNext: ar () -> @_responses[0]?
+    hasNext: ar () -> @_responses[0]? && @_responses[0].response.length > 0
 
     next: ar (cb) ->
         nextCbCheck(cb)
