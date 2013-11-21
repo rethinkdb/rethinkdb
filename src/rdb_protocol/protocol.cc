@@ -1633,7 +1633,7 @@ private:
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
-        store->aquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
+        store->acquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
         rdb_update_sindexes(sindexes, mod_report, txn);
     }
 
@@ -1841,7 +1841,7 @@ private:
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
-        store->aquire_post_constructed_sindex_superblocks_for_write(
+        store->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block.get(), txn, &sindexes);
         rdb_update_sindexes(sindexes, mod_report, txn);
     }

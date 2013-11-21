@@ -415,9 +415,9 @@ public:
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 #endif
 
-    // RSI: Rename to acquire, not aquire.
+    // RSI: Rename to acquire, not acquire.
 #if SLICE_ALT
-    void aquire_post_constructed_sindex_superblocks_for_write(
+    void acquire_post_constructed_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             alt::alt_buf_parent_t parent,
@@ -425,7 +425,7 @@ public:
             signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 #else
-    void aquire_post_constructed_sindex_superblocks_for_write(
+    void acquire_post_constructed_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,
             transaction_t *txn,
@@ -435,12 +435,12 @@ public:
 #endif
 
 #if SLICE_ALT
-    void aquire_post_constructed_sindex_superblocks_for_write(
+    void acquire_post_constructed_sindex_superblocks_for_write(
             alt::alt_buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING;
 #else
-    void aquire_post_constructed_sindex_superblocks_for_write(
+    void acquire_post_constructed_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
             transaction_t *txn,
             sindex_access_vector_t *sindex_sbs_out)

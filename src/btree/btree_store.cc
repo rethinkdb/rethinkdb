@@ -1242,7 +1242,7 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
 
 #if SLICE_ALT
 template <class protocol_t>
-void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_write(
+void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         write_token_pair_t *token_pair,
         alt_buf_parent_t parent,
@@ -1250,7 +1250,7 @@ void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_w
         signal_t *interruptor)
 #else
 template <class protocol_t>
-void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_write(
+void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         write_token_pair_t *token_pair,
         transaction_t *txn,
@@ -1270,11 +1270,11 @@ void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_w
 #endif
 
 #if SLICE_ALT
-    aquire_post_constructed_sindex_superblocks_for_write(
+    acquire_post_constructed_sindex_superblocks_for_write(
             sindex_block.get(),
             sindex_sbs_out);
 #else
-    aquire_post_constructed_sindex_superblocks_for_write(
+    acquire_post_constructed_sindex_superblocks_for_write(
             sindex_block.get(),
             txn,
             sindex_sbs_out);
@@ -1283,13 +1283,13 @@ void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_w
 
 #if SLICE_ALT
 template <class protocol_t>
-void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_write(
+void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
         alt_buf_lock_t *sindex_block,
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING {
 #else
 template <class protocol_t>
-void btree_store_t<protocol_t>::aquire_post_constructed_sindex_superblocks_for_write(
+void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
         buf_lock_t *sindex_block,
         transaction_t *txn,
         sindex_access_vector_t *sindex_sbs_out)

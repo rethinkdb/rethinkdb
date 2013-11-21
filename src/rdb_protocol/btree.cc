@@ -769,7 +769,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
             &sindex_block, superblock->get_sindex_block_id(),
             interruptor);
 
-        store->aquire_post_constructed_sindex_superblocks_for_write(
+        store->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block.get(), &sindex_superblocks);
 #else
         scoped_ptr_t<buf_lock_t> sindex_block;
@@ -777,7 +777,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
             token_pair, txn, &sindex_block, superblock->get_sindex_block_id(),
             interruptor);
 
-        store->aquire_post_constructed_sindex_superblocks_for_write(
+        store->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block.get(), txn, &sindex_superblocks);
 #endif
 
@@ -1291,7 +1291,7 @@ void rdb_modification_report_cb_t::on_mod_report(
             token_pair_, txn_, &sindex_block_,
             sindex_block_id_, &dummy_interruptor);
 
-        store_->aquire_post_constructed_sindex_superblocks_for_write(
+        store_->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block_.get(), txn_, &sindexes_);
     }
 

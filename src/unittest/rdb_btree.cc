@@ -65,7 +65,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
                     sindex_block_id, &dummy_interruptor);
 
             btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
-            store->aquire_post_constructed_sindex_superblocks_for_write(
+            store->acquire_post_constructed_sindex_superblocks_for_write(
                      sindex_block.get(), txn.get(), &sindexes);
             rdb_update_sindexes(sindexes, &mod_report, txn.get());
 

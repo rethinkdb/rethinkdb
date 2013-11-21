@@ -1175,7 +1175,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
         buf_lock_t stat_block(state->transaction_ptr, state->stat_block, rwi_write, buffer_cache_order_mode_ignore);
         static_cast<btree_statblock_t *>(stat_block.get_data_write())->population += population_change;
     } else {
-        //don't aquire the block to not change the value
+        //don't acquire the block to not change the value
     }
 
     buf->reset();
