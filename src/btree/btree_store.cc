@@ -755,37 +755,67 @@ void btree_store_t<protocol_t>::set_sindexes(
     }
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+bool btree_store_t<protocol_t>::mark_index_up_to_date(const std::string &id,
+                                                      alt_buf_lock_t *sindex_block)
+    THROWS_NOTHING {
+#else
 template <class protocol_t>
 bool btree_store_t<protocol_t>::mark_index_up_to_date(
     const std::string &id,
     transaction_t *txn,
     buf_lock_t *sindex_block)
 THROWS_NOTHING {
+#endif
     secondary_index_t sindex;
+#if SLICE_ALT
+    bool found = ::get_secondary_index(sindex_block, id, &sindex);
+#else
     bool found = ::get_secondary_index(txn, sindex_block, id, &sindex);
+#endif
 
     if (found) {
         sindex.post_construction_complete = true;
 
+#if SLICE_ALT
+        ::set_secondary_index(sindex_block, id, sindex);
+#else
         ::set_secondary_index(txn, sindex_block, id, sindex);
+#endif
     }
 
     return found;
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+bool btree_store_t<protocol_t>::mark_index_up_to_date(uuid_u id,
+                                                      alt_buf_lock_t *sindex_block)
+    THROWS_NOTHING {
+#else
 template <class protocol_t>
 bool btree_store_t<protocol_t>::mark_index_up_to_date(
     uuid_u id,
     transaction_t *txn,
     buf_lock_t *sindex_block)
 THROWS_NOTHING {
+#endif
     secondary_index_t sindex;
+#if SLICE_ALT
+    bool found = ::get_secondary_index(sindex_block, id, &sindex);
+#else
     bool found = ::get_secondary_index(txn, sindex_block, id, &sindex);
+#endif
 
     if (found) {
         sindex.post_construction_complete = true;
 
+#if SLICE_ALT
+        ::set_secondary_index(sindex_block, id, sindex);
+#else
         ::set_secondary_index(txn, sindex_block, id, sindex);
+#endif
     }
 
     return found;

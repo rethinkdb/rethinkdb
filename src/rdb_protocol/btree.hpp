@@ -145,12 +145,23 @@ batched_replace_response_t rdb_batched_replace(
     rdb_modification_report_cb_t *sindex_cb,
     profile::trace_t *trace);
 
-void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data, bool overwrite,
+#if SLICE_ALT
+void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
+             bool overwrite,
+             btree_slice_t *slice, repli_timestamp_t timestamp,
+             superblock_t *superblock,
+             point_write_response_t *response,
+             rdb_modification_info_t *mod_info,
+             profile::trace_t *trace);
+#else
+void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
+             bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
              transaction_t *txn, superblock_t *superblock,
              point_write_response_t *response,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace);
+#endif
 
 class rdb_backfill_callback_t {
 public:
@@ -327,6 +338,9 @@ private:
     transaction_t *txn_;
     block_id_t sindex_block_id_;
     auto_drainer_t::lock_t lock_;
+
+    // RSI: Figure out how this is used.  Does the caller release the superblock?
+    // How do we ensure that sindex ordering is correct?
 
     /* Fields initialized by calls to on_mod_report */
     scoped_ptr_t<buf_lock_t> sindex_block_;

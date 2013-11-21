@@ -201,7 +201,11 @@ void run_sindex_btree_store_api_test() {
             write_token_pair_t token_pair;
             store.new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+            scoped_ptr_t<alt_txn_t> txn;
+#else
             scoped_ptr_t<transaction_t> txn;
+#endif
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(repli_timestamp_t::invalid,
@@ -212,7 +216,9 @@ void run_sindex_btree_store_api_test() {
                 &token_pair,
                 id,
                 std::vector<char>(),
+#if !SLICE_ALT
                 txn.get(),
+#endif
                 super_block.get(),
                 &dummy_interuptor);
         }
@@ -221,19 +227,34 @@ void run_sindex_btree_store_api_test() {
             write_token_pair_t token_pair;
             store.new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+            scoped_ptr_t<alt_txn_t> txn;
+#else
             scoped_ptr_t<transaction_t> txn;
+#endif
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(repli_timestamp_t::invalid,
                                                1, WRITE_DURABILITY_SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interuptor);
 
+#if SLICE_ALT
+            scoped_ptr_t<alt_buf_lock_t> sindex_block;
+            store.acquire_sindex_block_for_write(
+                    &token_pair, super_block->expose_buf(), &sindex_block,
+                    super_block->get_sindex_block_id(), &dummy_interuptor);
+#else
             scoped_ptr_t<buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(
                     &token_pair, txn.get(), &sindex_block,
                     super_block->get_sindex_block_id(), &dummy_interuptor);
+#endif
 
+#if SLICE_ALT
+            store.mark_index_up_to_date(id, sindex_block.get());
+#else
             store.mark_index_up_to_date(id, txn.get(), sindex_block.get());
+#endif
         }
 
         {
@@ -241,7 +262,11 @@ void run_sindex_btree_store_api_test() {
             write_token_pair_t token_pair;
             store.new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+            scoped_ptr_t<alt_txn_t> txn;
+#else
             scoped_ptr_t<transaction_t> txn;
+#endif
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(
@@ -251,9 +276,16 @@ void run_sindex_btree_store_api_test() {
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
+#if SLICE_ALT
+            bool sindex_exists = store.acquire_sindex_superblock_for_write(id,
+                    super_block->get_sindex_block_id(), &token_pair,
+                    super_block->expose_buf(),
+                    &sindex_super_block, &dummy_interuptor);
+#else
             bool sindex_exists = store.acquire_sindex_superblock_for_write(id,
                     super_block->get_sindex_block_id(), &token_pair, txn.get(),
                     &sindex_super_block, &dummy_interuptor);
+#endif
             ASSERT_TRUE(sindex_exists);
 
             counted_t<const ql::datum_t> data = make_counted<ql::datum_t>(1.0);
@@ -262,10 +294,17 @@ void run_sindex_btree_store_api_test() {
             rdb_modification_info_t mod_info;
 
             store_key_t key("foo");
+#if SLICE_ALT
+            rdb_set(key, data, true, store.get_sindex_slice(id),
+                    repli_timestamp_t::invalid,
+                    sindex_super_block.get(), &response,
+                    &mod_info, static_cast<profile::trace_t *>(NULL));
+#else
             rdb_set(key, data, true, store.get_sindex_slice(id),
                     repli_timestamp_t::invalid, txn.get(),
                     sindex_super_block.get(), &response,
                     &mod_info, static_cast<profile::trace_t *>(NULL));
+#endif
         }
 
         {
@@ -325,7 +364,11 @@ void run_sindex_btree_store_api_test() {
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> txn;
+#else
         scoped_ptr_t<transaction_t> txn;
+#endif
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(repli_timestamp_t::invalid,
@@ -336,9 +379,15 @@ void run_sindex_btree_store_api_test() {
 
         rdb_value_deleter_t deleter;
 
+#if SLICE_ALT
+        store.drop_sindex( &token_pair, *it,
+                super_block.get(), &sizer,
+                &deleter, &dummy_interuptor);
+#else
         store.drop_sindex( &token_pair, *it,
                 txn.get(), super_block.get(), &sizer,
                 &deleter, &dummy_interuptor);
+#endif
     }
 }
 

@@ -243,17 +243,31 @@ public:
     THROWS_ONLY(interrupted_exc_t);
 #endif
 
+#if SLICE_ALT
+    bool mark_index_up_to_date(
+        const std::string &id,
+        alt::alt_buf_lock_t *sindex_block)
+    THROWS_NOTHING;
+#else
     bool mark_index_up_to_date(
         const std::string &id,
         transaction_t *txn,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
+#endif
 
+#if SLICE_ALT
+    bool mark_index_up_to_date(
+        uuid_u id,
+        alt::alt_buf_lock_t *sindex_block)
+    THROWS_NOTHING;
+#else
     bool mark_index_up_to_date(
         uuid_u id,
         transaction_t *txn,
         buf_lock_t *sindex_block)
     THROWS_NOTHING;
+#endif
 
 #if SLICE_ALT
     bool drop_sindex(
