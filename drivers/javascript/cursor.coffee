@@ -115,7 +115,7 @@ class Cursor extends IterableResult
 
         @_responses = []
         @_responseIndex = 0
-        @_outstandingRequests = 0
+        @_outstandingRequests = 1
         @_iterations = 0
         @_endFlag = false
         @_contFlag = false
@@ -124,6 +124,7 @@ class Cursor extends IterableResult
 
     _addResponse: (response) ->
         @_responses.push response
+        @_outstandingRequests -= 1
 
         pb.ResponseTypeSwitch(response, {
             "SUCCESS_PARTIAL": =>
