@@ -31,13 +31,6 @@ const char *archive_result_as_str(archive_result_t archive_result) {
     }
 }
 
-void guarantee_deserialization(
-    archive_result_t archive_result, const char *name_of_value) {
-    guarantee(archive_result == ARCHIVE_SUCCESS,
-        "Deserialization of %s failed with error %s.",
-        name_of_value, archive_result_as_str(archive_result));
-}
-
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);
 

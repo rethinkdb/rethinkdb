@@ -40,7 +40,12 @@ enum archive_result_t {
 
 const char *archive_result_as_str(archive_result_t archive_result);
 
-void guarantee_deserialization(archive_result_t archive_result, const char *name_of_value);
+#define guarantee_deserialization(result, ...) do {                     \
+        guarantee(result == ARCHIVE_SUCCESS,                            \
+                  "Deserialization of %s failed with error %s.",        \
+                  strprintf(__VA_ARGS__).c_str(),                       \
+                  archive_result_as_str(result));                       \
+    } while (0)
 
 // We wrap things in this class for making friend declarations more
 // compilable under gcc-4.5.
