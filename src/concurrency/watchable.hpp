@@ -108,7 +108,11 @@ public:
 
     virtual value_t get() = 0;
 
+    // For better performance, implementations of watchable_t should
+    // overwrite this if possible.
     virtual void apply_read(const std::function<void(const value_t*)> &read) {
+        // Fall-back for watchables that don't allow in-place access to their
+        // current value.
         value_t v = get();
         read(&v);
     }
