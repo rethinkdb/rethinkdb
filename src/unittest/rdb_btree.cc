@@ -1,13 +1,12 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "arch/io/disk.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
+#include "btree/slice.hpp"  // RSI: for thing.
 #include "buffer_cache/mirrored/config.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/btree.hpp"
@@ -30,7 +29,11 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
     guarantee(start <= finish);
     for (int i = start; i < finish; ++i) {
         cond_t dummy_interruptor;
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> txn;
+#else
         scoped_ptr_t<transaction_t> txn;
+#endif
         scoped_ptr_t<real_superblock_t> superblock;
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
@@ -52,7 +55,11 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
                 static_cast<profile::trace_t *>(NULL));
 
         {
+#if SLICE_ALT
+            scoped_ptr_t<alt::alt_buf_lock_t> sindex_block;
+#else
             scoped_ptr_t<buf_lock_t> sindex_block;
+#endif
             store->acquire_sindex_block_for_write(
                     &token_pair, txn.get(), &sindex_block,
                     sindex_block_id, &dummy_interruptor);
@@ -187,7 +194,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
             super_block->get_sindex_block_id(),
             &dummy_interruptor);
 
-    coro_t::spawn_sometime(boost::bind(&insert_rows_and_pulse_when_done,
+    coro_t::spawn_sometime(std::bind(&insert_rows_and_pulse_when_done,
                 (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,
                 store, background_inserts_done));
 

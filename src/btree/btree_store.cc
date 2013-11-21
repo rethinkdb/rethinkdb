@@ -79,18 +79,39 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         read_token_pair_t token_pair;
         new_read_token_pair(&token_pair);
 
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> txn;
+#else
         scoped_ptr_t<transaction_t> txn;
+#endif
         scoped_ptr_t<real_superblock_t> superblock;
+#if SLICE_ALT
+        acquire_superblock_for_read(&token_pair.main_read_token, &txn,
+                                    &superblock, &dummy_interruptor, false);
+#else
         acquire_superblock_for_read(rwi_read, &token_pair.main_read_token, &txn,
                                     &superblock, &dummy_interruptor, false);
+#endif
 
+#if SLICE_ALT
+        scoped_ptr_t<alt_buf_lock_t> sindex_block;
+        acquire_sindex_block_for_read(&token_pair, superblock->expose_buf(),
+                                      &sindex_block,
+                                      superblock->get_sindex_block_id(),
+                                      &dummy_interruptor);
+#else
         scoped_ptr_t<buf_lock_t> sindex_block;
         acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
                                       superblock->get_sindex_block_id(),
                                       &dummy_interruptor);
+#endif
 
         std::map<std::string, secondary_index_t> sindexes;
+#if SLICE_ALT
+        get_secondary_indexes(sindex_block.get(), &sindexes);
+#else
         get_secondary_indexes(txn.get(), sindex_block.get(), &sindexes);
+#endif
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             secondary_index_slices.insert(it->first,
@@ -250,7 +271,11 @@ void btree_store_t<protocol_t>::receive_backfill(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
@@ -441,8 +466,13 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         write_token_pair_t *token_pair,
+#if SLICE_ALT
+        alt_buf_parent_t parent,
+        scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
+#else
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
+#endif
         block_id_t sindex_block_id,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
@@ -455,7 +485,12 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->sindex_write_token);
 
     /* Finally acquire the block. */
+#if SLICE_ALT
+    sindex_block_out->init(new alt_buf_lock_t(parent, sindex_block_id,
+                                              alt_access_t::write));
+#else
     sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_write));
+#endif
 }
 
 template <class region_map_t>
@@ -470,6 +505,16 @@ bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::m
     return true;
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+MUST_USE bool btree_store_t<protocol_t>::add_sindex(
+        write_token_pair_t *token_pair,
+        const std::string &id,
+        const secondary_index_t::opaque_definition_t &definition,
+        superblock_t *super_block,
+        signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
+#else
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         write_token_pair_t *token_pair,
@@ -479,14 +524,23 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         superblock_t *super_block,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+#endif
     assert_thread();
 
     /* Get the sindex block which we will need to modify. */
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+
+    return add_sindex(token_pair, id, definition,
+                      super_block, &sindex_block,
+                      interruptor);
+#else
     scoped_ptr_t<buf_lock_t> sindex_block;
 
     return add_sindex(token_pair, id, definition, txn,
                       super_block, &sindex_block,
                       interruptor);
+#endif
 }
 
 #if SLICE_ALT
@@ -941,6 +995,15 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
 #endif
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+void btree_store_t<protocol_t>::get_sindexes(
+        read_token_pair_t *token_pair,
+        superblock_t *super_block,
+        std::map<std::string, secondary_index_t> *sindexes_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+#else
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         read_token_pair_t *token_pair,
@@ -949,12 +1012,34 @@ void btree_store_t<protocol_t>::get_sindexes(
         std::map<std::string, secondary_index_t> *sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
+#endif
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    acquire_sindex_block_for_read(token_pair, super_block->expose_buf(),
+                                  &sindex_block,
+                                  super_block->get_sindex_block_id(),
+                                  interruptor);
+#else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
+#endif
 
+#if SLICE_ALT
+    return get_secondary_indexes(sindex_block.get(), sindexes_out);
+#else
     return get_secondary_indexes(txn, sindex_block.get(), sindexes_out);
+#endif
 }
 
+#if SLICE_ALT
+template <class protocol_t>
+void btree_store_t<protocol_t>::get_sindexes(
+        alt_buf_lock_t *sindex_block,
+        std::map<std::string, secondary_index_t> *sindexes_out)
+    THROWS_NOTHING {
+    return get_secondary_indexes(sindex_block, sindexes_out);
+}
+#else
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         buf_lock_t *sindex_block,
@@ -963,6 +1048,7 @@ void btree_store_t<protocol_t>::get_sindexes(
     THROWS_NOTHING {
     return get_secondary_indexes(txn, sindex_block, sindexes_out);
 }
+#endif
 
 #if SLICE_ALT
 template <class protocol_t>
