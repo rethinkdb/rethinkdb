@@ -3195,7 +3195,6 @@ module 'DataExplorerView', ->
         events: ->
             _.extend super,
                 'click .activate_profiler': 'activate_profiler'
-                'click .copy_profile': 'copy_profile'
 
         current_result: []
 
@@ -3211,8 +3210,10 @@ module 'DataExplorerView', ->
             @last_keys = @container.state.last_keys # Arrays of the last keys displayed
             @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
 
-        copy_profile: =>
-            @profile
+            ZeroClipboard.setDefaults
+                moviePath: 'js/ZeroClipboard.swf'
+                forceHandCursor: true #TODO Find a fix for chromium(/linux?)
+            @clip = new ZeroClipboard()
 
         activate_profiler: (event) =>
             event.preventDefault()
@@ -3293,6 +3294,10 @@ module 'DataExplorerView', ->
                 no_results: @metadata.has_more_data isnt true and @results?.length is 0 and @metadata.skip_value is 0
                 num_results: num_results
 
+
+            # Set the text to copy
+            @$('.copy_profile').attr('data-clipboard-text', JSON.stringify(@profile, null, 2))
+
             if @view is 'profile'
                 @$('.more_valid_results').hide()
             else
@@ -3308,6 +3313,8 @@ module 'DataExplorerView', ->
                     @$('.profile_view_container').show()
                     @.$('.link_to_profile_view').addClass 'active'
                     @.$('.link_to_profile_view').parent().addClass 'active'
+
+                    @clip.glue($('button.copy_profile'))
                 when 'tree'
                     @.$('.json_tree_container').html @json_to_tree @results
                     @$('.results').hide()

@@ -1627,6 +1627,15 @@ TODO: retire this
         .copy_profile{
             float: right;
             margin-right: 12px;
+            &.zeroclipboard-is-hover{
+                -webkit-box-shadow: inset 0 0 1px 1px #fff;
+                -moz-box-shadow: inset 0 0 1px 1px #fff;
+                box-shadow: inset 0 0 1px 1px #fff;
+                background-image: -moz-linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)),-moz-linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%);
+                background-image: -webkit-linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)),-webkit-linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%);
+                background-image: -o-linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)),-o-linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%);
+                background-image: linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)),linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%);
+            }
         }
         .json_tree_container{
             width: 888px;

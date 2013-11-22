@@ -69,6 +69,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/chosen/chosen-sprite.png");
     white_list.insert("/js/chosen/chosen.css");
     white_list.insert("/js/chosen/chosen.jquery.min.js");
+    white_list.insert("/js/ZeroClipboard.min.js");
+    white_list.insert("/js/ZeroClipboard.swf");
     white_list.insert("/js/codemirror");
     white_list.insert("/js/codemirror/ambiance.css");
     white_list.insert("/js/codemirror/codemirror.css");
