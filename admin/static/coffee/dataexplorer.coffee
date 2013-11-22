@@ -55,7 +55,7 @@ module 'DataExplorerView', ->
             'click .execute_query': 'execute_query'
             'click .change_size': 'toggle_size'
             'click #reconnect': 'reconnect'
-            'click .more_valid_results': 'show_more_results'
+            'click .more_results': 'show_more_results'
             'click .close': 'close_alert'
             'click .clear_queries_link': 'clear_history_view'
             'click .close_queries_link': 'toggle_history'
@@ -3323,9 +3323,9 @@ module 'DataExplorerView', ->
             @$('.copy_profile').attr('data-clipboard-text', JSON.stringify(@profile, null, 2))
 
             if @view is 'profile'
-                @$('.more_valid_results').hide()
+                @$('.more_results').hide()
             else
-                @$('.more_valid_results').show()
+                @$('.more_results').show()
 
             switch @view
                 when 'profile'

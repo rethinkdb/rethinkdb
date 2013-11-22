@@ -235,12 +235,12 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         </div>
     </div>
     {{#if show_more_data}}
-    <div class="info more_valid_results">
+    <div class="info more_results">
         <p class="more_results_paragraph">More data is available. <a href="#" class="more_results_link">Load the next batch &rarr;</a></p>
     </div>
     {{else}}
         {{#if cursor_timed_out_template}}
-            <div class="more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
+            <div class="info more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
         {{/if}}
     {{/if}}
 </script>
