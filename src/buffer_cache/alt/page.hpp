@@ -628,19 +628,18 @@ private:
     class touched_page_t {
     public:
         touched_page_t()
-            : first(NULL_BLOCK_ID),
-              second(repli_timestamp_t::invalid) { }
+            : block_id(NULL_BLOCK_ID),
+              tstamp(repli_timestamp_t::invalid) { }
         touched_page_t(block_version_t _block_version,
                        block_id_t _block_id,
                        repli_timestamp_t _tstamp)
             : block_version(_block_version),
-              first(_block_id),
-              second(_tstamp) { }
+              block_id(_block_id),
+              tstamp(_tstamp) { }
 
         block_version_t block_version;
-        // RSI: Rename the `first` and `second` fields.
-        block_id_t first;
-        repli_timestamp_t second;
+        block_id_t block_id;
+        repli_timestamp_t tstamp;
     };
 
     // Touched pages (by block id).

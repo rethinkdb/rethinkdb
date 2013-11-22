@@ -999,11 +999,11 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
         for (size_t i = 0, e = txn->touched_pages_.size(); i < e; ++i) {
             const page_txn_t::touched_page_t &t = txn->touched_pages_[i];
 
-            auto res = changes.insert(std::make_pair(t.first,
+            auto res = changes.insert(std::make_pair(t.block_id,
                                                      block_change_t(t.block_version,
                                                                     false,
                                                                     NULL,
-                                                                    t.second)));
+                                                                    t.tstamp)));
             if (!res.second) {
                 // The insertion failed.  We need to combine the versions.
                 auto const jt = res.first;
@@ -1013,7 +1013,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                     // RSI: What if jt->second.tstamp > t.second?  Just like above,
                     // with the dirtied_page_t, should we take the max of both
                     // tstamps?  Ugghh.
-                    jt->second.tstamp = t.second;
+                    jt->second.tstamp = t.tstamp;
                 }
             }
         }
