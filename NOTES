@@ -1,4 +1,4 @@
-# Release 1.11.0 (Gung Ho)
+# Release 1.11.0 (Breakfast at Tiffany's)
 
 Released on 2013-11-25
 
@@ -15,12 +15,12 @@ highlight number three.
   * Added IPv6 support (#1469)
   * Reduced random disk seeks during write transactions (#1470)
   * Merged writebacks on the serializer level (#1471)
-  * Improved streaming and send smarter batch sizes to clients (#1543)
+  * Streaming improvements: smarter batch sizes are sent to clients (#1543)
   * Reduced the impact of index creation on realtime performance (#1556)
   * Optimized insert performance (#1559)
   * Added support for sending rows back as JSON (#1571)
   * Backtraces now span coroutine boundaries (#1602)
-* Command Line
+* Command-line
   * Added a progress bar to `rethinkdb dump` and `rethinkdb restore` (#1415)
 * ReQL
   * Added query profiling, enabled by passing `profile=True` to `run` (#175)
@@ -31,11 +31,11 @@ highlight number three.
     * Added an optional argument to `close` and `reconnect`
   * `r.js` now works with time values (#1513)
   * Added `index_status` and `index_wait` commands (#1562)
-* Python Driver
+* Python driver
   * Added documentation strings (#808)
   * Added streaming and performance improvements (#1371)
   * Changed the installation procedure for using the C++ protobuf implementation (#1394)
-* JavaScript Driver
+* JavaScript driver
   * Changed the installation procedure for using the C++ protobuf implementation (#1172)
 * Packaging
   * Made the version more explicit in the OS X package (#1413)
@@ -58,17 +58,17 @@ highlight number three.
   * TODO (#1566)
   * Fixed wrong `inserted` result (#1547)
   * Fixed crash caused by using unusual strings in `r.js` (#1638)
-* Python Driver
+  * Redefined batched stream semantics (includes a specific fix for the JavaScipt driver as well) (#1544)
+* Python driver
   * Handle interrupted system calls (#1362)
   * Improved the error message when inserting dates with no timezone (#1509)
   * Made `RqlTzInfo` copyable (#1588)
 * JavaScript driver
-  * Removed an irratating assumption about batched streams (#1544)
   * Fixed argument handling (#1555, #1577)
   * Fixed `ArrayResult` (#1578, #1584)
   * Fixed pretty-printing of `limit` (#1617)
 * Web UI
-  * Made it obvious when errors are Javascript errors or database errors (#1293)
+  * Made it obvious when errors are JavaScript errors or database errors (#1293)
   * Improved the message displayed when there are more than 40 documents (#1307)
   * Fixed date formatting (#1596)
   * Fixed typo (#1668)
