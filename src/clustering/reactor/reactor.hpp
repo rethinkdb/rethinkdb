@@ -21,6 +21,8 @@ const int CPU_SHARDING_FACTOR = 4;
 class io_backender_t;
 template <class> class multistore_ptr_t;
 
+typedef reactor_business_card_details::primary_type_t primary_type_t;
+
 template<class protocol_t>
 class reactor_t : public home_thread_mixin_t {
 public:
@@ -90,8 +92,8 @@ private:
             auto_drainer_t::lock_t keepalive) THROWS_NOTHING;
 
     /* Implemented in clustering/reactor/reactor_be_primary.tcc */
-    void be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
-            signal_t *interruptor) THROWS_NOTHING;
+    void be_primary(typename protocol_t::region_t, store_view_t<protocol_t> *, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
+            primary_type_t, signal_t *) THROWS_NOTHING;
 
     /* A backfill candidate is a structure we use to keep track of the different
      * peers we could backfill from and what we could backfill from them to make it
@@ -150,7 +152,7 @@ private:
 
     void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
-    bool attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const typename protocol_t::region_t &region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    bool attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const typename protocol_t::region_t &region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, primary_type_t type, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     template <class activity_t>
     clone_ptr_t<watchable_t<boost::optional<boost::optional<activity_t> > > > get_directory_entry_view(peer_id_t id, const reactor_activity_id_t&);

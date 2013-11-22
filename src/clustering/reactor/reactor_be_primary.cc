@@ -293,6 +293,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
                                                         const typename protocol_t::region_t &region,
                                                         store_view_t<protocol_t> *svs,
                                                         const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
+                                                        primary_type_t type,
                                                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     cross_thread_signal_t ct_interruptor(interruptor, svs->home_thread());
     on_thread_t th(svs->home_thread());
@@ -369,7 +370,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
     }
 
     /* Tell the other peers which backfills we're waiting on. */
-    directory_entry->set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills));
+    directory_entry->set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t(backfills, type));
 
     /* Since these don't actually modify peers behavior, just allow
      * them to query the backfiller for progress reports there's no
@@ -395,7 +396,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
 }
 
 template<class protocol_t>
-void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, primary_type_t type, signal_t *interruptor) THROWS_NOTHING {
     try {
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
@@ -412,7 +413,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get
          * interrupted or we have backfilled the most up to date data. */
-        while (!attempt_backfill_from_peers(&directory_entry, &order_source, region, svs, blueprint, interruptor)) { }
+        while (!attempt_backfill_from_peers(&directory_entry, &order_source, region, svs, blueprint, type, interruptor)) { }
 
         // TODO: Don't use local stack variable.
         std::string region_name = strprintf("be_primary_%p", &region);
@@ -427,7 +428,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 
         on_thread_t th2(this->home_thread());
 
-        directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card()));
+        directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_t(broadcaster.get_business_card(), type));
 
         clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster_business_card =
             get_directory_entry_view<typename reactor_business_card_t<protocol_t>::primary_t>(get_me(), directory_entry.get_reactor_activity_id())->
@@ -453,7 +454,8 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
                 broadcaster.get_business_card(),
                 replier.get_business_card(),
                 master.get_business_card(),
-                direct_reader.get_business_card()));
+                direct_reader.get_business_card(),
+                type));
 
         interruptor->wait_lazily_unordered();
 
@@ -470,6 +472,6 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
 #include "rdb_protocol/protocol.hpp"
 
 
-template void reactor_t<mock::dummy_protocol_t>::be_primary(mock::dummy_protocol_t::region_t region, store_view_t<mock::dummy_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<mock::dummy_protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING;
-template void reactor_t<memcached_protocol_t>::be_primary(memcached_protocol_t::region_t region, store_view_t<memcached_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<memcached_protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING;
-template void reactor_t<rdb_protocol_t>::be_primary(rdb_protocol_t::region_t region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > &blueprint, signal_t *interruptor) THROWS_NOTHING;
+template void reactor_t<mock::dummy_protocol_t>::be_primary(mock::dummy_protocol_t::region_t region, store_view_t<mock::dummy_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<mock::dummy_protocol_t> > > &blueprint, primary_type_t type, signal_t *interruptor) THROWS_NOTHING;
+template void reactor_t<memcached_protocol_t>::be_primary(memcached_protocol_t::region_t region, store_view_t<memcached_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<memcached_protocol_t> > > &blueprint, primary_type_t type, signal_t *interruptor) THROWS_NOTHING;
+template void reactor_t<rdb_protocol_t>::be_primary(rdb_protocol_t::region_t region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > &blueprint, primary_type_t type, signal_t *interruptor) THROWS_NOTHING;

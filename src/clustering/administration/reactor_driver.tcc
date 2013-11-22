@@ -29,7 +29,7 @@ template<class protocol_t>
 blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protocol_t> &input, const std::map<peer_id_t, machine_id_t> &translation_table) {
 
     blueprint_t<protocol_t> output;
-    for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator it = input.machines_roles.begin();
+    for (auto it = input.machines_roles.begin();
             it != input.machines_roles.end(); it++) {
         peer_id_t peer = machine_id_to_peer_id(it->first, translation_table);
         if (peer.is_nil()) {
@@ -41,6 +41,7 @@ blueprint_t<protocol_t> translate_blueprint(const persistable_blueprint_t<protoc
         }
         output.peers_roles[peer] = it->second;
     }
+    output.failover = input.failover;
     return output;
 }
 

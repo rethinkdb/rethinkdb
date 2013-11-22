@@ -32,6 +32,9 @@ public:
     void add_role(const peer_id_t &id, const typename protocol_t::region_t &region, blueprint_role_t role);
 
     role_map_t peers_roles;
+
+    typedef std::map<typename protocol_t::region_t, bool> failover_map_t;
+    failover_map_t failover;
 };
 
 void debug_print(printf_buffer_t *buf, const blueprint_role_t &role);

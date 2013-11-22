@@ -38,31 +38,44 @@ public:
     reactor_activity_id_t activity_id;
     RDB_MAKE_ME_SERIALIZABLE_3(backfill_session_id, peer_id, activity_id);
 };
+
+enum class primary_type_t {
+    MAIN,
+    VICE
+};
+
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(primary_type_t, int8_t, primary_type_t::MAIN, primary_type_t::VICE);
+
 template <class protocol_t>
 class primary_when_safe_t {
 public:
     primary_when_safe_t() { }
 
-    explicit primary_when_safe_t(const std::vector<backfill_location_t> &_backfills_waited_on)
-        : backfills_waited_on(_backfills_waited_on)
+    explicit primary_when_safe_t(
+        const std::vector<backfill_location_t> &_backfills_waited_on, primary_type_t _t)
+        : backfills_waited_on(_backfills_waited_on), type(_t)
     { }
     std::vector<backfill_location_t> backfills_waited_on;
-    RDB_MAKE_ME_SERIALIZABLE_1(backfills_waited_on);
+    primary_type_t type;
+    RDB_MAKE_ME_SERIALIZABLE_2(backfills_waited_on, type);
 };
 
 /* This peer is currently a primary in working order. */
 template <class protocol_t>
 class primary_t {
 public:
-    explicit primary_t(broadcaster_business_card_t<protocol_t> _broadcaster)
-        : broadcaster(_broadcaster)
+    explicit primary_t(
+        broadcaster_business_card_t<protocol_t> _broadcaster, primary_type_t _t)
+        : broadcaster(_broadcaster), type(_t)
     { }
 
     primary_t(broadcaster_business_card_t<protocol_t> _broadcaster,
             replier_business_card_t<protocol_t> _replier,
             master_business_card_t<protocol_t> _master,
-            direct_reader_business_card_t<protocol_t> _direct_reader)
-        : broadcaster(_broadcaster), replier(_replier), master(_master), direct_reader(_direct_reader)
+            direct_reader_business_card_t<protocol_t> _direct_reader,
+            primary_type_t _t)
+        : broadcaster(_broadcaster), replier(_replier),
+          master(_master), direct_reader(_direct_reader), type(_t)
     { }
 
     primary_t() { }
@@ -81,7 +94,9 @@ public:
     boost::optional<master_business_card_t<protocol_t> > master;
     boost::optional<direct_reader_business_card_t<protocol_t> > direct_reader;
 
-    RDB_MAKE_ME_SERIALIZABLE_4(broadcaster, replier, master, direct_reader);
+    primary_type_t type;
+
+    RDB_MAKE_ME_SERIALIZABLE_5(broadcaster, replier, master, direct_reader, type);
 };
 
 /* This peer is currently a secondary in working order. */

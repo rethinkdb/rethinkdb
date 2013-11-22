@@ -15,6 +15,9 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(
         clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > *broadcaster_out) {
     /* This helps us detect if we have multiple broadcasters. */
     bool found_broadcaster = false;
+    auto _f = bp.failover.find(region);
+    guarantee(_f != bp.failover.end());
+    bool failover = _f->second;
 
     typedef reactor_business_card_t<protocol_t> rb_t;
     typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
@@ -28,8 +31,10 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(
                                                                a_it != p_it->second->activities.end();
                                                                a_it++) {
                 if (a_it->second.region == region) {
-                    if (boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
-                        if (!found_broadcaster) {
+                    if (auto primary = boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
+                        if (!found_broadcaster &&
+                                ((!failover && primary->type == primary_type_t::MAIN) ||
+                                 (failover && primary->type == primary_type_t::VICE))) {
                             //This is the first viable broadcaster we've found
                             //so we set the output variable.
                             *broadcaster_out = get_directory_entry_view<typename rb_t::primary_t>(it->first, a_it->first)->

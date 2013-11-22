@@ -187,14 +187,30 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
 
     switch (role->role) {
     case blueprint_role_t::PRIMARY:
-        be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
+        be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
+            primary_type_t::MAIN, interruptor);
         break;
-    case blueprint_role_t::VICEPRIMARY:
+    case blueprint_role_t::VICEPRIMARY: {
+        blueprint_t<protocol_t> bp =
+        role->blueprint.get_watchable()->get();
+        guarantee(std_contains(bp.failover, region));
+        if (bp.failover[region]) {
+            /* Failover mode, that means VICEPRIMARY acts as PRIMARY. */
+            be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
+                primary_type_t::VICE, interruptor);
+        } else {
+            be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
+                interruptor);
+        }
+        break;
+    }
     case blueprint_role_t::SECONDARY:
-        be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
+        be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
+            interruptor);
         break;
     case blueprint_role_t::NOTHING:
-        be_nothing(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
+        be_nothing(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
+            interruptor);
         break;
     default:
         unreachable();
