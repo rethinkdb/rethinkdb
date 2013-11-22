@@ -3195,6 +3195,7 @@ module 'DataExplorerView', ->
         events: ->
             _.extend super,
                 'click .activate_profiler': 'activate_profiler'
+                'click .copy_profile': 'copy_profile'
 
         current_result: []
 
@@ -3209,6 +3210,9 @@ module 'DataExplorerView', ->
 
             @last_keys = @container.state.last_keys # Arrays of the last keys displayed
             @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
+
+        copy_profile: =>
+            @profile
 
         activate_profiler: (event) =>
             event.preventDefault()
