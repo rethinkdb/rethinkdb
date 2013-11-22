@@ -117,6 +117,8 @@ public:
 
     void snapshot_subtree();
 
+    void detach_child(block_id_t child_id);
+
     // Reduces access to readonly.
     void reduce_to_readonly();
 
