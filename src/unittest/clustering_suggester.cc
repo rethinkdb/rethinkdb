@@ -52,7 +52,8 @@ TEST(ClusteringSuggester, NewNamespace) {
         region_map_t<dummy_protocol_t, machine_id_t>(dummy_protocol_t::region_t::universe(), nil_uuid()),
         region_map_t<dummy_protocol_t, std::set<machine_id_t> >(),
         &usage,
-        true);
+        true,
+        false);
 
     EXPECT_EQ(machines.size(), blueprint.machines_roles.size());
 }

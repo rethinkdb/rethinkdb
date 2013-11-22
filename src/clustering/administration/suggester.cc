@@ -46,7 +46,8 @@ persistable_blueprint_t<protocol_t> suggest_blueprint_for_namespace(
 
     return suggest_blueprint(directory, primary_datacenter,
         datacenter_affinities, shards, machine_data_centers,
-        primary_pinnings, secondary_pinnings, usage, prioritize_distribution);
+        primary_pinnings, secondary_pinnings, usage, prioritize_distribution,
+        ns_goals.failover.get());
 }
 
 template<class protocol_t>

@@ -258,6 +258,7 @@ json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespace_semi
     res["primary_key"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<std::string>(&target->primary_key, ctx));
     res["database"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<database_id_t>(&target->database, ctx));
     res["cache_size"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<int64_t>(&target->cache_size, ctx));
+    res["failover"] = boost::shared_ptr<json_adapter_if_t>(new json_vclock_adapter_t<bool>(&target->failover, ctx));
     return res;
 }
 
@@ -296,6 +297,8 @@ inline json_adapter_if_t::json_adapter_map_t with_ctx_get_json_subfields(namespa
     default_namespace.primary_key = default_namespace.primary_key.make_new_version("id", ctx.us);
 
     default_namespace.cache_size = default_namespace.cache_size.make_new_version(GIGABYTE, ctx.us);
+
+    default_namespace.failover = default_namespace.failover.make_new_version(true, ctx.us); //RSI this should be false but making it true makes testing easy
 
     deletable_t<namespace_semilattice_metadata_t<protocol_t> > default_ns_in_deletable(default_namespace);
     return json_ctx_adapter_with_inserter_t<typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t, vclock_ctx_t>(&target->namespaces, generate_uuid, ctx, default_ns_in_deletable).get_subfields();

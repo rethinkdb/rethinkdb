@@ -38,6 +38,7 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution);
+        bool prioritize_distribution,
+        bool failover);
 
 #endif /* CLUSTERING_SUGGESTER_SUGGESTER_HPP_ */

@@ -213,7 +213,7 @@ private:
             namespace_semilattice_metadata_t<rdb_protocol_t> ns =
                 new_namespace<rdb_protocol_t>(env->env->cluster_access.this_machine, db_id, dc_id, tbl_name,
                                               primary_key, port_defaults::reql_port,
-                                              cache_size);
+                                              cache_size, false);
 
             // Set Durability
             std::map<datacenter_id_t, ack_expectation_t> *ack_map =

@@ -78,8 +78,9 @@ public:
     vclock_t<std::string> primary_key; //TODO this should actually never be changed...
     vclock_t<database_id_t> database;
     vclock_t<int64_t> cache_size;
+    vclock_t<bool> failover;
 
-    RDB_MAKE_ME_SERIALIZABLE_12(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
+    RDB_MAKE_ME_SERIALIZABLE_13(blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size, failover);
 };
 
 template <class protocol_t>
@@ -113,7 +114,7 @@ template<class protocol_t>
 namespace_semilattice_metadata_t<protocol_t> new_namespace(
     uuid_u machine, uuid_u database, uuid_u datacenter,
     const name_string_t &name, const std::string &key, int port,
-    int64_t cache_size) {
+    int64_t cache_size, bool failover) {
 
     namespace_semilattice_metadata_t<protocol_t> ns;
     ns.database           = make_vclock(database, machine);
@@ -140,14 +141,15 @@ namespace_semilattice_metadata_t<protocol_t> new_namespace(
     ns.secondary_pinnings = make_vclock(secondary_pinnings, machine);
 
     ns.cache_size = make_vclock(cache_size, machine);
+    ns.failover = make_vclock(failover, machine);
     return ns;
 }
 
 template<class protocol_t>
-RDB_MAKE_SEMILATTICE_JOINABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
+RDB_MAKE_SEMILATTICE_JOINABLE_13(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size, failover);
 
 template<class protocol_t>
-RDB_MAKE_EQUALITY_COMPARABLE_12(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size);
+RDB_MAKE_EQUALITY_COMPARABLE_13(namespace_semilattice_metadata_t<protocol_t>, blueprint, primary_datacenter, replica_affinities, ack_expectations, shards, name, port, primary_pinnings, secondary_pinnings, primary_key, database, cache_size, failover);
 
 // ctx-less json adapter concept for ack_expectation_t
 json_adapter_if_t::json_adapter_map_t get_json_subfields(ack_expectation_t *target);

@@ -180,6 +180,31 @@ priority_t priority_for_machine(machine_id_t id, const std::set<machine_id_t> &p
     return priority_t(id, pinned, would_rob_someone, redundancy_cost, backfill_cost, prioritize_distribution);
 }
 
+void pick_primaries(
+        priority_queue_t<priority_t> *primary_candidates,
+        std::set<machine_id_t> *unused_machines,
+        std::map<machine_id_t, blueprint_role_t> *sub_blueprint,
+        std::map<machine_id_t, int> *usage,
+        bool failover,
+        const datacenter_id_t &primary_datacenter) {
+    machine_id_t primary;
+    if (!failover) {
+        primary = pick_n_best(primary_candidates, 1, primary_datacenter).front();
+    } else {
+        std::vector<machine_id_t> primary_and_vice_primary
+            = pick_n_best(primary_candidates, 2, primary_datacenter);
+        primary = primary_and_vice_primary[0];
+        machine_id_t vice_primary = primary_and_vice_primary[1];
+        unused_machines->erase(vice_primary);
+        (*sub_blueprint)[vice_primary] = blueprint_role_t::VICEPRIMARY;
+        ++(*usage)[vice_primary];
+    }
+    unused_machines->erase(primary);
+    (*sub_blueprint)[primary] = blueprint_role_t::PRIMARY;
+    //Update primary_usage
+    ++(*usage)[primary];
+}
+
 template<class protocol_t>
 std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         const std::map<machine_id_t, reactor_business_card_t<protocol_t> > &directory,
@@ -190,7 +215,8 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         const std::set<machine_id_t> &primary_pinnings,
         const std::set<machine_id_t> &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution) {
+        bool prioritize_distribution,
+        bool failover) {
 
     std::map<machine_id_t, blueprint_role_t> sub_blueprint;
 
@@ -198,9 +224,8 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
      * shard. */
     std::set<machine_id_t> unused_machines;
 
-    for (std::map<machine_id_t, datacenter_id_t>::const_iterator it  = machine_data_centers.begin();
-                                                                 it != machine_data_centers.end();
-                                                                 ++it) {
+    for (auto it = machine_data_centers.begin();
+         it != machine_data_centers.end(); ++it) {
         unused_machines.insert(it->first);
     }
 
@@ -208,21 +233,14 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
     if (!primary_datacenter.is_nil()) {
         priority_queue_t<priority_t> primary_candidates;
 
-        for (std::set<machine_id_t>::const_iterator mt  = unused_machines.begin();
-                                                    mt != unused_machines.end();
-                                                    ++mt) {
+        for (auto mt = unused_machines.begin(); mt != unused_machines.end(); ++mt) {
             if (machine_data_centers.find(*mt)->second == primary_datacenter) {
                 primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *usage, directory, shard, prioritize_distribution));
             }
         }
 
-        machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
-        unused_machines.erase(primary);
-
-        sub_blueprint[primary] = blueprint_role_t::PRIMARY;
-
-        //Update primary_usage
-        ++(*usage)[primary];
+        pick_primaries(&primary_candidates, &unused_machines,
+            &sub_blueprint, usage, failover, primary_datacenter);
     }
 
 
@@ -259,13 +277,8 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
             primary_candidates.push(priority_for_machine(*mt, primary_pinnings, secondary_pinnings, *usage, directory, shard, prioritize_distribution));
         }
 
-        machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
-        unused_machines.erase(primary);
-
-        sub_blueprint[primary] = blueprint_role_t::PRIMARY;
-
-        //Update primary_usage
-        ++(*usage)[primary];
+        pick_primaries(&primary_candidates, &unused_machines,
+            &sub_blueprint, usage, failover, primary_datacenter);
     }
 
     /* Finally pick the secondaries for the nil datacenter */
@@ -306,39 +319,38 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         const region_map_t<protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<protocol_t, std::set<machine_id_t> > &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution) {
+        bool prioritize_distribution,
+        bool failover) {
 
     typedef region_map_t<protocol_t, machine_id_t> primary_pinnings_map_t;
     typedef region_map_t<protocol_t, std::set<machine_id_t> > secondary_pinnings_map_t;
 
     persistable_blueprint_t<protocol_t> blueprint;
 
-    for (typename nonoverlapping_regions_t<protocol_t>::iterator it = shards.begin();
-            it != shards.end(); it++) {
+    for (auto it = shards.begin(); it != shards.end(); it++) {
+        blueprint.failover[*it] = false;
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
         primary_pinnings_map_t primary_masked_map = primary_pinnings.mask(*it);
 
-        for (typename primary_pinnings_map_t::iterator pit  = primary_masked_map.begin();
-                                                       pit != primary_masked_map.end();
-                                                       ++pit) {
+        for (auto pit = primary_masked_map.begin();
+             pit != primary_masked_map.end(); ++pit) {
             machines_shard_primary_is_pinned_to.insert(pit->second);
         }
 
         std::set<machine_id_t> machines_shard_secondary_is_pinned_to;
         secondary_pinnings_map_t secondary_masked_map = secondary_pinnings.mask(*it);
 
-        for (typename secondary_pinnings_map_t::iterator pit  = secondary_masked_map.begin();
-                                                         pit != secondary_masked_map.end();
-                                                         ++pit) {
+        for (auto pit = secondary_masked_map.begin();
+             pit != secondary_masked_map.end(); ++pit) {
             machines_shard_secondary_is_pinned_to.insert(pit->second.begin(), pit->second.end());
         }
 
         std::map<machine_id_t, blueprint_role_t> shard_blueprint =
             suggest_blueprint_for_shard(directory, primary_datacenter, datacenter_affinities, *it,
                                         machine_data_centers, machines_shard_primary_is_pinned_to,
-                                        machines_shard_secondary_is_pinned_to, usage, prioritize_distribution);
-        for (typename std::map<machine_id_t, blueprint_role_t>::iterator jt = shard_blueprint.begin();
-                jt != shard_blueprint.end(); jt++) {
+                                        machines_shard_secondary_is_pinned_to, usage,
+                                        prioritize_distribution, failover);
+        for (auto jt = shard_blueprint.begin(); jt != shard_blueprint.end(); jt++) {
             blueprint.machines_roles[jt->first][*it] = jt->second;
         }
     }
@@ -359,7 +371,7 @@ persistable_blueprint_t<mock::dummy_protocol_t> suggest_blueprint<mock::dummy_pr
         const region_map_t<mock::dummy_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<mock::dummy_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution);
+        bool prioritize_distribution, bool failover);
 
 
 #include "memcached/protocol.hpp"
@@ -374,7 +386,7 @@ persistable_blueprint_t<memcached_protocol_t> suggest_blueprint<memcached_protoc
         const region_map_t<memcached_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<memcached_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution);
+        bool prioritize_distribution, bool failover);
 
 
 #include "rdb_protocol/protocol.hpp"
@@ -389,4 +401,4 @@ persistable_blueprint_t<rdb_protocol_t> suggest_blueprint<rdb_protocol_t>(
         const region_map_t<rdb_protocol_t, machine_id_t> &primary_pinnings,
         const region_map_t<rdb_protocol_t, std::set<machine_id_t> > &secondary_pinnings,
         std::map<machine_id_t, int> *usage,
-        bool prioritize_distribution);
+        bool prioritize_distribution, bool failover);
