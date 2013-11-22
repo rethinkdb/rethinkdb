@@ -11,6 +11,7 @@ module 'DataExplorerView', ->
         history_state: 'hidden'
         last_keys: []
         last_columns_size: {}
+        options_state: 'hidden'
         options:
             suggestions: true
             electric_punctuation: false # False by default
@@ -83,8 +84,10 @@ module 'DataExplorerView', ->
                 @$('.close_queries_link').removeClass 'active'
 
             if @options_view.state is 'visible'
+                @state.options_state = 'visible'
                 @$('.toggle_options_link').addClass 'active'
             else
+                @state.options_state = 'hidden'
                 @$('.toggle_options_link').removeClass 'active'
 
         # Show/hide the history view
@@ -131,11 +134,21 @@ module 'DataExplorerView', ->
             @toggle_pressed_buttons()
 
         # Show/hide the options view
-        toggle_options: =>
+        toggle_options: (args) =>
             that = @
 
             @deactivate_overflow()
-            if @history_view.state is 'visible'
+            if args?.no_animation is true
+                @options_view.state = 'visible'
+                @$('.content').html @options_view.render(true).$el
+                @options_view.delegateEvents()
+                @move_arrow
+                    type: 'options'
+                    move_arrow: 'show'
+                @adjust_collapsible_panel_height
+                    no_animation: true
+                    is_at_bottom: true
+            else if @history_view.state is 'visible'
                 @history_view.state = 'hidden'
                 @move_arrow
                     type: 'options'
@@ -532,6 +545,10 @@ module 'DataExplorerView', ->
 
             if @state.history_state is 'visible' # If the history was visible, we show it
                 @toggle_history
+                    no_animation: true
+
+            if @state.options_state is 'visible' # If the history was visible, we show it
+                @toggle_options
                     no_animation: true
 
         on_blur: =>
