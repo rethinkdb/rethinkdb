@@ -9,12 +9,12 @@ bool check_existence(const base_path_t& base_path) {
     return 0 == access(base_path.path().c_str(), F_OK);
 }
 
-directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *created_out) :
+directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *is_new_directory) :
     directory_path(path),
     created(false),
     initialize_done(false) {
 
-    *created_out = false;
+    *is_new_directory = false;
     bool dir_exists = check_existence(directory_path);
 
     if (!dir_exists) {
@@ -26,8 +26,16 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
             throw directory_create_failed_exc_t(errno, directory_path);
         }
         created = true;
-        *created_out = true;
-    }
+        *is_new_directory = true;
+    } else if (create) {
+        serializer_filepath_t serializer_path = serializer_filepath_t(path, "metadata");
+        base_path_t metadata_path = base_path_t(serializer_path.permanent_path());
+        bool metadata_exists = check_existence(metadata_path);
+
+        if (!metadata_exists) {
+            *is_new_directory = true;
+        }
+     }
 
     directory_fd.reset(::open(directory_path.path().c_str(), O_RDONLY));
     if (directory_fd.get() == INVALID_FD) {
