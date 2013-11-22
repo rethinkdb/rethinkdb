@@ -224,8 +224,8 @@ class RDBVal extends TermBase
         )
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
-    indexStatus: ar () -> new IndexStatus {}, @
-    indexWait: ar () -> new IndexWait {}, @
+    indexStatus: varar(0, null, (others...) -> new IndexStatus {}, @, others...)
+    indexWait: varar(0, null, (others...) -> new IndexWait {}, @, others...)
 
     sync: ar () -> new Sync {}, @
 

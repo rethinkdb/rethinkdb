@@ -233,7 +233,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
     try {
         rdb_protocol_t::read_response_t res;
         access->get_namespace_if().read(
-            &read, &res, order_token_t::ignore, env->interruptor);
+            read, &res, order_token_t::ignore, env->interruptor);
         auto s_res = boost::get<rdb_protocol_t::sindex_status_response_t>(&res.response);
         r_sanity_check(s_res);
 
