@@ -238,11 +238,8 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
 
         std::vector<counted_t<const datum_t> > array;
         for (auto it = s_res->statuses.begin(); it != s_res->statuses.end(); ++it) {
-            if (!std_contains(sindexes, it->first) && !sindexes.empty()) {
-                continue;
-            } else {
-                sindexes.erase(it->first);
-            }
+            r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
+            sindexes.erase(it->first);
             std::map<std::string, counted_t<const datum_t> > status;
             if (it->second.blocks_remaining != 0) {
                 status["blocks_remaining"] =
@@ -250,7 +247,7 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
                         safe_to_double(it->second.blocks_remaining));
                 status["blocks_total"] =
                     make_counted<const datum_t>(
-                        safe_to_double(it->second.blocks_remaining));
+                        safe_to_double(it->second.blocks_total));
             }
             status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL, it->second.ready);
             std::string index_name = it->first;
