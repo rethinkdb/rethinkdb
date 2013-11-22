@@ -37,6 +37,23 @@ void blueprint_t<protocol_t>::add_role(const peer_id_t &id, const typename proto
     //overlap any of the other ranges
 }
 
+void debug_print(printf_buffer_t *buf, const blueprint_role_t &role) {
+    switch (role) {
+    case blueprint_role_t::PRIMARY:
+        buf->appendf("PRIMARY");
+        break;
+    case blueprint_role_t::VICEPRIMARY:
+        buf->appendf("VICEPRIMARY");
+        break;
+    case blueprint_role_t::SECONDARY:
+        buf->appendf("SECONDARY");
+        break;
+    case blueprint_role_t::NOTHING:
+        buf->appendf("NOTHING");
+        break;
+    }
+}
+
 template <class protocol_t>
 void debug_print(printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint) {
     buf->appendf("blueprint{roles=");

@@ -219,7 +219,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
         unused_machines.erase(primary);
 
-        sub_blueprint[primary] = blueprint_role_primary;
+        sub_blueprint[primary] = blueprint_role_t::PRIMARY;
 
         //Update primary_usage
         ++(*usage)[primary];
@@ -244,7 +244,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
             ++(*usage)[*jt];
-            sub_blueprint[*jt] = blueprint_role_secondary;
+            sub_blueprint[*jt] = blueprint_role_t::SECONDARY;
             unused_machines.erase(*jt);
         }
     }
@@ -262,7 +262,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         machine_id_t primary = pick_n_best(&primary_candidates, 1, primary_datacenter).front();
         unused_machines.erase(primary);
 
-        sub_blueprint[primary] = blueprint_role_primary;
+        sub_blueprint[primary] = blueprint_role_t::PRIMARY;
 
         //Update primary_usage
         ++(*usage)[primary];
@@ -281,7 +281,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
         for (std::vector<machine_id_t>::iterator jt = secondaries.begin(); jt != secondaries.end(); jt++) {
             //Update secondary usage
             ++(*usage)[*jt];
-            sub_blueprint[*jt] = blueprint_role_secondary;
+            sub_blueprint[*jt] = blueprint_role_t::SECONDARY;
             unused_machines.erase(*jt);
         }
     }
@@ -290,7 +290,7 @@ std::map<machine_id_t, blueprint_role_t> suggest_blueprint_for_shard(
             it != machine_data_centers.end(); it++) {
         /* This will set the value to `role_nothing` iff the peer is not already
         in the blueprint. */
-        sub_blueprint.insert(std::make_pair(it->first, blueprint_role_nothing));
+        sub_blueprint.insert(std::make_pair(it->first, blueprint_role_t::NOTHING));
     }
 
     return sub_blueprint;

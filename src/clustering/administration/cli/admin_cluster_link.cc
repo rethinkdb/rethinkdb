@@ -1155,12 +1155,12 @@ void admin_cluster_link_t::list_pinnings_internal(const persistable_blueprint_t<
 
     for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator i = bp.machines_roles.begin(); i != bp.machines_roles.end(); ++i) {
         typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator j = i->second.find(hash_region_t<key_range_t>(shard));
-        if (j != i->second.end() && j->second != blueprint_role_nothing) {
+        if (j != i->second.end() && j->second != blueprint_role_t::NOTHING) {
             std::vector<std::string> delta;
 
-            if (j->second == blueprint_role_primary) {
+            if (j->second == blueprint_role_t::PRIMARY) {
                 delta.push_back("master");
-            } else if (j->second == blueprint_role_secondary) {
+            } else if (j->second == blueprint_role_t::SECONDARY) {
                 delta.push_back("replica");
             } else {
                 throw admin_cluster_exc_t("unexpected error, unrecognized role type encountered");
@@ -1668,9 +1668,9 @@ size_t admin_cluster_link_t::get_replica_count_from_blueprint(const persistable_
          j != bp.machines_roles.end(); ++j) {
         for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator k = j->second.begin();
              k != j->second.end(); ++k) {
-            if (k->second == blueprint_role_primary) {
+            if (k->second == blueprint_role_t::PRIMARY) {
                 ++count;
-            } else if (k->second == blueprint_role_secondary) {
+            } else if (k->second == blueprint_role_t::SECONDARY) {
                 ++count;
             }
         }
@@ -1822,10 +1822,10 @@ void admin_cluster_link_t::add_machine_info_from_blueprint(const persistable_blu
 
             for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator k = j->second.begin();
                  k != j->second.end(); ++k) {
-                if (k->second == blueprint_role_primary) {
+                if (k->second == blueprint_role_t::PRIMARY) {
                     ++it->second.primaries;
                     machine_used = true;
-                } else if (k->second == blueprint_role_secondary) {
+                } else if (k->second == blueprint_role_t::SECONDARY) {
                     ++it->second.secondaries;
                     machine_used = true;
                 }
@@ -3030,7 +3030,7 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
         for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator i = blueprint.machines_roles.begin();
              i != blueprint.machines_roles.end(); ++i) {
             typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator j = i->second.find(*s);
-            if (j != i->second.end() && j->second == blueprint_role_primary) {
+            if (j != i->second.end() && j->second == blueprint_role_t::PRIMARY) {
                 std::vector<std::string> delta;
 
                 delta.push_back(shard_str);
@@ -3055,7 +3055,7 @@ void admin_cluster_link_t::add_single_namespace_replicas(const nonoverlapping_re
         for (typename persistable_blueprint_t<protocol_t>::role_map_t::const_iterator i = blueprint.machines_roles.begin();
              i != blueprint.machines_roles.end(); ++i) {
             typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator j = i->second.find(*s);
-            if (j != i->second.end() && j->second == blueprint_role_secondary) {
+            if (j != i->second.end() && j->second == blueprint_role_t::SECONDARY) {
                 std::vector<std::string> delta;
 
                 delta.push_back(shard_str);
@@ -3324,7 +3324,7 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
 
     for (typename persistable_blueprint_t<protocol_t>::region_to_role_map_t::const_iterator i = machine_entry->second.begin();
          i != machine_entry->second.end(); ++i) {
-        if (i->second == blueprint_role_primary || i->second == blueprint_role_secondary) {
+        if (i->second == blueprint_role_t::PRIMARY || i->second == blueprint_role_t::SECONDARY) {
             std::vector<std::string> delta;
 
             delta.push_back(ns_uuid);
@@ -3333,7 +3333,7 @@ bool admin_cluster_link_t::add_single_machine_blueprint(const machine_id_t& mach
             // Build a string for the shard
             delta.push_back(admin_value_to_string(i->first));
 
-            if (i->second == blueprint_role_primary) {
+            if (i->second == blueprint_role_t::PRIMARY) {
                 delta.push_back("yes");
             } else {
                 delta.push_back("no");

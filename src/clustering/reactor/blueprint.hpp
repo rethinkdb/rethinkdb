@@ -7,8 +7,13 @@
 #include "rpc/connectivity/connectivity.hpp"
 #include "rpc/serialize_macros.hpp"
 
-enum blueprint_role_t { blueprint_role_primary, blueprint_role_secondary, blueprint_role_nothing };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(blueprint_role_t, int8_t, blueprint_role_primary, blueprint_role_nothing);
+enum class blueprint_role_t {
+    PRIMARY,
+    VICEPRIMARY,
+    SECONDARY,
+    NOTHING
+};
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(blueprint_role_t, int8_t, blueprint_role_t::PRIMARY, blueprint_role_t::NOTHING);
 
 // Explain what a blueprint_t is here please.
 
@@ -29,8 +34,11 @@ public:
     role_map_t peers_roles;
 };
 
+void debug_print(printf_buffer_t *buf, const blueprint_role_t &role);
+
 template <class protocol_t>
 void debug_print(printf_buffer_t *buf, const blueprint_t<protocol_t> &blueprint);
+
 
 #endif /* CLUSTERING_REACTOR_BLUEPRINT_HPP_ */
 

@@ -29,12 +29,15 @@ public:
 
     role_map_t machines_roles;
 
-    bool operator==(const persistable_blueprint_t &other) const {
-        return machines_roles == other.machines_roles;
-    }
+    typedef std::map<typename protocol_t::region_t, bool> failover_map_t;
+    failover_map_t failover;
 
-    RDB_MAKE_ME_SERIALIZABLE_1(machines_roles);
+    RDB_MAKE_ME_SERIALIZABLE_2(machines_roles, failover);
 };
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_2(persistable_blueprint_t<protocol_t>,
+        machines_roles, failover);
 
 template <class protocol_t>
 void debug_print(printf_buffer_t *buf, const persistable_blueprint_t<protocol_t> &x);

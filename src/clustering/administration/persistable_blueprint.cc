@@ -20,13 +20,16 @@ json_adapter_if_t::json_adapter_map_t get_json_subfields(blueprint_role_t *) {
 
 cJSON *render_as_json(blueprint_role_t *target) {
     switch (*target) {
-    case blueprint_role_primary:
+    case blueprint_role_t::PRIMARY:
         return cJSON_CreateString("role_primary");
         break;
-    case blueprint_role_secondary:
+    case blueprint_role_t::VICEPRIMARY:
+        return cJSON_CreateString("role_vice_primary");
+        break;
+    case blueprint_role_t::SECONDARY:
         return cJSON_CreateString("role_secondary");
         break;
-    case blueprint_role_nothing:
+    case blueprint_role_t::NOTHING:
         return cJSON_CreateString("role_nothing");
         break;
     default:
@@ -39,11 +42,13 @@ void apply_json_to(cJSON *change, blueprint_role_t *target) {
     std::string val = get_string(change);
 
     if (val == "role_primary" || val == "P") {
-        *target = blueprint_role_primary;
+        *target = blueprint_role_t::PRIMARY;
+    } else if (val == "role_vice_primary" || val == "VP") {
+        *target = blueprint_role_t::VICEPRIMARY;
     } else if (val == "role_secondary" || val == "S") {
-        *target = blueprint_role_secondary;
+        *target = blueprint_role_t::SECONDARY;
     } else if (val == "role_nothing" || val == "N") {
-        *target = blueprint_role_nothing;
+        *target = blueprint_role_t::NOTHING;
     } else {
         throw schema_mismatch_exc_t("Cannot set a blueprint_role_t object using %s."
                 "Acceptable values are: \"role_primary\", \"role_secondary\","

@@ -186,13 +186,14 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
     typename protocol_t::region_t cpu_sharded_region = region_intersection(region, protocol_t::cpu_sharding_subspace(cpu_shard_number, svs_subview->num_stores()));
 
     switch (role->role) {
-    case blueprint_role_primary:
+    case blueprint_role_t::PRIMARY:
         be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
-    case blueprint_role_secondary:
+    case blueprint_role_t::VICEPRIMARY:
+    case blueprint_role_t::SECONDARY:
         be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
-    case blueprint_role_nothing:
+    case blueprint_role_t::NOTHING:
         be_nothing(cpu_sharded_region, store_view, role->blueprint.get_watchable(), interruptor);
         break;
     default:
