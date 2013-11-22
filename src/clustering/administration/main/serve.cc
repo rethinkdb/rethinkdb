@@ -98,6 +98,9 @@ bool do_serve(
         connectivity_cluster_t connectivity_cluster;
         message_multiplexer_t message_multiplexer(&connectivity_cluster);
 
+        // RSI: this.
+        // crash("testing");
+
         message_multiplexer_t::client_t heartbeat_manager_client(&message_multiplexer, 'H');
         heartbeat_manager_t heartbeat_manager(&heartbeat_manager_client);
         message_multiplexer_t::client_t::run_t heartbeat_manager_client_run(&heartbeat_manager_client, &heartbeat_manager);

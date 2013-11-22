@@ -1,146 +1,92 @@
-/*
- * Copyright (c) 1999, 2007 Apple Inc. All rights reserved.
- * Some parts Copyright (c) 2013 RethinkDB.
- *
- * @APPLE_LICENSE_HEADER_START@
- *
- * This file contains Original Code and/or Modifications of Original Code
- * as defined in and that are subject to the Apple Public Source License
- * Version 2.0 (the 'License'). You may not use this file except in
- * compliance with the License. Please obtain a copy of the License at
- * http://www.opensource.apple.com/apsl/ and read it before using this
- * file.
- *
- * The Original Code and all software distributed under the License are
- * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
- * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
- * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
- * Please see the License for the specific language governing rights and
- * limitations under the License.
- *
- * @APPLE_LICENSE_HEADER_END@
- *
- * Modified by RethinkDB to handle RethinkDB coroutines.  Also moved
- * rethinkdb_backtrace here (renamed from backtrace, which was in OS X Libc's
- * gen/backtrace.cc).
- */
-
-/*	Bertrand from vmutils -> CF -> System */
-
 #ifdef __MACH__
 
+#include <execinfo.h>
 #include <pthread.h>
-#include <mach/mach.h>
-#include <mach/vm_statistics.h>
 #include <stdlib.h>
 
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/context_switching.hpp"
 
-int rethinkdb_backtrace(void** buffer, int size) {
-    extern void _rethinkdb_thread_stack_pcs(vm_address_t *buffer, unsigned max, unsigned *nb, unsigned skip);
-    unsigned int num_frames;
-    _rethinkdb_thread_stack_pcs((vm_address_t*)buffer, size, &num_frames, 1);
-    while (num_frames >= 1 && buffer[num_frames-1] == NULL) num_frames -= 1;
-    return num_frames;
-}
+struct pthread_t_field_locations_t {
+    size_t stackaddr_offset;
+    size_t stacksize_offset;
+};
 
+bool get_pthread_t_stack_field_locations(pthread_t th, pthread_t_field_locations_t *locations_out) {
+    void *const stackaddr = pthread_get_stackaddr_np(th);
+    const size_t stacksize = pthread_get_stacksize_np(th);
 
-#if defined(__i386__) || defined(__x86_64__) || defined(__arm__)
-#define FP_LINK_OFFSET 1
-#elif defined(__ppc__) || defined(__ppc64__)
-#define FP_LINK_OFFSET 2
-#else
-#error  ********** Unimplemented architecture
-#endif
+    pthread_t_field_locations_t locations;
+    bool found_stackaddr = false;
+    bool found_stacksize = false;
 
-#define	INSTACK(a)	((a) >= stackbot && (a) <= stacktop)
-#if defined(__ppc__) || defined(__ppc64__) || defined(__x86_64__)
-#define	ISALIGNED(a)	((((uintptr_t)(a)) & 0xf) == 0)
-#elif defined(__arm__)
-#define	ISALIGNED(a)	((((uintptr_t)(a)) & 0x1) == 0)
-#elif defined(__i386__)
-#define	ISALIGNED(a)	((((uintptr_t)(a)) & 0xf) == 8)
-#endif
+    const size_t step = std::min(sizeof(size_t), sizeof(void *));
+    for (size_t i = 0; i < __PTHREAD_SIZE__; i += step) {
+        char *const p = th->__opaque + i;
+        if (!found_stackaddr
+            && i <= __PTHREAD_SIZE__ - sizeof(void *)
+            && *reinterpret_cast<void **>(p) == stackaddr) {
+            void *const test_value = static_cast<char *>(stackaddr) + 8;
+            *reinterpret_cast<void **>(p) = test_value;
+            if (pthread_get_stackaddr_np(th) == test_value) {
+                locations.stackaddr_offset = i;
+                found_stackaddr = true;
+            }
+            *reinterpret_cast<void **>(p) = stackaddr;
+        }
 
-__private_extern__  __attribute__((noinline))
-void
-_rethinkdb_thread_stack_pcs(vm_address_t *buffer, unsigned max,
-                            unsigned *nb, unsigned skip)
-{
-    void *frame, *next;
-    void *stacktop;
-    void *stackbot;
-
-    {
-        // RethinkDB changes here: We add code that gets the stack bounds when
-        // on a coroutine stack.
-        coro_t *coro = coro_t::self();
-        if (coro != NULL) {
-            artificial_stack_t *stack = coro->get_stack();
-            stacktop = stack->get_stack_base();
-            stackbot = stack->get_stack_bound();
-        } else {
-            pthread_t self = pthread_self();
-            stacktop = pthread_get_stackaddr_np(self);
-            stackbot = static_cast<char *>(stacktop) - pthread_get_stacksize_np(self);
+        if (!found_stacksize
+            && i <= __PTHREAD_SIZE__ - sizeof(size_t)
+            && *reinterpret_cast<size_t *>(p) == stacksize) {
+            const size_t test_value = stacksize + 8;
+            *reinterpret_cast<size_t *>(p) = test_value;
+            if (pthread_get_stacksize_np(th) == test_value) {
+                locations.stacksize_offset = i;
+                found_stacksize = true;
+            }
+            *reinterpret_cast<size_t *>(p) = stacksize;
         }
     }
 
-    *nb = 0;
-
-    /* make sure return address is never out of bounds */
-    stacktop = static_cast<char *>(stacktop) - (FP_LINK_OFFSET + 1) * sizeof(void *);
-
-    /*
-     * The original implementation called the first_frame_address() function,
-     * which returned the stack frame pointer.  The problem was that in ppc,
-     * it was a leaf function, so no new stack frame was set up with
-     * optimization turned on (while a new stack frame was set up without
-     * optimization).  We now inline the code to get the stack frame pointer,
-     * so we are consistent about the stack frame.
-     */
-#if defined(__i386__) || defined(__x86_64__) || defined(__arm__)
-    frame = __builtin_frame_address(0);
-#elif defined(__ppc__) || defined(__ppc64__)
-    /* __builtin_frame_address IS BROKEN IN BEAKER: RADAR #2340421 */
-    __asm__ volatile("mr %0, r1" : "=r" (frame));
-#endif
-    if(!INSTACK(frame) || !ISALIGNED(frame))
-	return;
-#if defined(__ppc__) || defined(__ppc64__)
-    /* back up the stack pointer up over the current stack frame */
-    next = *(void **)frame;
-    if(!INSTACK(next) || !ISALIGNED(next) || next <= frame)
-	return;
-    frame = next;
-#endif
-    while (skip--) {
-	next = *(void **)frame;
-	if(!INSTACK(next) || !ISALIGNED(next) || next <= frame)
-	    return;
-	frame = next;
-    }
-    while (max--) {
-        buffer[*nb] = *(vm_address_t *)(((void **)frame) + FP_LINK_OFFSET);
-        (*nb)++;
-	next = *(void **)frame;
-	if(!INSTACK(next) || !ISALIGNED(next) || next <= frame)
-	    return;
-	frame = next;
+    if (found_stackaddr && found_stacksize) {
+        *locations_out = locations;
+        return true;
+    } else {
+        return false;
     }
 }
 
-void
-rethinkdb_thread_stack_pcs(vm_address_t *buffer, unsigned max, unsigned *nb)
-{
-    _rethinkdb_thread_stack_pcs(buffer, max, nb, 0);
+void substitute_pthread_t_stack_fields(pthread_t th, pthread_t_field_locations_t locations,
+                                       void *addr, size_t size) {
+    *reinterpret_cast<void **>(th->__opaque + locations.stackaddr_offset) = addr;
+    *reinterpret_cast<size_t *>(th->__opaque + locations.stacksize_offset) = size;
+}
 
-    // The following prevents thread_stack_pcs() from getting tail-call-optimized into _thread_stack_pcs() on 64-bit environments,
-    // thus making the "number of hot frames to skip" be more predictable, giving more consistent backtraces.
-    // See <rdar://problem/5364825> "stack logging: frames keep getting truncated" for why this is necessary.
-    __asm__ volatile("");
+int rethinkdb_backtrace(void **buffer, int size) {
+    coro_t *const coro = coro_t::self();
+    if (coro == NULL) {
+        return backtrace(buffer, size);
+    } else {
+        pthread_t_field_locations_t field_locations;
+        pthread_t self = pthread_self();
+        if (!get_pthread_t_stack_field_locations(self, &field_locations)) {
+            fprintf(stderr, "Could not retrieve pthread stack field locations.\n");
+            return 0;
+        }
+
+        void *const stackaddr = pthread_get_stackaddr_np(self);
+        const size_t stacksize = pthread_get_stacksize_np(self);
+
+        artificial_stack_t *const stack = coro->get_stack();
+        void *const coro_addr = stack->get_stack_base();
+        const size_t coro_size = static_cast<char *>(coro_addr)
+            - static_cast<char *>(stack->get_stack_bound());
+
+        substitute_pthread_t_stack_fields(self, field_locations, coro_addr, coro_size);
+        const int res = backtrace(buffer, size);
+        substitute_pthread_t_stack_fields(self, field_locations, stackaddr, stacksize);
+        return res;
+    }
 }
 
 #else
