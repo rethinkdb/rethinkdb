@@ -4,6 +4,7 @@ module 'DataExplorerView', ->
         current_query: null
         query: null
         results: null
+        profile: null
         cursor: null
         metadata: null
         cursor_timed_out: true
@@ -419,6 +420,7 @@ module 'DataExplorerView', ->
 
             @show_query_warning = @state.query isnt @state.current_query # Show a warning in case the displayed results are not the one of the query in code mirror
             @current_results = @state.results
+            @profile = @state.profile
 
             # Index used to navigate through history with the keyboard
             @history_displayed_id = 0 # 0 means we are showing the draft, n>0 means we are showing the nth query in the history
@@ -2405,9 +2407,11 @@ module 'DataExplorerView', ->
                     if results.profile? and @state.last_query_has_profile is true
                         cursor = results.value
                         @profile = results.profile
+                        @state.profile = @profile
                     else
                         cursor = results
                         @profile = null # @profile is null if the user deactivated the profiler
+                        @state.profile = @profile
 
                     
                     if @index is @queries.length # @index was incremented in execute_portion
