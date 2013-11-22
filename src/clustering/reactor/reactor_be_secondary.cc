@@ -15,26 +15,29 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(
         clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > *broadcaster_out) {
     /* This helps us detect if we have multiple broadcasters. */
     bool found_broadcaster = false;
-    auto _f = bp.failover.find(region);
-    guarantee(_f != bp.failover.end());
-    bool failover = _f->second;
+
+    /* My word are hash shards annoying. */
+    bool failover = false;
+    for (auto it = bp.failover.begin(); it != bp.failover.end(); ++it) {
+        if (it->second && region_is_superset(it->first, region)) {
+            failover = true;
+            break;
+        }
+    }
 
     typedef reactor_business_card_t<protocol_t> rb_t;
     typedef std::map<peer_id_t, cow_ptr_t<rb_t> > reactor_directory_t;
 
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
-                                                                      it != bp.peers_roles.end();
-                                                                      it++) {
-        typename reactor_directory_t::const_iterator p_it = _reactor_directory.find(it->first);
+    for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
+        auto p_it = _reactor_directory.find(it->first);
         if (p_it != _reactor_directory.end()) {
-            for (typename rb_t::activity_map_t::const_iterator a_it  = p_it->second->activities.begin();
-                                                               a_it != p_it->second->activities.end();
-                                                               a_it++) {
+            for (auto a_it = p_it->second->activities.begin();
+                 a_it != p_it->second->activities.end(); a_it++) {
                 if (a_it->second.region == region) {
                     if (auto primary = boost::get<typename rb_t::primary_t>(&a_it->second.activity)) {
                         if (!found_broadcaster &&
-                                ((!failover && primary->type == primary_type_t::MAIN) ||
-                                 (failover && primary->type == primary_type_t::VICE))) {
+                             ((!failover && primary->type == primary_type_t::MAIN) ||
+                             (failover && primary->type == primary_type_t::VICE))) {
                             //This is the first viable broadcaster we've found
                             //so we set the output variable.
                             *broadcaster_out = get_directory_entry_view<typename rb_t::primary_t>(it->first, a_it->first)->
