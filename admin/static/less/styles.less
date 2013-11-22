@@ -2112,6 +2112,19 @@ TODO: retire this
 }
 
 #table-view {
+    .full_bar{
+        .border-radius(5px);
+        height: 10px;
+        background: #eee;
+        .box-shadow(~"inset 1px 1px 2px #ddd");
+        .bar{
+            height: 10px;
+            .border-radius(5px);
+            background: #f7ae41;
+            .box-shadow(~"inset 1px -2px 4px #DB8812");
+        }
+    }
+
     .section.tree-view.server-assignments {
         @element_height: 40px;
         li.server .server-info {
@@ -2407,18 +2420,6 @@ TODO: retire this
                             font-size: 14px;
                             line-height: 20px;
                             font-weight: bold;
-                        }
-                        .full_bar{
-                            .border-radius(5px);
-                            height: 10px;
-                            background: #eee;
-                            .box-shadow(~"inset 1px 1px 2px #ddd");
-                            .bar{
-                                height: 10px;
-                                .border-radius(5px);
-                                background: #f7ae41;
-                                .box-shadow(~"inset 1px -2px 4px #DB8812");
-                            }
                         }
                     }
                 }

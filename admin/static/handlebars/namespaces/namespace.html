@@ -70,7 +70,20 @@
     </div>
     <div class="alert alert-error"></div>
     <div class="content"></div>
+    <div class="add_index_container"></div>
 </script>
+
+<script id="namespace_view-secondary_indexes-add-template" type="text/x-handlebars-template">
+    {{#if show_add_index}}
+    <ul class="list_secondary_indexes">
+    <li class="square_li input_li"><input type="text" class="secondary_index_name" value="{{secondary_index_name}}" placeholder="name of the key" /><button class="btn cancel_btn">Cancel</button><button class="btn create_btn">Create</button></li>
+    </ul>
+    {{/if}}
+    {{#unless show_add_index}}
+        <div class="create_container"><a href="#" class="create_link">Create a new secondary index &rarr;</a></div>
+    {{/unless}}
+</script>
+
 
 <script id="namespace_view-secondary_indexes-content-template" type="text/x-handlebars-template">
     {{#if loading}}
@@ -91,26 +104,23 @@
                 <li class="square_li">No secondary indexes found.</li>
             {{else}}
                 {{#each secondary_indexes}}
-                <li class="square_li">{{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}} — <a href="#" data-name="{{name}}" class="delete_link">delete</a></li>
+                <li class="square_li">{{#if is_empty}}<em>[empty string]</em>{{else}}{{index}}{{/if}} — {{#if ready}} available {{else}} building {{/if}} — <a href="#" data-name="{{index}}" class="delete_link">delete</a></li>
                 <li class="alert_li">
-                <div class="alert {{#if display}}displayed_alert{{/if}} alert_confirm_delete alert_confirm_delete_{{name}}">
+                <div class="alert {{#if display}}displayed_alert{{/if}} alert_confirm_delete alert_confirm_delete_{{index}}">
                         <div class="content">
-                            Are you sure you want to delete the secondary index {{#if is_empty}}<em>[empty string]</em>{{else}}<strong>{{name}}</strong>{{/if}}?<br/>
-                            <button class="btn cancel_delete_btn" data-name="{{name}}">Cancel</button><button class="btn delete_index_btn" data-name="{{name}}">Delete</button>
+                            Are you sure you want to delete the secondary index {{#if is_empty}}<em>[empty string]</em>{{else}}<strong>{{index}}</strong>{{/if}}?<br/>
+                            <button class="btn cancel_delete_btn" data-name="{{index}}">Cancel</button><button class="btn delete_index_btn" data-name="{{index}}">Delete</button>
                         </div>
                     </div>
                 </li>
+                {{#unless ready}}
+                <div class="full_bar">
+                    <div class="progress"><div class="bar" style="width:{{percentage}}%"></div></div>
+                </div>
+                {{/unless}}
                 {{/each}}
             {{/if}}
-            {{#if show_add_index}}
-            <li class="square_li input_li"><input type="text" class="secondary_index_name" value="{{secondary_index_name}}" placeholder="name of the key" /><button class="btn cancel_btn">Cancel</button><button class="btn create_btn">Create</button></li>
-            {{/if}}
             </ul>
-
-            {{#unless show_add_index}}
-                <div class="create_container"><a href="#" class="create_link">Create a new secondary index &rarr;</a></div>
-            {{/unless}}
-
         {{/if}}
     {{/if}}
 </script>
@@ -121,6 +131,9 @@
     {{/if}}
     {{#if create_ok}}
     <p>You successfully created the secondary index <strong>{{name}}</strong>.</p>
+    {{/if}}
+    {{#if built}}
+    <p>The secondary index <strong>{{name}}</strong> is now available.</p>
     {{/if}}
 </script>
 
