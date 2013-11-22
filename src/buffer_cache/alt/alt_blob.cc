@@ -140,7 +140,8 @@ block_id_t *internal_node_block_ids(void *buf) {
     return reinterpret_cast<block_id_t *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
 }
 
-ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, int maxreflen) {
+ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size,
+                        int maxreflen, int64_t *blockid_count_out) {
     rassert(size > int64_t(maxreflen - big_size_offset(maxreflen)));
     int64_t max_blockid_count = (maxreflen - block_ids_offset(maxreflen)) / sizeof(block_id_t);
 
@@ -155,7 +156,14 @@ ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size, i
     ref_info_t info;
     info.refsize = block_ids_offset(maxreflen) + sizeof(block_id_t) * block_count;
     info.levels = levels;
+    *blockid_count_out = block_count;
     return info;
+}
+
+ref_info_t big_ref_info(block_size_t block_size, int64_t offset, int64_t size,
+                        int maxreflen) {
+    int64_t blockid_count;
+    return big_ref_info(block_size, offset, size, maxreflen, &blockid_count);
 }
 
 ref_info_t ref_info(block_size_t block_size, const char *ref, int maxreflen) {
@@ -277,6 +285,25 @@ int blob_t::refsize(block_size_t block_size) const {
 
 int64_t blob_t::valuesize() const {
     return blob::value_size(ref_, maxreflen_);
+}
+
+void blob_t::detach_subtree(alt::alt_buf_lock_t *root) {
+    if (blob::is_small(ref_, maxreflen_)) {
+        return;
+    }
+
+    int64_t blockid_count;
+    blob::big_ref_info(root->cache()->max_block_size(),
+                       blob::big_offset(ref_, maxreflen_),
+                       blob::big_size(ref_, maxreflen_),
+                       maxreflen_,
+                       &blockid_count);
+
+    const block_id_t *ids = blob::block_ids(ref_, maxreflen_);
+
+    for (int64_t i = 0; i < blockid_count; ++i) {
+        root->detach_child(ids[i]);
+    }
 }
 
 union temporary_acq_tree_node_t {

@@ -165,6 +165,10 @@ public:
     // than one gazillion.
     int64_t valuesize() const;
 
+    // Detaches the blob's subtree from the root node (see
+    // alt_buf_lock_t::detach_child).
+    void detach_subtree(alt::alt_buf_lock_t *root);
+
     // Acquires internal buffers and copies pointers to internal
     // buffers to the buffer_group_t, initializing acq_group_out so
     // that it holds the acquisition of such buffers.  acq_group_out
@@ -197,6 +201,7 @@ public:
     // to unappend_region(txn, valuesize()) or unprepend_region(txn,
     // valuesize()).  In particular, you can be sure that the blob
     // holds no internal blocks, once it has been cleared.
+    // RSI: Should this just take a alt_txn_t?  Detach-then-clear?
     void clear(alt::alt_buf_parent_t root);
 
     // Writes over the portion of the blob, starting at offset, with

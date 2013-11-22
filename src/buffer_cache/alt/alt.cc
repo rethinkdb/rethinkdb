@@ -143,6 +143,7 @@ void alt_buf_lock_t::snapshot_subtree() {
 }
 
 void alt_buf_lock_t::detach_child(block_id_t child_id) {
+    (void)child_id;
     guarantee(!empty());
     // RSI: Actually implement this.
 }
