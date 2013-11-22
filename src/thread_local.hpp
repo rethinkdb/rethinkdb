@@ -2,7 +2,11 @@
 #ifndef THREAD_LOCAL_HPP_
 #define THREAD_LOCAL_HPP_
 
+#include <vector>
+
 #include "errors.hpp"
+
+// TODO! Handle the __ICC case (just error)
 
 #ifdef __ICC
 #define TLS_with_init(type, name, initial)                              \
@@ -46,14 +50,14 @@
 #else  //  __ICC
 
 #define TLS_with_init(type, name, initial)              \
-    static __thread type TLS_ ## name = initial;        \
+    static std::vector<type> TLS_ ## name(MAX_THREADS, initial);        \
                                                         \
     type TLS_get_ ## name () {                          \
-        return TLS_ ## name;                            \
+        return TLS_ ## name[get_thread_id().threadnum]; \
     }                                                   \
                                                         \
     void TLS_set_ ## name(type val) {                   \
-        TLS_ ## name = val;                             \
+        TLS_ ## name[get_thread_id().threadnum] = val;  \
     }                                                   \
 
 #endif  //  __ICC
@@ -97,14 +101,14 @@
 #else
 
 #define TLS(type, name)                         \
-    static __thread type TLS_ ## name;          \
+    static type TLS_ ## name[MAX_THREADS];      \
                                                 \
     type TLS_get_ ## name () {                  \
-        return TLS_ ## name;                    \
+        return TLS_ ## name[get_thread_id().threadnum];   \
     }                                           \
                                                 \
     void TLS_set_ ## name(type val) {           \
-        TLS_ ## name = val;                     \
+        TLS_ ## name[get_thread_id().threadnum] = val;    \
     }                                           \
 
 #endif  // __ICC

@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
 
 #ifndef NDEBUG
 #include <stack>   /* the data structure, not the run-time concept */
@@ -94,23 +95,23 @@ struct coro_globals_t {
 
 };
 
-static __thread coro_globals_t *cglobals = NULL;
+static coro_globals_t *cglobals[MAX_THREADS];
 
 coro_runtime_t::coro_runtime_t() {
-    rassert(!cglobals, "coro runtime initialized twice on this thread");
-    cglobals = new coro_globals_t;
+    rassert(!cglobals[get_thread_id().threadnum], "coro runtime initialized twice on this thread");
+    cglobals[get_thread_id().threadnum] = new coro_globals_t;
 }
 
 coro_runtime_t::~coro_runtime_t() {
-    rassert(cglobals);
-    delete cglobals;
-    cglobals = NULL;
+    rassert(cglobals[get_thread_id().threadnum]);
+    delete cglobals[get_thread_id().threadnum];
+    cglobals[get_thread_id().threadnum] = NULL;
 }
 
 #ifndef NDEBUG
 void coro_runtime_t::get_coroutine_counts(std::map<std::string, size_t> *dest) {
     dest->clear();
-    dest->insert(cglobals->total_coroutine_counts.begin(), cglobals->total_coroutine_counts.end());
+    dest->insert(cglobals[get_thread_id().threadnum]->total_coroutine_counts.begin(), cglobals[get_thread_id().threadnum]->total_coroutine_counts.end());
 }
 #endif
 
@@ -135,15 +136,15 @@ coro_t::coro_t() :
     ++pm_allocated_coroutines;
 
 #ifndef NDEBUG
-    cglobals->coro_count++;
-    rassert(cglobals->coro_count < MAX_COROS_PER_THREAD, "Too many "
+    cglobals[get_thread_id().threadnum]->coro_count++;
+    rassert(cglobals[get_thread_id().threadnum]->coro_count < MAX_COROS_PER_THREAD, "Too many "
             "coroutines allocated on this thread. This is problem due to a "
             "misuse of the coroutines\n");
 #endif
 }
 
 void coro_t::return_coro_to_free_list(coro_t *coro) {
-    cglobals->free_coros.push_back(coro);
+    cglobals[get_thread_id().threadnum]->free_coros.push_back(coro);
 }
 
 coro_t::~coro_t() {
@@ -151,13 +152,13 @@ coro_t::~coro_t() {
     rassert(get_thread_id() == home_thread());
 
 #ifndef NDEBUG
-    cglobals->coro_count--;
+    cglobals[get_thread_id().threadnum]->coro_count--;
 #endif
     --pm_allocated_coroutines;
 }
 
 void coro_t::run() {
-    coro_t *coro = cglobals->current_coro;
+    coro_t *coro = cglobals[get_thread_id().threadnum]->current_coro;
 
 #ifndef NDEBUG
     char dummy;  /* Make sure we're on the right stack. */
@@ -165,7 +166,7 @@ void coro_t::run() {
 #endif
 
     while (true) {
-        rassert(coro == cglobals->current_coro);
+        rassert(coro == cglobals[get_thread_id().threadnum]->current_coro);
         rassert(coro->current_thread_ == get_thread_id());
         rassert(coro->notified_ == false);
         rassert(coro->waiting_ == true);
@@ -173,16 +174,16 @@ void coro_t::run() {
 
 #ifndef NDEBUG
         // Keep track of how many coroutines of each type ran
-        cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]++;
-        cglobals->total_coroutine_counts[coro->coroutine_type.c_str()]++;
-        cglobals->active_coroutines.insert(coro);
+        cglobals[get_thread_id().threadnum]->running_coroutine_counts[coro->coroutine_type.c_str()]++;
+        cglobals[get_thread_id().threadnum]->total_coroutine_counts[coro->coroutine_type.c_str()]++;
+        cglobals[get_thread_id().threadnum]->active_coroutines.insert(coro);
 #endif
         PROFILER_CORO_RESUME;
         coro->action_wrapper.run();
         PROFILER_CORO_YIELD(0);
 #ifndef NDEBUG
-        cglobals->running_coroutine_counts[coro->coroutine_type.c_str()]--;
-        cglobals->active_coroutines.erase(coro);
+        cglobals[get_thread_id().threadnum]->running_coroutine_counts[coro->coroutine_type.c_str()]--;
+        cglobals[get_thread_id().threadnum]->active_coroutines.erase(coro);
 #endif
 
         rassert(coro->current_thread_ == get_thread_id());
@@ -194,10 +195,10 @@ void coro_t::run() {
         do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));
         --pm_active_coroutines;
 
-        if (cglobals->prev_coro) {
-            context_switch(&coro->stack.context, &cglobals->prev_coro->stack.context);
+        if (cglobals[get_thread_id().threadnum]->prev_coro) {
+            context_switch(&coro->stack.context, &cglobals[get_thread_id().threadnum]->prev_coro->stack.context);
         } else {
-            context_switch(&coro->stack.context, &cglobals->scheduler);
+            context_switch(&coro->stack.context, &cglobals[get_thread_id().threadnum]->scheduler);
         }
     }
 }
@@ -215,27 +216,27 @@ void coro_t::parse_coroutine_type(const char *coroutine_function)
 #endif
 
 coro_t *coro_t::self() {   /* class method */
-    return cglobals == NULL ? NULL : cglobals->current_coro;
+    return cglobals[get_thread_id().threadnum] == NULL ? NULL : cglobals[get_thread_id().threadnum]->current_coro;
 }
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
-    rassert(cglobals->assert_finite_coro_waiting_counter == 0,
+    rassert(cglobals[get_thread_id().threadnum]->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
-        cglobals->finite_waiting_call_sites.top().first.c_str(), cglobals->finite_waiting_call_sites.top().second);
+        cglobals[get_thread_id().threadnum]->finite_waiting_call_sites.top().first.c_str(), cglobals[get_thread_id().threadnum]->finite_waiting_call_sites.top().second);
 
-    rassert(cglobals->assert_no_coro_waiting_counter == 0,
+    rassert(cglobals[get_thread_id().threadnum]->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
-        cglobals->no_waiting_call_sites.top().first.c_str(), cglobals->no_waiting_call_sites.top().second);
+        cglobals[get_thread_id().threadnum]->no_waiting_call_sites.top().first.c_str(), cglobals[get_thread_id().threadnum]->no_waiting_call_sites.top().second);
 
     rassert(!self()->waiting_);
     self()->waiting_ = true;
 
     PROFILER_CORO_YIELD(1);
-    if (cglobals->prev_coro) {
-        context_switch(&self()->stack.context, &cglobals->prev_coro->stack.context);
+    if (cglobals[get_thread_id().threadnum]->prev_coro) {
+        context_switch(&self()->stack.context, &cglobals[get_thread_id().threadnum]->prev_coro->stack.context);
     } else {
-        context_switch(&self()->stack.context, &cglobals->scheduler);
+        context_switch(&self()->stack.context, &cglobals[get_thread_id().threadnum]->scheduler);
     }
     PROFILER_CORO_RESUME;
 
@@ -256,39 +257,39 @@ void coro_t::notify_now_deprecated() {
     rassert(current_thread_.threadnum == linux_thread_pool_t::thread_id);
 
 #ifndef NDEBUG
-    rassert(cglobals->assert_no_coro_waiting_counter == 0,
+    rassert(cglobals[get_thread_id().threadnum]->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use notify_now_deprecated() or spawn_now_dangerously().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
     `coro_t::wait()` within the coro we are going to jump to, or else we would never jump
     back. */
-    int old_assert_finite_coro_waiting_counter = cglobals->assert_finite_coro_waiting_counter;
-    cglobals->assert_finite_coro_waiting_counter = 0;
+    int old_assert_finite_coro_waiting_counter = cglobals[get_thread_id().threadnum]->assert_finite_coro_waiting_counter;
+    cglobals[get_thread_id().threadnum]->assert_finite_coro_waiting_counter = 0;
 #endif
 
     if (coro_t::self() != NULL) {
         PROFILER_CORO_YIELD(1);
     }
-    coro_t *prev_prev_coro = cglobals->prev_coro;
-    cglobals->prev_coro = cglobals->current_coro;
-    cglobals->current_coro = this;
+    coro_t *prev_prev_coro = cglobals[get_thread_id().threadnum]->prev_coro;
+    cglobals[get_thread_id().threadnum]->prev_coro = cglobals[get_thread_id().threadnum]->current_coro;
+    cglobals[get_thread_id().threadnum]->current_coro = this;
 
-    if (cglobals->prev_coro) {
-        context_switch(&cglobals->prev_coro->stack.context, &this->stack.context);
+    if (cglobals[get_thread_id().threadnum]->prev_coro) {
+        context_switch(&cglobals[get_thread_id().threadnum]->prev_coro->stack.context, &this->stack.context);
     } else {
-        context_switch(&cglobals->scheduler, &this->stack.context);
+        context_switch(&cglobals[get_thread_id().threadnum]->scheduler, &this->stack.context);
     }
 
-    rassert(cglobals->current_coro == this);
-    cglobals->current_coro = cglobals->prev_coro;
-    cglobals->prev_coro = prev_prev_coro;
+    rassert(cglobals[get_thread_id().threadnum]->current_coro == this);
+    cglobals[get_thread_id().threadnum]->current_coro = cglobals[get_thread_id().threadnum]->prev_coro;
+    cglobals[get_thread_id().threadnum]->prev_coro = prev_prev_coro;
     if (coro_t::self() != NULL) {
         PROFILER_CORO_RESUME;
     }
 
 #ifndef NDEBUG
     /* Restore old value of `assert_finite_coro_waiting_counter`. */
-    cglobals->assert_finite_coro_waiting_counter = old_assert_finite_coro_waiting_counter;
+    cglobals[get_thread_id().threadnum]->assert_finite_coro_waiting_counter = old_assert_finite_coro_waiting_counter;
 #endif
 }
 
@@ -323,24 +324,24 @@ void coro_t::move_to_thread(threadnum_t thread) {
     }
 #ifndef NDEBUG
     /* Switch the coro counter to the new thread 1/2 */
-    rassert(cglobals->coro_count > 0);
-    cglobals->coro_count--;
-    rassert(cglobals->running_coroutine_counts[self()->coroutine_type.c_str()] > 0);
-    cglobals->running_coroutine_counts[self()->coroutine_type.c_str()]--;
-    rassert(cglobals->total_coroutine_counts[self()->coroutine_type.c_str()] > 0);
-    cglobals->total_coroutine_counts[self()->coroutine_type.c_str()]--;
-    rassert(cglobals->active_coroutines.find(self()) != cglobals->active_coroutines.end());
-    cglobals->active_coroutines.erase(self());
+    rassert(cglobals[get_thread_id().threadnum]->coro_count > 0);
+    cglobals[get_thread_id().threadnum]->coro_count--;
+    rassert(cglobals[get_thread_id().threadnum]->running_coroutine_counts[self()->coroutine_type.c_str()] > 0);
+    cglobals[get_thread_id().threadnum]->running_coroutine_counts[self()->coroutine_type.c_str()]--;
+    rassert(cglobals[get_thread_id().threadnum]->total_coroutine_counts[self()->coroutine_type.c_str()] > 0);
+    cglobals[get_thread_id().threadnum]->total_coroutine_counts[self()->coroutine_type.c_str()]--;
+    rassert(cglobals[get_thread_id().threadnum]->active_coroutines.find(self()) != cglobals[get_thread_id().threadnum]->active_coroutines.end());
+    cglobals[get_thread_id().threadnum]->active_coroutines.erase(self());
 #endif
     self()->current_thread_ = thread;
     self()->notify_later_ordered();
     wait();
 #ifndef NDEBUG
     /* Switch the coro counter to the new thread 2/2 */
-    cglobals->coro_count++;
-    cglobals->running_coroutine_counts[self()->coroutine_type.c_str()]++;
-    cglobals->total_coroutine_counts[self()->coroutine_type.c_str()]++;
-    cglobals->active_coroutines.insert(self());
+    cglobals[get_thread_id().threadnum]->coro_count++;
+    cglobals[get_thread_id().threadnum]->running_coroutine_counts[self()->coroutine_type.c_str()]++;
+    cglobals[get_thread_id().threadnum]->total_coroutine_counts[self()->coroutine_type.c_str()]++;
+    cglobals[get_thread_id().threadnum]->active_coroutines.insert(self());
 #endif
 }
 
@@ -366,22 +367,22 @@ stack. Could also in theory be used by a function to check if it's about to over
 the stack. */
 
 bool is_coroutine_stack_overflow(void *addr) {
-    return cglobals->current_coro && cglobals->current_coro->stack.address_is_stack_overflow(addr);
+    return cglobals[get_thread_id().threadnum]->current_coro && cglobals[get_thread_id().threadnum]->current_coro->stack.address_is_stack_overflow(addr);
 }
 
 bool coroutines_have_been_initialized() {
-    return cglobals != NULL;
+    return cglobals[get_thread_id().threadnum] != NULL;
 }
 
 coro_t * coro_t::get_coro() {
     rassert(coroutines_have_been_initialized());
     coro_t *coro;
 
-    if (cglobals->free_coros.size() == 0) {
+    if (cglobals[get_thread_id().threadnum]->free_coros.size() == 0) {
         coro = new coro_t();
     } else {
-        coro = cglobals->free_coros.tail();
-        cglobals->free_coros.remove(coro);
+        coro = cglobals[get_thread_id().threadnum]->free_coros.tail();
+        cglobals[get_thread_id().threadnum]->free_coros.remove(coro);
     }
 
     rassert(!coro->intrusive_list_node_t<coro_t>::in_a_list());
@@ -461,20 +462,20 @@ int coro_t::copy_spawn_backtrace(void **, int) const {
 /* These are used in the implementation of `ASSERT_NO_CORO_WAITING` and
 `ASSERT_FINITE_CORO_WAITING` */
 assert_no_coro_waiting_t::assert_no_coro_waiting_t(const std::string& filename, int line_no) {
-    cglobals->no_waiting_call_sites.push(std::make_pair(filename, line_no));
-    cglobals->assert_no_coro_waiting_counter++;
+    cglobals[get_thread_id().threadnum]->no_waiting_call_sites.push(std::make_pair(filename, line_no));
+    cglobals[get_thread_id().threadnum]->assert_no_coro_waiting_counter++;
 }
 assert_no_coro_waiting_t::~assert_no_coro_waiting_t() {
-    cglobals->no_waiting_call_sites.pop();
-    cglobals->assert_no_coro_waiting_counter--;
+    cglobals[get_thread_id().threadnum]->no_waiting_call_sites.pop();
+    cglobals[get_thread_id().threadnum]->assert_no_coro_waiting_counter--;
 }
 assert_finite_coro_waiting_t::assert_finite_coro_waiting_t(const std::string& filename, int line_no) {
-    cglobals->finite_waiting_call_sites.push(std::make_pair(filename, line_no));
-    cglobals->assert_finite_coro_waiting_counter++;
+    cglobals[get_thread_id().threadnum]->finite_waiting_call_sites.push(std::make_pair(filename, line_no));
+    cglobals[get_thread_id().threadnum]->assert_finite_coro_waiting_counter++;
 }
 assert_finite_coro_waiting_t::~assert_finite_coro_waiting_t() {
-    cglobals->finite_waiting_call_sites.pop();
-    cglobals->assert_finite_coro_waiting_counter--;
+    cglobals[get_thread_id().threadnum]->finite_waiting_call_sites.pop();
+    cglobals[get_thread_id().threadnum]->assert_finite_coro_waiting_counter--;
 }
 
 home_coro_mixin_t::home_coro_mixin_t()

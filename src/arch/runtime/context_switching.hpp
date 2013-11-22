@@ -4,6 +4,65 @@
 
 #include "errors.hpp"
 
+/* ____ Threaded version of context_switching ____ */
+
+#include <pthread.h>
+#include "arch/io/concurrency.hpp"
+
+class linux_thread_pool_t;
+class linux_thread_t;
+
+class context_ref_t {
+public:
+    context_ref_t() : lock(NULL), do_rethread(false) { store_virtual_thread(); }
+    ~context_ref_t() { if (lock != NULL) delete lock; }
+    system_cond_t cond;
+    system_mutex_t::lock_t *lock;
+
+    /* This is a fake */
+    bool is_nil() { return false; }
+
+    void wait();
+    void restore_virtual_thread();
+    void store_virtual_thread();
+    void rethread_to_current(system_cond_t *current_cond);
+private:
+    bool do_rethread;
+    system_cond_t *on_rethreaded_cond;
+    linux_thread_pool_t *my_thread_pool;
+    int32_t my_thread_id;
+    linux_thread_t *my_thread;
+};
+
+void context_switch(context_ref_t *current_cond, context_ref_t *dest_cond);
+
+class threaded_context_t {
+public:
+
+    threaded_context_t(void (*initial_fun_)(void), size_t);
+    ~threaded_context_t();
+
+    context_ref_t context;
+
+    /* These are fakes */
+    bool address_in_stack(void *) { return true; }
+    bool address_is_stack_overflow(void *) { return false; }
+    void* get_stack_base() { guarantee(false); return NULL; }
+    void* get_stack_bound() { guarantee(false); return NULL; }
+
+private:
+    static void *internal_run(void *p);
+
+    pthread_t thread;
+    void (*initial_fun)(void);
+    system_cond_t launch_cond;
+};
+typedef threaded_context_t artificial_stack_t;
+
+/* ^^^^ Threaded version of context_switching ^^^^ */
+
+#if 0
+
 /* Note that `context_ref_t` is not a POD type. We could make it a POD type, but
 at the cost of removing some safety guarantees provided by the constructor and
 destructor. */
@@ -73,5 +132,7 @@ non-nil; it will be set to nil, and we will switch to it. */
 void context_switch(
     context_ref_t *current_context_out,
     context_ref_t *dest_context_in);
+
+#endif
 
 #endif /* ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_ */

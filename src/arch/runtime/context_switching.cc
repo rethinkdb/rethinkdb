@@ -1,6 +1,133 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/context_switching.hpp"
 
+/* ____ Threaded version of context_switching ____ */
+
+#include <pthread.h>
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/runtime/coroutines.hpp"
+#include "arch/io/concurrency.hpp"
+
+static system_mutex_t virtual_thread_mutexes[MAX_THREADS];
+
+void context_switch(context_ref_t *current_cond, context_ref_t *dest_cond) {
+    guarantee(current_cond);
+    guarantee(dest_cond);
+
+    bool is_scheduler = false;
+    if (current_cond->lock == NULL) {
+        // This must be the scheduler. We need to acquire a lock.
+        is_scheduler = true;
+        current_cond->lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+    }
+
+    dest_cond->rethread_to_current(&current_cond->cond);
+    dest_cond->cond.signal();
+    // ==== dest_cond runs here ====
+    current_cond->wait();
+    // ==== now back on current_cond ====
+    if (is_scheduler) {
+        // We must not hold the lock, or we will get deadlocks because the scheduler
+        // can end up waiting on a system event. If another thread then
+        // wants to re-thread to our thread, it will be unable to do so.
+        delete current_cond->lock;
+        current_cond->lock = NULL;
+    }
+}
+
+void context_ref_t::rethread_to_current(system_cond_t *current_cond) {
+    int32_t old_thread = my_thread_id;
+    store_virtual_thread();
+    if (my_thread_id == old_thread) {
+        return;
+    }
+
+    do_rethread = true;
+    on_rethreaded_cond = current_cond;
+    // Wake the thread up so it can re-thread itself
+    cond.signal();
+    // The thread will notify us once it has rethreaded itself
+    current_cond->wait(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+    guarantee(!do_rethread);
+}
+
+void context_ref_t::wait() {
+    while (true) {
+        cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+        if (do_rethread) {
+            restore_virtual_thread();
+            // Re-lock to different thread mutex
+            delete lock;
+            lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+            do_rethread = false;
+            on_rethreaded_cond->signal();
+        } else {
+            return;
+        }
+    }
+}
+
+void context_ref_t::restore_virtual_thread() {
+    // Fake our thread
+    linux_thread_pool_t::thread_pool = my_thread_pool;
+    linux_thread_pool_t::thread_id = my_thread_id;
+    linux_thread_pool_t::thread = my_thread;
+}
+
+void context_ref_t::store_virtual_thread() {
+    // Fake our thread
+    my_thread_pool = linux_thread_pool_t::thread_pool;
+    my_thread_id = linux_thread_pool_t::thread_id;
+    my_thread = linux_thread_pool_t::thread;
+}
+
+threaded_context_t::threaded_context_t(void (*initial_fun_)(void), size_t) :
+    initial_fun(initial_fun_) {
+
+    // Our problem here is that we cannot be sure if we already hold the lock or
+    // not. However we need this lock to synchronize with the thread launch.
+    // TODO! Hack
+    const int locked_locally = virtual_thread_mutexes[linux_thread_pool_t::thread_id].trylock();
+
+    int result = pthread_create(&thread,
+                                NULL,
+                                threaded_context_t::internal_run,
+                                reinterpret_cast<void *>(this));
+    guarantee(result == 0, "Could not create thread: %i", result);
+    // Wait for the thread to start
+    launch_cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+    if (locked_locally == 0) {
+        virtual_thread_mutexes[linux_thread_pool_t::thread_id].unlock();
+    }
+}
+threaded_context_t::~threaded_context_t() {
+    // This is ugly. But our coroutines currently never terminate. Instead
+    // they just end up in an endless loop. Usually we would just destroy
+    // their stack context, but here we have to kill the thread first.
+    int result = pthread_kill(thread, SIGKILL);
+    guarantee(result == 0, "Could not kill thread: %i", result);
+    result = pthread_join(thread, NULL);
+    guarantee(result == 0, "Could not join with thread: %i", result);
+}
+
+void *threaded_context_t::internal_run(void *p) {
+    threaded_context_t *parent = reinterpret_cast<threaded_context_t *>(p);
+
+    parent->context.restore_virtual_thread();
+    
+    parent->context.lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+    // Notify our parent that we have been created
+    parent->launch_cond.signal();
+
+    parent->context.wait();
+    parent->initial_fun();
+    return NULL;
+}
+
+/* ^^^^ Threaded version of context_switching ^^^^ */
+
+#if 0
+
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -257,3 +384,4 @@ asm(
 #endif
 );
 
+#endif
