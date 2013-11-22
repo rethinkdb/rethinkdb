@@ -1,3 +1,5 @@
+#include "rethinkdb_backtrace.hpp"
+
 #ifdef __MACH__
 
 #include <execinfo.h>
