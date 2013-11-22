@@ -2281,6 +2281,9 @@ module 'DataExplorerView', ->
 
         # Function that execute the queries in a synchronous way.
         execute_query: =>
+            # Hide the option, if already hidden, nothing happens.
+            @$('.profiler_enabled').slideUp 'fast'
+
             # The user just executed a query, so we reset cursor_timed_out to false
             @state.cursor_timed_out = false
             @state.show_query_warning = false
@@ -3420,16 +3423,11 @@ module 'DataExplorerView', ->
 
         events:
             'click li': 'toggle_option'
-            'click .close': 'close'
 
         initialize: (args) =>
             @container = args.container
             @options = args.options
             @state = 'hidden'
-
-        close: =>
-            @container.options_view.$('.profiler_enabled').slideUp 'fast'
-            @container.toggle_options()
 
         toggle_option: (event) =>
             event.preventDefault()
@@ -3440,6 +3438,8 @@ module 'DataExplorerView', ->
                 @options[new_target] = new_value
                 if window.localStorage?
                     window.localStorage.options = JSON.stringify @options
+                if new_target is 'profiler' and new_value is false
+                    @$('.profiler_enabled').slideUp 'fast'
 
         render: (displayed) =>
             @$el.html @dataexplorer_options_template @options
