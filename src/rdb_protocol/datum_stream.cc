@@ -10,9 +10,6 @@
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 
-// Avoid a spurious warning when building on Saucy. See issue #1674
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-
 namespace ql {
 
 
