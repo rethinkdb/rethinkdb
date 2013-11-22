@@ -18,8 +18,10 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "containers/map_sentries.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
+#include "btree/parallel_traversal.hpp"
 
 struct rdb_protocol_t;
 template <class T> class btree_store_t;
@@ -137,6 +139,12 @@ public:
     void sindex_queue_push(
             const write_message_t& value,
             const mutex_t::acq_t *acq);
+
+    void add_progress_tracker(
+        map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
+        uuid_u id, const parallel_traversal_progress_t *p);
+
+    progress_completion_fraction_t get_progress(uuid_u id);
 
     void acquire_sindex_block_for_read(
             read_token_pair_t *token_pair,
@@ -437,6 +445,7 @@ public:
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
     mutex_t sindex_queue_mutex;
+    std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
     // Mind the constructor ordering. We must destruct drainer before destructing
     // many of the other structures.

@@ -432,7 +432,7 @@ message Term {
         // omit the first argument to use the default database.)
         TABLE_LIST   = 62; // Database -> ARRAY
                            //  -> ARRAY
-        // Ensures that previously issued soft-durability writes are complete and 
+        // Ensures that previously issued soft-durability writes are complete and
         // written to disk.
         SYNC     = 138; // Table -> OBJECT
 
@@ -443,6 +443,13 @@ message Term {
         INDEX_DROP   = 76; // Table, STRING -> OBJECT
         // Lists all secondary indexes on a particular table.
         INDEX_LIST   = 77; // Table -> ARRAY
+        // Gets information about whether or not a set of indexes are ready to
+        // be accessed. Returns a list of objects that look like this:
+        // {index:STRING, ready:BOOL[, blocks_remaining:NUMBER, blocks_total:NUMBER]}
+        INDEX_STATUS = 139; // Table, STRING... -> ARRAY
+        // Blocks until a set of indexes are ready to be accessed. Returns the
+        // same values INDEX_STATUS.
+        INDEX_WAIT = 140; // Table, STRING... -> ARRAY
 
         // * Control Operators
         // Calls a function on data

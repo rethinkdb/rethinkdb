@@ -39,14 +39,14 @@ progress_completion_fraction_t traversal_progress_combiner_t::guess_completion()
 
     int released = 0, total = 0;
 
-    std::vector<progress_completion_fraction_t> fractions(constituents.size(), progress_completion_fraction_t::make_invalid());
+    std::vector<progress_completion_fraction_t> fractions(constituents.size(), progress_completion_fraction_t());
     pmap(fractions.size(), boost::bind(&traversal_progress_combiner_t::get_constituent_fraction, this, _1, &fractions));
 
     for (std::vector<progress_completion_fraction_t>::const_iterator it = fractions.begin();
          it != fractions.end();
          ++it) {
         if (it->invalid()) {
-            return progress_completion_fraction_t::make_invalid();
+            return progress_completion_fraction_t();
         }
 
         released += it->estimate_of_released_nodes;
