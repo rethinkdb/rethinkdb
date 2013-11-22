@@ -55,7 +55,8 @@ highlight number three.
   * Now print an error message when `rethinkdb export` fails (#1546)
   * Fixed a race condition in `rethinkdb import` (#1597)
 * ReQL
-  * TODO (#1566)
+  * Non-indexed `order_by` queries now return arrays (#1566)
+  * Type system now includes selections on both arrays and streams (#1566)
   * Fixed wrong `inserted` result (#1547)
   * Fixed crash caused by using unusual strings in `r.js` (#1638)
   * Redefined batched stream semantics (includes a specific fix for the JavaScipt driver as well) (#1544)
