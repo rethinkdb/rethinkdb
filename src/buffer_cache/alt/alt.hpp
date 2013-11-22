@@ -104,8 +104,6 @@ public:
     alt_buf_lock_t(alt_buf_lock_t *parent,
                    alt_create_t access);
 
-
-
     ~alt_buf_lock_t();
 
     alt_buf_lock_t(alt_buf_lock_t &&movee);
@@ -113,9 +111,20 @@ public:
 
     void swap(alt_buf_lock_t &other);
     void reset_buf_lock();
-    bool empty() const;
+    bool empty() const {
+        return txn_ == NULL;
+    }
 
     void snapshot_subtree();
+
+    // Reduces access to readonly.
+    void reduce_to_readonly();
+
+    // Reduces access to nothing, but we still hold the block for snapshotting
+    // purposes.
+    void reduce_to_nothing();
+
+
 
     block_id_t block_id() const {
         guarantee(txn_ != NULL);
@@ -128,26 +137,26 @@ public:
     repli_timestamp_t get_recency() const;
 
     alt_access_t access() const {
-        guarantee(txn_ != NULL);
+        guarantee(!empty());
         return current_page_acq_->access();
     }
 
     signal_t *read_acq_signal() {
-        guarantee(txn_ != NULL);
+        guarantee(!empty());
         return current_page_acq_->read_acq_signal();
     }
     signal_t *write_acq_signal() {
-        guarantee(txn_ != NULL);
+        guarantee(!empty());
         return current_page_acq_->write_acq_signal();
     }
 
     void mark_deleted() {
-        guarantee(txn_ != NULL);
+        guarantee(!empty());
         current_page_acq_->mark_deleted();
     }
 
     alt_txn_t *txn() const { return txn_; }
-    alt_cache_t *cache() const { return cache_; }
+    alt_cache_t *cache() const { return txn_->cache(); }
 
 private:
     static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
@@ -156,7 +165,6 @@ private:
     friend class alt_buf_write_t;
 
     alt_txn_t *txn_;
-    alt_cache_t *cache_;
 
     scoped_ptr_t<current_page_acq_t> current_page_acq_;
 

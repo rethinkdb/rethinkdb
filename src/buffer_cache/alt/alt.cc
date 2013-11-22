@@ -30,7 +30,6 @@ alt_txn_t::~alt_txn_t() {
 
 alt_buf_lock_t::alt_buf_lock_t()
     : txn_(NULL),
-      cache_(NULL),
       current_page_acq_(),
       snapshot_node_(NULL) {
 }
@@ -39,7 +38,6 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                block_id_t block_id,
                                alt_access_t access)
     : txn_(parent.txn()),
-      cache_(txn_->cache()),
       current_page_acq_(),
       snapshot_node_(NULL) {
     alt_buf_lock_t::wait_for_parent(parent, access);
@@ -50,7 +48,6 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
                                block_id_t block_id,
                                alt_create_t create)
     : txn_(txn),
-      cache_(txn_->cache()),
       current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
                                                alt_access_t::write, true)),
       snapshot_node_(NULL) {
@@ -78,7 +75,6 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
                                block_id_t block_id,
                                alt_access_t access)
     : txn_(parent->txn_),
-      cache_(txn_->cache()),
       current_page_acq_(),
       snapshot_node_(NULL) {
 
@@ -90,7 +86,6 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                alt_create_t create)
     : txn_(parent.txn()),
-      cache_(txn_->cache()),
       current_page_acq_(),
       snapshot_node_(NULL) {
     guarantee(create == alt_create_t::create);
@@ -102,7 +97,6 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
                                alt_create_t create)
     : txn_(parent->txn_),
-      cache_(txn_->cache()),
       current_page_acq_(),
       snapshot_node_(NULL) {
     guarantee(create == alt_create_t::create);
@@ -118,11 +112,10 @@ alt_buf_lock_t::~alt_buf_lock_t() {
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t &&movee)
-    : txn_(movee.txn_), cache_(movee.cache_),
+    : txn_(movee.txn_),
       current_page_acq_(std::move(movee.current_page_acq_)),
       snapshot_node_(movee.snapshot_node_) {
     movee.txn_ = NULL;
-    movee.cache_ = NULL;
     movee.current_page_acq_.reset();
     movee.snapshot_node_ = NULL;
 }
@@ -135,7 +128,6 @@ alt_buf_lock_t &alt_buf_lock_t::operator=(alt_buf_lock_t &&movee) {
 
 void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
     std::swap(txn_, other.txn_);
-    std::swap(cache_, other.cache_);
     current_page_acq_.swap(other.current_page_acq_);
     std::swap(snapshot_node_, other.snapshot_node_);
 }
@@ -145,11 +137,17 @@ void alt_buf_lock_t::reset_buf_lock() {
     swap(tmp);
 }
 
-bool alt_buf_lock_t::empty() const {
-    return txn_ == NULL;
+void alt_buf_lock_t::snapshot_subtree() {
+    guarantee(!empty());
+    // RSI: Actually implement this.
 }
 
-void alt_buf_lock_t::snapshot_subtree() {
+void alt_buf_lock_t::reduce_to_readonly() {
+    guarantee(!empty());
+    // RSI: Actually implement this.
+}
+
+void alt_buf_lock_t::reduce_to_nothing() {
     guarantee(!empty());
     // RSI: Actually implement this.
 }
@@ -174,7 +172,7 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
     page_t *page = lock_->current_page_acq_->current_page_for_read();
     guarantee(!lock_->empty());
     if (!page_acq_.has()) {
-        page_acq_.init(page, &lock_->cache_->page_cache_);
+        page_acq_.init(page, &lock_->cache()->page_cache_);
     }
     page_acq_.buf_ready_signal()->wait();
     *block_size_out = page_acq_.get_buf_size();
@@ -198,14 +196,14 @@ void *alt_buf_write_t::get_data_write(uint32_t block_size) {
     guarantee(!lock_->empty());
     page_t *page = lock_->current_page_acq_->current_page_for_write();
     if (!page_acq_.has()) {
-        page_acq_.init(page, &lock_->cache_->page_cache_);
+        page_acq_.init(page, &lock_->cache()->page_cache_);
     }
     page_acq_.buf_ready_signal()->wait();
     return page_acq_.get_buf_write();
 }
 
 void *alt_buf_write_t::get_data_write() {
-    return get_data_write(lock_->cache_->max_block_size().value());
+    return get_data_write(lock_->cache()->max_block_size().value());
 }
 
 
