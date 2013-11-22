@@ -9,22 +9,16 @@
 template <class> class scoped_ptr_t;
 
 struct progress_completion_fraction_t {
+    progress_completion_fraction_t() : estimate_of_released_nodes(-1), estimate_of_total_nodes(-1) { }
+
     progress_completion_fraction_t(int _released, int _total) : estimate_of_released_nodes(_released), estimate_of_total_nodes(_total) {
         rassert(0 <= estimate_of_released_nodes && estimate_of_released_nodes <= estimate_of_total_nodes);
-    }
-
-    static progress_completion_fraction_t make_invalid() {
-        return progress_completion_fraction_t();
     }
 
     int estimate_of_released_nodes;
     int estimate_of_total_nodes;
 
     bool invalid() const { return estimate_of_total_nodes == -1; }
-
-private:
-    // Used only by the static make_invalid() function.
-    progress_completion_fraction_t() : estimate_of_released_nodes(-1), estimate_of_total_nodes(-1) { }
 };
 
 // TODO: Rename this to traversal_progress_t after it has been pushed
@@ -69,7 +63,4 @@ private:
 
     DISABLE_COPYING(traversal_progress_combiner_t);
 };
-
-
-
 #endif  // BACKFILL_PROGRESS_HPP_

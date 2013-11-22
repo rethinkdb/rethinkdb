@@ -1301,7 +1301,7 @@ progress_completion_fraction_t parallel_traversal_progress_t::guess_completion()
     rassert(learned.size() == acquired.size() && acquired.size() == released.size());
 
     if (height == -1) {
-        return progress_completion_fraction_t::make_invalid();
+        return progress_completion_fraction_t();
     }
 
     /* First we compute the ratio at each stage of the acquired nodes to the

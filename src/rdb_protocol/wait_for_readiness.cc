@@ -37,9 +37,7 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
         sorting_t::UNORDERED);
     rdb_protocol_t::read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);
     for (;;) {
-        signal_timer_t start_poll;
-        start_poll.start(poll_ms);
-        wait_interruptible(&start_poll, interruptor);
+        nap(poll_ms, interruptor);
         try {
             // Make sure the namespace still exists in the metadata, if not, abort
             {

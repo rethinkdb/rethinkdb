@@ -74,7 +74,7 @@ module.exports.ResponseTypeSwitch = (response, map, dflt) ->
     # This case not covered in map, execute default case
     return dflt()
 
-# Swith on the datum type field of datum
+# Switch on the datum type field of datum
 module.exports.DatumTypeSwitch = (datum, map, dflt) ->
     type = datum.type
     if typeof type is 'string'
