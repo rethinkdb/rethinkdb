@@ -1,3 +1,85 @@
+# Release 1.11.0 (Gung Ho)
+
+Released on 2013-11-25
+
+This release introduces highlight number one, highlight number two and
+highlight number three.
+
+## New Features ##
+
+* Server
+  * Removed anaphoric macros (#806)
+  * Changed the array size limit to 100,000 (#971)
+  * The server now reads blobs off of disk simultaneously (#1296)
+  * Improved the batch replace logic (#1468)
+  * Added IPv6 support (#1469)
+  * Reduced random disk seeks during write transactions (#1470)
+  * Merged writebacks on the serializer level (#1471)
+  * Improved streaming and send smarter batch sizes to clients (#1543)
+  * Reduced the impact of index creation on realtime performance (#1556)
+  * Optimized insert performance (#1559)
+  * Added support for sending rows back as JSON (#1571)
+  * Backtraces now span coroutine boundaries (#1602)
+* Command Line
+  * Added a progress bar to `rethinkdb dump` and `rethinkdb restore` (#1415)
+* ReQL
+  * Added query profiling, enabled by passing `profile=True` to `run` (#175)
+  * Added a sync command that flushes soft writes made on a table (#1046)
+  * Improved the streaming logic (#1364)
+  * Made it possible to wait for no-reply writes to complete (#1388)
+    * Added a `wait` command
+    * Added an optional argument to `close` and `reconnect`
+  * `r.js` now works with time values (#1513)
+  * Added `index_status` and `index_wait` commands (#1562)
+* Python Driver
+  * Added documentation strings (#808)
+  * Added streaming and performance improvements (#1371)
+  * Changed the installation procedure for using the C++ protobuf implementation (#1394)
+* JavaScript Driver
+  * Changed the installation procedure for using the C++ protobuf implementation (#1172)
+* Packaging
+  * Made the version more explicit in the OS X package (#1413)
+
+## Fixed Bugs ##
+
+* Server
+  * No longer access `perfmon_collection_t` after destruction (#1497)
+  * Fixed a bug that caused nodes to become unresponsize and added a coroutine profiler (#1516)
+  * Made database files compatible between 32-bit and 64-bit versions (#1535)
+  * No longer use four times more cache space (#1538)
+  * Fix handling of errors in continue queries (#1619)
+  * Fixed heartbeat timeout when deleting many tables at once (#1624)
+  * Improved signal handling (#1630)
+  * Reduced the load caused by using the Web UI on a large cluster (#1660)
+* Command line
+  * Now print an error message when `rethinkdb export` fails (#1546)
+  * Fixed a race condition in `rethinkdb import` (#1597)
+* ReQL
+  * TODO (#1566)
+  * Fixed wrong `inserted` result (#1547)
+  * Fixed crash caused by using unusual strings in `r.js` (#1638)
+* Python Driver
+  * Handle interrupted system calls (#1362)
+  * Improved the error message when inserting dates with no timezone (#1509)
+  * Made `RqlTzInfo` copyable (#1588)
+* JavaScript driver
+  * Removed an irratating assumption about batched streams (#1544)
+  * Fixed argument handling (#1555, #1577)
+  * Fixed `ArrayResult` (#1578, #1584)
+  * Fixed pretty-printing of `limit` (#1617)
+* Web UI
+  * Made it obvious when errors are Javascript errors or database errors (#1293)
+  * Improved the message displayed when there are more than 40 documents (#1307)
+  * Fixed date formatting (#1596)
+  * Fixed typo (#1668)
+* Build
+  * Fixed item counts in make (#1443)
+  * Bump the fetched version of `gperftools` (#1594)
+  * Fixed how `termcap` is handled by `./configure` (#1622)
+  * Generate a better version number when compiling from a shallow clone (#1636)
+
+--
+
 # Release 1.10.1 (Von Ryan's Express)
 
 Released on 2013-10-23
