@@ -14,7 +14,7 @@ module 'DataExplorerView', ->
         options:
             suggestions: true
             electric_punctuation: false # False by default
-            profiler: true
+            profiler: false
         history: []
         focus_on_codemirror: true
         last_query_has_profile: true
@@ -146,6 +146,8 @@ module 'DataExplorerView', ->
                     that.options_view.$el.fadeIn 'fast'
                     that.adjust_collapsible_panel_height()
                     that.toggle_pressed_buttons()
+                    that.$('.profiler_enabled').css 'visibility', 'hidden'
+                    that.$('.profiler_enabled').hide()
             else if @options_view.state is 'hidden'
                 @options_view.state = 'visible'
                 @$('.content').html @options_view.render(true).$el
@@ -3192,7 +3194,7 @@ module 'DataExplorerView', ->
 
         events: ->
             _.extend super,
-                'click .open_options': 'open_options'
+                'click .activate_profiler': 'activate_profiler'
 
         current_result: []
 
@@ -3208,14 +3210,19 @@ module 'DataExplorerView', ->
             @last_keys = @container.state.last_keys # Arrays of the last keys displayed
             @last_columns_size = @container.state.last_columns_size # Size of the columns displayed. Undefined if a column has the default size
 
-        open_options: (event) =>
+        activate_profiler: (event) =>
             event.preventDefault()
             if @container.options_view.state is 'hidden'
                 @container.toggle_options()
-            else
                 @container.options_view.$('.option_description[data-option="profiler"]').click()
-
-            #TODO Scroll to
+                @container.options_view.$('.profiler_enabled').show()
+                @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
+            else
+                if @container.state.options.profiler is false
+                    @container.options_view.$('.profiler_enabled').hide()
+                    @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
+                    @container.options_view.$('.profiler_enabled').slideDown 'fast'
+                    @container.options_view.$('.option_description[data-option="profiler"]').click()
 
 
         render_error: (query, err, js_error) =>
@@ -3402,11 +3409,16 @@ module 'DataExplorerView', ->
 
         events:
             'click li': 'toggle_option'
+            'click .close': 'close'
 
         initialize: (args) =>
             @container = args.container
             @options = args.options
             @state = 'hidden'
+
+        close: =>
+            @container.options_view.$('.profiler_enabled').slideUp 'fast'
+            @container.toggle_options()
 
         toggle_option: (event) =>
             event.preventDefault()

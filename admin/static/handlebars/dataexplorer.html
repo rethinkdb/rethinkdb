@@ -32,6 +32,7 @@
             <div class="checkbox-container"><input type="checkbox" data-option="electric_punctuation" id="electric_punctuation"{{#if electric_punctuation}} checked=true{{/if}}><label for="electric_punctuation" data-option="electric_punctuation"></label></div> 
             <div class="option_description" data-option="electric_punctuation">Auto-insert pair brackets, parentheses, and quotes</div></li>
         <li data-option="profiler">
+            <div class="alert profiler_enabled">Profiler was enable<a class="close" href="#">&times;</a></div>
             <div class="checkbox-container"><input type="checkbox" data-option="profiler" id="profiler" {{#if profiler}} checked=true{{/if}}><label for="profiler" data-option="profiler"></label></div> 
             <div class="option_description" data-option="profiler">Enable query profiler</div></li>
     </ul>
@@ -195,7 +196,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
         <ul class="nav nav-tabs change_view_container"">
-            <li><a href="#profile_view" class="link_to_profile_view">Profile view</a></li>
+            <li><a href="#profile_view" class="link_to_profile_view">Query profile</a></li>
             <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
             <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
             <li><a href="#tree_view" class="link_to_tree_view active">Tree view</a></li>
@@ -252,7 +253,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 <script id="dataexplorer-no_profile-template" type="text/x-handlebars-template">
     <div class="info activate_profiler">
-        <a href="#" class="open_options">Activate</a> the query profiler option and re-run the query to see its profile.
+        <a href="#" class="activate_profiler">Activate</a> the query profiler option and re-run the query to see its profile.
     </div>
 </script>
 
