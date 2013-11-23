@@ -15,8 +15,8 @@ struct progress_completion_fraction_t {
         rassert(0 <= estimate_of_released_nodes && estimate_of_released_nodes <= estimate_of_total_nodes);
     }
 
-    int estimate_of_released_nodes;
-    int estimate_of_total_nodes;
+    int64_t estimate_of_released_nodes;
+    int64_t estimate_of_total_nodes;
 
     bool invalid() const { return estimate_of_total_nodes == -1; }
 };

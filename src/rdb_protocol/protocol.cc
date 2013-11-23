@@ -1397,8 +1397,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     &res->statuses[it->first];
                 s->ready = it->second.post_construction_complete;
                 if (!s->ready) {
-                    s->blocks_remaining = frac.estimate_of_released_nodes;
-                    s->blocks_total = frac.estimate_of_total_nodes;
+                    if (frac.estimate_of_total_nodes == -1) {
+                        s->blocks_remaining = 0;
+                        s->blocks_total = 0;
+                    } else {
+                        s->blocks_remaining = frac.estimate_of_released_nodes;
+                        s->blocks_total = frac.estimate_of_total_nodes;
+                    }
                 }
             }
         }
