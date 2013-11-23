@@ -2,8 +2,8 @@
 
 Released on 2013-11-25
 
-This release introduces highlight number one, highlight number two and
-highlight number three.
+This release introduces a new query profiler, an overhauled streaming infrastructure,
+and many enhancements that improve ease and robustness of operation.
 
 ## New Features ##
 
