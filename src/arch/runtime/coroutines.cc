@@ -19,7 +19,7 @@
 
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
-#include "thread_stack_pcs.hpp"
+#include "rethinkdb_backtrace.hpp"
 #include "arch/runtime/coro_profiler.hpp"
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;

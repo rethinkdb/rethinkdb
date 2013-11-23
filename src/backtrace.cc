@@ -17,7 +17,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
-#include "thread_stack_pcs.hpp"
+#include "rethinkdb_backtrace.hpp"
 #include "utils.hpp"
 
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
