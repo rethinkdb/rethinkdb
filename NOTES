@@ -18,25 +18,25 @@ highlight number three.
   * Streaming improvements: smarter batch sizes are sent to clients (#1543)
   * Reduced the impact of index creation on realtime performance (#1556)
   * Optimized insert performance (#1559)
-  * Added support for sending rows back as JSON (#1571)
+  * Added support for sending data back as JSON, improving driver performance (#1571)
   * Backtraces now span coroutine boundaries (#1602)
 * Command-line
-  * Added a progress bar to `rethinkdb dump` and `rethinkdb restore` (#1415)
+  * Added a progress bar to `rethinkdb import` and `rethinkdb export` (#1415)
 * ReQL
   * Added query profiling, enabled by passing `profile=True` to `run` (#175)
   * Added a sync command that flushes soft writes made on a table (#1046)
-  * Improved the streaming logic (#1364)
   * Made it possible to wait for no-reply writes to complete (#1388)
     * Added a `wait` command
     * Added an optional argument to `close` and `reconnect`
-  * `r.js` now works with time values (#1513)
   * Added `index_status` and `index_wait` commands (#1562)
 * Python driver
   * Added documentation strings (#808)
   * Added streaming and performance improvements (#1371)
   * Changed the installation procedure for using the C++ protobuf implementation (#1394)
+  * Improved the streaming logic (#1364)
 * JavaScript driver
   * Changed the installation procedure for using the C++ protobuf implementation (#1172)
+  * Improved the streaming logic (#1364)
 * Packaging
   * Made the version more explicit in the OS X package (#1413)
 
@@ -52,7 +52,7 @@ highlight number three.
   * Improved signal handling (#1630)
   * Reduced the load caused by using the Web UI on a large cluster (#1660)
 * Command line
-  * Now print an error message when `rethinkdb export` fails (#1546)
+  * Made `rethinkdb export` more resilient to low-memory conditions (#1546)
   * Fixed a race condition in `rethinkdb import` (#1597)
 * ReQL
   * Non-indexed `order_by` queries now return arrays (#1566)
@@ -60,6 +60,7 @@ highlight number three.
   * Fixed wrong `inserted` result (#1547)
   * Fixed crash caused by using unusual strings in `r.js` (#1638)
   * Redefined batched stream semantics (includes a specific fix for the JavaScipt driver as well) (#1544)
+  * `r.js` now works with time values (#1513)
 * Python driver
   * Handle interrupted system calls (#1362)
   * Improved the error message when inserting dates with no timezone (#1509)
