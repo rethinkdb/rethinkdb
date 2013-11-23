@@ -14,7 +14,11 @@
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
+#if SLICE_ALT
+#include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
+#else
 #include "buffer_cache/serialize_onto_blob.hpp"
+#endif
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
