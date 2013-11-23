@@ -303,15 +303,12 @@ void post_construct_and_drain_queue(
 
             while (mod_queue->size() >= previous_size &&
                    mod_queue->size() > 0) {
-                std::vector<char> data_vec;
-                mod_queue->pop(&data_vec);
-                vector_read_stream_t read_stream(&data_vec);
-
                 rdb_sindex_change_t sindex_change;
-                archive_result_t ser_res = deserialize(&read_stream, &sindex_change);
-                guarantee_deserialization(ser_res, "disk-backed queue");
-
-                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
+                deserializing_viewer_t<rdb_sindex_change_t> viewer(&sindex_change);
+                mod_queue->pop(&viewer);
+                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes,
+                                                                   queue_txn.get(),
+                                                                   lock.get_drain_signal()),
                                      sindex_change);
             }
 
@@ -392,7 +389,7 @@ typedef boost::variant<rdb_modification_report_t,
 
 void add_status(const single_sindex_status_t &new_status,
     single_sindex_status_t *status_out) {
-    status_out->blocks_remaining += new_status.blocks_remaining;
+    status_out->blocks_processed += new_status.blocks_processed;
     status_out->blocks_total += new_status.blocks_total;
     status_out->ready &= new_status.ready;
 }
@@ -1397,8 +1394,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                     &res->statuses[it->first];
                 s->ready = it->second.post_construction_complete;
                 if (!s->ready) {
-                    s->blocks_remaining = frac.estimate_of_released_nodes;
-                    s->blocks_total = frac.estimate_of_total_nodes;
+                    if (frac.estimate_of_total_nodes == -1) {
+                        s->blocks_processed = 0;
+                        s->blocks_total = 0;
+                    } else {
+                        s->blocks_processed = frac.estimate_of_released_nodes;
+                        s->blocks_total = frac.estimate_of_total_nodes;
+                    }
                 }
             }
         }
@@ -1963,7 +1965,7 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
-                           blocks_total, blocks_remaining, ready);
+                           blocks_total, blocks_processed, ready);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,

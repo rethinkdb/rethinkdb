@@ -187,13 +187,13 @@ struct rget_item_t {
 
 struct single_sindex_status_t {
     single_sindex_status_t()
-        : blocks_remaining(0),
+        : blocks_processed(0),
           blocks_total(0), ready(true)
     { }
-    single_sindex_status_t(size_t _blocks_remaining, size_t _blocks_total, bool _ready)
-        : blocks_remaining(_blocks_remaining),
+    single_sindex_status_t(size_t _blocks_processed, size_t _blocks_total, bool _ready)
+        : blocks_processed(_blocks_processed),
           blocks_total(_blocks_total), ready(_ready) { }
-    size_t blocks_remaining, blocks_total;
+    size_t blocks_processed, blocks_total;
     bool ready;
 
     RDB_DECLARE_ME_SERIALIZABLE;

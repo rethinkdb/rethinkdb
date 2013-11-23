@@ -226,6 +226,7 @@ void backtrace_frame_t::initialize_symbols() {
     void *addr_array[1] = {const_cast<void *>(addr)};
     char **symbols = backtrace_symbols(addr_array, 1);
     if (symbols != NULL) {
+        symbols_line = std::string(symbols[0]);
         char *c_filename;
         char *c_function;
         char *c_offset;
@@ -249,6 +250,11 @@ void backtrace_frame_t::initialize_symbols() {
 std::string backtrace_frame_t::get_name() const {
     rassert(symbols_initialized);
     return function;
+}
+
+std::string backtrace_frame_t::get_symbols_line() const {
+    rassert(symbols_initialized);
+    return symbols_line;
 }
 
 std::string backtrace_frame_t::get_demangled_name() const {
@@ -304,6 +310,8 @@ std::string lazy_backtrace_formatter_t::print_frames(bool use_addr2line) {
         } catch (const demangle_failed_exc_t &) {
             if (!current_frame.get_name().empty()) {
                 output.append(current_frame.get_name() + "+" + current_frame.get_offset());
+            } else if (!current_frame.get_symbols_line().empty()) {
+                output.append(current_frame.get_symbols_line());
             } else {
                 output.append("<unknown function>");
             }

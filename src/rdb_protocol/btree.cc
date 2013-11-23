@@ -14,12 +14,12 @@
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
 #include "btree/parallel_traversal.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
-
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
@@ -114,22 +114,12 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      transaction_t *txn,
                      rdb_modification_info_t *mod_info_out) {
     scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
-    bzero(new_value.get(), blob::btree_maxreflen);
+    memset(new_value.get(), 0, blob::btree_maxreflen);
 
-    // TODO unnecessary copies they must go away.
-    write_message_t wm;
-    wm << data;
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0,
-                  "Serialization for json data failed... this shouldn't happen.\n");
+    blob_t blob(txn->get_cache()->get_block_size(),
+                new_value->value_ref(), blob::btree_maxreflen);
 
-    // TODO more copies, good lord
-    std::string sered_data(stream.vector().begin(), stream.vector().end());
-
-    rdb_blob_wrapper_t blob(txn->get_cache()->get_block_size(),
-                new_value->value_ref(), blob::btree_maxreflen,
-                txn, sered_data);
+    serialize_onto_blob(txn, &blob, data);
 
     block_size_t block_size = txn->get_cache()->get_block_size();
     if (mod_info_out) {

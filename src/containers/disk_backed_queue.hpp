@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONTAINERS_DISK_BACKED_QUEUE_HPP_
 #define CONTAINERS_DISK_BACKED_QUEUE_HPP_
 
@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "buffer_cache/serialize_onto_blob.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/mutex.hpp"
@@ -15,6 +16,7 @@
 #include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
+class const_buffer_group_t;
 class io_backender_t;
 class perfmon_collection_t;
 
@@ -27,6 +29,19 @@ struct queue_block_t {
     char data[0];
 };
 
+class value_acquisition_object_t;
+
+class buffer_group_viewer_t {
+public:
+    virtual void view_buffer_group(const const_buffer_group_t *group) = 0;
+
+protected:
+    buffer_group_viewer_t() { }
+    ~buffer_group_viewer_t() { }
+
+    DISABLE_COPYING(buffer_group_viewer_t);
+};
+
 class internal_disk_backed_queue_t {
 public:
     internal_disk_backed_queue_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *stats_parent);
@@ -36,7 +51,7 @@ public:
     void push(const write_message_t &value);
 
     // TODO: order_token_t::ignore.  This should output an order token (that was passed in to push).
-    void pop(std::vector<char> *buf_out);
+    void pop(buffer_group_viewer_t *viewer);
 
     bool empty();
 
@@ -63,6 +78,22 @@ private:
 };
 
 template <class T>
+class deserializing_viewer_t : public buffer_group_viewer_t {
+public:
+    deserializing_viewer_t(T *value_out) : value_out_(value_out) { }
+    virtual ~deserializing_viewer_t() { }
+
+    virtual void view_buffer_group(const const_buffer_group_t *group) {
+        deserialize_from_group(group, value_out_);
+    }
+
+private:
+    T *value_out_;
+
+    DISABLE_COPYING(deserializing_viewer_t);
+};
+
+template <class T>
 class disk_backed_queue_t {
 public:
     disk_backed_queue_t(io_backender_t *io_backender, const serializer_filepath_t& filename, perfmon_collection_t *stats_parent)
@@ -77,14 +108,8 @@ public:
     }
 
     void pop(T *out) {
-        // TODO: There's an unnecessary copying of data here.
-        std::vector<char> data_vec;
-
-        internal_.pop(&data_vec);
-
-        vector_read_stream_t read_stream(&data_vec);
-        archive_result_t res = deserialize(&read_stream, out);
-        guarantee_deserialization(res, "disk backed queue");
+        deserializing_viewer_t<T> viewer(out);
+        internal_.pop(&viewer);
     }
 
     bool empty() {
