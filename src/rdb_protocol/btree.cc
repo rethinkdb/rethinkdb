@@ -134,7 +134,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
     guarantee(kv_location->value.has());
 
 
-    if (mod_info_out) {
+    if (mod_info_out != NULL) {
         guarantee(mod_info_out->deleted.second.empty());
 
 #if SLICE_ALT
@@ -142,6 +142,13 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
         block_size_t block_size = kv_location->buf.cache()->get_block_size();
 #else
         block_size_t block_size = txn->get_cache()->get_block_size();
+#endif
+#if SLICE_ALT
+        {
+            alt::blob_t blob(block_size, kv_location->value->value_ref(),
+                             alt::blob::btree_maxreflen);
+            blob.detach_subtree(&kv_location->buf);
+        }
 #endif
         mod_info_out->deleted.second.assign(kv_location->value->value_ref(),
             kv_location->value->value_ref() +
@@ -180,14 +187,17 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 
 #if SLICE_ALT
     const block_size_t block_size = kv_location->buf.cache()->get_block_size();
-    alt::blob_t blob(block_size, new_value->value_ref(), alt::blob::btree_maxreflen);
-
-    serialize_onto_blob(alt_buf_parent_t(&kv_location->buf), &blob, data);
+    {
+        alt::blob_t blob(block_size, new_value->value_ref(), alt::blob::btree_maxreflen);
+        serialize_onto_blob(alt_buf_parent_t(&kv_location->buf), &blob, data);
+    }
 #else
     const block_size_t block_size = txn->get_cache()->get_block_size();
-    blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
+    {
+        blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
 
-    serialize_onto_blob(txn, &blob, data);
+        serialize_onto_blob(txn, &blob, data);
+    }
 #endif
 
     if (mod_info_out) {
@@ -198,6 +208,13 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
 
     if (kv_location->value.has() && mod_info_out) {
         guarantee(mod_info_out->deleted.second.empty());
+#if SLICE_ALT
+        {
+            alt::blob_t blob(block_size, kv_location->value->value_ref(),
+                             alt::blob::btree_maxreflen);
+            blob.detach_subtree(&kv_location->buf);
+        }
+#endif
         mod_info_out->deleted.second.assign(
             kv_location->value->value_ref(),
             kv_location->value->value_ref()
@@ -638,6 +655,9 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 }
 
 #if SLICE_ALT
+// RSI: Ensure that everything calling this function is using it correctly -- and
+// make this function take a txn, I think, because this should only be used to delete
+// a detached blob.
 void rdb_value_deleter_t::delete_value(alt_buf_parent_t parent, void *value) {
 #else
 void rdb_value_deleter_t::delete_value(transaction_t *_txn, void *value) {
@@ -725,7 +745,7 @@ void spawn_sindex_erase_ranges(
         signal_t *interruptor) {
     for (auto it = sindex_access->begin(); it != sindex_access->end(); ++it) {
 #if SLICE_ALT
-        coro_t::spawn_sometime(boost::bind(
+        coro_t::spawn_sometime(std::bind(
                     &sindex_erase_range, key_range, &*it,
                     auto_drainer_t::lock_t(drainer), interruptor,
                     release_superblock));
@@ -1321,7 +1341,7 @@ void rdb_modification_report_cb_t::on_mod_report(
     store_->sindex_queue_push(wm, &acq);
 
 #if SLICE_ALT
-    rdb_update_sindexes(sindexes_, &mod_report);
+    rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn());
 #else
     rdb_update_sindexes(sindexes_, &mod_report, txn_);
 #endif
@@ -1477,18 +1497,30 @@ void rdb_update_single_sindex(
     }
 }
 
+#if SLICE_ALT
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification,
-        transaction_t *txn) {
+                         const rdb_modification_report_t *modification,
+                         alt_txn_t *txn) {
+#else
+void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
+                         const rdb_modification_report_t *modification,
+                         transaction_t *txn) {
+#endif
     {
         auto_drainer_t drainer;
 
         for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
                                                     it != sindexes.end();
                                                     ++it) {
+#if SLICE_ALT
+            coro_t::spawn_sometime(std::bind(
+                        &rdb_update_single_sindex, &*it,
+                        modification, auto_drainer_t::lock_t(&drainer)));
+#else
             coro_t::spawn_sometime(boost::bind(
                         &rdb_update_single_sindex, &*it,
                         modification, txn, auto_drainer_t::lock_t(&drainer)));
+#endif
         }
     }
 
@@ -1496,16 +1528,34 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
      * deleted blob if it exists. */
     std::vector<char> ref_cpy(modification->info.deleted.second);
     if (modification->info.deleted.first) {
+#if SLICE_ALT
+        ref_cpy.insert(ref_cpy.end(), alt::blob::btree_maxreflen - ref_cpy.size(), 0);
+        guarantee(ref_cpy.size() == static_cast<size_t>(alt::blob::btree_maxreflen));
+#else
         ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
+#endif
 
         rdb_value_deleter_t deleter;
-        // RSI: Is it safe to delete a detached value?  There definitely could be
-        // something snapshotting the blob.
+#if SLICE_ALT
+        deleter.delete_value(alt_buf_parent_t(txn), ref_cpy.data());
+#else
         deleter.delete_value(txn, ref_cpy.data());
+#endif
     }
 }
 
+#if SLICE_ALT
+void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
+                              const rdb_erase_range_report_t *erase_range,
+                              signal_t *interruptor) {
+    auto_drainer_t drainer;
+
+    spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
+                              &drainer, auto_drainer_t::lock_t(&drainer),
+                              false /* don't release the superblock */, interruptor);
+}
+#else
 void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
         const rdb_erase_range_report_t *erase_range,
         transaction_t *txn, signal_t *interruptor) {
@@ -1515,6 +1565,7 @@ void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
             txn, &drainer, auto_drainer_t::lock_t(&drainer),
             false, /* don't release the superblock */ interruptor);
 }
+#endif
 
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
@@ -1529,23 +1580,48 @@ public:
           interrupt_myself_(interrupt_myself), interruptor_(interruptor)
     { }
 
+#if SLICE_ALT
+    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+                        const btree_key_t *, const btree_key_t *,
+                        signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
+#else
     void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
+#endif
         write_token_pair_t token_pair;
         store_->new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+        // RSI: FML
+        scoped_ptr_t<alt_txn_t> wtxn;
+#else
         scoped_ptr_t<transaction_t> wtxn;
+#endif
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
 
+#if !SLICE_ALT
         // If we get interrupted, post-construction will happen later, no need to
         //  guarantee that we touch the sindex tree now
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
             destroyer(&token_pair.sindex_write_token);
+#endif
 
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
+#if SLICE_ALT
+            // RSI: Duplicate the non-alt comment.
+            store_->acquire_superblock_for_write(
+                    alt_access_t::write,
+                    repli_timestamp_t::distant_past,
+                    2,
+                    WRITE_DURABILITY_SOFT,
+                    &token_pair,
+                    &wtxn,
+                    &superblock,
+                    interruptor_);
+#else
             // We want soft durability because having a partially constructed secondary index is
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
@@ -1568,25 +1644,42 @@ public:
                 &wtxn,
                 &superblock,
                 interruptor_);
+#endif
 
             // Synchronization is guaranteed through the token_pair.
             // Let's get the information we need from the superblock and then
             // release it immediately.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
+#if !SLICE_ALT
             superblock->release();
+#endif
 
+#if SLICE_ALT
+            scoped_ptr_t<alt_buf_lock_t> sindex_block;
+#else
             scoped_ptr_t<buf_lock_t> sindex_block;
+#endif
             store_->acquire_sindex_block_for_write(
+#if SLICE_ALT
+                superblock->expose_buf(),
+#else
                 &token_pair,
                 wtxn.get(),
+#endif
                 &sindex_block,
                 sindex_block_id,
                 interruptor_);
+#if SLICE_ALT
+            // RSI: just do superblock.reset(), nay?
+            superblock->release();
+#endif
 
             store_->acquire_sindex_superblocks_for_write(
                     sindexes_to_post_construct_,
                     sindex_block.get(),
+#if !SLICE_ALT
                     wtxn.get(),
+#endif
                     &sindexes);
 
             if (sindexes.empty()) {
@@ -1597,7 +1690,13 @@ public:
             return;
         }
 
+#if SLICE_ALT
+        alt_buf_read_t leaf_read(leaf_node_buf);
+        const leaf_node_t *leaf_node
+            = static_cast<const leaf_node_t *>(leaf_read.get_data_read());
+#else
         const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
+#endif
 
         for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
             /* Grab relevant values from the leaf node. */
@@ -1608,17 +1707,31 @@ public:
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
-            block_size_t block_size = txn->get_cache()->get_block_size();
+#if SLICE_ALT
+            const block_size_t block_size = leaf_node_buf->cache()->get_block_size();
+#else
+            const block_size_t block_size = txn->get_cache()->get_block_size();
+#endif
+#if SLICE_ALT
+            mod_report.info.added = std::make_pair(get_data(rdb_value, alt_buf_parent_t(leaf_node_buf)),
+                    std::vector<char>(rdb_value->value_ref(),
+                        rdb_value->value_ref() + rdb_value->inline_size(block_size)));
+#else
             mod_report.info.added = std::make_pair(get_data(rdb_value, txn),
                     std::vector<char>(rdb_value->value_ref(),
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
+#endif
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
             coro_t::yield();
         }
     }
 
+#if SLICE_ALT
+    void postprocess_internal_node(alt_buf_lock_t *) { }
+#else
     void postprocess_internal_node(buf_lock_t *) { }
+#endif
 
 #if SLICE_ALT
     void filter_interesting_children(alt_buf_parent_t,
@@ -1633,8 +1746,13 @@ public:
         cb->no_more_interesting_children();
     }
 
+#if SLICE_ALT
+    alt_access_t btree_superblock_mode() { return alt_access_t::read; }
+    alt_access_t btree_node_mode() { return alt_access_t::read; }
+#else
     access_t btree_superblock_mode() { return rwi_read; }
     access_t btree_node_mode() { return rwi_read; }
+#endif
 
     btree_store_t<rdb_protocol_t> *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;
@@ -1676,20 +1794,34 @@ void post_construct_secondary_indexes(
     // usually already takes care of that).
     // The txn must be destructed before the cache_account.
     scoped_ptr_t<cache_account_t> cache_account;
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> superblock;
 
     store->acquire_superblock_for_read(
+#if !SLICE_ALT
         rwi_read,
+#endif
         &read_token,
         &txn,
         &superblock,
         interruptor,
         true /* USE_SNAPSHOT */);
 
+    // RSI: Have the alt cache support this.
+#if !SLICE_ALT
     txn->get_cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY, &cache_account);
     txn->set_account(cache_account.get());
+#endif
 
+#if SLICE_ALT
+    btree_parallel_traversal(superblock.get(),
+                             store->btree.get(), &helper, &wait_any);
+#else
     btree_parallel_traversal(txn.get(), superblock.get(),
             store->btree.get(), &helper, &wait_any);
+#endif
 }

@@ -366,7 +366,8 @@ private:
 #if SLICE_ALT
 void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification);
+        const rdb_modification_report_t *modification,
+        alt::alt_txn_t *txn);
 
 #else
 void rdb_update_sindexes(
@@ -378,7 +379,9 @@ void rdb_update_sindexes(
 void rdb_erase_range_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_erase_range_report_t *erase_range,
+#if !SLICE_ALT
         transaction_t *txn,
+#endif
         signal_t *interruptor);
 
 void post_construct_secondary_indexes(
@@ -388,9 +391,15 @@ void post_construct_secondary_indexes(
     THROWS_ONLY(interrupted_exc_t);
 
 class rdb_value_deleter_t : public value_deleter_t {
+#if SLICE_ALT
+friend void rdb_update_sindexes(
+        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
+        const rdb_modification_report_t *modification, alt::alt_txn_t *txn);
+#else
 friend void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification, transaction_t *txn);
+#endif
 
 #if SLICE_ALT
     void delete_value(alt::alt_buf_parent_t parent, void *_value);

@@ -23,6 +23,10 @@
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
+#if SLICE_ALT
+using namespace alt;  // RSI
+#endif
+
 namespace unittest {
 
 void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
