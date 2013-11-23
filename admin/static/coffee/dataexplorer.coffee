@@ -3438,7 +3438,7 @@ module 'DataExplorerView', ->
 
         prettify_duration: (duration) ->
             if duration < 1000
-                return duration.toFixed(2)+"ms"
+                return duration.toFixed(0)+"ms"
             else if duration < 60*1000
                 return (duration/1000).toFixed(2)+"s"
             else # We do not expect query to last one hour.
