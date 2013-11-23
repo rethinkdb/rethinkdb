@@ -3449,7 +3449,7 @@ module 'DataExplorerView', ->
 
         prettify_duration: (duration) ->
             if duration < 1
-                return '<0ms'
+                return '<1ms'
             else if duration < 1000
                 return duration.toFixed(0)+"ms"
             else if duration < 60*1000
