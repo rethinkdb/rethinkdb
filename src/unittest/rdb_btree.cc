@@ -54,7 +54,10 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         rdb_modification_report_t mod_report(pk);
         rdb_set(pk,
                 make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
-                false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
+                false, store->btree.get(), repli_timestamp_t::invalid,
+#if !SLICE_ALT
+                txn.get(),
+#endif
                 superblock.get(), &response, &mod_report.info,
                 static_cast<profile::trace_t *>(NULL));
 
@@ -65,12 +68,22 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
             scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
             store->acquire_sindex_block_for_write(
-                    &token_pair, txn.get(), &sindex_block,
+#if SLICE_ALT
+                    superblock->expose_buf(),
+#else
+                    &token_pair,
+                    txn.get(),
+#endif
+                    &sindex_block,
                     sindex_block_id, &dummy_interruptor);
 
             btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
-                     sindex_block.get(), txn.get(), &sindexes);
+                     sindex_block.get(),
+#if !SLICE_ALT
+                     txn.get(),
+#endif
+                     &sindexes);
             rdb_update_sindexes(sindexes, &mod_report, txn.get());
 
             mutex_t::acq_t acq;
@@ -96,12 +109,17 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
                                         1, WRITE_DURABILITY_SOFT,
-                                        &token_pair, &txn, &super_block, &dummy_interruptor);
+                                        &token_pair, &txn, &super_block,
+                                        &dummy_interruptor);
 
     ql::sym_t one(1);
     ql::protob_t<const Term> mapping = ql::r::var(one)["sid"].release_counted();
@@ -118,10 +136,14 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     guarantee(res == 0);
 
     UNUSED bool b = store->add_sindex(
+#if !SLICE_ALT
             &token_pair,
+#endif
             sindex_id,
             stream.vector(),
+#if !SLICE_ALT
             txn.get(),
+#endif
             super_block.get(),
             &dummy_interruptor);
     return sindex_id;
@@ -133,7 +155,11 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
@@ -144,9 +170,13 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     rdb_value_deleter_t deleter;
 
     store->drop_sindex(
+#if !SLICE_ALT
             &token_pair,
+#endif
             sindex_id,
+#if !SLICE_ALT
             txn.get(),
+#endif
             super_block.get(),
             &sizer,
             &deleter,
@@ -159,23 +189,42 @@ void bring_sindexes_up_to_date(
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
                                         1, WRITE_DURABILITY_SOFT,
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+#else
     scoped_ptr_t<buf_lock_t> sindex_block;
+#endif
     store->acquire_sindex_block_for_write(
-            &token_pair, txn.get(), &sindex_block,
+#if SLICE_ALT
+            super_block->expose_buf(),
+#else
+            &token_pair,
+            txn.get(),
+#endif
+            &sindex_block,
             super_block->get_sindex_block_id(),
             &dummy_interruptor);
 
     std::set<std::string> created_sindexes;
     created_sindexes.insert(sindex_id);
 
+#if SLICE_ALT
+    rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+                                                    sindex_block.get());
+#else
     rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
             sindex_block.get(), txn.get());
+#endif
     nap(1000);
 }
 
@@ -185,16 +234,29 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(
         repli_timestamp_t::invalid,
         1, WRITE_DURABILITY_SOFT,
         &token_pair, &txn, &super_block, &dummy_interruptor);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+#else
     scoped_ptr_t<buf_lock_t> sindex_block;
+#endif
     store->acquire_sindex_block_for_write(
-            &token_pair, txn.get(), &sindex_block,
+#if SLICE_ALT
+            super_block->expose_buf(),
+#else
+            &token_pair, txn.get(),
+#endif
+            &sindex_block,
             super_block->get_sindex_block_id(),
             &dummy_interruptor);
 
@@ -205,8 +267,13 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
     std::set<std::string> created_sindexes;
     created_sindexes.insert(sindex_id);
 
+#if SLICE_ALT
+    rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+                                                    sindex_block.get());
+#else
     rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
             sindex_block.get(), txn.get());
+#endif
 }
 
 void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
@@ -216,18 +283,34 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         read_token_pair_t token_pair;
         store->new_read_token_pair(&token_pair);
 
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> txn;
+#else
         scoped_ptr_t<transaction_t> txn;
+#endif
         scoped_ptr_t<real_superblock_t> super_block;
 
+#if SLICE_ALT
+        store->acquire_superblock_for_read(
+                &token_pair.main_read_token, &txn, &super_block,
+                &dummy_interruptor, true);
+#else
         store->acquire_superblock_for_read(rwi_read,
                 &token_pair.main_read_token, &txn, &super_block,
                 &dummy_interruptor, true);
+#endif
 
         scoped_ptr_t<real_superblock_t> sindex_sb;
 
-        bool sindex_exists = store->acquire_sindex_superblock_for_read(sindex_id,
-                super_block->get_sindex_block_id(), &token_pair,
-                txn.get(), &sindex_sb,
+        bool sindex_exists = store->acquire_sindex_superblock_for_read(
+                sindex_id,
+                super_block->get_sindex_block_id(),
+#if SLICE_ALT
+                super_block->expose_buf(),
+#else
+                &token_pair, txn.get(),
+#endif
+                &sindex_sb,
                 static_cast<std::vector<char>*>(NULL), &dummy_interruptor);
         ASSERT_TRUE(sindex_exists);
 
@@ -241,7 +324,9 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
+#if !SLICE_ALT
             txn.get(),
+#endif
             sindex_sb.get(),
             &dummy_env, // env_t
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
@@ -283,18 +368,34 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         read_token_pair_t token_pair;
         store->new_read_token_pair(&token_pair);
 
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> txn;
+#else
         scoped_ptr_t<transaction_t> txn;
+#endif
         scoped_ptr_t<real_superblock_t> super_block;
 
+#if SLICE_ALT
+        store->acquire_superblock_for_read(
+                &token_pair.main_read_token, &txn, &super_block,
+                &dummy_interruptor, true);
+#else
         store->acquire_superblock_for_read(rwi_read,
                 &token_pair.main_read_token, &txn, &super_block,
                 &dummy_interruptor, true);
+#endif
 
         scoped_ptr_t<real_superblock_t> sindex_sb;
 
-        bool sindex_exists = store->acquire_sindex_superblock_for_read(sindex_id,
-                super_block->get_sindex_block_id(), &token_pair,
-                txn.get(), &sindex_sb,
+        bool sindex_exists = store->acquire_sindex_superblock_for_read(
+                sindex_id,
+                super_block->get_sindex_block_id(),
+#if SLICE_ALT
+                super_block->expose_buf(),
+#else
+                &token_pair, txn.get(),
+#endif
+                &sindex_sb,
                 static_cast<std::vector<char>*>(NULL), &dummy_interruptor);
         ASSERT_TRUE(sindex_exists);
 
@@ -308,7 +409,9 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
+#if !SLICE_ALT
             txn.get(),
+#endif
             sindex_sb.get(),
             &dummy_env, // env_t
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
@@ -426,7 +529,11 @@ void run_erase_range_test() {
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> txn;
+#else
         scoped_ptr_t<transaction_t> txn;
+#endif
         scoped_ptr_t<real_superblock_t> super_block;
         store.acquire_superblock_for_write(repli_timestamp_t::invalid,
                                            1,
@@ -438,10 +545,17 @@ void run_erase_range_test() {
 
         const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
         rdb_protocol_details::range_key_tester_t tester(&test_range);
+#if SLICE_ALT
+        rdb_erase_range(store.btree.get(), &tester,
+                        key_range_t::universe(),
+                        super_block.get(), &store,
+                        &dummy_interruptor);
+#else
         rdb_erase_range(store.btree.get(), &tester,
                 key_range_t::universe(),
             txn.get(), super_block.get(), &store, &token_pair,
             &dummy_interruptor);
+#endif
     }
 
     check_keys_are_NOT_present(&store, sindex_id);

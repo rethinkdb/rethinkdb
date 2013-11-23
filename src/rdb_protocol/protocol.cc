@@ -161,12 +161,20 @@ void post_construct_and_drain_queue(
 
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
+#if SLICE_ALT
+void bring_sindexes_up_to_date(
+        const std::set<std::string> &sindexes_to_bring_up_to_date,
+        btree_store_t<rdb_protocol_t> *store,
+        alt_buf_lock_t *sindex_block)
+    THROWS_NOTHING
+#else
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         buf_lock_t *sindex_block,
         transaction_t *txn)
     THROWS_NOTHING
+#endif
 {
     with_priority_t p(CORO_PRIORITY_SINDEX_CONSTRUCTION);
 

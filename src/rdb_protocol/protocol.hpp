@@ -18,6 +18,7 @@
 #include "btree/btree_store.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
+#include "btree/slice.hpp"  // RSI: for SLICE_ALT
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
 #include "hash_region.hpp"
@@ -162,12 +163,20 @@ typedef boost::variant<ql::gmr_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
 typedef terminal_variant_t terminal_t;
 
+#if SLICE_ALT
+void bring_sindexes_up_to_date(
+        const std::set<std::string> &sindexes_to_bring_up_to_date,
+        btree_store_t<rdb_protocol_t> *store,
+        alt::alt_buf_lock_t *sindex_block)
+    THROWS_NOTHING;
+#else
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         buf_lock_t *sindex_block,
         transaction_t *txn)
     THROWS_NOTHING;
+#endif
 
 struct rget_item_t {
     rget_item_t() { }
