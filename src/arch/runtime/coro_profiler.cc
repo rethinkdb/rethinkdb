@@ -8,7 +8,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "thread_stack_pcs.hpp"
+#include "rethinkdb_backtrace.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 

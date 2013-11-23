@@ -59,16 +59,17 @@ class backtrace_frame_t {
 public:
     explicit backtrace_frame_t(const void *_addr);
 
-    // Initializes filename, function and offset strings.
+    // Initializes symbols_line, filename, function and offset strings.
     void initialize_symbols();
 
     std::string get_filename() const;
     std::string get_name() const;
     std::string get_demangled_name() const;
     std::string get_offset() const;
+    std::string get_symbols_line() const;
     const void *get_addr() const;
 private:
-    std::string filename, function, offset;
+    std::string filename, function, offset, symbols_line;
     bool symbols_initialized;
     const void *addr;
 };

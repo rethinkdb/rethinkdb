@@ -109,6 +109,10 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED cons
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_status_t &ss) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data,
                                                            rdb_protocol_t::read_response_t *_response) :
     data(_data), response(_response) {

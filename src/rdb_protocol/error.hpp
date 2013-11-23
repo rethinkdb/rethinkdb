@@ -110,7 +110,7 @@ private:
                            __FILE__, __LINE__, (msg));                \
     } while (0)
 #define rcheck_array_size(arr, type) do {                               \
-        rcheck((arr).size() < array_size_limit(), type,                 \
+        rcheck((arr).size() <= array_size_limit(), type,                 \
                strprintf("Array over size limit `%zu`.", array_size_limit()).c_str()); \
     } while (0)
 

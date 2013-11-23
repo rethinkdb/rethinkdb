@@ -46,7 +46,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     if (create) {
         vector_stream_t key;
         write_message_t msg;
-        typename protocol_t::region_t kr = protocol_t::region_t::universe();   // `operator<<` needs a non-const reference  // TODO <- what
+        typename protocol_t::region_t kr = protocol_t::region_t::universe();
         msg << kr;
         int res = send_write_message(&key, &msg);
         guarantee(!res);
@@ -300,6 +300,23 @@ void btree_store_t<protocol_t>::sindex_queue_push(const write_message_t &value,
 
     for (auto it = sindex_queues.begin(); it != sindex_queues.end(); ++it) {
         (*it)->push(value);
+    }
+}
+
+template <class protocol_t>
+void btree_store_t<protocol_t>::add_progress_tracker(
+        map_insertion_sentry_t<uuid_u, const parallel_traversal_progress_t *> *sentry,
+        uuid_u id, const parallel_traversal_progress_t *p) {
+    assert_thread();
+    sentry->reset(&progress_trackers, id, p);
+}
+
+template <class protocol_t>
+progress_completion_fraction_t btree_store_t<protocol_t>::get_progress(uuid_u id) {
+    if (!std_contains(progress_trackers, id)) {
+        return progress_completion_fraction_t();
+    } else {
+        return progress_trackers[id]->guess_completion();
     }
 }
 

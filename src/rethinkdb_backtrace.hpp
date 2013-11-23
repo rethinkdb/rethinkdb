@@ -1,5 +1,5 @@
-#ifndef THREAD_STACK_PCS_HPP_
-#define THREAD_STACK_PCS_HPP_
+#ifndef RETHINKDB_BACKTRACE_HPP_
+#define RETHINKDB_BACKTRACE_HPP_
 
 // `NUM_FRAMES_INSIDE_RETHINKDB_BACKTRACE` is the number of frames that must be removed
 // to hide the call to `rethinkdb_backtrace()` itself from the resulting backtrace.
@@ -9,4 +9,4 @@
 
 int rethinkdb_backtrace(void **buffer, int size);
 
-#endif  // THREAD_STACK_PCS_HPP_
+#endif  // RETHINKDB_BACKTRACE_HPP_

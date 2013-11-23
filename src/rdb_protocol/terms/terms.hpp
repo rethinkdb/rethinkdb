@@ -117,6 +117,8 @@ counted_t<term_t> make_zip_term(compile_env_t *env, const protob_t<const Term> &
 counted_t<term_t> make_sindex_create_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_sindex_drop_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_sindex_list_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_sindex_status_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_sindex_wait_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // sort.cc
 counted_t<term_t> make_orderby_term(compile_env_t *env, const protob_t<const Term> &term);
