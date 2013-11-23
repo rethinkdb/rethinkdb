@@ -1687,9 +1687,17 @@ TODO: retire this
                 margin-right: 9px;
                 background: url('images/copy_to_clipboard_16x16.png') left center no-repeat;
             }
-            &.zeroclipboard-is-hover{
+            &.zeroclipboard-is-hover {
+                // Same as button.btn:hover
                 .box-shadow(inset 0 0 1px 1px #fff);
                 .background-image(linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)),linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%));
+                
+            }
+            &.zeroclipboard-is-active {
+                // Same as button.btn:active
+                background-color: #f2f2f2; // layer fill content
+                .box-shadow(~"inset 0 2px 1px rgba(0,0,0,.06)"); // inner shadow
+                .gradient(~"linear-gradient(bottom, rgba(255,255,255,.02) 0%, rgba(0,0,0,.02) 100%)"); // gradient overlay
             }
         }
         .json_tree_container{
