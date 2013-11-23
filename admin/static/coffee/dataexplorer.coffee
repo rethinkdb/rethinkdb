@@ -169,7 +169,8 @@ module 'DataExplorerView', ->
                 @move_arrow
                     type: 'options'
                     move_arrow: 'show'
-                @adjust_collapsible_panel_height()
+                @adjust_collapsible_panel_height
+                    cb: args?.cb
             else if @options_view.state is 'visible'
                 @options_view.state = 'hidden'
                 @hide_collapsible_panel 'options'
@@ -258,6 +259,8 @@ module 'DataExplorerView', ->
                             that.$('.nano > .content').animate
                                 scrollTop: that.$('.nano > .content > div').height()
                                 , 200
+                        if args.cb?
+                            args.cb()
 
                 if args? and args.delay_scroll isnt true and args.is_at_bottom is true
                     that.$('.nano > .content').animate
@@ -3243,16 +3246,21 @@ module 'DataExplorerView', ->
         activate_profiler: (event) =>
             event.preventDefault()
             if @container.options_view.state is 'hidden'
-                @container.toggle_options()
-                @container.options_view.$('.option_description[data-option="profiler"]').click()
-                @container.options_view.$('.profiler_enabled').show()
-                @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
+                @container.toggle_options
+                    cb: =>
+                        setTimeout( =>
+                            if @container.state.options.profiler is false
+                                @container.options_view.$('.option_description[data-option="profiler"]').click()
+                            @container.options_view.$('.profiler_enabled').show()
+                            @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
+                        , 100)
             else
                 if @container.state.options.profiler is false
-                    @container.options_view.$('.profiler_enabled').hide()
-                    @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
-                    @container.options_view.$('.profiler_enabled').slideDown 'fast'
                     @container.options_view.$('.option_description[data-option="profiler"]').click()
+                @container.options_view.$('.profiler_enabled').hide()
+                @container.options_view.$('.profiler_enabled').css 'visibility', 'visible'
+                @container.options_view.$('.profiler_enabled').slideDown 'fast'
+
 
 
         render_error: (query, err, js_error) =>
@@ -3323,17 +3331,20 @@ module 'DataExplorerView', ->
             else
                 @$('.more_results').show()
                 @$('.profile_summary').hide()
+                @$('.copy_profile').hide()
 
             switch @view
                 when 'profile'
                     if @profile is null
-                        @.$('.profile_container').html @no_profile_template()
+                        @$('.profile_container').html @no_profile_template()
+                        @$('.copy_profile').hide()
                     else
                         @.$('.profile_container').html @json_to_tree @profile
+                        @$('.copy_profile').show()
                         @$('.profile_summary_container').html @profile_header_template
                             total_duration: @metadata.execution_time_pretty
                             server_duration: @prettify_duration @compute_total_duration @profile
-                            num_tasks: @compute_num_tasks @profile
+                            num_shard_accesses: @compute_num_shard_accesses @profile
 
                         @clip.glue($('button.copy_profile'))
 
@@ -3437,7 +3448,9 @@ module 'DataExplorerView', ->
             return @
 
         prettify_duration: (duration) ->
-            if duration < 1000
+            if duration < 1
+                return '<0ms'
+            else if duration < 1000
                 return duration.toFixed(0)+"ms"
             else if duration < 60*1000
                 return (duration/1000).toFixed(2)+"s"
@@ -3454,14 +3467,21 @@ module 'DataExplorerView', ->
             total_duration
 
 
-        compute_num_tasks: (profile) ->
-            num_tasks = 0
+        compute_num_shard_accesses: (profile) ->
+            num_shard_accesses = 0
             for task in profile
-                if task['duration(ms)']?
-                    num_tasks += 1
-                    if Object::toString.call(task['sub_tasks']) is '[object Array]'
-                        num_tasks += @compute_num_tasks task['sub_tasks']
-            return num_tasks
+                if task['description'] is 'Perform read on shard.'
+                    num_shard_accesses += 1
+                if Object::toString.call(task['sub_tasks']) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task['sub_tasks']
+                if Object::toString.call(task['parallel_tasks']) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task['parallel_tasks']
+
+                # In parallel tasks, we get arrays of tasks instead of a super task
+                if Object::toString.call(task) is '[object Array]'
+                    num_shard_accesses += @compute_num_shard_accesses task
+
+            return num_shard_accesses
 
 
 
