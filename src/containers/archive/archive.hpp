@@ -40,7 +40,12 @@ enum archive_result_t {
 
 const char *archive_result_as_str(archive_result_t archive_result);
 
-void guarantee_deserialization(archive_result_t archive_result, const char *name_of_value);
+#define guarantee_deserialization(result, ...) do {                     \
+        guarantee(result == ARCHIVE_SUCCESS,                            \
+                  "Deserialization of %s failed with error %s.",        \
+                  strprintf(__VA_ARGS__).c_str(),                       \
+                  archive_result_as_str(result));                       \
+    } while (0)
 
 // We wrap things in this class for making friend declarations more
 // compilable under gcc-4.5.
@@ -69,7 +74,7 @@ class write_stream_t {
 public:
     write_stream_t() { }
     // Returns n, or -1 upon error. Blocks until all bytes are written.
-    virtual int64_t write(const void *p, int64_t n) = 0;
+    virtual MUST_USE int64_t write(const void *p, int64_t n) = 0;
 protected:
     virtual ~write_stream_t() { }
 private:
@@ -100,6 +105,8 @@ public:
     ~write_message_t();
 
     void append(const void *p, int64_t n);
+
+    size_t size() const;
 
     intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
 

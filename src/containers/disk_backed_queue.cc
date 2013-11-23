@@ -5,9 +5,11 @@
 #if DBQ_USE_ALT_CACHE
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
 #else
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/serialize_onto_blob.hpp"
 #endif
 #include "serializer/config.hpp"
 
@@ -94,27 +96,17 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     queue_block_t *head = static_cast<queue_block_t *>(_head->get_data_write());
 #endif
 
-    vector_stream_t stream;
-    int res = send_write_message(&stream, &wm);
-    guarantee(res == 0);
-
     char buffer[MAX_REF_SIZE];
-    bzero(buffer, MAX_REF_SIZE);
+    memset(buffer, 0, MAX_REF_SIZE);
 
 #if DBQ_USE_ALT_CACHE
-    // RSI: Wrong parent?  Can we just make the blob later?
     alt::blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
-    blob.append_region(alt_buf_parent_t(_head.get()), stream.vector().size());
-#else
-    blob_t blob(cache->get_block_size(), buffer, MAX_REF_SIZE);
-    blob.append_region(&txn, stream.vector().size());
-#endif
-    std::string sered_data(stream.vector().begin(), stream.vector().end());
 
-#if DBQ_USE_ALT_CACHE
-    blob.write_from_string(sered_data, alt_buf_parent_t(_head.get()), 0);
+    write_onto_blob(alt_buf_parent_t(_head.get()), &blob, wm);
 #else
-    blob.write_from_string(sered_data, &txn, 0);
+    blob_t blob(txn.get_cache()->get_block_size(), buffer, MAX_REF_SIZE);
+
+    write_onto_blob(&txn, &blob, wm);
 #endif
 
 #if DBQ_USE_ALT_CACHE
@@ -152,7 +144,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     queue_size++;
 }
 
-void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
+void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     guarantee(size() != 0);
     mutex_t::acq_t mutex_acq(&mutex);
 
@@ -207,10 +199,7 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
         blob.expose_all(&txn, rwi_read, &blob_group, &acq_group);
 #endif
 
-        data_vec.resize(blob_group.get_size());
-        buffer_group_t data_vec_group;
-        data_vec_group.add_buffer(data_vec.size(), data_vec.data());
-        buffer_group_copy_data(&data_vec_group, const_view(&blob_group));
+        viewer->view_buffer_group(const_view(&blob_group));
     }
 
     /* Record how far along in the blob we are. */
@@ -233,10 +222,6 @@ void internal_disk_backed_queue_t::pop(std::vector<char> *buf_out) {
         _tail.reset();
         remove_block_from_tail(&txn);
     }
-
-    /* Deserialize the value and return it. */
-
-    buf_out->swap(data_vec);
 }
 
 bool internal_disk_backed_queue_t::empty() {

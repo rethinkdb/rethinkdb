@@ -242,10 +242,10 @@ counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string
             r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
             sindexes.erase(it->first);
             std::map<std::string, counted_t<const datum_t> > status;
-            if (it->second.blocks_remaining != 0) {
-                status["blocks_remaining"] =
+            if (it->second.blocks_processed != 0) {
+                status["blocks_processed"] =
                     make_counted<const datum_t>(
-                        safe_to_double(it->second.blocks_remaining));
+                        safe_to_double(it->second.blocks_processed));
                 status["blocks_total"] =
                     make_counted<const datum_t>(
                         safe_to_double(it->second.blocks_total));
