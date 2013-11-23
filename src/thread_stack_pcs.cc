@@ -78,7 +78,7 @@ _rethinkdb_thread_stack_pcs(vm_address_t *buffer, unsigned max,
         // on a coroutine stack.
         coro_t *coro = coro_t::self();
         if (coro != NULL) {
-            artificial_stack_t *stack = coro->get_stack();
+            stack_t *stack = coro->get_stack();
             stacktop = stack->get_stack_base();
             stackbot = stack->get_stack_bound();
         } else {

@@ -1,17 +1,16 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/io/blocker_pool.hpp"
 
+#include "config/args.hpp"
+
 #include <string.h>
 
-#include "config/args.hpp"
-#include "thread_local.hpp"
-
-TLS_with_init(int, thread_is_blocker_pool_thread, 0);
+__thread int thread_is_blocker_pool_thread = 0;
 
 // IO thread function
 void* blocker_pool_t::event_loop(void *arg) {
 
-    TLS_set_thread_is_blocker_pool_thread(1);
+    thread_is_blocker_pool_thread = 1;
 
     blocker_pool_t *parent = reinterpret_cast<blocker_pool_t*>(arg);
 
@@ -150,5 +149,5 @@ void blocker_pool_t::on_event(DEBUG_VAR int event) {
 
 
 bool i_am_in_blocker_pool_thread() {
-    return TLS_get_thread_is_blocker_pool_thread() == 1;
+    return thread_is_blocker_pool_thread == 1;
 }

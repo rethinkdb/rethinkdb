@@ -5,6 +5,8 @@
 #ifdef THREADED_COROUTINES
 #include <vector>
 #include "config/args.hpp"
+// For get_thread_id()
+#include "arch/runtime/coroutines.hpp"
 #endif
 
 #include "errors.hpp"
@@ -116,7 +118,7 @@
 
 #elif defined(THREADED_COROUTINES) // not __ICC
 #define TLS(type, name)                                 \
-    static std::vector<type> TLS_ ## name(MAX_THREADS); \
+    static type TLS_ ## name[MAX_THREADS]; \
                                                         \
     type TLS_get_ ## name () {                          \
         return TLS_ ## name[get_thread_id().threadnum]; \

@@ -2,103 +2,40 @@
 #ifndef ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 #define ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 
+#include <pthread.h>
+
 #include "errors.hpp"
 
-/* ____ Threaded version of context_switching ____ */
-
-#include <pthread.h>
 #include "arch/io/concurrency.hpp"
 
-class linux_thread_pool_t;
-class linux_thread_t;
 
-class threaded_context_ref_t {
-public:
-    threaded_context_ref_t() : lock(NULL), do_rethread(false) { store_virtual_thread(); }
-    ~threaded_context_ref_t() { if (lock != NULL) delete lock; }
-
-    // Every context reference has a condition that can be used to wake it up.
-    // While it is active, it also holds a lock on the virtual_thread_mutexes of
-    // its current virtual thread.
-    system_cond_t cond;
-    system_mutex_t::lock_t *lock;
-
-    /* This is a fake */
-    bool is_nil() { return false; }
-
-    void wait();
-    void rethread_to_current();
-private:
-    friend class threaded_context_t;
-    void restore_virtual_thread();
-    void store_virtual_thread();
-
-    bool do_rethread;
-    linux_thread_pool_t *my_thread_pool;
-    int32_t my_thread_id;
-    linux_thread_t *my_thread;
-};
-
-void context_switch(threaded_context_ref_t *current_context, threaded_context_ref_t *dest_context);
-
-class threaded_context_t {
-public:
-
-    threaded_context_t(void (*initial_fun_)(void), size_t);
-    ~threaded_context_t();
-
-    threaded_context_ref_t context;
-
-    /* These are fakes */
-    bool address_in_stack(void *) { return true; }
-    bool address_is_stack_overflow(void *) { return false; }
-    void* get_stack_base() { guarantee(false); return NULL; }
-    void* get_stack_bound() { guarantee(false); return NULL; }
-
-private:
-    static void *internal_run(void *p);
-
-    pthread_t thread;
-    void (*initial_fun)(void);
-    system_cond_t launch_cond;
-
-    // TODO! Fake memory consumption of artificial_stack_t
-};
-
-typedef threaded_context_t artificial_stack_t;
-typedef threaded_context_ref_t context_ref_t;
-
-/* ^^^^ Threaded version of context_switching ^^^^ */
-
-#if 0
-
-/* Note that `context_ref_t` is not a POD type. We could make it a POD type, but
+/* Note that `artificial_stack_context_ref_t` is not a POD type. We could make it a POD type, but
 at the cost of removing some safety guarantees provided by the constructor and
 destructor. */
 
-struct context_ref_t {
+struct artificial_stack_context_ref_t {
 
     /* Creates a nil `context_ref_t`. */
-    context_ref_t();
+    artificial_stack_context_ref_t();
 
     /* Destroys a `context_ref_t`. It must be nil at the time that this
     destructor is called; if you're trying to call the destructor and it's
     non-nil, that means you're leaking a stack somewhere. */
-    ~context_ref_t();
+    ~artificial_stack_context_ref_t();
 
-    /* Returns `true` if the `context_ref_t` is nil, and false otherwise. */
+    /* Returns `true` if the `artificial_stack_context_ref_t` is nil, and false otherwise. */
     bool is_nil();
 
 private:
     friend class artificial_stack_t;
-    friend void context_switch(context_ref_t *, context_ref_t *);
+    friend void context_switch(artificial_stack_context_ref_t *, artificial_stack_context_ref_t *);
 
     /* `pointer` points to a location on the stack of the context in question.
     From that pointer, we find the instruction pointer, relevant registers, and
     so on. */
     void *pointer;
 
-    DISABLE_COPYING(context_ref_t);
+    DISABLE_COPYING(artificial_stack_context_ref_t);
 };
 
 class artificial_stack_t {
@@ -111,7 +48,7 @@ public:
     artificial_stack_t(void (*initial_fun)(void), size_t stack_size);
     ~artificial_stack_t();
 
-    context_ref_t context;
+    artificial_stack_context_ref_t context;
 
     /* Returns `true` if the given address is on this stack or in its protection
     page. */
@@ -139,9 +76,83 @@ private:
 were in when we called `context_switch()`. `destination_context_in` must be
 non-nil; it will be set to nil, and we will switch to it. */
 void context_switch(
-    context_ref_t *current_context_out,
-    context_ref_t *dest_context_in);
+    artificial_stack_context_ref_t *current_context_out,
+    artificial_stack_context_ref_t *dest_context_in);
 
+
+
+/* ____ Threaded version of context_switching ____ */
+// TODO! Document this
+
+class linux_thread_pool_t;
+class linux_thread_t;
+
+class threaded_context_ref_t {
+public:
+    threaded_context_ref_t() : lock(NULL), do_rethread(false) { store_virtual_thread(); }
+    ~threaded_context_ref_t() { if (lock != NULL) delete lock; }
+
+    // Every context reference has a condition that can be used to wake it up.
+    // While it is active, it also holds a lock on the virtual_thread_mutexes of
+    // its current virtual thread.
+    system_cond_t cond;
+    system_mutex_t::lock_t *lock;
+
+    /* This is a fake */
+    bool is_nil() { return false; }
+
+    void wait();
+    void rethread_to_current();
+private:
+    friend class threaded_stack_t;
+    void restore_virtual_thread();
+    void store_virtual_thread();
+
+    bool do_rethread;
+    linux_thread_pool_t *my_thread_pool;
+    int32_t my_thread_id;
+    linux_thread_t *my_thread;
+};
+
+void context_switch(threaded_context_ref_t *current_context, threaded_context_ref_t *dest_context);
+
+class threaded_stack_t {
+public:
+
+    threaded_stack_t(void (*initial_fun_)(void), size_t stack_size);
+    ~threaded_stack_t();
+
+    threaded_context_ref_t context;
+
+    /* These are fakes */
+    bool address_in_stack(void *) { return true; }
+    bool address_is_stack_overflow(void *) { return false; }
+    void* get_stack_base() { guarantee(false); return NULL; }
+    void* get_stack_bound() { guarantee(false); return NULL; }
+
+private:
+    static void *internal_run(void *p);
+
+    pthread_t thread;
+    void (*initial_fun)(void);
+    system_cond_t launch_cond;
+
+    // To fake the memory overhead of an artificial_stack_t, we actually
+    // allocate one here and just let it sit around.
+    // TODO: If we at some point want to use threaded_stack_t for production
+    // stuff, we will have to remove this.
+    artificial_stack_t dummy_stack;
+};
+
+/* ^^^^ Threaded version of context_switching ^^^^ */
+
+#ifdef THREADED_COROUTINES
+typedef threaded_stack_t coro_stack_t;
+typedef threaded_context_ref_t coro_context_ref_t;
+#else
+typedef artificial_stack_t coro_stack_t;
+typedef artificial_stack_context_ref_t coro_context_ref_t;
 #endif
+
 
 #endif /* ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_ */

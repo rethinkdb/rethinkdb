@@ -43,7 +43,7 @@ struct coro_globals_t {
     coro_t *current_coro;
 
     /* The main context. */
-    context_ref_t scheduler;
+    coro_context_ref_t scheduler;
 
     /* The previous context. */
     coro_t *prev_coro;
@@ -363,7 +363,7 @@ void coro_t::set_coroutine_stack_size(size_t size) {
     coro_stack_size = size;
 }
 
-artificial_stack_t* coro_t::get_stack() {
+coro_stack_t* coro_t::get_stack() {
     return &stack;
 }
 

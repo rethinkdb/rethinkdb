@@ -242,6 +242,10 @@ ifeq ($(NO_EPOLL),1)
   RT_CXXFLAGS += -DNO_EPOLL
 endif
 
+ifeq ($(THREADED_COROUTINES),1)
+  RT_CXXFLAGS += -DTHREADED_COROUTINES
+endif
+
 ifeq ($(VALGRIND),1)
   ifneq (1,$(NO_TCMALLOC))
     $(error cannot build with VALGRIND=1 when NO_TCMALLOC=0)
