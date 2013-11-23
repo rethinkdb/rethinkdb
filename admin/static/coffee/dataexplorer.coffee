@@ -3214,6 +3214,7 @@ module 'DataExplorerView', ->
         template_no_result: Handlebars.templates['dataexplorer_result_empty-template']
         cursor_timed_out_template: Handlebars.templates['dataexplorer-cursor_timed_out-template']
         no_profile_template: Handlebars.templates['dataexplorer-no_profile-template']
+        profile_header_template: Handlebars.templates['dataexplorer-profiler_header-template']
         primitive_key: '_-primitive value-_--' # We suppose that there is no key with such value in the database.
 
         events: ->
@@ -3295,13 +3296,7 @@ module 'DataExplorerView', ->
                 @container.state.start_record = args.metadata.skip_value
 
                 if args.metadata.execution_time?
-                    if args.metadata.execution_time < 1000
-                        @metadata.execution_time_pretty = args.metadata.execution_time+"ms"
-                    else if args.metadata.execution_time < 60*1000
-                        @metadata.execution_time_pretty = (args.metadata.execution_time/1000).toFixed(2)+"s"
-                    else # We do not expect query to last one hour.
-                        minutes = Math.floor(args.metadata.execution_time/(60*1000))
-                        @metadata.execution_time_pretty = minutes+"min "+((args.metadata.execution_time-minutes*60*1000)/1000).toFixed(2)+"s"
+                    @metadata.execution_time_pretty = @prettify_duration args.metadata.execution_time
 
             num_results = @metadata.skip_value
             if @metadata.has_more_data isnt true
@@ -3324,8 +3319,10 @@ module 'DataExplorerView', ->
 
             if @view is 'profile'
                 @$('.more_results').hide()
+                @$('.profile_summary').show()
             else
                 @$('.more_results').show()
+                @$('.profile_summary').hide()
 
             switch @view
                 when 'profile'
@@ -3333,12 +3330,17 @@ module 'DataExplorerView', ->
                         @.$('.profile_container').html @no_profile_template()
                     else
                         @.$('.profile_container').html @json_to_tree @profile
+                        @$('.profile_summary').html @profile_header_template
+                            total_duration: @metadata.execution_time_pretty
+                            server_duration: @prettify_duration @compute_total_duration @profile
+                            num_tasks: @compute_num_tasks @profile
+
+                        @clip.glue($('button.copy_profile'))
+
                     @$('.results').hide()
                     @$('.profile_view_container').show()
                     @.$('.link_to_profile_view').addClass 'active'
                     @.$('.link_to_profile_view').parent().addClass 'active'
-
-                    @clip.glue($('button.copy_profile'))
                 when 'tree'
                     @.$('.json_tree_container').html @json_to_tree @results
                     @$('.results').hide()
@@ -3433,6 +3435,35 @@ module 'DataExplorerView', ->
 
         render_default: =>
             return @
+
+        prettify_duration: (duration) ->
+            if duration < 1000
+                return duration.toFixed(2)+"ms"
+            else if duration < 60*1000
+                return (duration/1000).toFixed(2)+"s"
+            else # We do not expect query to last one hour.
+                minutes = Math.floor(duration/(60*1000))
+                return minutes+"min "+((duration-minutes*60*1000)/1000).toFixed(2)+"s"
+
+        compute_total_duration: (profile) ->
+            total_duration = 0
+            for task in profile
+                if task['duration(ms)']?
+                    total_duration += task['duration(ms)']
+
+            total_duration
+
+
+        compute_num_tasks: (profile) ->
+            num_tasks = 0
+            for task in profile
+                if task['duration(ms)']?
+                    num_tasks += 1
+                    if Object::toString.call(task['sub_tasks']) is '[object Array]'
+                        num_tasks += @compute_num_tasks task['sub_tasks']
+            return num_tasks
+
+
 
         destroy: =>
             $(window).unbind 'scroll'
