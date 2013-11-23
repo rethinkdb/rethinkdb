@@ -18,13 +18,6 @@ public:
         int res = pthread_mutex_destroy(&m);
         guarantee_xerr(res == 0, res, "Could not destroy pthread mutex.");
     }
-    // TODO!!
-    int trylock() {
-        return pthread_mutex_trylock(&m);
-    }
-    int unlock() {
-        return pthread_mutex_unlock(&m);
-    }
     class lock_t {
         system_mutex_t *parent;
     public:

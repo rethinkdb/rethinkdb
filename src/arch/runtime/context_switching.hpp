@@ -12,10 +12,14 @@
 class linux_thread_pool_t;
 class linux_thread_t;
 
-class context_ref_t {
+class threaded_context_ref_t {
 public:
-    context_ref_t() : lock(NULL), do_rethread(false) { store_virtual_thread(); }
-    ~context_ref_t() { if (lock != NULL) delete lock; }
+    threaded_context_ref_t() : lock(NULL), do_rethread(false) { store_virtual_thread(); }
+    ~threaded_context_ref_t() { if (lock != NULL) delete lock; }
+
+    // Every context reference has a condition that can be used to wake it up.
+    // While it is active, it also holds a lock on the virtual_thread_mutexes of
+    // its current virtual thread.
     system_cond_t cond;
     system_mutex_t::lock_t *lock;
 
@@ -23,18 +27,19 @@ public:
     bool is_nil() { return false; }
 
     void wait();
+    void rethread_to_current();
+private:
+    friend class threaded_context_t;
     void restore_virtual_thread();
     void store_virtual_thread();
-    void rethread_to_current(system_cond_t *current_cond);
-private:
+
     bool do_rethread;
-    system_cond_t *on_rethreaded_cond;
     linux_thread_pool_t *my_thread_pool;
     int32_t my_thread_id;
     linux_thread_t *my_thread;
 };
 
-void context_switch(context_ref_t *current_cond, context_ref_t *dest_cond);
+void context_switch(threaded_context_ref_t *current_context, threaded_context_ref_t *dest_context);
 
 class threaded_context_t {
 public:
@@ -42,7 +47,7 @@ public:
     threaded_context_t(void (*initial_fun_)(void), size_t);
     ~threaded_context_t();
 
-    context_ref_t context;
+    threaded_context_ref_t context;
 
     /* These are fakes */
     bool address_in_stack(void *) { return true; }
@@ -56,8 +61,12 @@ private:
     pthread_t thread;
     void (*initial_fun)(void);
     system_cond_t launch_cond;
+
+    // TODO! Fake memory consumption of artificial_stack_t
 };
+
 typedef threaded_context_t artificial_stack_t;
+typedef threaded_context_ref_t context_ref_t;
 
 /* ^^^^ Threaded version of context_switching ^^^^ */
 

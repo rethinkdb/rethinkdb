@@ -2,11 +2,16 @@
 #ifndef THREAD_LOCAL_HPP_
 #define THREAD_LOCAL_HPP_
 
+#ifdef THREADED_COROUTINES
 #include <vector>
+#include "config/args.hpp"
+#endif
 
 #include "errors.hpp"
 
-// TODO! Handle the __ICC case (just error)
+#if defined(THREADED_COROUTINES) && defined(__ICC)
+#error Threaded coroutines (THREADED_COROUTINES) are not currently implemented for the Intel compiler.
+#endif
 
 #ifdef __ICC
 #define TLS_with_init(type, name, initial)                              \
@@ -47,10 +52,9 @@
             *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val; \
     }
 
-#else  //  __ICC
-
+#elif defined(THREADED_COROUTINES)  // not __ICC
 #define TLS_with_init(type, name, initial)              \
-    static std::vector<type> TLS_ ## name(MAX_THREADS, initial);        \
+    static std::vector<type> TLS_ ## name(MAX_THREADS, initial); \
                                                         \
     type TLS_get_ ## name () {                          \
         return TLS_ ## name[get_thread_id().threadnum]; \
@@ -60,7 +64,19 @@
         TLS_ ## name[get_thread_id().threadnum] = val;  \
     }                                                   \
 
-#endif  //  __ICC
+#else // THREADED_COROUTINES
+#define TLS_with_init(type, name, initial)              \
+    static __thread type TLS_ ## name = initial;        \
+                                                        \
+    type TLS_get_ ## name () {                          \
+        return TLS_ ## name;                            \
+    }                                                   \
+                                                        \
+    void TLS_set_ ## name(type val) {                   \
+        TLS_ ## name = val;                             \
+    }                                                   \
+
+#endif  // not THREADED_COROUTINES
 
 #ifdef __ICC
 #define TLS(type, name)                                                 \
@@ -98,19 +114,30 @@
             *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val; \
     }
 
-#else
+#elif defined(THREADED_COROUTINES) // not __ICC
+#define TLS(type, name)                                 \
+    static std::vector<type> TLS_ ## name(MAX_THREADS); \
+                                                        \
+    type TLS_get_ ## name () {                          \
+        return TLS_ ## name[get_thread_id().threadnum]; \
+    }                                                   \
+                                                        \
+    void TLS_set_ ## name(type val) {                   \
+        TLS_ ## name[get_thread_id().threadnum] = val;  \
+    }                                                   \
 
-#define TLS(type, name)                         \
-    static type TLS_ ## name[MAX_THREADS];      \
-                                                \
-    type TLS_get_ ## name () {                  \
-        return TLS_ ## name[get_thread_id().threadnum];   \
-    }                                           \
-                                                \
-    void TLS_set_ ## name(type val) {           \
-        TLS_ ## name[get_thread_id().threadnum] = val;    \
-    }                                           \
+#else // THREADED_COROUTINES
+#define TLS(type, name)                                 \
+    static __thread type TLS_ ## name;                  \
+                                                        \
+    type TLS_get_ ## name () {                          \
+        return TLS_ ## name;                            \
+    }                                                   \
+                                                        \
+    void TLS_set_ ## name(type val) {                   \
+        TLS_ ## name = val;                             \
+    }                                                   \
 
-#endif  // __ICC
+#endif // not THREADED_COROUTINES
 
 #endif /* THREAD_LOCAL_HPP_ */
