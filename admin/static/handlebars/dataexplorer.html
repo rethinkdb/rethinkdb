@@ -218,8 +218,7 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     <div class="tab-content">  
         <div class="results profile_view_container">
             <div class="results_wrap profile_view">
-                <div class="profile_summary">
-                </div>
+                <div class="profile_summary_container"></div>
                 <button class="btn copy_profile">Copy to clipboard</button>
                 <div class="profile_container"></div>
             </div>
@@ -250,15 +249,17 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 
 
 <script id="dataexplorer-profiler_header-template" type="text/x-handlebars-template">
-    <div class="row-fluid">
-        <div class="span4">
-            <p class="query-duration"><span class="big">{{total_duration}}</span> round-trip time</p>
-        </div>
-        <div class="span4">
-            <p class="query-duration"><span class="big">{{server_duration}}</span> of server time</p>
-        </div>
-        <div class="span4">
-            <p class="query-tasks"><span class="big">{{num_tasks}}</span> cluster tasks</p>
+    <div class="profile_summary">
+        <div class="row-fluid">
+            <div class="span4">
+                <p class="query-duration-roundtrip"><span class="big">{{total_duration}}</span> round-trip time</p>
+            </div>
+            <div class="span4">
+                <p class="query-duration-server"><span class="big">{{server_duration}}</span> server time</p>
+            </div>
+            <div class="span4">
+                <p class="query-tasks"><span class="big">{{num_tasks}}</span> shard accesses</p>
+            </div>
         </div>
     </div>
 </script>
@@ -272,8 +273,8 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
 </script>
 
 <script id="dataexplorer-no_profile-template" type="text/x-handlebars-template">
-    <div class="info activate_profiler">
-        <a href="#" class="activate_profiler">Activate</a> the query profiler option and re-run the query to see its profile.
+    <div class="activate_profiler_message">
+        <p><a href="#" class="activate_profiler">Enable</a> the query profiler (developer preview) and re-run the query.</p>
     </div>
 </script>
 

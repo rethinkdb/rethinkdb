@@ -3330,7 +3330,7 @@ module 'DataExplorerView', ->
                         @.$('.profile_container').html @no_profile_template()
                     else
                         @.$('.profile_container').html @json_to_tree @profile
-                        @$('.profile_summary').html @profile_header_template
+                        @$('.profile_summary_container').html @profile_header_template
                             total_duration: @metadata.execution_time_pretty
                             server_duration: @prettify_duration @compute_total_duration @profile
                             num_tasks: @compute_num_tasks @profile

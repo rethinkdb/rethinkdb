@@ -1586,8 +1586,22 @@ TODO: retire this
             background: #ecf2f7;
             font-family: @sans;
         }
-        .activate_profiler{
-            display: inline-block;
+        .activate_profiler_message {
+            background: #f7f7f7;
+            border: thin solid #E7E6E6;
+            padding: 4px 30px;
+            .border-radius(4px);
+            p {
+                margin: 18px 0;
+                font-family: 'Open Sans', sans-serif;
+                font-size: 16px;
+                color: #686868;
+                text-align: center;
+                a {
+                    border-bottom: thin dotted #0088cc;
+                    &:hover { text-decoration: none; }
+                }
+            }
         }
     }
     .change_view_container{
@@ -1628,29 +1642,51 @@ TODO: retire this
         .profile_summary {
             margin-bottom: 20px;
             background: #f7f7f7;
+            border: thin solid #E7E6E6;
+            padding: 4px 30px;
+            .border-radius(4px);
             p {
                 margin: 18px 0;
                 font-family: 'Open Sans', sans-serif;
                 font-size: 15px;
                 color: #72bddf;
-                padding-left: 30px;
                 span.big {
                     font-size: 24px;
                     line-height: 24px;
                     color: #5c6169;
                 }
+                &:before {
+                    content: '';
+                    display: inline-block;
+                    width: 16px;
+                    height: 16px;
+                    margin-right: 14px;
+                }
                 &.query-duration-roundtrip {
-
+                    text-align: left;
+                    &:before { background: left center no-repeat url('images/query_round_trip-icon.png'); }
                 }
                 &.query-duration-server {
+                    text-align: center;
+                    &:before { background: left center no-repeat url('images/query_server_time-icon.png'); }
                 }
                 &.query-tasks {
+                    text-align: right;
+                    &:before { background: left center no-repeat url('images/query_shard_access-icon.png'); }
                 }
             }
         }
         .copy_profile{
             float: right;
-            margin-right: 12px;
+            &:after {
+                content: '';
+                display: block;
+                float: left;
+                width: 16px;
+                height: 16px;
+                margin-right: 9px;
+                background: url('images/copy_to_clipboard_16x16.png') left center no-repeat;
+            }
             &.zeroclipboard-is-hover{
                 .box-shadow(inset 0 0 1px 1px #fff);
                 .background-image(linear-gradient(rgba(255,255,255,0.96), rgba(255,255,255,0.96)),linear-gradient(bottom, rgba(51,51,51,.23) 0%, rgba(255,255,255,.23) 100%));
