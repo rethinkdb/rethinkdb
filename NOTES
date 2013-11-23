@@ -20,7 +20,7 @@ highlight number three.
   * Optimized insert performance (#1559)
   * Added support for sending data back as JSON, improving driver performance (#1571)
   * Backtraces now span coroutine boundaries (#1602)
-* Command-line
+* Command line
   * Added a progress bar to `rethinkdb import` and `rethinkdb export` (#1415)
 * ReQL
   * Added query profiling, enabled by passing `profile=True` to `run` (#175)
@@ -35,7 +35,7 @@ highlight number three.
   * Changed the installation procedure for using the C++ protobuf implementation (#1394)
   * Improved the streaming logic (#1364)
 * JavaScript driver
-  * Changed the installation procedure for using the C++ protobuf implementation (#1172)
+  * Changed the installation procedure for using the C++ protobuf implemen1tation (#1172)
   * Improved the streaming logic (#1364)
 * Packaging
   * Made the version more explicit in the OS X package (#1413)
