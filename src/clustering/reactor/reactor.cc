@@ -185,16 +185,23 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
     store_view_t<protocol_t> *store_view = svs_subview->get_store(cpu_shard_number);
     typename protocol_t::region_t cpu_sharded_region = region_intersection(region, protocol_t::cpu_sharding_subspace(cpu_shard_number, svs_subview->num_stores()));
 
+    blueprint_t<protocol_t> bp =
+        role->blueprint.get_watchable()->get();
+    guarantee(std_contains(bp.failover, region));
+    bool failover = bp.failover[region];
+
     switch (role->role) {
     case blueprint_role_t::PRIMARY:
-        be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
-            primary_type_t::MAIN, interruptor);
+        if (failover) {
+            be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
+                interruptor);
+        } else {
+            be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
+                primary_type_t::MAIN, interruptor);
+        }
         break;
     case blueprint_role_t::VICEPRIMARY: {
-        blueprint_t<protocol_t> bp =
-        role->blueprint.get_watchable()->get();
-        guarantee(std_contains(bp.failover, region));
-        if (bp.failover[region]) {
+        if (failover) {
             /* Failover mode, that means VICEPRIMARY acts as PRIMARY. */
             be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
                 primary_type_t::VICE, interruptor);

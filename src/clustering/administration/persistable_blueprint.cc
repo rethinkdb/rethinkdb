@@ -60,6 +60,7 @@ template <class protocol_t>
 json_adapter_if_t::json_adapter_map_t get_json_subfields(persistable_blueprint_t<protocol_t> *target) {
     json_adapter_if_t::json_adapter_map_t res;
     res["peers_roles"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename persistable_blueprint_t<protocol_t>::role_map_t>(&target->machines_roles));
+    res["failover"] = boost::shared_ptr<json_adapter_if_t>(new json_adapter_t<typename persistable_blueprint_t<protocol_t>::failover_map_t>(&target->failover));
     return  res;
 }
 

@@ -49,7 +49,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(primary_type_t, int8_t, primary_type_t::MA
 template <class protocol_t>
 class primary_when_safe_t {
 public:
-    primary_when_safe_t() { }
+    primary_when_safe_t()
+        : type(primary_type_t::MAIN) { }
 
     explicit primary_when_safe_t(
         const std::vector<backfill_location_t> &_backfills_waited_on, primary_type_t _t)
@@ -78,7 +79,8 @@ public:
           master(_master), direct_reader(_direct_reader), type(_t)
     { }
 
-    primary_t() { }
+    primary_t()
+        : type(primary_type_t::MAIN) { }
 
     broadcaster_business_card_t<protocol_t> broadcaster;
 
