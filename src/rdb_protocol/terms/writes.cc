@@ -50,6 +50,7 @@ public:
 private:
     void maybe_generate_key(counted_t<table_t> tbl,
                             std::vector<std::string> *generated_keys_out,
+                            size_t *keys_skipped_out,
                             counted_t<const datum_t> *datum_out) {
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
@@ -58,7 +59,11 @@ private:
             bool conflict = d.add(tbl->get_pkey(), keyd);
             r_sanity_check(!conflict);
             *datum_out = (*datum_out)->merge(d.to_counted(), pure_merge);
-            generated_keys_out->push_back(key);
+            if (generated_keys_out->size() < array_size_limit()) {
+                generated_keys_out->push_back(key);
+            } else {
+                *keys_skipped_out += 1;
+            }
         }
     }
 
@@ -75,13 +80,14 @@ private:
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
         std::vector<std::string> generated_keys;
+        size_t keys_skipped = 0;
         counted_t<val_t> v1 = arg(env, 1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             std::vector<counted_t<const datum_t> > datums;
             datums.push_back(v1->as_datum());
             if (datums[0]->get_type() == datum_t::R_OBJECT) {
                 try {
-                    maybe_generate_key(t, &generated_keys, &datums[0]);
+                    maybe_generate_key(t, &generated_keys, &keys_skipped, &datums[0]);
                 } catch (const base_exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
@@ -109,7 +115,7 @@ private:
 
                 for (auto it = datums.begin(); it != datums.end(); ++it) {
                     try {
-                        maybe_generate_key(t, &generated_keys, &*it);
+                        maybe_generate_key(t, &generated_keys, &keys_skipped, &*it);
                     } catch (const base_exc_t &) {
                         // We just ignore it, the same error will be handled in
                         // `replace`.  TODO: that solution sucks.
@@ -132,6 +138,19 @@ private:
             UNUSED bool b = d.add("generated_keys",
                                   make_counted<datum_t>(std::move(genkeys)));
             stats = stats->merge(d.to_counted(), pure_merge);
+        }
+
+        if (keys_skipped > 0) {
+            std::vector<counted_t<const datum_t> > warnings;
+            warnings.push_back(
+                make_counted<const datum_t>(
+                    strprintf("Too many generated keys (%zu), array truncated to %zu.",
+                              keys_skipped + generated_keys.size(),
+                              generated_keys.size())));
+            datum_ptr_t d(datum_t::R_OBJECT);
+            UNUSED bool b = d.add("warnings",
+                                  make_counted<const datum_t>(std::move(warnings)));
+            stats = stats->merge(d.to_counted(), stats_merge);
         }
 
         return new_val(stats);

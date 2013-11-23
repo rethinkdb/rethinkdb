@@ -188,7 +188,7 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
             }
 
             rcheck_datum(
-                (items.size() + new_items.size()) < array_size_limit(),
+                (items.size() + new_items.size()) <= array_size_limit(),
                 base_exc_t::GENERIC,
                 strprintf("Too many rows (> %zu) with the same "
                           "truncated key for index `%s`.  "
@@ -251,7 +251,7 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
                 res.push_back(std::move(items[items_index].data));
 
                 rcheck_datum(
-                    res.size() < array_size_limit(), base_exc_t::GENERIC,
+                    res.size() <= array_size_limit(), base_exc_t::GENERIC,
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
                               array_size_limit(),
