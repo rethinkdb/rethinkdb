@@ -35,7 +35,7 @@ and many enhancements that improve ease and robustness of operation.
   * Changed the installation procedure for using the C++ protobuf implementation (#1394)
   * Improved the streaming logic (#1364)
 * JavaScript driver
-  * Changed the installation procedure for using the C++ protobuf implemen1tation (#1172)
+  * Changed the installation procedure for using the C++ protobuf implementation (#1172)
   * Improved the streaming logic (#1364)
 * Packaging
   * Made the version more explicit in the OS X package (#1413)
