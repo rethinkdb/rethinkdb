@@ -101,8 +101,8 @@ tests:
 # notice this test is timing based, if it's failing then there's a good chance
 # the problem is just that the index creation finished before we could poll its
 # status.
-  - py: tbl2.index_status().map(lambda x:x["blocks_remaining"] < x["blocks_total"])
-    rb: tbl2.index_status().map{|x| x["blocks_remaining"] < x["blocks_total"]}
+  - py: tbl2.index_status().map(lambda x:x["blocks_processed"] < x["blocks_total"])
+    rb: tbl2.index_status().map{|x| x["blocks_processed"] < x["blocks_total"]}
     js: tbl2.index_status().map(function (x) { return x("blocks_"+"remaining").lt(x("blocks_"+"total")); })
     ot: [true, true]
 
@@ -114,8 +114,8 @@ tests:
   - cd: tbl2.index_create("quux")
     ot: ({'created':1})
 
-  - py: tbl2.index_status("quux").do(lambda x:(x[0]["index"] == "quux") & (x[0]["blocks_remaining"] < x[0]["blocks_total"]))
-    rb: tbl2.index_status("quux").do{|x| x[0]["index"].eq("quux") & (x[0]["blocks_remaining"] < x[0]["blocks_total"])}
+  - py: tbl2.index_status("quux").do(lambda x:(x[0]["index"] == "quux") & (x[0]["blocks_processed"] < x[0]["blocks_total"]))
+    rb: tbl2.index_status("quux").do{|x| x[0]["index"].eq("quux") & (x[0]["blocks_processed"] < x[0]["blocks_total"])}
     js: tbl2.index_status("quux").do(function (x) { return x.nth(0)("index").eq("quux").and(x.nth(0)("blocks_"+"remaining").lt(x.nth(0)("blocks_"+"total"))); })
     ot: true
 
