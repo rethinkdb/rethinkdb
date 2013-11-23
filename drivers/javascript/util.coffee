@@ -1,4 +1,5 @@
 err = require('./errors')
+pb = require('./protobuf')
 
 # Function wrapper that enforces that the function is
 # called with the correct number of arguments
@@ -38,3 +39,67 @@ module.exports.toArrayBuffer = (node_buffer) ->
     for value,i in node_buffer
         arr[i] = value
     return arr.buffer
+
+deconstructDatum = (datum, opts) ->
+    pb.DatumTypeSwitch(datum, {
+        "R_JSON": =>
+            JSON.parse(datum.r_str)
+       ,"R_NULL": =>
+            null
+       ,"R_BOOL": =>
+            datum.r_bool
+       ,"R_NUM": =>
+            datum.r_num
+       ,"R_STR": =>
+            datum.r_str
+       ,"R_ARRAY": =>
+            deconstructDatum(dt, opts) for dt in datum.r_array
+       ,"R_OBJECT": =>
+            obj = {}
+            for pair in datum.r_object
+                obj[pair.key] = deconstructDatum(pair.val, opts)
+
+            # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
+            # second layer of type switching here on the obfuscated field "$reql_type$"
+            switch obj['$reql_type$']
+                when 'TIME'
+                    switch opts.timeFormat
+                        # Default is native
+                        when 'native', undefined
+                            if not obj['epoch_time']?
+                                throw new err.RqlDriverError "pseudo-type TIME #{obj} object missing expected field 'epoch_time'."
+
+                            # We ignore the timezone field of the pseudo-type TIME object. JS dates do not support timezones.
+                            # By converting to a native date object we are intentionally throwing out timezone information.
+
+                            # field "epoch_time" is in seconds but the Date constructor expects milliseconds
+                            (new Date(obj['epoch_time']*1000))
+                        when 'raw'
+                            # Just return the raw (`{'$reql_type$'...}`) object
+                            obj
+                        else
+                            throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
+                else
+                    # Regular object or unknown pseudo type
+                    obj
+        },
+            => throw new err.RqlDriverError "Unknown Datum type"
+        )
+
+mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
+
+mkSeq = (response, opts) -> (deconstructDatum(res, opts) for res in response.response)
+
+mkErr = (ErrClass, response, root) ->
+        msg = mkAtom response
+        bt = for frame in response.backtrace.frames
+                if frame.type is "POS"
+                    parseInt frame.pos
+                else
+                    frame.opt
+        new ErrClass msg, root, bt
+
+module.exports.deconstructDatum = deconstructDatum
+module.exports.mkAtom = mkAtom
+module.exports.mkSeq = mkSeq
+module.exports.mkErr = mkErr

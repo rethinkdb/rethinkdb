@@ -175,7 +175,7 @@ private:
                     break;
                 }
                 std::move(data.begin(), data.end(), std::back_inserter(to_sort));
-                rcheck(to_sort.size() < array_size_limit(), base_exc_t::GENERIC,
+                rcheck(to_sort.size() <= array_size_limit(), base_exc_t::GENERIC,
                        strprintf("Array over size limit %zu.", to_sort.size()).c_str());
             }
             profile::sampler_t sampler("Sorting in-memory.", env->env->trace);
