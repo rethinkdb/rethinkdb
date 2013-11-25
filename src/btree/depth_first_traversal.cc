@@ -63,7 +63,10 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
     }
 }
 
-bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transaction,
+bool btree_depth_first_traversal(btree_slice_t *slice,
+#if !SLICE_ALT
+                                 transaction_t *transaction,
+#endif
                                  counted_t<counted_buf_lock_t> block,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
@@ -99,7 +102,11 @@ bool btree_depth_first_traversal(btree_slice_t *slice, transaction_t *transactio
                                                         rwi_read);
 #endif
             }
-            if (!btree_depth_first_traversal(slice, transaction, std::move(lock),
+            if (!btree_depth_first_traversal(slice,
+#if !SLICE_ALT
+                                             transaction,
+#endif
+                                             std::move(lock),
                                              range, cb, direction)) {
                 return false;
             }
