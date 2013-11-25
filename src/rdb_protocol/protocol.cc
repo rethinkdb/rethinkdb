@@ -1904,8 +1904,6 @@ private:
         cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
                                               sindex_block_id, &dummy_interruptor);
-        store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
-                                              sindex_block_id, &dummy_interruptor);
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
