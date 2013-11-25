@@ -190,7 +190,6 @@ public:
                            read_response_t *response,
                            btree_slice_t *btree,
                            superblock_t *superblock,
-                           read_token_pair_t *token,
                            signal_t *interruptor);
 #else
         void protocol_read(const read_t &read,
@@ -208,7 +207,6 @@ public:
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
                             scoped_ptr_t<superblock_t> *superblock,
-                            write_token_pair_t *token,
                             signal_t *interruptor);
 #else
         void protocol_write(const write_t &write,
@@ -247,7 +245,9 @@ public:
                                        transaction_t *txn,
 #endif
                                        superblock_t *superblock,
+#if !SLICE_ALT
                                        write_token_pair_t *token_pair,
+#endif
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 
@@ -257,7 +257,9 @@ public:
                                  transaction_t *txn,
 #endif
                                  superblock_t *superblock,
+#if !SLICE_ALT
                                  write_token_pair_t *token_pair,
+#endif
                                  signal_t *interruptor);
     };
 

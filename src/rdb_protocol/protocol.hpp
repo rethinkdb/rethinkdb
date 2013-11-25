@@ -822,7 +822,9 @@ struct rdb_protocol_t {
                            transaction_t *txn,
 #endif
                            superblock_t *superblock,
+#if !SLICE_ALT
                            read_token_pair_t *token_pair,
+#endif
                            signal_t *interruptor);
 
         friend struct write_visitor_t;
@@ -834,7 +836,9 @@ struct rdb_protocol_t {
                             transaction_t *txn,
 #endif
                             scoped_ptr_t<superblock_t> *superblock,
+#if !SLICE_ALT
                             write_token_pair_t *token_pair,
+#endif
                             signal_t *interruptor);
 
 #if SLICE_ALT
@@ -863,7 +867,9 @@ struct rdb_protocol_t {
                                        transaction_t *txn,
 #endif
                                        superblock_t *superblock,
+#if !SLICE_ALT
                                        write_token_pair_t *token_pair,
+#endif
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 
@@ -873,7 +879,9 @@ struct rdb_protocol_t {
                                  transaction_t *txn,
 #endif
                                  superblock_t *superblock,
+#if !SLICE_ALT
                                  write_token_pair_t *token_pair,
+#endif
                                  signal_t *interruptor);
         context_t *ctx;
     };

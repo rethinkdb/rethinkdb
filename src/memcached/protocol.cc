@@ -507,7 +507,6 @@ void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
                             superblock_t *superblock,
-                            UNUSED read_token_pair_t *token_pair,  // RSI: This is unused!
                             UNUSED signal_t *interruptor) {
 #else
 void store_t::protocol_read(const read_t &read,
@@ -627,9 +626,7 @@ void store_t::protocol_write(const write_t &write,
                              transaction_t *txn,
 #endif
                              scoped_ptr_t<superblock_t> *superblock,
-#if SLICE_ALT
-                             UNUSED write_token_pair_t *token_pair,  // RSI: unused!
-#else
+#if !SLICE_ALT
                              write_token_pair_t *token_pair,
 #endif
                              UNUSED signal_t *interruptor) {
@@ -838,9 +835,7 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         transaction_t *txn,
 #endif
                                         superblock_t *superblock,
-#if SLICE_ALT
-                                        UNUSED write_token_pair_t *token_pair,  // RSI: unused!
-#else
+#if !SLICE_ALT
                                         write_token_pair_t *token_pair,
 #endif
                                         signal_t *interruptor,
@@ -882,9 +877,7 @@ void store_t::protocol_reset_data(const region_t& subregion,
                                   transaction_t *txn,
 #endif
                                   superblock_t *superblock,
-#if SLICE_ALT
-                                  UNUSED write_token_pair_t *token_pair,  // RSI: unused!
-#else
+#if !SLICE_ALT
                                   write_token_pair_t *token_pair,
 #endif
                                   signal_t *interruptor) {

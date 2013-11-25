@@ -1546,7 +1546,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                        transaction_t *_txn,
 #endif
                        superblock_t *_superblock,
+#if !SLICE_ALT
                        read_token_pair_t *_token_pair,
+#endif
                        rdb_protocol_t::context_t *ctx,
                        read_response_t *_response,
                        profile_bool_t profile,
@@ -1558,7 +1560,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         txn(_txn),
 #endif
         superblock(_superblock),
+#if !SLICE_ALT
         token_pair(_token_pair),
+#endif
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->ns_repo,
@@ -1594,7 +1598,9 @@ private:
     transaction_t *txn;
 #endif
     superblock_t *superblock;
+#if !SLICE_ALT
     read_token_pair_t *token_pair;
+#endif
     wait_any_t interruptor;
     ql::env_t ql_env;
 
@@ -1608,14 +1614,19 @@ void store_t::protocol_read(const read_t &read,
                             transaction_t *txn,
 #endif
                             superblock_t *superblock,
+#if !SLICE_ALT
                             read_token_pair_t *token_pair,
+#endif
                             signal_t *interruptor) {
     rdb_read_visitor_t v(
         btree, this,
 #if !SLICE_ALT
         txn,
 #endif
-        superblock, token_pair,
+        superblock,
+#if !SLICE_ALT
+        token_pair,
+#endif
         ctx, response, read.profile, interruptor);
     {
         profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
@@ -1851,23 +1862,27 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     rdb_write_visitor_t(btree_slice_t *_btree,
                         btree_store_t<rdb_protocol_t> *_store,
-#if !SLICE_ALT
+#if SLICE_ALT
+                        alt_txn_t *_txn,
+#else
                         transaction_t *_txn,
 #endif
                         scoped_ptr_t<superblock_t> *_superblock,
+#if !SLICE_ALT
                         write_token_pair_t *_token_pair,
+#endif
                         repli_timestamp_t _timestamp,
                         rdb_protocol_t::context_t *ctx,
                         write_response_t *_response,
                         signal_t *_interruptor) :
         btree(_btree),
         store(_store),
-#if !SLICE_ALT
         txn(_txn),
-#endif
         response(_response),
         superblock(_superblock),
+#if !SLICE_ALT
         token_pair(_token_pair),
+#endif
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
@@ -1879,8 +1894,16 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                &interruptor,
                ctx->machine_id,
                ql::protob_t<Query>()),
-        sindex_block_id((*superblock)->get_sindex_block_id())
-    { }
+        sindex_block_id((*superblock)->get_sindex_block_id()) {
+#if SLICE_ALT
+        // RSI: sindex_block_id is probably an unused field.
+        cond_t dummy_interruptor;
+        store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
+                                              &sindex_block,
+                                              sindex_block_id,
+                                              &dummy_interruptor);
+#endif
+    }
 
     ql::env_t *get_env() {
         return &ql_env;
@@ -1897,6 +1920,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
+#if !SLICE_ALT
         // RSI: In SLICE_ALT move sindex_block to a member variable and create it in
         // the constructor as a child of superblock.
         scoped_ptr_t<buf_lock_t> sindex_block;
@@ -1904,7 +1928,10 @@ private:
         cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
                                               sindex_block_id, &dummy_interruptor);
+#endif
 
+        // RSI: Does this lock_sindex_queue function require us to wait for
+        // sindex_block to become acquired?  Check all its callers.
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
@@ -1913,22 +1940,34 @@ private:
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
+#if SLICE_ALT
+        store->acquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(),
+                                                                     &sindexes);
+#else
         store->acquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
+#endif
         rdb_update_sindexes(sindexes, mod_report, txn);
     }
 
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
-#if !SLICE_ALT
+#if SLICE_ALT
+    alt_txn_t *txn;
+#else
     transaction_t *txn;
 #endif
     write_response_t *response;
     scoped_ptr_t<superblock_t> *superblock;
+#if !SLICE_ALT
     write_token_pair_t *token_pair;
+#endif
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     ql::env_t ql_env;
     block_id_t sindex_block_id;
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+#endif
 };
 
 void store_t::protocol_write(const write_t &write,
@@ -1939,13 +1978,20 @@ void store_t::protocol_write(const write_t &write,
                              transaction_t *txn,
 #endif
                              scoped_ptr_t<superblock_t> *superblock,
+#if !SLICE_ALT
                              write_token_pair_t *token_pair,
+#endif
                              signal_t *interruptor) {
     rdb_write_visitor_t v(btree, this,
-#if !SLICE_ALT
+#if SLICE_ALT
+                          (*superblock)->expose_buf().txn(),
+#else
                           txn,
 #endif
-                          superblock, token_pair,
+                          superblock,
+#if !SLICE_ALT
+                          token_pair,
+#endif
                           timestamp.to_repli_timestamp(), ctx,
                           response, interruptor);
     {
@@ -2017,18 +2063,30 @@ private:
     DISABLE_COPYING(rdb_backfill_callback_impl_t);
 };
 
-static void call_rdb_backfill(int i, btree_slice_t *btree,
-                              const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-                              rdb_backfill_callback_t *callback, transaction_t *txn,
-                              superblock_t *superblock, buf_lock_t *sindex_block,
-                              backfill_progress_t *progress,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void call_rdb_backfill(int i, btree_slice_t *btree,
+                       const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
+                       rdb_backfill_callback_t *callback,
+#if !SLICE_ALT
+                       transaction_t *txn,
+#endif
+                       superblock_t *superblock,
+#if SLICE_ALT
+                       alt_buf_lock_t *sindex_block,
+#else
+                       buf_lock_t *sindex_block,
+#endif
+                       backfill_progress_t *progress,
+                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
     progress->add_constituent(&p_owned);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
-        rdb_backfill(btree, regions[i].first.inner, timestamp, callback, txn, superblock, sindex_block, p, interruptor);
+        rdb_backfill(btree, regions[i].first.inner, timestamp, callback,
+#if !SLICE_ALT
+                     txn,
+#endif
+                     superblock, sindex_block, p, interruptor);
     } catch (const interrupted_exc_t &) {
         /* do nothing; `protocol_send_backfill()` will notice that interruptor
         has been pulsed */
@@ -2038,9 +2096,15 @@ static void call_rdb_backfill(int i, btree_slice_t *btree,
 void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
                                      chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
+#if SLICE_ALT
+                                     alt_buf_lock_t *sindex_block,
+#else
                                      buf_lock_t *sindex_block,
+#endif
                                      btree_slice_t *btree,
+#if !SLICE_ALT
                                      transaction_t *txn,
+#endif
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
                                      THROWS_ONLY(interrupted_exc_t) {
@@ -2049,7 +2113,12 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
     std::vector<std::pair<region_t, state_timestamp_t> > regions(start_point.begin(), start_point.end());
     refcount_superblock_t refcount_wrapper(superblock, regions.size());
     pmap(regions.size(), boost::bind(&call_rdb_backfill, _1,
-        btree, regions, &callback, txn, &refcount_wrapper, sindex_block, progress, interruptor));
+                                     btree, regions, &callback,
+#if !SLICE_ALT
+                                     txn,
+#endif
+                                     &refcount_wrapper, sindex_block, progress,
+                                     interruptor));
 
     /* If interruptor was pulsed, `call_rdb_backfill()` exited silently, so we
     have to check directly. */
@@ -2061,19 +2130,42 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
                                    btree_slice_t *_btree,
+#if SLICE_ALT
+                                   alt_txn_t *_txn,
+#else
                                    transaction_t *_txn,
+#endif
                                    superblock_t *_superblock,
+#if !SLICE_ALT
                                    write_token_pair_t *_token_pair,
+#endif
                                    signal_t *_interruptor) :
-      store(_store), btree(_btree), txn(_txn), superblock(_superblock),
-      token_pair(_token_pair), interruptor(_interruptor),
-      sindex_block_id(superblock->get_sindex_block_id()) { }
+        store(_store), btree(_btree), txn(_txn), superblock(_superblock),
+#if !SLICE_ALT
+        token_pair(_token_pair),
+#endif
+        interruptor(_interruptor),
+        sindex_block_id(superblock->get_sindex_block_id()) {
+#if SLICE_ALT
+        // RSI: Use dummy_interruptor still?  In update_sindexes we can't because we
+        // could end up with inconsistent data.  (Why are we using an interruptor at
+        // all?)
+        cond_t dummy_interruptor;
+        store->acquire_sindex_block_for_write(
+            superblock->expose_buf(),
+            &sindex_block,
+            sindex_block_id, &dummy_interruptor);
+#endif
+    }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
-                   txn, superblock, &response, &mod_report.info,
+#if !SLICE_ALT
+                   txn,
+#endif
+                   superblock, &response, &mod_report.info,
                    static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
@@ -2081,8 +2173,15 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
         range_key_tester_t tester(&delete_range.range);
-        rdb_erase_range(btree, &tester, delete_range.range.inner, txn, superblock,
-                store, token_pair, interruptor);
+        rdb_erase_range(btree, &tester, delete_range.range.inner,
+#if !SLICE_ALT
+                        txn,
+#endif
+                        superblock, store,
+#if !SLICE_ALT
+                        token_pair,
+#endif
+                        interruptor);
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
@@ -2090,41 +2189,72 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         point_write_response_t response;
         rdb_modification_report_t mod_report(bf_atom.key);
         rdb_set(bf_atom.key, bf_atom.value, true,
-                btree, bf_atom.recency, txn, superblock, &response,
+                btree, bf_atom.recency,
+#if !SLICE_ALT
+                txn,
+#endif
+                superblock, &response,
                 &mod_report.info, static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
+#if SLICE_ALT
+        value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
+#else
         value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
+#endif
         rdb_value_deleter_t deleter;
+#if SLICE_ALT
+        scoped_ptr_t<alt_buf_lock_t> sindex_block;
+#else
         scoped_ptr_t<buf_lock_t> sindex_block;
+#endif
         std::set<std::string> created_sindexes;
-        store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, &sindex_block, &created_sindexes, interruptor);
+#if SLICE_ALT
+        store->set_sindexes(s.sindexes, superblock, &sizer, &deleter, &sindex_block,
+                            &created_sindexes, interruptor);
+#else
+        store->set_sindexes(token_pair, s.sindexes,
+                            txn,
+                            superblock, &sizer, &deleter, &sindex_block,
+                            &created_sindexes, interruptor);
+#endif
 
         if (!created_sindexes.empty()) {
             sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
                     created_sindexes,
                     sindex_block.get(),
+#if !SLICE_ALT
                     txn,
+#endif
                     &sindexes);
 
+#if SLICE_ALT
+            rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
+                                                            sindex_block.get());
+#else
             rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
                     sindex_block.get(), txn);
+#endif
         }
     }
 
 private:
     void update_sindexes(rdb_modification_report_t *mod_report) const {
+#if !SLICE_ALT
         scoped_ptr_t<buf_lock_t> sindex_block;
         // Don't allow interruption here, or we may end up with inconsistent data
         cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(
             token_pair, txn, &sindex_block,
             sindex_block_id, &dummy_interruptor);
+#endif
 
+        // RSI: Same comment about lock_sindex_queue having to wait for sindex_block
+        // to be acquired.  (Uh, just have the callee wait?)
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
@@ -2133,42 +2263,82 @@ private:
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
+#if SLICE_ALT
+        store->acquire_post_constructed_sindex_superblocks_for_write(
+                sindex_block.get(), &sindexes);
+#else
         store->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block.get(), txn, &sindexes);
+#endif
         rdb_update_sindexes(sindexes, mod_report, txn);
     }
 
     btree_store_t<rdb_protocol_t> *store;
     btree_slice_t *btree;
+#if SLICE_ALT
+    alt_txn_t *txn;
+#else
     transaction_t *txn;
+#endif
     superblock_t *superblock;
+#if !SLICE_ALT
     write_token_pair_t *token_pair;
+#endif
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
     block_id_t sindex_block_id;
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+#endif
 };
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
+#if !SLICE_ALT
                                         transaction_t *txn,
+#endif
                                         superblock_t *superblock,
+#if !SLICE_ALT
                                         write_token_pair_t *token_pair,
+#endif
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
     with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
-    boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree, txn, superblock, token_pair, interruptor), chunk.val);
+#if SLICE_ALT
+    boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree,
+                                                        superblock->expose_buf().txn(),
+                                                        superblock,
+                                                        interruptor),
+                         chunk.val);
+#else
+    boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree, txn,
+                                                        superblock, token_pair,
+                                                        interruptor), chunk.val);
+#endif
 }
 
 void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
+#if !SLICE_ALT
                                   transaction_t *txn,
+#endif
                                   superblock_t *superblock,
+#if !SLICE_ALT
                                   write_token_pair_t *token_pair,
+#endif
                                   signal_t *interruptor) {
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
-    value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
+    value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
     rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
-    rdb_erase_range(btree, &key_tester, subregion.inner, txn, superblock, this, token_pair, interruptor);
+    rdb_erase_range(btree, &key_tester, subregion.inner,
+#if !SLICE_ALT
+                    txn,
+#endif
+                    superblock, this,
+#if !SLICE_ALT
+                    token_pair,
+#endif
+                    interruptor);
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,

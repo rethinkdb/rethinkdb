@@ -166,8 +166,7 @@ void btree_store_t<protocol_t>::read(
     superblock2.init(superblock.release());
 
 #if SLICE_ALT
-    protocol_read(read, response, btree.get(), superblock2.get(),
-                  token_pair, interruptor);
+    protocol_read(read, response, btree.get(), superblock2.get(), interruptor);
 #else
     protocol_read(read, response, btree.get(), txn.get(), superblock2.get(), token_pair, interruptor);
 #endif
@@ -207,7 +206,7 @@ void btree_store_t<protocol_t>::write(
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
 #if SLICE_ALT
     protocol_write(write, response, timestamp, btree.get(), &superblock,
-                   token_pair, interruptor);
+                   interruptor);
 #else
     protocol_write(write, response, timestamp, btree.get(), txn.get(), &superblock, token_pair, interruptor);
 #endif
@@ -304,7 +303,9 @@ void btree_store_t<protocol_t>::receive_backfill(
                               txn.get(),
 #endif
                               superblock.get(),
+#if !SLICE_ALT
                               token_pair,
+#endif
                               interruptor,
                               chunk);
 }
@@ -366,7 +367,9 @@ void btree_store_t<protocol_t>::reset_data(
                         txn.get(),
 #endif
                         superblock.get(),
+#if !SLICE_ALT
                         token_pair,
+#endif
                         interruptor);
 }
 

@@ -495,7 +495,6 @@ public:
                                typename protocol_t::read_response_t *response,
                                btree_slice_t *btree,
                                superblock_t *superblock,
-                               read_token_pair_t *token_pair,
                                signal_t *interruptor) = 0;
 #else
     virtual void protocol_read(const typename protocol_t::read_t &read,
@@ -513,7 +512,6 @@ public:
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
                                 scoped_ptr_t<superblock_t> *superblock,
-                                write_token_pair_t *token_pair,
                                 signal_t *interruptor) = 0;
 #else
     virtual void protocol_write(const typename protocol_t::write_t &write,
@@ -552,7 +550,9 @@ public:
                                            transaction_t *txn,
 #endif
                                            superblock_t *superblock,
+#if !SLICE_ALT
                                            write_token_pair_t *token_pair,
+#endif
                                            signal_t *interruptor,
                                            const typename protocol_t::backfill_chunk_t &chunk) = 0;
 
@@ -562,7 +562,9 @@ public:
                                      transaction_t *txn,
 #endif
                                      superblock_t *superblock,
+#if !SLICE_ALT
                                      write_token_pair_t *token_pair,
+#endif
                                      signal_t *interruptor) = 0;
 
 #if SLICE_ALT
