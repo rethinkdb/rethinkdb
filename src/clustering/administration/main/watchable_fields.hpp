@@ -60,7 +60,7 @@ private:
 };
 
 // `incremental_field_getter_t` does the same as field_getter_t, except that
-// it is implemented as an incremental lense and operates on a 
+// it is implemented as an incremental lens and operates on a 
 // `change_tracking_map_t` instead of an `std::map`.
 // `inner_field_getter_t` provides a mapping function, which is applied by
 // `incremental_field_getter_t` to every value of a given map. It simply

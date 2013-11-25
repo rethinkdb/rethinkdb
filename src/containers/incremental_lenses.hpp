@@ -106,17 +106,18 @@ public:
         current_out->begin_version();
 
         if (do_init) {
+            // Compute all values
             for (auto it = input.get_inner().begin(); it != input.get_inner().end(); ++it) {
                 current_out->set_value(it->first, inner_lens(it->second));
             }
             anything_changed = true;
         } else {
-            // Update changed peers only
+            // Update changed values only
             for (auto it = input.get_changed_keys().begin(); it != input.get_changed_keys().end(); ++it) {
                 auto input_value_it = input.get_inner().find(*it);
                 auto existing_it = current_out->get_inner().find(*it);
                 if (input_value_it == input.get_inner().end()) {
-                    // The peer was deleted
+                    // The value was deleted
                     if (existing_it != current_out->get_inner().end()) {
                         current_out->delete_value(*it);
                         anything_changed = true;
@@ -124,7 +125,7 @@ public:
                 } else {
                     // This is to determine if the value has changed or not
                     inner_result_type old_value;
-                    bool has_old_value = false;
+                    bool has_old_value = false;p
                     if (existing_it == current_out->get_inner().end()) {
                         // New value
                         anything_changed = true;
@@ -132,11 +133,11 @@ public:
                         // Changed value. We must check for changes later. Keep a copy
                         // of the old value around.
                         // We can use move here because we are going to overwrite it anyways
-                        old_value = existing_it->second;
+                        old_value = std::move(existing_it->second);
                         has_old_value = true;
                     }
 
-                    // The peer was added or changed, (re-)compute it.
+                    // The value was added or changed, (re-)compute it.
                     current_out->set_value(*it, inner_lens(input_value_it->second));
 
                     if (has_old_value) {

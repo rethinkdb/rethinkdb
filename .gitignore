@@ -44,4 +44,3 @@ drivers/python/rethinkdb/ql2.pb.h
 drivers/python/rethinkdb_pbcpp.so
 test_results.*
 drivers/python/rethinkdb/docs.py
-/src/nbproject/private/
