@@ -324,18 +324,45 @@ void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::ve
 }
 #endif
 
+#if SLICE_ALT
+void set_superblock_metainfo(alt_buf_lock_t *superblock,
+                             const std::vector<char> &key,
+                             const std::vector<char> &value) {
+#else
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value) {
+#endif
+#if SLICE_ALT
+    // RSI: Check this an all alt_buf_write_t lifetimes.
+    alt_buf_write_t write(superblock);
+    btree_superblock_t *data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
+#else
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
+#endif
 
+#if SLICE_ALT
+    alt::blob_t blob(superblock->cache()->get_block_size(),
+                     data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+#else
     blob_t blob(txn->get_cache()->get_block_size(),
                 data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
+#endif
 
     std::vector<char> metainfo;
 
     {
+#if SLICE_ALT
+        alt::blob_acq_t acq;
+#else
         blob_acq_t acq;
+#endif
         buffer_group_t group;
+#if SLICE_ALT
+        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
+                        &group, &acq);
+#else
         blob.expose_all(txn, rwi_read, &group, &acq);
+#endif
 
         int64_t group_size = group.get_size();
         metainfo.resize(group_size);
@@ -346,7 +373,11 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
+#if SLICE_ALT
+    blob.clear(alt_buf_parent_t(superblock));
+#else
     blob.clear(txn);
+#endif
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -377,12 +408,23 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         metainfo.insert(metainfo.end(), value.begin(), value.end());
     }
 
+#if SLICE_ALT
+    blob.append_region(alt_buf_parent_t(superblock), metainfo.size());
+#else
     blob.append_region(txn, metainfo.size());
+#endif
 
     {
+#if SLICE_ALT
+        alt::blob_acq_t acq;
+        buffer_group_t write_group;
+        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::write,
+                        &write_group, &acq);
+#else
         blob_acq_t acq;
         buffer_group_t write_group;
         blob.expose_all(txn, rwi_write, &write_group, &acq);
+#endif
 
         buffer_group_t group_cpy;
         group_cpy.add_buffer(metainfo.size(), metainfo.data());
