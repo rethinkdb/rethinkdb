@@ -180,19 +180,17 @@ void splitter_t::give_splits(
     size_t n_parallel_jobs, const event_log_t &event_log) {
     n_parallel_jobs_ = n_parallel_jobs;
     event_log_ = event_log;
-    received_splits_ = true;
 }
 
 splitter_t::~splitter_t() {
     if (parent_) {
-        guarantee(received_splits_);
         parent_->stop_split(n_parallel_jobs_, event_log_);
     }
 }
 
 void splitter_t::init(trace_t *parent) {
     parent_ = parent;
-    received_splits_ = false;
+    n_parallel_jobs_ = 0;
 
     if (parent_) {
         parent_->start_split();
