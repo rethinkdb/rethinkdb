@@ -96,17 +96,27 @@ enum return_vals_t {
 struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
+#if !SLICE_ALT
                  transaction_t *_txn,
+#endif
                  const std::string *_primary_key)
-        : slice(_slice), timestamp(_timestamp), txn(_txn),
+        : slice(_slice), timestamp(_timestamp),
+#if !SLICE_ALT
+          txn(_txn),
+#endif
           primary_key(_primary_key) {
         guarantee(slice != NULL);
+#if !SLICE_ALT
         guarantee(txn != NULL);
+#endif
         guarantee(primary_key != NULL);
     }
     btree_slice_t *const slice;
     const repli_timestamp_t timestamp;
+#if !SLICE_ALT
     transaction_t *const txn;
+#endif
+    // RSI: Could we use std::move here or something.
     const std::string *primary_key;
 };
 
@@ -119,6 +129,7 @@ struct btree_loc_info_t {
         guarantee(superblock != NULL);
         guarantee(key != NULL);
     }
+    // RSI: Could we use std::move here or something.
     const btree_info_t *const btree;
     superblock_t *const superblock;
     const store_key_t *const key;
