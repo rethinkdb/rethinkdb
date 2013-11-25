@@ -76,7 +76,8 @@ format_tag = {
     'h1': lambda text: "\n" + text + "\n",
     'ul': lambda text: "\n" + text + "\n",
     'li': lambda text: fill(text, initial_indent = " * ", subsequent_indent = "   "),
-    'strong': lambda text: "*" + text + "*"
+    'strong': lambda text: "*" + text + "*",
+    'em': lambda text: text,
 }
 
 nowrap_tags = ['ul', 'br']
