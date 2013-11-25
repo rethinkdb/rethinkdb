@@ -31,6 +31,8 @@
 // Ignore clang errors for ql macros
 #pragma GCC diagnostic ignored "-Wshadow"
 
+using namespace alt;  // RSI
+
 typedef rdb_protocol_details::backfill_atom_t rdb_backfill_atom_t;
 typedef rdb_protocol_details::range_key_tester_t range_key_tester_t;
 
@@ -201,7 +203,11 @@ void bring_sindexes_up_to_date(
     }
 
     std::map<std::string, secondary_index_t> sindexes;
+#if SLICE_ALT
+    store->get_sindexes(sindex_block, &sindexes);
+#else
     store->get_sindexes(sindex_block, txn, &sindexes);
+#endif
     std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
 
     for (auto it = sindexes_to_bring_up_to_date.begin();
@@ -221,7 +227,11 @@ void bring_sindexes_up_to_date(
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
 public:
     apply_sindex_change_visitor_t(const sindex_access_vector_t *sindexes,
+#if SLICE_ALT
+            alt_txn_t *txn,
+#else
             transaction_t *txn,
+#endif
             signal_t *interruptor)
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
@@ -229,12 +239,20 @@ public:
     }
 
     void operator()(const rdb_erase_range_report_t &erase_range_report) const {
+#if SLICE_ALT
+        rdb_erase_range_sindexes(*sindexes_, &erase_range_report, interruptor_);
+#else
         rdb_erase_range_sindexes(*sindexes_, &erase_range_report, txn_, interruptor_);
+#endif
     }
 
 private:
     const sindex_access_vector_t *sindexes_;
+#if SLICE_ALT
+    alt_txn_t *txn_;
+#else
     transaction_t *txn_;
+#endif
     signal_t *interruptor_;
 };
 
@@ -262,13 +280,19 @@ void post_construct_and_drain_queue(
             write_token_pair_t token_pair;
             store->new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+            scoped_ptr_t<alt_txn_t> queue_txn;
+#else
             scoped_ptr_t<transaction_t> queue_txn;
+#endif
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
+#if !SLICE_ALT
             // If we get interrupted, post-construction will happen later, no need to
             //  guarantee that we touch the sindex tree now
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
                 destroyer(&token_pair.sindex_write_token);
+#endif
 
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
@@ -285,21 +309,37 @@ void post_construct_and_drain_queue(
             // Let's get the information we need from the superblock and then
             // release it immediately.
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
+#if !SLICE_ALT
             queue_superblock->release();
+#endif
 
+#if SLICE_ALT
+            scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
+#else
             scoped_ptr_t<buf_lock_t> queue_sindex_block;
+#endif
             store->acquire_sindex_block_for_write(
+#if SLICE_ALT
+                queue_superblock->expose_buf(),
+#else
                 &token_pair,
                 queue_txn.get(),
+#endif
                 &queue_sindex_block,
                 sindex_block_id,
                 lock.get_drain_signal());
+
+#if SLICE_ALT
+            queue_superblock->release();
+#endif
 
             sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
                     sindexes_to_bring_up_to_date,
                     queue_sindex_block.get(),
+#if !SLICE_ALT
                     queue_txn.get(),
+#endif
                     &sindexes);
 
             if (sindexes.empty()) {
@@ -325,7 +365,11 @@ void post_construct_and_drain_queue(
             if (mod_queue->size() == 0) {
                 for (auto it = sindexes_to_bring_up_to_date.begin();
                      it != sindexes_to_bring_up_to_date.end(); ++it) {
+#if SLICE_ALT
+                    store->mark_index_up_to_date(*it, queue_sindex_block.get());
+#else
                     store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
+#endif
                 }
                 store->deregister_sindex_queue(mod_queue.get(), &acq);
                 return;
@@ -347,13 +391,19 @@ void post_construct_and_drain_queue(
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
 
+#if SLICE_ALT
+        scoped_ptr_t<alt_txn_t> queue_txn;
+#else
         scoped_ptr_t<transaction_t> queue_txn;
+#endif
         scoped_ptr_t<real_superblock_t> queue_superblock;
 
+#if !SLICE_ALT
         // If we get interrupted, post-construction will happen later, no need to
         //  guarantee that we touch the sindex tree now
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
             destroyer(&token_pair.sindex_write_token);
+#endif
 
         store->acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
@@ -368,15 +418,29 @@ void post_construct_and_drain_queue(
         // Let's get the information we need from the superblock and then
         // release it immediately.
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
+#if !SLICE_ALT
         queue_superblock->release();
+#endif
 
+#if SLICE_ALT
+        scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
+#else
         scoped_ptr_t<buf_lock_t> queue_sindex_block;
+#endif
         store->acquire_sindex_block_for_write(
+#if SLICE_ALT
+            queue_superblock->expose_buf(),
+#else
             &token_pair,
             queue_txn.get(),
+#endif
             &queue_sindex_block,
             sindex_block_id,
             lock.get_drain_signal());
+
+#if SLICE_ALT
+        queue_superblock->release();
+#endif
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(queue_sindex_block.get(), &acq);
@@ -1251,18 +1315,43 @@ store_t::store_t(serializer_t *serializer,
     read_token_pair_t token_pair;
     new_read_token_pair(&token_pair);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_txn_t> txn;
+#else
     scoped_ptr_t<transaction_t> txn;
+#endif
     scoped_ptr_t<real_superblock_t> superblock;
+#if SLICE_ALT
+    acquire_superblock_for_read(&token_pair.main_read_token, &txn,
+                                &superblock, &dummy_interruptor, false);
+#else
     acquire_superblock_for_read(rwi_read, &token_pair.main_read_token, &txn,
                                 &superblock, &dummy_interruptor, false);
+#endif
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    acquire_sindex_block_for_read(superblock->expose_buf(),
+                                  &sindex_block,
+                                  superblock->get_sindex_block_id(),
+                                  &dummy_interruptor);
+#else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
                                   superblock->get_sindex_block_id(),
                                   &dummy_interruptor);
+#endif
+
+    // RSI: Should we not release the superblock here or something?  Maybe before we
+    // didn't care because it was snapshotted?  But we do now.  Check everywhere for
+    // code that holds on to blocks excessively.
 
     std::map<std::string, secondary_index_t> sindexes;
+#if SLICE_ALT
+    get_secondary_indexes(sindex_block.get(), &sindexes);
+#else
     get_secondary_indexes(txn.get(), sindex_block.get(), &sindexes);
+#endif
 
     std::set<std::string> sindexes_to_update;
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -1272,8 +1361,13 @@ store_t::store_t(serializer_t *serializer,
     }
 
     if (!sindexes_to_update.empty()) {
+#if SLICE_ALT
+        rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
+                                                        sindex_block.get());
+#else
         rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
                                                         sindex_block.get(), txn.get());
+#endif
     }
 }
 
@@ -1287,7 +1381,12 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
+#if SLICE_ALT
+        // RSI: Do we use txn in this class at all?
+        rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
+#else
         rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
+#endif
     }
 
     void operator()(const rget_read_t &rget) {
@@ -1301,17 +1400,29 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (!rget.sindex) {
             // Normal rget
+#if SLICE_ALT
+            rdb_rget_slice(btree, rget.region.inner, superblock,
+                           &ql_env, rget.batchspec, rget.transform, rget.terminal,
+                           rget.sorting, res);
+#else
             rdb_rget_slice(btree, rget.region.inner, txn, superblock,
                            &ql_env, rget.batchspec, rget.transform, rget.terminal,
                            rget.sorting, res);
+#endif
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
 
             try {
-                bool found = store->acquire_sindex_superblock_for_read(rget.sindex->id,
-                        superblock->get_sindex_block_id(), token_pair,
-                        txn, &sindex_sb, &sindex_mapping_data, &interruptor);
+                bool found = store->acquire_sindex_superblock_for_read(
+                        rget.sindex->id,
+                        superblock->get_sindex_block_id(),
+#if SLICE_ALT
+                        superblock->expose_buf(),
+#else
+                        token_pair, txn,
+#endif
+                        &sindex_sb, &sindex_mapping_data, &interruptor);
 
                 if (!found) {
                     res->result = ql::datum_exc_t(
@@ -1345,7 +1456,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
                 rget.sindex->original_range, rget.sindex->region,
-                txn, sindex_sb.get(), &ql_env, rget.batchspec, rget.transform,
+#if !SLICE_ALT
+                txn,
+#endif
+                sindex_sb.get(), &ql_env, rget.batchspec, rget.transform,
                 rget.terminal, rget.region.inner, rget.sorting,
                 sindex_mapping, multi_bool, res);
         }
@@ -1354,7 +1468,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const distribution_read_t &dg) {
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
-        rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left, txn, superblock, res);
+        rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left,
+#if !SLICE_ALT
+                             txn,
+#endif
+                             superblock, res);
         for (std::map<store_key_t, int64_t>::iterator it = res->key_counts.begin(); it != res->key_counts.end(); ) {
             if (!dg.region.inner.contains_key(store_key_t(it->first))) {
                 std::map<store_key_t, int64_t>::iterator tmp = it;
@@ -1378,7 +1496,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
         std::map<std::string, secondary_index_t> sindexes;
+#if SLICE_ALT
+        store->get_sindexes(superblock, &sindexes, &interruptor);
+#else
         store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
+#endif
 
         res->sindexes.reserve(sindexes.size());
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -1391,7 +1513,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
         std::map<std::string, secondary_index_t> sindexes;
+#if SLICE_ALT
+        store->get_sindexes(superblock, &sindexes, &interruptor);
+#else
         store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
+#endif
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             if (std_contains(sindex_status.sindexes, it->first) ||
@@ -1416,7 +1542,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     rdb_read_visitor_t(btree_slice_t *_btree,
                        btree_store_t<rdb_protocol_t> *_store,
+#if !SLICE_ALT
                        transaction_t *_txn,
+#endif
                        superblock_t *_superblock,
                        read_token_pair_t *_token_pair,
                        rdb_protocol_t::context_t *ctx,
@@ -1426,7 +1554,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response(_response),
         btree(_btree),
         store(_store),
+#if !SLICE_ALT
         txn(_txn),
+#endif
         superblock(_superblock),
         token_pair(_token_pair),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
@@ -1460,22 +1590,32 @@ private:
     read_response_t *response;
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
+#if !SLICE_ALT
     transaction_t *txn;
+#endif
     superblock_t *superblock;
     read_token_pair_t *token_pair;
     wait_any_t interruptor;
     ql::env_t ql_env;
+
+    DISABLE_COPYING(rdb_read_visitor_t);
 };
 
 void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
+#if !SLICE_ALT
                             transaction_t *txn,
+#endif
                             superblock_t *superblock,
                             read_token_pair_t *token_pair,
                             signal_t *interruptor) {
     rdb_read_visitor_t v(
-        btree, this, txn, superblock, token_pair,
+        btree, this,
+#if !SLICE_ALT
+        txn,
+#endif
+        superblock, token_pair,
         ctx, response, read.profile, interruptor);
     {
         profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
@@ -1532,28 +1672,48 @@ private:
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
+#if !SLICE_ALT
         try {
+#endif
             ql_env.global_optargs.init_optargs(br.optargs);
+#if !SLICE_ALT
         } catch (const interrupted_exc_t &) {
             // Clear the sindex_write_token because we didn't have a chance to use it
             token_pair->sindex_write_token.reset();
             throw;
         }
+#endif
+#if SLICE_ALT
+        rdb_modification_report_cb_t sindex_cb(
+            store, (*superblock)->expose_buf(),
+            (*superblock)->get_sindex_block_id(),
+            auto_drainer_t::lock_t(&store->drainer));
+#else
         rdb_modification_report_cb_t sindex_cb(
             store, token_pair, txn,
             (*superblock)->get_sindex_block_id(),
             auto_drainer_t::lock_t(&store->drainer));
+#endif
         func_replacer_t replacer(&ql_env, br.f, br.return_vals);
         response->response =
             rdb_batched_replace(
-                btree_info_t(btree, timestamp, txn, &br.pkey),
+                btree_info_t(btree, timestamp,
+#if !SLICE_ALT
+                             txn,
+#endif
+                             &br.pkey),
                 superblock, br.keys, &replacer, &sindex_cb,
                 ql_env.trace.get_or_null());
     }
 
     void operator()(const batched_insert_t &bi) {
         rdb_modification_report_cb_t sindex_cb(
-            store, token_pair, txn,
+            store,
+#if SLICE_ALT
+            (*superblock)->expose_buf(),
+#else
+            token_pair, txn,
+#endif
             (*superblock)->get_sindex_block_id(),
             auto_drainer_t::lock_t(&store->drainer));
         datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey, bi.return_vals);
@@ -1575,8 +1735,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             boost::get<point_write_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(w.key);
+#if SLICE_ALT
+        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
+                res, &mod_report.info, ql_env.trace.get_or_null());
+#else
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(),
                 res, &mod_report.info, ql_env.trace.get_or_null());
+#endif
 
         update_sindexes(&mod_report);
     }
@@ -1587,8 +1752,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             boost::get<point_delete_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(d.key);
+#if SLICE_ALT
+        rdb_delete(d.key, btree, timestamp, superblock->get(), res,
+                &mod_report.info, ql_env.trace.get_or_null());
+#else
         rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res,
                 &mod_report.info, ql_env.trace.get_or_null());
+#endif
 
         update_sindexes(&mod_report);
     }
@@ -1639,7 +1809,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
         response->response = res;
     }
-    
+
     void operator()(const sync_t &) {
         response->response = sync_response_t();
 
@@ -1647,14 +1817,16 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
          * write transactions are persisted simply by following them
          * up with another transaction with hard durability.
          */
-        
+
         token_pair->sindex_write_token.reset();
     }
 
 
     rdb_write_visitor_t(btree_slice_t *_btree,
                         btree_store_t<rdb_protocol_t> *_store,
+#if !SLICE_ALT
                         transaction_t *_txn,
+#endif
                         scoped_ptr_t<superblock_t> *_superblock,
                         write_token_pair_t *_token_pair,
                         repli_timestamp_t _timestamp,
@@ -1663,7 +1835,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                         signal_t *_interruptor) :
         btree(_btree),
         store(_store),
+#if !SLICE_ALT
         txn(_txn),
+#endif
         response(_response),
         superblock(_superblock),
         token_pair(_token_pair),
@@ -1716,7 +1890,9 @@ private:
 
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
+#if !SLICE_ALT
     transaction_t *txn;
+#endif
     write_response_t *response;
     scoped_ptr_t<superblock_t> *superblock;
     write_token_pair_t *token_pair;
@@ -1730,12 +1906,19 @@ void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
+#if !SLICE_ALT
                              transaction_t *txn,
+#endif
                              scoped_ptr_t<superblock_t> *superblock,
                              write_token_pair_t *token_pair,
                              signal_t *interruptor) {
-    rdb_write_visitor_t v(btree, this, txn, superblock, token_pair,
-            timestamp.to_repli_timestamp(), ctx, response, interruptor);
+    rdb_write_visitor_t v(btree, this,
+#if !SLICE_ALT
+                          txn,
+#endif
+                          superblock, token_pair,
+                          timestamp.to_repli_timestamp(), ctx,
+                          response, interruptor);
     {
         profile::starter_t start_write("Perform write on shard.", v.get_env()->trace);
         boost::apply_visitor(v, write.write);
@@ -1805,8 +1988,11 @@ private:
     DISABLE_COPYING(rdb_backfill_callback_impl_t);
 };
 
-static void call_rdb_backfill(int i, btree_slice_t *btree, const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
-        rdb_backfill_callback_t *callback, transaction_t *txn, superblock_t *superblock, buf_lock_t *sindex_block, backfill_progress_t *progress,
+static void call_rdb_backfill(int i, btree_slice_t *btree,
+                              const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
+                              rdb_backfill_callback_t *callback, transaction_t *txn,
+                              superblock_t *superblock, buf_lock_t *sindex_block,
+                              backfill_progress_t *progress,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
