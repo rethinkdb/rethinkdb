@@ -125,7 +125,7 @@ public:
                 } else {
                     // This is to determine if the value has changed or not
                     inner_result_type old_value;
-                    bool has_old_value = false;p
+                    bool has_old_value = false;
                     if (existing_it == current_out->get_inner().end()) {
                         // New value
                         anything_changed = true;
