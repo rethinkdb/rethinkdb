@@ -162,6 +162,7 @@ ip_address_t ip_address_t::any(int address_family) {
         result.ipv4_addr.s_addr = INADDR_ANY;
     } else if (result.is_ipv6()) {
         result.ipv6_addr = in6addr_any;
+        result.ipv6_scope_id = 0;
     } else {
         throw invalid_address_exc_t("unknown address family");
     }
@@ -188,6 +189,7 @@ ip_address_t::ip_address_t(const std::string &addr_str) {
         addr_type = RDB_IPV4_ADDR;
     } else if (inet_pton(AF_INET6, addr_str.c_str(), &ipv6_addr) == 1) {
         addr_type = RDB_IPV6_ADDR;
+        ipv6_scope_id = 0;
     } else {
         throw invalid_address_exc_t(strprintf("could not parse IP address from string: '%s'", addr_str.c_str()));
     }
