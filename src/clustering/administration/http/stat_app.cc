@@ -29,7 +29,7 @@ public:
 };
 
 stat_http_app_t::stat_http_app_t(mailbox_manager_t *_mbox_manager,
-                                 clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory,
+                                 clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >& _directory,
                                  boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >& _semilattice
                                  )
     : mbox_manager(_mbox_manager), directory(_directory), semilattice(_semilattice)
@@ -59,10 +59,10 @@ cJSON *stat_http_app_t::prepare_machine_info(const std::vector<machine_id_t> &no
     scoped_cJSON_t ghosts(cJSON_CreateArray());
     scoped_cJSON_t timed_out(cJSON_CreateArray());
 
-    std::map<peer_id_t, machine_id_t> peer_id_to_machine_id(directory->subview(
-            field_getter_t<machine_id_t, cluster_directory_metadata_t>(
+    std::map<peer_id_t, machine_id_t> peer_id_to_machine_id(directory->incremental_subview(
+            incremental_field_getter_t<machine_id_t, cluster_directory_metadata_t>(
                 &cluster_directory_metadata_t::machine_id
-            ))->get());
+            ))->get().get_inner());
     std::map<machine_id_t, peer_id_t> machine_id_to_peer_id(invert_bijection_map(peer_id_to_machine_id));
 
     machines_semilattice_metadata_t::machine_map_t machines_ids = semilattice->get().machines.machines;
@@ -153,7 +153,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
 
     scoped_cJSON_t body(cJSON_CreateObject());
 
-    peers_to_metadata_t peers_to_metadata = directory->get();
+    peers_to_metadata_t peers_to_metadata = directory->get().get_inner();
 
     typedef boost::ptr_map<machine_id_t, stats_request_record_t> stats_promises_t;
     stats_promises_t stats_promises;

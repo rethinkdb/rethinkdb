@@ -10,6 +10,7 @@
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/machine_metadata.hpp"
 #include "containers/clone_ptr.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "http/json/json_adapter.hpp"
 
 class remote_issue_t : public global_issue_t {
@@ -48,14 +49,14 @@ private:
 class remote_issue_collector_t : public global_issue_tracker_t {
 public:
     remote_issue_collector_t(
-            const clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<local_issue_t> > > > &_issues_view,
-            const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &_machine_id_translation_table) :
+            const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, std::list<local_issue_t> > > > &_issues_view,
+            const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &_machine_id_translation_table) :
         issues_view(_issues_view), machine_id_translation_table(_machine_id_translation_table) { }
 
     std::list<clone_ptr_t<global_issue_t> > get_issues() {
         std::list<clone_ptr_t<global_issue_t> > l;
-        std::map<peer_id_t, std::list<local_issue_t> > issues_by_peer = issues_view->get();
-        std::map<peer_id_t, machine_id_t> translation_table = machine_id_translation_table->get();
+        std::map<peer_id_t, std::list<local_issue_t> > issues_by_peer = issues_view->get().get_inner();
+        std::map<peer_id_t, machine_id_t> translation_table = machine_id_translation_table->get().get_inner();
         for (std::map<peer_id_t, std::list<local_issue_t> >::iterator it = issues_by_peer.begin(); it != issues_by_peer.end(); it++) {
             std::map<peer_id_t, machine_id_t>::const_iterator tt_it = translation_table.find(it->first);
             if (tt_it == translation_table.end()) {
@@ -73,8 +74,8 @@ public:
     }
 
 private:
-    clone_ptr_t<watchable_t<std::map<peer_id_t, std::list<local_issue_t> > > > issues_view;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, std::list<local_issue_t> > > > issues_view;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
 
     DISABLE_COPYING(remote_issue_collector_t);
 };

@@ -65,7 +65,7 @@ public:
         : meta_op_term_t(env, std::move(term), std::move(argspec), std::move(optargspec)) { }
 
 protected:
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >
     directory_metadata(env_t *env) const {
         rcheck(env->cluster_access.directory_read_manager != NULL,
                base_exc_t::GENERIC,
@@ -126,7 +126,7 @@ private:
         meta.metadata.databases.databases.insert(
             std::make_pair(generate_uuid(), make_deletable(db)));
         try {
-            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
+            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get().get_inner(),
                                env->env->cluster_access.this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -226,7 +226,7 @@ private:
             meta.ns_change.get()->namespaces.insert(
                                                     std::make_pair(namespace_id, make_deletable(ns)));
             try {
-                fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
+                fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get().get_inner(),
                                    env->env->cluster_access.this_machine, false);
             } catch (const missing_machine_exc_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -282,7 +282,7 @@ private:
 
         // Join
         try {
-            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
+            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get().get_inner(),
                                env->env->cluster_access.this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
@@ -326,7 +326,7 @@ private:
         // Delete table and join.
         ns_metadata->second.mark_deleted();
         try {
-            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get(),
+            fill_in_blueprints(&meta.metadata, directory_metadata(env->env)->get().get_inner(),
                                env->env->cluster_access.this_machine, false);
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());

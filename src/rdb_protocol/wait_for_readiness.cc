@@ -26,7 +26,9 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     // This read won't succeed, but we care whether it fails with an exception.
     // It must be an rget to make sure that access is available to all shards.
 
-    const int poll_ms = 10;
+    const int poll_ms = 20;
+    const int deleted_check_ms = 4000;
+    const int deleted_check_interval = std::max(deleted_check_ms / poll_ms, 1);
     rdb_protocol_t::rget_read_t empty_rget_read(
         hash_region_t<key_range_t>::universe(),
         std::map<std::string, ql::wire_func_t>(),
@@ -39,8 +41,11 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     for (;;) {
         nap(poll_ms, interruptor);
         try {
-            // Make sure the namespace still exists in the metadata, if not, abort
-            {
+            // Make sure the namespace still exists in the metadata, if not, abort.
+            // ... However don't to it too often. If we have a large cluster,
+            // copying the semilattice_metadata becomes quite expensive. So
+            // we want to avoid that as much as possible.
+            if ((num_attempts + 1) % deleted_check_interval == 0) {
                 // TODO: use a cross thread watchable instead?  not exactly
                 // pressed for time here...
                 on_thread_t rethread(semilattice_metadata->home_thread());

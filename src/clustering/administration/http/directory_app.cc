@@ -9,7 +9,7 @@
 #include "http/http.hpp"
 #include "clustering/administration/http/directory_app.hpp"
 
-directory_http_app_t::directory_http_app_t(const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > >& _directory_metadata)
+directory_http_app_t::directory_http_app_t(const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >& _directory_metadata)
     : directory_metadata(_directory_metadata) { }
 
 static const char *any_machine_id_wildcard = "_";
@@ -47,7 +47,7 @@ cJSON *directory_http_app_t::get_metadata_json(
 
 void directory_http_app_t::get_root(scoped_cJSON_t *json_out) {
     // keep this in sync with handle's behavior for getting the root
-    std::map<peer_id_t, cluster_directory_metadata_t> md = directory_metadata->get();
+    std::map<peer_id_t, cluster_directory_metadata_t> md = directory_metadata->get().get_inner();
 
     json_out->reset(cJSON_CreateObject());
 
@@ -66,7 +66,7 @@ http_res_t directory_http_app_t::handle(const http_req_t &req) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
     try {
-        std::map<peer_id_t, cluster_directory_metadata_t> md = directory_metadata->get();
+        std::map<peer_id_t, cluster_directory_metadata_t> md = directory_metadata->get().get_inner();
 
         http_req_t::resource_t::iterator it = req.resource.begin();
 

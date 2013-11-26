@@ -108,6 +108,15 @@ public:
 
     virtual value_t get() = 0;
 
+    // For better performance, implementations of watchable_t should
+    // overwrite this if possible.
+    virtual void apply_read(const std::function<void(const value_t*)> &read) {
+        // Fall-back for watchables that don't allow in-place access to their
+        // current value.
+        value_t v = get();
+        read(&v);
+    }
+
     /* These are internal; the reason they're public is so that `subview()` and
     similar things can be implemented. */
     virtual publisher_t<boost::function<void()> > *get_publisher() = 0;
@@ -117,6 +126,21 @@ public:
     this one by calling `lens` on it. */
     template<class callable_type>
     clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_t)>::type> > subview(const callable_type &lens);
+    /* `incremental_subview()` is like `subview()`. However it takes an incremental lens.
+    An incremental lens has the signature
+    `bool(const input_type &, result_type *current_out)`.
+    In contrast to a regular (non-incremental) lens it therefore has access to
+    the current value of the output value and can modify it in-place.
+    It should return true if `current_out` has been modified, and false otherwise.
+    We have two variants of this. The first one is a short-cut for incremental lenses
+    which contain a `result_type` typedef. In this case, result_type does not have
+    to be specified explicitly when calling `incremental_subview()`. Otherwise
+    the second variant must be used and `result_type` be specified as a template
+    parameter. */
+    template<class callable_type>
+    clone_ptr_t<watchable_t<typename callable_type::result_type> > incremental_subview(const callable_type &lens);
+    template<class result_type, class callable_type>
+    clone_ptr_t<watchable_t<result_type> > incremental_subview(const callable_type &lens);
 
     /* `run_until_satisfied()` repeatedly calls `fun` on the current value of
     `this` until either `fun` returns `true` or `interruptor` is pulsed. It's
@@ -162,6 +186,28 @@ public:
         publisher_controller.publish(&call_function);
     }
 
+    // Applies an atomic modification to the value.
+    // `op` must return true if the value was modified,
+    // and should return false otherwise.
+    void apply_atomic_op(const std::function<bool(value_t*)> &op) {
+        DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
+        bool was_modified;
+        {
+            ASSERT_NO_CORO_WAITING;
+            was_modified = op(&value);
+        }
+        if (was_modified) {
+            publisher_controller.publish(&call_function);
+        }
+    }
+
+    // This is similar to apply_atomic_op, except that the operation
+    // cannot modify the value.
+    void apply_read(const std::function<void(const value_t*)> &read) {
+        ASSERT_NO_CORO_WAITING;
+        read(&value);
+    }
+
 private:
     class w_t : public watchable_t<value_t> {
     public:
@@ -177,6 +223,9 @@ private:
         }
         rwi_lock_assertion_t *get_rwi_lock_assertion() {
             return &parent->rwi_lock_assertion;
+        }
+        void apply_read(const std::function<void(const value_t*)> &read) {
+            parent->apply_read(read);
         }
         watchable_variable_t<value_t> *parent;
     };

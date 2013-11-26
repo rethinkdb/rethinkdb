@@ -24,6 +24,9 @@ public:
     friend class mailbox_t<T>;
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr);
+    bool operator==(const mailbox_addr_t<T> &other) const {
+        return addr == other.addr;
+    }
 
 private:
     friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);

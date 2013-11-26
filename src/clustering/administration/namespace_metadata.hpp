@@ -199,6 +199,22 @@ void with_ctx_on_subfield_change(namespaces_semilattice_metadata_t<protocol_t> *
 template <class protocol_t>
 class namespaces_directory_metadata_t {
 public:
+    namespaces_directory_metadata_t() { }
+    namespaces_directory_metadata_t(const namespaces_directory_metadata_t &other) {
+        *this = other;
+    }
+    namespaces_directory_metadata_t(namespaces_directory_metadata_t &&other) {
+        *this = std::move(other);
+    }
+    namespaces_directory_metadata_t &operator=(const namespaces_directory_metadata_t &other) {
+        reactor_bcards = other.reactor_bcards;
+        return *this;
+    }
+    namespaces_directory_metadata_t &operator=(namespaces_directory_metadata_t &&other) {
+        reactor_bcards = std::move(other.reactor_bcards);
+        return *this;
+    }
+
     /* This used to say `reactor_business_card_t<protocol_t>` instead of
     `cow_ptr_t<reactor_business_card_t<protocol_t> >`, but that
     was extremely slow because the size of the data structure grew linearly with
@@ -210,6 +226,9 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(reactor_bcards);
 };
+template <class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_1(namespaces_directory_metadata_t<protocol_t>,
+    reactor_bcards);
 
 // ctx-less json adapter concept for namespaces_directory_metadata_t
 template <class protocol_t>

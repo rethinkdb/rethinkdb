@@ -75,4 +75,18 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_2(region, multi_throttling);
 };
 
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_2(master_business_card_t<protocol_t>,
+    region, multi_throttling);
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_4(
+    typename master_business_card_t<protocol_t>::read_request_t,
+    read, order_token, fifo_token, cont_addr);
+
+template<class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_4(
+    typename master_business_card_t<protocol_t>::write_request_t,
+    write, order_token, fifo_token, cont_addr);
+
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_MASTER_METADATA_HPP_ */
