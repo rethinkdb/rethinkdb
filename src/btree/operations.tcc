@@ -375,9 +375,11 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
 
 #if SLICE_ALT
         {
+#ifndef NDEBUG
             alt::alt_buf_read_t read(&kv_loc->buf);
             auto leaf_node = static_cast<const leaf_node_t *>(read.get_data_read());
             rassert(!leaf::is_full(&sizer, leaf_node, key, kv_loc->value.get()));
+#endif
         }
 #else
         rassert(!leaf::is_full(&sizer, static_cast<const leaf_node_t *>(kv_loc->buf.get_data_read()),
