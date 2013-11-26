@@ -987,6 +987,8 @@ private:
             /* Evaluation threw so we're not going to be accepting any
                more requests. */
             terminal_exception(e, *rg.terminal, &rg_response->result);
+        } catch (const ql::exc_t &e) {
+            rg_response->result = e;
         }
     }
 };

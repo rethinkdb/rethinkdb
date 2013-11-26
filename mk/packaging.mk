@@ -13,7 +13,7 @@ SUPPRESSED_LINTIAN_TAGS := new-package-should-close-itp-bug
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
 DIST_FILE_LIST_REL := admin bench demos docs drivers external lib mk packaging scripts src test
-DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES README.md
+DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES.md README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$/$x)
 
@@ -132,7 +132,7 @@ build-osx: install-osx
 # TODO: the PREFIX should not be hardcoded in the uninstall script
 	cp $(OSX_PACKAGING_DIR)/uninstall-rethinkdb.sh $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
 	chmod +x $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
-	cp $(TOP)/NOTES $(OSX_PACKAGE_DIR)/dmg/
+	cp $(TOP)/NOTES.md $(OSX_PACKAGE_DIR)/dmg/
 	cp $(TOP)/COPYRIGHT $(OSX_PACKAGE_DIR)/dmg/
 	hdiutil create -volname RethinkDB-$(RETHINKDB_VERSION) -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
 
