@@ -15,7 +15,7 @@ block_size_t alt_cache_t::max_block_size() const {
     return page_cache_.max_block_size();
 }
 
-alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
+alt_inner_txn_t::alt_inner_txn_t(alt_cache_t *cache, alt_inner_txn_t *preceding_txn)
     : cache_(cache),
       page_txn_(&cache->page_cache_,
                 preceding_txn == NULL ? NULL : &preceding_txn->page_txn_),
@@ -24,9 +24,16 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
     (void)this_txn_timestamp_;
 }
 
-alt_txn_t::~alt_txn_t() {
+alt_inner_txn_t::~alt_inner_txn_t() {
     // RSI: Do anything?
 }
+
+alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
+    : inner_(new alt_inner_txn_t(cache,
+                                 preceding_txn == NULL ? NULL : preceding_txn->inner_.get())) {
+}
+
+alt_txn_t::~alt_txn_t() { }
 
 alt_buf_lock_t::alt_buf_lock_t()
     : txn_(NULL),

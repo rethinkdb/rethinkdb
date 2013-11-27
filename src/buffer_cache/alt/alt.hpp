@@ -35,21 +35,36 @@ private:
     DISABLE_COPYING(alt_cache_t);
 };
 
-class alt_txn_t {
+class alt_inner_txn_t {
 public:
-    alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn = NULL);
-    ~alt_txn_t();
+    // scoped_ptr_t needs to call this.
+    ~alt_inner_txn_t();
+
+private:
+    friend class alt_txn_t;
+    alt_inner_txn_t(alt_cache_t *cache, alt_inner_txn_t *preceding_txn_or_null);
 
     alt_cache_t *cache() { return cache_; }
 
     page_txn_t *page_txn() { return &page_txn_; }
 
-private:
     alt_cache_t *cache_;
     page_txn_t page_txn_;
     // RSI: Is this_txn_timestamp_ used?  How?
     repli_timestamp_t this_txn_timestamp_;
 
+    DISABLE_COPYING(alt_inner_txn_t);
+};
+
+class alt_txn_t {
+public:
+    alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn = NULL);
+    ~alt_txn_t();
+
+    alt_cache_t *cache() { return inner_->cache(); }
+    page_txn_t *page_txn() { return inner_->page_txn(); }
+private:
+    scoped_ptr_t<alt_inner_txn_t> inner_;
     DISABLE_COPYING(alt_txn_t);
 };
 
