@@ -572,34 +572,22 @@ class Datum(RqlQuery):
         return obj
 
     @staticmethod
-    def _recursively_convert_dict(obj, time_format):
-        for (key, value) in obj.iteritems():
-            if isinstance(value, dict):
-                obj[key] = Datum._recursively_convert_dict(value, time_format)
-            elif isinstance(value, list):
-                obj[key] = Datum._recursively_convert_list(value, time_format)
-        return Datum._convert_pseudotype(obj, time_format)
-
-    @staticmethod
-    def _recursively_convert_list(arr, time_format):
-        for i in xrange(len(arr)):
-            value = arr[i]
-            if isinstance(value, dict):
-                arr[i] = Datum._recursively_convert_dict(value, time_format)
-            elif isinstance(value, list):
-                arr[i] = Datum._recursively_convert_list(value, time_format)
-        return arr
+    def _recursively_convert_pseudotypes(obj, time_format):
+        if isinstance(obj, dict):
+            for (key, value) in obj.iteritems():
+                obj[key] = Datum._recursively_convert_pseudotypes(value, time_format)
+            obj = Datum._convert_pseudotype(obj, time_format)
+        elif isinstance(obj, list):
+            for i in xrange(len(obj)):
+                obj[i] = Datum._recursively_convert_pseudotypes(obj[i], time_format)
+        return obj
 
     @staticmethod
     def deconstruct(datum, time_format='native'):
         d_type = datum.type
         if d_type == p.Datum.R_JSON:
             obj = py_json.loads(datum.r_str)
-            if isinstance(obj, dict):
-                obj = Datum._recursively_convert_dict(obj, time_format)
-            elif isinstance(obj, list):
-                obj = Datum._recursively_convert_list(obj, time_format)
-            return obj
+            return Datum._recursively_convert_pseudotypes(obj, time_format)
         elif d_type == p.Datum.R_OBJECT:
             obj = { }
             for pair in datum.r_object:
