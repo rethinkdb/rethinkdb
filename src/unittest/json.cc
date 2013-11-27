@@ -119,8 +119,8 @@ TEST(JSON, Compare) {
     ASSERT_SAME_SIGN(0, compare_and_delete(cJSON_CreateBool(true), cJSON_CreateBool(true)));
 
     //numbers
-    for (int i = -2; i < 2; ++i) {
-        for (int j = -2; j < 2; ++j) {
+    for (int i = -2; i < 12; ++i) {
+        for (int j = -2; j < 12; ++j) {
             ASSERT_SAME_SIGN(i - j,
                              compare_and_delete(cJSON_CreateNumber(i),
                                                 cJSON_CreateNumber(j)));
