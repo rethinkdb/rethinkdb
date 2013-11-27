@@ -37,7 +37,7 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
     // We run enough create/delete operations to run ourselves through the young
     // extent queue and (with perform_index_write true) kick off a GC that reproduces
     // #1691.
-    for (int i = 0; i < 200000; ++i) {
+    for (int i = 0; i < 2000; ++i) {
         const block_id_t block_id = i;
         std::vector<buf_write_info_t> infos;
         infos.push_back(buf_write_info_t(buf.get(), ser.get_block_size(), block_id));
