@@ -254,6 +254,8 @@
 #define CORO_PRIORITY_BACKFILL_SENDER           (-2)
 #define CORO_PRIORITY_BACKFILL_RECEIVER         (-2)
 #define CORO_PRIORITY_RESET_DATA                (-2)
+#define CORO_PRIORITY_REACTOR                   (-1)
+#define CORO_PRIORITY_DIRECTORY_CHANGES         (-1)
 
 
 #endif  // CONFIG_ARGS_HPP_

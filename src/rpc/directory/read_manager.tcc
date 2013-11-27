@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "concurrency/wait_any.hpp"
+#include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 
 template<class metadata_t>
@@ -34,6 +35,8 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, string_read_stream_t *s) THROWS_NOTHING {
+    with_priority_t p(CORO_PRIORITY_DIRECTORY_CHANGES);
+
     uint8_t code = 0;
     {
         archive_result_t res = deserialize(s, &code);
