@@ -1305,7 +1305,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
         unsigned int block_index = valgrind_undefined<unsigned int>(UINT_MAX);
         if (!active_extent->new_offset(it->block_size,
                                        &relative_offset, &block_index)) {
-            debugf("did not get new offset, with %u live blocks\n", active_extent->num_live_blocks());
             // Move the active_extent gc_entry_t to the young extent queue, and make a
             // new gc_entry_t.
             active_extent->state = gc_entry_t::state_young;
@@ -1345,7 +1344,6 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
 void data_block_manager_t::mark_unyoung_entries() {
     ASSERT_NO_CORO_WAITING;
     while (young_extent_queue.size() > GC_YOUNG_EXTENT_MAX_SIZE) {
-        debugf("removing because over max size\n");
         remove_last_unyoung_entry();
     }
 
@@ -1353,7 +1351,6 @@ void data_block_manager_t::mark_unyoung_entries() {
 
     while (young_extent_queue.head()
            && current_time - young_extent_queue.head()->timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
-        debugf("removing because over timelimit\n");
         remove_last_unyoung_entry();
     }
 }
@@ -1366,7 +1363,6 @@ void data_block_manager_t::remove_last_unyoung_entry() {
     young_extent_queue.remove(entry);
 
     guarantee(entry->state == gc_entry_t::state_young);
-    debugf("removing newly unyoung entry with %u live blocks\n", entry->num_live_blocks());
     entry->state = gc_entry_t::state_old;
 
     entry->our_pq_entry = gc_pq.push(entry);
