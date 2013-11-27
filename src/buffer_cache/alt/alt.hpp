@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/general_types.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
@@ -37,7 +38,7 @@ private:
 
 class alt_inner_txn_t {
 public:
-    // scoped_ptr_t needs to call this.
+    // This is public because scoped_ptr_t needs to call it.
     ~alt_inner_txn_t();
 
 private:
@@ -58,6 +59,8 @@ private:
 
 class alt_txn_t {
 public:
+    alt_txn_t(alt_cache_t *cache, write_durability_t durability,
+              alt_txn_t *preceding_txn = NULL);
     alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn = NULL);
     ~alt_txn_t();
 
@@ -65,6 +68,7 @@ public:
     page_txn_t *page_txn() { return inner_->page_txn(); }
 private:
     scoped_ptr_t<alt_inner_txn_t> inner_;
+    write_durability_t durability_;
     DISABLE_COPYING(alt_txn_t);
 };
 

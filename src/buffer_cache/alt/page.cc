@@ -857,6 +857,9 @@ page_txn_t::~page_txn_t() {
     // sooner.
     rassert(!began_waiting_for_flush_);
 
+    // RSI: We need a way to more quickly destroy transactions that have not made any
+    // changes.
+
     if (!began_waiting_for_flush_) {
         pagef("in ~page_txn_t, going to announce waiting for flush\n");
         announce_waiting_for_flush_if_we_should();

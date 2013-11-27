@@ -28,12 +28,24 @@ alt_inner_txn_t::~alt_inner_txn_t() {
     // RSI: Do anything?
 }
 
-alt_txn_t::alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn)
+alt_txn_t::alt_txn_t(alt_cache_t *cache,
+                     alt_txn_t *preceding_txn)
     : inner_(new alt_inner_txn_t(cache,
-                                 preceding_txn == NULL ? NULL : preceding_txn->inner_.get())) {
-}
+                                 preceding_txn == NULL ? NULL
+                                 : preceding_txn->inner_.get())),
+      durability_(write_durability_t::HARD) { }
 
-alt_txn_t::~alt_txn_t() { }
+alt_txn_t::alt_txn_t(alt_cache_t *cache,
+                     write_durability_t durability,
+                     alt_txn_t *preceding_txn)
+    : inner_(new alt_inner_txn_t(cache,
+                                 preceding_txn == NULL ? NULL
+                                 : preceding_txn->inner_.get())),
+      durability_(durability) { }
+
+alt_txn_t::~alt_txn_t() {
+    (void)durability_;  // RSI: Use this field.
+}
 
 alt_buf_lock_t::alt_buf_lock_t()
     : txn_(NULL),
