@@ -466,7 +466,7 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
             binary_blob_t(version_range_t(version_t(branch_id_, qe.transition_timestamp.timestamp_after())))),
         qe.write,
         &response,
-        WRITE_DURABILITY_SOFT,
+        write_durability_t::SOFT,
         qe.transition_timestamp,
         qe.order_token,
         &write_token_pair,

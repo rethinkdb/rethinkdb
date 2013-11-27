@@ -134,7 +134,7 @@ void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<transa
                     1,
                     repli_timestamp_t::distant_past,
                     cache_order_source.check_in(info),
-                    WRITE_DURABILITY_HARD);
+                    write_durability_t::HARD);
 }
 
 template <class metadata_t>

@@ -450,10 +450,10 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
                 durability = ack_checker->get_write_durability(it->first->get_peer());
                 break;
             case DURABILITY_REQUIREMENT_SOFT:
-                durability = WRITE_DURABILITY_SOFT;
+                durability = write_durability_t::SOFT;
                 break;
             case DURABILITY_REQUIREMENT_HARD:
-                durability = WRITE_DURABILITY_HARD;
+                durability = write_durability_t::HARD;
                 break;
             default:
                 unreachable();

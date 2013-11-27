@@ -299,7 +299,7 @@ void post_construct_and_drain_queue(
             store->acquire_superblock_for_write(
                 repli_timestamp_t::distant_past,
                 2,
-                WRITE_DURABILITY_SOFT,
+                write_durability_t::SOFT,
                 &token_pair,
                 &queue_txn,
                 &queue_superblock,
@@ -408,7 +408,7 @@ void post_construct_and_drain_queue(
         store->acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
             2,
-            WRITE_DURABILITY_HARD,
+            write_durability_t::HARD,
             &token_pair,
             &queue_txn,
             &queue_superblock,

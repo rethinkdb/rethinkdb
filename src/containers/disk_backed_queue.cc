@@ -79,7 +79,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
                       2,
                       repli_timestamp_t::distant_past,
                       cache_order_source.check_in("push"),
-                      WRITE_DURABILITY_SOFT /* No need for durability with unlinked dbq file. */);
+                      write_durability_t::SOFT /* No need for durability with unlinked dbq file. */);
 #endif
 
     if (head_block_id == NULL_BLOCK_ID) {
@@ -157,7 +157,7 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
                       2,
                       repli_timestamp_t::distant_past,
                       cache_order_source.check_in("pop"),
-                      WRITE_DURABILITY_SOFT /* No durability for unlinked dbq file. */);
+                      write_durability_t::SOFT /* No durability for unlinked dbq file. */);
 #endif
 
 #if DBQ_USE_ALT_CACHE

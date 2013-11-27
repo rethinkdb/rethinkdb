@@ -64,10 +64,10 @@ void run_sindex_low_level_operations_test() {
 #if SLICE_ALT
         get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
                                      repli_timestamp_t::invalid, otok,
-                                     WRITE_DURABILITY_SOFT,
+                                     write_durability_t::SOFT,
                                      &superblock, &txn);
 #else
-        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, write_durability_t::SOFT, &superblock, &txn);
 #endif
 
 #if SLICE_ALT
@@ -106,10 +106,10 @@ void run_sindex_low_level_operations_test() {
 #if SLICE_ALT
         get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
                                      repli_timestamp_t::invalid, otok,
-                                     WRITE_DURABILITY_SOFT,
+                                     write_durability_t::SOFT,
                                      &superblock, &txn);
 #else
-        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, write_durability_t::SOFT, &superblock, &txn);
 #endif
 #if SLICE_ALT
         alt_buf_lock_t sindex_block(superblock->expose_buf(),
@@ -137,10 +137,10 @@ void run_sindex_low_level_operations_test() {
 #if SLICE_ALT
         get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
                                      repli_timestamp_t::invalid,
-                                     otok, WRITE_DURABILITY_SOFT,
+                                     otok, write_durability_t::SOFT,
                                      &superblock, &txn);
 #else
-        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, write_durability_t::SOFT, &superblock, &txn);
 #endif
 #if SLICE_ALT
         alt_buf_lock_t sindex_block(superblock->expose_buf(),
@@ -209,7 +209,7 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                               1, WRITE_DURABILITY_SOFT, &token_pair,
+                                               1, write_durability_t::SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interuptor);
 
             UNUSED bool b = store.add_sindex(
@@ -237,7 +237,7 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                               1, WRITE_DURABILITY_SOFT, &token_pair,
+                                               1, write_durability_t::SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interuptor);
 
 #if SLICE_ALT
@@ -272,7 +272,7 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(
-                    repli_timestamp_t::invalid, 1, WRITE_DURABILITY_SOFT,
+                    repli_timestamp_t::invalid, 1, write_durability_t::SOFT,
                     &token_pair, &txn, &super_block,
                     &dummy_interuptor);
 
@@ -374,7 +374,7 @@ void run_sindex_btree_store_api_test() {
         scoped_ptr_t<real_superblock_t> super_block;
 
         store.acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                           1, WRITE_DURABILITY_SOFT, &token_pair,
+                                           1, write_durability_t::SOFT, &token_pair,
                                            &txn, &super_block, &dummy_interuptor);
 
         value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());

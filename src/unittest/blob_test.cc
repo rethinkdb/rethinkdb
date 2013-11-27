@@ -196,7 +196,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_source.check_in("small_value_test"),
-                          WRITE_DURABILITY_SOFT);
+                          write_durability_t::SOFT);
 
         blob_tracker_t tk(251);
 
@@ -231,7 +231,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("small_value_boundary_test"), WRITE_DURABILITY_SOFT);
+                          order_source.check_in("small_value_boundary_test"), write_durability_t::SOFT);
 
         blob_tracker_t tk(251);
 
@@ -287,7 +287,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("special_4080_prepend_4081_test"), WRITE_DURABILITY_SOFT);
+                          order_source.check_in("special_4080_prepend_4081_test"), write_durability_t::SOFT);
 
         blob_tracker_t tk(251);
 
@@ -301,7 +301,7 @@ private:
         SCOPED_TRACE("special_4080_prepend_4081_test");
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("special_4161600_prepend_12484801_test"), WRITE_DURABILITY_SOFT);
+                          order_source.check_in("special_4161600_prepend_12484801_test"), write_durability_t::SOFT);
 
         blob_tracker_t tk(251);
 
@@ -323,7 +323,7 @@ private:
 
         order_source_t order_source;
         transaction_t txn(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                          order_source.check_in("general_journey_test"), WRITE_DURABILITY_SOFT);
+                          order_source.check_in("general_journey_test"), write_durability_t::SOFT);
         blob_tracker_t tk(251);
 
         char v = 'A';

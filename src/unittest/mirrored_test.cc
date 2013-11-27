@@ -38,12 +38,12 @@ private:
         // creation, but since creating it is a bug in the first place, it's fine to do so in this
         // test (although I'm definitely not proud of doing so).
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_read_ahead_checks_free_list(t0)"), WRITE_DURABILITY_SOFT);
+                         order_source.check_in("test_read_ahead_checks_free_list(t0)"), write_durability_t::SOFT);
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_read_ahead_checks_free_list(t1)"), WRITE_DURABILITY_SOFT);
+                         order_source.check_in("test_read_ahead_checks_free_list(t1)"), write_durability_t::SOFT);
 
         buf_lock_t buf1_A(&t1, block_A, rwi_write);
         buf1_A.mark_deleted();
@@ -76,14 +76,14 @@ public:
 
     void run_tests(cache_t *cache) {
         {
-            transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore, WRITE_DURABILITY_SOFT);
+            transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore, write_durability_t::SOFT);
             buf_lock_t buf(&t0);
             block_id = buf.get_block_id();
             *static_cast<uint64_t *>(buf.get_data_write()) = value_A;
         }
 
         {
-            transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore, WRITE_DURABILITY_HARD);
+            transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past, order_token_t::ignore, write_durability_t::HARD);
             {
                 buf_lock_t buf(&t0, block_id, rwi_write);
                 const uint64_t value = *static_cast<const uint64_t *>(buf.get_data_read());

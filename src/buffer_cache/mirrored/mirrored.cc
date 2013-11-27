@@ -1024,7 +1024,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
       cache_account(NULL),
       num_buf_locks_acquired(0),
       is_writeback_transaction(false),
-      durability(WRITE_DURABILITY_INVALID),
+      durability(write_durability_t::INVALID),
       token_pair(NULL) {
 
     guarantee(is_read_mode(access));
@@ -1049,7 +1049,7 @@ mc_transaction_t::mc_transaction_t(mc_cache_t *_cache, access_t _access, UNUSED 
     cache_account(NULL),
     num_buf_locks_acquired(0),
     is_writeback_transaction(true),
-    durability(WRITE_DURABILITY_INVALID),
+    durability(write_durability_t::INVALID),
     token_pair(NULL) {
     block_pm_duration start_timer(&cache->stats->pm_transactions_starting);
     rassert(access == rwi_read || access == rwi_read_sync);
@@ -1101,7 +1101,7 @@ mc_transaction_t::~mc_transaction_t() {
         }
     }
 
-    if (access == rwi_write && durability == WRITE_DURABILITY_HARD) {
+    if (access == rwi_write && durability == write_durability_t::HARD) {
         /* We have to call `sync_patiently()` before `on_transaction_commit()` so that if
         `on_transaction_commit()` starts a sync, we will get included in it */
         sync_callback_t disk_ack_signal;

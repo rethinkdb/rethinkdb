@@ -62,7 +62,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
                       1,
                       repli_timestamp_t::invalid,
                       order_token_t::ignore,
-                      WRITE_DURABILITY_HARD);
+                      write_durability_t::HARD);
 
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(&txn, 0, rwi_write);
@@ -80,7 +80,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     const char *chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
 
-    transaction_t txn(cache_.get(), rwi_write, 2 + n / block_size, repli_timestamp_t::invalid, order_token_t::ignore, WRITE_DURABILITY_HARD);
+    transaction_t txn(cache_.get(), rwi_write, 2 + n / block_size, repli_timestamp_t::invalid, order_token_t::ignore, write_durability_t::HARD);
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(&txn, 0, rwi_write);
     int64_t *const size_ptr = static_cast<int64_t *>(z.get_data_write());

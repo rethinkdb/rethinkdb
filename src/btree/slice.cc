@@ -38,7 +38,7 @@ void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key
                       1,
                       repli_timestamp_t::distant_past,
                       order_token_t::ignore,
-                      WRITE_DURABILITY_HARD);
+                      write_durability_t::HARD);
 #endif
 
 #if SLICE_ALT

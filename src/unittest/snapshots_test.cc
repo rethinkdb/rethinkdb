@@ -28,7 +28,7 @@ private:
         // t0:create(A), t1:snap(), t1:acq(A) blocks, t0:release(A), t1 unblocks, t1 sees the block.
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_snapshot_acq_blocks_on_unfinished_create(t0)"), WRITE_DURABILITY_SOFT);
+                         order_source.check_in("test_snapshot_acq_blocks_on_unfinished_create(t0)"), write_durability_t::SOFT);
         transaction_t t1(cache, rwi_read,
                          order_source.check_in("test_snapshot_acq_blocks_on_unfinished_create(t1)").with_read_mode());
 
@@ -43,7 +43,7 @@ private:
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_snapshot_sees_changes_started_before_its_first_block_acq(t0)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
@@ -52,7 +52,7 @@ private:
                          order_source.check_in("test_snapshot_sees_changes_started_before_its_first_block_acq(t1)").with_read_mode());
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_snapshot_sees_changes_started_before_its_first_block_acq(t2)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
 
         snap(&t1);
 
@@ -77,7 +77,7 @@ private:
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_snapshot_doesnt_see_later_changes_and_doesnt_block_them(t0)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
@@ -86,7 +86,7 @@ private:
                          order_source.check_in("test_snapshot_doesnt_see_later_changes_and_doesnt_block_them(t1)").with_read_mode());
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_snapshot_doesnt_see_later_changes_and_doesnt_block_them(t2)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
         transaction_t t3(cache, rwi_read,
                          order_source.check_in("test_snapshot_doesnt_see_later_changes_and_doesnt_block_them(t3)").with_read_mode());
 
@@ -111,7 +111,7 @@ private:
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later(t0)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
 
         block_id_t block_A, UNUSED block_B;
         create_two_blocks(&t0, &block_A, &block_B);
@@ -120,7 +120,7 @@ private:
                          order_source.check_in("test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later(t1)").with_read_mode());
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_snapshot_doesnt_block_or_get_blocked_on_txns_that_acq_first_block_later(t2)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
 
         snap(&t1);
         buf_lock_t buf1_A(&t1, block_A, rwi_read);
@@ -137,14 +137,14 @@ private:
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_snapshot_blocks_on_txns_that_acq_first_block_earlier(t0)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_snapshot_blocks_on_txns_that_acq_first_block_earlier(t1)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
         transaction_t t2(cache, rwi_read,
                          order_source.check_in("test_snapshot_blocks_on_txns_that_acq_first_block_earlier(t2)").with_read_mode());
 
@@ -171,17 +171,17 @@ private:
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_issue_194(t0)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_issue_194(t1)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_issue_194(t2)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
         transaction_t t3(cache, rwi_read,
                          order_source.check_in("test_issue_194(t3)").with_read_mode());
 
@@ -211,16 +211,16 @@ private:
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
                          order_source.check_in("test_cow_snapshot(t0)"),
-                         WRITE_DURABILITY_SOFT);
+                         write_durability_t::SOFT);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
 
         order_token_t t3_order_token = order_source.check_in("test_cow_snapshot(t3)").with_read_mode();
         transaction_t t1(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_cow_snapshot(t1)"), WRITE_DURABILITY_SOFT);
+                         order_source.check_in("test_cow_snapshot(t1)"), write_durability_t::SOFT);
         transaction_t t2(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_cow_snapshot(t2)"), WRITE_DURABILITY_SOFT);
+                         order_source.check_in("test_cow_snapshot(t2)"), write_durability_t::SOFT);
         transaction_t t3(cache, rwi_read, t3_order_token);
 
         buf_lock_t buf3_A(&t3, block_A, rwi_read_outdated_ok);
@@ -242,7 +242,7 @@ private:
         // t0:create+release(A,B), t1:acq_outdated_ok(A), t2:acq_outdated_ok(A), [t3:acqw(A) doesn't block, t3:delete(A),] t1:release(A), t2:release(A)
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_double_cow_acq_release(t0)"), WRITE_DURABILITY_SOFT);
+                         order_source.check_in("test_double_cow_acq_release(t0)"), write_durability_t::SOFT);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
@@ -260,7 +260,7 @@ private:
         // t0:create+release(A,B), t1:acq_outdated_ok(A), t2:acq_outdated_ok(A), t3:acqw(A) doesn't block, t3:delete(A), t1:release(A), t2:release(A)
         order_source_t order_source;
         transaction_t t0(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_cow_delete(t0)"), WRITE_DURABILITY_SOFT);
+                         order_source.check_in("test_cow_delete(t0)"), write_durability_t::SOFT);
 
         block_id_t block_A, block_B;
         create_two_blocks(&t0, &block_A, &block_B);
@@ -270,7 +270,7 @@ private:
         transaction_t t2(cache, rwi_read,
                          order_source.check_in("test_cow_delete(t2)").with_read_mode());
         transaction_t t3(cache, rwi_write, 0, repli_timestamp_t::distant_past,
-                         order_source.check_in("test_cow_delete(t3)"), WRITE_DURABILITY_SOFT);
+                         order_source.check_in("test_cow_delete(t3)"), write_durability_t::SOFT);
 
         buf_lock_t buf1_A(&t1, block_A, rwi_read_outdated_ok);
         buf_lock_t buf2_A(&t2, block_A, rwi_read_outdated_ok);

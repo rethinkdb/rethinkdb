@@ -86,10 +86,10 @@ void run_metainfo_test() {
 #if SLICE_ALT
         get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
                                      repli_timestamp_t::invalid, otok,
-                                     WRITE_DURABILITY_SOFT,
+                                     write_durability_t::SOFT,
                                      &superblock, &txn);
 #else
-        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, WRITE_DURABILITY_SOFT, &superblock, &txn);
+        get_btree_superblock_and_txn(&btree, rwi_write, rwi_write, 1, repli_timestamp_t::invalid, otok, write_durability_t::SOFT, &superblock, &txn);
 #endif
 #if SLICE_ALT
         alt_buf_lock_t *sb_buf = superblock->get();

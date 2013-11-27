@@ -92,7 +92,7 @@ void run_backfill_test() {
                     binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))
                 ),
                 w,
-                &response, WRITE_DURABILITY_SOFT,
+                &response, write_durability_t::SOFT,
                 ts,
                 order_source.check_in(strprintf("backfiller_store.write(j=%d)", j)),
                 &token_pair,

@@ -43,7 +43,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         store->new_write_token_pair(&token_pair);
         store->acquire_superblock_for_write(
             repli_timestamp_t::invalid,
-            1, WRITE_DURABILITY_SOFT,
+            1, write_durability_t::SOFT,
             &token_pair, &txn, &superblock, &dummy_interruptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
@@ -117,7 +117,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                        1, WRITE_DURABILITY_SOFT,
+                                        1, write_durability_t::SOFT,
                                         &token_pair, &txn, &super_block,
                                         &dummy_interruptor);
 
@@ -163,7 +163,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                        1, WRITE_DURABILITY_SOFT, &token_pair,
+                                        1, write_durability_t::SOFT, &token_pair,
                                         &txn, &super_block, &dummy_interuptor);
 
     value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
@@ -196,7 +196,7 @@ void bring_sindexes_up_to_date(
 #endif
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                        1, WRITE_DURABILITY_SOFT,
+                                        1, write_durability_t::SOFT,
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
 #if SLICE_ALT
@@ -242,7 +242,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(
         repli_timestamp_t::invalid,
-        1, WRITE_DURABILITY_SOFT,
+        1, write_durability_t::SOFT,
         &token_pair, &txn, &super_block, &dummy_interruptor);
 
 #if SLICE_ALT
@@ -537,7 +537,7 @@ void run_erase_range_test() {
         scoped_ptr_t<real_superblock_t> super_block;
         store.acquire_superblock_for_write(repli_timestamp_t::invalid,
                                            1,
-                                           WRITE_DURABILITY_SOFT,
+                                           write_durability_t::SOFT,
                                            &token_pair,
                                            &txn,
                                            &super_block,

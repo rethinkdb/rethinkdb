@@ -11,9 +11,11 @@
 // This file gets all the types used by both caches -- the non-alt_cache_t- and
 // non-mc_cache_t-specific types.
 
-// WRITE_DURABILITY_INVALID is an invalid value, notably it can't be serialized.
-enum write_durability_t { WRITE_DURABILITY_INVALID, WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD };
-ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(write_durability_t, int8_t, WRITE_DURABILITY_SOFT, WRITE_DURABILITY_HARD);
+// write_durability_t::INVALID is an invalid value, notably it can't be serialized.
+enum class write_durability_t { INVALID, SOFT, HARD };
+ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(write_durability_t, int8_t,
+                                      write_durability_t::SOFT,
+                                      write_durability_t::HARD);
 
 
 enum buffer_cache_order_mode_t {
