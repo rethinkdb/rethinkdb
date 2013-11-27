@@ -34,6 +34,9 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
 
     scoped_ptr_t<file_account_t> account(ser.make_io_account(1));
 
+    // We run enough create/delete operations to run ourselves through the young
+    // extent queue and (with perform_index_write true) kick off a GC that reproduces
+    // #1691.
     for (int i = 0; i < 200000; ++i) {
         const block_id_t block_id = i;
         std::vector<buf_write_info_t> infos;
@@ -78,6 +81,7 @@ TEST(SerializerTest, AddDeleteRepeatedly) {
     run_in_thread_pool(std::bind(run_AddDeleteRepeatedly, false), 4);
 }
 
+// This is a regression test for #1691.
 TEST(SerializerTest, AddDeleteRepeatedlyWithIndex) {
     run_in_thread_pool(std::bind(run_AddDeleteRepeatedly, true), 4);
 }
