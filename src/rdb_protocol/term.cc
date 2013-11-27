@@ -268,6 +268,7 @@ void run(protob_t<Query> q,
             rcheck_toplevel(stream_cache2->contains(token), base_exc_t::GENERIC,
                             strprintf("Token %" PRIi64 " not in stream cache.", token));
             stream_cache2->erase(token);
+            res->set_type(Response::SUCCESS_SEQUENCE);
         } catch (const exc_t &e) {
             fill_error(res, Response::CLIENT_ERROR, e.what(), e.backtrace());
             return;
