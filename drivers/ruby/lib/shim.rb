@@ -3,29 +3,40 @@ require 'time'
 
 module RethinkDB
 
-  def self.convert_times(result, &cb)
-    case result
-    when Hash
-      if result["$reql_type$"] == "TIME"
-        t = Time.at(result['epoch_time'])
-        tz = result['timezone']
-        time = (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
-        cb ? cb.call(time) : time
-      else
-        if cb
-          result.each{ |k, v|  convert_times(v){ |t| result[k] = t } }
-        else
-          result
+  module Shim
+
+    def self.is_reql_time(obj)
+      obj.is_a? Hash and obj["$reql_type$"] == "TIME"
+    end
+
+    def self.convert_time(obj)
+      t = Time.at(obj['epoch_time'])
+      tz = obj['timezone']
+      (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+    end
+
+    def self.convert_times!(result)
+      case result
+      when Hash
+        result.each do |k, v|
+          if is_reql_time v
+            result[k] = convert_time v
+          else
+            convert_times! v
+          end
+        end
+      when Array
+        result.each_index do |i|
+          if is_reql_time result[i]
+            result[i] = convert_time result[i]
+          else
+            convert_times! result[i]
+          end
         end
       end
-    when Array
-      if cb
-        result.each_index{ |i| convert_times(result[i]){ |t| result[i] = t } }
-      end
+      result
     end
-  end
 
-  module Shim
     def self.datum_to_native(d, opts)
       raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
       dt = Datum::DatumType
@@ -38,16 +49,17 @@ module RethinkDB
       when dt::R_OBJECT then
         obj = Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val, opts)]}]
         if opts[:time_format] != 'raw'
-          RethinkDB::convert_times obj
+          is_reql_time(obj) ? convert_time(obj) : obj
         else
           obj
         end
       when dt::R_JSON then
         result = JSON.parse("[" + d.r_str + "]")[0]
         if opts[:time_format] != 'raw'
-          RethinkDB::convert_times(result){ |t| result = t }
+          is_reql_time(result) ? convert_time(result) : convert_times!(result)
+        else
+          result
         end
-        result
       else raise RqlRuntimeError, "#{dt} Unimplemented."
       end
     end
