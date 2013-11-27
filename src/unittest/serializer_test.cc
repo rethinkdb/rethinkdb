@@ -34,7 +34,6 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
 
     scoped_ptr_t<file_account_t> account(ser.make_io_account(1));
 
-    debugf("doing operation 0-19999\n");
     for (int i = 0; i < 200000; ++i) {
         const block_id_t block_id = i;
         std::vector<buf_write_info_t> infos;
