@@ -2,6 +2,29 @@ require 'json'
 require 'time'
 
 module RethinkDB
+
+  def self.convert_times(result, &cb)
+    case result
+    when Hash
+      if result["$reql_type$"] == "TIME"
+        t = Time.at(result['epoch_time'])
+        tz = result['timezone']
+        time = (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+        cb ? cb.call(time) : time
+      else
+        if cb
+          result.each{ |k, v|  convert_times(v){ |t| result[k] = t } }
+        else
+          result
+        end
+      end
+    when Array
+      if cb
+        result.each_index{ |i| convert_times(result[i]){ |t| result[i] = t } }
+      end
+    end
+  end
+
   module Shim
     def self.datum_to_native(d, opts)
       raise RqlRuntimeError, "SHENANIGANS" if d.class != Datum
@@ -14,15 +37,17 @@ module RethinkDB
       when dt::R_ARRAY then d.r_array.map{|d2| datum_to_native(d2, opts)}
       when dt::R_OBJECT then
         obj = Hash[d.r_object.map{|x| [x.key, datum_to_native(x.val, opts)]}]
-        if obj["$reql_type$"] == "TIME" && opts[:time_format] != 'raw'
-          t = Time.at(obj['epoch_time'])
-          tz = obj['timezone']
-          (tz && tz != "" && tz != "Z") ? t.getlocal(tz) : t.utc
+        if opts[:time_format] != 'raw'
+          RethinkDB::convert_times obj
         else
           obj
         end
       when dt::R_JSON then
-        JSON.parse("[" + d.r_str + "]")[0]
+        result = JSON.parse("[" + d.r_str + "]")[0]
+        if opts[:time_format] != 'raw'
+          RethinkDB::convert_times(result){ |t| result = t }
+        end
+        result
       else raise RqlRuntimeError, "#{dt} Unimplemented."
       end
     end
