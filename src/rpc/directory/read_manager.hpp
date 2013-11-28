@@ -9,6 +9,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/one_per_thread.hpp"
+#include "concurrency/semaphore.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/connectivity/connectivity.hpp"
@@ -68,6 +69,10 @@ private:
     mutex_assertion_t variable_lock;
 
     boost::ptr_map<peer_id_t, session_t> sessions;
+
+    /* A semaphore to limit the number of concurrent propagation processes
+    (to limit performance impact) */
+    static_semaphore_t propagation_semaphore;
 
     /* Instances of `propagate_initialization()` and `propagate_update()` hold
     a lock on one of these drainers. */
