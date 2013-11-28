@@ -40,10 +40,46 @@ module.exports.toArrayBuffer = (node_buffer) ->
         arr[i] = value
     return arr.buffer
 
+convertPseudotype = (obj, opts) ->
+    # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
+    # second layer of type switching here on the obfuscated field "$reql_type$"
+    switch obj['$reql_type$']
+        when 'TIME'
+            switch opts.timeFormat
+                # Default is native
+                when 'native', undefined
+                    if not obj['epoch_time']?
+                        throw new err.RqlDriverError "pseudo-type TIME #{obj} object missing expected field 'epoch_time'."
+
+                    # We ignore the timezone field of the pseudo-type TIME object. JS dates do not support timezones.
+                    # By converting to a native date object we are intentionally throwing out timezone information.
+
+                    # field "epoch_time" is in seconds but the Date constructor expects milliseconds
+                    (new Date(obj['epoch_time']*1000))
+                when 'raw'
+                    # Just return the raw (`{'$reql_type$'...}`) object
+                    obj
+                else
+                    throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
+        else
+            # Regular object or unknown pseudo type
+            obj
+
+recursivelyConvertPseudotype = (obj, opts) ->
+    if obj instanceof Array
+        for value, i in obj
+            obj[i] = recursivelyConvertPseudotype(value, opts)
+    else if obj instanceof Object
+        for key, value of obj
+            obj[key] = recursivelyConvertPseudotype(value, opts)
+        obj = convertPseudotype(obj, opts)
+    obj
+
 deconstructDatum = (datum, opts) ->
     pb.DatumTypeSwitch(datum, {
         "R_JSON": =>
-            JSON.parse(datum.r_str)
+            obj = JSON.parse(datum.r_str)
+            recursivelyConvertPseudotype(obj, opts)
        ,"R_NULL": =>
             null
        ,"R_BOOL": =>
@@ -59,29 +95,7 @@ deconstructDatum = (datum, opts) ->
             for pair in datum.r_object
                 obj[pair.key] = deconstructDatum(pair.val, opts)
 
-            # An R_OBJECT may be a regular object or a "pseudo-type" so we need a
-            # second layer of type switching here on the obfuscated field "$reql_type$"
-            switch obj['$reql_type$']
-                when 'TIME'
-                    switch opts.timeFormat
-                        # Default is native
-                        when 'native', undefined
-                            if not obj['epoch_time']?
-                                throw new err.RqlDriverError "pseudo-type TIME #{obj} object missing expected field 'epoch_time'."
-
-                            # We ignore the timezone field of the pseudo-type TIME object. JS dates do not support timezones.
-                            # By converting to a native date object we are intentionally throwing out timezone information.
-
-                            # field "epoch_time" is in seconds but the Date constructor expects milliseconds
-                            (new Date(obj['epoch_time']*1000))
-                        when 'raw'
-                            # Just return the raw (`{'$reql_type$'...}`) object
-                            obj
-                        else
-                            throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
-                else
-                    # Regular object or unknown pseudo type
-                    obj
+            convertPseudotype(obj, opts)
         },
             => throw new err.RqlDriverError "Unknown Datum type"
         )
