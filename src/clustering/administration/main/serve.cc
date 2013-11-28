@@ -137,7 +137,7 @@ bool do_serve(
 
         watchable_variable_t<cluster_directory_metadata_t> our_root_directory_variable(*initial_directory);
 
-        message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D');
+        message_multiplexer_t::client_t directory_manager_client(&message_multiplexer, 'D', 1);
         directory_write_manager_t<cluster_directory_metadata_t> directory_write_manager(&directory_manager_client, our_root_directory_variable.get_watchable());
         directory_read_manager_t<cluster_directory_metadata_t> directory_read_manager(connectivity_cluster.get_connectivity_service());
         message_multiplexer_t::client_t::run_t directory_manager_client_run(&directory_manager_client, &directory_read_manager);

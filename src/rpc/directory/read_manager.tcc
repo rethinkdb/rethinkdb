@@ -15,7 +15,6 @@ template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
     connectivity_service(conn_serv),
     variable(change_tracking_map_t<peer_id_t, metadata_t>()),
-    propagation_semaphore(1),
     connectivity_subscription(this) {
     connectivity_service_t::peers_list_freeze_t freeze(connectivity_service);
     guarantee(connectivity_service->get_peers_list().empty());
@@ -145,8 +144,6 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
-    semaphore_acq_t propagation_semaphore_acq(&propagation_semaphore);
-
     ASSERT_FINITE_CORO_WAITING;
     /* Check to make sure that the peer didn't die while we were coming from the
     thread on which `on_message()` was run */
@@ -200,8 +197,6 @@ template<class metadata_t>
 void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid_u session_id, const boost::shared_ptr<metadata_t> &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
-
-    semaphore_acq_t propagation_semaphore_acq(&propagation_semaphore);
 
     /* Check to make sure that the peer didn't die while we were coming from the
     thread on which `on_message()` was run */
