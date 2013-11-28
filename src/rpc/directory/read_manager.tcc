@@ -145,6 +145,8 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
+    semaphore_acq_t propagation_semaphore_acq(&propagation_semaphore);
+
     ASSERT_FINITE_CORO_WAITING;
     /* Check to make sure that the peer didn't die while we were coming from the
     thread on which `on_message()` was run */
@@ -199,6 +201,8 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
+    semaphore_acq_t propagation_semaphore_acq(&propagation_semaphore);
+
     /* Check to make sure that the peer didn't die while we were coming from the
     thread on which `on_message()` was run */
     typename boost::ptr_map<peer_id_t, session_t>::iterator it = sessions.find(peer);
@@ -229,8 +233,6 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         fifo_enforcer_sink_t::exit_write_t fifo_exit(session->metadata_fifo_sink.get(),
                                                      metadata_fifo_token);
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
-
-        semaphore_acq_t propagation_semaphore_acq(&propagation_semaphore);
 
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
