@@ -325,6 +325,12 @@ class RqlQuery(object):
     def match(self, pattern):
         return Match(self, pattern)
 
+    def upcase(self):
+        return Upcase(self)
+
+    def downcase(self):
+        return Downcase(self)
+
     def is_empty(self):
         return IsEmpty(self)
 
@@ -921,6 +927,14 @@ class Nth(RqlQuery):
 class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
+
+class Upcase(RqlMethodQuery):
+    tt = p.Term.UPCASE
+    st = 'upcase'
+
+class Downcase(RqlMethodQuery):
+    tt = p.Term.DOWNCASE
+    st = 'downcase'
 
 class IndexesOf(RqlMethodQuery):
     tt = p.Term.INDEXES_OF

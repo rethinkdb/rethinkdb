@@ -181,6 +181,8 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::MATCH:
+        case Term::UPCASE:
+        case Term::DOWNCASE:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
@@ -341,6 +343,8 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::MATCH:
+        case Term::UPCASE:
+        case Term::DOWNCASE:
         case Term::SAMPLE:
         case Term::IS_EMPTY:
         case Term::DEFAULT:
