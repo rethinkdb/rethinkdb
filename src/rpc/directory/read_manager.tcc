@@ -231,6 +231,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
 
         semaphore_acq_t propagation_semaphore_acq(&propagation_semaphore);
+        coro_t::yield(); // <-- this is what makes the semaphore useful
 
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
