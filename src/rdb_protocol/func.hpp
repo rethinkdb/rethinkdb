@@ -29,7 +29,9 @@ public:
     virtual ~func_t();
 
     virtual counted_t<val_t> call(
-        env_t *env, const std::vector<counted_t<const datum_t> > &args) const = 0;
+        env_t *env,
+        const std::vector<counted_t<const datum_t> > &args,
+        eval_flags_t eval_flags = NO_FLAGS) const = 0;
 
     virtual bool is_deterministic() const = 0;
 
@@ -45,11 +47,14 @@ public:
                      counted_t<func_t> default_filter_val) const;
 
     // These are simple, they call the vector version of call.
-    counted_t<val_t> call(env_t *env) const;
-    counted_t<val_t> call(env_t *env, counted_t<const datum_t> arg) const;
+    counted_t<val_t> call(env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
+    counted_t<val_t> call(env_t *env,
+                          counted_t<const datum_t> arg,
+                          eval_flags_t eval_flags = NO_FLAGS) const;
     counted_t<val_t> call(env_t *env,
                           counted_t<const datum_t> arg1,
-                          counted_t<const datum_t> arg2) const;
+                          counted_t<const datum_t> arg2,
+                          eval_flags_t eval_flags = NO_FLAGS) const;
 
 protected:
     explicit func_t(const protob_t<const Backtrace> &bt_source);
@@ -69,7 +74,9 @@ public:
     ~reql_func_t();
 
     counted_t<val_t> call(
-        env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
+        env_t *env,
+        const std::vector<counted_t<const datum_t> > &args,
+        eval_flags_t eval_flags) const;
     bool is_deterministic() const;
 
     std::string print_source() const;
@@ -101,7 +108,9 @@ public:
 
     // Some queries, like filter, can take a shortcut object instead of a
     // function as their argument.
-    counted_t<val_t> call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const;
+    counted_t<val_t> call(env_t *env,
+                          const std::vector<counted_t<const datum_t> > &args,
+                          eval_flags_t eval_flags) const;
 
     bool is_deterministic() const;
 

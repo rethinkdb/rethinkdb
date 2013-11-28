@@ -16,19 +16,22 @@ func_t::func_t(const protob_t<const Backtrace> &bt_source)
   : pb_rcheckable_t(bt_source) { }
 func_t::~func_t() { }
 
-counted_t<val_t> func_t::call(env_t *env) const {
+counted_t<val_t> func_t::call(env_t *env, eval_flags_t eval_flags) const {
     std::vector<counted_t<const datum_t> > args;
-    return call(env, args);
+    return call(env, args, eval_flags);
 }
 
-counted_t<val_t> func_t::call(env_t *env, counted_t<const datum_t> arg) const {
-    return call(env, make_vector(arg));
+counted_t<val_t> func_t::call(env_t *env,
+                              counted_t<const datum_t> arg,
+                              eval_flags_t eval_flags) const {
+    return call(env, make_vector(arg), eval_flags);
 }
 
 counted_t<val_t> func_t::call(env_t *env,
                               counted_t<const datum_t> arg1,
-                              counted_t<const datum_t> arg2) const {
-    return call(env, make_vector(arg1, arg2));
+                              counted_t<const datum_t> arg2,
+                              eval_flags_t eval_flags) const {
+    return call(env, make_vector(arg1, arg2), eval_flags);
 }
 
 void func_t::assert_deterministic(const char *extra_msg) const {
@@ -46,7 +49,10 @@ reql_func_t::reql_func_t(const protob_t<const Backtrace> backtrace,
 
 reql_func_t::~reql_func_t() { }
 
-counted_t<val_t> reql_func_t::call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const {
+counted_t<val_t> reql_func_t::call(
+    env_t *env,
+    const std::vector<counted_t<const datum_t> > &args,
+    eval_flags_t eval_flags) const {
     try {
         // We allow arg_names.size() == 0 to specifically permit users (Ruby users
         // especially) to use zero-arity functions without the drivers to know anything
@@ -62,7 +68,7 @@ counted_t<val_t> reql_func_t::call(env_t *env, const std::vector<counted_t<const
             : captured_scope.with_func_arg_list(arg_names, args);
 
         scope_env_t scope_env(env, std::move(new_scope));
-        return body->eval(&scope_env);
+        return body->eval(&scope_env, eval_flags);
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
         unreachable();
@@ -82,7 +88,10 @@ js_func_t::js_func_t(const std::string &_js_source,
 
 js_func_t::~js_func_t() { }
 
-counted_t<val_t> js_func_t::call(env_t *env, const std::vector<counted_t<const datum_t> > &args) const {
+counted_t<val_t> js_func_t::call(
+    env_t *env,
+    const std::vector<counted_t<const datum_t> > &args,
+    UNUSED eval_flags_t eval_flags) const {
     try {
         js_runner_t::req_config_t config;
         config.timeout_ms = js_timeout_ms;
@@ -98,13 +107,13 @@ counted_t<val_t> js_func_t::call(env_t *env, const std::vector<counted_t<const d
                   js_source.c_str());
         } catch (const interrupted_exc_t &e) {
             rfail(base_exc_t::GENERIC,
-                  "JavaScript query `%s` timed out after %" PRIu64 ".%03" PRIu64 " seconds.",
+                  "JavaScript query `%s` timed out after "
+                  "%" PRIu64 ".%03" PRIu64 " seconds.",
                   js_source.c_str(), js_timeout_ms / 1000, js_timeout_ms % 1000);
         }
 
-        return boost::apply_visitor(js_result_visitor_t(js_source,
-                                                        js_timeout_ms, this),
-                                    result);
+        return boost::apply_visitor(
+            js_result_visitor_t(js_source, js_timeout_ms, this), result);
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
         unreachable();
@@ -235,7 +244,7 @@ bool filter_match(counted_t<const datum_t> predicate, counted_t<const datum_t> v
 }
 
 bool reql_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
-    counted_t<const datum_t> d = call(env, make_vector(arg))->as_datum();
+    counted_t<const datum_t> d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
     if (d->get_type() == datum_t::R_OBJECT &&
         (body->get_src()->type() == Term::MAKE_OBJ ||
          body->get_src()->type() == Term::DATUM)) {
@@ -265,7 +274,7 @@ std::string js_func_t::print_source() const {
 }
 
 bool js_func_t::filter_helper(env_t *env, counted_t<const datum_t> arg) const {
-    counted_t<const datum_t> d = call(env, make_vector(arg))->as_datum();
+    counted_t<const datum_t> d = call(env, make_vector(arg), NO_FLAGS)->as_datum();
     return d->as_bool();
 }
 
