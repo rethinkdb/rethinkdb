@@ -123,6 +123,9 @@ do
         rungroup=rethinkdb
         set -- "$@" --rungroup "$rungroup"
     fi
+    if get "$conf" canonical-address canonical_address; then
+        set -- "$@" --canonical-address $canonical_address
+    fi
 
     # If no pid file is specified, assign one and make sure the parent folder has the correct permissions
     if ! get "$conf" pid-file rtdbpidfile; then
