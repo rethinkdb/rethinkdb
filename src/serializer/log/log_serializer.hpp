@@ -138,6 +138,9 @@ public:
     scoped_malloc_t<ser_buffer_t> malloc();
     scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
+#ifndef SEMANTIC_SERIALIZER_CHECK
+    using serializer_t::make_io_account;
+#endif
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
