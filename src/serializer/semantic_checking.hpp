@@ -52,7 +52,8 @@ public:
     scoped_malloc_t<ser_buffer_t> malloc();
     scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *data);
 
-    file_account_t *make_io_account(int priority, int outstanding_requests_limit = UNLIMITED_OUTSTANDING_REQUESTS);
+    using serializer_t::make_io_account;
+    file_account_t *make_io_account(int priority, int outstanding_requests_limit);
     counted_t< scs_block_token_t<inner_serializer_t> > index_read(block_id_t block_id);
 
     void block_read(const counted_t< scs_block_token_t<inner_serializer_t> > &_token, ser_buffer_t *buf, file_account_t *io_account);

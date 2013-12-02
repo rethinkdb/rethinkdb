@@ -63,6 +63,7 @@ public:
         parent->extent_manager->release_extent(std::move(extent_ref));
         delete this;
     }
+
     ~gc_entry_t() {
         uint64_t extent_id = parent->static_config->extent_index(extent_offset);
         guarantee(parent->entries.get(extent_id) == this);
@@ -798,6 +799,12 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     return ret;
 }
 
+void data_block_manager_t::destroy_entry(gc_entry_t *entry) {
+    rassert(entry != NULL);
+    ++stats->pm_serializer_data_extents_reclaimed;
+    entry->destroy();
+}
+
 void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
     gc_entry_t *entry = entries.get(extent_id);
     if (!entry) {
@@ -834,9 +841,7 @@ void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
                 unreachable();
         }
 
-        ++stats->pm_serializer_data_extents_reclaimed;
-        entry->destroy();
-        rassert(entries.get(extent_id) == NULL);
+        destroy_entry(entry);
 
     } else if (entry->state == gc_entry_t::state_old) {
         entry->our_pq_entry->update();
@@ -1311,13 +1316,19 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
         unsigned int block_index = valgrind_undefined<unsigned int>(UINT_MAX);
         if (!active_extent->new_offset(it->block_size,
                                        &relative_offset, &block_index)) {
-            // Move the active_extent gc_entry_t to the young extent queue, and make a
-            // new gc_entry_t.
-            active_extent->state = gc_entry_t::state_young;
-            young_extent_queue.push_back(active_extent);
-            mark_unyoung_entries();
+            // Move the active_extent gc_entry_t to the young extent queue (if it's
+            // not already empty), and make a new gc_entry_t.
+            if (active_extent->num_live_blocks() == 0) {
+                gc_entry_t *old_active_extent = active_extent;
+                active_extent = new gc_entry_t(this);
+                destroy_entry(old_active_extent);
+            } else {
+                active_extent->state = gc_entry_t::state_young;
+                young_extent_queue.push_back(active_extent);
+                mark_unyoung_entries();
+                active_extent = new gc_entry_t(this);
+            }
 
-            active_extent = new gc_entry_t(this);
             ++stats->pm_serializer_data_extents_allocated;
             const bool succeeded = active_extent->new_offset(it->block_size,
                                                              &relative_offset,
