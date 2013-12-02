@@ -1,3 +1,15 @@
+# Release 1.11.1 (Breakfast at Tiffany's)
+
+Released on 2013-12-02
+
+Bug fix update.
+
+* Drivers no longer ignore the timeFormat flag (#1719)
+* RethinkDB now correctly sets the `ResponseType` field in responses to `STOP` queries (#1715)
+* Fixed a bug that caused RethinkDB to crash with a failed guarantee (#1691)
+
+--
+
 # Release 1.11.0 (Breakfast at Tiffany's)
 
 Released on 2013-11-25
