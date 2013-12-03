@@ -298,7 +298,10 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         }
     }
 
-    ASSERT_TRUE(drop_sindex(nsi, osource, id));
+    {
+        const bool drop_sindex_res = drop_sindex(nsi, osource, id);
+        ASSERT_TRUE(drop_sindex_res);
+    }
 }
 
 TEST(RDBProtocol, SindexCreateDrop) {

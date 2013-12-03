@@ -1831,7 +1831,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 #if SLICE_ALT
         res.success = store->drop_sindex(d.id,
-                                         superblock->get(),
+                                         sindex_block.get(),
                                          &sizer,
                                          &deleter,
                                          &interruptor);
