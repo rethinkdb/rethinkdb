@@ -597,52 +597,20 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
 
 #if SLICE_ALT
 template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::add_sindex(
+bool btree_store_t<protocol_t>::add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        superblock_t *super_block,
-        scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
-        signal_t *interruptor)
+        alt_buf_lock_t *sindex_block,
+        UNUSED signal_t *interruptor)  // RSI: unused
     THROWS_ONLY(interrupted_exc_t) {
-#else
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::add_sindex(
-        write_token_pair_t *token_pair,
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        transaction_t *txn,
-        superblock_t *super_block,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-#endif
-    assert_thread();
-
-#if SLICE_ALT
-    // RSI: Callee doesn't use interruptor.
-    acquire_sindex_block_for_write(super_block->expose_buf(),
-                                   sindex_block_out,
-                                   super_block->get_sindex_block_id(), interruptor);
-#else
-    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out,
-                                   super_block->get_sindex_block_id(), interruptor);
-#endif
 
     secondary_index_t sindex;
-#if SLICE_ALT
-    if (::get_secondary_index(sindex_block_out->get(), id, &sindex)) {
-#else
-    if (::get_secondary_index(txn, sindex_block_out->get(), id, &sindex)) {
-#endif
+    if (::get_secondary_index(sindex_block, id, &sindex)) {
         return false; // sindex was already created
     } else {
         {
-#if SLICE_ALT
-            alt_buf_lock_t sindex_superblock(sindex_block_out->get(),
+            alt_buf_lock_t sindex_superblock(sindex_block,
                                              alt_create_t::create);
-#else
-            buf_lock_t sindex_superblock(txn);
-#endif
             sindex.superblock = sindex_superblock.get_block_id();
             /* The buf lock is destroyed here which is important becase it allows
              * us to reacquire later when we make a btree_store. */
@@ -655,27 +623,90 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
          * something that would give a better error if someone did try to use
          * it... on the other hand this code isn't exactly idiot proof even
          * with that. */
-#if SLICE_ALT
         btree_slice_t::create(sindex.superblock,
-                              alt_buf_parent_t(sindex_block_out->get()),
+                              alt_buf_parent_t(sindex_block),
                               std::vector<char>(), std::vector<char>());
-#else
-        btree_slice_t::create(txn->get_cache(), sindex.superblock,
-                              txn, std::vector<char>(), std::vector<char>());
-#endif
         secondary_index_slices.insert(
             id, new btree_slice_t(cache.get(), &perfmon_collection, id));
 
         sindex.post_construction_complete = false;
 
-#if SLICE_ALT
-        ::set_secondary_index(sindex_block_out->get(), id, sindex);
-#else
-        ::set_secondary_index(txn, sindex_block_out->get(), id, sindex);
-#endif
+        ::set_secondary_index(sindex_block, id, sindex);
         return true;
     }
 }
+#endif
+
+#if SLICE_ALT
+template <class protocol_t>
+MUST_USE bool btree_store_t<protocol_t>::add_sindex(
+        const std::string &id,
+        const secondary_index_t::opaque_definition_t &definition,
+        superblock_t *super_block,
+        scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+
+    assert_thread();
+
+    // RSI: Callee doesn't use interruptor.
+    acquire_sindex_block_for_write(super_block->expose_buf(),
+                                   sindex_block_out,
+                                   super_block->get_sindex_block_id(), interruptor);
+
+    // RSI: remove this.
+    (*sindex_block_out)->read_acq_signal()->wait();
+    (*sindex_block_out)->write_acq_signal()->wait();
+
+    return add_sindex(id, definition, sindex_block_out->get(), interruptor);
+}
+#else
+template <class protocol_t>
+MUST_USE bool btree_store_t<protocol_t>::add_sindex(
+        write_token_pair_t *token_pair,
+        const std::string &id,
+        const secondary_index_t::opaque_definition_t &definition,
+        transaction_t *txn,
+        superblock_t *super_block,
+        scoped_ptr_t<buf_lock_t> *sindex_block_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t) {
+
+    assert_thread();
+
+    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out,
+                                   super_block->get_sindex_block_id(), interruptor);
+
+    secondary_index_t sindex;
+    if (::get_secondary_index(txn, sindex_block_out->get(), id, &sindex)) {
+        return false; // sindex was already created
+    } else {
+        {
+            buf_lock_t sindex_superblock(txn);
+            sindex.superblock = sindex_superblock.get_block_id();
+            /* The buf lock is destroyed here which is important becase it allows
+             * us to reacquire later when we make a btree_store. */
+        }
+
+        sindex.opaque_definition = definition;
+
+        /* Notice we're passing in empty strings for metainfo. The metainfo in
+         * the sindexes isn't used for anything but this could perhaps be
+         * something that would give a better error if someone did try to use
+         * it... on the other hand this code isn't exactly idiot proof even
+         * with that. */
+        btree_slice_t::create(txn->get_cache(), sindex.superblock,
+                              txn, std::vector<char>(), std::vector<char>());
+        secondary_index_slices.insert(
+            id, new btree_slice_t(cache.get(), &perfmon_collection, id));
+
+        sindex.post_construction_complete = false;
+
+        ::set_secondary_index(txn, sindex_block_out->get(), id, sindex);
+        return true;
+    }
+}
+#endif
 
 #if SLICE_ALT
 template <class protocol_t>

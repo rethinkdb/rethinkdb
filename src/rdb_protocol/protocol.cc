@@ -1792,22 +1792,22 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         guarantee(write_res == 0);
 
 #if SLICE_ALT
-        scoped_ptr_t<alt_buf_lock_t> sindex_block;
-#else
-        scoped_ptr_t<buf_lock_t> sindex_block;
-#endif
         res.success = store->add_sindex(
-#if !SLICE_ALT
-            token_pair,
-#endif
             c.id,
             stream.vector(),
-#if !SLICE_ALT
+            sindex_block.get(),
+            &interruptor);
+#else
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        res.success = store->add_sindex(
+            token_pair,
+            c.id,
+            stream.vector(),
             txn,
-#endif
             superblock->get(),
             &sindex_block,
             &interruptor);
+#endif
 
         if (res.success) {
             std::set<std::string> sindexes;

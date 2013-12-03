@@ -203,6 +203,16 @@ public:
 #endif
 
 #if SLICE_ALT
+    // RSI: Check that all add_sindex methods are actually used.
+    MUST_USE bool add_sindex(
+        const std::string &id,
+        const secondary_index_t::opaque_definition_t &definition,
+        alt::alt_buf_lock_t *sindex_block,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+#endif
+
+#if SLICE_ALT
     MUST_USE bool add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
