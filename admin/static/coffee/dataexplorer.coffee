@@ -2316,6 +2316,8 @@ module 'DataExplorerView', ->
             
             # Execute the query
             try
+                if @state.cursor?
+                    @state.cursor.close?
                 # Separate queries
                 @non_rethinkdb_query = '' # Store the statements that don't return a rethinkdb query (like "var a = 1;")
                 @index = 0 # index of the query currently being executed
@@ -2418,13 +2420,10 @@ module 'DataExplorerView', ->
 
                     
                     if @index is @queries.length # @index was incremented in execute_portion
-                        if cursor?
-                            @state.cursor = @cursor
-
                         if cursor?.hasNext?
-                            @cursor = cursor
+                            @state.cursor = cursor
                             if cursor.hasNext() is true
-                                @cursor.next get_result_callback
+                                @state.cursor.next get_result_callback
                             else
                                 get_result_callback() # Display results
                         else
@@ -2470,14 +2469,13 @@ module 'DataExplorerView', ->
 
                     if data isnt undefined
                         @current_results.push data
-                        if @current_results.length < @limit and @cursor.hasNext() is true
-                            @cursor.next get_result_callback
+                        if @current_results.length < @limit and @state.cursor.hasNext() is true
+                            @state.cursor.next get_result_callback
                             return true
 
                     @.$('.loading_query_img').hide()
 
                     # if data is undefined or @current_results.length is @limit
-                    @state.cursor = @cursor # Let's save the cursor, there may be mor edata to retrieve
                     @state.query = @query
                     @state.results = @current_results
                     @state.metadata =
@@ -2485,7 +2483,7 @@ module 'DataExplorerView', ->
                         skip_value: @skip_value
                         execution_time: new Date() - @start_time
                         query: @query
-                        has_more_data: @cursor.hasNext()
+                        has_more_data: @state.cursor.hasNext()
 
                     @results_view.render_result
                         results: @current_results # The first parameter is null ( = query, so we don't display it)
@@ -2704,6 +2702,8 @@ module 'DataExplorerView', ->
             @results_view.destroy()
             @history_view.destroy()
             @driver_handler.destroy()
+            if @state.cursor?
+                @state.cursor.close()
 
             @display_normal()
             $(window).off 'resize', @display_full
