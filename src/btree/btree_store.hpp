@@ -283,7 +283,7 @@ public:
 #endif
 
 #if SLICE_ALT
-// RSI: Check if other drop_sindex gets called at all.
+    // RSI: Check if other drop_sindex gets called at all.
     bool drop_sindex(
         const std::string &id,
         alt::alt_buf_lock_t *sindex_block,
