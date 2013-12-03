@@ -68,7 +68,7 @@ try:
 
     # Write the parts to files to the temporary directory, so that we can pass them to handlebars.
     for name in named_parts:
-        with open(WEB_TEMP_DIR + '/' + name + '.handlebars', 'w') as f:
+        with io.open(WEB_TEMP_DIR + '/' + name + '.handlebars', 'w', encoding='utf-8') as f:
             f.write(named_parts[name])
 
     # Now, we call handlebars.
