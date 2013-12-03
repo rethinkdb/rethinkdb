@@ -496,8 +496,10 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
                 } else {
                     set_filter.insert(addr);
                 }
-            } catch (const invalid_address_exc_t &ex) {
-                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", bind_options[i].c_str()));
+            } catch (const std::exception &ex) {
+                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed: %s",
+                                                     bind_options[i].c_str(),
+                                                     ex.what()));
             }
         }
     }
@@ -507,7 +509,11 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
         if (result.find(*i) == result.end()) {
-            throw address_lookup_exc_t(strprintf("could not find bind ip address '%s'", i->to_string().c_str()));
+            std::string errmsg = strprintf("could not find bind ip address '%s'", i->to_string().c_str());
+            if (i->is_ipv6_link_local()) {
+                errmsg += strprintf(", this is an IPv6 link-local address, make sure the scope is correct");
+            }
+            throw address_lookup_exc_t(errmsg);
         }
     }
 
@@ -941,7 +947,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
 
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
 
     return help;
 }
@@ -1052,7 +1058,7 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
 
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
 
     options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
                                              options::OPTIONAL_NO_PARAMETER));

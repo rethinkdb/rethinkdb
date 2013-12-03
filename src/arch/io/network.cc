@@ -49,7 +49,7 @@ int connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int 
     return res;
 }
 
-int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port) {
+int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int port, uint32_t scope_id) {
     struct sockaddr_in6 sa;
     socklen_t sa_len(sizeof(sa));
     memset(&sa, 0, sa_len);
@@ -64,6 +64,7 @@ int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int
 
     sa.sin6_port = htons(port);
     sa.sin6_addr = addr;
+    sa.sin6_scope_id = scope_id;
 
     int res;
     do {
@@ -100,7 +101,8 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
     if (peer.is_ipv4()) {
         res = connect_ipv4_internal(sock.get(), local_port, peer.get_ipv4_addr(), port);
     } else {
-        res = connect_ipv6_internal(sock.get(), local_port, peer.get_ipv6_addr(), port);
+        res = connect_ipv6_internal(sock.get(), local_port, peer.get_ipv6_addr(), port,
+                                    peer.get_ipv6_scope_id());
     }
 
     if (res != 0) {

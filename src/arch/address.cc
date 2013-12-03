@@ -184,14 +184,39 @@ ip_address_t::ip_address_t(const sockaddr *sa) {
 }
 
 ip_address_t::ip_address_t(const std::string &addr_str) {
-    // First attempt to parse as IPv4, then try IPv6
+    // First attempt to parse as IPv4
     if (inet_pton(AF_INET, addr_str.c_str(), &ipv4_addr) == 1) {
         addr_type = RDB_IPV4_ADDR;
-    } else if (inet_pton(AF_INET6, addr_str.c_str(), &ipv6_addr) == 1) {
+    } else {
+        // Try to parse as in IPv6 address, but it may contain scope ID, which complicates things
         addr_type = RDB_IPV6_ADDR;
         ipv6_scope_id = 0;
-    } else {
-        throw invalid_address_exc_t(strprintf("could not parse IP address from string: '%s'", addr_str.c_str()));
+        size_t percent_pos = addr_str.find_first_of('%');
+        if (percent_pos != std::string::npos) {
+            // There is a scope in the string, first make sure the beginning is an IPv6 address
+            if (inet_pton(AF_INET6, addr_str.substr(0, percent_pos).c_str(), &ipv6_addr) != 1) {
+                throw invalid_address_exc_t(strprintf("could not parse IP address from string: '%s'", addr_str.c_str()));
+            }
+
+            // Then, use getaddrinfo to figure out the value for the scope
+            std::set<ip_address_t> addresses;
+            hostname_to_ips_internal(addr_str, AF_INET6, &addresses);
+
+            bool scope_id_found = false;
+            // We may get multiple ips (not sure what that case would be, try to match to the one we have)
+            for (auto it = addresses.begin(); it != addresses.end() && !scope_id_found; ++it) {
+                if (IN6_ARE_ADDR_EQUAL(&it->ipv6_addr, &ipv6_addr)) {
+                    ipv6_scope_id = it->ipv6_scope_id;
+                    scope_id_found = true;
+                }
+            }
+
+            if (!scope_id_found) {
+                throw invalid_address_exc_t(strprintf("Could not determine the scope id of address: '%s'", addr_str.c_str()));
+            }
+        } else if (inet_pton(AF_INET6, addr_str.c_str(), &ipv6_addr) != 1) {
+            throw invalid_address_exc_t(strprintf("could not parse IP address from string: '%s'", addr_str.c_str()));
+        }
     }
 }
 
@@ -213,6 +238,10 @@ int ip_address_t::get_address_family() const {
     }
 
     return result;
+}
+
+bool ip_address_t::is_ipv6_link_local() const {
+    return addr_type == RDB_IPV6_ADDR && IN6_IS_ADDR_LINKLOCAL(&ipv6_addr);
 }
 
 const struct in_addr &ip_address_t::get_ipv4_addr() const {
@@ -243,6 +272,10 @@ std::string ip_address_t::to_string() const {
         result = ip_to_string(ipv4_addr, AF_INET);
     } else if (is_ipv6()) {
         result = ip_to_string(ipv6_addr, AF_INET6);
+        if (IN6_IS_ADDR_LINKLOCAL(&ipv6_addr)) {
+            // Add on the scope id (which is only valid for link-local addresses)
+            result += strprintf("%%%d", ipv6_scope_id);
+        }
     } else {
         crash("to_string called on an uninitialized ip_address_t, addr_type: %d", addr_type);
     }
@@ -255,7 +288,8 @@ bool ip_address_t::operator == (const ip_address_t &x) const {
         if (is_ipv4()) {
             return ipv4_addr.s_addr == x.ipv4_addr.s_addr;
         } else if (is_ipv6()) {
-            return IN6_ARE_ADDR_EQUAL(&ipv6_addr, &x.ipv6_addr);
+            return IN6_ARE_ADDR_EQUAL(&ipv6_addr, &x.ipv6_addr) &&
+                ipv6_scope_id == x.ipv6_scope_id;
         }
         return true;
     }
@@ -267,7 +301,11 @@ bool ip_address_t::operator < (const ip_address_t &x) const {
         if (is_ipv4()) {
             return ipv4_addr.s_addr < x.ipv4_addr.s_addr;
         } else if (is_ipv6()) {
-            return memcmp(&ipv6_addr, &x.ipv6_addr, sizeof(ipv6_addr)) < 0;
+            int cmp_res = memcmp(&ipv6_addr, &x.ipv6_addr, sizeof(ipv6_addr));
+            if (cmp_res == 0) {
+                return ipv6_scope_id < x.ipv6_scope_id;
+            }
+            return cmp_res < 0;
         } else {
             return false;
         }
