@@ -45,3 +45,4 @@ drivers/python/rethinkdb_pbcpp.so
 test_results.*
 drivers/python/rethinkdb/docs.py
 drivers/python/ql2.proto
+scripts/cluster_directory_*
