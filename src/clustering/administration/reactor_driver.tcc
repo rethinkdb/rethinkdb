@@ -17,6 +17,8 @@
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
 #include "rpc/semilattice/view/field.hpp"
+#include "rpc/semilattice/view/function.hpp"
+#include "rpc/semilattice/view/member.hpp"
 #include "rpc/semilattice/watchable.hpp"
 #include "utils.hpp"
 
@@ -111,12 +113,15 @@ private:
 template <class protocol_t>
 class watchable_and_reactor_t : private ack_checker_t {
 public:
+    typedef typename reactor_t<protocol_t>::failover_switch_t failover_switch_t;
+public:
     watchable_and_reactor_t(const base_path_t &_base_path,
                             io_backender_t *io_backender,
                             reactor_driver_t<protocol_t> *parent,
                             namespace_id_t namespace_id,
                             int64_t _cache_size,
                             const blueprint_t<protocol_t> &bp,
+                            failover_switch_t failover_switch,
                             svs_by_namespace_t<protocol_t> *svs_by_namespace,
                             typename protocol_t::context_t *_ctx) :
         base_path(_base_path),
@@ -127,7 +132,7 @@ public:
         svs_by_namespace_(svs_by_namespace),
         cache_size(_cache_size)
     {
-        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender));
+        coro_t::spawn_sometime(boost::bind(&watchable_and_reactor_t<protocol_t>::initialize_reactor, this, io_backender, failover_switch));
     }
 
     ~watchable_and_reactor_t() {
@@ -302,7 +307,7 @@ private:
         parent_->watchable_variable.set_value(directory);
     }
 
-    void initialize_reactor(io_backender_t *io_backender) {
+    void initialize_reactor(io_backender_t *io_backender, failover_switch_t failover_switch) {
         perfmon_collection_repo_t::collections_t *perfmon_collections = parent_->perfmon_collection_repo->get_perfmon_collections_for_namespace(namespace_id_);
         perfmon_collection_t *namespace_collection = &perfmon_collections->namespace_collection;
         perfmon_collection_t *serializers_collection = &perfmon_collections->serializers_collection;
@@ -318,6 +323,7 @@ private:
             parent_->directory_view->subview(boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory, this, _1)),
             parent_->branch_history_manager,
             watchable.get_watchable(),
+            failover_switch,
             svs_.get(), namespace_collection, ctx));
 
         {
@@ -412,6 +418,13 @@ void reactor_driver_t<protocol_t>::delete_reactor_data(
 }
 
 template<class protocol_t>
+vclock_t<persistable_blueprint_t<protocol_t> > &extract_blueprint(
+    namespaces_semilattice_metadata_t<protocol_t> &namespaces,
+    namespace_id_t id) {
+    return namespaces.namespaces[id].get_mutable()->blueprint;
+}
+
+template<class protocol_t>
 void reactor_driver_t<protocol_t>::on_change() {
     cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > namespaces = namespaces_view->get();
 
@@ -473,7 +486,8 @@ void reactor_driver_t<protocol_t>::on_change() {
                     }
 
                     namespace_id_t tmp = it->first;
-                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
+
+                    reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, namespaces_view, svs_by_namespace, ctx));
                 } else {
                     reactor_data.find(it->first)->second->watchable.set_value(bp);
                 }

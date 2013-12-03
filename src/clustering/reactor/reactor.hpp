@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 
+#include "clustering/administration/namespace_metadata.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "clustering/immediate_consistency/query/master.hpp"
 #include "clustering/reactor/blueprint.hpp"
@@ -26,6 +27,8 @@ typedef reactor_business_card_details::primary_type_t primary_type_t;
 template<class protocol_t>
 class reactor_t : public home_thread_mixin_t {
 public:
+    typedef boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > failover_switch_t;
+public:
     reactor_t(
             const base_path_t& base_path,
             io_backender_t *io_backender,
@@ -34,6 +37,7 @@ public:
             clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > reactor_directory,
             branch_history_manager_t<protocol_t> *branch_history_manager,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
+            boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_view,
             multistore_ptr_t<protocol_t> *_underlying_svs,
             perfmon_collection_t *_parent_perfmon_collection,
             typename protocol_t::context_t *) THROWS_NOTHING;
@@ -135,7 +139,7 @@ private:
                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
     void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
-            signal_t *interruptor) THROWS_NOTHING;
+            failover_switch_t _failover_switch, signal_t *interruptor) THROWS_NOTHING;
 
 
     /* Implemented in clustering/reactor/reactor_be_nothing.tcc */
@@ -173,6 +177,7 @@ private:
     branch_history_manager_t<protocol_t> *branch_history_manager;
 
     clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable;
+    failover_switch_t failover_switch;
 
     multistore_ptr_t<protocol_t> *underlying_svs;
 

@@ -152,7 +152,7 @@ test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, io_back
     blueprint_watchable(initial_blueprint),
     reactor(base_path, io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
-            &r->branch_history_manager, blueprint_watchable.get_watchable(), svs, &get_global_perfmon_collection(), &ctx),
+            &r->branch_history_manager, blueprint_watchable.get_watchable(), typename reactor_t<protocol_t>::failover_switch_t(), svs, &get_global_perfmon_collection(), &ctx), //TODO make this a real failover_switch_t
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
     rassert(svs->get_region() == mock::a_thru_z_region());
 }

@@ -28,6 +28,7 @@ reactor_t<protocol_t>::reactor_t(
         clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > rd,
         branch_history_manager_t<protocol_t> *bhm,
         clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > b,
+        boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > _failover_switch,
         multistore_ptr_t<protocol_t> *_underlying_svs,
         perfmon_collection_t *_parent_perfmon_collection,
         typename protocol_t::context_t *_ctx) THROWS_NOTHING :
@@ -42,6 +43,7 @@ reactor_t<protocol_t>::reactor_t(
     directory_echo_mirror(mailbox_manager, rd->subview(&collapse_optionals_in_map<peer_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >)),
     branch_history_manager(bhm),
     blueprint_watchable(b),
+    failover_switch(_failover_switch),
     underlying_svs(_underlying_svs),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
     ctx(_ctx)
@@ -194,7 +196,7 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
     case blueprint_role_t::PRIMARY:
         if (failover) {
             be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
-                interruptor);
+                failover_switch_t(), interruptor);
         } else {
             be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
                 primary_type_t::MAIN, interruptor);
@@ -207,13 +209,13 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
                 primary_type_t::VICE, interruptor);
         } else {
             be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
-                interruptor);
+                failover_switch, interruptor);
         }
         break;
     }
     case blueprint_role_t::SECONDARY:
         be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
-            interruptor);
+            failover_switch_t(), interruptor);
         break;
     case blueprint_role_t::NOTHING:
         be_nothing(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
