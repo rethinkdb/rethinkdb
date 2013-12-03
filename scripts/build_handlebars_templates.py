@@ -6,6 +6,7 @@ import subprocess
 import sys
 import os
 import fnmatch
+import io
 
 HTML_INPUT_DIR = sys.argv[1]
 BUILD_DIR = sys.argv[2]
@@ -46,7 +47,7 @@ try:
     for root, dirnames, filenames in os.walk(HTML_INPUT_DIR):
         for filename in fnmatch.filter(filenames, "*.html"):
             path = os.path.join(root,filename)
-            with open(path) as f:
+            with io.open(path, encoding='utf-8') as f:
                 text = f.read()
                 tmp_parts = split_by_script_tags(text)
                 parts += tmp_parts
@@ -67,7 +68,7 @@ try:
 
     # Write the parts to files to the temporary directory, so that we can pass them to handlebars.
     for name in named_parts:
-        with open(WEB_TEMP_DIR + '/' + name + '.handlebars', 'w') as f:
+        with io.open(WEB_TEMP_DIR + '/' + name + '.handlebars', 'w', encoding='utf-8') as f:
             f.write(named_parts[name])
 
     # Now, we call handlebars.
