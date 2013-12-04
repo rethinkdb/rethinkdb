@@ -77,6 +77,12 @@ js_connect: connections/connection.js
 	BUILD_DIR=$(BUILD_DIR) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
 	    _mocha connections/connection.js
 
+.PHONY: js_date
+js_date: connections/date.js
+	mkdir -p run
+	BUILD_DIR=$(BUILD_DIR) TEST_DEFAULT_PORT=$(TEST_DEFAULT_PORT) \
+	    _mocha connections/date.js
+
 .PHONY: cursor
 cursor:
 	python connections/cursor_test.py $(BUILD_DIR)

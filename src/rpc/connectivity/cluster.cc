@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/connectivity/cluster.hpp"
 
+#include <netinet/in.h>
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
@@ -427,6 +428,22 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
     return true;
 }
 
+// This implementation is used over operator == because we want to ignore different scope ids
+//  in the case of IPv6
+bool is_similar_ip_address(const ip_and_port_t &left,
+                           const ip_and_port_t &right) {
+    if (left.port().value() != right.port().value() ||
+        left.ip().get_address_family() != right.ip().get_address_family()) {
+        return false;
+    }
+
+    if (left.ip().is_ipv4()) {
+        return left.ip().get_ipv4_addr().s_addr == right.ip().get_ipv4_addr().s_addr;
+    } else {
+        return IN6_ARE_ADDR_EQUAL(&left.ip().get_ipv6_addr(), &right.ip().get_ipv6_addr());
+    }
+}
+
 bool is_similar_peer_address(const peer_address_t &left,
                              const peer_address_t &right) {
     bool left_loopback_only = true;
@@ -450,7 +467,7 @@ bool is_similar_peer_address(const peer_address_t &left,
                 right_loopback_only = false;
             }
 
-            if (*right_it == *left_it) {
+            if (is_similar_ip_address(*right_it, *left_it)) {
                 return true;
             }
         }
