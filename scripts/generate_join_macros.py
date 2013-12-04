@@ -46,6 +46,7 @@ def generate_make_me_equality_comparable_macro(nfields):
     else:
         print "        return " + " && ".join("field%d == _a_.field%d" % (i + 1, i + 1) for i in xrange(nfields)) + "; \\"
     print "    } \\"
+    print "    int equality_force_semicolon_declaration"
 
 if __name__ == "__main__":
 
