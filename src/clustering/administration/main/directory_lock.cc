@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "arch/io/disk.hpp"
 #include "clustering/administration/main/directory_lock.hpp"
 
 bool check_existence(const base_path_t& base_path) {
@@ -27,6 +28,10 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         }
         created = true;
         *created_out = true;
+
+        // Call fsync() on the parent directory to guarantee that the newly
+        // created directory's directory entry is persisted to disk.
+        guarantee_fsync_parent_directory(directory_path.path().c_str());
     }
 
     directory_fd.reset(::open(directory_path.path().c_str(), O_RDONLY));
