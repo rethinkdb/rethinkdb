@@ -150,14 +150,21 @@ bool reactor_t<protocol_t>::find_replier_in_directory(
     }
 }
 
+int failover_wait_time_ms = 1000;
+
 template<class protocol_t>
-void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, failover_switch_t, signal_t *interruptor) THROWS_NOTHING {
+void reactor_t<protocol_t>::be_secondary(
+        typename protocol_t::region_t region, store_view_t<protocol_t> *svs,
+        const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
+        secondary_type_t type, signal_t *interruptor)
+    THROWS_NOTHING {
     try {
         order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
         /* Tell everyone that we're backfilling so that we can get up to
          * date. */
         directory_entry_t directory_entry(this, region);
+        bool found_broadcaster = false;
         while (true) {
             clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > broadcaster;
             clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > location_to_backfill_from;
@@ -198,11 +205,47 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 directory_entry.set(activity);
 
                 /* Wait until we can find a primary for our region. */
-                run_until_satisfied_2(
-                    directory_echo_mirror.get_internal(),
-                    blueprint,
-                    boost::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region, _2, _1, &broadcaster),
-                    interruptor);
+
+                if (found_broadcaster && type == secondary_type_t::VICEPRIMARY) {
+                    /* We already found the broadcaster and lost it without
+                     * restarting this function. That means we temporarily lost
+                     * contact with the broadcaster, possibly due to a netsplit
+                     * and possibly due to it going down. Since we're the vice
+                     * primary we put the broadcaster on a timer. If it's not
+                     * up when the timer runs out then we put the table in
+                     * failover mode. */
+                    signal_timer_t timer;
+                    timer.start(failover_wait_time_ms);
+                    wait_any_t timer_and_interruptor(interruptor, &timer);
+
+                    try {
+                        run_until_satisfied_2(
+                            directory_echo_mirror.get_internal(),
+                            blueprint,
+                            boost::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region, _2, _1, &broadcaster),
+                            &timer);
+                    } catch (const interrupted_exc_t &) {
+                        if (interruptor->is_pulsed()) {
+                            /* The actual interruptor was pulsed, just rethrow
+                             * the exception. */
+                            throw;
+                        }
+                        cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > new_metadata =
+                            failover_switch->get();
+                        typename decltype(new_metadata)::change_t change(&new_metadata);
+                        change.get()->namespaces[ns_id].get_mutable()->blueprint.get_mutable().failover.insert(region);
+                        failover_switch->join(new_metadata);
+                        /* This should cause the function to be rerun with us
+                         * as a primary. */
+                    }
+                } else {
+                    run_until_satisfied_2(
+                        directory_echo_mirror.get_internal(),
+                        blueprint,
+                        boost::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region, _2, _1, &broadcaster),
+                        interruptor);
+                    found_broadcaster = true;
+                }
 
                 /* We need to save this to a local variable because there may be a
                  * race condition should the broadcaster go down. */
@@ -289,6 +332,6 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
 #include "memcached/protocol_json_adapter.hpp"
 #include "rdb_protocol/protocol.hpp"
 
-template void reactor_t<mock::dummy_protocol_t>::be_secondary(mock::dummy_protocol_t::region_t region, store_view_t<mock::dummy_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<mock::dummy_protocol_t> > > &blueprint, failover_switch_t, signal_t *interruptor) THROWS_NOTHING;
-template void reactor_t<memcached_protocol_t>::be_secondary(memcached_protocol_t::region_t region, store_view_t<memcached_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<memcached_protocol_t> > > &blueprint, failover_switch_t, signal_t *interruptor) THROWS_NOTHING;
-template void reactor_t<rdb_protocol_t>::be_secondary(rdb_protocol_t::region_t region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > &blueprint, failover_switch_t, signal_t *interruptor) THROWS_NOTHING;
+template void reactor_t<mock::dummy_protocol_t>::be_secondary(mock::dummy_protocol_t::region_t region, store_view_t<mock::dummy_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<mock::dummy_protocol_t> > > &blueprint, secondary_type_t, signal_t *interruptor) THROWS_NOTHING;
+template void reactor_t<memcached_protocol_t>::be_secondary(memcached_protocol_t::region_t region, store_view_t<memcached_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<memcached_protocol_t> > > &blueprint, secondary_type_t, signal_t *interruptor) THROWS_NOTHING;
+template void reactor_t<rdb_protocol_t>::be_secondary(rdb_protocol_t::region_t region, store_view_t<rdb_protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<rdb_protocol_t> > > &blueprint, secondary_type_t, signal_t *interruptor) THROWS_NOTHING;

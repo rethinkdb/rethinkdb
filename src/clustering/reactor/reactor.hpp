@@ -23,6 +23,7 @@ class io_backender_t;
 template <class> class multistore_ptr_t;
 
 typedef reactor_business_card_details::primary_type_t primary_type_t;
+typedef reactor_business_card_details::secondary_type_t secondary_type_t;
 
 template<class protocol_t>
 class reactor_t : public home_thread_mixin_t {
@@ -30,6 +31,7 @@ public:
     typedef boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > failover_switch_t;
 public:
     reactor_t(
+            namespace_id_t ns_id,
             const base_path_t& base_path,
             io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
@@ -139,7 +141,7 @@ private:
                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
     void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
-            failover_switch_t _failover_switch, signal_t *interruptor) THROWS_NOTHING;
+            secondary_type_t, signal_t *interruptor) THROWS_NOTHING;
 
 
     /* Implemented in clustering/reactor/reactor_be_nothing.tcc */
@@ -178,6 +180,7 @@ private:
 
     clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable;
     failover_switch_t failover_switch;
+    namespace_id_t ns_id;
 
     multistore_ptr_t<protocol_t> *underlying_svs;
 

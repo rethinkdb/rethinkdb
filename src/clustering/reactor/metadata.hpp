@@ -46,6 +46,12 @@ enum class primary_type_t {
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(primary_type_t, int8_t, primary_type_t::MAIN, primary_type_t::VICE);
 
+enum class secondary_type_t {
+    NORMAL,
+    VICEPRIMARY
+};
+
+
 template <class protocol_t>
 class primary_when_safe_t {
 public:

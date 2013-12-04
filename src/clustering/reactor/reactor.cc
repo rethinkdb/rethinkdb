@@ -21,6 +21,7 @@ std::map<key_t, value_t> collapse_optionals_in_map(const std::map<key_t, boost::
 
 template<class protocol_t>
 reactor_t<protocol_t>::reactor_t(
+        namespace_id_t _ns_id,
         const base_path_t& _base_path,
         io_backender_t *_io_backender,
         mailbox_manager_t *mm,
@@ -44,6 +45,7 @@ reactor_t<protocol_t>::reactor_t(
     branch_history_manager(bhm),
     blueprint_watchable(b),
     failover_switch(_failover_switch),
+    ns_id(_ns_id),
     underlying_svs(_underlying_svs),
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
     ctx(_ctx)
@@ -196,7 +198,7 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
     case blueprint_role_t::PRIMARY:
         if (failover) {
             be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
-                failover_switch_t(), interruptor);
+                secondary_type_t::NORMAL, interruptor);
         } else {
             be_primary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
                 primary_type_t::MAIN, interruptor);
@@ -209,13 +211,13 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
                 primary_type_t::VICE, interruptor);
         } else {
             be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
-                failover_switch, interruptor);
+                secondary_type_t::VICEPRIMARY, interruptor);
         }
         break;
     }
     case blueprint_role_t::SECONDARY:
         be_secondary(cpu_sharded_region, store_view, role->blueprint.get_watchable(),
-            failover_switch_t(), interruptor);
+            secondary_type_t::NORMAL, interruptor);
         break;
     case blueprint_role_t::NOTHING:
         be_nothing(cpu_sharded_region, store_view, role->blueprint.get_watchable(),

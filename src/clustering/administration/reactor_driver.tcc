@@ -316,6 +316,7 @@ private:
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
 
         reactor_.init(new reactor_t<protocol_t>(
+            namespace_id_,
             base_path,
             io_backender,
             parent_->mbox_manager,

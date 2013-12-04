@@ -150,7 +150,7 @@ peer_id_t reactor_test_cluster_t<protocol_t>::get_me() {
 template <class protocol_t>
 test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
     blueprint_watchable(initial_blueprint),
-    reactor(base_path, io_backender, &r->mailbox_manager, this,
+    reactor(namespace_id_t(), base_path, io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
             &r->branch_history_manager, blueprint_watchable.get_watchable(), typename reactor_t<protocol_t>::failover_switch_t(), svs, &get_global_perfmon_collection(), &ctx), //TODO make this a real failover_switch_t
     reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
