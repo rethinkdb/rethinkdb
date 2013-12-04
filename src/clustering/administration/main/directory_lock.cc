@@ -22,7 +22,10 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         if (!create) {
             throw directory_missing_exc_t(directory_path);
         }
-        int mkdir_res = mkdir(directory_path.path().c_str(), 0755);
+        int mkdir_res;
+        do {
+            mkdir_res = mkdir(directory_path.path().c_str(), 0755);
+        } while (mkdir_res == -1 && errno == EINTR);
         if (mkdir_res != 0) {
             throw directory_create_failed_exc_t(errno, directory_path);
         }

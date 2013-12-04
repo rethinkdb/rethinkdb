@@ -313,8 +313,11 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
         // directory entry is persisted to disk.
         int sync_res = fsync_parent_directory(filename.path().c_str());
         if (sync_res != 0) {
+            char errno_str_buf[250];
+            const char *errno_str = errno_string_maybe_using_buffer(sync_res,
+                errno_str_buf, sizeof(errno_str_buf));
             logWRN("Parent directory of log file (%s) could not be synced. (%s)\n",
-                filename.path().c_str(), strerror(sync_res));
+                filename.path().c_str(), errno_str);
         }
     }
 }
