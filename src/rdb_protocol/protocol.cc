@@ -2209,15 +2209,12 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 #endif
         rdb_value_deleter_t deleter;
 #if SLICE_ALT
-        scoped_ptr_t<alt_buf_lock_t> sindex_block;
-#else
-        scoped_ptr_t<buf_lock_t> sindex_block;
-#endif
         std::set<std::string> created_sindexes;
-#if SLICE_ALT
-        store->set_sindexes(s.sindexes, superblock, &sizer, &deleter, &sindex_block,
+        store->set_sindexes(s.sindexes, sindex_block.get(), &sizer, &deleter,
                             &created_sindexes, interruptor);
 #else
+        scoped_ptr_t<buf_lock_t> sindex_block;
+        std::set<std::string> created_sindexes;
         store->set_sindexes(token_pair, s.sindexes,
                             txn,
                             superblock, &sizer, &deleter, &sindex_block,

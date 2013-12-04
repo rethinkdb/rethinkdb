@@ -33,7 +33,6 @@ void cluster_namespace_interface_t<protocol_t>::read(
     order_token_t order_token,
     signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) {
-
     order_token.assert_read_mode();
     dispatch_immediate_op<
         typename protocol_t::read_t,

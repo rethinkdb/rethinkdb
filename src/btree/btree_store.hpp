@@ -233,6 +233,18 @@ public:
 #endif
 
 #if SLICE_ALT
+    // RSI: See if other version of set_sindexes is used.
+    void set_sindexes(
+        const std::map<std::string, secondary_index_t> &sindexes,
+        alt::alt_buf_lock_t *sindex_block,
+        value_sizer_t<void> *sizer,
+        value_deleter_t *deleter,
+        std::set<std::string> *created_sindexes_out,
+        signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
+#endif
+
+#if SLICE_ALT
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         superblock_t *superblock,

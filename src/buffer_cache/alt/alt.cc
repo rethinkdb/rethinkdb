@@ -2,6 +2,9 @@
 
 #include "concurrency/auto_drainer.hpp"
 
+// RSI: get rid of this.
+#define ALT_DEBUG 0
+
 namespace alt {
 
 alt_cache_t::alt_cache_t(serializer_t *serializer)
@@ -53,6 +56,12 @@ alt_buf_lock_t::alt_buf_lock_t()
       snapshot_node_(NULL) {
 }
 
+#if ALT_DEBUG
+const char *show(alt_access_t access) {
+    return access == alt_access_t::read ? "read" : "write";
+}
+#endif
+
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                block_id_t block_id,
                                alt_access_t access)
@@ -61,6 +70,9 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
       snapshot_node_(NULL) {
     alt_buf_lock_t::wait_for_parent(parent, access);
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
+#if ALT_DEBUG
+    debugf("%p: alt_buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
+#endif
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
@@ -71,6 +83,9 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
                                                alt_access_t::write, true)),
       snapshot_node_(NULL) {
     guarantee(create == alt_create_t::create);
+#if ALT_DEBUG
+    debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id);
+#endif
 }
 
 
@@ -100,6 +115,9 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), access);
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
+#if ALT_DEBUG
+    debugf("%p: alt_buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
+#endif
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
@@ -111,6 +129,9 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
     wait_for_parent(parent, alt_access_t::write);
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_access_t::write));
+#if ALT_DEBUG
+    debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id());
+#endif
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
@@ -123,9 +144,17 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_access_t::write));
+#if ALT_DEBUG
+    debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id());
+#endif
 }
 
 alt_buf_lock_t::~alt_buf_lock_t() {
+#if ALT_DEBUG
+    if (txn_ != NULL) {
+        debugf("%p: alt_buf_lock_t %p destroy %lu\n", cache(), this, block_id());
+    }
+#endif
     // RSI: We'll have to do something with snapshot_node_ here.
     (void)snapshot_node_;
 }

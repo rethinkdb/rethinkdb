@@ -130,7 +130,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                         it->first));
         }
     }
-#endif
+#endif  // NDEBUG
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
