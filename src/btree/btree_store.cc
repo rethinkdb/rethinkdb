@@ -558,15 +558,7 @@ bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::m
     return true;
 }
 
-#if SLICE_ALT
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::add_sindex(
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        superblock_t *super_block,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-#else
+#if !SLICE_ALT
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         write_token_pair_t *token_pair,
@@ -576,24 +568,16 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         superblock_t *super_block,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-#endif
     assert_thread();
 
     /* Get the sindex block which we will need to modify. */
-#if SLICE_ALT
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
-
-    return add_sindex(id, definition,
-                      super_block, &sindex_block,
-                      interruptor);
-#else
     scoped_ptr_t<buf_lock_t> sindex_block;
 
     return add_sindex(token_pair, id, definition, txn,
                       super_block, &sindex_block,
                       interruptor);
-#endif
 }
+#endif
 
 #if SLICE_ALT
 template <class protocol_t>
@@ -637,30 +621,7 @@ bool btree_store_t<protocol_t>::add_sindex(
 }
 #endif
 
-#if SLICE_ALT
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::add_sindex(
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        superblock_t *super_block,
-        scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-
-    assert_thread();
-
-    // RSI: Callee doesn't use interruptor.
-    acquire_sindex_block_for_write(super_block->expose_buf(),
-                                   sindex_block_out,
-                                   super_block->get_sindex_block_id(), interruptor);
-
-    // RSI: remove this.
-    (*sindex_block_out)->read_acq_signal()->wait();
-    (*sindex_block_out)->write_acq_signal()->wait();
-
-    return add_sindex(id, definition, sindex_block_out->get(), interruptor);
-}
-#else
+#if !SLICE_ALT
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::add_sindex(
         write_token_pair_t *token_pair,
@@ -779,29 +740,7 @@ void btree_store_t<protocol_t>::set_sindexes(
 
 #endif
 
-#if SLICE_ALT
-template <class protocol_t>
-void btree_store_t<protocol_t>::set_sindexes(
-        const std::map<std::string, secondary_index_t> &sindexes,
-        superblock_t *superblock,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
-        std::set<std::string> *created_sindexes_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    /* Get the sindex block which we will need to modify. */
-    // RSI: Callee doesn't use interruptor.
-    acquire_sindex_block_for_write(superblock->expose_buf(),
-                                   sindex_block_out,
-                                   superblock->get_sindex_block_id(), interruptor);
-
-    set_sindexes(sindexes, sindex_block_out->get(), sizer, deleter,
-                 created_sindexes_out, interruptor);
-}
-#else
+#if !SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::set_sindexes(
         write_token_pair_t *token_pair,
@@ -994,71 +933,6 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         // RSI: Yeah, we don't want to do this here, thanks.
         // RSI: We don't do this at all because it's the caller's block to delete, I think.
         // sindex_block->reset_buf_lock();
-    }
-    return true;
-}
-#endif
-
-#if SLICE_ALT
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
-        const std::string &id,
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    /* First get the sindex block. */
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    // RSI: Callee doesn't use interruptor.
-    acquire_sindex_block_for_write(super_block->expose_buf(),
-                                   &sindex_block,
-                                   super_block->get_sindex_block_id(), interruptor);
-
-    /* Remove reference in the super block */
-    secondary_index_t sindex;
-    if (!::get_secondary_index(sindex_block.get(), id, &sindex)) {
-        return false;
-    } else {
-        delete_secondary_index(sindex_block.get(), id);
-        // RSI: Ahem?  We can't release sindex_block here with the alt cache -- since
-        // we re-acquire the sindex_superblock_lock over and over again.  Why do we
-        // re-acquire the sindex_superblock_lock over and over again?
-
-        // RSI: (We MUST release the sindex block right away so that others can
-        // proceed, yes.)
-
-        // RSI: Does the cache let us mark a parent deleted and then acquire the
-        // child of that block?  Logically it seems that once you've "detached" the
-        // child from the parent, you could just acquire the child with the txn as
-        // parent.
-
-        /* Make sure we have a record of the slice. */
-        guarantee(std_contains(secondary_index_slices, id));
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
-
-        {
-            alt_buf_lock_t sindex_superblock_lock(sindex_block.get(),
-                                                  sindex.superblock,
-                                                  alt_access_t::write);
-            real_superblock_t sindex_superblock(&sindex_superblock_lock);
-
-            erase_all(sizer, sindex_slice,
-                      deleter, &sindex_superblock, interruptor);
-        }
-
-        secondary_index_slices.erase(id);
-
-        {
-            alt_buf_lock_t sindex_superblock_lock(sindex_block.get(),
-                                                  sindex.superblock,
-                                                  alt_access_t::write);
-            sindex_superblock_lock.mark_deleted();
-        }
-        // RSI: Yeah, we don't want to do this here, thanks.
-        sindex_block->reset_buf_lock();
     }
     return true;
 }

@@ -190,6 +190,7 @@ void run_sindex_btree_store_api_test() {
             &io_backender,
             base_path_t("."));
 
+    // RSI: Rename all interuptor.
     cond_t dummy_interuptor;
 
     std::set<std::string> created_sindexs;
@@ -212,17 +213,27 @@ void run_sindex_btree_store_api_test() {
                                                1, write_durability_t::SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interuptor);
 
+#if SLICE_ALT
+            scoped_ptr_t<alt_buf_lock_t> sindex_block;
+            store.acquire_sindex_block_for_write(super_block->expose_buf(),
+                                                 &sindex_block,
+                                                 super_block->get_sindex_block_id(),
+                                                 &dummy_interuptor);
+
             UNUSED bool b = store.add_sindex(
-#if !SLICE_ALT
-                &token_pair,
-#endif
                 id,
                 std::vector<char>(),
-#if !SLICE_ALT
+                sindex_block.get(),
+                &dummy_interuptor);
+#else
+            UNUSED bool b = store.add_sindex(
+                &token_pair,
+                id,
+                std::vector<char>(),
                 txn.get(),
-#endif
                 super_block.get(),
                 &dummy_interuptor);
+#endif
         }
 
         {
@@ -382,8 +393,14 @@ void run_sindex_btree_store_api_test() {
         rdb_value_deleter_t deleter;
 
 #if SLICE_ALT
+        scoped_ptr_t<alt_buf_lock_t> sindex_block;
+        store.acquire_sindex_block_for_write(super_block->expose_buf(),
+                                             &sindex_block,
+                                             super_block->get_sindex_block_id(),
+                                             &dummy_interuptor);
+
         store.drop_sindex(*it,
-                super_block.get(), &sizer,
+                sindex_block.get(), &sizer,
                 &deleter, &dummy_interuptor);
 #else
         store.drop_sindex(&token_pair, *it,

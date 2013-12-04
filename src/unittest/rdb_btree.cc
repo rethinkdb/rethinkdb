@@ -137,17 +137,26 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     int res = send_write_message(&stream, &wm);
     guarantee(res == 0);
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    store->acquire_sindex_block_for_write(super_block->expose_buf(),
+                                          &sindex_block,
+                                          super_block->get_sindex_block_id(),
+                                          &dummy_interruptor);
     UNUSED bool b = store->add_sindex(
-#if !SLICE_ALT
-            &token_pair,
-#endif
             sindex_id,
             stream.vector(),
-#if !SLICE_ALT
+            sindex_block.get(),
+            &dummy_interruptor);
+#else
+    UNUSED bool b = store->add_sindex(
+            &token_pair,
+            sindex_id,
+            stream.vector(),
             txn.get(),
-#endif
             super_block.get(),
             &dummy_interruptor);
+#endif
     return sindex_id;
 }
 
@@ -171,18 +180,28 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
     rdb_value_deleter_t deleter;
 
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    store->acquire_sindex_block_for_write(super_block->expose_buf(),
+                                          &sindex_block,
+                                          super_block->get_sindex_block_id(),
+                                          &dummy_interuptor);
     store->drop_sindex(
-#if !SLICE_ALT
-            &token_pair,
-#endif
             sindex_id,
-#if !SLICE_ALT
+            sindex_block.get(),
+            &sizer,
+            &deleter,
+            &dummy_interuptor);
+#else
+    store->drop_sindex(
+            &token_pair,
+            sindex_id,
             txn.get(),
-#endif
             super_block.get(),
             &sizer,
             &deleter,
             &dummy_interuptor);
+#endif
 }
 
 void bring_sindexes_up_to_date(

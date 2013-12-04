@@ -188,7 +188,7 @@ public:
     MUST_USE bool add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        superblock_t *super_block,
+        alt::alt_buf_lock_t *sindex_block,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 #else
@@ -200,27 +200,7 @@ public:
         superblock_t *super_block,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
-    // RSI: Check that all add_sindex methods are actually used.
-    MUST_USE bool add_sindex(
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        alt::alt_buf_lock_t *sindex_block,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
-
-#if SLICE_ALT
-    MUST_USE bool add_sindex(
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        superblock_t *super_block,
-        scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#else
     MUST_USE bool add_sindex(
         write_token_pair_t *token_pair,
         const std::string &id,
@@ -233,24 +213,11 @@ public:
 #endif
 
 #if SLICE_ALT
-    // RSI: See if other version of set_sindexes is used.
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         alt::alt_buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
-        std::set<std::string> *created_sindexes_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
-
-#if SLICE_ALT
-    void set_sindexes(
-        const std::map<std::string, secondary_index_t> &sindexes,
-        superblock_t *superblock,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
         std::set<std::string> *created_sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
@@ -295,20 +262,9 @@ public:
 #endif
 
 #if SLICE_ALT
-    // RSI: Check if other drop_sindex gets called at all.
     bool drop_sindex(
         const std::string &id,
         alt::alt_buf_lock_t *sindex_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
-
-#if SLICE_ALT
-    bool drop_sindex(
-        const std::string &id,
-        superblock_t *super_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         signal_t *interruptor)
@@ -325,6 +281,7 @@ public:
     THROWS_ONLY(interrupted_exc_t);
 #endif
 
+    // RSI: drop_all_sindexes is unused.
 #if SLICE_ALT
     void drop_all_sindexes(
         superblock_t *super_block,
