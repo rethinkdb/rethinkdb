@@ -10,6 +10,7 @@
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/disk/filestat.hpp"
+#include "arch/io/disk.hpp"
 #include "clustering/administration/persist.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
@@ -306,6 +307,15 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
         // Get the absolute path for the log file, so it will still be valid if
         //  the working directory changes
         filename.make_absolute();
+
+        // For the case that the log file was newly created,
+        // call fsync() on the parent directory to guarantee that its
+        // directory entry is persisted to disk.
+        int sync_res = fsync_parent_directory(filename.path().c_str());
+        if (sync_res != 0) {
+            logWRN("Parent directory of log file (%s) could not be synced. (%s)\n",
+                filename.path().c_str(), strerror(sync_res));
+        }
     }
 }
 
