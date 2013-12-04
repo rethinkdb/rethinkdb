@@ -78,6 +78,7 @@ public:
     int get_address_family() const;
     bool is_ipv4() const { return addr_type == RDB_IPV4_ADDR; }
     bool is_ipv6() const { return addr_type == RDB_IPV6_ADDR; }
+    bool is_ipv6_link_local() const;
 
     const struct in_addr &get_ipv4_addr() const;
     const struct in6_addr &get_ipv6_addr() const;
