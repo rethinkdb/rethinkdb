@@ -191,7 +191,7 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
 
     blueprint_t<protocol_t> bp =
         role->blueprint.get_watchable()->get();
-    guarantee(std_contains(bp.failover, region));
+    debugf("Shards in failover: %zu\n", bp.failover.size());
     bool failover = std_contains(bp.failover, region);
 
     switch (role->role) {

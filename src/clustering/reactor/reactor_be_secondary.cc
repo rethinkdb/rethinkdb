@@ -233,10 +233,15 @@ void reactor_t<protocol_t>::be_secondary(
                         cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > new_metadata =
                             failover_switch->get();
                         typename decltype(new_metadata)::change_t change(&new_metadata);
-                        change.get()->namespaces[ns_id].get_mutable()->blueprint.get_mutable().failover.insert(region);
+                        change.get()->namespaces[ns_id].get_mutable()->blueprint.get_mutable().failover.insert(drop_cpu_sharding(region));
                         failover_switch->join(new_metadata);
+                        debugf("Sanity check: %zu\n", failover_switch->get()->namespaces.find(ns_id)->second.get_ref().blueprint.get().failover.size());
+
                         /* This should cause the function to be rerun with us
                          * as a primary. */
+
+                        /* We return because later parts of the function depend on this information. */
+                        return;
                     }
                 } else {
                     run_until_satisfied_2(

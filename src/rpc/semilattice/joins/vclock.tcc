@@ -125,7 +125,15 @@ bool operator==(const vclock_t<T> &a, const vclock_t<T> &b) {
 
 template <class T>
 void semilattice_join(vclock_t<T> *a, const vclock_t<T> &b) {
-    a->values.insert(b.values.begin(), b.values.end());
+    for (auto it = b.values.begin(); it != b.values.end(); ++it) {
+        auto val = a->values.find(it->first);
+        if (val == a->values.end()) {
+            a->values.insert(*it);
+        } else {
+            debugf("Calling handle dupe.\n");
+            a->handle_dupe(&val->second, it->second);
+        }
+    }
 
     a->cull_old_values();
 }
@@ -145,6 +153,7 @@ merging_vclock_t<T> &merging_vclock_t<T>::operator=(const vclock_t<T> &other) {
 
 template <class T>
 void merging_vclock_t<T>::handle_dupe(T *l, const T &r) {
+    debugf("Handling dupe.\n");
     semilattice_join(l, r);
 }
 
