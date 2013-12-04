@@ -182,7 +182,7 @@ private:
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 d = d->merge(v->as_datum());
             } else {
-                auto f = arg(env, i, LITERAL_OK)->as_func(CONSTANT_SHORTCUT);
+                auto f = v->as_func(CONSTANT_SHORTCUT);
                 d = d->merge(f->call(env->env, d, LITERAL_OK)->as_datum());
             }
         }
