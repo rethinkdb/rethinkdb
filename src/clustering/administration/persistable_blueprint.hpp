@@ -29,11 +29,17 @@ public:
 
     role_map_t machines_roles;
 
-    typedef std::map<typename protocol_t::region_t, bool> failover_map_t;
-    failover_map_t failover;
+    typedef std::set<typename protocol_t::region_t> failover_set_t;
+    failover_set_t failover;
 
     RDB_MAKE_ME_SERIALIZABLE_2(machines_roles, failover);
 };
+
+template<class protocol_t>
+inline void semilattice_join(persistable_blueprint_t<protocol_t> *a, const persistable_blueprint_t<protocol_t> &b) {
+    guarantee(a->machines_roles == b.machines_roles);
+    a->failover.insert(b.failover.begin(), b.failover.end());
+}
 
 template<class protocol_t>
 RDB_MAKE_EQUALITY_COMPARABLE_2(persistable_blueprint_t<protocol_t>,

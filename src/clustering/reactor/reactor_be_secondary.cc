@@ -19,7 +19,7 @@ bool reactor_t<protocol_t>::find_broadcaster_in_directory(
     /* My word are hash shards annoying. */
     bool failover = false;
     for (auto it = bp.failover.begin(); it != bp.failover.end(); ++it) {
-        if (it->second && region_is_superset(it->first, region)) {
+        if (region_is_superset(*it, region)) {
             failover = true;
             break;
         }

@@ -190,7 +190,7 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
     blueprint_t<protocol_t> bp =
         role->blueprint.get_watchable()->get();
     guarantee(std_contains(bp.failover, region));
-    bool failover = bp.failover[region];
+    bool failover = std_contains(bp.failover, region);
 
     switch (role->role) {
     case blueprint_role_t::PRIMARY:

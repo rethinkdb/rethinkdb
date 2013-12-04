@@ -66,7 +66,7 @@ class namespace_semilattice_metadata_t {
 public:
     namespace_semilattice_metadata_t() : cache_size(GIGABYTE) { }
 
-    vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
+    merging_vclock_t<persistable_blueprint_t<protocol_t> > blueprint;
     vclock_t<datacenter_id_t> primary_datacenter;
     vclock_t<std::map<datacenter_id_t, int32_t> > replica_affinities;
     vclock_t<std::map<datacenter_id_t, ack_expectation_t> > ack_expectations;

@@ -29,6 +29,7 @@ void vclock_t<T>::cull_old_values() {
     for (typename value_map_t::iterator d_it = to_delete.begin(); d_it != to_delete.end(); ++d_it) {
         values.erase(d_it->first);
     }
+
     guarantee(!values.empty(), "As a postcondition, values should never be empty\n");
 }
 
@@ -134,6 +135,17 @@ void debug_print(printf_buffer_t *buf, const vclock_t<T> &x) {
     buf->appendf("vclock{");
     debug_print(buf, x.values);
     buf->appendf("}");
+}
+
+template <class T>
+merging_vclock_t<T> &merging_vclock_t<T>::operator=(const vclock_t<T> &other) {
+    *static_cast<vclock_t<T> *>(this) = other;
+    return *this;
+}
+
+template <class T>
+void merging_vclock_t<T>::handle_dupe(T *l, const T &r) {
+    semilattice_join(l, r);
 }
 
 #endif  // RPC_SEMILATTICE_JOINS_VCLOCK_TCC_

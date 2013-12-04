@@ -328,7 +328,6 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
     persistable_blueprint_t<protocol_t> blueprint;
 
     for (auto it = shards.begin(); it != shards.end(); it++) {
-        blueprint.failover[*it] = false;
         std::set<machine_id_t> machines_shard_primary_is_pinned_to;
         primary_pinnings_map_t primary_masked_map = primary_pinnings.mask(*it);
 

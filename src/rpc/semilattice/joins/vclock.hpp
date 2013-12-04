@@ -63,6 +63,8 @@ private:
     //if there exist 2 values a,b in values s.t. a.first < b.first remove a
     void cull_old_values();
 
+    virtual void handle_dupe(T *, const T &) { }
+
 public:
     typedef T value_type;
     vclock_t();
@@ -70,6 +72,8 @@ public:
     explicit vclock_t(const T &_t);
 
     vclock_t(const T &_t, const uuid_u &us);
+
+    virtual ~vclock_t() { }
 
     bool in_conflict() const;
 
@@ -116,6 +120,13 @@ public:
 inline bool operator==(const vclock_ctx_t &x, const vclock_ctx_t &y) {
     return x.us == y.us;
 }
+
+template <class T>
+class merging_vclock_t : public vclock_t<T> {
+public:
+    merging_vclock_t<T> &operator=(const vclock_t<T> &other);
+    virtual void handle_dupe(T *, const T &);
+};
 
 
 #include "rpc/semilattice/joins/vclock.tcc"
