@@ -521,7 +521,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                     struct op_closure_t {
                         bool operator()(blueprint_t<protocol_t> *bp_out) {
                             guarantee(bp_out != NULL);
-                            const bool blueprint_changed = !(*bp_out == bp);
+                            const bool blueprint_changed = *bp_out != bp;
                             if (blueprint_changed) {
                                 *bp_out = bp;
                             }

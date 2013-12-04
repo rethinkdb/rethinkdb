@@ -21,10 +21,8 @@ public:
         mailbox_addr_t<void(request_t)> request_addr;
         mailbox_addr_t<void(int)> relinquish_tickets_addr;
         RDB_MAKE_ME_SERIALIZABLE_2(request_addr, relinquish_tickets_addr);
-        bool operator==(const server_business_card_t &other) const {
-            return request_addr == other.request_addr &&
-                relinquish_tickets_addr == other.relinquish_tickets_addr;
-        }
+        RDB_MAKE_ME_EQUALITY_COMPARABLE_2(this_t::server_business_card_t,
+            request_addr, relinquish_tickets_addr);
     };
 
     class client_business_card_t {
@@ -43,6 +41,9 @@ public:
         mailbox_addr_t<void(int)> reclaim_tickets_addr;
         RDB_MAKE_ME_SERIALIZABLE_4(inner_client_business_card,
             intro_addr, give_tickets_addr, reclaim_tickets_addr);
+        RDB_MAKE_ME_EQUALITY_COMPARABLE_4(this_t::client_business_card_t,
+            inner_client_business_card, intro_addr, give_tickets_addr,
+            reclaim_tickets_addr);
         bool operator==(const server_business_card_t &other) const {
             return inner_client_business_card == other.inner_client_business_card &&
                 intro_addr == other.intro_addr &&
