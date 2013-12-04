@@ -84,11 +84,11 @@ public:
     reactor_driver_t(const base_path_t &base_path,
                      io_backender_t *io_backender,
                      mailbox_manager_t *mbox_manager,
-                     const clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &directory_view,
+                     const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > &directory_view,
                      branch_history_manager_t<protocol_t> *branch_history_manager,
                      boost::shared_ptr<semilattice_readwrite_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_view,
                      boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view,
-                     const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
+                     const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
                      svs_by_namespace_t<protocol_t> *svs_by_namespace,
                      perfmon_collection_repo_t *,
                      typename protocol_t::context_t *);
@@ -114,9 +114,9 @@ private:
     const base_path_t base_path;
     io_backender_t *const io_backender;
     mailbox_manager_t *const mbox_manager;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > directory_view;
     branch_history_manager_t<protocol_t> *branch_history_manager;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > > > namespaces_view;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machines_view;
     typename protocol_t::context_t *ctx;
@@ -132,7 +132,7 @@ private:
     auto_drainer_t drainer;
 
     typename semilattice_read_view_t<cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > >::subscription_t semilattice_subscription;
-    watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
+    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::subscription_t translation_table_subscription;
 
     perfmon_collection_repo_t *perfmon_collection_repo;
     //boost::ptr_vector<perfmon_collection_t> namespace_perfmon_collections;

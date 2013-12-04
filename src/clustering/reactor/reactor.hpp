@@ -29,7 +29,7 @@ public:
             io_backender_t *io_backender,
             mailbox_manager_t *mailbox_manager,
             ack_checker_t *ack_checker,
-            clone_ptr_t<watchable_t<std::map<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > reactor_directory,
+            clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > > > > > reactor_directory,
             branch_history_manager_t<protocol_t> *branch_history_manager,
             clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > blueprint_watchable,
             multistore_ptr_t<protocol_t> *_underlying_svs,
@@ -120,16 +120,16 @@ private:
                                 const typename backfill_candidate_t::backfill_location_t &backfiller,
                                 best_backfiller_map_t *best_backfiller_out);
 
-    bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+    bool is_safe_for_us_to_be_primary(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out, branch_history_t<protocol_t> *branch_history_to_merge_out, bool *should_merge_metadata);
 
     static backfill_candidate_t make_backfill_candidate_from_version_range(const version_range_t &b);
 
     /* Implemented in clustering/reactor/reactor_be_secondary.tcc */
-    bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory,
+    bool find_broadcaster_in_directory(const typename protocol_t::region_t &region, const blueprint_t<protocol_t> &bp, const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory,
                                        clone_ptr_t<watchable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > > *broadcaster_out);
 
-    bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory,
+    bool find_replier_in_directory(const typename protocol_t::region_t &region, const branch_id_t &b_id, const blueprint_t<protocol_t> &bp, const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory,
                                       clone_ptr_t<watchable_t<boost::optional<boost::optional<replier_business_card_t<protocol_t> > > > > *replier_out, peer_id_t *peer_id_out, reactor_activity_id_t *activity_out);
 
     void be_secondary(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
@@ -137,7 +137,7 @@ private:
 
 
     /* Implemented in clustering/reactor/reactor_be_nothing.tcc */
-    bool is_safe_for_us_to_be_nothing(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
+    bool is_safe_for_us_to_be_nothing(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
                                       const typename protocol_t::region_t &region);
 
     void be_nothing(typename protocol_t::region_t region, store_view_t<protocol_t> *store, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &,
@@ -185,10 +185,12 @@ private:
 };
 
 
+// TODO: This could easily be an incremental lens. It doesn't seem overly critical for
+// performance though, so let's belay that until it turns out to be necessary.
 template<class protocol_t, class activity_t>
-boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
-    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = bcards.find(p_id);
-    if (it == bcards.end()) {
+boost::optional<boost::optional<activity_t> > extract_activity_from_reactor_bcard(const change_tracking_map_t<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &bcards, peer_id_t p_id, const reactor_activity_id_t &ra_id) {
+    typename std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > >::const_iterator it = bcards.get_inner().find(p_id);
+    if (it == bcards.get_inner().end()) {
         return boost::optional<boost::optional<activity_t> >();
     }
     typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator jt = it->second->activities.find(ra_id);

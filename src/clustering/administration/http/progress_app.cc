@@ -183,7 +183,7 @@ void send_backfill_requests_t::operator()<reactor_business_card_t<rdb_protocol_t
 static const char *any_machine_id_wildcard = "_";
 
 //TODO why is this not const?
-progress_app_t::progress_app_t(clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata, mailbox_manager_t *_mbox_manager)
+progress_app_t::progress_app_t(clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > _directory_metadata, mailbox_manager_t *_mbox_manager)
     : directory_metadata(_directory_metadata), mbox_manager(_mbox_manager)
 { }
 
@@ -255,7 +255,7 @@ http_res_t progress_app_t::handle(const http_req_t &req) {
 
     boost::shared_ptr<std::map<peer_id_t, cluster_directory_metadata_t> > directory(
         new std::map<peer_id_t, cluster_directory_metadata_t>());
-    *directory = directory_metadata->get();
+    *directory = directory_metadata->get().get_inner();
     /* Iterate through the peers. */
     for (std::map<peer_id_t, cluster_directory_metadata_t>::iterator p_it = directory->begin();
          p_it != directory->end();

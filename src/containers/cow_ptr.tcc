@@ -12,6 +12,10 @@ class cow_pointee_t : public slow_atomic_countable_t<cow_pointee_t<T> > {
     explicit cow_pointee_t(const T &copyee) : value(copyee) { }
 
     T value;
+public:
+    bool operator==(const cow_pointee_t<T> &other) const {
+        return value == other.value;
+    }
 };
 
 template <class T>
@@ -70,6 +74,12 @@ void cow_ptr_t<T>::set(const T &new_value) {
         rassert(change_count == 0);
         ptr.reset(new cow_pointee_t<T>(new_value));
     }
+}
+
+template <class T>
+bool cow_ptr_t<T>::operator==(const cow_ptr_t<T> &other) const {
+    guarantee(ptr.has() && other.ptr.has());
+    return *ptr == *other.ptr;
 }
 
 template <class T>

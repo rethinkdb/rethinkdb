@@ -36,6 +36,11 @@ private:
         f();
     }
 
+    void apply_read(const std::function<void(const value_t*)> &read) {
+        ASSERT_NO_CORO_WAITING;
+        read(const_cast<const value_t *>(&value));
+    }
+
     class w_t : public watchable_t<value_t> {
     public:
         explicit w_t(cross_thread_watchable_variable_t<value_t> *p) : parent(p) { }
@@ -45,6 +50,9 @@ private:
         }
         value_t get() {
             return parent->value;
+        }
+        void apply_read(const std::function<void(const value_t*)> &read) {
+            return parent->apply_read(read);
         }
         publisher_t<boost::function<void()> > *get_publisher() {
             return parent->publisher_controller.get_publisher();
