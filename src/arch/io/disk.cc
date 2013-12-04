@@ -529,14 +529,16 @@ MUST_USE int fsync_parent_directory(const char *path) {
     // Get a file descriptor on the parent directory
     int res;
     do {
-        res = open(parent_path, 0);
+        res = open(parent_path, O_RDONLY);
     } while (res == -1 && errno == EINTR);
     if (res == -1) {
         return errno;
     }
     scoped_fd_t fd(res);
 
-    res = fsync(fd.get());
+    do {
+        res = fsync(fd.get());
+    } while (res == -1 && errno == EINTR);
     if (res == -1) {
         return errno;
     }
