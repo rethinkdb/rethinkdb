@@ -7,6 +7,7 @@
 
 #include "containers/archive/archive.hpp"
 #include "rpc/connectivity/cluster.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 
 class mailbox_manager_t;
 
@@ -64,6 +65,8 @@ public:
 
         // Returns a friendly human-readable peer:thread:mailbox_id string.
         std::string human_readable() const;
+
+        RDB_MAKE_ME_EQUALITY_COMPARABLE_3(raw_mailbox_t::address_t, peer, thread, mailbox_id);
 
     private:
         friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);

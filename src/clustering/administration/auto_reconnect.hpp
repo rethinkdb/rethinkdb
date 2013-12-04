@@ -10,6 +10,7 @@
 
 #include "clustering/administration/machine_metadata.hpp"
 #include "concurrency/watchable.hpp"
+#include "containers/incremental_lenses.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -18,7 +19,7 @@ public:
     auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster,
         connectivity_cluster_t::run_t *connectivity_cluster_run,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table,
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machine_metadata);
 
 private:
@@ -33,7 +34,7 @@ private:
 
     connectivity_cluster_t *connectivity_cluster;
     connectivity_cluster_t::run_t *connectivity_cluster_run;
-    clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > machine_id_translation_table;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > machine_id_translation_table;
     boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > machine_metadata;
 
     /* this is so that `on_disconnect()` can find the machine ID and last
@@ -42,7 +43,7 @@ private:
 
     auto_drainer_t drainer;
 
-    watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t machine_id_translation_table_subs;
+    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::subscription_t machine_id_translation_table_subs;
 
     DISABLE_COPYING(auto_reconnector_t);
 };
