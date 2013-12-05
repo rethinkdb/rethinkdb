@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <algorithm>
 #include <functional>
@@ -452,13 +453,9 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
 
     const int64_t file_size = get_file_size(fd.get());
 
-    // TODO: We have a very minor correctness issue here, which is that
-    // we don't guarantee data durability for newly created database files.
-    // In theory, we would have to fsync() not only the file itself, but
-    // also the directory containing it. Otherwise the file might not
-    // survive a crash of the system. However, the window for data to get lost
-    // this way is just a few seconds after the creation of a new database,
-    // until the file system flushes the metadata to disk.
+    // Call fsync() on the parent directory to guarantee that the newly
+    // created file's directory entry is persisted to disk.
+    guarantee_fsync_parent_directory(path);
 
     out->init(new linux_file_t(std::move(fd), file_size, backender->get_diskmgr_ptr()));
 
@@ -522,3 +519,34 @@ int perform_datasync(fd_t fd) {
 #endif  // __MACH__
 }
 
+MUST_USE int fsync_parent_directory(const char *path) {
+    // Locate the parent directory
+    char absolute_path[PATH_MAX];
+    char *abs_res = realpath(path, absolute_path);
+    guarantee_err(abs_res != NULL, "Failed to determine absolute path for '%s'", path);
+    char *parent_path = dirname(absolute_path); // Note: modifies absolute_path
+
+    // Get a file descriptor on the parent directory
+    int res;
+    do {
+        res = open(parent_path, O_RDONLY);
+    } while (res == -1 && errno == EINTR);
+    if (res == -1) {
+        return errno;
+    }
+    scoped_fd_t fd(res);
+
+    do {
+        res = fsync(fd.get());
+    } while (res == -1 && errno == EINTR);
+    if (res == -1) {
+        return errno;
+    }
+
+    return 0;
+}
+
+void guarantee_fsync_parent_directory(const char *path) {
+    int sync_res = fsync_parent_directory(path);
+    guarantee_xerr(sync_res == 0, sync_res, "Failed to fsync() parent directory of '%s'.", path);
+}
