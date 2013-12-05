@@ -64,6 +64,11 @@ public:
     }
 };
 
+/* Forbid the following function definition to be inlined
+ * (note: some compilers might require `noinline` instead of `__attribute__ ((noinline))`)
+ */
+#define NOINLINE __attribute__ ((noinline))
+
 /* Pad a value to the size of a cache line to avoid false sharing.
  * TODO: This is implemented as a struct with subtraction rather than a union
  * so that it gives an error when trying to pad a value bigger than
