@@ -89,6 +89,8 @@ public:
 
     T &get_mutable();
 
+    const T &get_ref() const;
+
     std::vector<T> get_all_values() const;
 };
 

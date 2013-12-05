@@ -110,6 +110,12 @@ T &vclock_t<T>::get_mutable() {
 }
 
 template <class T>
+const T &vclock_t<T>::get_ref() const {
+    throw_if_conflict();
+    return values.begin()->second;
+}
+
+template <class T>
 std::vector<T> vclock_t<T>::get_all_values() const {
     std::vector<T> result;
     for (typename value_map_t::const_iterator i = values.begin(); i != values.end(); ++i)

@@ -28,8 +28,7 @@ public:
         issue_json_t json;
         json.critical = false;
         json.time = get_secs();
-        json.description = "The " + object_type + " with UUID " + uuid_to_str(object_id) +
-            " has a vector clock conflict in its field '" + field + "'.";
+        json.description = get_description();
         json.type = "VCLOCK_CONFLICT";
 
         cJSON *res = render_as_json(&json);
@@ -55,8 +54,8 @@ private:
 
 class vector_clock_conflict_issue_tracker_t : public global_issue_tracker_t {
 public:
-    explicit vector_clock_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _cluster_view,
-                                                   boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> > _auth_view);
+    vector_clock_conflict_issue_tracker_t(boost::shared_ptr<semilattice_read_view_t<cluster_semilattice_metadata_t> > _cluster_view,
+            boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> > _auth_view);
     ~vector_clock_conflict_issue_tracker_t();
 
     std::list<clone_ptr_t<global_issue_t> > get_issues();

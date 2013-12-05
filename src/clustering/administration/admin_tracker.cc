@@ -40,6 +40,9 @@ admin_tracker_t::admin_tracker_t(
     unsatisfiable_goals_issue_tracker(cluster_view),
     unsatisfiable_goals_issue_tracker_feed(&issue_aggregator, &unsatisfiable_goals_issue_tracker),
 
+    failover_issue_tracker(cluster_view),
+    failover_issue_tracker_feed(&issue_aggregator, &failover_issue_tracker),
+
     last_seen_tracker(
         metadata_field(&cluster_semilattice_metadata_t::machines, cluster_view),
         directory_view->subview(

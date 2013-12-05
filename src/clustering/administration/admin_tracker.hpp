@@ -11,6 +11,7 @@
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/view.hpp"
 
+#include "clustering/administration/issues/failover.hpp"
 #include "clustering/administration/issues/global.hpp"
 #include "clustering/administration/issues/local_to_global.hpp"
 #include "clustering/administration/issues/machine_down.hpp"
@@ -46,6 +47,8 @@ struct admin_tracker_t {
     global_issue_aggregator_t::source_t dummy_pinnings_shards_mismatch_issue_tracker_feed;
     unsatisfiable_goals_issue_tracker_t unsatisfiable_goals_issue_tracker;
     global_issue_aggregator_t::source_t unsatisfiable_goals_issue_tracker_feed;
+    failover_issue_tracker_t failover_issue_tracker;
+    global_issue_aggregator_t::source_t failover_issue_tracker_feed;
 
     last_seen_tracker_t last_seen_tracker;
 };
