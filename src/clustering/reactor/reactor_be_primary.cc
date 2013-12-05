@@ -401,7 +401,7 @@ template<class protocol_t>
 std::set<peer_id_t> ignore_primary(const blueprint_t<protocol_t> &bp,
         const typename protocol_t::region_t &region) {
     for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); ++it) {
-        auto role = it->second.find(region);
+        auto role = it->second.find(drop_cpu_sharding(region));
         if (role != it->second.end() && role->second == blueprint_role_t::PRIMARY) {
             return std::set<peer_id_t>({ it->first });
         }
