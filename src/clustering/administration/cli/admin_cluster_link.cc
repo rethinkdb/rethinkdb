@@ -237,7 +237,7 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
     try {
         fill_in_blueprints(cluster_metadata, directory_read_manager->get_root_view()->get().get_inner(), change_request_id, prioritize_distribution);
     } catch (const missing_machine_exc_t &ex) {
-        error = strprintf("Warning: %s", ex.what());
+        error = std::string(ex.what());
     }
 
     if (!change_request->update(*cluster_metadata)) {
@@ -246,7 +246,7 @@ void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cl
 
     // Print this out afterwards to avoid spammy warnings if retries must be performed
     if (!error.empty()) {
-        fprintf(stderr, "%s\n", error.c_str());
+        fprintf(stderr, "warn: %s", error.c_str());
     }
 }
 
