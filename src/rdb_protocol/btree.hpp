@@ -339,7 +339,7 @@ public:
 #if SLICE_ALT
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store,
-            alt::alt_buf_parent_t superblock, block_id_t sindex_block,
+            alt::alt_buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
 #else
     rdb_modification_report_cb_t(
@@ -361,7 +361,7 @@ private:
     block_id_t sindex_block_id_;
 #endif
 #if SLICE_ALT
-    scoped_ptr_t<alt::alt_buf_lock_t> sindex_block_;
+    alt::alt_buf_lock_t *sindex_block_;
 #endif
 
     // RSI: Figure out how this is used.  Does the caller release the superblock?

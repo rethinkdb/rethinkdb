@@ -439,16 +439,22 @@ void do_a_replace_from_batched_replace(
     batched_replace_response_t *stats_out,
     profile::trace_t *trace)
 {
+    debugf_t eex("do_a_replace_from_batched_replace");
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
+    debugf("do_a_replace_from_batched_replace made exiter\n");
     rdb_modification_report_t mod_report(*info.key);
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
         info, &one_replace, superblock_promise, &mod_report.info, trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
+    debugf("do_a_replace_from_batched_replace before exiter.wait\n");
+    // RSI: What is this for?  are we waiting to get in line to call on_mod_report?  I guess so.
     exiter.wait();
+    debugf("do_a_replace_from_batched_replace exiter.wait returned\n");
     sindex_cb->on_mod_report(mod_report);
+    debugf("do_a_replace_from_batched_replace on_mod_report returned\n");
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -471,7 +477,9 @@ batched_replace_response_t rdb_batched_replace(
         // Note the destructor ordering: We release the superblock before draining
         // on all the write operations.
         scoped_ptr_t<superblock_t> current_superblock(superblock->release());
+        debugf("About to do batched replace loop for %zu keys\n", keys.size());
         for (size_t i = 0; i < keys.size(); ++i) {
+            debugf("batched replace loop i = %zu\n", i);
             // Pass out the point_replace_response_t.
             promise_t<superblock_t *> superblock_promise;
             coro_t::spawn(
@@ -1288,27 +1296,26 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         write_token_pair_t *token_pair,
 #endif
 #if SLICE_ALT
-        alt_buf_parent_t superblock,
+        alt_buf_lock_t *sindex_block,
 #else
         transaction_t *txn,
-#endif
         block_id_t sindex_block_id,
+#endif
         auto_drainer_t::lock_t lock)
     : lock_(lock), store_(store)
-#if !SLICE_ALT
-      , token_pair_(token_pair)
-      , txn_(txn)
-      , sindex_block_id_(sindex_block_id)
+#if SLICE_ALT
+    , sindex_block_(sindex_block)
+#else
+    , token_pair_(token_pair)
+    , txn_(txn)
+    , sindex_block_id_(sindex_block_id)
 #endif
 {
 #if SLICE_ALT
-    // RSI: No need for this to be a scoped_ptr_t, is there?
-    cond_t dummy_interruptor;
-    store->acquire_sindex_block_for_write(superblock, &sindex_block_,
-                                          sindex_block_id, &dummy_interruptor);
-    // RSI: Could we just release the sindex_block_ right here?
+    // RSI: Could we just release the sindex_block_ right here?  (Maybe not, the
+    // caller owns the block for its own purposes?)
     store_->acquire_post_constructed_sindex_superblocks_for_write(
-            sindex_block_.get(), &sindexes_);
+            sindex_block_, &sindexes_);
 #endif
 }
 
@@ -1336,7 +1343,11 @@ void rdb_modification_report_cb_t::on_mod_report(
 #endif
 
     mutex_t::acq_t acq;
+#if SLICE_ALT
+    store_->lock_sindex_queue(sindex_block_, &acq);
+#else
     store_->lock_sindex_queue(sindex_block_.get(), &acq);
+#endif
 
     write_message_t wm;
     wm << rdb_sindex_change_t(mod_report);

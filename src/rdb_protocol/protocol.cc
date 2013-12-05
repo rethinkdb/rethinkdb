@@ -1699,6 +1699,7 @@ private:
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
+        debugf_t eex("batched_replace_t");
 #if !SLICE_ALT
         try {
 #endif
@@ -1712,8 +1713,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 #endif
 #if SLICE_ALT
         rdb_modification_report_cb_t sindex_cb(
-            store, (*superblock)->expose_buf(),
-            (*superblock)->get_sindex_block_id(),
+            store, sindex_block.get(),
             auto_drainer_t::lock_t(&store->drainer));
 #else
         rdb_modification_report_cb_t sindex_cb(
@@ -1734,14 +1734,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const batched_insert_t &bi) {
+        debugf_t eex("batched_insert_t");
         rdb_modification_report_cb_t sindex_cb(
             store,
 #if SLICE_ALT
-            (*superblock)->expose_buf(),
+            sindex_block.get(),
 #else
             token_pair, txn,
-#endif
             (*superblock)->get_sindex_block_id(),
+#endif
             auto_drainer_t::lock_t(&store->drainer));
         datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey, bi.return_vals);
         std::vector<store_key_t> keys;
@@ -1749,6 +1750,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
             keys.emplace_back((*it)->get(bi.pkey)->print_primary());
         }
+        debugf("about to rdb_batched_replace\n");
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
@@ -1761,6 +1763,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_write_t &w) {
+        debugf_t eex("point_write_t");
         response->response = point_write_response_t();
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
@@ -1778,6 +1781,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_delete_t &d) {
+        debugf_t eex("point_delete_t");
         response->response = point_delete_response_t();
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
@@ -1795,6 +1799,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_create_t &c) {
+        debugf_t eex("sindex_create_t");
         sindex_create_response_t res;
 
         write_message_t wm;
@@ -1839,6 +1844,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &d) {
+        debugf_t eex("sindex_drop_t");
         sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
         rdb_value_deleter_t deleter;
@@ -1863,6 +1869,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) {
+        debugf_t eex("sync_t");
         response->response = sync_response_t();
 
 #if !SLICE_ALT
@@ -1998,6 +2005,7 @@ void store_t::protocol_write(const write_t &write,
                              write_token_pair_t *token_pair,
 #endif
                              signal_t *interruptor) {
+    debugf_t eex("protocol_write\n");
     rdb_write_visitor_t v(btree, this,
 #if SLICE_ALT
                           (*superblock)->expose_buf().txn(),
