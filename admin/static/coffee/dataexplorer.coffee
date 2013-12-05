@@ -2407,7 +2407,7 @@ module 'DataExplorerView', ->
 
                         return false
 
-                    if results.profile? and @state.last_query_has_profile is true
+                    if results?.profile? and @state.last_query_has_profile is true
                         cursor = results.value
                         @profile = results.profile
                         @state.profile = @profile
