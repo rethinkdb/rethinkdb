@@ -13,6 +13,10 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/view.hpp"
 
+// RSI: Remove this.
+// #define waitf debugf
+#define waitf(...) do { } while (0)
+
 void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo,
                                   uuid_u namespace_id,
                                   signal_t *interruptor,
@@ -26,7 +30,8 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     // This read won't succeed, but we care whether it fails with an exception.
     // It must be an rget to make sure that access is available to all shards.
 
-    const int poll_ms = 20;
+    // RSI: Change back to 10.
+    const int poll_ms = 1000;
     const int deleted_check_ms = 4000;
     const int deleted_check_interval = std::max(deleted_check_ms / poll_ms, 1);
     rdb_protocol_t::rget_read_t empty_rget_read(
@@ -40,6 +45,7 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     rdb_protocol_t::read_t empty_read(empty_rget_read, profile_bool_t::DONT_PROFILE);
     for (int num_attempts = 0; true; ++num_attempts) {
         nap(poll_ms, interruptor);
+        waitf("wait_for_rdb_table_readiness loop\n");
         try {
             // Make sure the namespace still exists in the metadata, if not, abort.
             // ... However don't to it too often. If we have a large cluster,
@@ -59,14 +65,19 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
                 rassert(nsi != change.get()->namespaces.end());
                 if (nsi->second.is_deleted()) throw interrupted_exc_t();
             }
+            waitf("wait_for_rdb_table_readiness will try read\n");
 
             base_namespace_repo_t<rdb_protocol_t>::access_t ns_access(
                 ns_repo, namespace_id, interruptor);
             rdb_protocol_t::read_response_t read_res;
             // TODO: We should not use order_token_t::ignore.
+            waitf("wait_for_rdb_table_readiness trying read\n");
             ns_access.get_namespace_if()->read(
                 empty_read, &read_res, order_token_t::ignore, interruptor);
             break;
-        } catch (const cannot_perform_query_exc_t &e) { } // continue loop
+        } catch (const cannot_perform_query_exc_t &e) {
+            waitf("got cannot_perform_query_exc_t: %s", e.what());
+            // continue loop
+        }
     }
 }

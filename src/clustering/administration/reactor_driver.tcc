@@ -323,7 +323,9 @@ private:
         perfmon_collection_t *serializers_collection = &perfmon_collections->serializers_collection;
 
         // TODO: We probably shouldn't have to pass in this perfmon collection.
+        debugf("About to get svs\n");
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
+        debugf("Done got svs\n");
 
         const auto extract_reactor_directory_per_peer_fun =
             boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,

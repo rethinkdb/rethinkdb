@@ -1296,6 +1296,22 @@ void write_t::unshard(write_response_t *responses, size_t count,
     }
 }
 
+// RSI: Remove this.
+struct debugf_t {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#pragma GCC diagnostic ignored "-Wformat-security"
+    template <class... Args>
+    explicit debugf_t(Args... args) : msg(strprintf(args...)) {
+        debugf("%s enter\n", msg.c_str());
+    }
+#pragma GCC diagnostic pop
+    ~debugf_t() {
+        debugf("%s exit\n", msg.c_str());
+    }
+    std::string msg;
+};
+
 store_t::store_t(serializer_t *serializer,
                  const std::string &perfmon_name,
                  int64_t cache_target,
@@ -1308,6 +1324,7 @@ store_t::store_t(serializer_t *serializer,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
 {
+    debugf_t eex("rdb store_t constructor");
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
     // This uses a dummy interruptor because this is the only thing using the store at
@@ -1317,11 +1334,13 @@ store_t::store_t(serializer_t *serializer,
     read_token_pair_t token_pair;
     new_read_token_pair(&token_pair);
 
+    debugf_t eex2("rdb store_t outside txn\n");
 #if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
 #else
     scoped_ptr_t<transaction_t> txn;
 #endif
+    debugf_t eex3("rdb store_t inside txn\n");
     scoped_ptr_t<real_superblock_t> superblock;
 #if SLICE_ALT
     acquire_superblock_for_read(&token_pair.main_read_token, &txn,
@@ -1371,6 +1390,7 @@ store_t::store_t(serializer_t *serializer,
                                                         sindex_block.get(), txn.get());
 #endif
     }
+    debugf("rdb store_t end scope\n");
 }
 
 store_t::~store_t() {
@@ -1380,6 +1400,7 @@ store_t::~store_t() {
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_read_t &get) {
+        debugf("point_read_t (%p)", response);
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
@@ -1392,6 +1413,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const rget_read_t &rget) {
+        debugf("rget_read_t (%p)", response);
         if (rget.transform.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
@@ -1468,6 +1490,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
+        debugf("distribution_read_t (%p)", response);
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
         rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left,
@@ -1494,6 +1517,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {
+        debugf("sindex_list_t (%p)", response);
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
@@ -1511,6 +1535,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_status_t &sindex_status) {
+        debugf("sindex_status_t (%p)", response);
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
@@ -1587,6 +1612,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         if (ql_env.trace.has()) {
             return std::move(*ql_env.trace).get_event_log();
         } else {
+            // RSI: fucking fuck what the fuck is this fucking shit
             static profile::event_log_t event_log;
             return std::move(event_log);
         }
@@ -1632,6 +1658,7 @@ void store_t::protocol_read(const read_t &read,
         ctx, response, read.profile, interruptor);
     {
         profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
+        debugf("protocol_read (%p) apply visitor\n", response);
         boost::apply_visitor(v, read.read);
     }
 
