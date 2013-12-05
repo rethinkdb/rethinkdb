@@ -76,22 +76,6 @@ void do_create_new_store(
     store_views[thread_offset] = store;
 }
 
-// RSI: Remove this.
-struct debugf_t {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-#pragma GCC diagnostic ignored "-Wformat-security"
-    template <class... Args>
-    explicit debugf_t(Args... args) : msg(strprintf(args...)) {
-        debugf("%s enter\n", msg.c_str());
-    }
-#pragma GCC diagnostic pop
-    ~debugf_t() {
-        debugf("%s exit\n", msg.c_str());
-    }
-    std::string msg;
-};
-
 template <class protocol_t>
 void
 file_based_svs_by_namespace_t<protocol_t>::get_svs(

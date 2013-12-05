@@ -17,21 +17,6 @@ using alt::alt_create_t;
 using alt::alt_txn_t;
 #endif
 
-// RSI: remove
-struct enter_exit_t {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-    template <class... Args>
-    explicit enter_exit_t(Args... args) : msg(strprintf(args...)) {
-        debugf("%s enter\n", msg.c_str());
-    }
-#pragma GCC diagnostic pop
-    ~enter_exit_t() {
-        debugf("%s exit\n", msg.c_str());
-    }
-    std::string msg;
-};
-
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
         std::string sindex_name)
     : info(strprintf("Sindex: %s was accessed before it was finished post constructing.",
@@ -155,7 +140,7 @@ void btree_store_t<protocol_t>::read(
         read_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    enter_exit_t eex("%p read (%p)", this, response);
+    debugf_t eex("%p read (%p)", this, response);
 
     assert_thread();
 #if SLICE_ALT
@@ -206,7 +191,7 @@ void btree_store_t<protocol_t>::write(
         write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    enter_exit_t eex("%p write", this);
+    debugf_t eex("%p write", this);
 
     assert_thread();
 
@@ -245,7 +230,7 @@ bool btree_store_t<protocol_t>::send_backfill(
         read_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    enter_exit_t eex("%p send_backfill", this);
+    debugf_t eex("%p send_backfill", this);
 
     assert_thread();
 
@@ -297,7 +282,7 @@ void btree_store_t<protocol_t>::receive_backfill(
         write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    enter_exit_t eex("%p receive_backfill", this);
+    debugf_t eex("%p receive_backfill", this);
 
     assert_thread();
 
@@ -346,7 +331,7 @@ void btree_store_t<protocol_t>::reset_data(
         const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    enter_exit_t eex("%p reset_data", this);
+    debugf_t eex("%p reset_data", this);
 
     assert_thread();
 
@@ -1644,7 +1629,7 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
                                                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                                 signal_t *interruptor,
                                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
-    enter_exit_t eex("%p do_get_metainfo", this);
+    debugf_t eex("%p do_get_metainfo", this);
 
     assert_thread();
 #if SLICE_ALT
@@ -1707,7 +1692,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                              UNUSED order_token_t order_token,  // TODO
                                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-    enter_exit_t eex("%p set_metainfo", this);
+    debugf_t eex("%p set_metainfo", this);
 
     assert_thread();
 
@@ -1913,7 +1898,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
 /* store_view_t interface */
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) {
-    enter_exit_t eex("%p new_read_token", this);
+    debugf_t eex("%p new_read_token", this);
     assert_thread();
     fifo_enforcer_read_token_t token = main_token_source.enter_read();
     token_out->create(&main_token_sink, token);
@@ -1921,7 +1906,7 @@ void btree_store_t<protocol_t>::new_read_token(object_buffer_t<fifo_enforcer_sin
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) {
-    enter_exit_t eex("%p new_write_token", this);
+    debugf_t eex("%p new_write_token", this);
     assert_thread();
     fifo_enforcer_write_token_t token = main_token_source.enter_write();
     token_out->create(&main_token_sink, token);
@@ -1930,7 +1915,7 @@ void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_si
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_read_token_pair(read_token_pair_t *token_pair_out) {
     assert_thread();
-    enter_exit_t eex("%p new_read_token_pair", this);
+    debugf_t eex("%p new_read_token_pair", this);
 #if !SLICE_ALT
     fifo_enforcer_read_token_t token = sindex_token_source.enter_read();
     token_pair_out->sindex_read_token.create(&sindex_token_sink, token);
@@ -1941,7 +1926,7 @@ void btree_store_t<protocol_t>::new_read_token_pair(read_token_pair_t *token_pai
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::new_write_token_pair(write_token_pair_t *token_pair_out) {
-    enter_exit_t eex("%p new_write_token_pair", this);
+    debugf_t eex("%p new_write_token_pair", this);
     assert_thread();
 #if !SLICE_ALT
     fifo_enforcer_write_token_t token = sindex_token_source.enter_write();

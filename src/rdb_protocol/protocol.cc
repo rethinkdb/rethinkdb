@@ -1296,22 +1296,6 @@ void write_t::unshard(write_response_t *responses, size_t count,
     }
 }
 
-// RSI: Remove this.
-struct debugf_t {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-#pragma GCC diagnostic ignored "-Wformat-security"
-    template <class... Args>
-    explicit debugf_t(Args... args) : msg(strprintf(args...)) {
-        debugf("%s enter\n", msg.c_str());
-    }
-#pragma GCC diagnostic pop
-    ~debugf_t() {
-        debugf("%s exit\n", msg.c_str());
-    }
-    std::string msg;
-};
-
 store_t::store_t(serializer_t *serializer,
                  const std::string &perfmon_name,
                  int64_t cache_target,
