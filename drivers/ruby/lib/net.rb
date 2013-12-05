@@ -22,7 +22,7 @@ module RethinkDB
   class RQL
     @@default_conn = nil
     def self.set_default_conn c; @@default_conn = c; end
-    def run(c=@@default_conn, opts=nil)
+    def run(c=@@default_conn, opts=nil, &b)
       # $f.puts "("+RPP::pp(@body)+"),"
       unbound_if !@body
       c, opts = @@default_conn, c if opts.nil? && !c.kind_of?(RethinkDB::Connection)
@@ -38,7 +38,7 @@ module RethinkDB
         raise ArgumentError, "No connection specified!\n" \
         "Use `query.run(conn)` or `conn.repl(); query.run`."
       end
-      c.run(@body, opts)
+      c.run(@body, opts, &b)
     end
   end
 
@@ -86,6 +86,18 @@ module RethinkDB
         end
       end
     end
+
+    def close
+      if @more
+        @more = false
+        q = RethinkDB::new_query(Query::QueryType::STOP, @token)
+        res = @conn.run_internal q
+        if res.type != Response::ResponseType::SUCCESS_SEQUENCE || res.response != []
+          raise RqlRuntimeError, "Server sent malformed STOP response #{PP.pp(res, "")}"
+        end
+        return true
+      end
+    end
   end
 
   class Connection
@@ -120,7 +132,7 @@ module RethinkDB
       dispatch q
       noreply ? nil : wait(q.token)
     end
-    def run(msg, opts)
+    def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
       q = RethinkDB::new_query(Query::QueryType::START, @@token_cnt += 1)
@@ -154,10 +166,20 @@ module RethinkDB
       end
 
       if res.respond_to? :has_profile? and res.has_profile?
-          {"profile" => Shim.datum_to_native(res.profile(), opts),
-           "value" => value}
+          real_val = {"profile" => Shim.datum_to_native(res.profile(), opts),
+                      "value" => value}
       else
-          value
+          real_val = value
+      end
+
+      if b
+        begin
+          b.call(real_val)
+        ensure
+          value.close if value.class == Cursor
+        end
+      else
+        real_val
       end
     end
 

@@ -31,13 +31,6 @@ const char *archive_result_as_str(archive_result_t archive_result) {
     }
 }
 
-void guarantee_deserialization(
-    archive_result_t archive_result, const char *name_of_value) {
-    guarantee(archive_result == ARCHIVE_SUCCESS,
-        "Deserialization of %s failed with error %s.",
-        name_of_value, archive_result_as_str(archive_result));
-}
-
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);
 
@@ -83,6 +76,14 @@ void write_message_t::append(const void *p, int64_t n) {
         p = static_cast<const char *>(p) + k;
         n = n - k;
     }
+}
+
+size_t write_message_t::size() const {
+    size_t ret = 0;
+    for (write_buffer_t *h = buffers_.head(); h != NULL; h = buffers_.next(h)) {
+        ret += h->size;
+    }
+    return ret;
 }
 
 int send_write_message(write_stream_t *s, const write_message_t *msg) {

@@ -42,8 +42,7 @@ counted_t<const ql::datum_t> construct_start(
         ticks_t duration, std::string &&description,
         counted_t<const ql::datum_t> sub_tasks) {
     std::map<std::string, counted_t<const ql::datum_t> > res;
-    guarantee(duration < std::numeric_limits<double>::max());
-    res["duration(ms)"] = make_counted<const ql::datum_t>(static_cast<double>(duration) / MILLION);
+    res["duration(ms)"] = make_counted<const ql::datum_t>(safe_to_double(duration) / MILLION);
     res["description"] = make_counted<const ql::datum_t>(std::move(description));
     res["sub_tasks"] = sub_tasks;
     return make_counted<const ql::datum_t>(std::move(res));
@@ -59,10 +58,8 @@ counted_t<const ql::datum_t> construct_split(
 counted_t<const ql::datum_t> construct_sample(
         sample_t *sample) {
     std::map<std::string, counted_t<const ql::datum_t> > res;
-    guarantee(sample->mean_duration_ < std::numeric_limits<double>::max());
-    guarantee(sample->n_samples_< std::numeric_limits<double>::max());
-    double mean_duration = static_cast<double>(sample->mean_duration_) / MILLION;
-    double n_samples = static_cast<double>(sample->n_samples_);
+    double mean_duration = safe_to_double(sample->mean_duration_) / MILLION;
+    double n_samples = safe_to_double(sample->n_samples_);
     res["mean_duration(ms)"] = make_counted<const ql::datum_t>(mean_duration);
     res["n_samples"] = make_counted<const ql::datum_t>(n_samples);
     res["description"] = make_counted<const ql::datum_t>(std::move(sample->description_));
@@ -183,19 +180,17 @@ void splitter_t::give_splits(
     size_t n_parallel_jobs, const event_log_t &event_log) {
     n_parallel_jobs_ = n_parallel_jobs;
     event_log_ = event_log;
-    received_splits_ = true;
 }
 
 splitter_t::~splitter_t() {
     if (parent_) {
-        guarantee(received_splits_);
         parent_->stop_split(n_parallel_jobs_, event_log_);
     }
 }
 
 void splitter_t::init(trace_t *parent) {
     parent_ = parent;
-    received_splits_ = false;
+    n_parallel_jobs_ = 0;
 
     if (parent_) {
         parent_->start_split();

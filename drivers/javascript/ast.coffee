@@ -224,6 +224,8 @@ class RDBVal extends TermBase
         )
     indexDrop: ar (name) -> new IndexDrop {}, @, name
     indexList: ar () -> new IndexList {}, @
+    indexStatus: varar(0, null, (others...) -> new IndexStatus {}, @, others...)
+    indexWait: varar(0, null, (others...) -> new IndexWait {}, @, others...)
 
     sync: ar () -> new Sync {}, @
 
@@ -708,6 +710,14 @@ class IndexDrop extends RDBOp
 class IndexList extends RDBOp
     tt: "INDEX_LIST"
     mt: 'indexList'
+
+class IndexStatus extends RDBOp
+    tt: "INDEX_STATUS"
+    mt: 'indexStatus'
+
+class IndexWait extends RDBOp
+    tt: "INDEX_WAIT"
+    mt: 'indexWait'
 
 class Sync extends RDBOp
     tt: "SYNC"

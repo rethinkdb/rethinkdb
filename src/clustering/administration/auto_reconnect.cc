@@ -7,7 +7,7 @@
 auto_reconnector_t::auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster_,
         connectivity_cluster_t::run_t *connectivity_cluster_run_,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table_,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> > > &machine_id_translation_table_,
         const boost::shared_ptr<semilattice_read_view_t<machines_semilattice_metadata_t> > &machine_metadata_) :
     connectivity_cluster(connectivity_cluster_),
     connectivity_cluster_run(connectivity_cluster_run_),
@@ -15,13 +15,13 @@ auto_reconnector_t::auto_reconnector_t(
     machine_metadata(machine_metadata_),
     machine_id_translation_table_subs(boost::bind(&auto_reconnector_t::on_connect_or_disconnect, this))
 {
-    watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
+    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
     machine_id_translation_table_subs.reset(machine_id_translation_table, &freeze);
     on_connect_or_disconnect();
 }
 
 void auto_reconnector_t::on_connect_or_disconnect() {
-    std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get();
+    std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get().get_inner();
     for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
         if (connected_peers.find(it->first) == connected_peers.end()) {
             connected_peers.insert(std::make_pair(
@@ -59,10 +59,10 @@ void auto_reconnector_t::try_reconnect(machine_id_t machine,
         boost::bind(&auto_reconnector_t::pulse_if_machine_declared_dead, this, machine, &cond),
         machine_metadata);
     pulse_if_machine_declared_dead(machine, &cond);
-    watchable_t<std::map<peer_id_t, machine_id_t> >::subscription_t subs2(
+    watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::subscription_t subs2(
         boost::bind(&auto_reconnector_t::pulse_if_machine_reconnected, this, machine, &cond));
     {
-        watchable_t<std::map<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
+        watchable_t<change_tracking_map_t<peer_id_t, machine_id_t> >::freeze_t freeze(machine_id_translation_table);
         subs2.reset(machine_id_translation_table, &freeze);
         pulse_if_machine_reconnected(machine, &cond);
     }
@@ -103,7 +103,7 @@ void auto_reconnector_t::pulse_if_machine_declared_dead(machine_id_t machine, co
 }
 
 void auto_reconnector_t::pulse_if_machine_reconnected(machine_id_t machine, cond_t *c) {
-    std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get();
+    std::map<peer_id_t, machine_id_t> map = machine_id_translation_table->get().get_inner();
     for (std::map<peer_id_t, machine_id_t>::iterator it = map.begin(); it != map.end(); it++) {
         if (it->second == machine) {
             if (!c->is_pulsed()) {

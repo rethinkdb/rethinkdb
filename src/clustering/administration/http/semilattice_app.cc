@@ -13,7 +13,7 @@
 template <class metadata_t>
 semilattice_http_app_t<metadata_t>::semilattice_http_app_t(
         metadata_change_handler_t<metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
     directory_metadata(_directory_metadata),
     us(_us),
@@ -190,7 +190,7 @@ bool semilattice_http_app_t<metadata_t>::verify_content_type(const http_req_t &r
 
 cluster_semilattice_http_app_t::cluster_semilattice_http_app_t(
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
     semilattice_http_app_t<cluster_semilattice_metadata_t>(_metadata_change_handler, _directory_metadata, _us) {
     // Do nothing
@@ -203,13 +203,13 @@ cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
 void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
                                                               bool prefer_distribution) {
     try {
-        fill_in_blueprints(new_metadata, directory_metadata->get(), us, prefer_distribution);
+        fill_in_blueprints(new_metadata, directory_metadata->get().get_inner(), us, prefer_distribution);
     } catch (const missing_machine_exc_t &e) { }
 }
 
 auth_semilattice_http_app_t::auth_semilattice_http_app_t(
         metadata_change_handler_t<auth_semilattice_metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us) :
     semilattice_http_app_t<auth_semilattice_metadata_t>(_metadata_change_handler, _directory_metadata, _us) {
     // Do nothing

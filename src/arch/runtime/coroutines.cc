@@ -21,7 +21,7 @@
 
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
-#include "thread_stack_pcs.hpp"
+#include "rethinkdb_backtrace.hpp"
 #include "arch/runtime/coro_profiler.hpp"
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
@@ -327,27 +327,9 @@ void coro_t::move_to_thread(threadnum_t thread) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
-#ifndef NDEBUG
-    /* Switch the coro counter to the new thread 1/2 */
-    rassert(TLS_get_cglobals()->coro_count > 0);
-    TLS_get_cglobals()->coro_count--;
-    rassert(TLS_get_cglobals()->running_coroutine_counts[self()->coroutine_type.c_str()] > 0);
-    TLS_get_cglobals()->running_coroutine_counts[self()->coroutine_type.c_str()]--;
-    rassert(TLS_get_cglobals()->total_coroutine_counts[self()->coroutine_type.c_str()] > 0);
-    TLS_get_cglobals()->total_coroutine_counts[self()->coroutine_type.c_str()]--;
-    rassert(TLS_get_cglobals()->active_coroutines.find(self()) != TLS_get_cglobals()->active_coroutines.end());
-    TLS_get_cglobals()->active_coroutines.erase(self());
-#endif
     self()->current_thread_ = thread;
     self()->notify_later_ordered();
     wait();
-#ifndef NDEBUG
-    /* Switch the coro counter to the new thread 2/2 */
-    TLS_get_cglobals()->coro_count++;
-    TLS_get_cglobals()->running_coroutine_counts[self()->coroutine_type.c_str()]++;
-    TLS_get_cglobals()->total_coroutine_counts[self()->coroutine_type.c_str()]++;
-    TLS_get_cglobals()->active_coroutines.insert(self());
-#endif
 }
 
 void coro_t::on_thread_switch() {

@@ -13,7 +13,7 @@ class semilattice_http_app_t : public http_json_app_t {
 public:
     semilattice_http_app_t(
         metadata_change_handler_t<metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us);
     virtual ~semilattice_http_app_t();
 
@@ -23,7 +23,7 @@ public:
 protected:
     virtual void metadata_change_callback(metadata_t *new_metadata, bool change_context) = 0;
 
-    clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
+    clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
     uuid_u us;
 
 private:
@@ -39,7 +39,7 @@ class cluster_semilattice_http_app_t : public semilattice_http_app_t<cluster_sem
 public:
     cluster_semilattice_http_app_t(
         metadata_change_handler_t<cluster_semilattice_metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us);
     ~cluster_semilattice_http_app_t();
 
@@ -51,7 +51,7 @@ class auth_semilattice_http_app_t : public semilattice_http_app_t<auth_semilatti
 public:
     auth_semilattice_http_app_t(
         metadata_change_handler_t<auth_semilattice_metadata_t> *_metadata_change_handler,
-        const clone_ptr_t<watchable_t<std::map<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
+        const clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > &_directory_metadata,
         uuid_u _us);
     ~auth_semilattice_http_app_t();
 

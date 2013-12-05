@@ -10,6 +10,7 @@
 #endif
 
 #include <inttypes.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -491,5 +492,14 @@ private:
 #else
 #define RVALUE_THIS
 #endif
+
+template <class T>
+double safe_to_double(T val) {
+    double res = static_cast<double>(val);
+    if (val != static_cast<T>(res)) {
+        return NAN;
+    }
+    return res;
+}
 
 #endif // UTILS_HPP_

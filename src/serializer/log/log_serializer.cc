@@ -72,6 +72,8 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
               temporary_file_name().c_str(), file_name().c_str());
     }
 
+    guarantee_fsync_parent_directory(file_name().c_str());
+
     opened_temporary_ = false;
 }
 

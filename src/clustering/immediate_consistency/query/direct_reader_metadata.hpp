@@ -22,5 +22,7 @@ public:
 
     RDB_MAKE_ME_SERIALIZABLE_1(read_mailbox);
 };
+template <class protocol_t>
+RDB_MAKE_EQUALITY_COMPARABLE_1(direct_reader_business_card_t<protocol_t>, read_mailbox);
 
 #endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_QUERY_DIRECT_READER_METADATA_HPP_ */

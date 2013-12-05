@@ -13,6 +13,13 @@ public:
         return new semilattice_watchable_t(view);
     }
 
+    void apply_read(const std::function<void(const T*)> &read) {
+        // Inefficient but generic implementation that works with any view.
+        const T current_value = view->get();
+        ASSERT_NO_CORO_WAITING;
+        read(&current_value);
+    }
+
     T get() {
         return view->get();
     }

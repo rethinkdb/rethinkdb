@@ -1,3 +1,99 @@
+# Release 1.11.1 (Breakfast at Tiffany's)
+
+Released on 2013-12-02
+
+Bug fix update.
+
+* Drivers no longer ignore the timeFormat flag (#1719)
+* RethinkDB now correctly sets the `ResponseType` field in responses to `STOP` queries (#1715)
+* Fixed a bug that caused RethinkDB to crash with a failed guarantee (#1691)
+
+--
+
+# Release 1.11.0 (Breakfast at Tiffany's)
+
+Released on 2013-11-25
+
+This release introduces a new query profiler, an overhauled streaming infrastructure,
+and many enhancements that improve ease and robustness of operation.
+
+## New Features ##
+
+* Server
+  * Removed anaphoric macros (#806)
+  * Changed the array size limit to 100,000 (#971)
+  * The server now reads blobs off of disk simultaneously (#1296)
+  * Improved the batch replace logic (#1468)
+  * Added IPv6 support (#1469)
+  * Reduced random disk seeks during write transactions (#1470)
+  * Merged writebacks on the serializer level (#1471)
+  * Streaming improvements: smarter batch sizes are sent to clients (#1543)
+  * Reduced the impact of index creation on realtime performance (#1556)
+  * Optimized insert performance (#1559)
+  * Added support for sending data back as JSON, improving driver performance (#1571)
+  * Backtraces now span coroutine boundaries (#1602)
+* Command line
+  * Added a progress bar to `rethinkdb import` and `rethinkdb export` (#1415)
+* ReQL
+  * Added query profiling, enabled by passing `profile=True` to `run` (#175)
+  * Added a sync command that flushes soft writes made on a table (#1046)
+  * Made it possible to wait for no-reply writes to complete (#1388)
+    * Added a `wait` command
+    * Added an optional argument to `close` and `reconnect`
+  * Added `index_status` and `index_wait` commands (#1562)
+* Python driver
+  * Added documentation strings (#808)
+  * Added streaming and performance improvements (#1371)
+  * Changed the installation procedure for using the C++ protobuf implementation (#1394)
+  * Improved the streaming logic (#1364)
+* JavaScript driver
+  * Changed the installation procedure for using the C++ protobuf implementation (#1172)
+  * Improved the streaming logic (#1364)
+* Packaging
+  * Made the version more explicit in the OS X package (#1413)
+
+## Fixed Bugs ##
+
+* Server
+  * No longer access `perfmon_collection_t` after destruction (#1497)
+  * Fixed a bug that caused nodes to become unresponsize and added a coroutine profiler (#1516)
+  * Made database files compatible between 32-bit and 64-bit versions (#1535)
+  * No longer use four times more cache space (#1538)
+  * Fix handling of errors in continue queries (#1619)
+  * Fixed heartbeat timeout when deleting many tables at once (#1624)
+  * Improved signal handling (#1630)
+  * Reduced the load caused by using the Web UI on a large cluster (#1660)
+* Command line
+  * Made `rethinkdb export` more resilient to low-memory conditions (#1546)
+  * Fixed a race condition in `rethinkdb import` (#1597)
+* ReQL
+  * Non-indexed `order_by` queries now return arrays (#1566)
+  * Type system now includes selections on both arrays and streams (#1566)
+  * Fixed wrong `inserted` result (#1547)
+  * Fixed crash caused by using unusual strings in `r.js` (#1638)
+  * Redefined batched stream semantics (includes a specific fix for the JavaScipt driver as well) (#1544)
+  * `r.js` now works with time values (#1513)
+* Python driver
+  * Handle interrupted system calls (#1362)
+  * Improved the error message when inserting dates with no timezone (#1509)
+  * Made `RqlTzInfo` copyable (#1588)
+* JavaScript driver
+  * Fixed argument handling (#1555, #1577)
+  * Fixed `ArrayResult` (#1578, #1584)
+  * Fixed pretty-printing of `limit` (#1617)
+* Web UI
+  * Made it obvious when errors are JavaScript errors or database errors (#1293)
+  * Improved the message displayed when there are more than 40 documents (#1307)
+  * Fixed date formatting (#1596)
+  * Fixed typo (#1668)
+* Build
+  * Fixed item counts in make (#1443)
+  * Bump the fetched version of `gperftools` (#1594)
+  * Fixed how `termcap` is handled by `./configure` (#1622)
+  * Generate a better version number when compiling from a shallow clone (#1636)
+
+--
+
 # Release 1.10.1 (Von Ryan's Express)
 
 Released on 2013-10-23
