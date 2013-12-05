@@ -93,7 +93,7 @@
             return *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)); \
     }                                                                   \
                                                                         \
-    NOINLINE void TLS_set_ ## name (type val) {                         \
+    NOINLINE void TLS_set_ ## name (type const &val) {                  \
         TLS_intialize_ ## name();                                       \
             *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val; \
     }
@@ -106,7 +106,7 @@
         return TLS_ ## name[get_thread_id().threadnum]; \
     }                                                   \
                                                         \
-    void TLS_set_ ## name(type val) {                   \
+    void TLS_set_ ## name(type const &val) {            \
         TLS_ ## name[get_thread_id().threadnum] = val;  \
     }
 
@@ -143,7 +143,7 @@
             return *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)); \
     }                                                                   \
                                                                         \
-    NOINLINE void TLS_set_ ## name (type val) {                         \
+    NOINLINE void TLS_set_ ## name (type const &val) {                  \
         TLS_intialize_ ## name();                                       \
             *static_cast<type *>(pthread_getspecific(TLS_ ## name ## _key)) = val; \
     }
@@ -156,7 +156,7 @@
         return TLS_ ## name[get_thread_id().threadnum]; \
     }                                                   \
                                                         \
-    void TLS_set_ ## name(type val) {                   \
+    void TLS_set_ ## name(type const &val) {            \
         TLS_ ## name[get_thread_id().threadnum] = val;  \
     }
 
