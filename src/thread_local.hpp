@@ -108,7 +108,7 @@
                                                         \
     void TLS_set_ ## name(type val) {                   \
         TLS_ ## name[get_thread_id().threadnum] = val;  \
-    }                                                   \
+    }
 
 #endif  // THREADED_COROUTINES
 
@@ -158,7 +158,7 @@
                                                         \
     void TLS_set_ ## name(type val) {                   \
         TLS_ ## name[get_thread_id().threadnum] = val;  \
-    }                                                   \
+    }
 
 #endif // not THREADED_COROUTINES
 

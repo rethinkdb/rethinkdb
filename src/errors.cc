@@ -20,6 +20,13 @@
 
 TLS_with_init(bool, crashed, false); // to prevent crashing within crashes
 
+NOINLINE int get_errno() {
+    return errno;
+}
+NOINLINE void set_errno(int new_errno) {
+    errno = new_errno;
+}
+
 void report_user_error(const char *msg, ...) {
     fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
     if (TLS_get_crashed()) {

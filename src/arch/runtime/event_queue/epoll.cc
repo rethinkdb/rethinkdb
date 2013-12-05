@@ -63,7 +63,7 @@ void epoll_event_queue_t::run() {
 
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
-        if (res == -1 && errno == EINTR) {
+        if (res == -1 && get_errno() == EINTR) {
             // If the thread has been signalled, we already handled
             // the signal in our signal action.
             res = 0;

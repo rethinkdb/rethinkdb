@@ -218,7 +218,7 @@ void linux_file_t::set_size(int64_t size) {
     int res;
     do {
         res = ftruncate(fd.get(), size);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res == 0, "Could not ftruncate()");
 
     int errcode = perform_datasync(fd.get());
@@ -314,7 +314,7 @@ void linux_file_t::writev_async(int64_t offset, size_t length,
 
 bool linux_file_t::coop_lock_and_check() {
     if (flock(fd.get(), LOCK_EX | LOCK_NB) != 0) {
-        rassert(errno == EWOULDBLOCK);
+        rassert(get_errno() == EWOULDBLOCK);
         return false;
     }
     return true;
@@ -411,13 +411,13 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         int res_open;
         do {
             res_open = open(path, flags, 0644);
-        } while (res_open == -1 && errno == EINTR);
+        } while (res_open == -1 && get_errno() == EINTR);
 
         fd.reset(res_open);
     }
 
     if (fd.get() == INVALID_FD) {
-        return file_open_result_t(file_open_result_t::ERROR, errno);
+        return file_open_result_t(file_open_result_t::ERROR, get_errno());
     }
 
     // When building, we must either support O_DIRECT or F_NOCACHE.  The former works on Linux,
@@ -481,7 +481,7 @@ size_t linux_semantic_checking_file_t::semantic_blocking_read(void *buf,
     ssize_t res;
     do {
         res = ::read(fd_.get(), buf, length);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res != -1, "Could not read from the semantic checker file");
     return res;
 }
@@ -491,7 +491,7 @@ size_t linux_semantic_checking_file_t::semantic_blocking_write(const void *buf,
     ssize_t res;
     do {
         res = ::write(fd_.get(), buf, length);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     guarantee_err(res != -1, "Could not write to the semantic checker file");
     return res;
 }
@@ -507,14 +507,14 @@ int perform_datasync(fd_t fd) {
     int fcntl_res;
     do {
         fcntl_res = fcntl(fd, F_FULLFSYNC);
-    } while (fcntl_res == -1 && errno == EINTR);
+    } while (fcntl_res == -1 && get_errno() == EINTR);
 
-    return fcntl_res == -1 ? errno : 0;
+    return fcntl_res == -1 ? get_errno() : 0;
 
 #else  // __MACH__
 
     int res = fdatasync(fd);
-    return res == -1 ? errno : 0;
+    return res == -1 ? get_errno() : 0;
 
 #endif  // __MACH__
 }
@@ -530,17 +530,17 @@ MUST_USE int fsync_parent_directory(const char *path) {
     int res;
     do {
         res = open(parent_path, O_RDONLY);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     if (res == -1) {
-        return errno;
+        return get_errno();
     }
     scoped_fd_t fd(res);
 
     do {
         res = fsync(fd.get());
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
     if (res == -1) {
-        return errno;
+        return get_errno();
     }
 
     return 0;

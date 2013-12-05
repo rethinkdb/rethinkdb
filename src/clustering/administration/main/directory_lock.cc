@@ -25,9 +25,9 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
         int mkdir_res;
         do {
             mkdir_res = mkdir(directory_path.path().c_str(), 0755);
-        } while (mkdir_res == -1 && errno == EINTR);
+        } while (mkdir_res == -1 && get_errno() == EINTR);
         if (mkdir_res != 0) {
-            throw directory_create_failed_exc_t(errno, directory_path);
+            throw directory_create_failed_exc_t(get_errno(), directory_path);
         }
         created = true;
         *created_out = true;
@@ -39,7 +39,7 @@ directory_lock_t::directory_lock_t(const base_path_t &path, bool create, bool *c
 
     directory_fd.reset(::open(directory_path.path().c_str(), O_RDONLY));
     if (directory_fd.get() == INVALID_FD) {
-        throw directory_open_failed_exc_t(errno, directory_path);
+        throw directory_open_failed_exc_t(get_errno(), directory_path);
     }
 
     if (flock(directory_fd.get(), LOCK_EX | LOCK_NB) != 0) {
