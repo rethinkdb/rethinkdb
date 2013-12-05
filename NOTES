@@ -1,5 +1,19 @@
 # Release 1.11.1 (Breakfast at Tiffany's)
 
+Released on 2013-12-06
+
+Bug fix update.
+
+* Fixed a bug caused by suggesting `r.ISO8601` in the data explorer
+* No longer fail to parse queries returning null in the data explorer (#1739)
+* Always `fsync` parent directories to avoid data loss (#1703)
+* Fixed some IPv6 issues (#1694)
+* Add some support for Python 3 in the build scripts (#1709)
+
+--
+
+# Release 1.11.1 (Breakfast at Tiffany's)
+
 Released on 2013-12-02
 
 Bug fix update.
