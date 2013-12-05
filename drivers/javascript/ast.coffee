@@ -119,7 +119,7 @@ class RDBVal extends TermBase
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
 
-    merge: ar (other) -> new Merge {}, @, other
+    merge: varar(1, null, (fields...) -> new Merge {}, @, fields.map(funcWrap)...)
     between: aropt (left, right, opts) -> new Between opts, @, left, right
     reduce: varar(1, 2, (func, base) -> new Reduce {base:base}, @, funcWrap(func))
     map: ar (func) -> new Map {}, @, funcWrap(func)

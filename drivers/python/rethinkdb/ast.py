@@ -276,8 +276,8 @@ class RqlQuery(object):
     def type_of(self):
         return TypeOf(self)
 
-    def merge(self, other):
-        return Merge(self, other)
+    def merge(self, *others):
+        return Merge(self, *map(func_wrap, others))
 
     def append(self, val):
         return Append(self, val)
