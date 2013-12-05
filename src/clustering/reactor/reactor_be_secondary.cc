@@ -235,7 +235,6 @@ void reactor_t<protocol_t>::be_secondary(
                         typename decltype(new_metadata)::change_t change(&new_metadata);
                         change.get()->namespaces[ns_id].get_mutable()->blueprint.get_mutable().failover.insert(drop_cpu_sharding(region));
                         failover_switch->join(new_metadata);
-                        debugf("Sanity check: %zu\n", failover_switch->get()->namespaces.find(ns_id)->second.get_ref().blueprint.get().failover.size());
 
                         /* This should cause the function to be rerun with us
                          * as a primary. */

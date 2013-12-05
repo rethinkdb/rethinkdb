@@ -119,25 +119,25 @@ boost::optional<boost::optional<backfiller_business_card_t<protocol_t> > > extra
  * Otherwise it will return false and best_backfiller_out will be unmodified.
  */
 template <class protocol_t>
-bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &_reactor_directory,
-                                                         const blueprint_t<protocol_t> &blueprint,
-                                                         const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out,
-                                                         branch_history_t<protocol_t> *branch_history_to_merge_out,
-                                                         bool *merge_branch_history_out)
+bool reactor_t<protocol_t>::is_safe_for_us_to_be_primary(
+        const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &_reactor_directory,
+        const blueprint_t<protocol_t> &blueprint, const std::set<peer_id_t> &ignore_list,
+        const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out,
+        branch_history_t<protocol_t> *branch_history_to_merge_out,
+        bool *merge_branch_history_out)
 {
     typedef reactor_business_card_t<protocol_t> rb_t;
 
     best_backfiller_map_t res = *best_backfiller_out;
 
-    /* Iterator through the peers the blueprint claims we should be able to
+    /* Iterate through the peers the blueprint claims we should be able to
      * see. */
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator p_it = blueprint.peers_roles.begin();
-         p_it != blueprint.peers_roles.end();
-         ++p_it) {
+    for (auto p_it = blueprint.peers_roles.begin();
+         p_it != blueprint.peers_roles.end(); ++p_it) {
         //The peer we are currently checking
         peer_id_t peer = p_it->first;
 
-        if (peer == get_me()) {
+        if (peer == get_me() || std_contains(ignore_list, peer)) {
             continue;
         }
 
@@ -310,7 +310,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
     on_thread_t th2(this->home_thread());
 
     /* This waits until every other peer is ready to accept us as the
-     * primary and there is a unique coherent latest verstion of the
+     * primary and there is a unique coherent latest version of the
      * data available. Note best_backfillers is passed as an
      * input/output parameter, after this call returns best_backfillers
      * will describe how to fill the store with the most up-to-date
@@ -327,7 +327,9 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
         bool i_should_merge_branch_history = false;
         run_until_satisfied_2(directory_echo_mirror.get_internal(),
                               blueprint,
-                              boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers, &branch_history_to_merge, &i_should_merge_branch_history),
+                              boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2,
+                                  ignore_primary(blueprint->get(), region), region, &best_backfillers,
+                                  &branch_history_to_merge, &i_should_merge_branch_history),
                               interruptor);
         if (i_should_merge_branch_history) {
             branch_history_manager->import_branch_history(branch_history_to_merge, interruptor);
@@ -396,6 +398,18 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
 }
 
 template<class protocol_t>
+std::set<peer_id_t> ignore_primary(const blueprint_t<protocol_t> &bp,
+        const typename protocol_t::region_t &region) {
+    for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); ++it) {
+        auto role = it->second.find(region);
+        if (role != it->second.end() && role->second == blueprint_role_t::PRIMARY) {
+            return std::set<peer_id_t>({ it->first });
+        }
+    }
+    return std::set<peer_id_t>();
+}
+
+template<class protocol_t>
 void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, primary_type_t type, signal_t *interruptor) THROWS_NOTHING {
     try {
         //Tell everyone that we're looking to become the primary
@@ -407,8 +421,14 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
         directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());
 
         /* block until all peers have acked `directory_entry` */
-        wait_for_directory_acks(version_to_wait_on, interruptor);
-
+        if (type == primary_type_t::MAIN) {
+            wait_for_directory_acks(version_to_wait_on, interruptor);
+        } else {
+            /* Because we're the vice primary we don't check to make sure that
+             * the master sees us. We're expecting that machine to be
+             * unreachable. */
+            wait_for_directory_acks(version_to_wait_on, interruptor, region, true);
+        }
 
         /* In this loop we repeatedly attempt to find peers to backfill from
          * and then perform the backfill. We exit the loop either when we get

@@ -128,8 +128,11 @@ private:
                                 const typename backfill_candidate_t::backfill_location_t &backfiller,
                                 best_backfiller_map_t *best_backfiller_out);
 
-    bool is_safe_for_us_to_be_primary(const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory, const blueprint_t<protocol_t> &blueprint,
-                                      const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out, branch_history_t<protocol_t> *branch_history_to_merge_out, bool *should_merge_metadata);
+    bool is_safe_for_us_to_be_primary(
+            const std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > &reactor_directory,
+            const blueprint_t<protocol_t> &blueprint, const std::set<peer_id_t> &ignore_list,
+            const typename protocol_t::region_t &region, best_backfiller_map_t *best_backfiller_out,
+            branch_history_t<protocol_t> *branch_history_to_merge_out, bool *should_merge_metadata);
 
     static backfill_candidate_t make_backfill_candidate_from_version_range(const version_range_t &b);
 
@@ -156,7 +159,8 @@ private:
 
     /* Shared between all three roles (primary, secondary, nothing) */
 
-    void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void wait_for_directory_acks(directory_echo_version_t, signal_t *interruptor,
+            typename protocol_t::region_t region = typename protocol_t::region_t(), bool ignore_primary = false) THROWS_ONLY(interrupted_exc_t);
 
     bool attempt_backfill_from_peers(directory_entry_t *directory_entry, order_source_t *order_source, const typename protocol_t::region_t &region, store_view_t<protocol_t> *svs, const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint, primary_type_t type, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 

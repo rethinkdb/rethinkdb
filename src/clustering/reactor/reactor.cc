@@ -191,7 +191,6 @@ void reactor_t<protocol_t>::run_cpu_sharded_role(
 
     blueprint_t<protocol_t> bp =
         role->blueprint.get_watchable()->get();
-    debugf("Shards in failover: %zu\n", bp.failover.size());
     bool failover = std_contains(bp.failover, region);
 
     switch (role->role) {
@@ -297,7 +296,8 @@ boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > reac
 }
 
 template <class protocol_t>
-void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t version_to_wait_on, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t version_to_wait_on, signal_t *interruptor,
+            typename protocol_t::region_t region, bool ignore_primary) THROWS_ONLY(interrupted_exc_t) {
     while (true) {
         /* This function waits for acks from all the peers mentioned in the
         blueprint. If the blueprint changes while we're waiting for acks, we
@@ -314,8 +314,10 @@ void reactor_t<protocol_t>::wait_for_directory_acks(directory_echo_version_t ver
             bp = blueprint_watchable->get();
             subscription.reset(blueprint_watchable, &freeze);
         }
-        typename std::map<peer_id_t, std::map<typename protocol_t::region_t, blueprint_role_t> >::iterator it = bp.peers_roles.begin();
-        for (it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
+        for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
+            if (ignore_primary && it->second[region] == blueprint_role_t::PRIMARY) {
+                continue;
+            }
             typename directory_echo_writer_t<cow_ptr_t<reactor_business_card_t<protocol_t> > >::ack_waiter_t ack_waiter(&directory_echo_writer, it->first, version_to_wait_on);
             wait_any_t waiter(&ack_waiter, &blueprint_changed);
             wait_interruptible(&waiter, interruptor);
