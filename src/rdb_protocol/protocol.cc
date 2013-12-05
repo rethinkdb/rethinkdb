@@ -1404,12 +1404,14 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
+        debugf("about to rdb_get\n");
 #if SLICE_ALT
         // RSI: Do we use txn in this class at all?
         rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
 #else
         rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
 #endif
+        debugf("rdb_get has returned\n");
     }
 
     void operator()(const rget_read_t &rget) {
@@ -1666,6 +1668,7 @@ void store_t::protocol_read(const read_t &read,
     response->event_log = std::move(v).get_event_log();
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
     response->event_log.push_back(profile::stop_t());
+    debugf("protocol_read return\n");
 }
 
 class func_replacer_t : public btree_batched_replacer_t {

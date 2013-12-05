@@ -606,6 +606,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
 
         // Perform the operation
         typename protocol_t::read_response_t response;
+        debugf("about to svs_->read\n");
         svs_->read(
             DEBUG_ONLY(metainfo_checker, )
             read,
@@ -613,8 +614,10 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             order_token,
             &read_token_pair,
             keepalive.get_drain_signal());
+        debugf("done svs_->read\n");
 
         send(mailbox_manager_, ack_addr, response);
+        debugf("done send response after svs_->read\n");
     } catch (const interrupted_exc_t &) {
         /* pass */
     }

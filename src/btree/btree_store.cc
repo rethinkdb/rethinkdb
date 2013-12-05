@@ -23,11 +23,11 @@ struct enter_exit_t {
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
     template <class... Args>
     explicit enter_exit_t(Args... args) : msg(strprintf(args...)) {
-        // debugf("%s enter\n", msg.c_str());
+        debugf("%s enter\n", msg.c_str());
     }
 #pragma GCC diagnostic pop
     ~enter_exit_t() {
-        // debugf("%s exit\n", msg.c_str());
+        debugf("%s exit\n", msg.c_str());
     }
     std::string msg;
 };

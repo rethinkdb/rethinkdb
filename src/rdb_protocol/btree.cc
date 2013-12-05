@@ -100,6 +100,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn,
         superblock_t *superblock, point_read_response_t *response, profile::trace_t *trace) {
 #endif
+    debugf("rdb_get about to find_keyvalue_location_for_read\n");
     keyvalue_location_t<rdb_value_t> kv_location;
 #if SLICE_ALT
     find_keyvalue_location_for_read(superblock, store_key.btree_key(), &kv_location,
@@ -108,6 +109,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location,
             slice->root_eviction_priority, &slice->stats, trace);
 #endif
+    debugf("rdb_get find_keyvalue_location_for_read returned\n");
 
     if (!kv_location.value.has()) {
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
