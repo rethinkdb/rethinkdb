@@ -34,7 +34,7 @@ public:
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
-    file_account_t *make_io_account(int priority) { return inner->make_io_account(priority); }
+    using serializer_t::make_io_account;
     file_account_t *make_io_account(int priority, int outstanding_requests_limit) {
         return inner->make_io_account(priority, outstanding_requests_limit);
     }
