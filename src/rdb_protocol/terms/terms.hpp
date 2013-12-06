@@ -77,6 +77,12 @@ counted_t<term_t> make_json_term(compile_env_t *env, const protob_t<const Term> 
 // match.cc
 counted_t<term_t> make_match_term(compile_env_t *env, const protob_t<const Term> &term);
 
+// case.cc
+counted_t<term_t> make_upcase_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_downcase_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+
 // obj.cc
 counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const Term> &term);
