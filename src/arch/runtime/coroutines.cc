@@ -299,9 +299,6 @@ void coro_t::notify_now_deprecated() {
 }
 
 void coro_t::notify_sometime() {
-    // TODO: implement a notify_any_thread function if this is changed to not be thread-safe
-    // rassert(current_thread_ == linux_thread_pool_t::get_thread_id());
-
     rassert(!notified_);
     notified_ = true;
     linux_thread_pool_t::get_thread()->message_hub.store_message_sometime(
