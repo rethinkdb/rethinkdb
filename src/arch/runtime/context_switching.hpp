@@ -82,7 +82,26 @@ void context_switch(
 
 
 /* ____ Threaded version of context_switching ____ */
-// TODO! Document this
+
+/*
+ * This is an alternative implementation where each context runs in a thread of
+ * its own. The primary use case for this is to allow certain profiling tools
+ * that would otherwise get confused by our artificial_stack switches to be used
+ * with RethinkDB. Another use case is to ease porting RethinkDB to new
+ * architectures in cases where performance doesn't matter much.
+ *
+ * Internally, one thread is created per threaded_stack_t. To be compatible
+ * with the artificial_stack_t implementation, we simulate a fixed number of
+ * "virtual threads" (up to MAX_THREADS) Each threaded_stack_t has an associated
+ * virtual thread and only one threaded_stack_t can be active per virtual thread
+ * at any time, which is enforced through a mutex per virtual thread and a
+ * condition in each threaded_stack_t.
+ *
+ * A context switch then is simply notifying the condition on the threaded_stack_t
+ * that should be swapped in and then making the previous context wait on its own
+ * condition (there is some additional logic for handling virtual thread
+ * switches and switching from/to the global context).
+ */
 
 class linux_thread_pool_t;
 class linux_thread_t;
