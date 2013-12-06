@@ -124,7 +124,7 @@ TLS_with_init(int64_t, coro_selfname_counter, 0);
 
 coro_t::coro_t() :
     stack(&coro_t::run, coro_stack_size),
-    current_thread_(linux_thread_pool_t::thread_id),
+    current_thread_(linux_thread_pool_t::get_thread_id()),
     notified_(false),
     waiting_(false)
 #ifndef NDEBUG
@@ -259,7 +259,7 @@ void coro_t::yield() {  /* class method */
 void coro_t::notify_now_deprecated() {
     rassert(waiting_);
     rassert(!notified_);
-    rassert(current_thread_.threadnum == linux_thread_pool_t::thread_id);
+    rassert(current_thread_.threadnum == linux_thread_pool_t::get_thread_id());
 
 #ifndef NDEBUG
     rassert(TLS_get_cglobals()->assert_no_coro_waiting_counter == 0,
@@ -300,11 +300,11 @@ void coro_t::notify_now_deprecated() {
 
 void coro_t::notify_sometime() {
     // TODO: implement a notify_any_thread function if this is changed to not be thread-safe
-    // rassert(current_thread_ == linux_thread_pool_t::thread_id);
+    // rassert(current_thread_ == linux_thread_pool_t::get_thread_id());
 
     rassert(!notified_);
     notified_ = true;
-    linux_thread_pool_t::thread->message_hub.store_message_sometime(
+    linux_thread_pool_t::get_thread()->message_hub.store_message_sometime(
         current_thread_,
         this);
 }
@@ -315,7 +315,7 @@ void coro_t::notify_later_ordered() {
 
     /* `current_thread` is the thread that the coroutine lives on, which may or may not be the
     same as `get_thread_id()`.  (In a call to move_to_thread, it won't be.) */
-    linux_thread_pool_t::thread->message_hub.store_message_ordered(
+    linux_thread_pool_t::get_thread()->message_hub.store_message_ordered(
         current_thread_,
         this);
 }
@@ -323,7 +323,7 @@ void coro_t::notify_later_ordered() {
 void coro_t::move_to_thread(threadnum_t thread) {
     assert_good_thread_id(thread);
     rassert(coro_t::self(), "coro_t::move_to_thread() called when not in a coroutine.");
-    if (thread.threadnum == linux_thread_pool_t::thread_id) {
+    if (thread.threadnum == linux_thread_pool_t::get_thread_id()) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }

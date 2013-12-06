@@ -187,7 +187,7 @@ private:
 io_backender_t::io_backender_t(file_direct_io_mode_t _direct_io_mode,
                                int max_concurrent_io_requests)
     : direct_io_mode(_direct_io_mode),
-      diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::thread->queue,
+      diskmgr(new linux_disk_manager_t(&linux_thread_pool_t::get_thread()->queue,
                                        DEFAULT_IO_BATCH_FACTOR,
                                        max_concurrent_io_requests,
                                        &stats)) { }
@@ -204,7 +204,7 @@ linux_file_t::linux_file_t(scoped_fd_t &&_fd, int64_t _file_size, linux_disk_man
     // TODO: Why do we care whether we're in a thread pool?  (Maybe it's that you can't create a
     // file_account_t outside of the thread pool?  But they're associated with the diskmgr,
     // aren't they?)
-    if (linux_thread_pool_t::thread) {
+    if (linux_thread_pool_t::get_thread()) {
         default_account.init(new file_account_t(this, 1, UNLIMITED_OUTSTANDING_REQUESTS));
     }
 }

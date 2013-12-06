@@ -530,14 +530,16 @@ ticks_t secs_to_ticks(time_t secs) {
 }
 
 #ifdef __MACH__
-__thread mach_timebase_info_data_t mach_time_info;
+TLS(mach_timebase_info_data_t, mach_time_info);
 #endif  // __MACH__
 
 timespec clock_monotonic() {
 #ifdef __MACH__
+    mach_timebase_info_data_t mach_time_info = TLS_get_mach_time_info();
     if (mach_time_info.denom == 0) {
         mach_timebase_info(&mach_time_info);
         guarantee(mach_time_info.denom != 0);
+        TLS_set_mach_time_info(mach_time_info);
     }
     const uint64_t t = mach_absolute_time();
     uint64_t nanosecs = t * mach_time_info.numer / mach_time_info.denom;

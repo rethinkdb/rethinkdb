@@ -12,11 +12,11 @@ NOINLINE threadnum_t get_thread_id() {
     if (i_am_in_blocker_pool_thread()) {
         return threadnum_t(-1);
     }
-    return threadnum_t(linux_thread_pool_t::thread_id);
+    return threadnum_t(linux_thread_pool_t::get_thread_id());
 }
 
 int get_num_threads() {
-    return linux_thread_pool_t::thread_pool->n_threads;
+    return linux_thread_pool_t::get_thread_pool()->n_threads;
 }
 
 #ifndef NDEBUG
@@ -29,18 +29,18 @@ void assert_good_thread_id(threadnum_t thread) {
 
 bool continue_on_thread(threadnum_t thread, linux_thread_message_t *msg) {
     assert_good_thread_id(thread);
-    if (thread.threadnum == linux_thread_pool_t::thread_id) {
+    if (thread.threadnum == linux_thread_pool_t::get_thread_id()) {
         // The thread to continue on is the thread we are already on
         return true;
     } else {
-        linux_thread_pool_t::thread->message_hub.store_message_ordered(thread, msg);
+        linux_thread_pool_t::get_thread()->message_hub.store_message_ordered(thread, msg);
         return false;
     }
 }
 
 void call_later_on_this_thread(linux_thread_message_t *msg) {
-    linux_thread_pool_t::thread->message_hub.store_message_ordered(
-        threadnum_t(linux_thread_pool_t::thread_id),
+    linux_thread_pool_t::get_thread()->message_hub.store_message_ordered(
+        threadnum_t(linux_thread_pool_t::get_thread_id()),
         msg);
 }
 

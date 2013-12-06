@@ -282,7 +282,7 @@ void context_switch(threaded_context_ref_t *current_context, threaded_context_re
     if (current_context->lock == NULL) {
         // This must be the scheduler. We need to acquire a lock.
         is_scheduler = true;
-        current_context->lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+        current_context->lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
     }
 
     dest_context->rethread_to_current();
@@ -310,28 +310,27 @@ void threaded_context_ref_t::rethread_to_current() {
 }
 
 void threaded_context_ref_t::wait() {
-    cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+    cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
     if (do_rethread) {
         restore_virtual_thread();
         // Re-lock to a different thread mutex
         delete lock;
-        lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+        lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
         do_rethread = false;
     }
 }
 
 void threaded_context_ref_t::restore_virtual_thread() {
     // Fake our thread
-    linux_thread_pool_t::thread_pool = my_thread_pool;
-    linux_thread_pool_t::thread_id = my_thread_id;
-    linux_thread_pool_t::thread = my_thread;
+    linux_thread_pool_t::set_thread_pool(my_thread_pool);
+    linux_thread_pool_t::set_thread_id(my_thread_id);
+    linux_thread_pool_t::set_thread(my_thread);
 }
 
 void threaded_context_ref_t::store_virtual_thread() {
-    // Fake our thread
-    my_thread_pool = linux_thread_pool_t::thread_pool;
-    my_thread_id = linux_thread_pool_t::thread_id;
-    my_thread = linux_thread_pool_t::thread;
+    my_thread_pool = linux_thread_pool_t::get_thread_pool();
+    my_thread_id = linux_thread_pool_t::get_thread_id();
+    my_thread = linux_thread_pool_t::get_thread();
 }
 
 threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size) :
@@ -343,7 +342,7 @@ threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size
         // If we are not in a coroutine, we have to acquire the lock first.
         // (coroutines would already hold the lock)
         possible_lock_acq.init(new system_mutex_t::lock_t(
-            &virtual_thread_mutexes[linux_thread_pool_t::thread_id]));
+            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
     }
 
     int result = pthread_create(&thread,
@@ -352,7 +351,7 @@ threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size
                                 reinterpret_cast<void *>(this));
     guarantee_xerr(result == 0, result, "Could not create thread: %i", result);
     // Wait for the thread to start
-    launch_cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+    launch_cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
 }
 
 threaded_stack_t::~threaded_stack_t() {
@@ -370,7 +369,7 @@ void *threaded_stack_t::internal_run(void *p) {
 
     parent->context.restore_virtual_thread();
 
-    parent->context.lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::thread_id]);
+    parent->context.lock = new system_mutex_t::lock_t(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
     // Notify our parent that we have been created
     parent->launch_cond.signal();
 
