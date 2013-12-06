@@ -200,10 +200,11 @@ void coro_t::run() {
         do_on_thread(coro->home_thread(), boost::bind(coro_t::return_coro_to_free_list, coro));
         --pm_active_coroutines;
 
-        if (TLS_get_cglobals()->prev_coro) {
-            context_switch(&coro->stack.context, &TLS_get_cglobals()->prev_coro->stack.context);
+        coro_globals_t *my_cglobals = TLS_get_cglobals();
+        if (my_cglobals->prev_coro) {
+            context_switch(&coro->stack.context, &my_cglobals->prev_coro->stack.context);
         } else {
-            context_switch(&coro->stack.context, &TLS_get_cglobals()->scheduler);
+            context_switch(&coro->stack.context, &my_cglobals->scheduler);
         }
     }
 }
@@ -221,11 +222,14 @@ void coro_t::parse_coroutine_type(const char *coroutine_function)
 #endif
 
 coro_t *coro_t::self() {   /* class method */
-    return TLS_get_cglobals() == NULL ? NULL : TLS_get_cglobals()->current_coro;
+    coro_globals_t *my_cglobals = TLS_get_cglobals();
+    return my_cglobals == NULL ? NULL : my_cglobals->current_coro;
 }
 
 void coro_t::wait() {   /* class method */
-    rassert(self(), "Not in a coroutine context");
+    coro_t *coro = self();
+
+    rassert(coro, "Not in a coroutine context");
     rassert(TLS_get_cglobals()->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
         TLS_get_cglobals()->finite_waiting_call_sites.top().first.c_str(), TLS_get_cglobals()->finite_waiting_call_sites.top().second);
@@ -234,20 +238,21 @@ void coro_t::wait() {   /* class method */
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
         TLS_get_cglobals()->no_waiting_call_sites.top().first.c_str(), TLS_get_cglobals()->no_waiting_call_sites.top().second);
 
-    rassert(!self()->waiting_);
-    self()->waiting_ = true;
+    rassert(!coro->waiting_);
+    coro->waiting_ = true;
 
     PROFILER_CORO_YIELD(1);
-    if (TLS_get_cglobals()->prev_coro) {
-        context_switch(&self()->stack.context, &TLS_get_cglobals()->prev_coro->stack.context);
+    coro_globals_t *my_cglobals = TLS_get_cglobals();
+    if (my_cglobals->prev_coro) {
+        context_switch(&self()->stack.context, &my_cglobals->prev_coro->stack.context);
     } else {
-        context_switch(&self()->stack.context, &TLS_get_cglobals()->scheduler);
+        context_switch(&self()->stack.context, &my_cglobals->scheduler);
     }
     PROFILER_CORO_RESUME;
 
-    rassert(self());
-    rassert(self()->waiting_);
-    self()->waiting_ = false;
+    rassert(self() == coro);
+    rassert(coro->waiting_);
+    coro->waiting_ = false;
 }
 
 void coro_t::yield() {  /* class method */
@@ -261,40 +266,44 @@ void coro_t::notify_now_deprecated() {
     rassert(!notified_);
     rassert(current_thread_.threadnum == linux_thread_pool_t::get_thread_id());
 
+    coro_globals_t *my_cglobals = TLS_get_cglobals();
+
 #ifndef NDEBUG
-    rassert(TLS_get_cglobals()->assert_no_coro_waiting_counter == 0,
+    rassert(my_cglobals->assert_no_coro_waiting_counter == 0,
         "This code path is not supposed to use notify_now_deprecated() or spawn_now_dangerously().");
 
     /* Record old value of `assert_finite_coro_waiting_counter`. It must be legal to call
     `coro_t::wait()` within the coro we are going to jump to, or else we would never jump
     back. */
-    int old_assert_finite_coro_waiting_counter = TLS_get_cglobals()->assert_finite_coro_waiting_counter;
-    TLS_get_cglobals()->assert_finite_coro_waiting_counter = 0;
+    int old_assert_finite_coro_waiting_counter = my_cglobals->assert_finite_coro_waiting_counter;
+    my_cglobals->assert_finite_coro_waiting_counter = 0;
 #endif
 
-    if (coro_t::self() != NULL) {
+    if (self() != NULL) {
         PROFILER_CORO_YIELD(1);
     }
-    coro_t *prev_prev_coro = TLS_get_cglobals()->prev_coro;
-    TLS_get_cglobals()->prev_coro = TLS_get_cglobals()->current_coro;
-    TLS_get_cglobals()->current_coro = this;
+    coro_t *prev_prev_coro = my_cglobals->prev_coro;
+    my_cglobals->prev_coro = my_cglobals->current_coro;
+    my_cglobals->current_coro = this;
 
-    if (TLS_get_cglobals()->prev_coro) {
-        context_switch(&TLS_get_cglobals()->prev_coro->stack.context, &this->stack.context);
+    if (my_cglobals->prev_coro) {
+        context_switch(&my_cglobals->prev_coro->stack.context, &this->stack.context);
     } else {
-        context_switch(&TLS_get_cglobals()->scheduler, &this->stack.context);
+        context_switch(&my_cglobals->scheduler, &this->stack.context);
     }
 
-    rassert(TLS_get_cglobals()->current_coro == this);
-    TLS_get_cglobals()->current_coro = TLS_get_cglobals()->prev_coro;
-    TLS_get_cglobals()->prev_coro = prev_prev_coro;
+    // The thread might have changed, and with it the cglobals we have to access
+    my_cglobals = TLS_get_cglobals();
+    rassert(my_cglobals->current_coro == this);
+    my_cglobals->current_coro = my_cglobals->prev_coro;
+    my_cglobals->prev_coro = prev_prev_coro;
     if (coro_t::self() != NULL) {
         PROFILER_CORO_RESUME;
     }
 
 #ifndef NDEBUG
     /* Restore old value of `assert_finite_coro_waiting_counter`. */
-    TLS_get_cglobals()->assert_finite_coro_waiting_counter = old_assert_finite_coro_waiting_counter;
+    my_cglobals->assert_finite_coro_waiting_counter = old_assert_finite_coro_waiting_counter;
 #endif
 }
 
@@ -362,11 +371,13 @@ coro_t * coro_t::get_coro() {
     rassert(coroutines_have_been_initialized());
     coro_t *coro;
 
-    if (TLS_get_cglobals()->free_coros.size() == 0) {
+    coro_globals_t *my_cglobals = TLS_get_cglobals();
+
+    if (my_cglobals->free_coros.size() == 0) {
         coro = new coro_t();
     } else {
-        coro = TLS_get_cglobals()->free_coros.tail();
-        TLS_get_cglobals()->free_coros.remove(coro);
+        coro = my_cglobals->free_coros.tail();
+        my_cglobals->free_coros.remove(coro);
     }
 
     rassert(!coro->intrusive_list_node_t<coro_t>::in_a_list());
