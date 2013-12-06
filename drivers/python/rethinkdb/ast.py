@@ -183,16 +183,16 @@ class RqlQuery(object):
         return Mod(other, self)
 
     def __and__(self, other):
-        return All(self, other)
+        return All(self, other, infix=True)
 
     def __rand__(self, other):
-        return All(other, self)
+        return All(other, self, infix=True)
 
     def __or__(self, other):
-        return Any(self, other)
+        return Any(self, other, infix=True)
 
     def __ror__(self, other):
-        return Any(other, self)
+        return Any(other, self, infix=True)
 
     # Non-operator versions of the above
 
@@ -228,6 +228,12 @@ class RqlQuery(object):
 
     def mod(self, other):
         return Mod(self, other)
+
+    def and_(*args):
+        return All(*args)
+
+    def or_(*args):
+        return Any(*args)
 
     def not_(self):
         return Not(self)
@@ -482,12 +488,44 @@ class RqlQuery(object):
 def needs_wrap(arg):
     return isinstance(arg, Datum) or isinstance(arg, MakeArray) or isinstance(arg, MakeObj)
 
+class RqlBoolOperQuery(RqlQuery):
+    def __init__(self, *args, **optargs):
+        if 'infix' in optargs:
+            self.infix = optargs['infix']
+            del optargs['infix']
+        else:
+            self.infix = False
+
+        RqlQuery.__init__(self, *args, **optargs)
+
+    def compose(self, args, optargs):
+        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
+
+        if self.infix:
+            return T('(', T(*t_args, intsp=[' ', self.st_infix, ' ']), ')')
+        else:
+            return T('r.', self.st, '(', T(*t_args, intsp=', '), ')')
+
 class RqlBiOperQuery(RqlQuery):
     def compose(self, args, optargs):
-        if needs_wrap(self.args[0]) and needs_wrap(self.args[1]):
-            args[0] = T('r.expr(', args[0], ')')
+        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
+        return T('(', T(*t_args, intsp=[' ', self.st, ' ']), ')')
 
-        return T('(', args[0], ' ', self.st, ' ', args[1], ')')
+class RqlBiCompareOperQuery(RqlBiOperQuery):
+    def __init__(self, *args, **optargs):
+        RqlBiOperQuery.__init__(self, *args, **optargs)
+
+        for arg in args:
+            try:
+                if arg.infix:
+                    err = "Calling '%s' on result of infix bitwise operator:\n" + \
+                          "%s.\n" + \
+                          "This is almost always a precedence error.\n" + \
+                          "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" + \
+                          "If you really want this behavior, use `.or_` or `.and_` instead."
+                    raise TypeError(err % (self.st, QueryPrinter(self).print_query()))
+            except AttributeError:
+                pass # No infix attribute, so not possible to be an infix bool operator
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
@@ -687,27 +725,27 @@ class ImplicitVar(RqlQuery):
     def compose(self, args, optargs):
         return 'r.row'
 
-class Eq(RqlBiOperQuery):
+class Eq(RqlBiCompareOperQuery):
     tt = p.Term.EQ
     st = "=="
 
-class Ne(RqlBiOperQuery):
+class Ne(RqlBiCompareOperQuery):
     tt = p.Term.NE
     st = "!="
 
-class Lt(RqlBiOperQuery):
+class Lt(RqlBiCompareOperQuery):
     tt = p.Term.LT
     st = "<"
 
-class Le(RqlBiOperQuery):
+class Le(RqlBiCompareOperQuery):
     tt = p.Term.LE
     st = "<="
 
-class Gt(RqlBiOperQuery):
+class Gt(RqlBiCompareOperQuery):
     tt = p.Term.GT
     st = ">"
 
-class Ge(RqlBiOperQuery):
+class Ge(RqlBiCompareOperQuery):
     tt = p.Term.GE
     st = ">="
 
@@ -1065,13 +1103,15 @@ class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH
     st = "branch"
 
-class Any(RqlBiOperQuery):
+class Any(RqlBoolOperQuery):
     tt = p.Term.ANY
-    st = "|"
+    st = "or_"
+    st_infix = "|"
 
-class All(RqlBiOperQuery):
+class All(RqlBoolOperQuery):
     tt = p.Term.ALL
-    st = "&"
+    st = "and_"
+    st_infix = "&"
 
 class ForEach(RqlMethodQuery):
     tt = p.Term.FOREACH
