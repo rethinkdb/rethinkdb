@@ -9,9 +9,9 @@ namespace ql {
 template<int (*const F)(int)>
 const char *case_name();
 template<>
-const char *case_name<::toupper>() { return "upcase"; }
+const char *case_name< ::toupper>() { return "upcase"; }
 template<>
-const char *case_name<::tolower>() { return "downcase"; }
+const char *case_name< ::tolower>() { return "downcase"; }
 
 template<int (*const F)(int)>
 class case_term_t : public op_term_t {
@@ -29,11 +29,11 @@ private:
 
 counted_t<term_t> make_upcase_term(compile_env_t *env,
                                    const protob_t<const Term> &term) {
-    return make_counted<case_term_t<::toupper> >(env, term);
+    return make_counted<case_term_t< ::toupper> >(env, term);
 }
 counted_t<term_t> make_downcase_term(compile_env_t *env,
                                      const protob_t<const Term> &term) {
-    return make_counted<case_term_t<::tolower> >(env, term);
+    return make_counted<case_term_t< ::tolower> >(env, term);
 }
 
 }
