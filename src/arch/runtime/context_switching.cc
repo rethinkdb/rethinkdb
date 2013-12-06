@@ -358,6 +358,10 @@ threaded_stack_t::~threaded_stack_t() {
     // This is ugly. But our coroutines currently never terminate. Instead
     // they just end up in an endless loop. Usually we would just destroy
     // their stack context, but here we have to kill the thread first.
+    // TODO (daniel): If we ever want to use the threaded_stack_t in
+    //  a (semi-)production environment, we should fix this.
+    //  I think the better way of doing this would be to send a non-SIGKILL
+    //  signal and to install an appropriate signal handler on the threads.
     int result = pthread_kill(thread, SIGKILL);
     guarantee_xerr(result == 0, result, "Could not kill thread: %i", result);
     result = pthread_join(thread, NULL);
