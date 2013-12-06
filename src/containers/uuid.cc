@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <fcntl.h>
-#include <vector>
+#include <array>
 
 #include "containers/printf_buffer.hpp"
 #include "utils.hpp"
@@ -43,12 +43,13 @@ bool operator<(const uuid_u& x, const uuid_u& y) {
 }
 
 TLS_with_init(bool, next_uuid_initialized, false);
-TLS_with_init(std::vector<uint8_t>, next_uuid, std::vector<uint8_t>(uuid_u::kStaticSize));
+typedef std::array<uint8_t, uuid_u::kStaticSize> next_uuid_t;
+TLS(next_uuid_t, next_uuid);
 
 uuid_u get_and_increment_uuid() {
     uuid_u result;
 
-    std::vector<uint8_t> next_uuid = TLS_get_next_uuid();
+    next_uuid_t next_uuid = TLS_get_next_uuid();
 
     // Copy over the next_uuid buffer
     uint8_t *result_buffer = result.data();
@@ -81,7 +82,7 @@ void hash_uuid(uuid_u *uuid) {
 }
 
 void initialize_dev_random_uuid() {
-    std::vector<uint8_t> next_uuid(uuid_u::kStaticSize);
+    next_uuid_t next_uuid;
     get_dev_urandom(next_uuid.data(), uuid_u::static_size());
     TLS_set_next_uuid(next_uuid);
 }
