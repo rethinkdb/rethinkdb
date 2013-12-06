@@ -14,6 +14,7 @@ merger_serializer_t::merger_serializer_t(scoped_ptr_t<serializer_t> _inner,
     inner(std::move(_inner)),
     index_writes_io_account(make_io_account(MERGED_INDEX_WRITE_IO_PRIORITY)),
     on_inner_index_write_complete(new counted_cond_t()),
+    unhandled_index_write_waiter_exists(false),
     num_active_writes(0),
     max_active_writes(_max_active_writes) {
 }
@@ -40,6 +41,7 @@ void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write
         // so we get notified exactly when all of our write ops have
         // been completed.
         write_complete = on_inner_index_write_complete;
+        unhandled_index_write_waiter_exists = true;
     }
 
     // Check if we can initiate a new index write
@@ -69,6 +71,7 @@ void merger_serializer_t::do_index_write() {
             write_ops.push_back(op_pair->second);
         }
         outstanding_index_write_ops.clear();
+        unhandled_index_write_waiter_exists = false;
 
         // Swap out the on_inner_index_write_complete signal so subsequent index
         // writes can be captured by the next round of do_index_write().
@@ -84,7 +87,7 @@ void merger_serializer_t::do_index_write() {
 
     // Check if we should start another index write
     if (num_active_writes < max_active_writes
-        && !outstanding_index_write_ops.empty()) {
+        && unhandled_index_write_waiter_exists) {
         ++num_active_writes;
         coro_t::spawn_sometime(std::bind(&merger_serializer_t::do_index_write, this));
     }

@@ -124,6 +124,7 @@ private:
     class counted_cond_t : public cond_t,
                            public single_threaded_countable_t<counted_cond_t> { };
     counted_t<counted_cond_t> on_inner_index_write_complete;
+    bool unhandled_index_write_waiter_exists;
 
     int num_active_writes;
     int max_active_writes;
