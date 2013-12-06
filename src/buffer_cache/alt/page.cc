@@ -815,7 +815,8 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
 
 page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_null)
     : page_cache_(page_cache),
-      began_waiting_for_flush_(false) {
+      began_waiting_for_flush_(false),
+      spawned_flush_(false) {
     if (preceding_txn_or_null != NULL) {
         connect_preceder(preceding_txn_or_null);
     }
