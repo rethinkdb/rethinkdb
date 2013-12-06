@@ -20,7 +20,6 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        debugf("%s\n", name());
         std::string s = arg(env, 0)->as_str();
         std::transform(s.begin(), s.end(), s.begin(), F);
         return new_val(make_counted<const datum_t>(std::move(s)));
