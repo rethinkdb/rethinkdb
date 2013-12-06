@@ -180,7 +180,7 @@ public:
         machines_semilattice_metadata_t mmd = ack_info->get_machines_view();
         cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > nmd = ack_info->get_namespaces_view();
 
-        for (std::set<peer_id_t>::const_iterator it = acks.begin(); it != acks.end(); it++) {
+        for (auto it = acks.begin(); it != acks.end(); it++) {
             std::map<peer_id_t, machine_id_t>::iterator tt_it = translation_table_snapshot.find(*it);
             if (tt_it == translation_table_snapshot.end()) continue;
             machines_semilattice_metadata_t::machine_map_t::iterator jt = mmd.machines.find(tt_it->second);
@@ -190,16 +190,23 @@ public:
             datacenter_id_t dc = jt->second.get_ref().datacenter.get();
             acks_by_dc.insert(dc);
         }
-        typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it =
-            nmd->namespaces.find(namespace_id);
+        auto it = nmd->namespaces.find(namespace_id);
         if (it == nmd->namespaces.end()) return false;
         if (it->second.is_deleted()) return false;
         if (it->second.get_ref().ack_expectations.in_conflict()) return false;
         std::map<datacenter_id_t, ack_expectation_t> expected_acks = it->second.get_ref().ack_expectations.get();
 
+        /* If the table supports failover than no matter what we need to make
+         * sure that we get at least 2 acks total. This is to guarantee that
+         * should the master fail we'll have an up to date copy of the data. */
+        if (it->second.get_ref().failover.in_conflict() ||
+            (it->second.get_ref().failover.get() && acks_by_dc.size() < 2)) {
+            return false;
+        }
+
         /* The nil uuid represents acks from anywhere. */
         uint32_t extra_acks = 0;
-        for (std::map<datacenter_id_t, ack_expectation_t>::const_iterator kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
+        for (auto kt = expected_acks.begin(); kt != expected_acks.end(); ++kt) {
             if (!kt->first.is_nil()) {
                 if (acks_by_dc.count(kt->first) < kt->second.expectation()) {
                     return false;
@@ -210,9 +217,7 @@ public:
 
         /* Add in the acks that came from datacenters we had no expectations
          * for (or the nil datacenter). */
-        for (std::multiset<datacenter_id_t>::iterator at  = acks_by_dc.begin();
-                                                      at != acks_by_dc.end();
-                                                      ++at) {
+        for (auto at = acks_by_dc.begin(); at != acks_by_dc.end(); ++at) {
             if (!std_contains(expected_acks, *at) || at->is_nil()) {
                 extra_acks++;
             }
