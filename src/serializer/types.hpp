@@ -126,6 +126,9 @@ private:
     DISABLE_COPYING(ls_block_token_pointee_t);
 };
 
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<ls_block_token_pointee_t> &token);
+
 void counted_add_ref(ls_block_token_pointee_t *p);
 void counted_release(ls_block_token_pointee_t *p);
 
@@ -318,5 +321,6 @@ struct buf_write_info_t {
     block_id_t block_id;
 };
 
+void debug_print(printf_buffer_t *buf, const buf_write_info_t &info);
 
 #endif  // SERIALIZER_TYPES_HPP_

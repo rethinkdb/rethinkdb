@@ -25,6 +25,8 @@ struct index_write_op_t {
         : block_id(_block_id), token(_token), recency(_recency) { }
 };
 
+void debug_print(printf_buffer_t *buf, const index_write_op_t &write_op);
+
 /* serializer_t is an abstract interface that describes how each serializer should
 behave. It is implemented by log_serializer_t, semantic_checking_serializer_t, and
 translator_serializer_t. */
@@ -44,6 +46,7 @@ public:
     these functions. They can be safely called from any thread. */
 
     virtual scoped_malloc_t<ser_buffer_t> malloc() = 0;
+    // RSI: Does the new cache use clone?
     virtual scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *) = 0;
 
     /* Allocates a new io account for the underlying file.
@@ -80,6 +83,7 @@ public:
     virtual repli_timestamp_t get_recency(block_id_t id) = 0;
 
     /* Reads the block's delete bit. */
+    // RSI: Does this actually get used by the new cache?
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
@@ -95,6 +99,7 @@ public:
                  iocallback_t *cb) = 0;
 
     /* The size, in bytes, of each serializer block */
+    // RSI: Rename to max_block_size or default_block_size.
     virtual block_size_t get_block_size() const = 0;
 
     /* Return true if no other processes have the file locked */

@@ -123,7 +123,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
                                                             it->first));
         }
     }
-    debugf("btree_store_t constructor exit\n");
+    debugf("btree_store_t constructor xit\n");
 }
 
 template <class protocol_t>

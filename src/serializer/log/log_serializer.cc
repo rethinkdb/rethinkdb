@@ -909,6 +909,16 @@ void ls_block_token_pointee_t::do_destroy() {
     delete this;
 }
 
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<ls_block_token_pointee_t> &token) {
+    if (token.has()) {
+        buf->appendf("ls_block_token{%" PRIi64 ", +%" PRIu32 "}",
+                     token->offset(), token->block_size().ser_value());
+    } else {
+        buf->appendf("nil");
+    }
+}
+
 void adjust_ref(ls_block_token_pointee_t *p, int adjustment) {
     struct adjuster_t : public linux_thread_message_t {
         void on_thread_switch() {

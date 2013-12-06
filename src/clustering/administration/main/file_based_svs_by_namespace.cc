@@ -4,6 +4,7 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "serializer/config.hpp"
+#include "serializer/debug_wrapper.hpp"
 #include "serializer/translator.hpp"
 #include "serializer/merger.hpp"
 #include "utils.hpp"
@@ -133,21 +134,19 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 
             // RSI: Figure out whether merger_serializer_t is really the culprit.
 #if NO_MERGER_SERIALIZER
-            serializer.init(/* new merger_serializer_t(
-                                scoped_ptr_t<serializer_t>( */
-                                    new standard_serializer_t(
-                                        standard_serializer_t::dynamic_config_t(),
-                                        &file_opener,
-                                        serializers_perfmon_collection) /*),
-                                MERGER_SERIALIZER_MAX_ACTIVE_WRITES) */);
+            serializer.init(new debug_serializer_t(
+                                make_scoped<standard_serializer_t>(
+                                    standard_serializer_t::dynamic_config_t(),
+                                    &file_opener,
+                                    serializers_perfmon_collection)));
 #else
-            serializer.init(new merger_serializer_t(
-                                scoped_ptr_t<serializer_t>(
-                                    new standard_serializer_t(
+            serializer.init(new debug_serializer_t(
+                                make_scoped<merger_serializer_t>(
+                                    make_scoped<standard_serializer_t>(
                                         standard_serializer_t::dynamic_config_t(),
                                         &file_opener,
-                                        serializers_perfmon_collection)),
-                                MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
+                                        serializers_perfmon_collection),
+                                    MERGER_SERIALIZER_MAX_ACTIVE_WRITES)));
 #endif
 
             std::vector<serializer_t *> ptrs;
@@ -167,21 +166,19 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                           standard_serializer_t::static_config_t());
             // RSI: Figure out whether merger_serializer_t is really the culprit.
 #if NO_MERGER_SERIALIZER
-            serializer.init(/* new merger_serializer_t(
-                                scoped_ptr_t<serializer_t>( */
-                                    new standard_serializer_t(
+            serializer.init(new debug_serializer_t(
+                                make_scoped<standard_serializer_t>(
                                     standard_serializer_t::dynamic_config_t(),
                                     &file_opener,
-                                    serializers_perfmon_collection) /*),
-                            MERGER_SERIALIZER_MAX_ACTIVE_WRITES) */);
+                                    serializers_perfmon_collection)));
 #else
-            serializer.init(new merger_serializer_t(
-                                scoped_ptr_t<serializer_t>(
-                                    new standard_serializer_t(
-                                    standard_serializer_t::dynamic_config_t(),
-                                    &file_opener,
-                                    serializers_perfmon_collection)),
-                            MERGER_SERIALIZER_MAX_ACTIVE_WRITES));
+            serializer.init(new debug_serializer_t(
+                                make_scoped<merger_serializer_t>(
+                                    make_scoped<standard_serializer_t>(
+                                       standard_serializer_t::dynamic_config_t(),
+                                       &file_opener,
+                                       serializers_perfmon_collection),
+                                    MERGER_SERIALIZER_MAX_ACTIVE_WRITES)));
 #endif
             debugf("initted merger serializer\n");
 

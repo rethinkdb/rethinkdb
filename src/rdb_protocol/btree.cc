@@ -443,16 +443,16 @@ void do_a_replace_from_batched_replace(
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
-    debugf("do_a_replace_from_batched_replace made exiter\n");
+    debugf("do_a_replace_from_batched_replace made xiter\n");
     rdb_modification_report_t mod_report(*info.key);
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
         info, &one_replace, superblock_promise, &mod_report.info, trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
-    debugf("do_a_replace_from_batched_replace before exiter.wait\n");
+    debugf("do_a_replace_from_batched_replace before xiter.wait\n");
     // RSI: What is this for?  are we waiting to get in line to call on_mod_report?  I guess so.
     exiter.wait();
-    debugf("do_a_replace_from_batched_replace exiter.wait returned\n");
+    debugf("do_a_replace_from_batched_replace xiter.wait returned\n");
     sindex_cb->on_mod_report(mod_report);
     debugf("do_a_replace_from_batched_replace on_mod_report returned\n");
 }

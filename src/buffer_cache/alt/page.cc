@@ -1255,7 +1255,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                                              page_cache->writes_io_account.get());
         pagef("do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
     }
-    pagef("exited scope after do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
+    pagef("xited scope after do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
 
     // Flush complete, and we're back on the page cache's thread.
 
