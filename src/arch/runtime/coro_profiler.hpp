@@ -8,6 +8,10 @@
 #include <array>
 #include <map>
 #include <fstream>
+#include <string>
+#include <utility>
+#include <vector>
+#include <algorithm>
 
 #include "backtrace.hpp"
 #include "utils.hpp"
