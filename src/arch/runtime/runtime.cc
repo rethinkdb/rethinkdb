@@ -8,7 +8,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "do_on_thread.hpp"
 
-NOINLINE threadnum_t get_thread_id() {
+threadnum_t get_thread_id() {
     if (i_am_in_blocker_pool_thread()) {
         return threadnum_t(-1);
     }
