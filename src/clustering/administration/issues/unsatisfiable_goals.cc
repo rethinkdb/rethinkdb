@@ -38,7 +38,8 @@ unsatisfiable_goals_issue_t *unsatisfiable_goals_issue_t::clone() const {
 static bool is_satisfiable(
         const datacenter_id_t &primary_datacenter,
         const std::map<datacenter_id_t, int32_t> &replica_affinities,
-        const std::map<datacenter_id_t, int> &actual_machines_in_datacenters) {
+        const std::map<datacenter_id_t, int> &actual_machines_in_datacenters,
+        bool failover) {
     //If any of the numbers are negative return false immediately since it's
     //malformed data.
     for (auto it = replica_affinities.begin(); it != replica_affinities.end(); ++it) {
@@ -49,6 +50,11 @@ static bool is_satisfiable(
 
     std::map<datacenter_id_t, int32_t> machines_needed_in_dc = replica_affinities;
     ++machines_needed_in_dc[primary_datacenter];
+    if (failover) {
+        /* If we're doing failover we need an extra machine in the primary
+         * datacenter. */
+        ++machines_needed_in_dc[primary_datacenter];
+    }
 
     std::map<datacenter_id_t, int> unused_machines_in_dc = actual_machines_in_datacenters;
 
@@ -80,8 +86,7 @@ template<class protocol_t>
 static void make_issues(const cow_ptr_t<namespaces_semilattice_metadata_t<protocol_t> > &namespaces,
         const std::map<datacenter_id_t, int> &actual_machines_in_datacenters,
         std::list<clone_ptr_t<global_issue_t> > *issues_out) {
-    for (typename namespaces_semilattice_metadata_t<protocol_t>::namespace_map_t::const_iterator it = namespaces->namespaces.begin();
-            it != namespaces->namespaces.end(); it++) {
+    for (auto it = namespaces->namespaces.begin(); it != namespaces->namespaces.end(); it++) {
         if (it->second.is_deleted()) {
             continue;
         }
@@ -89,7 +94,7 @@ static void make_issues(const cow_ptr_t<namespaces_semilattice_metadata_t<protoc
         if (ns.primary_datacenter.in_conflict() || ns.replica_affinities.in_conflict()) {
             continue;
         }
-        if (!is_satisfiable(ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters)) {
+        if (!is_satisfiable(ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters, ns.failover.get())) {
             issues_out->push_back(clone_ptr_t<global_issue_t>(
                 new unsatisfiable_goals_issue_t(it->first, ns.primary_datacenter.get(), ns.replica_affinities.get(), actual_machines_in_datacenters)));
         }
@@ -104,8 +109,7 @@ std::list<clone_ptr_t<global_issue_t> > unsatisfiable_goals_issue_tracker_t::get
     cluster_semilattice_metadata_t metadata = semilattice_view->get();
 
     std::map<datacenter_id_t, int> actual_machines_in_datacenters;
-    for (machines_semilattice_metadata_t::machine_map_t::iterator it = metadata.machines.machines.begin();
-            it != metadata.machines.machines.end(); it++) {
+    for (auto it = metadata.machines.machines.begin(); it != metadata.machines.machines.end(); it++) {
         if (!it->second.is_deleted() && !it->second.get_ref().datacenter.in_conflict()) {
             ++actual_machines_in_datacenters[it->second.get_ref().datacenter.get()];
         }
