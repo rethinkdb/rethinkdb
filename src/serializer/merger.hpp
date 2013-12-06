@@ -10,7 +10,7 @@
 #include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 
-/* 
+/*
  * The merger serializer is a wrapper around another serializer. It limits
  * the number of active index_writes. If more index_writes come in while
  * `max_active_writes` index_writes are already going on, the new index 
@@ -18,7 +18,7 @@
  * The advantage of this is that multiple index writes (e.g. coming from different
  * hash shards) can be merged together, improving efficiency and significantly
  * reducing the number of disk seeks on rotational drives.
- * 
+ *
  */
 
 class merger_serializer_t : public serializer_t {
@@ -116,7 +116,7 @@ private:
     int max_active_writes;
 
     void do_index_write();
-    
+
     DISABLE_COPYING(merger_serializer_t);
 };
 
