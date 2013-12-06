@@ -95,7 +95,7 @@ struct coro_globals_t {
 
 };
 
-TLS(coro_globals_t *, cglobals);
+TLS_with_init(coro_globals_t *, cglobals, NULL);
 
 coro_runtime_t::coro_runtime_t() {
     rassert(!TLS_get_cglobals(), "coro runtime initialized twice on this thread");
