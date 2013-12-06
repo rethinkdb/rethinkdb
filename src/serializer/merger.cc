@@ -29,7 +29,7 @@ void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write
                                       file_account_t *) {
     rassert(coro_t::self() != NULL);
     assert_thread();
-    
+
     counted_t<counted_cond_t> write_complete;
     {
         // Our set of write ops must be processed atomically...
@@ -43,13 +43,13 @@ void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write
         write_complete = on_inner_index_write_complete;
         unhandled_index_write_waiter_exists = true;
     }
-    
+
     // Check if we can initiate a new index write
     if (num_active_writes < max_active_writes) {
         ++num_active_writes;
         do_index_write();
     }
-    
+
     // Wait for the write to complete
     write_complete->wait_lazily_unordered();
 }
@@ -57,7 +57,7 @@ void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write
 void merger_serializer_t::do_index_write() {
     assert_thread();
     rassert(num_active_writes <= max_active_writes);
-    
+
     // Assemble the currently outstanding index writes into
     // a vector of index_write_op_t-s.
     counted_t<counted_cond_t> write_complete;
@@ -78,13 +78,13 @@ void merger_serializer_t::do_index_write() {
         write_complete.reset(new counted_cond_t());
         write_complete.swap(on_inner_index_write_complete);
     }
-    
+
     inner->index_write(write_ops, index_writes_io_account.get());
-    
+
     write_complete->pulse();
-    
+
     --num_active_writes;
-    
+
     // Check if we should start another index write
     if (num_active_writes < max_active_writes
         && unhandled_index_write_waiter_exists) {
