@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <iostream>
 
 #ifndef NDEBUG
 #include <stack>   /* the data structure, not the run-time concept */
