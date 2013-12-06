@@ -9,7 +9,8 @@
 
 
 
-merger_serializer_t::merger_serializer_t(scoped_ptr_t<serializer_t> _inner, int _max_active_writes) :
+merger_serializer_t::merger_serializer_t(scoped_ptr_t<serializer_t> _inner,
+                                         int _max_active_writes) :
     inner(std::move(_inner)),
     index_writes_io_account(make_io_account(MERGED_INDEX_WRITE_IO_PRIORITY)),
     on_inner_index_write_complete(new counted_cond_t()),
@@ -23,7 +24,8 @@ merger_serializer_t::~merger_serializer_t() {
     rassert(outstanding_index_write_ops.empty());
 }
 
-void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *) {
+void merger_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops,
+                                      file_account_t *) {
     rassert(coro_t::self() != NULL);
     assert_thread();
     
@@ -61,7 +63,9 @@ void merger_serializer_t::do_index_write() {
     write_ops.reserve(outstanding_index_write_ops.size());
     {
         ASSERT_NO_CORO_WAITING;
-        for (auto op_pair = outstanding_index_write_ops.begin(); op_pair != outstanding_index_write_ops.end(); ++op_pair) {
+        for (auto op_pair = outstanding_index_write_ops.begin();
+             op_pair != outstanding_index_write_ops.end();
+             ++op_pair) {
             write_ops.push_back(op_pair->second);
         }
         outstanding_index_write_ops.clear();
@@ -79,13 +83,15 @@ void merger_serializer_t::do_index_write() {
     --num_active_writes;
     
     // Check if we should start another index write
-    if (num_active_writes < max_active_writes && !outstanding_index_write_ops.empty()) {
+    if (num_active_writes < max_active_writes
+        && !outstanding_index_write_ops.empty()) {
         ++num_active_writes;
         coro_t::spawn_sometime(std::bind(&merger_serializer_t::do_index_write, this));
     }
 }
 
-void merger_serializer_t::merge_index_write_op(const index_write_op_t &to_be_merged, index_write_op_t *into_out) const {
+void merger_serializer_t::merge_index_write_op(const index_write_op_t &to_be_merged,
+                                               index_write_op_t *into_out) const {
     rassert(to_be_merged.block_id == into_out->block_id);
     if (to_be_merged.token.is_initialized()) {
         into_out->token = to_be_merged.token;
@@ -98,8 +104,9 @@ void merger_serializer_t::merge_index_write_op(const index_write_op_t &to_be_mer
 
 void merger_serializer_t::push_index_write_op(const index_write_op_t &op) {
     auto existing_pair =
-        outstanding_index_write_ops.insert(std::pair<block_id_t, index_write_op_t>(op.block_id, op));
-    
+        outstanding_index_write_ops.insert(
+            std::pair<block_id_t, index_write_op_t>(op.block_id, op));
+
     if (!existing_pair.second) {
         // new op could not be inserted because it already exists. Merge instead.
         merge_index_write_op(op, &existing_pair.first->second);
