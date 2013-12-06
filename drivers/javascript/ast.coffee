@@ -119,7 +119,7 @@ class RDBVal extends TermBase
     pluck: (fields...) -> new Pluck {}, @, fields...
     without: (fields...) -> new Without {}, @, fields...
 
-    merge: ar (other) -> new Merge {}, @, other
+    merge: varar(1, null, (fields...) -> new Merge {}, @, fields.map(funcWrap)...)
     between: aropt (left, right, opts) -> new Between opts, @, left, right
     reduce: varar(1, 2, (func, base) -> new Reduce {base:base}, @, funcWrap(func))
     map: ar (func) -> new Map {}, @, funcWrap(func)
@@ -130,6 +130,8 @@ class RDBVal extends TermBase
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
     match: ar (pattern) -> new Match {}, @, pattern
+    upcase: ar () -> new Upcase {}, @
+    downcase: ar () -> new Downcase {}, @
     isEmpty: ar () -> new IsEmpty {}, @
     groupedMapReduce: varar(3, 4, (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
@@ -610,6 +612,14 @@ class Nth extends RDBOp
 class Match extends RDBOp
     tt: "MATCH"
     mt: 'match'
+
+class Upcase extends RDBOp
+    tt: "UPCASE"
+    mt: 'upcase'
+
+class Downcase extends RDBOp
+    tt: "DOWNCASE"
+    mt: 'downcase'
 
 class IsEmpty extends RDBOp
     tt: "IS_EMPTY"

@@ -522,6 +522,10 @@ message Term {
         // matches the regular expression `b`.
         MATCH = 97; // STRING, STRING -> DATUM
 
+        // Change the case of a string.
+        UPCASE   = 141; // STRING -> STRING
+        DOWNCASE = 142; // STRING -> STRING
+
         // Select a number of elements from sequence with uniform distribution.
         SAMPLE = 81; // Sequence, NUMBER -> Sequence
 

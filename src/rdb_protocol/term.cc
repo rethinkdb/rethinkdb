@@ -111,6 +111,8 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::DESC:               return make_desc_term(env, t);
     case Term::INFO:               return make_info_term(env, t);
     case Term::MATCH:              return make_match_term(env, t);
+    case Term::UPCASE:             return make_upcase_term(env, t);
+    case Term::DOWNCASE:           return make_downcase_term(env, t);
     case Term::SAMPLE:             return make_sample_term(env, t);
     case Term::IS_EMPTY:           return make_is_empty_term(env, t);
     case Term::DEFAULT:            return make_default_term(env, t);
@@ -130,8 +132,10 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::YEAR:               return make_portion_term(env, t, pseudo::YEAR);
     case Term::MONTH:              return make_portion_term(env, t, pseudo::MONTH);
     case Term::DAY:                return make_portion_term(env, t, pseudo::DAY);
-    case Term::DAY_OF_WEEK:        return make_portion_term(env, t, pseudo::DAY_OF_WEEK);
-    case Term::DAY_OF_YEAR:        return make_portion_term(env, t, pseudo::DAY_OF_YEAR);
+    case Term::DAY_OF_WEEK:        return make_portion_term(env, t,
+                                                            pseudo::DAY_OF_WEEK);
+    case Term::DAY_OF_YEAR:        return make_portion_term(env, t,
+                                                            pseudo::DAY_OF_YEAR);
     case Term::HOURS:              return make_portion_term(env, t, pseudo::HOURS);
     case Term::MINUTES:            return make_portion_term(env, t, pseudo::MINUTES);
     case Term::SECONDS:            return make_portion_term(env, t, pseudo::SECONDS);

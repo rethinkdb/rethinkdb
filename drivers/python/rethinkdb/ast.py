@@ -276,8 +276,8 @@ class RqlQuery(object):
     def type_of(self):
         return TypeOf(self)
 
-    def merge(self, other):
-        return Merge(self, other)
+    def merge(self, *others):
+        return Merge(self, *map(func_wrap, others))
 
     def append(self, val):
         return Append(self, val)
@@ -324,6 +324,12 @@ class RqlQuery(object):
 
     def match(self, pattern):
         return Match(self, pattern)
+
+    def upcase(self):
+        return Upcase(self)
+
+    def downcase(self):
+        return Downcase(self)
 
     def is_empty(self):
         return IsEmpty(self)
@@ -921,6 +927,14 @@ class Nth(RqlQuery):
 class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
+
+class Upcase(RqlMethodQuery):
+    tt = p.Term.UPCASE
+    st = 'upcase'
+
+class Downcase(RqlMethodQuery):
+    tt = p.Term.DOWNCASE
+    st = 'downcase'
 
 class IndexesOf(RqlMethodQuery):
     tt = p.Term.INDEXES_OF
