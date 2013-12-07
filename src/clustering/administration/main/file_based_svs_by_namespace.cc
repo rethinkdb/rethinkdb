@@ -10,7 +10,8 @@
 #include "utils.hpp"
 
 // RSI: Get rid of this.
-#define NO_MERGER_SERIALIZER 0
+#define USE_MERGER_SERIALIZER 1
+#define USE_DEBUG_SERIALIZER 0
 
 /* This object serves mostly as a container for arguments to the
  * do_construct_existing_store function because we hit the boost::bind argument
@@ -70,12 +71,10 @@ void do_create_new_store(
     store_view_t<protocol_t> **store_views) {
 
     on_thread_t th(threads[thread_offset]);
-    debugf("constructing store %d\n", thread_offset);
     typename protocol_t::store_t *store = new typename protocol_t::store_t(
         multiplexer->proxies[thread_offset], hash_shard_perfmon_name(thread_offset),
         store_args.cache_size, true, store_args.serializers_perfmon_collection,
         store_args.ctx, store_args.io_backender, store_args.base_path);
-    debugf("done constructing store %d\n", thread_offset);
     (*stores_out_stores)[thread_offset].init(store);
     store_views[thread_offset] = store;
 }
@@ -89,8 +88,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             stores_lifetimer_t<protocol_t> *stores_out,
             scoped_ptr_t<multistore_ptr_t<protocol_t> > *svs_out,
             typename protocol_t::context_t *ctx) {
-    debugf_t eex("get_svs");
-
     const int num_db_threads = get_num_db_threads();
 
     // TODO: If the server gets killed when starting up, we can
@@ -119,7 +116,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
     scoped_ptr_t<multistore_ptr_t<protocol_t> > mptr;
     {
         on_thread_t th(serializer_thread);
-        debugf("on serializer thread\n");
         scoped_array_t<store_view_t<protocol_t> *> store_views(num_stores);
 
         const serializer_filepath_t serializer_filepath = file_name_for(namespace_id);
@@ -133,21 +129,21 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             // now, we don't.
 
             // RSI: Figure out whether merger_serializer_t is really the culprit.
-#if NO_MERGER_SERIALIZER
-            serializer.init(new debug_serializer_t(
-                                make_scoped<standard_serializer_t>(
-                                    standard_serializer_t::dynamic_config_t(),
-                                    &file_opener,
-                                    serializers_perfmon_collection)));
-#else
-            serializer.init(new debug_serializer_t(
-                                make_scoped<merger_serializer_t>(
-                                    make_scoped<standard_serializer_t>(
-                                        standard_serializer_t::dynamic_config_t(),
-                                        &file_opener,
-                                        serializers_perfmon_collection),
-                                    MERGER_SERIALIZER_MAX_ACTIVE_WRITES)));
+            {
+                scoped_ptr_t<serializer_t> ser
+                    = make_scoped<standard_serializer_t>(
+                        standard_serializer_t::dynamic_config_t(),
+                        &file_opener,
+                        serializers_perfmon_collection);
+#if USE_MERGER_SERIALIZER
+                ser = make_scoped<merger_serializer_t>(std::move(ser),
+                                                       MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
 #endif
+#if USE_DEBUG_SERIALIZER
+                ser = make_scoped<debug_serializer_t>(std::move(ser));
+#endif
+                serializer = std::move(ser);
+            }
 
             std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
@@ -165,29 +161,27 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
             standard_serializer_t::create(&file_opener,
                                           standard_serializer_t::static_config_t());
             // RSI: Figure out whether merger_serializer_t is really the culprit.
-#if NO_MERGER_SERIALIZER
-            serializer.init(new debug_serializer_t(
-                                make_scoped<standard_serializer_t>(
-                                    standard_serializer_t::dynamic_config_t(),
-                                    &file_opener,
-                                    serializers_perfmon_collection)));
-#else
-            serializer.init(new debug_serializer_t(
-                                make_scoped<merger_serializer_t>(
-                                    make_scoped<standard_serializer_t>(
-                                       standard_serializer_t::dynamic_config_t(),
-                                       &file_opener,
-                                       serializers_perfmon_collection),
-                                    MERGER_SERIALIZER_MAX_ACTIVE_WRITES)));
+            {
+                scoped_ptr_t<serializer_t> ser
+                    = make_scoped<standard_serializer_t>(
+                        standard_serializer_t::dynamic_config_t(),
+                        &file_opener,
+                        serializers_perfmon_collection);
+#if USE_MERGER_SERIALIZER
+                ser = make_scoped<merger_serializer_t>(std::move(ser),
+                                                       MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
 #endif
-            debugf("initted merger serializer\n");
+#if USE_DEBUG_SERIALIZER
+                ser = make_scoped<debug_serializer_t>(std::move(ser));
+#endif
+                serializer = std::move(ser);
+            }
 
             std::vector<serializer_t *> ptrs;
             ptrs.push_back(serializer.get());
             serializer_multiplexer_t::create(ptrs, num_stores);
             multiplexer.init(new serializer_multiplexer_t(ptrs));
 
-            debugf("initted multiplexer\n");
             // TODO: How do we specify what the stores' regions are?
             // TODO: Exceptions?  Can exceptions happen, and then store_views'
             // values would leak.
@@ -197,14 +191,11 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                                          store_threads, _1, store_args,
                                          multiplexer.get(),
                                          stores_out_stores, store_views.data()));
-            debugf("done pmap do_create_new_store\n");
             mptr.init(new multistore_ptr_t<protocol_t>(store_views.data(), num_stores));
-            debugf("initted multistore_ptr\n");
 
             // Initialize the metadata in the underlying stores.
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
             mptr->new_write_token(&write_token);
-            debugf("created new write token\n");
             cond_t dummy_interruptor;
             order_source_t order_source;  // TODO: order_token_t::ignore.  Use the svs.
             guarantee(mptr->get_region() == protocol_t::region_t::universe());
@@ -215,11 +206,9 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                 order_source.check_in("file_based_svs_by_namespace_t"),
                 &write_token,
                 &dummy_interruptor);
-            debugf("did set_metainfo\n");
 
             // Finally, the store is created.
             file_opener.move_serializer_file_to_permanent_location();
-            debugf("did move serializer file\n");
         }
     } // back on calling thread
 
