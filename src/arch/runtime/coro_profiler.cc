@@ -1,5 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/runtime/coro_profiler.hpp"
+
+#ifdef ENABLE_CORO_PROFILER
 
 #include <string>
 #include <vector>
@@ -11,9 +13,6 @@
 #include "rethinkdb_backtrace.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
-
-
-#ifdef ENABLE_CORO_PROFILER
 
 coro_profiler_t &coro_profiler_t::get_global_profiler() {
     // Singleton implementation after Scott Meyers.
