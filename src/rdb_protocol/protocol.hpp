@@ -108,14 +108,11 @@ public:
 
     bool contains(counted_t<const ql::datum_t> val) const;
     bool is_universe() const;
-    RDB_DECLARE_ME_SERIALIZABLE;
-private:
-    // Only `readgen_t` and its subclasses should do anything fancy with a range.
-    friend class ql::readgen_t;
-    friend class ql::primary_readgen_t;
-    friend class ql::sindex_readgen_t;
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+private:
     counted_t<const ql::datum_t> left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };

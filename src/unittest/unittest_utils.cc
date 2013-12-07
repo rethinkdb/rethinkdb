@@ -1,8 +1,4 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#define private public
-#include "rdb_protocol/protocol.hpp"
-#undef private
-
 #include "unittest/unittest_utils.hpp"
 
 #include <stdlib.h>
@@ -14,6 +10,7 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
+#include "rdb_protocol/protocol.hpp"
 #include "unittest/gtest.hpp"
 #include "utils.hpp"
 
