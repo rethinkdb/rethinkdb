@@ -229,6 +229,12 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
                                                      metadata_fifo_token);
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
 
+        // This yield is here to avoid heartbeat timeouts in the following scenario:
+        //  1. Have a cluster of many nodes, e.g. 64
+        //  2. Create a table
+        //  3. Reshard the table to 32 shards
+        coro_t::yield();
+
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
