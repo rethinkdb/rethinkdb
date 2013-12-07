@@ -40,19 +40,14 @@ void generate_sample_region(int i, int n, mock::dummy_protocol_t::region_t *out)
 template<class protocol_t>
 bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
                             const std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t> > > > &reactor_directory) {
-    for (typename blueprint_t<protocol_t>::role_map_t::const_iterator it  = bp.peers_roles.begin();
-                                                                      it != bp.peers_roles.end();
-                                                                      it++) {
-
+    for (auto it = bp.peers_roles.begin(); it != bp.peers_roles.end(); it++) {
         if (reactor_directory.find(it->first) == reactor_directory.end() ||
             !reactor_directory.find(it->first)->second) {
             return false;
         }
         reactor_business_card_t<protocol_t> bcard = *reactor_directory.find(it->first)->second.get();
 
-        for (typename blueprint_t<protocol_t>::region_to_role_map_t::const_iterator jt = it->second.begin();
-             jt != it->second.end();
-             ++jt) {
+        for (auto jt = it->second.begin(); jt != it->second.end(); ++jt) {
             bool found = false;
             for (typename reactor_business_card_t<protocol_t>::activity_map_t::const_iterator kt = bcard.activities.begin();
                  kt != bcard.activities.end();
@@ -94,9 +89,12 @@ public:
     write_durability_t get_write_durability(const peer_id_t &) const {
         return WRITE_DURABILITY_SOFT;
     }
+    void kill() {
+        reactor.reset();
+    }
 
     watchable_variable_t<blueprint_t<protocol_t> > blueprint_watchable;
-    reactor_t<protocol_t> reactor;
+    scoped_ptr_t<reactor_t<protocol_t> > reactor;
     field_copier_t<boost::optional<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >, test_cluster_directory_t<protocol_t> > reactor_directory_copier;
 
 private:
@@ -150,10 +148,10 @@ peer_id_t reactor_test_cluster_t<protocol_t>::get_me() {
 template <class protocol_t>
 test_reactor_t<protocol_t>::test_reactor_t(const base_path_t &base_path, io_backender_t *io_backender, reactor_test_cluster_t<protocol_t> *r, const blueprint_t<protocol_t> &initial_blueprint, multistore_ptr_t<protocol_t> *svs) :
     blueprint_watchable(initial_blueprint),
-    reactor(namespace_id_t(), base_path, io_backender, &r->mailbox_manager, this,
+    reactor(new reactor_t<protocol_t>(namespace_id_t(), base_path, io_backender, &r->mailbox_manager, this,
             r->directory_read_manager.get_root_view()->subview(&test_reactor_t<protocol_t>::extract_reactor_directory),
-            &r->branch_history_manager, blueprint_watchable.get_watchable(), typename reactor_t<protocol_t>::failover_switch_t(), svs, &get_global_perfmon_collection(), &ctx), //TODO make this a real failover_switch_t
-    reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor.get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
+            &r->branch_history_manager, blueprint_watchable.get_watchable(), typename reactor_t<protocol_t>::failover_switch_t(), svs, &get_global_perfmon_collection(), &ctx)), //TODO make this a real failover_switch_t
+    reactor_directory_copier(&test_cluster_directory_t<protocol_t>::reactor_directory, reactor->get_reactor_directory()->subview(&test_reactor_t<protocol_t>::wrap_in_optional), &r->our_directory_variable) {
     rassert(svs->get_region() == mock::a_thru_z_region());
 }
 
@@ -227,15 +225,12 @@ blueprint_t<protocol_t> test_cluster_group_t<protocol_t>::compile_blueprint(cons
     blueprint_t<protocol_t> blueprint;
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    typedef tokenizer::iterator tok_iterator;
 
     boost::char_separator<char> sep(",");
     tokenizer tokens(bp, sep);
 
     unsigned peer = 0;
-    for (tok_iterator it =  tokens.begin();
-         it != tokens.end();
-         it++) {
+    for (auto it =  tokens.begin(); it != tokens.end(); it++) {
 
         blueprint.add_peer(get_peer_id(peer));
         for (unsigned i = 0; i < it->size(); i++) {
@@ -245,6 +240,9 @@ blueprint_t<protocol_t> test_cluster_group_t<protocol_t>::compile_blueprint(cons
             switch (it->at(i)) {
             case 'p':
                 blueprint.add_role(get_peer_id(peer), region, blueprint_role_t::PRIMARY);
+                break;
+            case 'v':
+                blueprint.add_role(get_peer_id(peer), region, blueprint_role_t::VICEPRIMARY);
                 break;
             case 's':
                 blueprint.add_role(get_peer_id(peer), region, blueprint_role_t::SECONDARY);
@@ -325,6 +323,7 @@ std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t
 
 template <class protocol_t>
 void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
+    BREAKPOINT;
     try {
         const int timeout_ms = 60000;
         signal_timer_t timer;

@@ -141,4 +141,15 @@ TEST(ClusteringReactor, LessGracefulReshardingTest) {
     unittest::run_in_thread_pool(&runLessGracefulReshardingTest);
 }
 
+void runViceprimaryTest() {
+    test_cluster_group_t<dummy_protocol_t> cluster_group(2);
+    cluster_group.construct_all_reactors(cluster_group.compile_blueprint("p,v"));
+    cluster_group.wait_until_blueprint_is_satisfied("p,v");
+    cluster_group.run_queries();
+}
+
+TEST(ClusteringReactor, ViceprimaryTest) {
+    unittest::run_in_thread_pool(&runViceprimaryTest);
+}
+
 } // namespace unittest
