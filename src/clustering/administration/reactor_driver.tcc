@@ -325,7 +325,7 @@ private:
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
 
-        const auto extract_reactor_directory_per_peer_fun =
+        auto const extract_reactor_directory_per_peer_fun =
             boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,
                         this, _1);
         incremental_map_lens_t<peer_id_t,
@@ -515,25 +515,18 @@ void reactor_driver_t<protocol_t>::on_change() {
                     namespace_id_t tmp = it->first;
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
-                    /* C++11: auto op = [&] (blueprint_t<protocol_t> *bp_out) -> bool { ... }
-                    Because we cannot use C++11 lambdas yet due to missing support in
-                    GCC 4.4, this is the messy work-around: */
                     struct op_closure_t {
-                        bool operator()(blueprint_t<protocol_t> *bp_out) {
-                            guarantee(bp_out != NULL);
-                            const bool blueprint_changed = *bp_out != bp;
+                        static bool apply(const blueprint_t<protocol_t> &_bp,
+                                          blueprint_t<protocol_t> *bp_ref) {
+                            const bool blueprint_changed = (*bp_ref != _bp);
                             if (blueprint_changed) {
-                                *bp_out = bp;
+                                *bp_ref = _bp;
                             }
                             return blueprint_changed;
                         }
-                        op_closure_t(blueprint_t<protocol_t> &c1) :
-                            bp(c1) { }
-                        blueprint_t<protocol_t> &bp;
                     };
-                    op_closure_t op(bp);
 
-                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::apply, std::ref(bp), std::placeholders::_1));
                 }
             } else {
                 /* The blueprint does not mentions us so we destroy the
