@@ -117,22 +117,20 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     if (got_initialization) {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-        /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
-        Because we cannot use C++11 lambdas yet due to missing support in
-        GCC 4.4, this is the messy work-around: */
         struct op_closure_t {
-            bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+            bool apply(change_tracking_map_t<peer_id_t, metadata_t> *map) {
                 map->begin_version();
-                map->delete_value(peer);
+                map->delete_value(*peer);
                 return true;
             }
-            op_closure_t(peer_id_t &c1) :
+            explicit op_closure_t(const peer_id_t *c1) :
                 peer(c1) { }
-            peer_id_t &peer;
+            const peer_id_t *peer;
         };
-        op_closure_t op(peer);
+        op_closure_t op(&peer);
 
-        variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+        variable.apply_atomic_op(std::bind(&op_closure_t::apply, &op,
+                                           std::placeholders::_1));
     }
 }
 
@@ -160,25 +158,23 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-        /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
-        Because we cannot use C++11 lambdas yet due to missing support in
-        GCC 4.4, this is the messy work-around: */
         struct op_closure_t {
-            bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+            bool apply(change_tracking_map_t<peer_id_t, metadata_t> *map) {
                 map->begin_version();
-                map->set_value(peer, std::move(*initial_value));
+                map->set_value(*peer, std::move(*initial_value));
                 return true;
             }
-            op_closure_t(peer_id_t &c1,
+            op_closure_t(const peer_id_t *c1,
                          const boost::shared_ptr<metadata_t> &c2) :
                 peer(c1),
                 initial_value(c2) { }
-            peer_id_t &peer;
-            const boost::shared_ptr<metadata_t> &initial_value;
+            const peer_id_t *peer;
+            boost::shared_ptr<metadata_t> initial_value;
         };
-        op_closure_t op(peer, initial_value);
+        op_closure_t op(&peer, initial_value);
 
-        variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+        variable.apply_atomic_op(std::bind(&op_closure_t::apply, &op,
+                                           std::placeholders::_1));
     }
 
     /* Create a metadata FIFO sink and pulse the `got_initial_message` cond so
@@ -229,35 +225,33 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-            /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
-            Because we cannot use C++11 lambdas yet due to missing support in
-            GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
-                bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                bool apply(change_tracking_map_t<peer_id_t, metadata_t> *map) {
                     typename std::map<peer_id_t, metadata_t>::const_iterator var_it
-                        = map->get_inner().find(peer);
+                        = map->get_inner().find(*peer);
                     if (var_it == map->get_inner().end()) {
-                        guarantee(!std_contains(sessions, peer));
+                        guarantee(!std_contains(*sessions, *peer));
                         //The session was deleted we can ignore this update.
                         return false;
                     }
                     map->begin_version();
-                    map->set_value(peer, std::move(*new_value));
+                    map->set_value(*peer, std::move(*new_value));
                     return true;
                 }
-                op_closure_t(peer_id_t &c1,
+                op_closure_t(const peer_id_t *c1,
                              const boost::shared_ptr<metadata_t> &c2,
-                             boost::ptr_map<peer_id_t, session_t> &c3) :
+                             const boost::ptr_map<peer_id_t, session_t> *c3) :
                     peer(c1),
                     new_value(c2),
                     sessions(c3) { }
-                peer_id_t &peer;
-                const boost::shared_ptr<metadata_t> &new_value;
-                boost::ptr_map<peer_id_t, session_t> &sessions;
+                const peer_id_t *peer;
+                const boost::shared_ptr<metadata_t> new_value;
+                const boost::ptr_map<peer_id_t, session_t> *sessions;
             };
-            op_closure_t op(peer, new_value, sessions);
+            op_closure_t op(&peer, new_value, &sessions);
 
-            variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+            variable.apply_atomic_op(std::bind(&op_closure_t::apply, &op,
+                                               std::placeholders::_1));
         }
     } catch (const interrupted_exc_t &) {
         /* Here's what happened: `on_disconnect()` was called for the peer. It
