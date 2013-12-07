@@ -219,31 +219,27 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
             struct op_closure_t {
-                bool apply(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                static bool apply(const peer_id_t _peer,
+                                  const boost::shared_ptr<metadata_t> &_new_value,
+                                  const boost::ptr_map<peer_id_t, session_t> &_sessions,
+                                  change_tracking_map_t<peer_id_t, metadata_t> *map) {
                     typename std::map<peer_id_t, metadata_t>::const_iterator var_it
-                        = map->get_inner().find(*peer);
+                        = map->get_inner().find(_peer);
                     if (var_it == map->get_inner().end()) {
-                        guarantee(!std_contains(*sessions, *peer));
+                        guarantee(!std_contains(_sessions, _peer));
                         //The session was deleted we can ignore this update.
                         return false;
                     }
                     map->begin_version();
-                    map->set_value(*peer, std::move(*new_value));
+                    map->set_value(_peer, std::move(*_new_value));
                     return true;
                 }
-                op_closure_t(const peer_id_t *c1,
-                             const boost::shared_ptr<metadata_t> &c2,
-                             const boost::ptr_map<peer_id_t, session_t> *c3) :
-                    peer(c1),
-                    new_value(c2),
-                    sessions(c3) { }
-                const peer_id_t *peer;
-                const boost::shared_ptr<metadata_t> new_value;
-                const boost::ptr_map<peer_id_t, session_t> *sessions;
             };
-            op_closure_t op(&peer, new_value, &sessions);
 
-            variable.apply_atomic_op(std::bind(&op_closure_t::apply, &op,
+            variable.apply_atomic_op(std::bind(&op_closure_t::apply,
+                                               peer,
+                                               std::ref(new_value),
+                                               std::ref(sessions),
                                                std::placeholders::_1));
         }
     } catch (const interrupted_exc_t &) {
