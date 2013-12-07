@@ -75,7 +75,10 @@ counted_t<term_t> make_javascript_term(compile_env_t *env, const protob_t<const 
 counted_t<term_t> make_json_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // match.cc
-counted_t<term_t> make_match_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_match_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_split_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // case.cc
 counted_t<term_t> make_upcase_term(

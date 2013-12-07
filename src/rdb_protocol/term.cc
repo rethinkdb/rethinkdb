@@ -110,6 +110,7 @@ counted_t<term_t> compile_term(compile_env_t *env, protob_t<const Term> t) {
     case Term::DESC:               return make_desc_term(env, t);
     case Term::INFO:               return make_info_term(env, t);
     case Term::MATCH:              return make_match_term(env, t);
+    case Term::SPLIT:              return make_split_term(env, t);
     case Term::UPCASE:             return make_upcase_term(env, t);
     case Term::DOWNCASE:           return make_downcase_term(env, t);
     case Term::SAMPLE:             return make_sample_term(env, t);

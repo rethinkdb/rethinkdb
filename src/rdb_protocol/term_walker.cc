@@ -181,6 +181,7 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::MATCH:
+        case Term::SPLIT:
         case Term::UPCASE:
         case Term::DOWNCASE:
         case Term::SAMPLE:
@@ -343,6 +344,7 @@ private:
         case Term::DESC:
         case Term::INFO:
         case Term::MATCH:
+        case Term::SPLIT:
         case Term::UPCASE:
         case Term::DOWNCASE:
         case Term::SAMPLE:

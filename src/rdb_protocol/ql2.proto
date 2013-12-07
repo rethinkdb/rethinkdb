@@ -522,6 +522,12 @@ message Term {
         // matches the regular expression `b`.
         MATCH = 97; // STRING, STRING -> DATUM
 
+        // `str.split()` splits on whitespace
+        // `str.split(" ")` splits on spaces only
+        // `str.split(" ", 5)` splits on spaces with at most 5 results
+        // `str.split(nil, 5)` splits on whitespace with at most 5 results
+        SPLIT = 143; // STRING -> ARRAY | STRING, STRING -> ARRAY | STRING, STRING, NUMBER -> ARRAY | STRING, NULL, NUMBER -> ARRAY
+
         // Change the case of a string.
         UPCASE   = 141; // STRING -> STRING
         DOWNCASE = 142; // STRING -> STRING

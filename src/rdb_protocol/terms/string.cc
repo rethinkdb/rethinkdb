@@ -66,9 +66,64 @@ private:
     virtual const char *name() const { return "match"; }
 };
 
+class split_term_t : public op_term_t {
+public:
+    split_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1, 3)) { }
+private:
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        std::string s = arg(env, 0)->as_str();
+
+        boost::optional<std::string> delim;
+        if (num_args() > 1) {
+            counted_t<const datum_t> d = arg(env, 1)->as_datum();
+            if (d->get_type() != datum_t::R_NULL) {
+                delim = d->as_str();
+            }
+        }
+
+        int64_t n = -1; // -1 means unlimited
+        if (num_args() > 2) {
+            n = arg(env, 2)->as_int();
+            rcheck(n >= -1 && n <= int64_t(array_size_limit()), base_exc_t::GENERIC,
+                   strprintf("Error: `split` size argument must be in range [-1, %zu].",
+                             array_size_limit()));
+        }
+        size_t maxnum = (n < 0 ? std::numeric_limits<decltype(maxnum)>::max() : n);
+
+        std::vector<counted_t<const datum_t>> res;
+        size_t last = 0;
+        for (;;) {
+            size_t next = delim ? s.find(*delim, last) : s.find_first_of(" \t\n", last);
+            if (next == std::string::npos) {
+                break;
+            } else {
+                std::string tmp = s.substr(last, next);
+                if (tmp.size() != 0) {
+                    if (res.size() + 1 == maxnum) {
+                        res.push_back(
+                            make_counted<const datum_t>(s.substr(last, s.size())));
+                        break;
+                    } else {
+                        res.push_back(make_counted<const datum_t>(std::move(tmp)));
+                    }
+                }
+                last = next+1;
+            }
+        }
+
+        return new_val(make_counted<const datum_t>(std::move(res)));
+    }
+    virtual const char *name() const { return "split"; }
+};
+
 counted_t<term_t> make_match_term(compile_env_t *env,
                                   const protob_t<const Term> &term) {
     return make_counted<match_term_t>(env, term);
+}
+counted_t<term_t> make_split_term(compile_env_t *env,
+                                  const protob_t<const Term> &term) {
+    return make_counted<split_term_t>(env, term);
 }
 
 }
