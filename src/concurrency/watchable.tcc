@@ -113,7 +113,7 @@ private:
         typename watchable_t<outer_type>::subscription_t parent_subscription;
     };
 
-    subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
+    explicit subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
         cache(_cache) { }
 
     // If you clone a subview_watchable_t, all clones share the same cache.
