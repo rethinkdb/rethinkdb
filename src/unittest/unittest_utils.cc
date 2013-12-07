@@ -18,7 +18,6 @@ namespace unittest {
 
 rdb_protocol_t::read_t make_sindex_read(
     counted_t<const ql::datum_t> key, const std::string &id) {
-    using namespace rdb_protocol_details;
     datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
     return rdb_protocol_t::read_t(
         rdb_protocol_t::rget_read_t(
@@ -26,8 +25,8 @@ rdb_protocol_t::read_t make_sindex_read(
             std::map<std::string, ql::wire_func_t>(),
             ql::batchspec_t::user(ql::batch_type_t::NORMAL,
                                   counted_t<const ql::datum_t>()),
-            transform_t(),
-            boost::optional<terminal_t>(),
+            rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(),
             rdb_protocol_t::sindex_rangespec_t(
                 id,
                 rdb_protocol_t::region_t(rng.to_sindex_keyrange()),
