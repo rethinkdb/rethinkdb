@@ -65,8 +65,8 @@ public:
         backindex_bag_index_t *const back_element_backindex = accessor_(back_element);
 
         rassert(back_element_backindex->index_ == vector_.size() - 1,
-                  "index has wrong value: index=%zu, size=%zu",
-                  backindex->index_, vector_.size());
+                "index has wrong value: index=%zu, size=%zu",
+                backindex->index_, vector_.size());
 
         back_element_backindex->index_ = index;
         vector_[index] = back_element;
