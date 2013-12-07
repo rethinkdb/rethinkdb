@@ -15,7 +15,6 @@ template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
     connectivity_service(conn_serv),
     variable(change_tracking_map_t<peer_id_t, metadata_t>()),
-    propagation_semaphore(1),
     connectivity_subscription(this) {
     connectivity_service_t::peers_list_freeze_t freeze(connectivity_service);
     guarantee(connectivity_service->get_peers_list().empty());
@@ -229,9 +228,6 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         fifo_enforcer_sink_t::exit_write_t fifo_exit(session->metadata_fifo_sink.get(),
                                                      metadata_fifo_token);
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
-
-        semaphore_acq_t propagation_semaphore_acq(&propagation_semaphore);
-        coro_t::yield(); // <-- this is what makes the semaphore useful
 
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
