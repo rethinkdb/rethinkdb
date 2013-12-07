@@ -2,7 +2,7 @@
 #ifndef CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_
 #define CONTAINERS_INTRUSIVE_PRIORITY_QUEUE_HPP_
 
-#include <algorithm>
+#include <utility>
 #include <vector>
 
 #include "errors.hpp"

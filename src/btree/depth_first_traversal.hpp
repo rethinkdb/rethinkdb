@@ -15,7 +15,8 @@ class counted_buf_lock_t : public buf_lock_t,
                            public single_threaded_countable_t<counted_buf_lock_t> {
 public:
     template <class... Args>
-    counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
+    explicit counted_buf_lock_t(Args &&... args)
+        : buf_lock_t(std::forward<Args>(args)...) { }
 };
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
