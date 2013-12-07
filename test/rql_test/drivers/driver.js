@@ -216,9 +216,11 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                             runTest();
                             return;
                         } catch(err) {
+                            console.log("stack: " + String(err.stack))
                             unexpectedException("afterArray", testName, err);
                         } }
                     } catch(err) {
+                        console.log("stack: " + String(err.stack))
                         unexpectedException("cpp_cont", testName, err);
                     } }
                 }
@@ -236,6 +238,7 @@ r.connect({port:CPPPORT}, function(cpp_conn_err, cpp_conn) {
                 }
             }
         } catch (err) {
+            console.log("stack: " + String(err.stack))
             unexpectedException("runTest", testName, testPair[1], err);
         } }
 

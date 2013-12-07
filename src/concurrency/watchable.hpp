@@ -108,14 +108,9 @@ public:
 
     virtual value_t get() = 0;
 
-    // For better performance, implementations of watchable_t should
-    // overwrite this if possible.
-    virtual void apply_read(const std::function<void(const value_t*)> &read) {
-        // Fall-back for watchables that don't allow in-place access to their
-        // current value.
-        value_t v = get();
-        read(&v);
-    }
+    /* Applies `read` to the current value of the watchable. `read` must not block
+    and cannot change the value. */
+    virtual void apply_read(const std::function<void(const value_t*)> &read) = 0;
 
     /* These are internal; the reason they're public is so that `subview()` and
     similar things can be implemented. */

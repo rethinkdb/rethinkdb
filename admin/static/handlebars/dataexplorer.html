@@ -31,6 +31,10 @@
         <li data-option="electric_punctuation">
             <div class="checkbox-container"><input type="checkbox" data-option="electric_punctuation" id="electric_punctuation"{{#if electric_punctuation}} checked=true{{/if}}><label for="electric_punctuation" data-option="electric_punctuation"></label></div> 
             <div class="option_description" data-option="electric_punctuation">Auto-insert pair brackets, parentheses, and quotes</div></li>
+        <li data-option="profiler">
+            <div class="alert profiler_enabled"><strong>Query profiler active:</strong> re-run the query to see results.</div>
+            <div class="checkbox-container"><input type="checkbox" data-option="profiler" id="profiler" {{#if profiler}} checked=true{{/if}}><label for="profiler" data-option="profiler"></label></div> 
+            <div class="option_description" data-option="profiler">Enable query profiler</div></li>
     </ul>
 </script>
 
@@ -189,12 +193,14 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     <div class="results_header">
     </div>
 </script>
+
 <script id="dataexplorer_result_container-template" type="text/x-handlebars-template">
     <div class="results_header">
         <ul class="nav nav-tabs change_view_container"">
+            <li><a href="#profile_view" class="link_to_profile_view">Query profile</a></li>
             <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
             <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
-            <li><a href="#tree_view" class="link_to_tree_view active">Tree view</a></li>
+            <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
         </ul>
         <p class="metadata">
             {{#if show_query_warning}}Results from the previous query:{{/if}}
@@ -210,7 +216,14 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     </div>
     <div class="wrapper_scrollbar"><div class="scrollbar_fake_content"></div></div>
     <div class="tab-content">  
-        <div class="results active tree_view_container">
+        <div class="results profile_view_container">
+            <div class="results_wrap profile_view">
+                <div class="profile_summary_container"></div>
+                <button class="btn copy_profile">Copy to clipboard</button>
+                <div class="profile_container"></div>
+            </div>
+        </div>
+        <div class="results tree_view_container">
             <div class="results_wrap tree_view"><div class="json_tree_container"></div>
             </div>
         </div>
@@ -224,14 +237,31 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
         </div>
     </div>
     {{#if show_more_data}}
-    <div class="more_results more_valid_results">
+    <div class="info more_results">
         <p class="more_results_paragraph">More data is available. <a href="#" class="more_results_link">Load the next batch &rarr;</a></p>
     </div>
     {{else}}
         {{#if cursor_timed_out_template}}
-            <div class="more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
+            <div class="info more_results"><p class="more_results_paragraph">{{print_safe cursor_timed_out_template}}</p></div>
         {{/if}}
     {{/if}}
+</script>
+
+
+<script id="dataexplorer-profiler_header-template" type="text/x-handlebars-template">
+    <div class="profile_summary">
+        <div class="row-fluid">
+            <div class="span4">
+                <p class="query-duration-roundtrip"><span class="big">{{total_duration}}</span> round-trip time</p>
+            </div>
+            <div class="span4">
+                <p class="query-duration-server"><span class="big">{{server_duration}}</span> server time</p>
+            </div>
+            <div class="span4">
+                <p class="query-tasks"><span class="big">{{num_shard_accesses}}</span> shard accesses</p>
+            </div>
+        </div>
+    </div>
 </script>
 
 <script id="dataexplorer-option_page-template" type="text/x-handlebars-template">
@@ -242,6 +272,11 @@ Sorry, the data explorer does not support your browser. Please upgrade it. See t
     <p>No result were returned for this query</p>
 </script>
 
+<script id="dataexplorer-no_profile-template" type="text/x-handlebars-template">
+    <div class="activate_profiler_message">
+        <p><a href="#" class="activate_profiler">Enable</a> the query profiler (developer preview) and re-run the query.</p>
+    </div>
+</script>
 
 <script id="dataexplorer-cursor_timed_out-template" type="text/x-handlebars-template">
     No more data available, the cursor timed out. Re-execute the query to retrieve more results.

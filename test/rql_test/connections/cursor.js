@@ -4,14 +4,18 @@
 
 process.on('uncaughtException', function(err) {
     console.log(err);
-    console.log(err.toString() + err.stack.toString());
+    if (err.stack) {
+        console.log(err.toString() + err.stack.toString());
+    } else {
+        console.log(err.toString());
+    }
 });
 
 var r = require('../../../build/packages/js/rethinkdb');
 
 var assertNoError = function(err) {
     if (err) {
-        throw new Error("Error "+err+" not expected")
+        throw new Error("Error '"+err+"' not expected")
     }
 };
 

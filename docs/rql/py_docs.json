@@ -118,7 +118,7 @@
   "reconnect": {
     "examples": [
       {
-        "code": "conn.reconnect()", 
+        "code": "conn.reconnect(noreply_wait=False)", 
         "description": "<p><strong>Example:</strong> Cancel outstanding requests/queries that are no longer needed.</p>"
       }
     ], 
@@ -129,7 +129,7 @@
         "undefined"
       ]
     ], 
-    "description": "\n\n\n\nClose and attempt to reopen a connection. Has the effect of canceling any outstanding\nrequest while keeping the connection open.\n\n\n"
+    "description": "\n\n\n\nClose and reopen a connection. Closing a connection waits until all\noutstanding requests have finished.  If `noreply_wait` is set to\n`false`, all outstanding requests are canceled immediately.\n\n"
   }, 
   "index_drop": {
     "examples": [
@@ -231,21 +231,25 @@
     ], 
     "description": "\n\n\n\nGroups elements by the values of the given attributes and then applies the given\nreduction. Though similar to `groupedMapReduce`, `groupBy` takes a standardized object\nfor specifying the reduction. Can be used with a number of predefined common reductions.\n\n\n\n\n\n"
   }, 
-  "table_list": {
+  "index_status": {
     "examples": [
       {
-        "code": "r.db('test').table_list().run(conn)", 
-        "description": "<p><strong>Example:</strong> List all tables of the 'test' database.</p>"
+        "code": "r.table('test').index_status().run(conn)", 
+        "description": "<p><strong>Example:</strong> Get the status of all the indexes on <code>test</code>:</p>"
+      }, 
+      {
+        "code": "r.table('test').index_status('timestamp').run(conn)", 
+        "description": "<p><strong>Example:</strong> Get the status of the <code>timestamp</code> index:</p>"
       }
     ], 
-    "name": "table_list", 
+    "name": "index_status", 
     "io": [
       [
-        "db", 
+        "table", 
         "array"
       ]
     ], 
-    "description": "\n\n\n\nList all table names in a database. The result is a list of strings.\n\n"
+    "description": "\n\n\n\nGet the status of the specified indexes on this table, or the status\nof all indexes on this table if no indexes are specified.\n\n\n"
   }, 
   "<": {
     "examples": [
@@ -370,8 +374,8 @@
   "repl": {
     "examples": [
       {
-        "code": "r.connect().repl()\nr.table('users').run()", 
-        "description": "<p><strong>Example:</strong> Set the default connection in REPL, and call <code>run()</code> without specifying the connection.</p>"
+        "code": "r.connect(db='marvel').repl()\nr.table('heroes').run()", 
+        "description": "<p><strong>Example:</strong> Set the default connection for the REPL, then call\n<code>run()</code> without specifying the connection.</p>"
       }
     ], 
     "name": "repl", 
@@ -381,16 +385,52 @@
         null
       ]
     ], 
-    "description": "<p>Set the default connection to make REPL use easier. Allows calling run() without specifying a connection. </p>\n<p>Connection objects are not thread safe and repl connections should not be used in multi-threaded environments.</p>"
+    "description": "<p>Set the default connection to make REPL use easier. Allows calling\n<code>.run()</code> on queries without specifying a connection.</p>\n<p>Connection objects are not thread-safe and REPL connections should not\nbe used in multi-threaded environments.</p>"
+  }, 
+  "insert": {
+    "examples": [
+      {
+        "code": "r.table('marvel').insert(\n    { 'superhero': 'Iron Man', 'superpower':'Arc Reactor' }).run(conn)", 
+        "description": "<p><strong>Example:</strong> Insert a row into a table named 'marvel'.</p>"
+      }, 
+      {
+        "code": "r.table('marvel').insert([\n    { 'superhero': 'Wolverine', 'superpower': 'Adamantium' },\n    { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }\n    ], durability='soft'\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Insert multiple rows into a table named 'marvel'. Also, specify that only\nsoft durability is required.</p>"
+      }, 
+      {
+        "code": "r.table('marvel').insert(\n    { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },\n    upsert=True\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Insert a row into a table named 'marvel', overwriting if the document already exists.</p>"
+      }, 
+      {
+        "code": "r.table('marvel').insert(\n    { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },\n    upsert=True, return_vals=True\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Get back a copy of the new row, this is useful if you've done an upsert or generated an ID.</p>"
+      }
+    ], 
+    "name": "insert", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ], 
+      [
+        "selection", 
+        "object"
+      ], 
+      [
+        "singleSelection", 
+        "object"
+      ]
+    ], 
+    "description": "\n\n\n\n\nInsert JSON documents into a table. Accepts a single JSON document or an array of\ndocuments.\n\nInsert returns an object that contains the following attributes:\n\n- `inserted`: the number of documents that were succesfully inserted\n- `replaced`: the number of documents that were updated when upsert is used\n- `unchanged`: the number of documents that would have been modified, except that the\nnew value was the same as the old value when doing an upsert\n- `errors`: the number of errors encountered while inserting; if errors where\nencountered while inserting, `first_error` contains the text of the first error\n- `generated_keys`: a list of generated primary key values\n- `deleted` and `skipped`: 0 for an insert operation.\n\n\n\n\n\n\n"
   }, 
   "during": {
     "examples": [
       {
-        "code": "r.table(\"posts\").filter(\n    r.row['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10))\n).run(conn)", 
+        "code": "r.table(\"posts\").filter(\n    r.row['date'].during(r.time(2013, 12, 1, \"Z\"), r.time(2013, 12, 10, \"Z\"))\n).run(conn)", 
         "description": "<p><strong>Example:</strong> Retrieve all the posts that were posted between December 1st, 2013 (inclusive) and December 10th, 2013 (exclusive).</p>"
       }, 
       {
-        "code": "r.table(\"posts\").filter(\n    r.row['date'].during(r.time(2013, 12, 1), r.time(2013, 12, 10), left_bound=\"open\", right_bound=\"closed\")\n).run(conn)", 
+        "code": "r.table(\"posts\").filter(\n    r.row['date'].during(r.time(2013, 12, 1, \"Z\"), r.time(2013, 12, 10, \"Z\"), left_bound=\"open\", right_bound=\"closed\")\n).run(conn)", 
         "description": "<p><strong>Example:</strong> Retrieve all the posts that were posted between December 1st, 2013 (exclusive) and December 10th, 2013 (inclusive).</p>"
       }
     ], 
@@ -451,37 +491,21 @@
     ], 
     "description": "\n\n\n\nInsert a value in to an array at a given index. Returns the modified array.\n\n\n\n"
   }, 
-  "insert": {
+  "noreply_wait": {
     "examples": [
       {
-        "code": "r.table('marvel').insert(\n    { 'superhero': 'Iron Man', 'superpower':'Arc Reactor' }).run(conn)", 
-        "description": "<p><strong>Example:</strong> Insert a row into a table named 'marvel'.</p>"
-      }, 
-      {
-        "code": "r.table('marvel').insert([\n    { 'superhero': 'Wolverine', 'superpower': 'Adamantium' },\n    { 'superhero': 'Spiderman', 'superpower': 'spidy sense' }\n    ], durability='soft'\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Insert multiple rows into a table named 'marvel'. Also, specify that only\nsoft durability is required.</p>"
-      }, 
-      {
-        "code": "r.table('marvel').insert(\n    { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },\n    upsert=True\n).run(conn)\n\n\n__Example:__ Get back a copy of the new row, this is useful if you've done an upsert or generated an ID.\n\n\nr.table('marvel').insert(\n    { 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' },\n    upsert=True, return_vals=True\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Insert a row into a table named 'marvel', overwriting if the document already exists.</p>"
+        "code": "conn.noreply_wait()", 
+        "description": "<p><strong>Example:</strong> We have previously run queries with the <code>noreply</code> argument set to <code>True</code>. Now\nwait until the server has processed them.</p>"
       }
     ], 
-    "name": "insert", 
+    "name": "noreply_wait", 
     "io": [
       [
-        "table", 
-        "object"
-      ], 
-      [
-        "selection", 
-        "object"
-      ], 
-      [
-        "singleSelection", 
-        "object"
+        "connection", 
+        null
       ]
     ], 
-    "description": "\n\n\n\n\nInsert JSON documents into a table. Accepts a single JSON document or an array of\ndocuments.\n\nInsert returns an object that contains the following attributes:\n\n- `inserted`: the number of documents that were succesfully inserted\n- `replaced`: the number of documents that were updated when upsert is used\n- `unchanged`: the number of documents that would have been modified, except that the\nnew value was the same as the old value when doing an upsert\n- `errors`: the number of errors encountered while inserting; if errors where\nencountered while inserting, `first_error` contains the text of the first error\n- `generated_keys`: a list of generated primary key values\n- `deleted` and `skipped`: 0 for an insert operation.\n\n\n\n\n\n"
+    "description": "\n\n\n\n`noreply_wait` ensures that previous queries with the `noreply` flag have been processed\nby the server. Note that this guarantee only applies to queries run on the given connection.\n\n\n"
   }, 
   "indexes_of": {
     "examples": [
@@ -609,7 +633,7 @@
         "array"
       ]
     ], 
-    "description": "\n\n\n\nConverts a value of one type into another. \n\nYou can convert: a selection, sequence, or object into an ARRAY, an array of pairs into an OBJECT, and any DATUM into a STRING.\n\n\n\n\n\n"
+    "description": "\n\n\n\nConverts a value of one type into another.\n\nYou can convert: a selection, sequence, or object into an ARRAY, an array of pairs into an OBJECT, and any DATUM into a STRING.\n\n\n\n\n\n"
   }, 
   "reduce": {
     "examples": [
@@ -627,11 +651,27 @@
     ], 
     "description": "\n\n\n\nProduce a single value from a sequence through repeated application of a reduction\nfunction.\n\nThe reduce function gets invoked repeatedly not only for the input values but also for\nresults of previous reduce invocations. The type and format of the object that is passed\nin to reduce must be the same with the one returned from reduce.\n\n"
   }, 
+  "sync": {
+    "examples": [
+      {
+        "code": "r.table('marvel').sync().run(conn)", 
+        "description": "<p><strong>Example:</strong> After having updated multiple heroes with soft durability, we now want to wait\nuntil these changes are persisted.</p>"
+      }
+    ], 
+    "name": "sync", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ]
+    ], 
+    "description": "\n\n\n\n`sync` ensures that writes on a given table are written to permanent storage. Queries\nthat specify soft durability (`durability='soft'`) do not give such guarantees, so\n`sync` can be used to ensure the state of these queries. A call to `sync` does not return\nuntil all previous writes to the table are persisted.\n\nIf successful, the operation returns an object: `{\"synced\": 1}`.\n\n\n\n"
+  }, 
   "connect": {
     "examples": [
       {
-        "code": "conn = r.connect(db='heroes')", 
-        "description": "<p><strong>Example:</strong> Opens a connection using the default host and port but specifying the default database.</p>"
+        "code": "conn = r.connect(db='marvel')", 
+        "description": "<p><strong>Example:</strong> Opens a connection using the default host and port but\nspecifying the default database.</p>"
       }
     ], 
     "name": "connect", 
@@ -641,7 +681,7 @@
         "undefined"
       ]
     ], 
-    "description": "\n\n\n\nCreate a new connection to the database server.\n\nIf the connection cannot be established, a `RqlDriverError` exception will be thrown\n\n"
+    "description": "\n\n\n\nCreate a new connection to the database server. The keyword arguments are:\n\n- `host`: host of the RethinkDB instance. The default value is `localhost`.\n- `port`: the driver port, by default `28015`.\n- `db`: the database used if not explicitly specified in a query, by default `test`.\n- `auth_key`: the authentification key, by default the empty string.\n- `timeout`: timeout period for the connection to be opened, by default `20` (seconds).\n\n\nCreate a new connection to the database server.\n\nIf the connection cannot be established, a `RqlDriverError` exception\nwill be thrown.\n\n"
   }, 
   "year": {
     "examples": [
@@ -663,7 +703,11 @@
     "examples": [
       {
         "code": "conn.close()", 
-        "description": "<p><strong>Example:</strong> Close an open connection.</p>"
+        "description": "<p><strong>Example:</strong> Close an open connection, waiting for noreply writes to finish.</p>"
+      }, 
+      {
+        "code": "conn.close(noreply_wait=False)", 
+        "description": "<p><strong>Example:</strong> Close an open connection immediately.</p>"
       }
     ], 
     "name": "close", 
@@ -673,7 +717,7 @@
         "undefined"
       ]
     ], 
-    "description": "\n\n\n\nClose an open connection. Closing a connection cancels all outstanding requests and frees\nthe memory associated with the open requests.\n\n\n\n"
+    "description": "\n\n\n\n\nClose an open connection. Closing a connection waits until all\noutstanding requests have finished and then frees any open resources\nassociated with the connection.  If `noreply_wait` is set to `false`,\nall outstanding requests are canceled immediately.\n\nClosing a connection cancels all outstanding requests and frees the\nmemory associated with any open cursors.\n\n\n"
   }, 
   "db_list": {
     "examples": [
@@ -707,6 +751,26 @@
     ], 
     "description": "\n\n\n\nAppend a value to an array.\n\n\n\n"
   }, 
+  "outer_join": {
+    "examples": [
+      {
+        "code": "r.table('marvel').outer_join(r.table('dc'),\n  lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)", 
+        "description": "<p><strong>Example:</strong> Construct a sequence of documents containing all cross-universe matchups\nwhere a marvel hero would lose, but keep marvel heroes who would never lose a matchup in\nthe sequence.</p>"
+      }
+    ], 
+    "name": "outer_join", 
+    "io": [
+      [
+        "sequence", 
+        "stream"
+      ], 
+      [
+        "array", 
+        "array"
+      ]
+    ], 
+    "description": "\n\n\n\nComputes a left outer join by retaining each row in the left table even if no match was\nfound in the right table.\n\n\n\n"
+  }, 
   "epoch_time": {
     "examples": [
       {
@@ -721,7 +785,7 @@
         "time"
       ]
     ], 
-    "description": "\n\n\n\nCreate a time object based on seconds since epoch.\n\n\n\n"
+    "description": "\n\n\n\nCreate a time object based on seconds since epoch. The first argument is a double and\nwill be rounded to three decimal places (millisecond-precision).\n\n\n\n"
   }, 
   "+": {
     "examples": [
@@ -830,24 +894,24 @@
   "run": {
     "examples": [
       {
-        "code": "for doc in r.table('marvel').run(conn):\nprint doc", 
-        "description": "<p><strong>Example:</strong> Call run on the connection with a query to execute the query.</p>"
+        "code": "for doc in r.table('marvel').run(conn):\n    print doc", 
+        "description": "<p><strong>Example:</strong> Run a query on the connection <code>conn</code> and print out every\nrow in the result.</p>"
       }, 
       {
         "code": "r.table('marvel').run(conn, use_outdated=True)", 
-        "description": "<p><strong>Example:</strong> If you are OK with potentially out of date data from all the tables\ninvolved in this query and want potentially faster reads, pass a flag allowing out of\ndate data in an options object. Settings for individual tables will supercede this global\nsetting for all tables in the query.</p>"
+        "description": "<p><strong>Example:</strong> If you are OK with potentially out of date data from all\nthe tables involved in this query and want potentially faster reads,\npass a flag allowing out of date data in an options object. Settings\nfor individual tables will supercede this global setting for all\ntables in the query.</p>"
       }, 
       {
         "code": "r.table('marvel').run(conn, noreply=True)", 
-        "description": "<p><strong>Example:</strong> If you just want to send a write and forget about it, you can set <code>noreply</code>\nto true in the options. In this case <code>run</code> will return immediately.</p>"
+        "description": "<p><strong>Example:</strong> If you just want to send a write and forget about it, you\ncan set <code>noreply</code> to true in the options. In this case <code>run</code> will\nreturn immediately.</p>"
       }, 
       {
         "code": "r.table('marvel')\n    .insert({ 'superhero': 'Iron Man', 'superpower': 'Arc Reactor' })\n    .run(conn, noreply=True, durability='soft')", 
-        "description": "<p><strong>Example:</strong> If you want to specify whether to wait for a write to be written to disk\n(overriding the table's default settings), you can set <code>durability</code> to <code>'hard'</code> or\n<code>'soft'</code> in the options.</p>"
+        "description": "<p><strong>Example:</strong> If you want to specify whether to wait for a write to be\nwritten to disk (overriding the table's default settings), you can set\n<code>durability</code> to <code>'hard'</code> or <code>'soft'</code> in the options.</p>"
       }, 
       {
         "code": "r.now().run(conn, time_format=\"raw\")", 
-        "description": "<p><strong>Example:</strong> If you do not want a time object to be converted to a native date object, you can pass a time_format flag to prevent it (valid flags are \"raw\" and \"native\"). This query returns an object with two fields (epoch_time and $reql_type$) instead of a native date object.</p>"
+        "description": "<p><strong>Example:</strong> If you do not want a time object to be converted to a\nnative date object, you can pass a <code>time_format</code> flag to prevent it\n(valid flags are \"raw\" and \"native\"). This query returns an object\nwith two fields (<code>epoch_time</code> and <code>$reql_type$</code>) instead of a native date\nobject.</p>"
       }
     ], 
     "name": "run", 
@@ -857,27 +921,27 @@
         null
       ]
     ], 
-    "description": "\n\n\n\nRun a query on a connection.\n\n\n\n\n\n\n\n\n\n"
+    "description": "\n\n\n\nRun a query on a connection, returning either a single JSON result or\na cursor, depending on the query.\n\n\n\n\n\n\n\n\n\n"
   }, 
-  "outer_join": {
+  "index_wait": {
     "examples": [
       {
-        "code": "r.table('marvel').outer_join(r.table('dc'),\n  lambda marvelRow, dcRow: marvelRow['strength'] < dcRow['strength']).run(conn)", 
-        "description": "<p><strong>Example:</strong> Construct a sequence of documents containing all cross-universe matchups\nwhere a marvel hero would lose, but keep marvel heroes who would never lose a matchup in\nthe sequence.</p>"
+        "code": "r.table('test').index_wait().run(conn)", 
+        "description": "<p><strong>Example:</strong> Wait for all indexes on the table <code>test</code> to be ready:</p>"
+      }, 
+      {
+        "code": "r.table('test').index_wait('timestamp').run(conn)", 
+        "description": "<p><strong>Example:</strong> Wait for the index <code>timestamp</code> to be ready:</p>"
       }
     ], 
-    "name": "outer_join", 
+    "name": "index_wait", 
     "io": [
       [
-        "sequence", 
-        "stream"
-      ], 
-      [
-        "array", 
+        "table", 
         "array"
       ]
     ], 
-    "description": "\n\n\n\nComputes a left outer join by retaining each row in the left table even if no match was\nfound in the right table.\n\n\n\n"
+    "description": "\n\n\n\nWait for the specified indexes on this table to be ready, or for all\nindexes on this table to be ready if no indexes are specified.\n\n\n"
   }, 
   "seconds": {
     "examples": [
@@ -1010,24 +1074,40 @@
   "filter": {
     "examples": [
       {
-        "code": "r.table('users').filter({'active': True, 'profile': {'age': 30}}).run(conn)", 
-        "description": "<p><strong>Example:</strong> Get all active users aged 30.</p>"
+        "code": "r.table('users').filter({\"age\": 30}).run(conn)", 
+        "description": "<p><strong>Example:</strong> Get all the users that are 30 years old.</p>"
       }, 
       {
-        "code": "r.table('users').filter({'active': True, 'profile': r.literal({'age': 30})}).run(conn)", 
-        "description": "<p><strong>Example:</strong> Filter supports the r.literal syntax if you want to get an exact match.</p>"
+        "code": "r.table(\"users\").filter( r.row[\"age\"] > 18 ).run(conn)", 
+        "description": "<p><strong>Example:</strong> Get all the users that are more than 18 years old.</p>"
       }, 
       {
-        "code": "r.table('users').filter(r.row['magazines'] > 5).run(conn)", 
-        "description": "<p><strong>Example:</strong> Select all documents where the 'magazines' field is greater than 5.</p>"
+        "code": "r.table(\"users\").filter( r.row[\"age\"] < 18, default=True).run(conn)", 
+        "description": "<p><strong>Example:</strong> Get all the users that are less than 18 years old or whose age is unknown\n(field <code>age</code> missing).</p>"
       }, 
       {
-        "code": "r.table('marvel').filter(\n    lambda hero: hero['abilities'].has_fields('super-strength')\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Select all documents where the 'abilities' embedded document has an\nattribute called 'super-strength'.</p>"
+        "code": "r.table(\"users\").filter( r.row[\"age\"] > 18, default=r.error()).run(conn)", 
+        "description": "<p><strong>Example:</strong> Get all the users that are more than 18 years old. Throw an error if a\ndocument is missing the field <code>age</code>.</p>"
       }, 
       {
-        "code": "r.table('marvel').filter(\n    r.row['powers'].filter(lambda el: el == 10).count() > 0\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Select all documents where the field 'powers' containing an array has an\nelement equal to 10.</p>"
+        "code": "r.table('users').filter( lambda user:\n    user.has_fields('phone_number')\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Select all users who have given their phone number (all the documents\nwhose field <code>phone_number</code> is defined and not <code>None</code>).</p>"
+      }, 
+      {
+        "code": "r.table(\"users\").filter( lambda user:\n    user[\"subscription_date\"].during( r.time(2012, 1, 1, 'Z'), r.time(2013, 1, 1, 'Z') )\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Retrieve all the users who subscribed between January 1st, 2012\n(included) and January 1st, 2013 (excluded).</p>"
+      }, 
+      {
+        "code": "r.table(\"users\").filter( lambda user:\n    user[\"email\"].match(\"@gmail.com$\")\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Retrieve all the users who have a gmail account (whose field <code>email</code> ends\nwith <code>@gmail.com</code>).</p>"
+      }, 
+      {
+        "code": "{\n    \"name\": <type 'str'>\n    \"places_visited\": [<type 'str'>]\n}", 
+        "description": "<p><strong>Example:</strong> Filter based on the presence of a value in an array.</p>\n<p>Suppose the table <code>users</code> has the following schema</p>"
+      }, 
+      {
+        "code": "{\n    \"id\": <type 'str'>\n    \"name\": {\n        \"first\": <type 'str'>,\n        \"middle\": <type 'str'>,\n        \"last\": <type 'str'>\n    }\n}", 
+        "description": "<p><strong>Example:</strong> Filter based on nested fields.</p>\n<p>Suppose we have a table <code>users</code> containing documents with the following schema.</p>"
       }
     ], 
     "name": "filter", 
@@ -1045,7 +1125,7 @@
         "array"
       ]
     ], 
-    "description": "\n\n\n\nGet all the documents for which the given predicate is true.\n\nfilter can be called on a sequence, selection, or a field containing an array of\nelements. The return type is the same as the type on which the function was called on.\nThe body of every filter is wrapped in an implicit `.default(false)`, and the default\nvalue can be changed by passing the optional argument `default`. Setting this optional\nargument to `r.error()` will cause any non-existence errors to abort the filter.\n\n\n\n\n\n\n\n"
+    "description": "\n\n\n\nGet all the documents for which the given predicate is true.\n\n`filter` can be called on a sequence, selection, or a field containing an array of\nelements. The return type is the same as the type on which the function was called on.\n\nThe body of every filter is wrapped in an implicit `.default(False)`, which means that\nif a non-existence errors is thrown (when you try to access a field that does not exist\nin a document), RethinkDB will just ignore the document.\nThe `default` value can be changed by passing the named argument `default`.\nSetting this optional argument to `r.error()` will cause any non-existence errors to\nreturn a `RqlRuntimeError`.\n\n\n\nA more general way to write the previous query is to use `r.row`.\n\n```py\nr.table('users').filter( r.row[\"age\"] == 30 ).run(conn)\n```\n\nHere the predicate is `r.row[\"age\"] == 30`.\n\n- `r.row` refers to the current document\n- `r.row[\"age\"]` refers to the field `age` of the current document\n- `r.row[\"age\"] == 30` returns `True` if the field `age` is 30\n\n\nAn even more general way to write the same query is to use a lambda function.\nRead the documentation about [r.row](../row/) to know more about the differences\nbetween `r.row` and lambda functions in ReQL.\n\n```py\nr.table('users').filter( lambda user:\n    user[\"age\"] == 30\n).run(conn)\n```\n\n\n\n\n\n\n\n\n\n\n\n\nRetrieve all the users whose field `places_visited` contains `France`.\n\n```py\nr.table(\"users\").filter( lambda user:\n    user[\"places_visited\"].contains(\"France\")\n).run(conn)\n```\n\n\nRetrieve all users named \"William Adama\" (first name \"William\", last name\n\"Adama\"), with any middle name.\n\n\n```py\nr.table(\"users\").filter({\n    \"name\":{\n        \"first\": \"William\",\n        \"last\": \"Adama\"\n    }\n}).run(conn)\n```\n\nIf you want an exact match for a field that is an object, you will have to use `r.literal`.\n\nRetrieve all users named \"William Adama\" (first name \"William\", last name\n\"Adama\"), and who do not have a middle name.\n\n```py\nr.table(\"users\").filter(r.literal({\n    \"name\":{\n        \"first\": \"William\",\n        \"last\": \"Adama\"\n    }\n})).run(conn)\n```\n\n\nThe equivalent queries with a lambda function.\n\n```py\nr.table(\"users\").filter( lambda user:\n    (user[\"name\"][\"first\"] == \"William\")\n        & (user[\"name\"][\"last\"] == \"Adama\")\n).run(conn)\n```\n\n```py\nr.table(\"users\").filter( lambda user:\n    user[\"name\"] == {\n        \"first\": \"William\",\n        \"last\": \"Adama\"\n    }\n).run(conn)\n```\n"
   }, 
   "union": {
     "examples": [
@@ -1094,6 +1174,22 @@
       ]
     ], 
     "description": "\n\n\n\nDelete one or more documents from a table. The optional argument return_vals will return\nthe old value of the row you're deleting when set to true (only valid for single-row\ndeletes). The optional argument durability with value 'hard' or 'soft' will override the\ntable or query's default durability setting.\n\nDelete returns an object that contains the following attributes:\n\n- `deleted`: the number of documents that were deleted\n- `skipped`: the number of documents from the selection that were left unmodified because\nthere was nothing to do. For example, if you delete a row that has already been deleted,\nthat row will be skipped\n- `errors`L the number of errors encountered while deleting\nif errors occured, first_error contains the text of the first error\n- `inserted`, `replaced`, and `unchanged`: all 0 for a delete operation.\n\n\n\n\n\n\n\n"
+  }, 
+  "table_list": {
+    "examples": [
+      {
+        "code": "r.db('test').table_list().run(conn)", 
+        "description": "<p><strong>Example:</strong> List all tables of the 'test' database.</p>"
+      }
+    ], 
+    "name": "table_list", 
+    "io": [
+      [
+        "db", 
+        "array"
+      ]
+    ], 
+    "description": "\n\n\n\nList all table names in a database. The result is a list of strings.\n\n"
   }, 
   "with_fields": {
     "examples": [
@@ -1147,25 +1243,29 @@
     ], 
     "description": "\n\n\n\nGet a single field from an object. If called on a sequence, gets that field from every\nobject in the sequence, skipping objects that lack it.\n\n"
   }, 
-  "contains": {
+  "*": {
     "examples": [
       {
-        "code": "r.table('marvel').get('ironman')['opponents'].contains('superman').run(conn)", 
-        "description": "<p><strong>Example:</strong> Has Iron Man ever fought Superman?</p>"
+        "code": "(r.expr(2) * 2).run(conn)", 
+        "description": "<p><strong>Example:</strong> It's as easy as 2 * 2 = 4.</p>"
       }, 
       {
-        "code": "r.table('marvel').get('ironman')['battles'].contains(lambda battle:\n    (battle['winner'] == 'ironman') & (battle['loser'] == 'superman')\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Has Iron Man ever defeated Superman in battle?</p>"
+        "code": "(r.expr([\"This\", \"is\", \"the\", \"song\", \"that\", \"never\", \"ends.\"]) * 100).run(conn)", 
+        "description": "<p><strong>Example:</strong> Arrays can be multiplied by numbers as well.</p>"
       }
     ], 
-    "name": "contains", 
+    "name": "*", 
     "io": [
       [
-        "sequence", 
-        "value"
+        "number", 
+        "number"
+      ], 
+      [
+        "array", 
+        "array"
       ]
     ], 
-    "description": "\n\n\n\nReturns whether or not a sequence contains all the specified values, or if functions are\nprovided instead, returns whether or not a sequence contains values matching all the\nspecified functions.\n\n\n\n"
+    "description": "\n\n\n\nMultiply two numbers, or make a periodic array.\n\n\n\n\n"
   }, 
   ">=": {
     "examples": [
@@ -1286,8 +1386,8 @@
   "use": {
     "examples": [
       {
-        "code": "conn.use('heroes')", 
-        "description": "<p><strong>Example:</strong> Change the default database so that we don't need to specify the database\nwhen referencing a table.</p>"
+        "code": "conn.use('marvel')\nr.table('heroes').run(conn) # refers to r.db('marvel').table('heroes')", 
+        "description": "<p><strong>Example:</strong> Change the default database so that we don't need to\nspecify the database when referencing a table.</p>"
       }
     ], 
     "name": "use", 
@@ -1297,7 +1397,7 @@
         "undefined"
       ]
     ], 
-    "description": "\n\n\n\nChange the default database on this connection.\n\n\n\n"
+    "description": "\n\n\n\nChange the default database on this connection.\n\n"
   }, 
   "order_by": {
     "examples": [
@@ -1318,11 +1418,11 @@
         "description": "<p><strong>Example:</strong> Let's lead with our best vanquishers by specify descending ordering.</p>"
       }, 
       {
-        "code": "r.table('marvel').order_by(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved']).run(conn)", 
+        "code": "r.table('marvel').order_by(lambda doc: doc['enemiesVanquished'] + doc['damselsSaved']).run(conn)", 
         "description": "<p><strong>Example:</strong> You can use a function for ordering instead of just selecting an attribute.</p>"
       }, 
       {
-        "code": "r.table('marvel').order_by(r.desc(lambda doc: doc['enemiesVanquished'] + doc['ramselsSaved'])).run(conn)", 
+        "code": "r.table('marvel').order_by(r.desc(lambda doc: doc['enemiesVanquished'] + doc['damselsSaved'])).run(conn)", 
         "description": "<p><strong>Example:</strong> Functions can also be used descendingly.</p>"
       }
     ], 
@@ -1391,29 +1491,25 @@
     ], 
     "description": "\n\n\n\nRemove duplicate elements from the sequence.\n\n"
   }, 
-  "*": {
+  "contains": {
     "examples": [
       {
-        "code": "(r.expr(2) * 2).run(conn)", 
-        "description": "<p><strong>Example:</strong> It's as easy as 2 * 2 = 4.</p>"
+        "code": "r.table('marvel').get('ironman')['opponents'].contains('superman').run(conn)", 
+        "description": "<p><strong>Example:</strong> Has Iron Man ever fought Superman?</p>"
       }, 
       {
-        "code": "(r.expr([\"This\", \"is\", \"the\", \"song\", \"that\", \"never\", \"ends.\"]) * 100).run(conn)", 
-        "description": "<p><strong>Example:</strong> Arrays can be multiplied by numbers as well.</p>"
+        "code": "r.table('marvel').get('ironman')['battles'].contains(lambda battle:\n    (battle['winner'] == 'ironman') & (battle['loser'] == 'superman')\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> Has Iron Man ever defeated Superman in battle?</p>"
       }
     ], 
-    "name": "*", 
+    "name": "contains", 
     "io": [
       [
-        "number", 
-        "number"
-      ], 
-      [
-        "array", 
-        "array"
+        "sequence", 
+        "value"
       ]
     ], 
-    "description": "\n\n\n\nMultiply two numbers, or make a periodic array.\n\n\n\n\n"
+    "description": "\n\n\n\nReturns whether or not a sequence contains all the specified values, or if functions are\nprovided instead, returns whether or not a sequence contains values matching all the\nspecified functions.\n\n\n\n"
   }, 
   "table_drop": {
     "examples": [
@@ -1541,13 +1637,13 @@
         "object"
       ]
     ], 
-    "description": "\n\n\n\nGet information about a RQL value.\n\n\n\n"
+    "description": "\n\n\n\nGet information about a ReQL value.\n\n\n\n"
   }, 
   "default": {
     "examples": [
       {
-        "code": "r.table('projects').map(\n    lambda p: p['staff'].default(0) + p['management'].default(0)\n).run(conn)", 
-        "description": "<p><strong>Example:</strong> Stark Industries made the mistake of trusting an intern with data entry,\nand now a bunch of fields are missing from some of their documents. Iron Man takes a\nbreak from fighting Mandarin to write some safe analytics queries.</p>"
+        "code": "r.table(\"users\").filter(lambda user:\n    (user[\"age\"] < 18).default(True)\n).run(conn)", 
+        "description": "<p><strong>Example:</strong> The <code>default</code> command can be useful to filter documents too. Suppose\nwe want to retrieve all our users who are not grown-ups or whose age is unknown\n(i.e the field <code>age</code> is missing or equals <code>None</code>). We can do it with this query:</p>"
       }
     ], 
     "name": "default", 
@@ -1561,13 +1657,13 @@
         "any"
       ]
     ], 
-    "description": "\n\n\n\nHandle non-existence errors. Tries to evaluate and return its first argument. If an\nerror related to the absence of a value is thrown in the process, or if its first\nargument returns null, returns its second argument. (Alternatively, the second argument\nmay be a function which will be called with either the text of the non-existence error\nor null.)\n\n\n\n"
+    "description": "\n\n\n\nHandle non-existence errors. Tries to evaluate and return its first argument. If an\nerror related to the absence of a value is thrown in the process, or if its first\nargument returns `None`, returns its second argument. (Alternatively, the second argument\nmay be a function which will be called with either the text of the non-existence error\nor `None`.)\n\n\n__Exmple:__ Suppose we want to retrieve the titles and authors of the table `posts`.\nIn the case where the author field is missing or `None`, we want to retrieve the string\n`Anonymous`.\n\n```py\nr.table(\"posts\").map(lambda post:\n    {\n        \"title\": post[\"title\"],\n        \"author\": post[\"author\"].default(\"Anonymous\")\n    }\n).run(conn)\n```\n\nWe can rewrite the previous query with `r.branch` too.\n\n```py\nr.table(\"posts\").map(lambda post:\n    r.branch(\n        post.has_fields(\"author\"),\n        {\n            \"title\": post[\"title\"],\n            \"author\": post[\"author\"]\n        },\n        {\n            \"title\": post[\"title\"],\n            \"author\": \"Anonymous\" \n        }\n    )\n).run(conn)\n```\n\n\n\nOne more way to write the previous query is to set the age to be `-1` when the\nfield is missing.\n\n```py\nr.table(\"users\").filter(lambda user:\n    user[\"age\"].default(-1) < 18\n).run(conn)\n```\n\nOne last way to do the same query is to use `has_fields`.\n\n```py\nr.table(\"users\").filter(lambda user:\n    user.has_fields(\"age\").not_() | (user[\"age\"] < 18)\n).run(conn)\n```\n\nThe body of every `filter` is wrapped in an implicit `.default(False)`. You can overwrite\nthe value `False` by passing an option in filter, so the previous query can also be\nwritten like this.\n\n```py\nr.table(\"users\").filter(\n    lambda user: (user[\"age\"] < 18).default(True),\n    default=True\n).run(conn)\n```\n\n"
   }, 
   "expr": {
     "examples": [
       {
         "code": "r.expr({'a':'b'}).merge({'b':[1,2,3]}).run(conn)", 
-        "description": "<p><strong>Example:</strong> Objects wrapped with expr can then be manipulated by RQL API functions.</p>"
+        "description": "<p><strong>Example:</strong> Objects wrapped with expr can then be manipulated by ReQL API functions.</p>"
       }
     ], 
     "name": "expr", 
@@ -1577,7 +1673,7 @@
         "value"
       ]
     ], 
-    "description": "\n\n\n\nConstruct a RQL JSON object from a native object.\n\n\n\n"
+    "description": "\n\n\n\nConstruct a ReQL JSON object from a native object.\n\n\n\n"
   }, 
   "day_of_week": {
     "examples": [
@@ -1613,7 +1709,7 @@
         "r"
       ]
     ], 
-    "description": "\n\n\n\nThe top-level RQL namespace.\n\n\n"
+    "description": "\n\n\n\nThe top-level ReQL namespace.\n\n\n"
   }, 
   "limit": {
     "examples": [
@@ -1746,7 +1842,7 @@
   "timezone": {
     "examples": [
       {
-        "code": "r.table(\"users\").filter( lambda user:\n    user[\"subscriptionDate\"].timezone() == \"-07:00\"\n)", 
+        "code": "r.table(\"users\").filter(lambda user:\n    user[\"subscriptionDate\"].timezone() == \"-07:00\"\n)", 
         "description": "<p><strong>Example:</strong> Return all the users in the \"-07:00\" timezone.</p>"
       }
     ], 
@@ -1813,7 +1909,7 @@
         "boolean"
       ]
     ], 
-    "description": "\n\n\n\nTest if an object has all of the specified fields. An object has a field if it has the\nspecified key and that key maps to a non-null value. For instance, the object\n`{'a':1,'b':2,'c':null}` has the fields `a` and `b`.\n\n\n\n\n\n\n\n\n"
+    "description": "\n\n\n\nTest if an object has all of the specified fields. An object has a field if it has the\nspecified key and that key maps to a non-null value. For instance, the object\n`{'a':1,'b':2,'c': None}` has the fields `a` and `b`.\n\n\n\n\n\n\n\n\n\n"
   }, 
   "%": {
     "examples": [
@@ -1974,7 +2070,7 @@
   "map": {
     "examples": [
       {
-        "code": "r.table('marvel').map( lambda hero:\n    hero['combatPower'] + hero['compassionPower'] * 2\n).run(conn)", 
+        "code": "r.table('marvel').map(lambda hero:\n    hero['combatPower'] + hero['compassionPower'] * 2\n).run(conn)", 
         "description": "<p><strong>Example:</strong> Construct a sequence of hero power ratings.</p>"
       }
     ], 
@@ -2045,7 +2141,7 @@
         "object"
       ]
     ], 
-    "description": "\n\n\n\nUpdate JSON documents in a table. Accepts a JSON document, a RQL expression, or a\ncombination of the two. You can pass options like `returnVals` that will return the old\nand new values of the row you have modified. \n\nUpdate returns an object that contains the following attributes:\n\n- `replaced`: the number of documents that were updated\n- `unchanged`: the number of documents that would have been modified except the new\nvalue was the same as the old value;\n- `skipped`: the number of documents that were left unmodified because there was nothing\nto do: either the row didn't exist or the new value is null;\n- `errors`: the number of errors encountered while performing the update; if errors\noccured, first_error contains the text of the first error;\n- `deleted` and `inserted`: 0 for an update operation.\n\n\n\n\n\n\n\n\n"
+    "description": "\n\n\n\nUpdate JSON documents in a table. Accepts a JSON document, a ReQL expression, or a\ncombination of the two. You can pass options like `returnVals` that will return the old\nand new values of the row you have modified.\n\nUpdate returns an object that contains the following attributes:\n\n- `replaced`: the number of documents that were updated\n- `unchanged`: the number of documents that would have been modified except the new\nvalue was the same as the old value;\n- `skipped`: the number of documents that were left unmodified because there was nothing\nto do: either the row didn't exist or the new value is `None`;\n- `errors`: the number of errors encountered while performing the update; if errors\noccured, first_error contains the text of the first error;\n- `deleted` and `inserted`: 0 for an update operation.\n\n\n\n\n\n\n\n\n"
   }, 
   "is_empty": {
     "examples": [
@@ -2097,7 +2193,7 @@
         "object"
       ]
     ], 
-    "description": "\n\n\n\nReplace documents in a table. Accepts a JSON document or a RQL expression, and replaces\nthe original document with the new one. The new document must have the same primary key\nas the original document. The optional argument durability with value 'hard' or 'soft'\nwill override the table or query's default durability setting. The optional argument\nreturn_vals will return the old and new values of the row you're modifying when set to\ntrue (only valid for single-row replacements). The optional argument non_atomic lets you\npermit non-atomic updates.\n\nReplace returns an object that contains the following attributes:\n\n- `replaced`: the number of documents that were replaced\n- `unchanged`: the number of documents that would have been modified, except that the\nnew value was the same as the old value\n- `inserted`: the number of new documents added. You can have new documents inserted if\nyou do a point-replace on a key that isn't in the table or you do a replace on a\nselection and one of the documents you are replacing has been deleted\n- `deleted`: the number of deleted documents when doing a replace with null\n- `errors`: the number of errors encountered while performing the replace; if errors\noccurred performing the replace, first_error contains the text of the first error encountered\n- `skipped`: 0 for a replace operation\n\n\n\n\n\n\n\n\n"
+    "description": "\n\n\n\nReplace documents in a table. Accepts a JSON document or a ReQL expression, and replaces\nthe original document with the new one. The new document must have the same primary key\nas the original document. The optional argument durability with value 'hard' or 'soft'\nwill override the table or query's default durability setting. The optional argument\nreturn_vals will return the old and new values of the row you're modifying when set to\ntrue (only valid for single-row replacements). The optional argument non_atomic lets you\npermit non-atomic updates.\n\nReplace returns an object that contains the following attributes:\n\n- `replaced`: the number of documents that were replaced\n- `unchanged`: the number of documents that would have been modified, except that the\nnew value was the same as the old value\n- `inserted`: the number of new documents added. You can have new documents inserted if\nyou do a point-replace on a key that isn't in the table or you do a replace on a\nselection and one of the documents you are replacing has been deleted\n- `deleted`: the number of deleted documents when doing a replace with `None` \n- `errors`: the number of errors encountered while performing the replace; if errors\noccurred performing the replace, first_error contains the text of the first error encountered\n- `skipped`: 0 for a replace operation\n\n\n\n\n\n\n\n\n"
   }, 
   "eq_join": {
     "examples": [
@@ -2153,7 +2249,7 @@
         "table"
       ]
     ], 
-    "description": "\n\n\n\nCreate a table. A RethinkDB table is a collection of JSON documents. \n\nIf successful, the operation returns an object: `{created: 1}`. If a table with the same\nname already exists, the operation throws `RqlRuntimeError`.\nNote: that you can only use alphanumeric characters and underscores for the table name.\n\nWhen creating a table you can specify the following options:\n\n- `primary_key`: the name of the primary key. The default primary key is id;\n- `durability`: if set to `soft`, this enables _soft durability_ on this table:\nwrites will be acknowledged by the server immediately and flushed to disk in the\nbackground. Default is `hard` (acknowledgement of writes happens after data has been\nwritten to disk);\n- `cache_size`: set the cache size (in bytes) to be used by the table. The\ndefault is 1073741824 (1024MB);\n- `datacenter`: the name of the datacenter this table should be assigned to.\n\n\n\n\n\n\n\n\n\n"
+    "description": "\n\n\n\nCreate a table. A RethinkDB table is a collection of JSON documents.\n\nIf successful, the operation returns an object: `{created: 1}`. If a table with the same\nname already exists, the operation throws `RqlRuntimeError`.\nNote: that you can only use alphanumeric characters and underscores for the table name.\n\nWhen creating a table you can specify the following options:\n\n- `primary_key`: the name of the primary key. The default primary key is id;\n- `durability`: if set to `soft`, this enables _soft durability_ on this table:\nwrites will be acknowledged by the server immediately and flushed to disk in the\nbackground. Default is `hard` (acknowledgement of writes happens after data has been\nwritten to disk);\n- `cache_size`: set the cache size (in bytes) to be used by the table. The\ndefault is 1073741824 (1024MB);\n- `datacenter`: the name of the datacenter this table should be assigned to.\n\n\n\n\n\n\n\n\n\n"
   }, 
   "date": {
     "examples": [
@@ -2273,7 +2369,7 @@
         "time"
       ]
     ], 
-    "description": "\n\n\n\nCreate a time object for a specific time.\n\n\n\n"
+    "description": "\n\n\n\nCreate a time object for a specific time.\n\nA few restrictions exist on the arguments:\n\n- `year` is an integer between 1400 and 9,999.\n- `month` is an integer between 1 and 12.\n- `day` is an integer between 1 and 31.\n- `hour` is an integer.\n- `minutes` is an integer.\n- `seconds` is a double. Its value will be rounded to three decimal places\n(millisecond-precision).\n- `timezone` can be `'Z'` (for UTC) or a string with the format `\u00b1[hh]:[mm]`.\n\n\n\n\n"
   }, 
   "splice_at": {
     "examples": [

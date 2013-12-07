@@ -100,6 +100,60 @@ public:
     virtual const char *name() const { return "sindex_list"; }
 };
 
+class sindex_status_term_t : public op_term_t {
+public:
+    sindex_status_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1, -1)) { }
+
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
+        std::set<std::string> sindexes;
+        for (size_t i = 1; i < num_args(); ++i) {
+            sindexes.insert(arg(env, i)->as_str());
+        }
+        return new_val(table->sindex_status(env->env, sindexes));
+    }
+
+    virtual const char *name() const { return "sindex_status"; }
+};
+
+/* We wait 10 seconds between polls to the indexes. */
+int64_t poll_ms = 10000;
+
+bool all_ready(counted_t<const datum_t> statuses) {
+    for (size_t i = 0; i < statuses->size(); ++i) {
+        if (!statuses->get(i)->get("ready", NOTHROW)->as_bool()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+class sindex_wait_term_t : public op_term_t {
+public:
+    sindex_wait_term_t(compile_env_t *env, const protob_t<const Term> &term)
+        : op_term_t(env, term, argspec_t(1, -1)) { }
+
+    virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
+        counted_t<table_t> table = arg(env, 0)->as_table();
+        std::set<std::string> sindexes;
+        for (size_t i = 1; i < num_args(); ++i) {
+            sindexes.insert(arg(env, i)->as_str());
+        }
+        for (;;) {
+            counted_t<const datum_t> statuses =
+                table->sindex_status(env->env, sindexes);
+            if (all_ready(statuses)) {
+                return new_val(statuses);
+            } else {
+                nap(poll_ms, env->env->interruptor);
+            }
+        }
+    }
+
+    virtual const char *name() const { return "sindex_wait"; }
+};
+
 counted_t<term_t> make_sindex_create_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_create_term_t>(env, term);
 }
@@ -108,6 +162,12 @@ counted_t<term_t> make_sindex_drop_term(compile_env_t *env, const protob_t<const
 }
 counted_t<term_t> make_sindex_list_term(compile_env_t *env, const protob_t<const Term> &term) {
     return make_counted<sindex_list_term_t>(env, term);
+}
+counted_t<term_t> make_sindex_status_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sindex_status_term_t>(env, term);
+}
+counted_t<term_t> make_sindex_wait_term(compile_env_t *env, const protob_t<const Term> &term) {
+    return make_counted<sindex_wait_term_t>(env, term);
 }
 
 

@@ -130,6 +130,7 @@ if __name__ == "__main__":
     print "#include \"containers/archive/archive.hpp\""
     print "#include \"rpc/serialize_macros.hpp\""
     print "#include \"rpc/mailbox/mailbox.hpp\""
+    print "#include \"rpc/semilattice/joins/macros.hpp\""
     print
     print "template <class> class mailbox_t;"
     print
@@ -142,9 +143,7 @@ if __name__ == "__main__":
     print "    friend class mailbox_t<T>;"
     print
     print "    RDB_MAKE_ME_SERIALIZABLE_1(addr);"
-    print "    bool operator==(const mailbox_addr_t<T> &other) const {"
-    print "        return addr == other.addr;"
-    print "    }"
+    print "    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);"
     print
     print "private:"
     print "    friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);"

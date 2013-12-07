@@ -69,6 +69,8 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/js/chosen/chosen-sprite.png");
     white_list.insert("/js/chosen/chosen.css");
     white_list.insert("/js/chosen/chosen.jquery.min.js");
+    white_list.insert("/js/ZeroClipboard.min.js");
+    white_list.insert("/js/ZeroClipboard.swf");
     white_list.insert("/js/codemirror");
     white_list.insert("/js/codemirror/ambiance.css");
     white_list.insert("/js/codemirror/codemirror.css");
@@ -175,6 +177,7 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/clock-icon.png");
     white_list.insert("/images/clock-icon_alt.png");
     white_list.insert("/images/cog-icon.png");
+    white_list.insert("/images/copy_to_clipboard_16x16.png");
     white_list.insert("/images/disk-icon.png");
     white_list.insert("/images/disk-slot-icon.png");
     white_list.insert("/images/document-icon.png");
@@ -195,6 +198,9 @@ administrative_http_server_manager_t::administrative_http_server_manager_t(
     white_list.insert("/images/pencil-icon.png");
     white_list.insert("/images/pencil-icon_big.png");
     white_list.insert("/images/push-arrow-left-icon.png");
+    white_list.insert("/images/query_round_trip-icon.png");
+    white_list.insert("/images/query_server_time-icon.png");
+    white_list.insert("/images/query_shard_access-icon.png");
     white_list.insert("/images/red-light.png");
     white_list.insert("/images/red-light_glow.png");
     white_list.insert("/images/red-light_glow_small.png");

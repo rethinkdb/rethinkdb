@@ -26,6 +26,7 @@ class Cursor(object):
         self.term = term
         self.opts = opts
         self.responses = [ ]
+        self.outstanding_requests = 0
         self.end_flag = False
 
         self.time_format = 'native'
@@ -33,7 +34,7 @@ class Cursor(object):
             self.time_format = self.opts['time_format']
 
     def _extend(self, response):
-        self.end_flag = response.type == p.Response.SUCCESS_SEQUENCE
+        self.end_flag = response.type != p.Response.SUCCESS_PARTIAL
         self.responses.append(response)
 
         if len(self.responses) == 1 and not self.end_flag:
@@ -51,21 +52,18 @@ class Cursor(object):
             if len(self.responses) == 0 and self.end_flag:
                 break
 
-            try:
-                self.conn._check_error_response(self.responses[0], self.term)
-                if self.responses[0].type != p.Response.SUCCESS_PARTIAL and self.responses[0].type != p.Response.SUCCESS_SEQUENCE:
-                    raise RqlDriverError("Unexpected response type received for cursor")
-            except:
-                self.close()
-                raise
+            self.conn._check_error_response(self.responses[0], self.term)
+            if self.responses[0].type != p.Response.SUCCESS_PARTIAL and self.responses[0].type != p.Response.SUCCESS_SEQUENCE:
+                raise RqlDriverError("Unexpected response type received for cursor")
 
             for datum in self.responses[0].response:
                 yield deconstruct(datum, time_format)
             del self.responses[0]
 
     def close(self):
-        self.conn._end_cursor(self)
-        self.end_flag = True
+        if not self.end_flag:
+            self.end_flag = True
+            self.conn._end_cursor(self)
 
 class Connection(object):
     def __init__(self, host, port, db, auth_key, timeout):
@@ -197,16 +195,20 @@ class Connection(object):
         term.build(query.query)
         return self._send_query(query, term, global_opt_args)
 
+    def _handle_cursor_response(self, response):
+        cursor = self.cursor_cache[response.token]
+        cursor._extend(response)
+        cursor.outstanding_requests -= 1
+
+        if response.type != p.Response.SUCCESS_PARTIAL and cursor.outstanding_requests == 0:
+            del self.cursor_cache[response.token]
+
     def _continue_cursor(self, cursor):
         self._async_continue_cursor(cursor)
-        self._update_cursor(self._read_response(cursor.query.token))
+        self._handle_cursor_response(self._read_response(cursor.query.token))
 
     def _async_continue_cursor(self, cursor):
-        if cursor.query.token in self.cursor_cache:
-            # Already a continue on the line
-            return
-
-        self.cursor_cache[cursor.query.token] = cursor
+        self.cursor_cache[cursor.query.token].outstanding_requests += 1
 
         query = p.Query()
         query.type = p.Query.CONTINUE
@@ -214,18 +216,13 @@ class Connection(object):
         self._send_query(query, cursor.term, cursor.opts, async=True)
 
     def _end_cursor(self, cursor):
-        if cursor.query.token in self.cursor_cache:
-            del self.cursor_cache[cursor.query.token]
+        self.cursor_cache[cursor.query.token].outstanding_requests += 1
 
         query = p.Query()
         query.type = p.Query.STOP
         query.token = cursor.query.token
-        return self._send_query(cursor.query, cursor.term)
-
-    def _update_cursor(self, response):
-        cursor = self.cursor_cache[response.token]
-        del self.cursor_cache[response.token]
-        cursor._extend(response)
+        self._send_query(cursor.query, cursor.term, async=True)
+        self._handle_cursor_response(self._read_response(cursor.query.token))
 
     def _read_response(self, token):
         # We may get an async continue result, in which case we save it and read the next response
@@ -261,7 +258,7 @@ class Connection(object):
             if response.token == token:
                 return response
             elif response.token in self.cursor_cache:
-                self._update_cursor(response)
+                self._handle_cursor_response(response)
             else:
                 # This response is corrupted or not intended for us.
                 raise RqlDriverError("Unexpected response received.")
@@ -312,6 +309,7 @@ class Connection(object):
         # Sequence responses
         if response.type == p.Response.SUCCESS_PARTIAL or response.type == p.Response.SUCCESS_SEQUENCE:
             value = Cursor(self, query, term, opts)
+            self.cursor_cache[query.token] = value
             value._extend(response)
 
         # Atom response

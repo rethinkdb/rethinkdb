@@ -57,6 +57,8 @@ public:
                    read_t *read_out) const;
         void unshard(const read_response_t *resps, size_t count, read_response_t *response, context_t *cache, signal_t *) const;
 
+        bool all_read() const { return false; }
+
         RDB_MAKE_ME_SERIALIZABLE_1(keys);
         region_t keys;
     };
@@ -93,7 +95,7 @@ public:
     struct backfill_progress_t : public traversal_progress_t {
         explicit backfill_progress_t(threadnum_t specified_home_thread) : traversal_progress_t(specified_home_thread) { }
         progress_completion_fraction_t guess_completion() const {
-            return progress_completion_fraction_t::make_invalid();
+            return progress_completion_fraction_t();
         }
     };
 

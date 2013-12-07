@@ -12,52 +12,10 @@ r = require('./ast')
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
-
-deconstructDatum = (datum, opts) ->
-    pb.DatumTypeSwitch(datum, {
-        "R_JSON": =>
-            JSON.parse(datum.r_str)
-       ,"R_NULL": =>
-            null
-       ,"R_BOOL": =>
-            datum.r_bool
-       ,"R_NUM": =>
-            datum.r_num
-       ,"R_STR": =>
-            datum.r_str
-       ,"R_ARRAY": =>
-            deconstructDatum(dt, opts) for dt in datum.r_array
-       ,"R_OBJECT": =>
-            obj = {}
-            for pair in datum.r_object
-                obj[pair.key] = deconstructDatum(pair.val, opts)
-
-            # An R_OBJECT may be a regular object or a "psudo-type" so we need a
-            # second layer of type switching here on the obfuscated field "$reql_type$"
-            switch obj['$reql_type$']
-                when 'TIME'
-                    switch opts.timeFormat
-                        # Default is native
-                        when 'native', undefined
-                            if not obj['epoch_time']?
-                                throw new err.RqlDriverError "psudo-type TIME #{obj} object missing expected field 'epoch_time'."
-
-                            # We ignore the timezone field of the psudo-type TIME object. JS dates do not support timezones.
-                            # By converting to a native date object we are intentionally throwing out timezone information.
-
-                            # field "epoch_time" is in seconds but the Date constructor expects milliseconds
-                            (new Date(obj['epoch_time']*1000))
-                        when 'raw'
-                            # Just return the raw (`{'$reql_type$'...}`) object
-                            obj
-                        else
-                            throw new err.RqlDriverError "Unknown timeFormat run option #{opts.timeFormat}."
-                else
-                    # Regular object or unknown pseudo type
-                    obj
-        },
-            => throw new err.RqlDriverError "Unknown Datum type"
-        )
+deconstructDatum = util.deconstructDatum
+mkAtom = util.mkAtom
+mkErr = util.mkErr
+mkSeq = util.mkSeq
 
 class Connection extends events.EventEmitter
     DEFAULT_HOST: 'localhost'
@@ -115,19 +73,6 @@ class Connection extends events.EventEmitter
 
             @buffer = @buffer.slice(4 + responseLength)
 
-    mkAtom = (response, opts) -> deconstructDatum(response.response[0], opts)
-
-    mkSeq = (response, opts) -> (deconstructDatum(res, opts) for res in response.response)
-
-    mkErr = (ErrClass, response, root) ->
-        msg = mkAtom response
-        bt = for frame in response.backtrace.frames
-                if frame.type is "POS"
-                    parseInt frame.pos
-                else
-                    frame.opt
-        new ErrClass msg, root, bt
-
     _delQuery: (token) ->
         # This query is done, delete this cursor
         delete @outstandingCallbacks[token]
@@ -143,15 +88,11 @@ class Connection extends events.EventEmitter
         if @outstandingCallbacks[token]?
             {cb:cb, root:root, cursor: cursor, opts: opts} = @outstandingCallbacks[token]
             if cursor?
-                pb.ResponseTypeSwitch(response, {
-                     "SUCCESS_PARTIAL": =>
-                        cursor._addData(mkSeq(response, opts))
-                    ,"SUCCESS_SEQUENCE": =>
-                        cursor._endData(mkSeq(response, opts))
-                        @_delQuery(token)
-                },
-                    => cb new err.RqlDriverError "Unknown response type"
-                )
+                cursor._addResponse(response)
+
+                if cursor._endFlag && cursor._outstandingRequests is 0
+                    @_delQuery(token)
+
             else if cb?
                 # Behavior varies considerably based on response type
                 pb.ResponseTypeSwitch(response, {
@@ -173,19 +114,19 @@ class Connection extends events.EventEmitter
                         cb null, response
                         @_delQuery(token)
                    ,"SUCCESS_PARTIAL": =>
-                        cursor = new cursors.Cursor @, token
+                        cursor = new cursors.Cursor @, token, opts, root
                         @outstandingCallbacks[token].cursor = cursor
                         if profile?
-                            cb null, {profile: profile, value: cursor._addData(mkSeq(response, opts))}
+                            cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
-                            cb null, cursor._addData(mkSeq(response, opts))
+                            cb null, cursor._addResponse(response)
                    ,"SUCCESS_SEQUENCE": =>
-                        cursor = new cursors.Cursor @, token
+                        cursor = new cursors.Cursor @, token, opts, root
                         @_delQuery(token)
                         if profile?
-                            cb null, {profile: profile, value: cursor._endData(mkSeq(response, opts))}
+                            cb null, {profile: profile, value: cursor._addResponse(response)}
                         else
-                            cb null, cursor._endData(mkSeq(response, opts))
+                            cb null, cursor._addResponse(response)
                    ,"WAIT_COMPLETE": =>
                         @_delQuery(token)
                         cb null, null
@@ -330,11 +271,6 @@ class Connection extends events.EventEmitter
         query =
             type: "STOP"
             token: token
-
-        # Overwrite the callback for this token
-        @outstandingCallbacks[token] = {cb: (() =>
-            @_delQuery(token)
-        ), root:null, opts:{}}
 
         @_sendQuery(query)
 

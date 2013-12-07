@@ -1,7 +1,7 @@
 {
   "api/javascript/connect/": {
-    "body": "r.connect(opts, callback)", 
-    "description": "<p>Create a new connection to the database server.</p>\n<p>If the connection cannot be established, a <code>RqlDriverError</code> exception will be thrown</p>", 
+    "body": "r.connect(options, callback)r.connect(host, callback)", 
+    "description": "<p>Create a new connection to the database server.  Accepts the following\noptions:</p>\n<ul>\n<li><code>host</code>: the host to connect to (default <code>localhost</code>).</li>\n<li><code>port</code>: the port to connect on (default <code>28015</code>).</li>\n<li><code>db</code>: the default database (default <code>test</code>).</li>\n<li><code>authKey</code>: the authentication key (default none).</li>\n</ul>\n<p>If the connection cannot be established, a <code>RqlDriverError</code> will be\npassed to the callback instead of a connection.</p>", 
     "url": "connect", 
     "io": [
       [
@@ -9,12 +9,12 @@
         "undefined"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Opens a new connection to the database.</p>\n<p><code>r.connect({host:'localhost', port:28015, db:'marvel', authKey:'hunter2'},\n   function(err, conn) { ... })</code></p>", 
+    "example": "<p><strong>Example:</strong> Opens a new connection to the database.</p>\n<p><code>r.connect({host:'localhost', port:28015, db:'marvel', authKey:'hunter2'},\n          function(err, conn) { ... })</code></p>", 
     "name": "connect"
   }, 
   "api/javascript/close/": {
-    "body": "conn.close()", 
-    "description": "<p>Close an open connection. Closing a connection cancels all outstanding requests and frees\nthe memory associated with the open requests.</p>", 
+    "body": "conn.close([opts, ]callback)", 
+    "description": "<p>Close an open connection.  Accepts the following options:</p>\n<ul>\n<li><code>noreplyWait</code>: whether to wait for noreply writes to complete\n  before closing (default <code>true</code>).  If this is set to <code>false</code>, some\n  outstanding noreply writes may be aborted.</li>\n</ul>\n<p>Closing a connection waits until all outstanding requests have\nfinished and then frees any open resources associated with the\nconnection.  If <code>noreplyWait</code> is set to <code>false</code>, all outstanding\nrequests are canceled immediately.</p>", 
     "url": "close", 
     "io": [
       [
@@ -22,12 +22,12 @@
         "undefined"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Close an open connection.</p>\n<p><code>conn.close()</code></p>", 
+    "example": "<p><strong>Example:</strong> Close an open connection, waiting for noreply writes to finish.</p>\n<p><code>conn.close(function(err) { if (err) throw err; })</code></p>\n<p><strong>Example:</strong> Close an open connection immediately.</p>\n<p><code>conn.close({noreplyWait: false}, function(err) { if (err) throw err; })</code></p>", 
     "name": "close"
   }, 
   "api/javascript/replace/": {
     "body": "table.replace(json | expr[, {durability: 'soft', return_vals: true}])&rarr; objectselection.replace(json | expr[, {durability: 'soft', return_vals: true}])&rarr; objectsingleSelection.replace(json | expr[, {durability: 'soft', return_vals: true}])&rarr; object", 
-    "description": "<p>Replace documents in a table. Accepts a JSON document or a RQL expression, and replaces\nthe original document with the new one. The new document must have the same primary key\nas the original document. The optional argument durability with value 'hard' or 'soft'\nwill override the table or query's default durability setting. The optional argument\n<code>return_vals</code> will return the old and new values of the row you're modifying when set to\ntrue (only valid for single-row replacements). The optional argument <code>non_atomic</code> lets you\npermit non-atomic updates.</p>\n<p>Replace returns an object that contains the following attributes:</p>\n<ul>\n<li><code>replaced</code>: the number of documents that were replaced</li>\n<li><code>unchanged</code>: the number of documents that would have been modified, except that the\nnew value was the same as the old value</li>\n<li><code>inserted</code>: the number of new documents added. You can have new documents inserted if\nyou do a point-replace on a key that isn't in the table or you do a replace on a\nselection and one of the documents you are replacing has been deleted</li>\n<li><code>deleted</code>: the number of deleted documents when doing a replace with null</li>\n<li><code>errors</code>: the number of errors encountered while performing the replace; if errors\noccurred performing the replace, first_error contains the text of the first error encountered</li>\n<li><code>skipped</code>: 0 for a replace operation</li>\n</ul>", 
+    "description": "<p>Replace documents in a table. Accepts a JSON document or a ReQL expression, and replaces\nthe original document with the new one. The new document must have the same primary key\nas the original document. The optional argument durability with value 'hard' or 'soft'\nwill override the table or query's default durability setting. The optional argument\n<code>return_vals</code> will return the old and new values of the row you're modifying when set to\ntrue (only valid for single-row replacements). The optional argument <code>non_atomic</code> lets you\npermit non-atomic updates.</p>\n<p>Replace returns an object that contains the following attributes:</p>\n<ul>\n<li><code>replaced</code>: the number of documents that were replaced</li>\n<li><code>unchanged</code>: the number of documents that would have been modified, except that the\nnew value was the same as the old value</li>\n<li><code>inserted</code>: the number of new documents added. You can have new documents inserted if\nyou do a point-replace on a key that isn't in the table or you do a replace on a\nselection and one of the documents you are replacing has been deleted</li>\n<li><code>deleted</code>: the number of deleted documents when doing a replace with null</li>\n<li><code>errors</code>: the number of errors encountered while performing the replace; if errors\noccurred performing the replace, first_error contains the text of the first error encountered</li>\n<li><code>skipped</code>: 0 for a replace operation</li>\n</ul>", 
     "url": "replace", 
     "io": [
       [
@@ -112,7 +112,7 @@
     "name": "get"
   }, 
   "api/javascript/add_listener/": {
-    "body": "connection.addListener(event, listener)", 
+    "body": "conn.addListener(event, listener)", 
     "description": "<p>The connection object also supports the event emitter interface so you can listen for\nchanges in connection state.</p>", 
     "url": "add_listener", 
     "io": [
@@ -167,6 +167,19 @@
     "example": "<p><strong>Example:</strong> It's as easy as 2 * 2 = 4.</p>\n<p><code>r.expr(2).mul(2).run(conn, callback)</code></p>", 
     "name": "mul"
   }, 
+  "api/javascript/index_wait/": {
+    "body": "table.indexWait([, index...]) &rarr; array", 
+    "description": "<p>Wait for the specified indexes on this table to be ready, or for all\nindexes on this table to be ready if no indexes are specified.</p>", 
+    "url": "index_wait", 
+    "io": [
+      [
+        "table", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Wait for all indexes on the table <code>test</code> to be ready:</p>\n<p><code>r.table('test').indexWait().run(conn, callback)</code></p>\n<p><strong>Example:</strong> Wait for the index <code>timestamp</code> to be ready:</p>\n<p><code>r.table('test').indexWait('timestamp').run(conn, callback)</code></p>", 
+    "name": "indexWait"
+  }, 
   "api/javascript/index_create/": {
     "body": "table.indexCreate(indexName[, indexFunction]) &rarr; object", 
     "description": "<p>Create a new secondary index on this table.</p>", 
@@ -181,7 +194,7 @@
     "name": "indexCreate"
   }, 
   "api/javascript/each/": {
-    "body": "cursor.each(callback[, onFinishedCallback])", 
+    "body": "cursor.each(callback[, onFinishedCallback])array.each(callback[, onFinishedCallback])", 
     "description": "<p>Lazily iterate over the result set one element at a time.</p>", 
     "url": "each", 
     "io": [
@@ -190,7 +203,7 @@
         "undefined"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Let's process all the elements!</p>\n<p><code>cur.each(function(err, row) {\n    processRow(row);\n});</code></p>", 
+    "example": "<p><strong>Example:</strong> Let's process all the elements!</p>\n<p><code>cursor.each(function(err, row) {\n    if (err) throw err;\n    processRow(row);\n});</code></p>", 
     "name": "each"
   }, 
   "api/javascript/year/": {
@@ -218,6 +231,19 @@
     ], 
     "example": "<p><strong>Example:</strong> The object(s) passed to do() can be bound to name(s). The last argument is the expression to evaluate in the context of the bindings.</p>\n<p><code>r.do(r.table('marvel').get('IronMan'),\n    function (ironman) { return ironman('name'); }\n).run(conn, callback)</code></p>", 
     "name": "do"
+  }, 
+  "api/javascript/noreply_wait/": {
+    "body": "conn.noreplyWait(callback)", 
+    "description": "<p><code>noreplyWait</code> ensures that previous queries with the <code>noreply</code> flag have been processed\nby the server. Note that this guarantee only applies to queries run on the given connection.</p>", 
+    "url": "noreply_wait", 
+    "io": [
+      [
+        "connection", 
+        null
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> We have previously run queries with the <code>noreply</code> argument set to <code>true</code>. Now\nwait until the server has processed them.</p>\n<p><code>conn.noreplyWait(function(err) { ... })</code></p>", 
+    "name": "noreplyWait"
   }, 
   "api/javascript/with_fields/": {
     "body": "sequence.withFields([selector1, selector2...]) &rarr; streamarray.withFields([selector1, selector2...]) &rarr; array", 
@@ -263,8 +289,8 @@
     "name": "setDifference"
   }, 
   "api/javascript/reconnect/": {
-    "body": "conn.reconnect()", 
-    "description": "<p>Close and attempt to reopen a connection. Has the effect of canceling any outstanding\nrequest while keeping the connection open.</p>", 
+    "body": "conn.reconnect([opts, ]callback)", 
+    "description": "<p>Close and reopen a connection.  Accepts the following options:</p>\n<ul>\n<li><code>noreplyWait</code>: whether to wait for noreply writes to complete\n  before closing (default <code>true</code>).  If this is set to <code>false</code>, some\n  outstanding noreply writes may be aborted.</li>\n</ul>\n<p>Closing a connection waits until all outstanding requests have\nfinished.  If <code>noreplyWait</code> is set to <code>false</code>, all outstanding\nrequests are canceled immediately.</p>", 
     "url": "reconnect", 
     "io": [
       [
@@ -272,7 +298,7 @@
         "undefined"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Cancel outstanding requests/queries that are no longer needed.</p>\n<p><code>conn.reconnect(function(errror, connection) { ... })</code></p>", 
+    "example": "<p><strong>Example:</strong> Cancel outstanding requests/queries that are no longer needed.</p>\n<p><code>conn.reconnect({noreplyWait: false}, function(errror, connection) { ... })</code></p>", 
     "name": "reconnect"
   }, 
   "api/javascript/time_of_day/": {
@@ -402,7 +428,7 @@
   }, 
   "api/javascript/default/": {
     "body": "value.default(default_value) &rarr; anysequence.default(default_value) &rarr; any", 
-    "description": "<p>Handle non-existence errors. Tries to evaluate and return its first argument. If an\nerror related to the absence of a value is thrown in the process, or if its first\nargument returns null, returns its second argument. (Alternatively, the second argument\nmay be a function which will be called with either the text of the non-existence error\nor null.)</p>", 
+    "description": "<p>Handle non-existence errors. Tries to evaluate and return its first argument. If an\nerror related to the absence of a value is thrown in the process, or if its first\nargument returns <code>null</code>, returns its second argument. (Alternatively, the second argument\nmay be a function which will be called with either the text of the non-existence error\nor <code>null</code>.)</p>\n<p><strong>Exmple:</strong> Suppose we want to retrieve the titles and authors of the table <code>posts</code>.\nIn the case where the author field is missing or <code>null</code>, we want to retrieve the string\n<code>Anonymous</code>.</p>\n<p><code>js\nr.table(\"posts\").map( function(post) {\n    return {\n        title: post(\"title\"),\n        author: post(\"author\").default(\"Anonymous\")\n    }\n}).run(conn, callback)</code></p>", 
     "url": "default", 
     "io": [
       [
@@ -414,7 +440,7 @@
         "any"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Stark Industries made the mistake of trusting an intern with data entry,\nand now a bunch of fields are missing from some of their documents. Iron Man takes a\nbreak from fighting Mandarin to write some safe analytics queries.</p>\n<p><code>r.table('projects').map(function(p) {\n    return p('staff').default(0).add(p('management').default(0))\n}).run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> Iron Man can't possibly have lost a battle:</p>\n<p><code>r.table('marvel').get('IronMan').do(function(ironman) {\n    return r.branch(ironman('victories').lt(ironman('battles')),\n        r.error('impossible code path'),\n        ironman)\n}).run(conn, callback)</code></p>", 
     "name": "default"
   }, 
   "api/javascript/and/": {
@@ -617,7 +643,7 @@
   }, 
   "api/javascript/info/": {
     "body": "any.info() &rarr; object", 
-    "description": "<p>Get information about a RQL value.</p>", 
+    "description": "<p>Get information about a ReQL value.</p>", 
     "url": "info", 
     "io": [
       [
@@ -630,7 +656,7 @@
   }, 
   "api/javascript/update/": {
     "body": "table.update(json | expr[, {durability: 'soft', return_vals: true])&rarr; objectselection.update(json | expr[, {durability: 'soft', return_vals: true])&rarr; objectsingleSelection.update(json | expr[, {durability: 'soft', return_vals: true])&rarr; object", 
-    "description": "<p>Update JSON documents in a table. Accepts a JSON document, a RQL expression, or a\ncombination of the two. You can pass options like <code>returnVals</code> that will return the old\nand new values of the row you have modified. </p>\n<p>Update returns an object that contains the following attributes:</p>\n<ul>\n<li><code>replaced</code>: the number of documents that were updated</li>\n<li><code>unchanged</code>: the number of documents that would have been modified except the new\nvalue was the same as the old value;</li>\n<li><code>skipped</code>: the number of documents that were left unmodified because there was nothing\nto do: either the row didn't exist or the new value is null;</li>\n<li><code>errors</code>: the number of errors encountered while performing the update; if errors\noccured, first_error contains the text of the first error;</li>\n<li><code>deleted</code> and <code>inserted</code>: 0 for an update operation.</li>\n</ul>", 
+    "description": "<p>Update JSON documents in a table. Accepts a JSON document, a ReQL expression, or a\ncombination of the two. You can pass options like <code>returnVals</code> that will return the old\nand new values of the row you have modified.</p>\n<p>Update returns an object that contains the following attributes:</p>\n<ul>\n<li><code>replaced</code>: the number of documents that were updated</li>\n<li><code>unchanged</code>: the number of documents that would have been modified except the new\nvalue was the same as the old value;</li>\n<li><code>skipped</code>: the number of documents that were left unmodified because there was nothing\nto do: either the row didn't exist or the new value is null;</li>\n<li><code>errors</code>: the number of errors encountered while performing the update; if errors\noccured, first_error contains the text of the first error;</li>\n<li><code>deleted</code> and <code>inserted</code>: 0 for an update operation.</li>\n</ul>", 
     "url": "update", 
     "io": [
       [
@@ -706,8 +732,8 @@
     "name": "groupBy"
   }, 
   "api/javascript/filter/": {
-    "body": "sequence.filter(predicate) &rarr; selectionstream.filter(predicate) &rarr; streamarray.filter(predicate) &rarr; array", 
-    "description": "<p>Get all the documents for which the given predicate is true.</p>\n<p>filter can be called on a sequence, selection, or a field containing an array of\nelements. The return type is the same as the type on which the function was called on.\nThe body of every filter is wrapped in an implicit <code>.default(false)</code>, and the default\nvalue can be changed by passing the optional argument <code>default</code>. Setting this optional\nargument to <code>r.error()</code> will cause any non-existence errors to abort the filter.</p>", 
+    "body": "sequence.filter(predicate[, {default: false}]) &rarr; selectionstream.filter(predicate[, {default: false}]) &rarr; streamarray.filter(predicate[, {default: false}]) &rarr; array", 
+    "description": "<p>Get all the documents for which the given predicate is true.</p>\n<p><code>filter</code> can be called on a sequence, selection, or a field containing an array of\nelements. The return type is the same as the type on which the function was called on.</p>\n<p>The body of every filter is wrapped in an implicit <code>.default(false)</code>, which means that\nif a non-existence errors is thrown (when you try to access a field that does not exist\nin a document), RethinkDB will just ignore the document.\nThe <code>default</code> value can be changed by passing an object with a <code>default</code> field.\nSetting this optional argument to <code>r.error()</code> will cause any non-existence errors to\nreturn a <code>RqlRuntimeError</code>.</p>", 
     "url": "filter", 
     "io": [
       [
@@ -723,7 +749,7 @@
         "array"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Get all active users aged 30.</p>\n<p><code>r.table('users').filter({active: true, profile: {age: 30}}).run(conn, callback)</code></p>\n<p>These commands allow the combination of multiple sequences into a single sequence</p>", 
+    "example": "<p><strong>Example:</strong> Get all the users that are 30 years old.</p>\n<p><code>r.table('users').filter({age: 30}).run(conn, callback)</code></p>\n<p>These commands allow the combination of multiple sequences into a single sequence</p>", 
     "name": "filter"
   }, 
   "api/javascript/table_list/": {
@@ -800,7 +826,7 @@
   }, 
   "api/javascript/expr/": {
     "body": "r.expr(value) &rarr; value", 
-    "description": "<p>Construct a RQL JSON object from a native object.</p>", 
+    "description": "<p>Construct a ReQL JSON object from a native object.</p>", 
     "url": "expr", 
     "io": [
       [
@@ -808,7 +834,7 @@
         "value"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Objects wrapped with expr can then be manipulated by RQL API functions.</p>\n<p><code>r.expr({a:'b'}).merge({b:[1,2,3]}).run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> Objects wrapped with <code>expr</code> can then be manipulated by ReQL API functions.</p>\n<p><code>r.expr({a:'b'}).merge({b:[1,2,3]}).run(conn, callback)</code></p>", 
     "name": "expr"
   }, 
   "api/javascript/js/": {
@@ -834,7 +860,7 @@
         "undefined"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Change the default database so that we don't need to specify the database\nwhen referencing a table.</p>\n<p><code>conn.use('heroes')</code></p>", 
+    "example": "<p><strong>Example:</strong> Change the default database so that we don't need to\nspecify the database when referencing a table.</p>\n<p><code>conn.use('marvel')\nr.table('heroes').run(conn, ...) // refers to r.db('marvel').table('heroes')</code></p>", 
     "name": "use"
   }, 
   "api/javascript/table/": {
@@ -962,7 +988,7 @@
     "name": "keys"
   }, 
   "api/javascript/next/": {
-    "body": "cursor.next(callback)", 
+    "body": "cursor.next(callback)array.next(callback)", 
     "description": "<p>Get the next element in the cursor.</p>", 
     "url": "next", 
     "io": [
@@ -971,7 +997,7 @@
         "undefined"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Let's grab the next element!</p>\n<p><code>cur.next(function(err, row) {\n    return processRow(row);\n});</code></p>", 
+    "example": "<p><strong>Example:</strong> Let's grab the next element!</p>\n<p><code>cursor.next(function(err, row) {\n    if (err) throw err;\n    processRow(row);\n});</code></p>", 
     "name": "next"
   }, 
   "api/javascript/insert_at/": {
@@ -1000,6 +1026,19 @@
     "example": "<p><strong>Example:</strong> Update the time of John's birth.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birth: r.ISO8601('1986-11-03T08:30:00-07:00')}).run(conn, callback)</code></p>", 
     "name": "ISO8601"
   }, 
+  "api/javascript/sync/": {
+    "body": "table.sync()&rarr; object", 
+    "description": "<p><code>sync</code> ensures that writes on a given table are written to permanent storage. Queries\nthat specify soft durability (<code>{durability: 'soft'}</code>) do not give such guarantees, so\n<code>sync</code> can be used to ensure the state of these queries. A call to <code>sync</code> does not return\nuntil all previous writes to the table are persisted.</p>", 
+    "url": "sync", 
+    "io": [
+      [
+        "table", 
+        "object"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> After having updated multiple heroes with soft durability, we now want to wait\nuntil these changes are persisted.</p>\n<p><code>r.table('marvel').sync().run(conn, callback)</code></p>", 
+    "name": "sync"
+  }, 
   "api/javascript/indexes_of/": {
     "body": "sequence.indexesOf(datum | predicate) &rarr; array", 
     "description": "<p>Get the indexes of an element in a sequence. If the argument is a predicate, get the indexes of all elements matching it.</p>", 
@@ -1026,18 +1065,18 @@
     "example": "<p><strong>Example:</strong> Find all users with primary key &gt;= 10 and &lt; 20 (a normal half-open interval).</p>\n<p><code>r.table('marvel').between(10, 20).run(conn, callback)</code></p>", 
     "name": "between"
   }, 
-  "api/javascript/ge/": {
-    "body": "value.ge(value) &rarr; bool", 
-    "description": "<p>Test if the first value is greater than or equal to other.</p>", 
-    "url": "ge", 
+  "api/javascript/table_drop/": {
+    "body": "db.tableDrop(tableName) &rarr; object", 
+    "description": "<p>Drop a table. The table and all its data will be deleted.</p>\n<p>If succesful, the operation returns an object: {dropped: 1}. If the specified table\ndoesn't exist a <code>RqlRuntimeError</code> is thrown.</p>", 
+    "url": "table_drop", 
     "io": [
       [
-        "value", 
-        "bool"
+        "db", 
+        "object"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Is 2 greater than or equal to 2?</p>\n<p><code>r.expr(2).ge(2).run(conn, callback)</code></p>", 
-    "name": "ge"
+    "example": "<p><strong>Example:</strong> Drop a table named 'dc_universe'.</p>\n<p><code>r.db('test').tableDrop('dc_universe').run(conn, callback)</code></p>", 
+    "name": "tableDrop"
   }, 
   "api/javascript/type_of/": {
     "body": "any.typeOf() &rarr; string", 
@@ -1199,7 +1238,7 @@
   }, 
   "api/javascript/r/": {
     "body": "r &rarr; r", 
-    "description": "<p>The top-level RQL namespace.</p>", 
+    "description": "<p>The top-level ReQL namespace.</p>", 
     "url": "r", 
     "io": [
       [
@@ -1207,12 +1246,12 @@
         "r"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Setup your top level namespace.</p>\n<p><code>var r = require('rethinkdb');</code></p>", 
+    "example": "<p><strong>Example:</strong> Set up your top-level namespace.</p>\n<p><code>var r = require('rethinkdb');</code></p>", 
     "name": "r"
   }, 
   "api/javascript/run/": {
-    "body": "query.run(connection, callback)query.run(options[, callback])", 
-    "description": "<p>Run a query on a connection.</p>", 
+    "body": "query.run(conn, callback)query.run(options[, callback])", 
+    "description": "<p>Run a query on a connection.  Accepts the following options:</p>\n<ul>\n<li><code>useOutdated</code>: whether or not outdated reads are OK (default: <code>false</code>).</li>\n<li><code>timeFormat</code>: what format to return times in (default: <code>'native'</code>).\n  Set this to <code>'raw'</code> if you want times returned as JSON objects for exporting.</li>\n<li><code>profile</code>: whether or not to return a profile of the query's\n  execution (default: <code>false</code>).</li>\n</ul>\n<p>The callback will get either an error, a single JSON result, or a\ncursor, depending on the query.</p>", 
     "url": "run", 
     "io": [
       [
@@ -1220,7 +1259,7 @@
         null
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Call run on the connection with a query to execute the query. The callback\nwill get a cursor from which results may be retrieved.</p>\n<p><code>r.table('marvel').run(conn, function(err, cur) { cur.each(console.log); })</code></p>", 
+    "example": "<p><strong>Example:</strong> Run a query on the connection <code>conn</code> and log each row in\nthe result to the console.</p>\n<p><code>r.table('marvel').run(conn, function(err, cursor) { cursor.each(console.log); })</code></p>", 
     "name": "run"
   }, 
   "api/javascript/set_insert/": {
@@ -1290,7 +1329,7 @@
   }, 
   "api/javascript/time/": {
     "body": "r.time(year, month, day[, hour, minute, second], timezone)&rarr; time", 
-    "description": "<p>Create a time object for a specific time.</p>", 
+    "description": "<p>Create a time object for a specific time.</p>\n<p>A few restrictions exist on the arguments:</p>\n<ul>\n<li><code>year</code> is an integer between 1400 and 9,999.</li>\n<li><code>month</code> is an integer between 1 and 12.</li>\n<li><code>day</code> is an integer between 1 and 31.</li>\n<li><code>hour</code> is an integer.</li>\n<li><code>minutes</code> is an integer.</li>\n<li><code>seconds</code> is a double. Its value will be rounded to three decimal places\n(millisecond-precision).</li>\n<li><code>timezone</code> can be <code>'Z'</code> (for UTC) or a string with the format <code>\u00b1[hh]:[mm]</code>.</li>\n</ul>", 
     "url": "time", 
     "io": [
       [
@@ -1298,7 +1337,7 @@
         "time"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Update the birthdate of the user \"John\" to November 3rd, 1986 UTC.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birthdate: r.time(1986, 11, 3, 'Z')}).run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> Update the birthdate of the user \"John\" to November 3rd, 1986 UTC.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birthdate: r.time(1986, 11, 3, 'Z')})\n    .run(conn, callback)</code></p>", 
     "name": "time"
   }, 
   "api/javascript/add/": {
@@ -1371,7 +1410,7 @@
   }, 
   "api/javascript/coerce_to/": {
     "body": "sequence.coerceTo(typeName) &rarr; arrayvalue.coerceTo(typeName) &rarr; stringarray.coerceTo(typeName) &rarr; objectobject.coerceTo(typeName) &rarr; array", 
-    "description": "<p>Converts a value of one type into another. </p>\n<p>You can convert: a selection, sequence, or object into an ARRAY, an array of pairs into an OBJECT, and any DATUM into a STRING.</p>", 
+    "description": "<p>Converts a value of one type into another.</p>\n<p>You can convert: a selection, sequence, or object into an ARRAY, an array of pairs into an OBJECT, and any DATUM into a STRING.</p>", 
     "url": "coerce_to", 
     "io": [
       [
@@ -1446,7 +1485,7 @@
     "name": "outerJoin"
   }, 
   "api/javascript/has_next/": {
-    "body": "cursor.hasNext() &rarr; bool", 
+    "body": "cursor.hasNext() &rarr; boolarray.hasNext() &rarr; bool", 
     "description": "<p>Check if there are more elements in the cursor.</p>", 
     "url": "has_next", 
     "io": [
@@ -1455,12 +1494,12 @@
         "undefined"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Are there more elements in the cursor?</p>\n<p><code>var hasMore = cur.hasNext();</code></p>", 
+    "example": "<p><strong>Example:</strong> Are there more elements in the cursor?</p>\n<p><code>var hasMore = cursor.hasNext();</code></p>", 
     "name": "hasNext"
   }, 
   "api/javascript/epoch_time/": {
     "body": "r.epochTime(epochTime) &rarr; time", 
-    "description": "<p>Create a time object based on seconds since epoch.</p>", 
+    "description": "<p>Create a time object based on seconds since epoch. The first argument is a double and\nwill be rounded to three decimal places (millisecond-precision).</p>", 
     "url": "epoch_time", 
     "io": [
       [
@@ -1468,7 +1507,7 @@
         "time"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Update the birthdate of the user \"John\" to November 3rd, 1986.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birthdate: r.epochTime(531360000)}).run(conn, callback)</code></p>", 
+    "example": "<p><strong>Example:</strong> Update the birthdate of the user \"John\" to November 3rd, 1986.</p>\n<p><code>r.table(\"user\").get(\"John\").update({birthdate: r.epochTime(531360000)})\n    .run(conn, callback)</code></p>", 
     "name": "epochTime"
   }, 
   "api/javascript/db_drop/": {
@@ -1515,7 +1554,7 @@
     "name": "reduce"
   }, 
   "api/javascript/to_array/": {
-    "body": "cursor.toArray(callback)", 
+    "body": "cursor.toArray(callback)array.toArray(callback)", 
     "description": "<p>Retrieve all results and pass them as an array to the given callback.</p>", 
     "url": "to_array", 
     "io": [
@@ -1524,7 +1563,7 @@
         "undefined"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> For small result sets it may be more convenient to process them at once as\nan array.</p>\n<p><code>cur.toArray(function(err, results) {\n    for(var i in results) {\n        processRow(results[i]);\n    }\n});</code></p>", 
+    "example": "<p><strong>Example:</strong> For small result sets it may be more convenient to process them at once as\nan array.</p>\n<p><code>cursor.toArray(function(err, results) {\n    if (err) throw err;\n    processResults(results);\n});</code></p>", 
     "name": "toArray"
   }, 
   "api/javascript/to_iso8601/": {
@@ -1651,18 +1690,18 @@
     "example": "<p><strong>Example:</strong> Return all the posts submitted after midnight and before 4am.</p>\n<p><code>r.table(\"posts\").filter(function(post) {\n    return post(\"date\").hours().lt(4)\n})</code></p>", 
     "name": "hours"
   }, 
-  "api/javascript/table_drop/": {
-    "body": "db.tableDrop(tableName) &rarr; object", 
-    "description": "<p>Drop a table. The table and all its data will be deleted.</p>\n<p>If succesful, the operation returns an object: {dropped: 1}. If the specified table\ndoesn't exist a <code>RqlRuntimeError</code> is thrown.</p>", 
-    "url": "table_drop", 
+  "api/javascript/ge/": {
+    "body": "value.ge(value) &rarr; bool", 
+    "description": "<p>Test if the first value is greater than or equal to other.</p>", 
+    "url": "ge", 
     "io": [
       [
-        "db", 
-        "object"
+        "value", 
+        "bool"
       ]
     ], 
-    "example": "<p><strong>Example:</strong> Drop a table named 'dc_universe'.</p>\n<p><code>r.db('test').tableDrop('dc_universe').run(conn, callback)</code></p>", 
-    "name": "tableDrop"
+    "example": "<p><strong>Example:</strong> Is 2 greater than or equal to 2?</p>\n<p><code>r.expr(2).ge(2).run(conn, callback)</code></p>", 
+    "name": "ge"
   }, 
   "api/javascript/to_epoch_time/": {
     "body": "time.to_epoch_time() &rarr; number", 
@@ -1692,7 +1731,7 @@
   }, 
   "api/javascript/table_create/": {
     "body": "db.tableCreate(tableName[, options]) &rarr; object", 
-    "description": "<p>Create a table. A RethinkDB table is a collection of JSON documents. </p>\n<p>If successful, the operation returns an object: <code>{created: 1}</code>. If a table with the same\nname already exists, the operation throws <code>RqlRuntimeError</code>.\nNote: that you can only use alphanumeric characters and underscores for the table name.</p>\n<p>When creating a table you can specify the following options:</p>\n<ul>\n<li><code>primaryKey</code>: the name of the primary key. The default primary key is id;</li>\n<li><code>durability</code>: if set to <code>soft</code>, this enables <em>soft durability</em> on this table:\nwrites will be acknowledged by the server immediately and flushed to disk in the\nbackground. Default is <code>hard</code> (acknowledgement of writes happens after data has been\nwritten to disk);</li>\n<li><code>cacheSize</code>: set the cache size (in bytes) to be used by the table. The\ndefault is 1073741824 (1024MB);</li>\n<li><code>datacenter</code>: the name of the datacenter this table should be assigned to.</li>\n</ul>", 
+    "description": "<p>Create a table. A RethinkDB table is a collection of JSON documents.</p>\n<p>If successful, the operation returns an object: <code>{created: 1}</code>. If a table with the same\nname already exists, the operation throws <code>RqlRuntimeError</code>.\nNote: that you can only use alphanumeric characters and underscores for the table name.</p>\n<p>When creating a table you can specify the following options:</p>\n<ul>\n<li><code>primaryKey</code>: the name of the primary key. The default primary key is id;</li>\n<li><code>durability</code>: if set to <code>soft</code>, this enables <em>soft durability</em> on this table:\nwrites will be acknowledged by the server immediately and flushed to disk in the\nbackground. Default is <code>hard</code> (acknowledgement of writes happens after data has been\nwritten to disk);</li>\n<li><code>cacheSize</code>: set the cache size (in bytes) to be used by the table. The\ndefault is 1073741824 (1024MB);</li>\n<li><code>datacenter</code>: the name of the datacenter this table should be assigned to.</li>\n</ul>", 
     "url": "table_create", 
     "io": [
       [
@@ -1702,6 +1741,19 @@
     ], 
     "example": "<p><strong>Example:</strong> Create a table named 'dc_universe' with the default settings.</p>\n<p><code>r.db('test').tableCreate('dc_universe').run(conn, callback)</code></p>", 
     "name": "tableCreate"
+  }, 
+  "api/javascript/index_status/": {
+    "body": "table.indexStatus([, index...]) &rarr; array", 
+    "description": "<p>Get the status of the specified indexes on this table, or the status\nof all indexes on this table if no indexes are specified.</p>", 
+    "url": "index_status", 
+    "io": [
+      [
+        "table", 
+        "array"
+      ]
+    ], 
+    "example": "<p><strong>Example:</strong> Get the status of all the indexes on <code>test</code>:</p>\n<p><code>r.table('test').indexStatus().run(conn, callback)</code></p>\n<p><strong>Example:</strong> Get the status of the <code>timestamp</code> index:</p>\n<p><code>r.table('test').indexStatus('timestamp').run(conn, callback)</code></p>", 
+    "name": "indexStatus"
   }, 
   "api/javascript/db/": {
     "body": "r.db(dbName) &rarr; db", 

@@ -66,11 +66,12 @@ public:
         // Returns a friendly human-readable peer:thread:mailbox_id string.
         std::string human_readable() const;
 
+        RDB_MAKE_ME_EQUALITY_COMPARABLE_3(raw_mailbox_t::address_t, peer, thread, mailbox_id);
+
     private:
         friend void send(mailbox_manager_t *, raw_mailbox_t::address_t, mailbox_write_callback_t *callback);
         friend struct raw_mailbox_t;
         friend class mailbox_manager_t;
-        friend bool operator==(const address_t &, const address_t &);
 
         RDB_MAKE_ME_SERIALIZABLE_3(peer, thread, mailbox_id);
 
@@ -90,8 +91,6 @@ public:
 
     address_t get_address() const;
 };
-
-RDB_MAKE_EQUALITY_COMPARABLE_3(raw_mailbox_t::address_t, peer, thread, mailbox_id);
 
 /* `send()` sends a message to a mailbox. It is safe to call `send()` outside of
 a coroutine; it does not block. If the mailbox does not exist or the peer is

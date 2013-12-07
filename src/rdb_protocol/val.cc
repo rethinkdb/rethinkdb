@@ -227,6 +227,42 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     }
 }
 
+counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string> sindexes) {
+    rdb_protocol_t::sindex_status_t sindex_status(sindexes);
+    rdb_protocol_t::read_t read(sindex_status, env->profile());
+    try {
+        rdb_protocol_t::read_response_t res;
+        access->get_namespace_if().read(
+            read, &res, order_token_t::ignore, env->interruptor);
+        auto s_res = boost::get<rdb_protocol_t::sindex_status_response_t>(&res.response);
+        r_sanity_check(s_res);
+
+        std::vector<counted_t<const datum_t> > array;
+        for (auto it = s_res->statuses.begin(); it != s_res->statuses.end(); ++it) {
+            r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
+            sindexes.erase(it->first);
+            std::map<std::string, counted_t<const datum_t> > status;
+            if (it->second.blocks_processed != 0) {
+                status["blocks_processed"] =
+                    make_counted<const datum_t>(
+                        safe_to_double(it->second.blocks_processed));
+                status["blocks_total"] =
+                    make_counted<const datum_t>(
+                        safe_to_double(it->second.blocks_total));
+            }
+            status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL, it->second.ready);
+            std::string index_name = it->first;
+            status["index"] = make_counted<const datum_t>(std::move(index_name));
+            array.push_back(make_counted<const datum_t>(std::move(status)));
+        }
+        rcheck(sindexes.empty(), base_exc_t::GENERIC,
+               strprintf("Index `%s` was not found.", sindexes.begin()->c_str()));
+        return make_counted<const datum_t>(std::move(array));
+    } catch (const cannot_perform_query_exc_t &ex) {
+        rfail(ql::base_exc_t::GENERIC, "cannot perform read %s", ex.what());
+    }
+}
+
 MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
     rcheck_target(parent, base_exc_t::GENERIC,
                   bounds.is_universe() && sorting == sorting_t::UNORDERED,

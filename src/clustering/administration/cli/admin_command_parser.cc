@@ -1167,8 +1167,6 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     linenoiseCallable linenoise_blocker(prompt, &raw_line);
     std::string line;
 
-    // TODO: Make this use strprintf, not snprintf.
-
     // Build the prompt based on our initial join command
     std::string join_peer_truncated(join_peer);
     if (join_peer.length() > 50) {

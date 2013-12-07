@@ -144,7 +144,6 @@ private:
     trace_t *parent_;
     size_t n_parallel_jobs_;
     event_log_t event_log_;
-    bool received_splits_;
 };
 
 /* sampler_t is used when you want to record a repeated event that would

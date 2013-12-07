@@ -40,6 +40,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(UNUSED const type_t &_a_) const { \
         return true; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_1(type_t, field1) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -55,6 +56,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_2(type_t, field1, field2) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -71,6 +73,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_3(type_t, field1, field2, field3) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -88,6 +91,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_4(type_t, field1, field2, field3, field4) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -106,6 +110,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_5(type_t, field1, field2, field3, field4, field5) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -125,6 +130,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_6(type_t, field1, field2, field3, field4, field5, field6) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -145,6 +151,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_7(type_t, field1, field2, field3, field4, field5, field6, field7) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -166,6 +173,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_8(type_t, field1, field2, field3, field4, field5, field6, field7, field8) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -188,6 +196,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_9(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -211,6 +220,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_10(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -235,6 +245,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_11(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -260,6 +271,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_12(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -286,6 +298,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11 && field12 == _a_.field12; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_13(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -313,6 +326,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11 && field12 == _a_.field12 && field13 == _a_.field13; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_14(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -341,6 +355,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11 && field12 == _a_.field12 && field13 == _a_.field13 && field14 == _a_.field14; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_15(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -370,6 +385,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11 && field12 == _a_.field12 && field13 == _a_.field13 && field14 == _a_.field14 && field15 == _a_.field15; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_16(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -400,6 +416,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11 && field12 == _a_.field12 && field13 == _a_.field13 && field14 == _a_.field14 && field15 == _a_.field15 && field16 == _a_.field16; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_17(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -431,6 +448,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11 && field12 == _a_.field12 && field13 == _a_.field13 && field14 == _a_.field14 && field15 == _a_.field15 && field16 == _a_.field16 && field17 == _a_.field17; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_18(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -463,6 +481,7 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11 && field12 == _a_.field12 && field13 == _a_.field13 && field14 == _a_.field14 && field15 == _a_.field15 && field16 == _a_.field16 && field17 == _a_.field17 && field18 == _a_.field18; \
     } \
+    int equality_force_semicolon_declaration
 
 #define RDB_MAKE_SEMILATTICE_JOINABLE_19(type_t, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19) \
     inline void semilattice_join(type_t *_a_, const type_t &_b_) { \
@@ -496,5 +515,6 @@ You can also use this with templated types, but it's pretty hacky:
     bool operator==(const type_t &_a_) const { \
         return field1 == _a_.field1 && field2 == _a_.field2 && field3 == _a_.field3 && field4 == _a_.field4 && field5 == _a_.field5 && field6 == _a_.field6 && field7 == _a_.field7 && field8 == _a_.field8 && field9 == _a_.field9 && field10 == _a_.field10 && field11 == _a_.field11 && field12 == _a_.field12 && field13 == _a_.field13 && field14 == _a_.field14 && field15 == _a_.field15 && field16 == _a_.field16 && field17 == _a_.field17 && field18 == _a_.field18 && field19 == _a_.field19; \
     } \
+    int equality_force_semicolon_declaration
 
 #endif  // RPC_SEMILATTICE_JOINS_MACROS_HPP_

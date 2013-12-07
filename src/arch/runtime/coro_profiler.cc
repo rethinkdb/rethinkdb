@@ -8,7 +8,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "arch/runtime/runtime.hpp"
-#include "thread_stack_pcs.hpp"
+#include "rethinkdb_backtrace.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 
@@ -128,6 +128,11 @@ coro_profiler_t::coro_execution_point_key_t coro_profiler_t::get_current_executi
     const size_t max_frames = CORO_PROFILER_BACKTRACE_DEPTH + levels_to_strip_from_backtrace;
     void **stack_frames = new void*[max_frames];
     size_t backtrace_size = rethinkdb_backtrace(stack_frames, max_frames);
+    size_t remaining_size = max_frames - backtrace_size;
+    if (remaining_size > 0) {
+        backtrace_size +=
+            coro_t::self()->copy_spawn_backtrace(stack_frames + backtrace_size, remaining_size);
+    }
     small_trace_t trace;
     for (size_t i = 0; i < CORO_PROFILER_BACKTRACE_DEPTH; ++i) {
         if (i + levels_to_strip_from_backtrace < backtrace_size) {

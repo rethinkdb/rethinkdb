@@ -384,39 +384,10 @@ void listener_read(
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token, signal_t *interruptor) THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t) {
-
-    order_token.assert_read_mode();
-
-    dispatchee_t *reader;
-    auto_drainer_t::lock_t reader_lock;
-    state_timestamp_t timestamp;
-    fifo_enforcer_read_token_t enforcer_token;
-
-    {
-        wait_interruptible(lock, interruptor);
-        mutex_assertion_t::acq_t mutex_acq(&mutex);
-        lock->end();
-
-        pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
-        timestamp = current_timestamp;
-        order_token = order_checkpoint.check_through(order_token);
-
-        /* This is safe even if `interruptor` gets pulsed because nothing
-        checks `interruptor` until after we have sent the message. */
-        enforcer_token = reader->fifo_source.enter_read();
-    }
-
-    try {
-        wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
-        listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
-                                  read, response, timestamp, order_token, enforcer_token,
-                                  &interruptor2);
-    } catch (const interrupted_exc_t &) {
-        if (interruptor->is_pulsed()) {
-            throw;
-        } else {
-            throw cannot_perform_query_exc_t("lost contact with mirror during read");
-        }
+    if (read.all_read()) {
+        all_read(read, response, lock, order_token, interruptor);
+    } else {
+        single_read(read, response, lock, order_token, interruptor);
     }
 }
 
@@ -499,12 +470,12 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
 
 template<class protocol_t>
 void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispatchee_out, mutex_assertion_t::acq_t *proof, auto_drainer_t::lock_t *lock_out) THROWS_ONLY(cannot_perform_query_exc_t) {
-
     ASSERT_FINITE_CORO_WAITING;
     proof->assert_is_holding(&mutex);
 
     if (readable_dispatchees.empty()) {
-        throw cannot_perform_query_exc_t("no mirrors readable. this is strange because the primary mirror should be always readable.");
+        throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
+            "the primary mirror should be always readable.");
     }
     *dispatchee_out = readable_dispatchees.head();
 
@@ -514,6 +485,26 @@ void broadcaster_t<protocol_t>::pick_a_readable_dispatchee(dispatchee_t **dispat
     readable_dispatchees.push_back(*dispatchee_out);
 
     *lock_out = dispatchees[*dispatchee_out];
+}
+
+template <class protocol_t>
+void broadcaster_t<protocol_t>::get_all_readable_dispatchees(
+        std::vector<dispatchee_t *> *dispatchees_out, mutex_assertion_t::acq_t *proof,
+        std::vector<auto_drainer_t::lock_t> *locks_out) THROWS_ONLY(cannot_perform_query_exc_t) {
+    ASSERT_FINITE_CORO_WAITING;
+    proof->assert_is_holding(&mutex);
+    if (readable_dispatchees.empty()) {
+        throw cannot_perform_query_exc_t("No mirrors readable. this is strange because "
+            "the primary mirror should be always readable.");
+    }
+
+    dispatchee_t *dispatchee = readable_dispatchees.head();
+
+    while (dispatchee) {
+        dispatchees_out->push_back(dispatchee);
+        locks_out->push_back(dispatchees[dispatchee]);
+        dispatchee = readable_dispatchees.next(dispatchee);
+    }
 }
 
 template<class protocol_t>
@@ -580,6 +571,117 @@ void broadcaster_t<protocol_t>::end_write(boost::shared_ptr<incomplete_write_t> 
         write->callback->write = NULL;
         write->callback->on_done();
     }
+}
+
+template<class protocol_t>
+void broadcaster_t<protocol_t>::single_read(
+    const typename protocol_t::read_t &read,
+    typename protocol_t::read_response_t *response,
+    fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token,
+    signal_t *interruptor)
+    THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t)
+{
+    guarantee(!read.all_read());
+    order_token.assert_read_mode();
+
+    dispatchee_t *reader;
+    auto_drainer_t::lock_t reader_lock;
+    state_timestamp_t timestamp;
+    fifo_enforcer_read_token_t enforcer_token;
+
+    {
+        wait_interruptible(lock, interruptor);
+        mutex_assertion_t::acq_t mutex_acq(&mutex);
+        lock->end();
+
+        pick_a_readable_dispatchee(&reader, &mutex_acq, &reader_lock);
+        timestamp = current_timestamp;
+        order_token = order_checkpoint.check_through(order_token);
+
+        /* This is safe even if `interruptor` gets pulsed because nothing
+        checks `interruptor` until after we have sent the message. */
+        enforcer_token = reader->fifo_source.enter_read();
+    }
+
+    try {
+        wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
+        listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
+                                  read, response, timestamp, order_token, enforcer_token,
+                                  &interruptor2);
+    } catch (const interrupted_exc_t &) {
+        if (interruptor->is_pulsed()) {
+            throw;
+        } else {
+            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+        }
+    }
+}
+
+template<class protocol_t>
+void broadcaster_t<protocol_t>::all_read(
+    const typename protocol_t::read_t &read,
+    typename protocol_t::read_response_t *response,
+    fifo_enforcer_sink_t::exit_read_t *lock, order_token_t order_token,
+    signal_t *interruptor)
+    THROWS_ONLY(cannot_perform_query_exc_t, interrupted_exc_t)
+{
+    guarantee(read.all_read());
+    order_token.assert_read_mode();
+
+    std::vector<dispatchee_t *> readers;
+    std::vector<auto_drainer_t::lock_t> reader_locks;
+    state_timestamp_t timestamp;
+    std::vector<fifo_enforcer_read_token_t> enforcer_tokens;
+
+    {
+        wait_interruptible(lock, interruptor);
+        mutex_assertion_t::acq_t mutex_acq(&mutex);
+        lock->end();
+
+        get_all_readable_dispatchees(&readers, &mutex_acq, &reader_locks);
+        timestamp = current_timestamp;
+        order_token = order_checkpoint.check_through(order_token);
+
+        /* This is safe even if `interruptor` gets pulsed because nothing
+        checks `interruptor` until after we have sent the message. */
+        for (auto it = readers.begin(); it != readers.end(); ++it) {
+            enforcer_tokens.push_back((*it)->fifo_source.enter_read());
+        }
+        guarantee(readers.size() == reader_locks.size() &&
+                  readers.size() == enforcer_tokens.size());
+    }
+
+    try {
+        wait_any_t interruptor2(interruptor);
+        for (auto it = reader_locks.begin(); it != reader_locks.end(); ++it) {
+            interruptor2.add(it->get_drain_signal());
+        }
+        std::vector<typename protocol_t::read_response_t> responses;
+        responses.resize(readers.size());
+        for (size_t i = 0; i < readers.size(); ++i) {
+            listener_read<protocol_t>(
+                mailbox_manager, readers[i]->read_mailbox, read, &responses[i],
+                timestamp, order_token, enforcer_tokens[i], &interruptor2);
+
+            /* Notice this is a bit of a hack here, we're passing a default
+             * constructed context here to the UNSHARD function. This is
+             * only works if the unsharding of all_reads doesn't require
+             * anything fancy like reads to other databases. Should we ever
+             * have need for a real context here it's not too hard to add but
+             * for the time being I can't see an actual use case so I'm not
+             * adding it.*/
+            read.unshard(responses.data(), responses.size(), response,
+                         static_cast<typename protocol_t::context_t *>(NULL),
+                         &interruptor2);
+        }
+    } catch (const interrupted_exc_t &) {
+        if (interruptor->is_pulsed()) {
+            throw;
+        } else {
+            throw cannot_perform_query_exc_t("lost contact with mirror during read");
+        }
+    }
+
 }
 
 /* This function sanity-checks `incomplete_writes`, `current_timestamp`,

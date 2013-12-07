@@ -19,7 +19,7 @@
 
 #include "perfmon/perfmon.hpp"
 #include "utils.hpp"
-#include "thread_stack_pcs.hpp"
+#include "rethinkdb_backtrace.hpp"
 #include "arch/runtime/coro_profiler.hpp"
 
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
@@ -321,27 +321,9 @@ void coro_t::move_to_thread(threadnum_t thread) {
         // If we're trying to switch to the thread we're currently on, do nothing.
         return;
     }
-#ifndef NDEBUG
-    /* Switch the coro counter to the new thread 1/2 */
-    rassert(cglobals->coro_count > 0);
-    cglobals->coro_count--;
-    rassert(cglobals->running_coroutine_counts[self()->coroutine_type.c_str()] > 0);
-    cglobals->running_coroutine_counts[self()->coroutine_type.c_str()]--;
-    rassert(cglobals->total_coroutine_counts[self()->coroutine_type.c_str()] > 0);
-    cglobals->total_coroutine_counts[self()->coroutine_type.c_str()]--;
-    rassert(cglobals->active_coroutines.find(self()) != cglobals->active_coroutines.end());
-    cglobals->active_coroutines.erase(self());
-#endif
     self()->current_thread_ = thread;
     self()->notify_later_ordered();
     wait();
-#ifndef NDEBUG
-    /* Switch the coro counter to the new thread 2/2 */
-    cglobals->coro_count++;
-    cglobals->running_coroutine_counts[self()->coroutine_type.c_str()]++;
-    cglobals->total_coroutine_counts[self()->coroutine_type.c_str()]++;
-    cglobals->active_coroutines.insert(self());
-#endif
 }
 
 void coro_t::on_thread_switch() {

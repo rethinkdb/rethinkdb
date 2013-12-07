@@ -54,6 +54,9 @@ typedef rdb_protocol_t::distribution_read_response_t distribution_read_response_
 typedef rdb_protocol_t::sindex_list_t sindex_list_t;
 typedef rdb_protocol_t::sindex_list_response_t sindex_list_response_t;
 
+typedef rdb_protocol_t::sindex_status_t sindex_status_t;
+typedef rdb_protocol_t::sindex_status_response_t sindex_status_response_t;
+
 typedef rdb_protocol_t::write_t write_t;
 typedef rdb_protocol_t::write_response_t write_response_t;
 
@@ -300,15 +303,12 @@ void post_construct_and_drain_queue(
 
             while (mod_queue->size() >= previous_size &&
                    mod_queue->size() > 0) {
-                std::vector<char> data_vec;
-                mod_queue->pop(&data_vec);
-                vector_read_stream_t read_stream(&data_vec);
-
                 rdb_sindex_change_t sindex_change;
-                archive_result_t ser_res = deserialize(&read_stream, &sindex_change);
-                guarantee_deserialization(ser_res, "disk-backed queue");
-
-                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes, queue_txn.get(), lock.get_drain_signal()),
+                deserializing_viewer_t<rdb_sindex_change_t> viewer(&sindex_change);
+                mod_queue->pop(&viewer);
+                boost::apply_visitor(apply_sindex_change_visitor_t(&sindexes,
+                                                                   queue_txn.get(),
+                                                                   lock.get_drain_signal()),
                                      sindex_change);
             }
 
@@ -386,6 +386,13 @@ bool range_key_tester_t::key_should_be_erased(const btree_key_t *key) {
 typedef boost::variant<rdb_modification_report_t,
                        rdb_erase_range_report_t>
         sindex_change_t;
+
+void add_status(const single_sindex_status_t &new_status,
+    single_sindex_status_t *status_out) {
+    status_out->blocks_processed += new_status.blocks_processed;
+    status_out->blocks_total += new_status.blocks_total;
+    status_out->ready &= new_status.ready;
+}
 
 }  // namespace rdb_protocol_details
 
@@ -482,6 +489,10 @@ struct rdb_r_get_region_visitor : public boost::static_visitor<region_t> {
     region_t operator()(UNUSED const sindex_list_t &sl) const {
         return rdb_protocol_t::monokey_region(sindex_list_region_key());
     }
+
+    region_t operator()(const sindex_status_t &ss) const {
+        return ss.region;
+    }
 };
 
 region_t read_t::get_region() const THROWS_NOTHING {
@@ -532,6 +543,10 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
 
     bool operator()(const sindex_list_t &sl) const {
         return keyed_read(sl, sindex_list_region_key());
+    }
+
+    bool operator()(const sindex_status_t &ss) const {
+        return rangey_read(ss);
     }
 
     const hash_region_t<key_range_t> *region;
@@ -594,6 +609,14 @@ public:
                  interruptor,
                  ctx->machine_id,
                  ql::protob_t<Query>())
+    { }
+
+    rdb_r_unshard_visitor_t(const read_response_t *_responses,
+                            size_t _count,
+                            read_response_t *_response_out,
+                            signal_t *interruptor)
+        : responses(_responses), count(_count), response_out(_response_out),
+          ql_env(interruptor)
     { }
 
     void operator()(const point_read_t &) {
@@ -699,6 +722,19 @@ public:
         guarantee(count == 1);
         guarantee(boost::get<sindex_list_response_t>(&responses[0].response));
         *response_out = responses[0];
+    }
+
+    void operator()(UNUSED const sindex_status_t &ss) {
+        *response_out = read_response_t(sindex_status_response_t());
+        auto ss_response = boost::get<sindex_status_response_t>(&response_out->response);
+        for (size_t i = 0; i < count; ++i) {
+            auto resp = boost::get<sindex_status_response_t>(&responses[0].response);
+            guarantee(resp);
+            for (auto it = resp->statuses.begin();
+                 it != resp->statuses.end(); ++it) {
+                add_status(it->second, &ss_response->statuses[it->first]);
+            }
+        }
     }
 
 private:
@@ -879,6 +915,8 @@ private:
             /* Evaluation threw so we're not going to be accepting any
                more requests. */
             terminal_exception(e, *rg.terminal, &rg_response->result);
+        } catch (const ql::exc_t &e) {
+            rg_response->result = e;
         }
     }
 };
@@ -887,8 +925,13 @@ void read_t::unshard(read_response_t *responses, size_t count,
                      read_response_t *response_out, context_t *ctx,
                      signal_t *interruptor) const
     THROWS_ONLY(interrupted_exc_t) {
-    rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
-    boost::apply_visitor(v, read);
+    if (ctx != NULL) {
+        rdb_r_unshard_visitor_t v(responses, count, response_out, ctx, interruptor);
+        boost::apply_visitor(v, read);
+    } else {
+        rdb_r_unshard_visitor_t v(responses, count, response_out, interruptor);
+        boost::apply_visitor(v, read);
+    }
 
     /* We've got some profiling to do. */
     /* This is a tad hacky, some of the methods in rdb_r_unshard_visitor_t set
@@ -1334,6 +1377,34 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         res->sindexes.reserve(sindexes.size());
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             res->sindexes.push_back(it->first);
+        }
+    }
+
+    void operator()(const sindex_status_t &sindex_status) {
+        response->response = sindex_status_response_t();
+        auto res = &boost::get<sindex_status_response_t>(response->response);
+
+        std::map<std::string, secondary_index_t> sindexes;
+        store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
+
+        for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+            if (std_contains(sindex_status.sindexes, it->first) ||
+                sindex_status.sindexes.empty()) {
+                progress_completion_fraction_t frac =
+                    store->get_progress(it->second.id);
+                rdb_protocol_details::single_sindex_status_t *s =
+                    &res->statuses[it->first];
+                s->ready = it->second.post_construction_complete;
+                if (!s->ready) {
+                    if (frac.estimate_of_total_nodes == -1) {
+                        s->blocks_processed = 0;
+                        s->blocks_total = 0;
+                    } else {
+                        s->blocks_processed = frac.estimate_of_released_nodes;
+                        s->blocks_total = frac.estimate_of_total_nodes;
+                    }
+                }
+            }
         }
     }
 
@@ -1895,6 +1966,8 @@ region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
 }
 
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::rget_item_t, key, sindex_key, data);
+RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_details::single_sindex_status_t,
+                           blocks_total, blocks_processed, ready);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_response_t, data);
 RDB_IMPL_ME_SERIALIZABLE_4(rdb_protocol_t::rget_read_response_t,
@@ -1904,6 +1977,7 @@ RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::distribution_read_response_t,
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_list_response_t, sindexes);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::read_response_t,
                            response, event_log, n_shards);
+RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::sindex_status_response_t, statuses);
 
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_read_t, key);
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::sindex_rangespec_t,
@@ -1921,6 +1995,7 @@ RDB_IMPL_ME_SERIALIZABLE_7(rdb_protocol_t::rget_read_t,
 RDB_IMPL_ME_SERIALIZABLE_3(rdb_protocol_t::distribution_read_t,
                            max_depth, result_limit, region);
 RDB_IMPL_ME_SERIALIZABLE_0(rdb_protocol_t::sindex_list_t);
+RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::sindex_status_t, sindexes, region);
 RDB_IMPL_ME_SERIALIZABLE_2(rdb_protocol_t::read_t, read, profile);
 RDB_IMPL_ME_SERIALIZABLE_1(rdb_protocol_t::point_write_response_t, result);
 
