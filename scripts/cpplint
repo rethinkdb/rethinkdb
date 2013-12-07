@@ -2943,7 +2943,7 @@ _HEADERS_CONTAINING_TEMPLATES = (
     ('<set>', ('set', 'multiset',)),
     ('<stack>', ('stack',)),
     ('<string>', ('char_traits', 'basic_string',)),
-    ('<utility>', ('pair',)),
+    ('<utility>', ('pair','swap')),
     ('<vector>', ('vector',)),
 
     # gcc extensions.
@@ -2963,7 +2963,7 @@ for _template in ('copy', 'max', 'min', 'min_element', 'sort', 'swap',
   _re_pattern_algorithm_header.append(
       (re.compile(r'[^>.]\b' + _template + r'(<.*?>)?\([^\)]'),
        _template,
-       '<algorithm>'))
+       '<algorithm>' if _template != 'swap' else '<utility>'))
 
 _re_pattern_templates = []
 for _header, _templates in _HEADERS_CONTAINING_TEMPLATES:
