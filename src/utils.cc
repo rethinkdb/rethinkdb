@@ -7,6 +7,7 @@
 #include <ftw.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <locale.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <inttypes.h>
