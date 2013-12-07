@@ -80,20 +80,18 @@ private:
 
             bool value_changed = false;
             struct op_closure_t {
-                void apply(const outer_type *val) {
-                    *value_changed = (*lens)(*val, cached_value);
+                static void apply(callable_type *_lens,
+                                  bool *_value_changed,
+                                  result_type *_cached_value,
+                                  const outer_type *val) {
+                    *_value_changed = (*_lens)(*val, _cached_value);
                 }
-                op_closure_t(callable_type *c1, bool *c2, result_type *c3) :
-                    lens(c1),
-                    value_changed(c2),
-                    cached_value(c3) { }
-                callable_type *lens;
-                bool *value_changed;
-                result_type *cached_value;
             };
-            op_closure_t op(&lens, &value_changed, &cached_value);
 
-            parent->apply_read(std::bind(&op_closure_t::apply, &op,
+            parent->apply_read(std::bind(&op_closure_t::apply,
+                                         &lens,
+                                         &value_changed,
+                                         &cached_value,
                                          std::placeholders::_1));
 
             return value_changed;
