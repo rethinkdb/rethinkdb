@@ -65,16 +65,20 @@ module 'DataExplorerView', ->
             'mousedown .suggestion_description': 'mouse_down_description'
             'click .suggestion_description': 'stop_propagation'
             'mouseup .suggestion_description': 'mouse_up_description'
+            'mousedown .suggestion_full_container': 'mouse_down_description'
+            'click .suggestion_full_container': 'stop_propagation'
+            'mousedown .CodeMirror': 'mouse_down_description'
+            'click .CodeMirror': 'stop_propagation'
 
         mouse_down_description: (event) =>
-            @click_on_description = true
+            @keep_suggestions_on_blur = true
             @stop_propagation event
 
         stop_propagation: (event) =>
             event.stopPropagation()
 
         mouse_up_description: (event) =>
-            @click_on_description = false
+            @keep_suggestions_on_blur = false
             @stop_propagation event
 
         start_resize_history: (event) =>
@@ -484,7 +488,7 @@ module 'DataExplorerView', ->
             $(window).mouseup @handle_mouseup
             $(window).mousedown @handle_mousedown
             @id_execution = 0
-            @click_on_description = false
+            @keep_suggestions_on_blur = false
 
             @render()
 
@@ -499,7 +503,7 @@ module 'DataExplorerView', ->
         handle_mousedown: (event) =>
             # $(window) caught a mousedown event, so it wasn't caught by $('.suggestion_description')
             # Let's hide the suggestion/description
-            @click_on_description = false
+            @keep_suggestions_on_blur = false
             @hide_suggestion_and_description()
 
         render: =>
@@ -582,7 +586,7 @@ module 'DataExplorerView', ->
         on_blur: =>
             @state.focus_on_codemirror = false
             # We hide the description only if the user isn't selecting text from a description.
-            if @click_on_description is false
+            if @keep_suggestions_on_blur is false
                 @hide_suggestion_and_description()
 
         # We have to keep track of a lot of things because web-kit browsers handle the events keydown, keyup, blur etc... in a strange way.
