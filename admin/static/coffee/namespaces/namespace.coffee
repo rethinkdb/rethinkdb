@@ -58,6 +58,7 @@ module 'NamespaceView', ->
                 window.router.navigate '#tables'
                 window.app.index_namespaces
                     alert_message: "The table <a href=\"#tables/#{@model.get('id')}\">#{@model.get('name')}</a> could not be found and was probably deleted."
+
         change_route: (event) =>
             # Because we are using bootstrap tab. We should remove them later. TODO
             window.router.navigate @.$(event.target).attr('href')
@@ -203,26 +204,40 @@ module 'NamespaceView', ->
 
     class @SecondaryIndexesView extends Backbone.View
         template: Handlebars.templates['namespace_view-secondary_indexes-template']
-        content_template: Handlebars.templates['namespace_view-secondary_indexes-content-template']
         alert_message_template: Handlebars.templates['secondary_indexes-alert_msg-template']
         error_template: Handlebars.templates['secondary_indexes-error-template']
         events:
-            'click .delete_link': 'confirm_delete'
-            'click .delete_index_btn': 'delete_secondary_index'
-            'click .cancel_delete_btn': 'cancel_delete'
             'click .create_link': 'show_add_index'
             'click .create_btn': 'create_index'
-            'keydown .secondary_index_name': 'handle_keypress'
+            'keydown .new_index_name': 'handle_keypress'
             'click .cancel_btn': 'hide_add_index'
             'click .reconnect_link': 'init_connection'
             'click .close_hide': 'hide_alert'
         error_interval: 5*1000 # In case of an error, we try to retrieve the secondary index in 5 seconds
         normal_interval: 60*1000 # Retrieve secondary indexes every minute
+        short_interval: 1000 # Interval when an index is being created
 
-        initialize: =>
+        initialize: (args) =>
+            @model = args.model
+
+            @db = databases.get @model.get('database')
+            @update_info()
+
+            @db.on 'change:name', @update_info
+            @model.on 'change:name', @update_info
+
+            @indexes = {}
+            @indexes_count = 0
+
+            @adding_index = false
+            @loading = true
+
             @init_connection()
-            @secondary_indexes = null
-            @deleting_secondary_index = null
+
+        # Update table and database names
+        update_info: =>
+            @db_name = @db.get 'name'
+            @table = @model.get 'name'
 
         # Create a connection and fetch secondary indexes
         init_connection: (event) =>
@@ -231,149 +246,141 @@ module 'NamespaceView', ->
 
             @loading = true
             @driver_handler = new DataExplorerView.DriverHandler
-                on_success: @set_interval_get_indexes
+                on_success: =>
+                    @get_indexes
+                        timer: true
                 on_fail: @on_fail_to_connect
                 dont_timeout_connection: true
-            @secondary_indexes = null # list of secondary indexes available
-            @deleting_secondary_index = null # The secondary index being deleted (with a confirm box displayed)
 
-            @db = databases.get(@model.get('database'))
-            @db.on 'change:name', @save_name
-            @model.on 'change:name', @save_name
-            @save_name()
+        get_indexes: (args) =>
+            if args?.timer is true
+                r.db(@db_name).table(@table).indexStatus().private_run @driver_handler.connection, @on_index_list_repeat
+            else
+                r.db(@db_name).table(@table).indexStatus().private_run @driver_handler.connection, @on_index_list
 
-        save_name: =>
-            @table = @model.get('name')
-            @db_name = @db.get('name')
+        on_index_list_repeat: (err, result) =>
+            @on_index_list err, result, true
 
-        # Show a confirmation before deleting a secondary index
-        confirm_delete: (event) =>
-            event.preventDefault()
-            deleting_secondary_index = @$(event.target).data('name')
-            @adding_index = false # Less states = better, so we hide the form to create an index if the user is about to delete one
-            @render_content()
-            if deleting_secondary_index isnt @deleting_secondary_index
-                @deleting_secondary_index = deleting_secondary_index
-                @$('.alert_confirm_delete').slideUp 'fast'
-                @$('.alert_confirm_delete_'+@deleting_secondary_index).slideDown 'fast'
+        on_index_list: (err, result, timer) =>
+            if @loading is true
+                @loading = false
+                @render()
+            if err?
+                @render_error
+                    index_list_fail: true
+                @timeout = setTimeout @get_indexes, @error_interval
+            else
+                index_hash = {}
+                indexes_not_ready = 0
+                for index, i in result
+                    index_hash[index.index] = true
+
+                    if index.ready is false
+                        indexes_not_ready++
+
+                    if @indexes[index.index]?
+                        @indexes[index.index].update index
+                    else # new index
+                        position_new_index = -1
+                        for displayed_index of @indexes
+                            if displayed_index < index.index
+                                position_new_index++
+
+                        @indexes[index.index] = new NamespaceView.SecondaryIndexView index, @
+                
+                        if position_new_index is -1
+                            @$('.list_secondary_indexes').prepend @indexes[index.index].render().$el
+                        else
+                            @$('.index_container').eq(position_new_index).after @indexes[index.index].render().$el
+
+                if timer
+                    if @timeout?
+                        clearTimeout @timeout
+                    if indexes_not_ready > 0
+                        @timeout = setTimeout =>
+                            @get_indexes
+                                timer: true
+                        , @short_interval
+                    else
+                        @timeout = setTimeout =>
+                            @get_indexes
+                                timer: true
+                        , @normal_interval
+
+
+                count = 0
+                for name, index of @indexes
+                    if not index_hash[name]?
+                        @$('.index-'+name).remove()
+                        delete @indexes[name]
+                    else
+                        count++
+                if count is 0
+                    @$('.no_index').show()
+                else
+                    @$('.no_index').hide()
+
+        render_error: (args) =>
+            @$('.alert_error_content').html @error_template args
+            @$('.main_alert_error').slideDown 'fast'
+            @$('.main_alert').slideUp 'fast'
+
+        render_feedback: (args) =>
+            @$('.alert_content').html @alert_message_template args
+            @$('.main_alert').slideDown 'fast'
+            @$('.main_alert_error').slideUp 'fast'
 
         # Delete a secondary index
-        delete_secondary_index: (event) =>
-            @current_secondary_name = @$(event.target).data('name')
-            @deleting_secondary_index = @$(event.target).data('name')
-            r.db(@db_name).table(@table).indexDrop(@current_secondary_name).private_run @driver_handler.connection, @on_drop
+        delete_index: (index) =>
+            r.db(@db_name).table(@table).indexDrop(index).private_run @driver_handler.connection, (err, result) =>
+                @on_drop err, result, index
+
+        remove_index: (index) =>
+            @$('.index_container[data-name="'+index+'"]').slideUp 200, ->
+                @remove()
+            delete @indexes[index]
+
+            count = 0
+            for key of @indexes
+                count++
+                break
+            if count is 0
+                @$('.no_index').hide()
 
         # Callback for indexDrop()
-        on_drop: (err, result) =>
-            if @current_secondary_name is @deleting_secondary_index
-                @deleting_secondary_index = null
-
-            if err? or result?.dropped isnt 1
-                @loading = false
-                @$('.alert_error_content').html @error_template
+        on_drop: (err, result, index) =>
+            if err?
+                @render_error
                     delete_fail: true
                     message: err.msg.replace('\n', '<br/>')
-                @$('.main_alert').slideUp 'fast'
-                @$('.main_alert_error').slideDown 'fast'
-                @get_indexes()
-
+            else if result?.dropped isnt 1
+                @render_error
+                    delete_fail: true
+                    message: "Unknown error"
             else
-                @get_indexes()
-                @$('.alert_content').html @alert_message_template
+                @remove_index index
+                @render_feedback
                     delete_ok: true
-                    name: @current_secondary_name
-                @$('.main_alert').slideDown 'fast'
-                @$('.main_alert_error').slideUp 'fast'
+                    name: index
 
+        render: =>
+            @$el.html @template
+                loading: @loading
+                adding_index: @adding_index
+            return @
 
         # Show the form to add a secondary index
         show_add_index: (event) =>
             event.preventDefault()
-            @adding_index = true
-            @deleting_secondary_index = null
-            @render_content()
-            @$('.alert_confirm_delete').slideUp 'fast'
+            @$('.add_index_li').slideDown 'fast'
+            @$('.create_container').slideUp 'fast'
+            @$('.new_index_name').focus()
         
         # Hide the form to add a secondary index
         hide_add_index: =>
-            @adding_index = false
-            @render_content()
-
-        # Render list of secondary index
-        render_content: (args) =>
-            that = @
-            if not args?
-                args = {}
-            mapped_secondary_indexes = _.map @secondary_indexes, (d) ->
-                name: d
-                display: that.deleting_secondary_index is d
-                is_empty: d is ''
-
-            template_args =
-                loading: @loading
-                secondary_indexes: mapped_secondary_indexes
-                no_secondary_indexes: @secondary_indexes? and @secondary_indexes.length is 0
-                show_add_index: @adding_index
-                secondary_index_name: @secondary_index_name
-            @$('.content').html @content_template _.extend template_args, args
-            if @adding_index
-                @$('.secondary_index_name').focus()
-            @delegateEvents()
-
-        render: =>
-            @$el.html @template()
-            @render_content()
-            return @
-       
-        # Retrieve secondary indexes with an interval
-        set_interval_get_indexes: =>
-            @get_indexes
-                set_timeout: true
-
-        get_indexes: (args) =>
-            if args?.set_timeout is true
-                r.db(@db_name).table(@table).indexList().private_run @driver_handler.connection, @on_index_list_repeat
-            else
-                r.db(@db_name).table(@table).indexList().private_run @driver_handler.connection, @on_index_list
-
-        # Callback on indexList
-        on_index_list: (err, result) =>
-            if err?
-                @loading = false
-                @render_content
-                    error: true
-                    index_list: true
-            else
-                @loading = false
-                secondary_indexes = result.sort()
-                if not _.isEqual @secondary_indexes, secondary_indexes
-                    @secondary_indexes = secondary_indexes
-                    @render_content()
-
-        # Same as on_index_list except we set a timeout.
-        on_index_list_repeat: (err, result) =>
-            if err?
-                @loading = false
-                @render_content
-                    error: true
-                    index_list: true
-                @timeout = setTimeout @set_interval_get_indexes, @error_interval
-            else
-                @loading = false
-                secondary_indexes = result.sort()
-                if not _.isEqual @secondary_indexes, secondary_indexes
-                    @secondary_indexes = secondary_indexes
-                    @render_content()
-                @timeout = setTimeout @set_interval_get_indexes, @normal_interval
-
-
-        
-        on_fail_to_connect: =>
-            @loading = false
-            @$el.html @template
-                error: true
-                connect: true
-            return @
+            @$('.add_index_li').slideUp 'fast'
+            @$('.create_container').slideDown 'fast'
+            @$('.new_index_name').val ''
 
         # We catch enter and esc when the user is writing a secondary index name
         handle_keypress: (event) =>
@@ -383,30 +390,64 @@ module 'NamespaceView', ->
             else if event.which is 27 # ESC
                 event.preventDefault()
                 @hide_add_index()
-            else
-                @current_secondary_name = $('.secondary_index_name').val()
+       
+        on_fail_to_connect: =>
+            @loading = false
+            @render_error
+                connect_fail: true
+            return @
 
         create_index: =>
-            @current_secondary_name = $('.secondary_index_name').val()
-            r.db(@db_name).table(@table).indexCreate(@current_secondary_name).private_run @driver_handler.connection, @on_create
+            @$('.create_btn').prop 'disabled', 'disabled'
+            @$('.cancel_btn').prop 'disabled', 'disabled'
+
+            index_name = $('.new_index_name').val()
+            r.db(@db_name).table(@table).indexCreate(index_name).private_run @driver_handler.connection, (err, result) =>
+                @on_create err, result, index_name
 
         # Callback on indexCreate()
-        on_create: (err, result) =>
+        on_create: (err, result, index_name) =>
+            @$('.create_btn').prop 'disabled', false
+            @$('.cancel_btn').prop 'disabled', false
             that = @
             if err?
-                @$('.alert_error_content').html @error_template
+                @render_error
                     create_fail: true
                     message: err.msg.replace('\n', '<br/>')
-                @$('.main_alert_error').slideDown 'fast'
-                @$('.main_alert').slideUp 'fast'
             else
-                @adding_index = false
-                @get_indexes()
-                @$('.alert_content').html @alert_message_template
+                @$('.no_index').hide()
+                
+                position_new_index = -1
+                for displayed_index of @indexes
+                    if displayed_index < index_name
+                        position_new_index++
+
+                if not @indexes[index_name]?
+                    @indexes[index_name] = new NamespaceView.SecondaryIndexView
+                        index: index_name
+                        ready: false
+                        blocks_processed: 0
+                        blocks_total: Infinity
+                    , @
+
+                    if position_new_index is -1
+                        @$('.list_secondary_indexes').prepend @indexes[index_name].render().$el
+                    else
+                        @$('.index_container').eq(position_new_index).after @indexes[index_name].render().$el
+
+
+                if @timeout?
+                    clearTimeout @timeout
+                @timeout = setTimeout =>
+                    @get_indexes
+                        timer: true
+                , 1000 # We delay the call of 1 second to retrieve a better estimate of the total number of blocks
+
+                @render_feedback
                     create_ok: true
-                    name: @current_secondary_name
-                @$('.main_alert_error').slideUp 'fast'
-                @$('.main_alert').slideDown 'fast'
+                    name: index_name
+
+                @hide_add_index()
 
         # Hide alert BUT do not remove it
         hide_alert: (event) ->
@@ -415,15 +456,81 @@ module 'NamespaceView', ->
             event.preventDefault()
             $(event.target).parent().slideUp 'fast'
         
-        # Close to hide_alert, but the way to reach the alert is slightly different than with the x link
-        cancel_delete: (event) ->
-            if event? and @$(event.target)?.data('name')?
-                @deleting_secondary_index = null
-            @$(event.target).parent().parent().slideUp 'fast'
-
         destroy: =>
             if @timeout?
                 clearTimeout @timeout
-            @db.off 'change:name', @save_name
-            @model.off 'change:name', @save_name
+            @db.off 'change:name', @update_info
+            @model.off 'change:name', @update_info
+            for key, view of @indexes
+                view.destroy()
 
+    class @SecondaryIndexView extends Backbone.View
+        template: Handlebars.templates['namespace_view-secondary_index-template']
+        progress_template: Handlebars.templates['simple_progressbar-template']
+        events:
+            'click .delete_link': 'confirm_delete'
+            'click .delete_index_btn': 'delete_index'
+            'click .cancel_delete_btn': 'cancel_delete'
+
+        tagName: 'li'
+        className: 'index_container'
+
+        initialize: (index, container) =>
+            @name = index.index
+            @ready = index.ready
+            @progress_bar = null
+            @container = container
+            @$el.attr('data-name', @name)
+            @blocks_processed = index.blocks_processed
+            @blocks_total = index.blocks_total
+
+
+        update: (args) =>
+            if args.ready is false
+                @blocks_processed = args.blocks_processed
+                @blocks_total = args.blocks_total
+                @render_progress_bar()
+            else
+                if @ready isnt args.ready
+                    @blocks_processed = @blocks_total
+                    @render_progress_bar()
+
+                @ready = args.ready
+
+            
+
+        render: =>
+            @$el.html @template
+                is_empty: false
+                name: @name
+                ready: @ready
+            if @ready is false
+                @render_progress_bar()
+            @
+
+        render_progress_bar: =>
+            if @progress_bar?
+
+                @progress_bar.render @blocks_processed, @blocks_total,
+                    got_response: true
+                    check: true
+            else
+                @progress_bar = new UIComponents.OperationProgressBar @progress_template
+                @$('.progress_li').html @progress_bar.render(0, Infinity, {new_value: true, check: true}).$el
+
+        # Show a confirmation before deleting a secondary index
+        confirm_delete: (event) =>
+            event.preventDefault()
+            @$('.alert_confirm_delete').slideDown 'fast'
+
+        delete_index: =>
+            @$('.btn').prop 'disabled', 'disabled'
+            @container.delete_index @name
+
+        # Close to hide_alert, but the way to reach the alert is slightly different than with the x link
+        cancel_delete: ->
+            @$('.alert_confirm_delete').slideUp 'fast'
+
+        destroy: =>
+            if @progress_bar?
+                @progress_bar.destroy()

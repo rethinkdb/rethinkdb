@@ -14,8 +14,12 @@ module 'UIComponents', ->
             if template?
                 @template = template
             else
-                template = Handlebars.templates['progressbar-template']
+                @template = Handlebars.templates['progressbar-template']
             @timeout = null
+            @percent = 0
+
+        reset_percent: =>
+            @percent = 0
 
         # The render function takes a number of arguments:
         #   - current_value: current value of the operation or status being monitored
@@ -65,6 +69,14 @@ module 'UIComponents', ->
                     percent_complete = 0
                 else
                     percent_complete = Math.floor current_value/max_value*100
+
+                # Make sure we never go back
+                if additional_info.check is true
+                    if percent_complete < @percent
+                        percent_complete = @percent
+                    else
+                        @percent = percent_complete
+
                 data = _.extend data,
                     operation_active: true
                     processing: true

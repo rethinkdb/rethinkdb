@@ -61,58 +61,46 @@
 <script id="namespace_view-secondary_indexes-template" type="text/x-handlebars-template">
     <h2 class="title">Secondary indexes</h2>
     <div class="alert main_alert">
-      <a class="close_hide" href="#">&times;</a>
-      <div class="alert_content"></div>
+        <a class="close_hide" href="#">&times;</a>
+        <div class="alert_content"></div>
     </div>
     <div class="alert alert-error main_alert_error">
         <a class="close_hide" href="#">&times;</a>
         <div class="alert_error_content"></div>
     </div>
     <div class="alert alert-error"></div>
-    <div class="content"></div>
+    <div class="content">
+        {{#if loading}}
+        <p>Loading...</p>
+        {{else}}
+        <ul class="list_secondary_indexes">
+            <li class="square_li no_index">No secondary indexes found.</li>
+
+            <li class="square_li input_li add_index_li"><input type="text" class="new_index_name" placeholder="name of the key" /><button class="btn cancel_btn">Cancel</button><button class="btn create_btn">Create</button></li>
+        </ul>
+        <div class="create_container"><a href="#" class="create_link">Create a new secondary index &rarr;</a></div>
+        {{/if}}
+    </div>
 </script>
 
 <script id="namespace_view-secondary_indexes-content-template" type="text/x-handlebars-template">
-    {{#if loading}}
-        <p>Loading...</p>
-    {{else}}
-        {{#if error}}
-            <div class="alert alert-error displayed_alert">
-                {{#if connect}}
-                <p>An error occured: Could not open a connection. <a href="#" class="reconnect_link">Try again</a>.</p>
-                {{/if}}
-                {{#if index_list}}
-                <p>An error occurred: could not retrieve secondary indexes. <a href="#" class="reconnect_link">Try again</a>.</p>
-                {{/if}}
-            </div>
-        {{else}}
-             <ul class="list_secondary_indexes">
-            {{#if no_secondary_indexes}}
-                <li class="square_li">No secondary indexes found.</li>
-            {{else}}
-                {{#each secondary_indexes}}
-                <li class="square_li">{{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}} — <a href="#" data-name="{{name}}" class="delete_link">delete</a></li>
-                <li class="alert_li">
-                <div class="alert {{#if display}}displayed_alert{{/if}} alert_confirm_delete alert_confirm_delete_{{name}}">
-                        <div class="content">
-                            Are you sure you want to delete the secondary index {{#if is_empty}}<em>[empty string]</em>{{else}}<strong>{{name}}</strong>{{/if}}?<br/>
-                            <button class="btn cancel_delete_btn" data-name="{{name}}">Cancel</button><button class="btn delete_index_btn" data-name="{{name}}">Delete</button>
-                        </div>
-                    </div>
-                </li>
-                {{/each}}
-            {{/if}}
-            {{#if show_add_index}}
-            <li class="square_li input_li"><input type="text" class="secondary_index_name" value="{{secondary_index_name}}" placeholder="name of the key" /><button class="btn cancel_btn">Cancel</button><button class="btn create_btn">Create</button></li>
-            {{/if}}
-            </ul>
-
-            {{#unless show_add_index}}
-                <div class="create_container"><a href="#" class="create_link">Create a new secondary index &rarr;</a></div>
-            {{/unless}}
-
-        {{/if}}
+    {{#if error}}
+        <div class="alert alert-error displayed_alert">
+        </div>
     {{/if}}
+</script>
+
+<script id="namespace_view-secondary_index-template" type="text/x-handlebars-template">
+    <div class="square_li">{{#if is_empty}}<em>[empty string]</em>{{else}}{{name}}{{/if}} — {{#if ready}}ready{{else}}building{{/if}} — <a href="#" data-name="{{name}}" class="delete_link">delete</a></div>
+    <div class="progress_li"></div>
+    <div class="alert_li">
+        <div class="alert alert_confirm_delete">
+            <div class="content">
+                Are you sure you want to delete the secondary index {{#if is_empty}}<em>[empty string]</em>{{else}}<strong>{{name}}</strong>{{/if}}?<br/>
+                <button class="btn cancel_delete_btn">Cancel</button><button class="btn delete_index_btn">Delete</button>
+            </div>
+        </div>
+    </div>
 </script>
 
 <script id="secondary_indexes-alert_msg-template" type="text/x-handlebars-template">
@@ -125,6 +113,12 @@
 </script>
 
 <script id="secondary_indexes-error-template" type="text/x-handlebars-template">
+    {{#if connect_fail}}
+    <p>An error occured: Could not open a connection. <a href="#" class="reconnect_link">Try again</a>.</p>
+    {{/if}}
+    {{#if index_list_fail}}
+    <p>An error occurred: could not retrieve secondary indexes. <a href="#" class="reconnect_link">Try again</a>.</p>
+    {{/if}}
     {{#if create_fail}}
     <p>The secondary index could not be created:</p>
     <div class="error_detail">

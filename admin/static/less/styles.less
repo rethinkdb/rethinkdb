@@ -2629,7 +2629,7 @@ TODO: retire this
                 font-family: @sans;
                 font-size: 15px;
                 color: #a9a9a9;
-                .secondary_index_name{
+                .new_index_name{
                     margin-bottom: -1px;
                 }
             }
@@ -2641,6 +2641,9 @@ TODO: retire this
                     margin-top: 5px;
                     margin-bottom: 5px;
                 }
+            }
+            .add_index_li{
+                display: none;
             }
         }
         .create_container{
@@ -2821,17 +2824,33 @@ TODO: retire this
     Progress bar UIComponent
     ----------------------------
 */
-.replica-status, .shard-status {
+
+.replica-status, .shard-status{
+    p {
+        margin: 0;
+        line-height: 48px;
+    }
+    .progress-status {
+        p {
+            margin-bottom: 10px;
+        }
+    }
+}
+.secondary_indexes{
+    .progress-status {
+        p {
+            margin: -5px 0px 0px 0px;
+        }
+    }
+}
+
+.replica-status, .shard-status, .secondary_indexes {
     font-family: @sans;
     font-size: 15px;
     color: #72BDDF;
     padding: 10px 0;
     border-bottom: 1px solid #efefef;
     margin-bottom: 20px;
-    p {
-        margin: 0;
-        line-height: 48px;
-    }
     span.big {
         font-size: 24px;
         color: #5C6169;
@@ -2841,9 +2860,7 @@ TODO: retire this
         p {
             color: #a9a9a9;
             line-height: normal;
-            margin-bottom: 10px;
         }
-
         .progress {
             height: 12px;
             .border-radius(12px);
