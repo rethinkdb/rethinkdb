@@ -348,25 +348,21 @@ private:
             DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
 
 
-            /* C++11: auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool { ... }
-            Because we cannot use C++11 lambdas yet due to missing support in
-            GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
-                bool operator()(namespaces_directory_metadata_t<protocol_t> *directory) {
+                static bool apply(const namespace_id_t namespace_id,
+                                  reactor_t<protocol_t> *reactor,
+                                  namespaces_directory_metadata_t<protocol_t> *directory) {
                     std::pair<typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::iterator, bool> insert_res
-                        = directory->reactor_bcards.insert(std::make_pair(namespace_id_, reactor_->get_reactor_directory()->get()));
+                        = directory->reactor_bcards.insert(std::make_pair(namespace_id, reactor->get_reactor_directory()->get()));
                     guarantee(insert_res.second);  // Ensure a value did not already exist.
                     return true;
                 }
-                op_closure_t(const namespace_id_t &c1, scoped_ptr_t<reactor_t<protocol_t> > &c2) :
-                    namespace_id_(c1),
-                    reactor_(c2) { }
-                const namespace_id_t &namespace_id_;
-                scoped_ptr_t<reactor_t<protocol_t> > &reactor_;
             };
-            op_closure_t op(namespace_id_, reactor_);
 
-            parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+            parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::apply,
+                                                                  namespace_id_,
+                                                                  reactor_.get(),
+                                                                  std::placeholders::_1));
         }
 
         reactor_has_been_initialized_.pulse();
