@@ -674,34 +674,46 @@ module 'DataUtils', ->
             mids.push(mid)
         return mids
 
+
+    # Cache the value of the refactored directory_activities
+    @directory_activities = null
+    @directory_activities_by_namespaces = null
+    @reset_directory_activities = ->
+        @directory_activities = null
+        @directory_activities_by_namespaces = null
+
     # Organizes the directory as a map of activity ids
     @get_directory_activities = ->
-        activities = {}
-        for machine in directory.models
-            bcards = machine.get('rdb_namespaces')['reactor_bcards']
-            for namespace_id, activity_map of bcards
-                activity_map = activity_map['activity_map']
-                for activity_id, activity of activity_map
-                    activities[activity_id] =
-                        value: activity
-                        machine_id: machine.get('id')
-                        namespace_id: namespace_id
-        return activities
+        if not @directory_activities?
+            @directory_activities = {}
+            for machine in directory.models
+                bcards = machine.get('rdb_namespaces')['reactor_bcards']
+                for namespace_id, activity_map of bcards
+                    activity_map = activity_map['activity_map']
+                    for activity_id, activity of activity_map
+                        @directory_activities[activity_id] =
+                            value: activity
+                            machine_id: machine.get('id')
+                            namespace_id: namespace_id
+        return @directory_activities
+    
 
     @get_directory_activities_by_namespaces = ->
-        activities = {}
-        for machine in directory.models
-            bcards = machine.get('rdb_namespaces')['reactor_bcards']
-            for namespace_id, activity_map of bcards
-                activity_map = activity_map['activity_map']
-                for activity_id, activity of activity_map
-                    if !(namespace_id of activities)
-                        activities[namespace_id] = {}
+        if not @directory_activities_by_namespaces?
+            @directory_activities_by_namespaces = {}
+            for machine in directory.models
+                bcards = machine.get('rdb_namespaces')['reactor_bcards']
+                for namespace_id, activity_map of bcards
+                    if not @directory_activities_by_namespaces[namespace_id]?
+                        @directory_activities_by_namespaces[namespace_id] = {}
 
-                    if !activities[namespace_id][machine.get('id')]?
-                        activities[namespace_id][machine.get('id')] = {}
-                    activities[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
-        return activities
+                    activity_map = activity_map['activity_map']
+                    for activity_id, activity of activity_map
+                        if not @directory_activities_by_namespaces[namespace_id][machine.get('id')]?
+                            @directory_activities_by_namespaces[namespace_id][machine.get('id')] = {}
+                        @directory_activities_by_namespaces[namespace_id][machine.get('id')][activity[0]] = activity[1]['type']
+
+        return @directory_activities_by_namespaces
 
     # Computes backfill progress for a given (namespace, shard,
     # machine) tripple. All arguments correspond to the objects that
@@ -913,8 +925,6 @@ module 'DataUtils', ->
             json.reachability = 'Live'
         else
             json.reachability = 'Down'
-
-        json.backfill_progress = @get_backfill_progress_agg(namespace_uuid, datacenter_uuid)
 
         return json
 
