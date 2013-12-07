@@ -118,18 +118,15 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
         struct op_closure_t {
-            bool apply(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+            static bool apply(peer_id_t _peer,
+                              change_tracking_map_t<peer_id_t, metadata_t> *map) {
                 map->begin_version();
-                map->delete_value(*peer);
+                map->delete_value(_peer);
                 return true;
             }
-            explicit op_closure_t(const peer_id_t *c1) :
-                peer(c1) { }
-            const peer_id_t *peer;
         };
-        op_closure_t op(&peer);
 
-        variable.apply_atomic_op(std::bind(&op_closure_t::apply, &op,
+        variable.apply_atomic_op(std::bind(&op_closure_t::apply, peer,
                                            std::placeholders::_1));
     }
 }
@@ -159,21 +156,17 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
         struct op_closure_t {
-            bool apply(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+            static bool apply(peer_id_t _peer,
+                              const boost::shared_ptr<metadata_t> &_initial_value,
+                              change_tracking_map_t<peer_id_t, metadata_t> *map) {
                 map->begin_version();
-                map->set_value(*peer, std::move(*initial_value));
+                map->set_value(_peer, std::move(*_initial_value));
                 return true;
             }
-            op_closure_t(const peer_id_t *c1,
-                         const boost::shared_ptr<metadata_t> &c2) :
-                peer(c1),
-                initial_value(c2) { }
-            const peer_id_t *peer;
-            boost::shared_ptr<metadata_t> initial_value;
         };
-        op_closure_t op(&peer, initial_value);
 
-        variable.apply_atomic_op(std::bind(&op_closure_t::apply, &op,
+        variable.apply_atomic_op(std::bind(&op_closure_t::apply, peer,
+                                           std::ref(initial_value),
                                            std::placeholders::_1));
     }
 
