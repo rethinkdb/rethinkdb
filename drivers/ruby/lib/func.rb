@@ -99,9 +99,10 @@ module RethinkDB
     end
     def groupby(*a, &b); group_by(*a, &b); end
 
-    def connect(*args)
+    def connect(*args, &b)
       unbound_if @body
-      Connection.new(*args)
+      c = Connection.new(*args)
+      b ? begin b.call(c) ensure c.close end : c
     end
 
     def avg(attr)

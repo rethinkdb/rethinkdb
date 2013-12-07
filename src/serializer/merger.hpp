@@ -13,7 +13,7 @@
 /* 
  * The merger serializer is a wrapper around another serializer. It limits
  * the number of active index_writes. If more index_writes come in while
- * `max_active_writes` index_writes are already going on, the new index 
+ * `max_active_writes` index_writes are already going on, the new index
  * writes are queued up.
  * The advantage of this is that multiple index writes (e.g. coming from different
  * hash shards) can be merged together, improving efficiency and significantly
@@ -30,7 +30,9 @@ public:
     /* serializer_t interface */
 
     scoped_malloc_t<ser_buffer_t> malloc() { return inner->malloc(); }
-    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *b) { return inner->clone(b); }
+    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *b) {
+        return inner->clone(b);
+    }
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
@@ -40,11 +42,16 @@ public:
     }
 
     /* Some serializer implementations support read-ahead to speed up cache warmup.
-    This is supported through a serializer_read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.
-    The callee can then decide whether it wants to use the offered buffer of discard it.
+    This is supported through a serializer_read_ahead_callback_t which gets called
+    whenever the serializer has read-ahead some buf.  The callee can then decide
+    whether it wants to use the offered buffer of discard it.
     */
-    void register_read_ahead_cb(serializer_read_ahead_callback_t *cb) { inner->register_read_ahead_cb(cb); }
-    void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) { inner->unregister_read_ahead_cb(cb); }
+    void register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
+        inner->register_read_ahead_cb(cb);
+    }
+    void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
+        inner->unregister_read_ahead_cb(cb);
+    }
 
     // Reading a block from the serializer.  Reads a block, blocks the coroutine.
     void block_read(const counted_t<standard_block_token_t> &token,
@@ -57,8 +64,8 @@ public:
      * 2. A repli_timestamp_t, called the "recency"
      * 3. A boolean, called the "delete bit" */
 
-    /* max_block_id() and get_delete_bit() are used by the buffer cache to reconstruct
-    the free list of unused block IDs. */
+    /* max_block_id() and get_delete_bit() are used by the buffer cache to
+    reconstruct the free list of unused block IDs. */
 
     /* Returns a block ID such that every existing block has an ID less than
      * that ID. Note that index_read(max_block_id() - 1) is not guaranteed to be
@@ -73,11 +80,14 @@ public:
     bool get_delete_bit(block_id_t id) { return inner->get_delete_bit(id); }
 
     /* Reads the block's actual data */
-    counted_t<standard_block_token_t> index_read(block_id_t block_id) { return inner->index_read(block_id); }
+    counted_t<standard_block_token_t> index_read(block_id_t block_id) {
+        return inner->index_read(block_id);
+    }
 
     /* index_write() applies all given index operations in an atomic way */
     /* This is where merger_serializer_t merges operations */
-    void index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account);
+    void index_write(const std::vector<index_write_op_t> &write_ops,
+                     file_account_t *io_account);
 
     // Returns block tokens in the same order as write_infos.
     std::vector<counted_t<standard_block_token_t> >
@@ -96,10 +106,12 @@ public:
 
 
 private:
-    // Adds `op` to `outstanding_index_write_ops`, using `merge_index_write_op()` if necessary
+    // Adds `op` to `outstanding_index_write_ops`, using `merge_index_write_op()` if
+    // necessary
     void push_index_write_op(const index_write_op_t &op);
     // This merges to_be_merged in-place into into_out.
-    void merge_index_write_op(const index_write_op_t &to_be_merged, index_write_op_t *into_out) const;
+    void merge_index_write_op(const index_write_op_t &to_be_merged,
+                              index_write_op_t *into_out) const;
 
     const scoped_ptr_t<serializer_t> inner;
     const scoped_ptr_t<file_account_t> index_writes_io_account;
@@ -109,8 +121,10 @@ private:
 
     // Index writes which are currently outstanding keep a pointer to this condition.
     // It is pulsed once the write completes.
-    class counted_cond_t : public cond_t, public single_threaded_countable_t<counted_cond_t> { };
+    class counted_cond_t : public cond_t,
+                           public single_threaded_countable_t<counted_cond_t> { };
     counted_t<counted_cond_t> on_inner_index_write_complete;
+    bool unhandled_index_write_waiter_exists;
 
     int num_active_writes;
     int max_active_writes;

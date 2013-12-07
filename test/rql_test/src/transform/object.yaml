@@ -105,6 +105,30 @@ tests:
     - cd: "obj.merge({'foo':r.literal(r.literal('foo'))})"
       ot: err("RqlRuntimeError", "Stray literal keyword found, literal can only be present inside merge and cannot nest inside other literals.", [])
 
+    - def: o = r.expr({'a':{'b':1, 'c':2}, 'd':3})
+
+    - cd: o.merge({'e':4}, {'f':5})
+      ot: ({'a':{'b':1, 'c':2}, 'd':3, 'e':4, 'f':5})
+
+    - rb: r.expr([o, o.merge({'d':4})]).merge{|row| {'e':row['d']}}
+      py: r.expr([o, o.merge({'d':4})]).merge(lambda row:{'e':row['d']})
+      js: r.expr([o, o.merge({'d':4})]).merge(function(row){return {'e':row('d')}})
+      ot: ([{'a':{'b':1, 'c':2}, 'd':3, 'e':3}, {'a':{'b':1, 'c':2}, 'd':4, 'e':4}])
+
+    - py: r.expr([o, o.merge({'d':4})]).merge({'e':r.row['d']})
+      js: r.expr([o, o.merge({'d':4})]).merge({'e':r.row('d')})
+      ot: ([{'a':{'b':1, 'c':2}, 'd':3, 'e':3}, {'a':{'b':1, 'c':2}, 'd':4, 'e':4}])
+
+    - rb: r.expr([o, o.merge({'d':4})]).merge{|row| {'a':{'b':2}}}
+      py: r.expr([o, o.merge({'d':4})]).merge(lambda row:{'a':{'b':2}})
+      js: r.expr([o, o.merge({'d':4})]).merge(function(row){return {'a':{'b':2}}})
+      ot: ([{'a':{'b':2, 'c':2}, 'd':3}, {'a':{'b':2, 'c':2}, 'd':4}])
+
+    - rb: r.expr([o, o.merge({'d':4})]).merge{|row| {'a':r.literal({'b':2})}}
+      py: r.expr([o, o.merge({'d':4})]).merge(lambda row:{'a':r.literal({'b':2})})
+      js: r.expr([o, o.merge({'d':4})]).merge(function(row){return {'a':r.literal({'b':2})}})
+      ot: ([{'a':{'b':2}, 'd':3}, {'a':{'b':2}, 'd':4}])
+
     ## keys
     - cd: obj.keys()
       ot: (['a', 'b', 'c', 'd', 'e'])

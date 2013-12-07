@@ -1,3 +1,30 @@
+# Release 1.11.2 (Breakfast at Tiffany's)
+
+Released on 2013-12-06
+
+Bug fix update.
+
+* Fixed a bug caused by suggesting `r.ISO8601` in the Data Explorer
+* Cursor in the Data Explorer is restored when a command is selected via dropdown
+* Fixed a bug where queries returning null in the Data Explorer could not be parsed (#1739)
+* Always `fsync` parent directories to avoid data loss (#1703)
+* Fixed IPv6 issues with link-local addresses (#1694)
+* Add some support for Python 3 in the build scripts (#1709)
+
+--
+
+# Release 1.11.1 (Breakfast at Tiffany's)
+
+Released on 2013-12-02
+
+Bug fix update.
+
+* Drivers no longer ignore the timeFormat flag (#1719)
+* RethinkDB now correctly sets the `ResponseType` field in responses to `STOP` queries (#1715)
+* Fixed a bug that caused RethinkDB to crash with a failed guarantee (#1691)
+
+--
+
 # Release 1.11.0 (Breakfast at Tiffany's)
 
 Released on 2013-11-25

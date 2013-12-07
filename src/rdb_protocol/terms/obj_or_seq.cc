@@ -175,7 +175,16 @@ private:
     virtual counted_t<val_t> obj_eval(scope_env_t *env, counted_t<val_t> v0) {
         counted_t<const datum_t> d = v0->as_datum();
         for (size_t i = 1; i < num_args(); ++i) {
-            d = d->merge(arg(env, i, LITERAL_OK)->as_datum());
+            counted_t<val_t> v = arg(env, i, LITERAL_OK);
+
+            // We branch here because compiling functions is expensive, and
+            // `obj_eval` may be called many many times.
+            if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
+                d = d->merge(v->as_datum());
+            } else {
+                auto f = v->as_func(CONSTANT_SHORTCUT);
+                d = d->merge(f->call(env->env, d, LITERAL_OK)->as_datum());
+            }
         }
         return new_val(d);
     }

@@ -1266,7 +1266,7 @@ module 'DataExplorerView', ->
         regex:
             anonymous:/^(\s)*function\(([a-zA-Z0-9,\s]*)\)(\s)*{/
             loop:/^(\s)*(for|while)(\s)*\(([^\)]*)\)(\s)*{/
-            method: /^(\s)*([a-zA-Z]*)\(/ # forEach( merge( filter(
+            method: /^(\s)*([a-zA-Z0-9]*)\(/ # forEach( merge( filter(
             row: /^(\s)*row\(/
             method_var: /^(\s)*(\d*[a-zA-Z][a-zA-Z0-9]*)\./ # r. r.row. (r.count will be caught later)
             return : /^(\s)*return(\s)*/
@@ -2184,9 +2184,10 @@ module 'DataExplorerView', ->
             # Give back focus to code mirror
             @hide_suggestion()
 
-            @handle_keypress() # That's going to describe the function the user just selected
-
-            @codemirror.focus() # Useful if the user used the mouse to select a suggestion
+            setTimeout =>
+                @handle_keypress() # That's going to describe the function the user just selected
+                @codemirror.focus() # Useful if the user used the mouse to select a suggestion
+            , 0 # # Useful if the user used the mouse to select a suggestion
 
 
         # Highlight a suggestion in case of a mouseover
@@ -2407,7 +2408,7 @@ module 'DataExplorerView', ->
 
                         return false
 
-                    if results.profile? and @state.last_query_has_profile is true
+                    if results?.profile? and @state.last_query_has_profile is true
                         cursor = results.value
                         @profile = results.profile
                         @state.profile = @profile

@@ -23,7 +23,7 @@ public:
 
 template <class protocol_t>
 namespace_repo_t<protocol_t>::namespace_repo_t(mailbox_manager_t *_mailbox_manager,
-                                               clone_ptr_t<watchable_t<std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata,
+                                               clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > > > _namespaces_directory_metadata,
                                                typename protocol_t::context_t *_ctx)
     : mailbox_manager(_mailbox_manager),
       namespaces_directory_metadata(_namespaces_directory_metadata),
@@ -35,10 +35,10 @@ namespace_repo_t<protocol_t>::~namespace_repo_t() { }
 
 template <class protocol_t>
 std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > get_reactor_business_cards(
-        const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, const namespace_id_t &n_id) {
+        const change_tracking_map_t<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &ns_directory_metadata, const namespace_id_t &n_id) {
     std::map<peer_id_t, cow_ptr_t<reactor_business_card_t<protocol_t> > > res;
-    for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.begin();
-                                                                                                    it != ns_directory_metadata.end();
+    for (typename std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> >::const_iterator it  = ns_directory_metadata.get_inner().begin();
+                                                                                                    it != ns_directory_metadata.get_inner().end();
                                                                                                     it++) {
         typename namespaces_directory_metadata_t<protocol_t>::reactor_bcards_map_t::const_iterator jt =
             it->second.reactor_bcards.find(n_id);

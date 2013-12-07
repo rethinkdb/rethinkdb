@@ -276,8 +276,8 @@ class RqlQuery(object):
     def type_of(self):
         return TypeOf(self)
 
-    def merge(self, other):
-        return Merge(self, other)
+    def merge(self, *others):
+        return Merge(self, *map(func_wrap, others))
 
     def append(self, val):
         return Append(self, val)
@@ -324,6 +324,12 @@ class RqlQuery(object):
 
     def match(self, pattern):
         return Match(self, pattern)
+
+    def upcase(self):
+        return Upcase(self)
+
+    def downcase(self):
+        return Downcase(self)
 
     def is_empty(self):
         return IsEmpty(self)
@@ -557,10 +563,37 @@ class Datum(RqlQuery):
         return repr(self.data)
 
     @staticmethod
+    def _convert_pseudotype(obj, time_format):
+        reql_type = obj.get('$reql_type$')
+        if reql_type is not None:
+            if reql_type == 'TIME':
+                if time_format == 'native':
+                    # Convert to native python datetime object
+                    return reql_type_time_to_datetime(obj)
+                elif time_format != 'raw':
+                    raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
+            else:
+                raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
+        # If there was no pseudotype, or the time format is raw, return the original object
+        return obj
+
+    @staticmethod
+    def _recursively_convert_pseudotypes(obj, time_format):
+        if isinstance(obj, dict):
+            for (key, value) in obj.iteritems():
+                obj[key] = Datum._recursively_convert_pseudotypes(value, time_format)
+            obj = Datum._convert_pseudotype(obj, time_format)
+        elif isinstance(obj, list):
+            for i in xrange(len(obj)):
+                obj[i] = Datum._recursively_convert_pseudotypes(obj[i], time_format)
+        return obj
+
+    @staticmethod
     def deconstruct(datum, time_format='native'):
         d_type = datum.type
         if d_type == p.Datum.R_JSON:
-            return py_json.loads(datum.r_str)
+            obj = py_json.loads(datum.r_str)
+            return Datum._recursively_convert_pseudotypes(obj, time_format)
         elif d_type == p.Datum.R_OBJECT:
             obj = { }
             for pair in datum.r_object:
@@ -570,20 +603,7 @@ class Datum(RqlQuery):
             # be an object or something else. We need a second layer of type switching, this
             # time on an obfuscated field "$reql_type$" rather than the datum type field we
             # already switched on.
-            reql_type = obj.get('$reql_type$')
-            if reql_type is not None:
-                if reql_type == 'TIME':
-                    if time_format == 'native':
-                        # Convert to native python datetime object
-                        return reql_type_time_to_datetime(obj)
-                    elif time_format == 'raw':
-                        # Just return the raw `{'$reql_type':...}` dict
-                        return obj
-                    else:
-                        raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
-                else:
-                    raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
-
+            Datum._convert_pseudotype(obj, time_format)
             return obj
         elif d_type == p.Datum.R_ARRAY:
             array = datum.r_array
@@ -907,6 +927,14 @@ class Nth(RqlQuery):
 class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
+
+class Upcase(RqlMethodQuery):
+    tt = p.Term.UPCASE
+    st = 'upcase'
+
+class Downcase(RqlMethodQuery):
+    tt = p.Term.DOWNCASE
+    st = 'downcase'
 
 class IndexesOf(RqlMethodQuery):
     tt = p.Term.INDEXES_OF

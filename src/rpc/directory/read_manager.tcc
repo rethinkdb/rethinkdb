@@ -13,7 +13,7 @@
 template<class metadata_t>
 directory_read_manager_t<metadata_t>::directory_read_manager_t(connectivity_service_t *conn_serv) THROWS_NOTHING :
     connectivity_service(conn_serv),
-    variable(std::map<peer_id_t, metadata_t>()),
+    variable(change_tracking_map_t<peer_id_t, metadata_t>()),
     connectivity_subscription(this) {
     connectivity_service_t::peers_list_freeze_t freeze(connectivity_service);
     guarantee(connectivity_service->get_peers_list().empty());
@@ -43,10 +43,10 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
     switch (code) {
         case 'I': {
             /* Initial message from another peer */
-            metadata_t initial_value = metadata_t();
+            boost::shared_ptr<metadata_t> initial_value(new metadata_t());
             fifo_enforcer_state_t metadata_fifo_state;
             {
-                archive_result_t res = deserialize(s, &initial_value);
+                archive_result_t res = deserialize(s, initial_value.get());
                 guarantee_deserialization(res, "metadata");
                 res = deserialize(s, &metadata_fifo_state);
                 guarantee_deserialization(res, "metadata fifo state");
@@ -66,10 +66,10 @@ void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, str
 
         case 'U': {
             /* Update from another peer */
-            metadata_t new_value = metadata_t();
+            boost::shared_ptr<metadata_t> new_value(new metadata_t());
             fifo_enforcer_write_token_t metadata_fifo_token;
             {
-                archive_result_t res = deserialize(s, &new_value);
+                archive_result_t res = deserialize(s, new_value.get());
                 guarantee_deserialization(res, "metadata");
                 res = deserialize(s, &metadata_fifo_token);
                 guarantee_deserialization(res, "metadata fifo state");
@@ -116,15 +116,28 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     /* Notify that the peer has disconnected */
     if (got_initialization) {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-        std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
-        size_t num_erased = map.erase(peer);
-        guarantee(num_erased == 1);
-        variable.set_value(map);
+
+        /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
+        Because we cannot use C++11 lambdas yet due to missing support in
+        GCC 4.4, this is the messy work-around: */
+        struct op_closure_t {
+            bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                map->begin_version();
+                map->delete_value(peer);
+                return true;
+            }
+            op_closure_t(peer_id_t &c1) :
+                peer(c1) { }
+            peer_id_t &peer;
+        };
+        op_closure_t op(peer);
+
+        variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
     }
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_u session_id, metadata_t initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t peer, uuid_u session_id, const boost::shared_ptr<metadata_t> &initial_value, fifo_enforcer_state_t metadata_fifo_state, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
@@ -146,13 +159,26 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     /* Notify that the peer has connected */
     {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-        std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
-        std::pair<typename std::map<peer_id_t, metadata_t>::iterator, bool> res
-            = map.insert(std::make_pair(peer, initial_value));
-        guarantee(res.second);
+        /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
+        Because we cannot use C++11 lambdas yet due to missing support in
+        GCC 4.4, this is the messy work-around: */
+        struct op_closure_t {
+            bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                map->begin_version();
+                map->set_value(peer, std::move(*initial_value));
+                return true;
+            }
+            op_closure_t(peer_id_t &c1,
+                         const boost::shared_ptr<metadata_t> &c2) :
+                peer(c1),
+                initial_value(c2) { }
+            peer_id_t &peer;
+            const boost::shared_ptr<metadata_t> &initial_value;
+        };
+        op_closure_t op(peer, initial_value);
 
-        variable.set_value(map);
+        variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
     }
 
     /* Create a metadata FIFO sink and pulse the `got_initial_message` cond so
@@ -165,7 +191,7 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
 }
 
 template<class metadata_t>
-void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid_u session_id, metadata_t new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
+void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid_u session_id, const boost::shared_ptr<metadata_t> &new_value, fifo_enforcer_write_token_t metadata_fifo_token, auto_drainer_t::lock_t per_thread_keepalive) THROWS_NOTHING {
     per_thread_keepalive.assert_is_holding(per_thread_drainers.get());
     on_thread_t thread_switcher(home_thread());
 
@@ -202,16 +228,36 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
 
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
-            std::map<peer_id_t, metadata_t> map = variable.get_watchable()->get();
 
-            typename std::map<peer_id_t, metadata_t>::iterator var_it = map.find(peer);
-            if (var_it == map.end()) {
-                guarantee(!std_contains(sessions, peer));
-                //The session was deleted we can ignore this update.
-                return;
-            }
-            var_it->second = new_value;
-            variable.set_value(map);
+            /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
+            Because we cannot use C++11 lambdas yet due to missing support in
+            GCC 4.4, this is the messy work-around: */
+            struct op_closure_t {
+                bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                    typename std::map<peer_id_t, metadata_t>::const_iterator var_it
+                        = map->get_inner().find(peer);
+                    if (var_it == map->get_inner().end()) {
+                        guarantee(!std_contains(sessions, peer));
+                        //The session was deleted we can ignore this update.
+                        return false;
+                    }
+                    map->begin_version();
+                    map->set_value(peer, std::move(*new_value));
+                    return true;
+                }
+                op_closure_t(peer_id_t &c1,
+                             const boost::shared_ptr<metadata_t> &c2,
+                             boost::ptr_map<peer_id_t, session_t> &c3) :
+                    peer(c1),
+                    new_value(c2),
+                    sessions(c3) { }
+                peer_id_t &peer;
+                const boost::shared_ptr<metadata_t> &new_value;
+                boost::ptr_map<peer_id_t, session_t> &sessions;
+            };
+            op_closure_t op(peer, new_value, sessions);
+
+            variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
         }
     } catch (const interrupted_exc_t &) {
         /* Here's what happened: `on_disconnect()` was called for the peer. It
