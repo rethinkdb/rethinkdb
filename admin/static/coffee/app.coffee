@@ -73,6 +73,7 @@ apply_diffs = (updates) ->
             when 'me' then continue
             else
                 #console.log "Unhandled element update: " + collection_id + "."
+    DataUtils.reset_directory_activities()
     return
 
 set_issues = (issue_data_from_server) -> issues.reset(issue_data_from_server)
@@ -238,7 +239,7 @@ $ ->
     window.universe_datacenter = new Datacenter
         id: '00000000-0000-0000-0000-000000000000'
         name: 'Universe'
-
+    
     # Override the default Backbone.sync behavior to allow reading diff
     Backbone.sync = (method, model, success, error) ->
         if method is 'read'
