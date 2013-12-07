@@ -9,8 +9,8 @@
 #include "stl_utils.hpp"
 
 // RSI: temporary debugging macro
-#define pagef debugf
-// #define pagef(...) do { } while (0)
+// #define pagef debugf
+#define pagef(...) do { } while (0)
 
 namespace alt {
 
