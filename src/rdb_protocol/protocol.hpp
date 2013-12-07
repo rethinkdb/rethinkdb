@@ -227,9 +227,9 @@ struct rdb_protocol_t {
         context_t();
         context_t(extproc_pool_t *_extproc_pool,
                   namespace_repo_t<rdb_protocol_t> *_ns_repo,
-                  boost::shared_ptr<semilattice_readwrite_view_t<
+                  boost::shared_ptr< semilattice_readwrite_view_t<
                       cluster_semilattice_metadata_t> > _cluster_metadata,
-                  boost::shared_ptr<semilattice_readwrite_view_t<
+                  boost::shared_ptr< semilattice_readwrite_view_t<
                       auth_semilattice_metadata_t> > _auth_metadata,
                   directory_read_manager_t<
                       cluster_directory_metadata_t> *_directory_read_manager,
@@ -241,14 +241,14 @@ struct rdb_protocol_t {
 
         /* These arrays contain a watchable for each thread.
          * ie cross_thread_namespace_watchables[0] is a watchable for thread 0. */
-        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<cow_ptr_t<
+        scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t< cow_ptr_t<
             namespaces_semilattice_metadata_t<rdb_protocol_t> > > > >
                 cross_thread_namespace_watchables;
-        scoped_array_t<scoped_ptr_t<cross_thread_watchable_variable_t<
+        scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
             databases_semilattice_metadata_t> > > cross_thread_database_watchables;
-        boost::shared_ptr<semilattice_readwrite_view_t<
+        boost::shared_ptr< semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > cluster_metadata;
-        boost::shared_ptr<semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
+        boost::shared_ptr< semilattice_readwrite_view_t<auth_semilattice_metadata_t> >
             auth_metadata;
         directory_read_manager_t<cluster_directory_metadata_t> *directory_read_manager;
         // TODO figure out where we're going to want to interrupt this from and
@@ -436,7 +436,7 @@ struct rdb_protocol_t {
     class sindex_status_t {
     public:
         sindex_status_t() { }
-        sindex_status_t(const std::set<std::string> &_sindexes)
+        explicit sindex_status_t(const std::set<std::string> &_sindexes)
             : sindexes(_sindexes), region(region_t::universe())
         { }
         std::set<std::string> sindexes;

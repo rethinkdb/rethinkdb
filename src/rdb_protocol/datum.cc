@@ -600,7 +600,7 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
 }
 
 struct datum_rcheckable_t : public rcheckable_t {
-    datum_rcheckable_t(const datum_t *_datum) : datum(_datum) { }
+    explicit datum_rcheckable_t(const datum_t *_datum) : datum(_datum) { }
     void runtime_fail(base_exc_t::type_t type,
                       const char *test, const char *file, int line,
                       std::string msg) const {
