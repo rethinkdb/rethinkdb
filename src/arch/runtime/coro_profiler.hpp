@@ -1,13 +1,17 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef ARCH_RUNTIME_CORO_PROFILER_HPP_
 #define	ARCH_RUNTIME_CORO_PROFILER_HPP_
 
 
 #ifdef ENABLE_CORO_PROFILER
 
+#include <algorithm>
 #include <array>
 #include <map>
 #include <fstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "backtrace.hpp"
 #include "utils.hpp"
@@ -185,4 +189,4 @@ private:
 
 #endif /* not ENABLE_CORO_PROFILER */
 
-#endif	/* ARCH_RUNTIME_CORO_PROFILER_HPP_ */
+#endif /* ARCH_RUNTIME_CORO_PROFILER_HPP_ */

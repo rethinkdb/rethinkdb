@@ -370,7 +370,7 @@ const std::string &coro_profiler_t::get_frame_description(void *addr) {
     std::string demangled_name;
     try {
         demangled_name = frame.get_demangled_name();
-    } catch (demangle_failed_exc_t &e) {
+    } catch (const demangle_failed_exc_t &e) {
         demangled_name = "?";
     }
     description_stream << frame.get_addr() << "\t" << line << demangled_name;
