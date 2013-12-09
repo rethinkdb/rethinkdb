@@ -267,8 +267,6 @@ RT_CXXFLAGS += -I$(PROTO_DIR)
 UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest/make/gtest.a
 UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest/include
 
-RT_CXXFLAGS += -DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
-
 #### Finding what to build
 
 SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v '/\.')
