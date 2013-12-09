@@ -3,7 +3,6 @@
 ##### Build parameters
 
 # We assemble path directives.
-LDPATHDS ?=
 CXXPATHDS ?=
 LDFLAGS ?=
 CXXFLAGS ?=
@@ -37,7 +36,7 @@ ifeq ($(COMPILER),CLANG)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) -lm
+  RT_LDFLAGS += $(M_LIBS)
 
 else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -B/opt/intel/bin
@@ -50,7 +49,7 @@ else ifeq ($(COMPILER),INTEL)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) -lstdc++
+  RT_LDFLAGS += -lstdc++
 else ifeq ($(COMPILER),GCC)
 
   ifeq ($(OS),Linux)
@@ -65,12 +64,10 @@ else ifeq ($(COMPILER),GCC)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS)
+  RT_LDFLAGS +=
 endif
 
-ifeq ($(OS),Linux)
-  RT_LDFLAGS += -lrt
-endif
+RT_LDFLAGS += $(RT_LIBS)
 
 ifeq ($(STATICFORCE),1)
   # TODO(OSX)
@@ -274,7 +271,7 @@ RT_CXXFLAGS += -DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
 
 #### Finding what to build
 
-SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc')
+SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v '/\.')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
