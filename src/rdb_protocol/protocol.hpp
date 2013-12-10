@@ -44,6 +44,8 @@ template <class> class namespaces_semilattice_metadata_t;
 template <class> class semilattice_readwrite_view_t;
 class traversal_progress_combiner_t;
 
+namespace unittest { struct make_sindex_read_t; }
+
 using query_language::shared_scoped_less_t;
 
 enum class profile_bool_t {
@@ -108,11 +110,20 @@ public:
 
     bool contains(counted_t<const ql::datum_t> val) const;
     bool is_universe() const;
+
+    RDB_DECLARE_ME_SERIALIZABLE;
+
+private:
+    // Only `readgen_t` and its subclasses should do anything fancy with a range.
+    // (Modulo unit tests.)
+    friend class ql::readgen_t;
+    friend class ql::primary_readgen_t;
+    friend class ql::sindex_readgen_t;
+    friend struct unittest::make_sindex_read_t;
+
     key_range_t to_primary_keyrange() const;
     key_range_t to_sindex_keyrange() const;
 
-    RDB_DECLARE_ME_SERIALIZABLE;
-private:
     counted_t<const ql::datum_t> left_bound, right_bound;
     key_range_t::bound_t left_bound_type, right_bound_type;
 };

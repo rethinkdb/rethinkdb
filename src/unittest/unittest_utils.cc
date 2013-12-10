@@ -16,23 +16,30 @@
 
 namespace unittest {
 
+struct make_sindex_read_t {
+    static rdb_protocol_t::read_t make_sindex_read(
+            counted_t<const ql::datum_t> key, const std::string &id) {
+        datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
+        return rdb_protocol_t::read_t(
+            rdb_protocol_t::rget_read_t(
+                rdb_protocol_t::region_t::universe(),
+                std::map<std::string, ql::wire_func_t>(),
+                ql::batchspec_t::user(ql::batch_type_t::NORMAL,
+                                      counted_t<const ql::datum_t>()),
+                rdb_protocol_details::transform_t(),
+                boost::optional<rdb_protocol_details::terminal_t>(),
+                rdb_protocol_t::sindex_rangespec_t(
+                    id,
+                    rdb_protocol_t::region_t(rng.to_sindex_keyrange()),
+                    rng),
+                sorting_t::UNORDERED),
+            profile_bool_t::PROFILE);
+    }
+};
+
 rdb_protocol_t::read_t make_sindex_read(
-    counted_t<const ql::datum_t> key, const std::string &id) {
-    datum_range_t rng(key, key_range_t::closed, key, key_range_t::closed);
-    return rdb_protocol_t::read_t(
-        rdb_protocol_t::rget_read_t(
-            rdb_protocol_t::region_t::universe(),
-            std::map<std::string, ql::wire_func_t>(),
-            ql::batchspec_t::user(ql::batch_type_t::NORMAL,
-                                  counted_t<const ql::datum_t>()),
-            rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(),
-            rdb_protocol_t::sindex_rangespec_t(
-                id,
-                rdb_protocol_t::region_t(rng.to_sindex_keyrange()),
-                rng),
-            sorting_t::UNORDERED),
-        profile_bool_t::PROFILE);
+        counted_t<const ql::datum_t> key, const std::string &id) {
+    return make_sindex_read_t::make_sindex_read(key, id);
 }
 
 serializer_filepath_t manual_serializer_filepath(const std::string &permanent_path,
