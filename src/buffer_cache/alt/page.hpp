@@ -17,6 +17,8 @@
 class auto_drainer_t;
 class file_account_t;
 
+// RSI: Maybe use home_thread_mixin_debug_only_t.
+
 namespace alt {
 
 class current_page_acq_t;
@@ -270,7 +272,8 @@ private:
     DISABLE_COPYING(current_page_t);
 };
 
-class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t> {
+class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t>,
+                           public home_thread_mixin_t {
 public:
     // RSI: Right now we support a default constructor but alt_buf_lock_t actually
     // uses a scoped pointer now, because getting this type to be swappable was too
@@ -398,7 +401,7 @@ private:
     DISABLE_COPYING(eviction_bag_t);
 };
 
-class evicter_t {
+class evicter_t : public home_thread_mixin_t {
 public:
     void add_not_yet_loaded(page_t *page);
     void add_now_loaded_size(uint32_t ser_buf_size);
@@ -428,7 +431,7 @@ private:
     DISABLE_COPYING(evicter_t);
 };
 
-class page_cache_t {
+class page_cache_t : public home_thread_mixin_t {
 public:
     // RSI: Remove default parameter of memory_limit?
     explicit page_cache_t(serializer_t *serializer, uint64_t memory_limit = GIGABYTE);

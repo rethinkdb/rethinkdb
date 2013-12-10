@@ -28,6 +28,7 @@ page_cache_t::page_cache_t(serializer_t *serializer, uint64_t memory_limit)
 }
 
 page_cache_t::~page_cache_t() {
+    assert_thread();
     drainer_.reset();
     for (auto it = current_pages_.begin(); it != current_pages_.end(); ++it) {
         delete *it;
@@ -43,6 +44,7 @@ page_cache_t::~page_cache_t() {
 }
 
 current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
+    assert_thread();
     if (current_pages_.size() <= block_id) {
         current_pages_.resize(block_id + 1, NULL);
     }
@@ -57,6 +59,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
 }
 
 current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
+    assert_thread();
     block_id_t block_id = free_list_.acquire_block_id();
     current_page_t *ret = internal_page_for_new_chosen(block_id);
     *block_id_out = block_id;
@@ -64,12 +67,14 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
 }
 
 current_page_t *page_cache_t::page_for_new_chosen_block_id(block_id_t block_id) {
+    assert_thread();
     // Tell the free list this block id is taken.
     free_list_.acquire_chosen_block_id(block_id);
     return internal_page_for_new_chosen(block_id);
 }
 
 current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) {
+    assert_thread();
     if (current_pages_.size() <= block_id) {
         current_pages_.resize(block_id + 1, NULL);
     }
@@ -88,6 +93,7 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
 }
 
 block_size_t page_cache_t::max_block_size() const {
+    assert_thread();
     return serializer_->get_block_size();
 }
 
@@ -119,6 +125,7 @@ void current_page_acq_t::init(page_txn_t *txn,
                               block_id_t block_id,
                               alt_access_t access,
                               bool create) {
+    txn->page_cache()->assert_thread();
     guarantee(txn_ == NULL);
     txn_ = txn;
     access_ = access;
@@ -137,6 +144,7 @@ void current_page_acq_t::init(page_txn_t *txn,
 
 void current_page_acq_t::init(page_txn_t *txn,
                               alt_access_t access) {
+    txn->page_cache()->assert_thread();
     guarantee(txn_ == NULL);
     txn_ = txn;
     access_ = access;
@@ -150,6 +158,7 @@ void current_page_acq_t::init(page_txn_t *txn,
 }
 
 current_page_acq_t::~current_page_acq_t() {
+    assert_thread();
     if (txn_ != NULL) {
         txn_->remove_acquirer(this);
         if (current_page_ != NULL) {
@@ -159,6 +168,7 @@ current_page_acq_t::~current_page_acq_t() {
 }
 
 void current_page_acq_t::declare_readonly() {
+    assert_thread();
     access_ = alt_access_t::read;
     if (current_page_ != NULL) {
         current_page_->pulse_pulsables(this);
@@ -166,6 +176,7 @@ void current_page_acq_t::declare_readonly() {
 }
 
 void current_page_acq_t::declare_snapshotted() {
+    assert_thread();
     rassert(access_ == alt_access_t::read);
 
     // Allow redeclaration of snapshottedness.
@@ -177,15 +188,18 @@ void current_page_acq_t::declare_snapshotted() {
 }
 
 signal_t *current_page_acq_t::read_acq_signal() {
+    assert_thread();
     return &read_cond_;
 }
 
 signal_t *current_page_acq_t::write_acq_signal() {
+    assert_thread();
     rassert(access_ == alt_access_t::write);
     return &write_cond_;
 }
 
 page_t *current_page_acq_t::current_page_for_read() {
+    assert_thread();
     rassert(snapshotted_page_.has() || current_page_ != NULL);
     read_cond_.wait();
     if (snapshotted_page_.has()) {
@@ -196,6 +210,7 @@ page_t *current_page_acq_t::current_page_for_read() {
 }
 
 repli_timestamp_t current_page_acq_t::recency() const {
+    assert_thread();
     rassert(snapshotted_page_.has() || current_page_ != NULL);
     // RSI: Give this a real implementation.  (Make it not have to wait for
     // read_cond_ -- don't allow touch_recency.)
@@ -203,6 +218,7 @@ repli_timestamp_t current_page_acq_t::recency() const {
 }
 
 page_t *current_page_acq_t::current_page_for_write() {
+    assert_thread();
     rassert(access_ == alt_access_t::write);
     rassert(current_page_ != NULL);
     write_cond_.wait();
@@ -212,6 +228,7 @@ page_t *current_page_acq_t::current_page_for_write() {
 }
 
 void current_page_acq_t::mark_deleted() {
+    assert_thread();
     rassert(access_ == alt_access_t::write);
     rassert(current_page_ != NULL);
     write_cond_.wait();
@@ -221,29 +238,35 @@ void current_page_acq_t::mark_deleted() {
 }
 
 bool current_page_acq_t::dirtied_page() const {
+    assert_thread();
     return dirtied_page_;
 }
 
 block_version_t current_page_acq_t::block_version() const {
+    assert_thread();
     rassert(read_cond_.is_pulsed());
     return block_version_;
 }
 
 
 page_cache_t *current_page_acq_t::page_cache() const {
+    assert_thread();
     return txn_->page_cache();
 }
 
 current_page_help_t current_page_acq_t::help() const {
+    assert_thread();
     return current_page_help_t(block_id(), page_cache());
 }
 
 void current_page_acq_t::pulse_read_available(block_version_t block_version) {
+    assert_thread();
     block_version_ = block_version;
     read_cond_.pulse_if_not_already_pulsed();
 }
 
 void current_page_acq_t::pulse_write_available() {
+    assert_thread();
     write_cond_.pulse_if_not_already_pulsed();
 }
 
@@ -1028,6 +1051,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
 
 void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
                                              const std::set<page_txn_t *> &txns) {
+    page_cache->assert_thread();
     for (auto it = txns.begin(); it != txns.end(); ++it) {
         page_txn_t *txn = *it;
         for (auto jt = txn->subseqers_.begin(); jt != txn->subseqers_.end(); ++jt) {
@@ -1089,6 +1113,7 @@ struct ancillary_info_t {
 void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                                     const std::set<page_txn_t *> &txns,
                                     fifo_enforcer_write_token_t index_write_token) {
+    page_cache->assert_thread();
     pagef("do_flush_txn_set (pc=%p, tset=%p) from %s\n", page_cache, &txns,
           debug_strprint(txns).c_str());
 
@@ -1270,6 +1295,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
 bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
                                             std::set<page_txn_t *> *flush_set_out) {
+    assert_thread();
     std::set<page_txn_t *> builder;
     std::stack<page_txn_t *> stack;
     stack.push(txn);
@@ -1308,6 +1334,7 @@ bool page_cache_t::exists_flushable_txn_set(page_txn_t *txn,
 }
 
 void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
+    assert_thread();
     pagef("im_waiting_for_flush (txn=%p)\n", txn);
     rassert(txn->began_waiting_for_flush_);
     rassert(!txn->spawned_flush_);
@@ -1389,28 +1416,35 @@ bool eviction_bag_t::remove_random(page_t **page_out) {
 evicter_t::evicter_t(uint64_t memory_limit)
     : memory_limit_(memory_limit) { }
 
-evicter_t::~evicter_t() { }
+evicter_t::~evicter_t() {
+    assert_thread();
+}
 
 
 void evicter_t::add_not_yet_loaded(page_t *page) {
+    assert_thread();
     unevictable_.add_without_size(page);
 }
 
 void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
+    assert_thread();
     unevictable_.add_size(ser_buf_size);
     evict_if_necessary();
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
+    assert_thread();
     return unevictable_.has_page(page);
 }
 
 void evicter_t::add_to_evictable_unbacked(page_t *page) {
+    assert_thread();
     evictable_unbacked_.add(page, page->ser_buf_size_);
     evict_if_necessary();
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
+    assert_thread();
     rassert(unevictable_.has_page(page));
     unevictable_.remove(page, page->ser_buf_size_);
     eviction_bag_t *new_bag = correct_eviction_category(page);
@@ -1422,6 +1456,7 @@ void evicter_t::move_unevictable_to_evictable(page_t *page) {
 
 void evicter_t::change_eviction_bag(eviction_bag_t *current_bag,
                                     page_t *page) {
+    assert_thread();
     rassert(current_bag->has_page(page));
     current_bag->remove(page, page->ser_buf_size_);
     eviction_bag_t *new_bag = correct_eviction_category(page);
@@ -1430,6 +1465,7 @@ void evicter_t::change_eviction_bag(eviction_bag_t *current_bag,
 }
 
 eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
+    assert_thread();
     if (page->destroy_ptr_ != NULL || !page->waiters_.empty()) {
         return &unevictable_;
     } else if (!page->buf_.has()) {
@@ -1442,6 +1478,7 @@ eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
 }
 
 void evicter_t::remove_page(page_t *page) {
+    assert_thread();
     rassert(page->waiters_.empty());
     rassert(page->snapshot_refcount_ == 0);
     eviction_bag_t *bag = correct_eviction_category(page);
@@ -1450,12 +1487,14 @@ void evicter_t::remove_page(page_t *page) {
 }
 
 uint64_t evicter_t::in_memory_size() const {
+    assert_thread();
     return unevictable_.size()
         + evictable_disk_backed_.size()
         + evictable_unbacked_.size();
 }
 
 void evicter_t::evict_if_necessary() {
+    assert_thread();
     // RSI: Implement eviction of unbacked evictables too.  When flushing, you
     // could use the page_t::eviction_index_ field to identify pages that are
     // currently in the process of being evicted, to avoid reflushing a page
