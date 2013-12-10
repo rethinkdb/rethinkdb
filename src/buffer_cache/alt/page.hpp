@@ -78,6 +78,7 @@ private:
 
     void evict_self();
 
+    // RSI: Explain this more.
     // One of destroy_ptr_, buf_, or block_token_ is non-null.
     bool *destroy_ptr_;
     // RSI: Make a block_size_t-like type for holding this value that lets you hold a

@@ -32,6 +32,8 @@
 using namespace alt;  // RSI
 #endif
 
+// RSI: When we delete a secondary index, do we detach the blobs in it?
+
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
 template<class Value>
