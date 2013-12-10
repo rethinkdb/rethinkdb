@@ -74,10 +74,7 @@ private:
     friend class page_cache_t;
     friend class evicter_t;
     friend class eviction_bag_t;
-
-    static backindex_bag_index_t *eviction_index(page_t *page) {
-        return &page->eviction_index_;
-    }
+    friend backindex_bag_index_t *access_backindex(page_t *page);
 
     void evict_self();
 
@@ -115,6 +112,10 @@ private:
 
     DISABLE_COPYING(page_t);
 };
+
+inline backindex_bag_index_t *access_backindex(page_t *page) {
+    return &page->eviction_index_;
+}
 
 // A page_ptr_t holds a pointer to a page_t.
 class page_ptr_t {

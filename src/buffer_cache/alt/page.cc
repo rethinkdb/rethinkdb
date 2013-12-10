@@ -1375,7 +1375,7 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *txn) {
 }
 
 eviction_bag_t::eviction_bag_t()
-    : bag_(&page_t::eviction_index), size_(0) { }
+    : bag_(), size_(0) { }
 
 eviction_bag_t::~eviction_bag_t() {
     guarantee(bag_.size() == 0);

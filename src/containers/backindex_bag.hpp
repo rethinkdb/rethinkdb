@@ -27,14 +27,14 @@ private:
     DISABLE_COPYING(backindex_bag_index_t);
 };
 
+template <class T>
+class backindex_trait_t;
+
 // A bag of elements that it _does not own_.
 template <class T>
 class backindex_bag_t {
 public:
-    typedef backindex_bag_index_t *(*backindex_bag_index_accessor_t)(T);
-
-    explicit backindex_bag_t(backindex_bag_index_accessor_t accessor)
-        : accessor_(accessor) { }
+    explicit backindex_bag_t() { }
 
     ~backindex_bag_t() {
         // Another way to implement this would be to simply remove all its elements.
@@ -46,14 +46,16 @@ public:
     // could be a member of one of several backindex_bag_t's (or none).  We see if
     // it's a memory of this one.
     bool has_element(T potential_element) const {
-        const backindex_bag_index_t *const backindex = accessor_(potential_element);
+        const backindex_bag_index_t *const backindex
+            = access_backindex(potential_element);
         return backindex->index_ < vector_.size()
             && vector_[backindex->index_] == potential_element;
     }
 
     // Removes the element from the bag.
     void remove(T element) {
-        backindex_bag_index_t *const backindex = accessor_(element);
+        backindex_bag_index_t *const backindex
+            = access_backindex(element);
         rassert(backindex->index_ != backindex_bag_index_t::NOT_IN_A_BAG);
         guarantee(backindex->index_ < vector_.size(),
                   "early index has wrong value: index=%zu, size=%zu",
@@ -66,7 +68,8 @@ public:
         // backindex->index_ == back_element_backindex->index_) but it works (I
         // hope).
         const T back_element = vector_.back();
-        backindex_bag_index_t *const back_element_backindex = accessor_(back_element);
+        backindex_bag_index_t *const back_element_backindex
+            = access_backindex(back_element);
 
         rassert(back_element_backindex->index_ == vector_.size() - 1,
                 "bag %p: index %p has wrong value: index_ = %zu, size = %zu",
@@ -83,7 +86,8 @@ public:
 
     // Adds the element to the bag.
     void add(T element) {
-        backindex_bag_index_t *const backindex = accessor_(element);
+        backindex_bag_index_t *const backindex
+            = access_backindex(element);
         guarantee(backindex->index_ == backindex_bag_index_t::NOT_IN_A_BAG,
                   "bag %p, backindex = %p", this, backindex);
 
@@ -105,8 +109,6 @@ public:
     }
 
 private:
-    const backindex_bag_index_accessor_t accessor_;
-
     // RSP: Huge block size, shitty data structure for a bag.
     segmented_vector_t<T> vector_;
 
