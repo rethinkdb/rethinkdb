@@ -53,7 +53,7 @@ void destroy_inner_txn(alt_inner_txn_t *inner, auto_drainer_t::lock_t) {
 }
 
 alt_txn_t::~alt_txn_t() {
-    if (inner_.has() && durability_ == write_durability_t::SOFT) {
+    if (durability_ == write_durability_t::SOFT) {
         // RSI: This doesn't do throttling correctly.
         alt_inner_txn_t *inner = inner_.release();
         coro_t::spawn_sometime(std::bind(&destroy_inner_txn,
