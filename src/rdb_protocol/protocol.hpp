@@ -46,8 +46,6 @@ class traversal_progress_combiner_t;
 
 namespace unittest { struct make_sindex_read_t; }
 
-using query_language::shared_scoped_less_t;
-
 enum class profile_bool_t {
     PROFILE,
     DONT_PROFILE
