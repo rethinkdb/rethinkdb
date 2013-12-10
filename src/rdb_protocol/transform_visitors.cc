@@ -211,7 +211,7 @@ void terminal_apply(ql::env_t *ql_env,
 /* A visitor for setting the result type based on a terminal. */
 class terminal_initializer_visitor_t : public boost::static_visitor<void> {
 public:
-    terminal_initializer_visitor_t(rget_read_response_t::result_t *_out)
+    explicit terminal_initializer_visitor_t(rget_read_response_t::result_t *_out)
         : out(_out) { }
 
     void operator()(const ql::gmr_wire_func_t &f) const {

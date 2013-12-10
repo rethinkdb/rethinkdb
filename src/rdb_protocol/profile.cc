@@ -77,7 +77,7 @@ public:
         std::vector<counted_t<const ql::datum_t> > *res)
         : begin_(begin), end_(end), res_(res) { }
 
-    void operator()(start_t &start) const {
+    void operator()(start_t &start) const {  // NOLINT(runtime/references)
         (*begin_)++;
         counted_t<const ql::datum_t> sub_tasks = construct_datum(begin_, end_);
         auto stop = boost::get<stop_t>(&**begin_);
@@ -97,7 +97,7 @@ public:
         res_->push_back(construct_split(
             make_counted<const ql::datum_t>(std::move(parallel_tasks))));
     }
-    void operator()(sample_t &sample) const {
+    void operator()(sample_t &sample) const {  // NOLINT(runtime/references)
         (*begin_)++;
         res_->push_back(construct_sample(&sample));
     }

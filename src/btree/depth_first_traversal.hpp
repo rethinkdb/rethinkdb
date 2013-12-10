@@ -24,7 +24,8 @@ class counted_buf_lock_t : public buf_lock_t,
                            public single_threaded_countable_t<counted_buf_lock_t> {
 public:
     template <class... Args>
-    counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
+    explicit counted_buf_lock_t(Args &&... args)
+        : buf_lock_t(std::forward<Args>(args)...) { }
 };
 #endif
 

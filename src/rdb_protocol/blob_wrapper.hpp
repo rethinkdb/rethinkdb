@@ -2,6 +2,8 @@
 #ifndef RDB_PROTOCOL_BLOB_WRAPPER_HPP_
 #define RDB_PROTOCOL_BLOB_WRAPPER_HPP_
 
+#include <string>
+
 #include "btree/btree_store.hpp"
 #include "btree/slice.hpp"  // RSI: for SLICE_ALT
 #if SLICE_ALT
