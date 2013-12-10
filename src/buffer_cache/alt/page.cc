@@ -1246,25 +1246,6 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
         blocks_releasable_cb.wait();
 
-        // Set the page_t's block token field to their new block tokens.  RSI: Can we
-        // do this earlier?  Do we have to wait for blocks_releasable_cb?  It doesn't
-        // matter that much as long as we have some way to prevent parallel forced
-        // eviction from happening, though.
-        for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end(); ++it) {
-            if (it->block_token.has() && it->page != NULL) {
-                // We know page is still a valid pointer because of the page_ptr_t in
-                // snapshotted_dirtied_pages_.
-
-                // RSI: This assertion would fail if we try to force-evict the page
-                // simultaneously as this write.
-                rassert(!it->page->block_token_.has());
-                eviction_bag_t *old_bag
-                    = page_cache->evicter().correct_eviction_category(it->page);
-                it->page->block_token_ = std::move(it->block_token);
-                page_cache->evicter().change_eviction_bag(old_bag, it->page);
-            }
-        }
-
         pagef("do_flush_txn_set blocks_releasable_cb waited (pc=%p, tset=%p)\n", page_cache, &txns);
 
         // RSI: Pass in the exiter to index_write, so that
@@ -1282,6 +1263,30 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
         pagef("do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
     }
     pagef("xited scope after do_flush_txn_set index write returned (pc=%p, tset=%p)\n", page_cache, &txns);
+
+
+    // Set the page_t's block token field to their new block tokens.  RSI: Can we
+    // do this earlier?  Do we have to wait for blocks_releasable_cb?  It doesn't
+    // matter that much as long as we have some way to prevent parallel forced
+    // eviction from happening, though.
+
+    // RSI: We could pass these block tokens as a message back to the cache thread
+    // and set them earlier -- at least we could after blocks_releasable_cb.wait()
+    // and before the index_write.
+    for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end(); ++it) {
+        if (it->block_token.has() && it->page != NULL) {
+            // We know page is still a valid pointer because of the page_ptr_t in
+            // snapshotted_dirtied_pages_.
+
+            // RSI: This assertion would fail if we try to force-evict the page
+            // simultaneously as this write.
+            rassert(!it->page->block_token_.has());
+            eviction_bag_t *old_bag
+                = page_cache->evicter().correct_eviction_category(it->page);
+            it->page->block_token_ = std::move(it->block_token);
+            page_cache->evicter().change_eviction_bag(old_bag, it->page);
+        }
+    }
 
     // Flush complete, and we're back on the page cache's thread.
 
