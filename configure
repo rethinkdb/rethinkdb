@@ -61,11 +61,14 @@ configure () {
     case "$OS" in
         Darwin)
             with_tcmalloc=false ;
-            var PTHREAD_LIBS "" ;;
+            var PTHREAD_LIBS "" ;
+            var RT_LIBS "" ;;
         Linux)
-            var PTHREAD_LIBS -pthread ;;
+            var PTHREAD_LIBS -pthread ;
+            var RT_LIBS -lrt ;;
         *) error "unsupported operating system: $OS" ;;
     esac
+    var M_LIBS -lm
     require "Without tcmalloc"
     boolvar NO_TCMALLOC not $with_tcmalloc
     require "Build client drivers"
@@ -126,6 +129,7 @@ configure () {
         var TCMALLOC_MINIMAL_LIBS ""
     fi
     test_protobuf
+    check_boost
     boolvar STATIC_V8 contains "$static_libs" v8
     var FETCH_LIST "$fetch_list"
     boolvar FETCH_INTERNAL_TOOLS $allow_fetch
@@ -718,9 +722,14 @@ optional_dep () {
 
 # An assoc-list of c++ code to test if a library works
 lib_test_code=':~
+
 ~termcap:
 #include <termcap.h>
 int main(){ tgetent(0, "xterm"); return 0; }
+
+~boost:
+#include <boost/bind.hpp>
+int main(){ return 0; }
 ~'
 
 # An assoc-list of possible library aliases
@@ -791,11 +800,11 @@ check_lib_compile () {
     local bfile=`dirname $0`/mk/gen/check_$2
     local code
     if ! lookup "$lib_test_code" $2 code; then
-        code='int main(){}'
+        code='int main(){ return 0; }'
     fi
     echo "$code" > "$bfile.cc"
     if "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$bfile.cc" $1 -o "$bfile.out" 1>"$bfile.log" 2>&1; then
-	var_append $(uc $2)_LIBS $1
+	var_append $(uc $2)_LIBS ${1:-yes}
     else
         error_details="${error_details:-}"$(cat "$bfile.log")
     fi
@@ -895,12 +904,17 @@ int main() {
 EOF
     if
         "$CXX" ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
-            $V8_LIBS $PTHREAD_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
+            $V8_LIBS $PTHREAD_LIBS $M_LIBS $RT_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
     then
         boolvar V8_PRE_3_19 false
     else
         boolvar V8_PRE_3_19 true
     fi
+}
+
+check_boost () {
+    require "Boost"
+    check_lib_compile "" boost
 }
 
 # Call the main command with the command line arguments
