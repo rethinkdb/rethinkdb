@@ -13,11 +13,11 @@ public:
         , owner_(NULL)
 #endif
     {
-        debugf("index %p create\n", this);
+        // debugf("index %p create\n", this);
     }
 
     ~backindex_bag_index_t() {
-        debugf("index %p destroy\n", this);
+        // debugf("index %p destroy\n", this);
         guarantee(index_ == NOT_IN_A_BAG);
     }
 
@@ -45,11 +45,11 @@ public:
 
     explicit backindex_bag_t(backindex_bag_index_accessor_t accessor)
         : accessor_(accessor) {
-        debugf("bag %p create\n", this);
+        // debugf("bag %p create\n", this);
     }
 
     ~backindex_bag_t() {
-        debugf("bag %p destroy\n", this);
+        // debugf("bag %p destroy\n", this);
         // Another way to implement this would be to simply remove all its elements.
         guarantee(vector_.size() == 0);
     }
@@ -62,8 +62,8 @@ public:
         const backindex_bag_index_t *const backindex = accessor_(potential_element);
         bool ret = backindex->index_ < vector_.size()
             && vector_[backindex->index_] == potential_element;
-        debugf("bag %p has_element index %p (index_ = %zu, ret = %d)\n",
-               this, backindex, backindex->index_, static_cast<int>(ret));
+        // debugf("bag %p has_element index %p (index_ = %zu, ret = %d)\n",
+        //        this, backindex, backindex->index_, static_cast<int>(ret));
         rassert(!ret || backindex->owner_ == this);
         return ret;
     }
@@ -71,8 +71,8 @@ public:
     // Removes the element from the bag.
     void remove(T element) {
         backindex_bag_index_t *const backindex = accessor_(element);
-        debugf("bag %p remove index %p (index_ = %zu)\n",
-               this, backindex, backindex->index_);
+        // debugf("bag %p remove index %p (index_ = %zu)\n",
+        //        this, backindex, backindex->index_);
         rassert(backindex->index_ != backindex_bag_index_t::NOT_IN_A_BAG);
         rassert(backindex->owner_ == this);
         guarantee(backindex->index_ < vector_.size(),
@@ -88,9 +88,9 @@ public:
         const T back_element = vector_.back();
         backindex_bag_index_t *const back_element_backindex = accessor_(back_element);
 
-        debugf("bag %p remove.. move index %p (index_ = %zu) from %zu to new index_ = %zu\n",
-               this, back_element_backindex, back_element_backindex->index_,
-               vector_.size() - 1, index);
+        // debugf("bag %p remove.. move index %p (index_ = %zu) from %zu to new index_ = %zu\n",
+        //        this, back_element_backindex, back_element_backindex->index_,
+        //        vector_.size() - 1, index);
         rassert(back_element_backindex->owner_ == this);
         rassert(back_element_backindex->index_ == vector_.size() - 1,
                 "bag %p: index %p has wrong value: index_ = %zu, size = %zu",
@@ -117,8 +117,8 @@ public:
                   "bag %p, backindex = %p", this, backindex);
 
         backindex->index_ = vector_.size();
-        debugf("bag %p add index %p (set index_ = %zu)\n",
-               this, backindex, backindex->index_);
+        // debugf("bag %p add index %p (set index_ = %zu)\n",
+        //        this, backindex, backindex->index_);
 #ifndef NDEBUG
         backindex->owner_ = this;
 #endif
