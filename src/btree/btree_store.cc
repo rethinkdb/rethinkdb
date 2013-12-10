@@ -98,6 +98,9 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         scoped_ptr_t<alt_buf_lock_t> sindex_block;
         // RSI: Before we passed a token pair and made acquiring the sindex block
         // interruptible.  Do any callers not pass a dummy interruptor?
+        // JD: There were some callers that passed real interruptors like in
+        // send_backfill it's moot now though because we don't need the
+        // interruptor now that we're not using an order token.
         acquire_sindex_block_for_read(superblock->expose_buf(),
                                       &sindex_block,
                                       superblock->get_sindex_block_id(),
@@ -167,15 +170,10 @@ void btree_store_t<protocol_t>::read(
 #endif
     // debugf("%p read (%p) checked metainfo\n", this, response);
 
-    // RSI: how is this an ugly hack
-    // Ugly hack
-    scoped_ptr_t<superblock_t> superblock2;
-    superblock2.init(superblock.release());
-
 #if SLICE_ALT
-    protocol_read(read, response, btree.get(), superblock2.get(), interruptor);
+    protocol_read(read, response, btree.get(), superblock.get(), interruptor);
 #else
-    protocol_read(read, response, btree.get(), txn.get(), superblock2.get(), token_pair, interruptor);
+    protocol_read(read, response, btree.get(), txn.get(), superblock.get(), token_pair, interruptor);
 #endif
 }
 
