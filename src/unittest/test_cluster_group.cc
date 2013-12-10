@@ -53,9 +53,19 @@ bool is_blueprint_satisfied(const blueprint_t<protocol_t> &bp,
                  kt != bcard.activities.end();
                  ++kt) {
                 if (jt->first == kt->second.region) {
+                    bool failover = std_contains(bp.failover, kt->second.region);
                     if (jt->second == blueprint_role_t::PRIMARY &&
                         boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.activity) &&
                         boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.activity).replier.is_initialized()) {
+                        found = true;
+                        break;
+                    } else if (jt->second == blueprint_role_t::VICEPRIMARY &&
+                                ((failover &&
+                                 boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(&kt->second.activity) &&
+                                 boost::get<typename reactor_business_card_t<protocol_t>::primary_t>(kt->second.activity).replier.is_initialized())
+                              ||
+                                (!failover &&
+                                 boost::get<typename reactor_business_card_t<protocol_t>::secondary_up_to_date_t>(&kt->second.activity)))) {
                         found = true;
                         break;
                     } else if (jt->second == blueprint_role_t::SECONDARY &&
@@ -323,7 +333,6 @@ std::map<peer_id_t, boost::optional<cow_ptr_t<reactor_business_card_t<protocol_t
 
 template <class protocol_t>
 void test_cluster_group_t<protocol_t>::wait_until_blueprint_is_satisfied(const blueprint_t<protocol_t> &bp) {
-    BREAKPOINT;
     try {
         const int timeout_ms = 60000;
         signal_timer_t timer;
