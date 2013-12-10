@@ -2,6 +2,7 @@
 #ifndef BOOST_UTILS_HPP_
 #define BOOST_UTILS_HPP_
 
+#include "errors.hpp"
 #include <boost/optional.hpp>
 
 #include "containers/printf_buffer.hpp"

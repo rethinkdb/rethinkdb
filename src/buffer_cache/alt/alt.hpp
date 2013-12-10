@@ -2,6 +2,7 @@
 #define BUFFER_CACHE_ALT_ALT_HPP_
 
 #include <vector>
+#include <utility>
 
 #include "buffer_cache/alt/page.hpp"
 #include "buffer_cache/general_types.hpp"

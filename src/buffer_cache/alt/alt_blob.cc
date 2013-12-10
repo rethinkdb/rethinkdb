@@ -357,7 +357,7 @@ void blob_t::expose_all(alt_buf_parent_t parent, alt_access_t mode,
 namespace blob {
 
 struct region_tree_filler_t {
-    region_tree_filler_t(alt_buf_parent_t _parent)
+    explicit region_tree_filler_t(alt_buf_parent_t _parent)
         : parent(_parent) { }
 
     alt_buf_parent_t parent;

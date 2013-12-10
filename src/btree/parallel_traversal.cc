@@ -275,7 +275,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
     lock_in_line_callback_t *acq_start_cb;
     node_ready_callback_t *node_ready_cb;
 
-    acquire_a_node_fsm_t(alt_buf_parent_t _parent) : parent(_parent) { }
+    explicit acquire_a_node_fsm_t(alt_buf_parent_t _parent) : parent(_parent) { }
 
     void you_may_acquire() {
         rassert(coro_t::self());

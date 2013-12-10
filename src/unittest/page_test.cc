@@ -142,7 +142,7 @@ TEST(PageTest, OneWriteAcqWait) {
 
 class bigger_test_t {
 public:
-    bigger_test_t(uint64_t _memory_limit)
+    explicit bigger_test_t(uint64_t _memory_limit)
         : memory_limit(_memory_limit), mock(), c(NULL),
           txn1_ptr(NULL), txn2_ptr(NULL) {
         for (size_t i = 0; i < b_len; ++i) {

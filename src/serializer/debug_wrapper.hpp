@@ -1,13 +1,15 @@
 #ifndef SERIALIZER_DEBUG_WRAPPER_HPP_
 #define SERIALIZER_DEBUG_WRAPPER_HPP_
 
+#include <vector>
+
 #include "serializer/serializer.hpp"
 #include "utils.hpp"
 
 // RSI: Remove this whole type and file.
 class debug_serializer_t : public serializer_t {
 public:
-    debug_serializer_t(scoped_ptr_t<serializer_t> inner)
+    explicit debug_serializer_t(scoped_ptr_t<serializer_t> inner)
         : inner_(std::move(inner)) { }
     ~debug_serializer_t() { }
 
