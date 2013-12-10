@@ -250,6 +250,12 @@ void coro_t::yield() {  /* class method */
     self()->wait();
 }
 
+void coro_t::yield_ordered() {  /* class method */
+    rassert(self(), "Not in a coroutine context");
+    self()->notify_later_ordered();
+    self()->wait();
+}
+
 void coro_t::notify_now_deprecated() {
     rassert(waiting_);
     rassert(!notified_);

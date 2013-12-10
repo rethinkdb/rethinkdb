@@ -88,6 +88,9 @@ public:
     `yield()` by different coroutines may return in a different order than they
     began in. */
     static void yield();
+    /* Like `yield()`, but guarantees that the ordering of coroutines calling 
+    `yield_ordered()` is maintained. */
+    static void yield_ordered();
 
     /* Returns a pointer to the current coroutine, or `NULL` if we are not in a
     coroutine. */
