@@ -2,7 +2,7 @@
 #ifndef BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 #define BUFFER_CACHE_SEMANTIC_CHECKING_HPP_
 
-#include <algorithm>
+#include <utility>
 
 #include "utils.hpp"
 #include <boost/crc.hpp>

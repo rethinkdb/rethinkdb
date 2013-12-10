@@ -298,23 +298,19 @@ private:
     void on_change_reactor_directory() {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
 
-        /* C++11: auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool { ... }
-        Because we cannot use C++11 lambdas yet due to missing support in
-        GCC 4.4, this is the messy work-around: */
         struct op_closure_t {
-            bool operator()(namespaces_directory_metadata_t<protocol_t> *directory) {
-                directory->reactor_bcards.find(namespace_id_)->second = reactor_->get_reactor_directory()->get();
+            static bool apply(const namespace_id_t namespace_id,
+                              reactor_t<protocol_t> *reactor,
+                              namespaces_directory_metadata_t<protocol_t> *directory) {
+                directory->reactor_bcards.find(namespace_id)->second = reactor->get_reactor_directory()->get();
                 return true;
             }
-            op_closure_t(const namespace_id_t &c1, scoped_ptr_t<reactor_t<protocol_t> > &c2) :
-                namespace_id_(c1),
-                reactor_(c2) { }
-            const namespace_id_t &namespace_id_;
-            scoped_ptr_t<reactor_t<protocol_t> > &reactor_;
         };
-        op_closure_t op(namespace_id_, reactor_);
 
-        parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+        parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::apply,
+                                                              namespace_id_,
+                                                              reactor_.get(),
+                                                              std::placeholders::_1));
     }
 
     void initialize_reactor(io_backender_t *io_backender) {
@@ -325,7 +321,7 @@ private:
         // TODO: We probably shouldn't have to pass in this perfmon collection.
         svs_by_namespace_->get_svs(serializers_collection, namespace_id_, cache_size, &stores_lifetimer_, &svs_, ctx);
 
-        const auto extract_reactor_directory_per_peer_fun =
+        auto const extract_reactor_directory_per_peer_fun =
             boost::bind(&watchable_and_reactor_t<protocol_t>::extract_reactor_directory_per_peer,
                         this, _1);
         incremental_map_lens_t<peer_id_t,
@@ -352,25 +348,21 @@ private:
             DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
 
 
-            /* C++11: auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool { ... }
-            Because we cannot use C++11 lambdas yet due to missing support in
-            GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
-                bool operator()(namespaces_directory_metadata_t<protocol_t> *directory) {
+                static bool apply(const namespace_id_t namespace_id,
+                                  reactor_t<protocol_t> *reactor,
+                                  namespaces_directory_metadata_t<protocol_t> *directory) {
                     std::pair<typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::iterator, bool> insert_res
-                        = directory->reactor_bcards.insert(std::make_pair(namespace_id_, reactor_->get_reactor_directory()->get()));
+                        = directory->reactor_bcards.insert(std::make_pair(namespace_id, reactor->get_reactor_directory()->get()));
                     guarantee(insert_res.second);  // Ensure a value did not already exist.
                     return true;
                 }
-                op_closure_t(const namespace_id_t &c1, scoped_ptr_t<reactor_t<protocol_t> > &c2) :
-                    namespace_id_(c1),
-                    reactor_(c2) { }
-                const namespace_id_t &namespace_id_;
-                scoped_ptr_t<reactor_t<protocol_t> > &reactor_;
             };
-            op_closure_t op(namespace_id_, reactor_);
 
-            parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+            parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::apply,
+                                                                  namespace_id_,
+                                                                  reactor_.get(),
+                                                                  std::placeholders::_1));
         }
 
         reactor_has_been_initialized_.pulse();
@@ -515,25 +507,18 @@ void reactor_driver_t<protocol_t>::on_change() {
                     namespace_id_t tmp = it->first;
                     reactor_data.insert(tmp, new watchable_and_reactor_t<protocol_t>(base_path, io_backender, this, it->first, cache_size, bp, svs_by_namespace, ctx));
                 } else {
-                    /* C++11: auto op = [&] (blueprint_t<protocol_t> *bp_out) -> bool { ... }
-                    Because we cannot use C++11 lambdas yet due to missing support in
-                    GCC 4.4, this is the messy work-around: */
                     struct op_closure_t {
-                        bool operator()(blueprint_t<protocol_t> *bp_out) {
-                            guarantee(bp_out != NULL);
-                            const bool blueprint_changed = *bp_out != bp;
+                        static bool apply(const blueprint_t<protocol_t> &_bp,
+                                          blueprint_t<protocol_t> *bp_ref) {
+                            const bool blueprint_changed = (*bp_ref != _bp);
                             if (blueprint_changed) {
-                                *bp_out = bp;
+                                *bp_ref = _bp;
                             }
                             return blueprint_changed;
                         }
-                        op_closure_t(blueprint_t<protocol_t> &c1) :
-                            bp(c1) { }
-                        blueprint_t<protocol_t> &bp;
                     };
-                    op_closure_t op(bp);
 
-                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+                    reactor_data.find(it->first)->second->watchable.apply_atomic_op(std::bind(&op_closure_t::apply, std::ref(bp), std::placeholders::_1));
                 }
             } else {
                 /* The blueprint does not mentions us so we destroy the

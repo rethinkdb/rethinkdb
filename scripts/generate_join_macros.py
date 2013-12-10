@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2010-2012 RethinkDB, all rights reserved.
+# Copyright 2010-2013 RethinkDB, all rights reserved.
 import sys
 
 """This script is used to generate the RDB_MAKE_SEMILATTICE_JOINABLE_*() macro
@@ -46,11 +46,11 @@ def generate_make_me_equality_comparable_macro(nfields):
     else:
         print "        return " + " && ".join("field%d == _a_.field%d" % (i + 1, i + 1) for i in xrange(nfields)) + "; \\"
     print "    } \\"
-    print "    int equality_force_semicolon_declaration"
+    print "    friend class equality_force_semicolon_declaration_t"
 
 if __name__ == "__main__":
 
-    print "// Copyright 2010-2012 RethinkDB, all rights reserved."
+    print "// Copyright 2010-2013 RethinkDB, all rights reserved."
     print "#ifndef RPC_SEMILATTICE_JOINS_MACROS_HPP_"
     print "#define RPC_SEMILATTICE_JOINS_MACROS_HPP_"
     print

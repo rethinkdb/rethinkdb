@@ -133,7 +133,7 @@ write_message_t &operator<<(write_message_t& msg, const T &x) {
 MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
 
 template <class T>
-T *deserialize_deref(T &val) {
+T *deserialize_deref(T &val) {  // NOLINT(runtime/references)
     return &val;
 }
 
@@ -162,7 +162,7 @@ public:
 
 private:
     template <class U>
-    friend empty_ok_t<U> empty_ok(U &field);
+    friend empty_ok_t<U> empty_ok(U &field);  // NOLINT(runtime/references)
 
     explicit empty_ok_t(T *ptr) : ptr_(ptr) { }
 
@@ -180,7 +180,7 @@ empty_ok_ref_t<T> deserialize_deref(const empty_ok_t<T> &val) {
 // empty_ok_t<counted_t<const datum_t> > is made that lets you serialize empty datum's.
 // Simply wrap the name with empty_ok(...) in the serialization macro.
 template <class T>
-empty_ok_t<T> empty_ok(T &field) {
+empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)
     return empty_ok_t<T>(&field);
 }
 

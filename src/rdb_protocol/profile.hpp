@@ -2,6 +2,7 @@
 #ifndef RDB_PROTOCOL_PROFILE_HPP_
 #define RDB_PROTOCOL_PROFILE_HPP_
 
+#include <string>
 #include <vector>
 
 #include "errors.hpp"
@@ -188,8 +189,8 @@ private:
  * trace_t illegally due to their reentrancy. */
 class disabler_t {
 public:
-    disabler_t(trace_t *parent);
-    disabler_t(const scoped_ptr_t<trace_t> &parent);
+    explicit disabler_t(trace_t *parent);
+    explicit disabler_t(const scoped_ptr_t<trace_t> &parent);
     ~disabler_t();
 private:
     void init(trace_t *parent);
@@ -198,5 +199,6 @@ private:
 
 void print_event_log(const event_log_t &event_log);
 
-} //namespace profile
-#endif
+}  // namespace profile
+
+#endif  // RDB_PROTOCOL_PROFILE_HPP_

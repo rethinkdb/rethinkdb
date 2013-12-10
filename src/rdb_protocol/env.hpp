@@ -29,7 +29,7 @@ counted_t<const datum_t> static_optarg(const std::string &key, protob_t<Query> q
 class global_optargs_t {
 public:
     global_optargs_t();
-    global_optargs_t(protob_t<Query> q);
+    explicit global_optargs_t(protob_t<Query> q);
 
     // Returns whether or not there was a key conflict.
     MUST_USE bool add_optarg(const std::string &key, const Term &val);

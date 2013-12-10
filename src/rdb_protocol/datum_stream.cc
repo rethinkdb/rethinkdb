@@ -402,7 +402,7 @@ scoped_ptr_t<readgen_t> sindex_readgen_t::make(
 
 class sindex_compare_t {
 public:
-    sindex_compare_t(sorting_t _sorting) : sorting(_sorting) { }
+    explicit sindex_compare_t(sorting_t _sorting) : sorting(_sorting) { }
     bool operator()(const rget_item_t &l, const rget_item_t &r) {
         r_sanity_check(l.sindex_key && r.sindex_key);
         return reversed(sorting)
@@ -759,7 +759,7 @@ bool array_datum_stream_t::is_array() {
 // INDEXED_SORT_DATUM_STREAM_T
 indexed_sort_datum_stream_t::indexed_sort_datum_stream_t(
     counted_t<datum_stream_t> stream,
-    std::function<bool(env_t *,
+    std::function<bool(env_t *,  // NOLINT(readability/casting)
                        profile::sampler_t *,
                        const counted_t<const datum_t> &,
                        const counted_t<const datum_t> &)> _lt_cmp)
