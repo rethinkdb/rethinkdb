@@ -259,7 +259,7 @@ module 'DataExplorerView', ->
                             that.$('.nano > .content').animate
                                 scrollTop: that.$('.nano > .content > div').height()
                                 , 200
-                        if args.cb?
+                        if args?.cb?
                             args.cb()
 
                 if args? and args.delay_scroll isnt true and args.is_at_bottom is true
