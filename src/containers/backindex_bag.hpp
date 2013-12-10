@@ -7,7 +7,12 @@
 
 class backindex_bag_index_t {
 public:
-    backindex_bag_index_t() : index_(NOT_IN_A_BAG) { }
+    backindex_bag_index_t()
+        : index_(NOT_IN_A_BAG)
+#ifndef NDEBUG
+        , owner_(NULL)
+#endif
+    { }
 
     ~backindex_bag_index_t() {
         guarantee(index_ == NOT_IN_A_BAG);
@@ -17,13 +22,15 @@ private:
     template <class T>
     friend class backindex_bag_t;
 
-    explicit backindex_bag_index_t(size_t index) : index_(index) { }
-
     static const size_t NOT_IN_A_BAG = std::numeric_limits<size_t>::max();
 
     // The item's index into a (specific) backindex_bag_t, or NOT_IN_A_BAG if it
     // doesn't belong to the backindex_bag_t.
     size_t index_;
+#ifndef NDEBUG
+    // RSI: Remove this?
+    void *owner_;
+#endif
     DISABLE_COPYING(backindex_bag_index_t);
 };
 
@@ -47,15 +54,20 @@ public:
     // it's a memory of this one.
     bool has_element(T potential_element) const {
         const backindex_bag_index_t *const backindex = accessor_(potential_element);
-        return backindex->index_ < vector_.size()
+        bool ret = backindex->index_ < vector_.size()
             && vector_[backindex->index_] == potential_element;
+        rassert(!ret || backindex->owner_ == this);
+        return ret;
     }
 
     // Removes the element from the bag.
     void remove(T element) {
         backindex_bag_index_t *const backindex = accessor_(element);
         rassert(backindex->index_ != backindex_bag_index_t::NOT_IN_A_BAG);
-        guarantee(backindex->index_ < vector_.size());
+        rassert(backindex->owner_ == this);
+        guarantee(backindex->index_ < vector_.size(),
+                  "early index has wrong value: index=%zu, size=%zu",
+                  backindex->index_, vector_.size());
 
         const size_t index = backindex->index_;
 
@@ -66,6 +78,7 @@ public:
         const T back_element = vector_.back();
         backindex_bag_index_t *const back_element_backindex = accessor_(back_element);
 
+        rassert(back_element_backindex->owner_ == this);
         rassert(back_element_backindex->index_ == vector_.size() - 1,
                 "index has wrong value: index=%zu, size=%zu",
                 back_element_backindex->index_, vector_.size());
@@ -76,14 +89,21 @@ public:
         vector_.pop_back();
 
         backindex->index_ = backindex_bag_index_t::NOT_IN_A_BAG;
+#ifndef NDEBUG
+        backindex->owner_ = NULL;
+#endif
     }
 
     // Adds the element to the bag.
     void add(T element) {
         backindex_bag_index_t *const backindex = accessor_(element);
+        rassert(backindex->owner_ == NULL);
         guarantee(backindex->index_ == backindex_bag_index_t::NOT_IN_A_BAG);
 
         backindex->index_ = vector_.size();
+#ifndef NDEBUG
+        backindex->owner_ = this;
+#endif
         vector_.push_back(element);
     }
 
