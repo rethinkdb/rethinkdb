@@ -500,7 +500,7 @@ void reactor_driver_t<protocol_t>::on_change() {
                     }
 
                     if (cache_size > 64 * GIGABYTE) {
-                        cache_size = 16 * GIGABYTE;
+                        cache_size = 64 * GIGABYTE;
                         logINF("Namespace %s(%s) has too large of a cache size. Decreasing it to 64 gigabyes.\n",
                                 uuid_to_str(it->first).c_str(),
                                 it->second.get_ref().name.in_conflict() ? "Name in conflict" : it->second.get_ref().name.get().c_str());
