@@ -54,7 +54,7 @@ public:
         guarantee(vector_.size() == 0);
     }
 
-    // Retruns true if the potential element of this container is in fact an element
+    // Returns true if the potential element of this container is in fact an element
     // of this container.  The idea behind this function is that some value of type T
     // could be a member of one of several backindex_bag_t's (or none).  We see if
     // it's a memory of this one.
