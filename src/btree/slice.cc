@@ -30,7 +30,7 @@ void btree_slice_t::create(cache_t *cache, const std::vector<char> &metainfo_key
 #endif
 
 #if SLICE_ALT
-    alt_txn_t txn(cache);
+    alt_txn_t txn(cache, write_durability_t::HARD);
 #else
     /* Initialize the btree superblock and the delete queue */
     transaction_t txn(cache,

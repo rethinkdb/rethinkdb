@@ -32,6 +32,7 @@ public:
     page_cache_t page_cache_;
 
 private:
+    friend class alt_txn_t;  // for cache()->drainer_->lock().
     scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(alt_cache_t);

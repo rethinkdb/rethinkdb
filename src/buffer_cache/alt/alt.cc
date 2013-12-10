@@ -1,5 +1,6 @@
 #include "buffer_cache/alt/alt.hpp"
 
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
 
 // RSI: get rid of this.
@@ -8,7 +9,8 @@
 namespace alt {
 
 alt_cache_t::alt_cache_t(serializer_t *serializer)
-    : page_cache_(serializer) { }
+    : page_cache_(serializer),
+      drainer_(make_scoped<auto_drainer_t>()) { }
 
 alt_cache_t::~alt_cache_t() {
     drainer_.reset();
@@ -46,8 +48,18 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache,
                                  : preceding_txn->inner_.get())),
       durability_(durability) { }
 
+void destroy_inner_txn(alt_inner_txn_t *inner, auto_drainer_t::lock_t) {
+    delete inner;
+}
+
 alt_txn_t::~alt_txn_t() {
-    (void)durability_;  // RSI: Use this field.
+    if (inner_.has() && durability_ == write_durability_t::SOFT) {
+        // RSI: This doesn't do throttling correctly.
+        alt_inner_txn_t *inner = inner_.release();
+        coro_t::spawn_sometime(std::bind(&destroy_inner_txn,
+                                         inner,
+                                         inner->cache()->drainer_->lock()));
+    }
 }
 
 alt_buf_lock_t::alt_buf_lock_t()
