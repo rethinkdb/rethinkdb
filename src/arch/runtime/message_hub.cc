@@ -174,7 +174,11 @@ void linux_message_hub_t::on_event(int events) {
             // Place wakey_wakey and then yield to the event processing.
             // It will wake us up again immediately, but can handle a few
             // OS events (such as timers, network messages etc.) in the meantime.
-            bool do_wake_up = !check_and_set_is_woken_up();
+            bool do_wake_up;
+            {
+                spinlock_acq_t acq(&incoming_messages_lock_);
+                do_wake_up = !check_and_set_is_woken_up();
+            }
             if (do_wake_up) {
                 event_.wakey_wakey();
             }

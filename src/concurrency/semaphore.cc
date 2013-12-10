@@ -29,7 +29,6 @@ void static_semaphore_t::co_lock(int count) {
     lock(&cb, count);
     cb.wait_eagerly_deprecated();
     // TODO: Remove the need for in_callback checks.
-    coro_t::yield();
 }
 
 void static_semaphore_t::co_lock_interruptible(signal_t *interruptor, int count) {
@@ -108,7 +107,6 @@ void adjustable_semaphore_t::co_lock(int count) {
     lock(&cb, count);
     cb.wait_eagerly_deprecated();
     // TODO: remove need for in_callback checks
-    coro_t::yield();
 }
 
 void adjustable_semaphore_t::co_lock_interruptible(signal_t *interruptor, int count) {
