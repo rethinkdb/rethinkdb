@@ -210,21 +210,18 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<real_superblock_t> super_block;
 
             store.acquire_superblock_for_write(repli_timestamp_t::invalid,
-                                               1, write_durability_t::SOFT, &token_pair,
-                                               &txn, &super_block, &dummy_interuptor);
+                    1, write_durability_t::SOFT, &token_pair,
+                    &txn, &super_block, &dummy_interuptor);
 
 #if SLICE_ALT
             scoped_ptr_t<alt_buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                                                 &sindex_block,
-                                                 super_block->get_sindex_block_id(),
-                                                 &dummy_interuptor);
+                    &sindex_block, super_block->get_sindex_block_id());
 
             UNUSED bool b = store.add_sindex(
                 id,
                 std::vector<char>(),
-                sindex_block.get(),
-                &dummy_interuptor);
+                sindex_block.get());
 #else
             UNUSED bool b = store.add_sindex(
                 &token_pair,
@@ -255,7 +252,7 @@ void run_sindex_btree_store_api_test() {
             scoped_ptr_t<alt_buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(
                     super_block->expose_buf(), &sindex_block,
-                    super_block->get_sindex_block_id(), &dummy_interuptor);
+                    super_block->get_sindex_block_id());
 #else
             scoped_ptr_t<buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(
@@ -293,7 +290,7 @@ void run_sindex_btree_store_api_test() {
             bool sindex_exists = store.acquire_sindex_superblock_for_write(id,
                     super_block->get_sindex_block_id(),
                     super_block->expose_buf(),
-                    &sindex_super_block, &dummy_interuptor);
+                    &sindex_super_block);
 #else
             bool sindex_exists = store.acquire_sindex_superblock_for_write(id,
                     super_block->get_sindex_block_id(), &token_pair, txn.get(),
@@ -395,17 +392,13 @@ void run_sindex_btree_store_api_test() {
 #if SLICE_ALT
         scoped_ptr_t<alt_buf_lock_t> sindex_block;
         store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                                             &sindex_block,
-                                             super_block->get_sindex_block_id(),
-                                             &dummy_interuptor);
+                &sindex_block, super_block->get_sindex_block_id());
 
-        store.drop_sindex(*it,
-                sindex_block.get(), &sizer,
-                &deleter, &dummy_interuptor);
+        store.drop_sindex(
+                *it, sindex_block.get(), &sizer, &deleter, &dummy_interuptor);
 #else
         store.drop_sindex(&token_pair, *it,
-                txn.get(), super_block.get(), &sizer,
-                &deleter, &dummy_interuptor);
+                txn.get(), super_block.get(), &sizer, &deleter, &dummy_interuptor);
 #endif
     }
 }

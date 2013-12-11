@@ -318,16 +318,20 @@ void post_construct_and_drain_queue(
 #else
             scoped_ptr_t<buf_lock_t> queue_sindex_block;
 #endif
-            store->acquire_sindex_block_for_write(
+
 #if SLICE_ALT
+            store->acquire_sindex_block_for_write(
                 queue_superblock->expose_buf(),
+                &queue_sindex_block,
+                sindex_block_id);
 #else
+            store->acquire_sindex_block_for_write(
                 &token_pair,
                 queue_txn.get(),
-#endif
                 &queue_sindex_block,
                 sindex_block_id,
                 lock.get_drain_signal());
+#endif
 
 #if SLICE_ALT
             queue_superblock->release();
@@ -427,16 +431,19 @@ void post_construct_and_drain_queue(
 #else
         scoped_ptr_t<buf_lock_t> queue_sindex_block;
 #endif
-        store->acquire_sindex_block_for_write(
 #if SLICE_ALT
+        store->acquire_sindex_block_for_write(
             queue_superblock->expose_buf(),
+            &queue_sindex_block,
+            sindex_block_id);
 #else
+        store->acquire_sindex_block_for_write(
             &token_pair,
             queue_txn.get(),
-#endif
             &queue_sindex_block,
             sindex_block_id,
             lock.get_drain_signal());
+#endif
 
 #if SLICE_ALT
         queue_superblock->release();
@@ -1816,8 +1823,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         res.success = store->add_sindex(
             c.id,
             stream.vector(),
-            sindex_block.get(),
-            &interruptor);
+            sindex_block.get());
 #else
         scoped_ptr_t<buf_lock_t> sindex_block;
         res.success = store->add_sindex(
@@ -1925,8 +1931,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                                               &sindex_block,
-                                              sindex_block_id,
-                                              &dummy_interruptor);
+                                              sindex_block_id);
 #endif
     }
 
@@ -2180,7 +2185,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         store->acquire_sindex_block_for_write(
             superblock->expose_buf(),
             &sindex_block,
-            sindex_block_id, &dummy_interruptor);
+            sindex_block_id);
 #endif
     }
 

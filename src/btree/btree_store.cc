@@ -505,25 +505,19 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
 #endif
 }
 
+#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
-#if !SLICE_ALT
-        write_token_pair_t *token_pair,
-#endif
-#if SLICE_ALT
         alt_buf_parent_t parent,
         scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
+        block_id_t sindex_block_id)
 #else
+template <class protocol_t>
+void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
+        write_token_pair_t *token_pair,
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
-#endif
         block_id_t sindex_block_id,
-#if SLICE_ALT
-        UNUSED signal_t *interruptor)  // RSI: Before, interruptor was used when
-                                       // waiting for the sindex_write_token.  Right
-                                       // here, there's no way to interrupt trying to
-                                       // acquire a block.  That happens elsewhere.
-#else
         signal_t *interruptor)
 #endif
     THROWS_ONLY(interrupted_exc_t) {
@@ -584,8 +578,7 @@ template <class protocol_t>
 bool btree_store_t<protocol_t>::add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        alt_buf_lock_t *sindex_block,
-        UNUSED signal_t *interruptor)  // RSI: unused
+        alt_buf_lock_t *sindex_block)
     THROWS_ONLY(interrupted_exc_t) {
 
     secondary_index_t sindex;
@@ -1019,10 +1012,9 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
     /* First get the sindex block. */
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    // RSI: Callee doesn't use interruptor.
     acquire_sindex_block_for_write(super_block->expose_buf(),
                                    &sindex_block,
-                                   super_block->get_sindex_block_id(), interruptor);
+                                   super_block->get_sindex_block_id());
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
@@ -1211,8 +1203,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
         block_id_t sindex_block_id,
         alt_buf_parent_t parent,
-        scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-        signal_t *interruptor)
+        scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
 #else
 template <class protocol_t>
@@ -1230,9 +1221,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     /* Get the sindex block. */
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    // RSI: Callee doesn't use interruptor.
-    acquire_sindex_block_for_write(parent, &sindex_block,
-                                   sindex_block_id, interruptor);
+    acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
@@ -1268,8 +1257,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         alt_buf_parent_t parent,
-        sindex_access_vector_t *sindex_sbs_out,
-        signal_t *interruptor)
+        sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
 #else
 template <class protocol_t>
@@ -1286,9 +1274,7 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
     /* Get the sindex block. */
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    // RSI: Callee doesn't use interruptor.
-    acquire_sindex_block_for_write(parent, &sindex_block,
-                                   sindex_block_id, interruptor);
+    acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
@@ -1333,8 +1319,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         alt_buf_parent_t parent,
-        sindex_access_vector_t *sindex_sbs_out,
-        signal_t *interruptor)
+        sindex_access_vector_t *sindex_sbs_out)
 #else
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
@@ -1350,8 +1335,7 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     // RSI: Callee doesn't use interruptor.
-    acquire_sindex_block_for_write(parent, &sindex_block,
-                                   sindex_block_id, interruptor);
+    acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);

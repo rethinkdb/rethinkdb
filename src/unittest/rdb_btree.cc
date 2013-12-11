@@ -69,16 +69,15 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
 #else
             scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
-            store->acquire_sindex_block_for_write(
-#if SLICE_ALT
-                    superblock->expose_buf(),
-#else
-                    &token_pair,
-                    txn.get(),
-#endif
-                    &sindex_block,
-                    sindex_block_id, &dummy_interruptor);
 
+#if SLICE_ALT
+            store->acquire_sindex_block_for_write(
+                    superblock->expose_buf(), &sindex_block, sindex_block_id);
+#else
+            store->acquire_sindex_block_for_write(
+                    &token_pair, txn.get(), &sindex_block,
+                    sindex_block_id, &dummy_interruptor);
+#endif
             btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
             store->acquire_post_constructed_sindex_superblocks_for_write(
                      sindex_block.get(),
@@ -141,13 +140,11 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(super_block->expose_buf(),
                                           &sindex_block,
-                                          super_block->get_sindex_block_id(),
-                                          &dummy_interruptor);
+                                          super_block->get_sindex_block_id());
     UNUSED bool b = store->add_sindex(
             sindex_id,
             stream.vector(),
-            sindex_block.get(),
-            &dummy_interruptor);
+            sindex_block.get());
 #else
     UNUSED bool b = store->add_sindex(
             &token_pair,
@@ -184,8 +181,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(super_block->expose_buf(),
                                           &sindex_block,
-                                          super_block->get_sindex_block_id(),
-                                          &dummy_interuptor);
+                                          super_block->get_sindex_block_id());
     store->drop_sindex(
             sindex_id,
             sindex_block.get(),
@@ -225,16 +221,19 @@ void bring_sindexes_up_to_date(
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
-    store->acquire_sindex_block_for_write(
 #if SLICE_ALT
+    store->acquire_sindex_block_for_write(
             super_block->expose_buf(),
+            &sindex_block,
+            super_block->get_sindex_block_id());
 #else
+    store->acquire_sindex_block_for_write(
             &token_pair,
             txn.get(),
-#endif
             &sindex_block,
             super_block->get_sindex_block_id(),
             &dummy_interruptor);
+#endif
 
     std::set<std::string> created_sindexes;
     created_sindexes.insert(sindex_id);
@@ -271,15 +270,18 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
-    store->acquire_sindex_block_for_write(
 #if SLICE_ALT
+    store->acquire_sindex_block_for_write(
             super_block->expose_buf(),
+            &sindex_block,
+            super_block->get_sindex_block_id());
 #else
+    store->acquire_sindex_block_for_write(
             &token_pair, txn.get(),
-#endif
             &sindex_block,
             super_block->get_sindex_block_id(),
             &dummy_interruptor);
+#endif
 
     coro_t::spawn_sometime(std::bind(&insert_rows_and_pulse_when_done,
                 (TOTAL_KEYS_TO_INSERT * 9) / 10, TOTAL_KEYS_TO_INSERT,

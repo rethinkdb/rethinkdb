@@ -792,8 +792,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         scoped_ptr_t<alt_buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(
             superblock->expose_buf(),
-            &sindex_block, superblock->get_sindex_block_id(),
-            interruptor);
+            &sindex_block, superblock->get_sindex_block_id());
 
         store->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block.get(), &sindex_superblocks);
@@ -1674,16 +1673,20 @@ public:
 #else
             scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
-            store_->acquire_sindex_block_for_write(
+
 #if SLICE_ALT
+            store_->acquire_sindex_block_for_write(
                 superblock->expose_buf(),
+                &sindex_block,
+                sindex_block_id);
 #else
+            store_->acquire_sindex_block_for_write(
                 &token_pair,
                 wtxn.get(),
-#endif
                 &sindex_block,
                 sindex_block_id,
                 interruptor_);
+#endif
 #if SLICE_ALT
             // RSI: just do superblock.reset(), nay?
             superblock->release();

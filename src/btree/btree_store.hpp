@@ -170,8 +170,7 @@ public:
     void acquire_sindex_block_for_write(
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id,
-            signal_t *interruptor)
+            block_id_t sindex_block_id)
         THROWS_ONLY(interrupted_exc_t);
 #else
     void acquire_sindex_block_for_write(
@@ -187,8 +186,7 @@ public:
     MUST_USE bool add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        alt::alt_buf_lock_t *sindex_block,
-        signal_t *interruptor)
+        alt::alt_buf_lock_t *sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 #else
     MUST_USE bool add_sindex(
@@ -359,8 +357,7 @@ public:
             const std::string &id,
             block_id_t sindex_block_id,
             alt::alt_buf_parent_t parent,
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            signal_t *interruptor)
+            scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 #else
     MUST_USE bool acquire_sindex_superblock_for_write(
@@ -391,8 +388,7 @@ public:
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
             alt::alt_buf_parent_t parent,
-            sindex_access_vector_t *sindex_sbs_out,
-            signal_t *interruptor)
+            sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 #else
     void acquire_all_sindex_superblocks_for_write(
@@ -421,8 +417,7 @@ public:
     void acquire_post_constructed_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
             alt::alt_buf_parent_t parent,
-            sindex_access_vector_t *sindex_sbs_out,
-            signal_t *interruptor)
+            sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(interrupted_exc_t);
 #else
     void acquire_post_constructed_sindex_superblocks_for_write(
