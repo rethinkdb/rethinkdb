@@ -7,6 +7,7 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "config/args.hpp"
 
 template<class key_t, class value_t>
 bool collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optional<value_t> > &map, change_tracking_map_t<key_t, value_t> *current_out) {
@@ -71,6 +72,7 @@ reactor_t<protocol_t>::reactor_t(
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
     ctx(_ctx)
 {
+    with_priority_t p(CORO_PRIORITY_REACTOR);
     {
         typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
         blueprint_watchable->get().guarantee_valid();
