@@ -312,6 +312,15 @@ class RqlQuery(object):
             return Nth(self, index)
         elif isinstance(index, types.StringTypes):
             return GetField(self, index)
+        elif isinstance(index, RqlQuery):
+            raise RqlDriverError(
+                "Bracket operator called with a ReQL expression parameter.\n"+
+                "Dynamic typing is not supported in this syntax,\n"+
+                "use `.nth`, `.slice`, or `.get_field` instead.")
+        else:
+            raise RqlDriverError(
+                "bracket operator called with an unsupported parameter type: %s.%s" %
+                (index.__class__.__module__, index.__class__.__name__))
 
     def __iter__(self):
         raise RqlDriverError(
