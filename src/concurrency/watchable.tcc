@@ -7,6 +7,7 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "arch/timing.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/wait_any.hpp"
 
@@ -175,6 +176,20 @@ template<class value_type>
 template<class callable_type>
 void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
+
+    struct op_closure_t {
+        static void apply(const callable_type &_fun,
+                          const value_type *val,
+                          bool *is_done_out) {
+            *is_done_out = _fun(*val);
+        }
+    };
+    bool is_done = false;
+    auto op = std::bind(&op_closure_t::apply,
+                        fun,
+                        std::placeholders::_1,
+                        &is_done);
+
     clone_ptr_t<watchable_t<value_type> > clone_this(this->clone());
     while (true) {
         cond_t changed;
@@ -182,7 +197,8 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, sign
         {
             typename watchable_t<value_type>::freeze_t freeze(clone_this);
             ASSERT_FINITE_CORO_WAITING;
-            if (fun(clone_this->get())) {
+            clone_this->apply_read(op);
+            if (is_done) {
                 return;
             }
             subs.reset(clone_this, &freeze);
@@ -199,6 +215,37 @@ void run_until_satisfied_2(
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     a->assert_thread();
     b->assert_thread();
+
+    // Wrap the application of `fun` into closures which we can pass
+    // into the `apply_read()` methods of the watchables.
+    // This avoids copying the value of the watchable.
+    struct b_op_closure_t {
+        static void apply(const callable_type &_fun,
+                          const a_type *a_val,
+                          const b_type *b_val,
+                          bool *is_done_out) {
+            *is_done_out = _fun(*a_val, *b_val);
+        }
+    };
+    struct a_op_closure_t {
+        static void apply(const callable_type &_fun,
+                          const clone_ptr_t<watchable_t<b_type> > &_b,
+                          const a_type *a_val,
+                          bool *is_done_out) {
+            _b->apply_read(std::bind(&b_op_closure_t::apply,
+                                     _fun,
+                                     a_val,
+                                     std::placeholders::_1,
+                                     is_done_out));
+        }
+    };
+    bool is_done = false;
+    auto op = std::bind(&a_op_closure_t::apply,
+                        fun,
+                        b,
+                        std::placeholders::_1,
+                        &is_done);
+
     while (true) {
         cond_t changed;
         typename watchable_t<a_type>::subscription_t a_subs(boost::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
@@ -207,12 +254,18 @@ void run_until_satisfied_2(
             typename watchable_t<a_type>::freeze_t a_freeze(a);
             typename watchable_t<b_type>::freeze_t b_freeze(b);
             ASSERT_FINITE_CORO_WAITING;
-            if (fun(a->get(), b->get())) {
+            a->apply_read(op);
+            if (is_done) {
                 return;
             }
             a_subs.reset(a, &a_freeze);
             b_subs.reset(b, &b_freeze);
         }
+        // Nap a little so changes to the watchables can accumulate.
+        // This is purely a performance optimization to save CPU cycles,
+        // in case that applying `fun` is expensive (which it is in our
+        // applications in the reactors as of 12/10/2013).
+        nap(100, interruptor);
         wait_interruptible(&changed, interruptor);
     }
 }

@@ -153,13 +153,9 @@ public:
         reactor_.reset();
 
         /* Finally we remove the reactor bcard. */
-        {
-            DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-            namespaces_directory_metadata_t<protocol_t> directory = parent_->watchable_variable.get_watchable()->get();
-            size_t num_erased = directory.reactor_bcards.erase(namespace_id_);
-            guarantee(num_erased == 1);
-            parent_->watchable_variable.set_value(directory);
-        }
+        parent_->set_reactor_directory_entry(namespace_id_,
+            boost::optional<
+                typename reactor_driver_t<protocol_t>::reactor_directory_entry_t>());
     }
 
     static bool compute_is_acceptable_ack_set(const std::set<peer_id_t> &acks, const namespace_id_t &namespace_id, per_thread_ack_info_t<protocol_t> *ack_info) {
@@ -296,21 +292,10 @@ private:
     }
 
     void on_change_reactor_directory() {
-        DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
-
-        struct op_closure_t {
-            static bool apply(const namespace_id_t namespace_id,
-                              reactor_t<protocol_t> *reactor,
-                              namespaces_directory_metadata_t<protocol_t> *directory) {
-                directory->reactor_bcards.find(namespace_id)->second = reactor->get_reactor_directory()->get();
-                return true;
-            }
-        };
-
-        parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::apply,
-                                                              namespace_id_,
-                                                              reactor_.get(),
-                                                              std::placeholders::_1));
+        // Tell our parent, the reactor driver, that this reactor's directory
+        // has changed, and what its new value is:
+        parent_->set_reactor_directory_entry(namespace_id_,
+            boost::make_optional(reactor_->get_reactor_directory()->get()));
     }
 
     void initialize_reactor(io_backender_t *io_backender) {
@@ -345,24 +330,9 @@ private:
                 new typename watchable_t<directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::subscription_t(
                     boost::bind(&watchable_and_reactor_t<protocol_t>::on_change_reactor_directory, this),
                     reactor_->get_reactor_directory(), &reactor_directory_freeze));
-            DEBUG_VAR mutex_assertion_t::acq_t acq(&parent_->watchable_variable_lock);
 
-
-            struct op_closure_t {
-                static bool apply(const namespace_id_t namespace_id,
-                                  reactor_t<protocol_t> *reactor,
-                                  namespaces_directory_metadata_t<protocol_t> *directory) {
-                    std::pair<typename std::map<namespace_id_t, directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > > >::iterator, bool> insert_res
-                        = directory->reactor_bcards.insert(std::make_pair(namespace_id, reactor->get_reactor_directory()->get()));
-                    guarantee(insert_res.second);  // Ensure a value did not already exist.
-                    return true;
-                }
-            };
-
-            parent_->watchable_variable.apply_atomic_op(std::bind(&op_closure_t::apply,
-                                                                  namespace_id_,
-                                                                  reactor_.get(),
-                                                                  std::placeholders::_1));
+            parent_->set_reactor_directory_entry(namespace_id_,
+                boost::make_optional(reactor_->get_reactor_directory()->get()));
         }
 
         reactor_has_been_initialized_.pulse();
@@ -429,6 +399,69 @@ template<class protocol_t>
 reactor_driver_t<protocol_t>::~reactor_driver_t() {
     /* This must be defined in the `.tcc` file because the full definition of
     `watchable_and_reactor_t` is not available in the `.hpp` file. */
+}
+
+template<class protocol_t>
+void reactor_driver_t<protocol_t>::set_reactor_directory_entry(
+    const namespace_id_t reactor_namespace,
+    const boost::optional<reactor_directory_entry_t> &new_value) {
+
+    // Just stash the change for now. If necessary, we spawn a coroutine that takes
+    // care of eventually committing the changes to `watchable_variable`.
+    // This allows us to combine multiple reactor directory changes into a single
+    // update of the watchable_variable, which significantly reduces the overhead
+    // of metadata operations that affect multiple reactors (such as resharding)
+    // in large clusters.
+    const bool must_initiate_commit = changed_reactor_directories.empty();
+    changed_reactor_directories[reactor_namespace] = new_value;
+
+    if (must_initiate_commit) {
+        coro_t::spawn_sometime(
+            boost::bind(&reactor_driver_t<protocol_t>::commit_directory_changes,
+                        this,
+                        auto_drainer_t::lock_t(&directory_change_drainer)));
+    }
+}
+
+template<class protocol_t>
+void reactor_driver_t<protocol_t>::commit_directory_changes(auto_drainer_t::lock_t lock) {
+    // Delay the commit for a moment in anticipation that more changes come in
+    lock.assert_is_holding(&directory_change_drainer);
+    try {
+        nap(200, lock.get_drain_signal());
+    } catch (const interrupted_exc_t &e) {
+    }
+    lock.assert_is_holding(&directory_change_drainer);
+
+    DEBUG_VAR mutex_assertion_t::acq_t acq(&watchable_variable_lock);
+
+    /* C++11: auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool { ... }
+    Because we cannot use C++11 lambdas yet due to missing support in
+    GCC 4.4, this is the messy work-around: */
+    struct op_closure_t {
+        static bool apply(
+            std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
+                *_changed_reactor_directories,
+            namespaces_directory_metadata_t<protocol_t> *directory) {
+
+            for (auto it = _changed_reactor_directories->begin();
+                 it != _changed_reactor_directories->end();
+                 ++it) {
+                // it->second is a boost::optional<reactor_directory_entry_t>
+                if (it->second) {
+                    directory->reactor_bcards[it->first] = it->second.get();
+                } else {
+                    directory->reactor_bcards.erase(it->first);
+                }
+            }
+            _changed_reactor_directories->clear();
+            return true;
+        }
+    };
+
+    watchable_variable.apply_atomic_op(std::bind(&op_closure_t::apply,
+                                                 &changed_reactor_directories,
+                                                 std::placeholders::_1));
 }
 
 template<class protocol_t>
