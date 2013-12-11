@@ -47,10 +47,9 @@ public:
     friend bool is_coroutine_stack_overflow(void *);
 
     template<class Callable>
-    static coro_t *spawn_now_dangerously(const Callable &action) {
+    static void spawn_now_dangerously(const Callable &action) {
         coro_t *coro = get_and_init_coro(action);
         coro->notify_now_deprecated();
-        return coro;
     }
 
     template<class Callable>
