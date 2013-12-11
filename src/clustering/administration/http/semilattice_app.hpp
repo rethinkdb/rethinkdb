@@ -6,6 +6,7 @@
 #include <string>
 
 #include "clustering/administration/metadata.hpp"
+#include "containers/defaulting_map.hpp"
 #include "http/json.hpp"
 
 template <class metadata_t>
@@ -21,7 +22,8 @@ public:
     void get_root(scoped_cJSON_t *json_out);
 
 protected:
-    virtual void metadata_change_callback(metadata_t *new_metadata, bool change_context) = 0;
+    virtual void metadata_change_callback(metadata_t *new_metadata,
+        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns) = 0;
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
     uuid_u us;
@@ -44,7 +46,8 @@ public:
     ~cluster_semilattice_http_app_t();
 
 private:
-    void metadata_change_callback(cluster_semilattice_metadata_t *new_metadata, bool prefer_distribution);
+    void metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
+        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns);
 };
 
 class auth_semilattice_http_app_t : public semilattice_http_app_t<auth_semilattice_metadata_t> {
@@ -56,7 +59,8 @@ public:
     ~auth_semilattice_http_app_t();
 
 private:
-    void metadata_change_callback(auth_semilattice_metadata_t *new_metadata, bool unused_context);
+    void metadata_change_callback(auth_semilattice_metadata_t *new_metadata,
+        const defaulting_map_t<namespace_id_t, bool> &unused);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_SEMILATTICE_APP_HPP_ */

@@ -334,9 +334,15 @@ persistable_blueprint_t<protocol_t> suggest_blueprint(
         }
 
         std::map<machine_id_t, blueprint_role_t> shard_blueprint =
-            suggest_blueprint_for_shard(directory, primary_datacenter, datacenter_affinities, *it,
-                                        machine_data_centers, machines_shard_primary_is_pinned_to,
-                                        machines_shard_secondary_is_pinned_to, usage, prioritize_distribution);
+            suggest_blueprint_for_shard(directory,
+                                        primary_datacenter,
+                                        datacenter_affinities,
+                                        *it,
+                                        machine_data_centers,
+                                        machines_shard_primary_is_pinned_to,
+                                        machines_shard_secondary_is_pinned_to,
+                                        usage,
+                                        prioritize_distribution);
         for (typename std::map<machine_id_t, blueprint_role_t>::iterator jt = shard_blueprint.begin();
                 jt != shard_blueprint.end(); jt++) {
             blueprint.machines_roles[jt->first][*it] = jt->second;

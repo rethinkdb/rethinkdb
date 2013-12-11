@@ -92,7 +92,10 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
-                metadata_change_callback(&metadata, !!req.find_query_param("prefer_distribution"));
+                // TODO!!
+                defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(
+                    !!req.find_query_param("prefer_distribution"));
+                metadata_change_callback(&metadata, prioritize_distr_for_ns);
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
@@ -105,7 +108,8 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
 
                 logINF("Deleting %s", req.resource.as_string().c_str());
 
-                metadata_change_callback(&metadata, false);
+                metadata_change_callback(&metadata,
+                                         defaulting_map_t<namespace_id_t, bool>(false));
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
@@ -141,7 +145,8 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                 json_adapter_head->reset();
                 json_adapter_head->apply(change.get());
 
-                metadata_change_callback(&metadata, false);
+                metadata_change_callback(&metadata,
+                                         defaulting_map_t<namespace_id_t, bool>(false));
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
@@ -201,9 +206,13 @@ cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
 }
 
 void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
-                                                              bool prefer_distribution) {
+        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns) {
+
     try {
-        fill_in_blueprints(new_metadata, directory_metadata->get().get_inner(), us, prefer_distribution);
+        fill_in_blueprints(new_metadata,
+                           directory_metadata->get().get_inner(),
+                           us,
+                           prioritize_distr_for_ns);
     } catch (const missing_machine_exc_t &e) { }
 }
 
@@ -220,7 +229,8 @@ auth_semilattice_http_app_t::~auth_semilattice_http_app_t() {
 }
 
 void auth_semilattice_http_app_t::metadata_change_callback(auth_semilattice_metadata_t *,
-                                                           bool) {
+        const defaulting_map_t<namespace_id_t, bool> &) {
+
     // Do nothing
 }
 
