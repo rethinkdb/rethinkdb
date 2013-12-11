@@ -523,7 +523,7 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
                           "This is almost always a precedence error.\n" + \
                           "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" + \
                           "If you really want this behavior, use `.or_` or `.and_` instead."
-                    raise TypeError(err % (self.st, QueryPrinter(self).print_query()))
+                    raise RqlDriverError(err % (self.st, QueryPrinter(self).print_query()))
             except AttributeError:
                 pass # No infix attribute, so not possible to be an infix bool operator
 

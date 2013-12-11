@@ -91,6 +91,18 @@ tests:
       py: r.or_(False, True, False, True, False)
       ot: true
 
+    # Test that precedence errors are detected
+    - py: r.expr(r.expr('a')['b']).default(2)
+      ot: err("RqlRuntimeError", "Cannot perform get_field on a non-object non-sequence `\"a\"`.", [])
+    - py: r.expr(r.expr(True) & r.expr(False) == r.expr(False) | r.expr(True))
+      ot: err("RqlDriverError", "Calling '==' on result of infix bitwise operator.", [])
+    - py: r.expr(r.and_(True, False) == r.or_(False, True))
+      ot: False
+    - rb: r.expr(r.expr(True) & r.expr(False) >= r.expr(False) | r.expr(True))
+      ot: err("RqlDriverError", "Calling >= on result of infix bitwise operator.", [])
+    - rb: r.expr(r.and(True, False) >= r.or(False, True))
+      ot: False
+
     # Type errors
     - py: r.expr(1) & True
       cd: r(1).and(true)
