@@ -96,20 +96,13 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 
 #if SLICE_ALT
         scoped_ptr_t<alt_buf_lock_t> sindex_block;
-        // RSI: Before we passed a token pair and made acquiring the sindex block
-        // interruptible.  Do any callers not pass a dummy interruptor?
-        // JD: There were some callers that passed real interruptors like in
-        // send_backfill it's moot now though because we don't need the
-        // interruptor now that we're not using an order token.
         acquire_sindex_block_for_read(superblock->expose_buf(),
                                       &sindex_block,
-                                      superblock->get_sindex_block_id(),
-                                      &dummy_interruptor);
+                                      superblock->get_sindex_block_id());
 #else
         scoped_ptr_t<buf_lock_t> sindex_block;
         acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
-                                      superblock->get_sindex_block_id(),
-                                      &dummy_interruptor);
+                                      superblock->get_sindex_block_id())
 #endif
 
         std::map<std::string, secondary_index_t> sindexes;
@@ -246,10 +239,8 @@ bool btree_store_t<protocol_t>::send_backfill(
     scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
 #if SLICE_ALT
-    // RSI: We don't actually use interruptor in the called function anymore.
     acquire_sindex_block_for_read(superblock->expose_buf(),
-                                  &sindex_block, superblock->get_sindex_block_id(),
-                                  interruptor);
+                                  &sindex_block, superblock->get_sindex_block_id());
 #else
     acquire_sindex_block_for_read(token_pair, txn.get(),
                                   &sindex_block, superblock->get_sindex_block_id(),
@@ -490,15 +481,11 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         transaction_t *txn,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
 #endif
-        block_id_t sindex_block_id,
-#if SLICE_ALT
-        UNUSED signal_t *interruptor)  // RSI: Before, interruptor was used when
-                                       // waiting for the sindex_read_token.  Right
-                                       // here, there's no way to interrupt trying to
-                                       // acquire a block.
-#else
-        signal_t *interruptor)
+        block_id_t sindex_block_id
+#if !SLICE_ALT
+        ,signal_t *interruptor
 #endif
+        )
     THROWS_ONLY(interrupted_exc_t) {
 #if !SLICE_ALT
     /* First wait for our turn. */
@@ -1106,8 +1093,7 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out,
-        signal_t *interruptor)
+        std::map<std::string, secondary_index_t> *sindexes_out)
     THROWS_ONLY(interrupted_exc_t) {
 #else
 template <class protocol_t>
@@ -1121,11 +1107,9 @@ void btree_store_t<protocol_t>::get_sindexes(
 #endif
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    // RSI: We don't actually use interruptor in this called function anymore.
     acquire_sindex_block_for_read(super_block->expose_buf(),
                                   &sindex_block,
-                                  super_block->get_sindex_block_id(),
-                                  interruptor);
+                                  super_block->get_sindex_block_id());
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
@@ -1164,8 +1148,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         block_id_t sindex_block_id,
         alt_buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-        std::vector<char> *opaque_definition_out,
-        signal_t *interruptor)
+        std::vector<char> *opaque_definition_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
 #else
 template <class protocol_t>
@@ -1188,9 +1171,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     scoped_ptr_t<buf_lock_t> sindex_block;
 #endif
 #if SLICE_ALT
-    // RSI: We don't actually use interruptor in this called function anymore.
-    acquire_sindex_block_for_read(parent, &sindex_block,
-                                  sindex_block_id, interruptor);
+    acquire_sindex_block_for_read(parent, &sindex_block, sindex_block_id);
 #else
     acquire_sindex_block_for_read(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
 #endif

@@ -349,7 +349,7 @@ void run_sindex_btree_store_api_test() {
             bool sindex_exists = store.acquire_sindex_superblock_for_read(id,
                     main_sb->get_sindex_block_id(),
                     main_sb->expose_buf(), &sindex_super_block,
-                    static_cast<std::vector<char>*>(NULL), &dummy_interuptor);
+                    static_cast<std::vector<char>*>(NULL));
 #else
             bool sindex_exists = store.acquire_sindex_superblock_for_read(id,
                     main_sb->get_sindex_block_id(), &token_pair,

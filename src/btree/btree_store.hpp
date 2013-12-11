@@ -154,8 +154,7 @@ public:
     void acquire_sindex_block_for_read(
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id,
-            signal_t *interruptor)
+            block_id_t sindex_block_id)
         THROWS_ONLY(interrupted_exc_t);
 #else
     void acquire_sindex_block_for_read(
@@ -301,13 +300,16 @@ public:
 #endif
 
 #if SLICE_ALT
-    // RSI: Shouldn't we be acquiring and holding some sindex block or something?  Do
+    // RSI(bug): Shouldn't we be acquiring and holding some sindex block or something?  Do
     // we end up acquiring it twice, the second time when we use the secondary
     // indexes?
+    // JD: The secondary_index_t structure contains a block_id_t which is the
+    // superblock of the secondary index we then use that block_id_t to acquire
+    // the superblock but I'm betting we don't have the buffer to pass as its
+    // parent. I suspect that this is a bug.
     void get_sindexes(
         superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out,
-        signal_t *interruptor)
+        std::map<std::string, secondary_index_t> *sindexes_out)
     THROWS_ONLY(interrupted_exc_t);
 #else
     void get_sindexes(
@@ -338,8 +340,7 @@ public:
             block_id_t sindex_block_id,
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            std::vector<char> *opaque_definition_out, // Optional, may be NULL
-            signal_t *interruptor)
+            std::vector<char> *opaque_definition_out) // Optional, may be NULL
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 #else
     MUST_USE bool acquire_sindex_superblock_for_read(

@@ -1338,8 +1338,7 @@ store_t::store_t(serializer_t *serializer,
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(superblock->expose_buf(),
                                   &sindex_block,
-                                  superblock->get_sindex_block_id(),
-                                  &dummy_interruptor);
+                                  superblock->get_sindex_block_id());
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
@@ -1424,16 +1423,19 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             std::vector<char> sindex_mapping_data;
 
             try {
+#if SLICE_ALT
                 bool found = store->acquire_sindex_superblock_for_read(
                         rget.sindex->id,
                         superblock->get_sindex_block_id(),
-#if SLICE_ALT
                         superblock->expose_buf(),
+                        &sindex_sb, &sindex_mapping_data);
 #else
+                bool found = store->acquire_sindex_superblock_for_read(
+                        rget.sindex->id,
+                        superblock->get_sindex_block_id(),
                         token_pair, txn,
-#endif
                         &sindex_sb, &sindex_mapping_data, &interruptor);
-
+#endif
                 if (!found) {
                     res->result = ql::datum_exc_t(
                         ql::base_exc_t::GENERIC,
@@ -1509,7 +1511,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         std::map<std::string, secondary_index_t> sindexes;
 #if SLICE_ALT
-        store->get_sindexes(superblock, &sindexes, &interruptor);
+        store->get_sindexes(superblock, &sindexes);
 #else
         store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
 #endif
@@ -1527,7 +1529,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         std::map<std::string, secondary_index_t> sindexes;
 #if SLICE_ALT
-        store->get_sindexes(superblock, &sindexes, &interruptor);
+        store->get_sindexes(superblock, &sindexes);
 #else
         store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
 #endif
