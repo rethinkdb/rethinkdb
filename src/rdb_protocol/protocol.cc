@@ -2181,7 +2181,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         // RSI: Use dummy_interruptor still?  In update_sindexes we can't because we
         // could end up with inconsistent data.  (Why are we using an interruptor at
         // all?)
-        cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write(
             superblock->expose_buf(),
             &sindex_block,

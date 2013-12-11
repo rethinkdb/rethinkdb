@@ -283,8 +283,10 @@ void btree_store_t<protocol_t>::receive_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
-    // RSI: Make sure that protocol_receive_backfill acquires the secondary index
+    // SRH: Make sure that protocol_receive_backfill acquires the secondary index
     // block at the right time.
+    // JD: This is correct, as long as we hold on to the superblock until
+    // it acquires the lock on the sindex block.
 #if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
         token_destroyer(&token_pair->sindex_write_token);
@@ -331,8 +333,10 @@ void btree_store_t<protocol_t>::reset_data(
 #endif
     scoped_ptr_t<real_superblock_t> superblock;
 
-    // RSI: Make sure protocol_reset_data acquires the secondary index block at the
+    // SRH: Make sure protocol_reset_data acquires the secondary index block at the
     // right time.
+    // JD: This is correct, as long as we hold on to the superblock until
+    // it acquires the lock on the sindex block.
 #if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
         token_destroyer(&token_pair->sindex_write_token);
@@ -387,12 +391,22 @@ void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block, mute
 #endif
     assert_thread();
 #if SLICE_ALT
-    // RSI: WTF should we do here?  Why is there a mutex?
+    // SRH: WTF should we do here?  Why is there a mutex?
+    // JD: There's a mutex to protect the sindex queue which is an in memory
+    // structure.
 
-    // RSI: Do we really need to wait for write acquisition?
+    // SRH: Do we really need to wait for write acquisition?
+    // JD: I think so, the whole idea is to enforce that you get a consistent
+    // view. In which everything before is in the main btree and everything
+    // after you is in the queue. If we don't have write access when we add
+    // ourselves to the queue
 
-    // RSI: Should we be able to "get in line" for the mutex and release the sindex
+    // SRH: Should we be able to "get in line" for the mutex and release the sindex
     // block or something?
+    // JD: That could be a good optimization but I don't think there's any reason
+    // we need to do it as part of the new cache. There's also an argument to
+    // be made that this mutex could just go away and having write access to
+    // the sindex block could fill the same role.
     guarantee(!sindex_block->empty());
     sindex_block->write_acq_signal()->wait();
 #else
