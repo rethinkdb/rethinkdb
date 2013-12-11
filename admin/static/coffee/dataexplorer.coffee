@@ -3362,7 +3362,10 @@ module 'DataExplorerView', ->
                 when 'table'
                     previous_keys = @container.state.last_keys # Save previous keys. @last_keys will be updated in @json_to_table
                     if Object::toString.call(@results) is '[object Array]'
-                        @.$('.table_view').html @json_to_table @results
+                        if @results.length is 0
+                            @.$('.table_view').html @template_no_result()
+                        else
+                            @.$('.table_view').html @json_to_table @results
                     else
                         if not @results_array?
                             @results_array = []
