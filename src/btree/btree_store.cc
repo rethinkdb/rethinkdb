@@ -884,6 +884,32 @@ THROWS_NOTHING {
     return found;
 }
 
+void clear_sindex(
+        alt_txn_t *txn, block_id_t superblock_id,
+        btree_slice_t *slice, value_sizer_t<void> *sizer,
+        value_deleter_t *deleter, signal_t *interruptor) {
+    /* Notice we're acquire sindex.superblock twice below which seems odd,
+     * the reason for this is that erase_all releases the sindex_superblock
+     * that we pass to it because that makes sense at other call sites.
+     * Thus we need to reacquire it to delete it. */
+    {
+        /* We pass the txn as a parent, this is because
+         * sindex.superblock was detached and thus now has no parent. */
+        alt_buf_lock_t sindex_superblock_lock(
+                alt_buf_parent_t(txn), superblock_id, alt_access_t::write);
+        real_superblock_t sindex_superblock(&sindex_superblock_lock);
+
+        erase_all(sizer, slice,
+                deleter, &sindex_superblock, interruptor);
+    }
+
+    {
+        alt_buf_lock_t sindex_superblock_lock(
+                alt_buf_parent_t(txn), superblock_id, alt_access_t::write);
+        sindex_superblock_lock.mark_deleted();
+    }
+}
+
 #if SLICE_ALT
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
@@ -911,29 +937,9 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         /* Make sure we have a record of the slice. */
         guarantee(std_contains(secondary_index_slices, id));
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
-
-        /* Notice we're acquire sindex.superblock twice below which seems odd,
-         * the reason for this is that erase_all releases the sindex_superblock
-         * that we pass to it because that makes sense at other call sites.
-         * Thus we need to reacquire it to delete it. */
-        {
-            /* We pass the txn as a parent, this is because
-             * sindex.superblock was detached and thus now has no parent. */
-            alt_buf_lock_t sindex_superblock_lock(
-                    alt_buf_parent_t(txn), sindex.superblock, alt_access_t::write);
-            real_superblock_t sindex_superblock(&sindex_superblock_lock);
-
-            erase_all(sizer, sindex_slice,
-                      deleter, &sindex_superblock, interruptor);
-        }
-
+        clear_sindex(txn, sindex.superblock,
+                sindex_slice, sizer, deleter, interruptor);
         secondary_index_slices.erase(id);
-
-        {
-            alt_buf_lock_t sindex_superblock_lock(
-                    alt_buf_parent_t(txn), sindex.superblock, alt_access_t::write);
-            sindex_superblock_lock.mark_deleted();
-        }
     }
     return true;
 }
@@ -993,6 +999,39 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
         value_deleter_t *deleter,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
+    assert_thread();
+
+    /* First get the sindex block. */
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    acquire_sindex_block_for_write(super_block->expose_buf(),
+                                   &sindex_block,
+                                   super_block->get_sindex_block_id());
+    /* Remove reference in the super block */
+    std::map<std::string, secondary_index_t> sindexes;
+    get_secondary_indexes(sindex_block.get(), &sindexes);
+    delete_all_secondary_indexes(sindex_block.get());
+
+    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+        /* After deleting the sindex from the sindex_block we can now detach it
+         * as a child, it's now a parentless block. */
+        sindex_block->detach_child(it->second.superblock);
+    }
+
+    /* We need to save the txn because we are about to release this block. */
+    alt_txn_t *txn = sindex_block->txn();
+    /* Release the sindex block so others may proceed. */
+    sindex_block->reset_buf_lock();
+
+    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
+        /* Make sure we have a record of the slice. */
+        guarantee(std_contains(secondary_index_slices, it->first));
+        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
+        clear_sindex(txn, it->second.superblock,
+                sindex_slice, sizer, deleter, interruptor);
+        secondary_index_slices.erase(it->first);
+    }
+    sindex_block->reset_buf_lock();
+}
 #else
 template <class protocol_t>
 void btree_store_t<protocol_t>::drop_all_sindexes(
@@ -1003,38 +1042,16 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
         value_deleter_t *deleter,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-#endif
     assert_thread();
 
     /* First get the sindex block. */
-#if SLICE_ALT
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(super_block->expose_buf(),
-                                   &sindex_block,
-                                   super_block->get_sindex_block_id());
-#else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
-#endif
-
     /* Remove reference in the super block */
     std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
-    get_secondary_indexes(sindex_block.get(), &sindexes);
-#else
     get_secondary_indexes(txn, sindex_block.get(), &sindexes);
-#endif
-
-#if SLICE_ALT
-    delete_all_secondary_indexes(sindex_block.get());
-#else
     delete_all_secondary_indexes(txn, sindex_block.get());
-#endif
-    // RSI: Apparently we wanted to release sindex_block so that others may proceed.
-#if !SLICE_ALT
     sindex_block->release(); //So others may proceed
-#endif
-
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         /* Make sure we have a record of the slice. */
@@ -1042,41 +1059,21 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
 
         {
-#if SLICE_ALT
-            alt_buf_lock_t sindex_superblock_lock(sindex_block.get(),
-                                                  it->second.superblock,
-                                                  alt_access_t::write);
-#else
             buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
-#endif
             real_superblock_t sindex_superblock(&sindex_superblock_lock);
-
-#if SLICE_ALT
-            erase_all(sizer, sindex_slice,
-                      deleter, &sindex_superblock, interruptor);
-#else
             erase_all(sizer, sindex_slice,
                       deleter, txn, &sindex_superblock, interruptor);
-#endif
         }
 
         secondary_index_slices.erase(it->first);
 
         {
-#if SLICE_ALT
-            alt_buf_lock_t sindex_superblock_lock(sindex_block.get(),
-                                                  it->second.superblock,
-                                                  alt_access_t::write);
-#else
             buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
-#endif
             sindex_superblock_lock.mark_deleted();
         }
     }
-#if SLICE_ALT
-    sindex_block->reset_buf_lock();
-#endif
 }
+#endif
 
 #if SLICE_ALT
 template <class protocol_t>
