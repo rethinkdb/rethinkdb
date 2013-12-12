@@ -1,5 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <string>
+#include <vector>
 
 #include "errors.hpp"
 #include <boost/algorithm/string/predicate.hpp>
@@ -33,6 +34,39 @@ void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
     vclock_ctx_t json_ctx(us);
     json_ctx_adapter_t<metadata_t, vclock_ctx_t> json_adapter(&metadata, json_ctx);
     json_out->reset(json_adapter.render());
+}
+
+// Small helper to extract the changed namespace ids from a JSON change request
+class collect_namespaces_exc_t {
+public:
+    collect_namespaces_exc_t(const std::string &_msg) : msg(_msg) { }
+    std::string get_msg() const { return msg; }
+private:
+    std::string msg;
+};
+std::vector<namespace_id_t> collect_affected_namespaces(const cJSON *change_request)
+    THROWS_ONLY(collect_namespaces_exc_t) {
+
+    if (change_request == NULL) {
+        throw collect_namespaces_exc_t("Missing change request");
+    }
+    if (change_request->type != cJSON_Object ) {
+        throw collect_namespaces_exc_t("Unhandled change_request type");
+    }
+    std::vector<namespace_id_t> result;
+    const cJSON *entry = change_request->next;
+    while (entry) {
+        if (entry->string == NULL) throw collect_namespaces_exc_t("Missing field name");
+        try {
+            const namespace_id_t ns_id = str_to_uuid(std::string(entry->string));
+            result.push_back(ns_id);
+        } catch (...) {
+            throw collect_namespaces_exc_t("Unable to decode UUID: "
+                                           + std::string(entry->string));
+        }
+        entry = entry->next;
+    }
+    return result;
 }
 
 template <class metadata_t>
@@ -79,19 +113,6 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                     return http_res_t(HTTP_BAD_REQUEST);
                 }
 
-                json_adapter_head->apply(change.get());
-
-                {
-                    scoped_cJSON_t absolute_change(change.release());
-                    std::vector<std::string> parts(req.resource.begin(), req.resource.end());
-                    for (std::vector<std::string>::reverse_iterator jt = parts.rbegin(); jt != parts.rend(); ++jt) {
-                        scoped_cJSON_t inner(absolute_change.release());
-                        absolute_change.reset(cJSON_CreateObject());
-                        absolute_change.AddItemToObject(jt->c_str(), inner.release());
-                    }
-                    logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
-                }
-
                 // Determine for which namespaces we should prioritize distribution
                 // Default: none
                 defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(false);
@@ -103,10 +124,37 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                         prioritize_distr_for_ns =
                             defaulting_map_t<namespace_id_t, bool>(true);
                     } else if (prefer_distribution_param.get() == "changed_only") {
-                        // TODO!
-                        prioritize_distr_for_ns =
-                            defaulting_map_t<namespace_id_t, bool>(true);
+                        try {
+                            const std::vector<namespace_id_t> changed_ns =
+                                collect_affected_namespaces(change.get());
+                            for (auto jt = changed_ns.begin();
+                                 jt != changed_ns.end();
+                                 ++jt) {
+                                prioritize_distr_for_ns.set(*jt, true);
+                            }
+                        } catch (const collect_namespaces_exc_t &e) {
+                            logINF("Unable to extract affected namespaces from request: %s",
+                                e.get_msg().c_str());
+                            return http_res_t(HTTP_BAD_REQUEST);
+                        }
+                    } else {
+                        logINF("Invalid value for prefer_distribution argument: %s",
+                           prefer_distribution_param.get().c_str());
+                        return http_res_t(HTTP_BAD_REQUEST);
                     }
+                }
+
+                json_adapter_head->apply(change.get());
+
+                {
+                    scoped_cJSON_t absolute_change(change.release());
+                    std::vector<std::string> parts(req.resource.begin(), req.resource.end());
+                    for (std::vector<std::string>::reverse_iterator jt = parts.rbegin(); jt != parts.rend(); ++jt) {
+                        scoped_cJSON_t inner(absolute_change.release());
+                        absolute_change.reset(cJSON_CreateObject());
+                        absolute_change.AddItemToObject(jt->c_str(), inner.release());
+                    }
+                    logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
                 metadata_change_callback(&metadata, prioritize_distr_for_ns);
