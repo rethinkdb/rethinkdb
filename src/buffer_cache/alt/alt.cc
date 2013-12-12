@@ -9,7 +9,8 @@
 namespace alt {
 
 alt_cache_t::alt_cache_t(serializer_t *serializer)
-    : page_cache_(serializer),
+    : tracker_(),
+      page_cache_(serializer, &tracker_),
       drainer_(make_scoped<auto_drainer_t>()) { }
 
 alt_cache_t::~alt_cache_t() {
