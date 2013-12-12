@@ -31,7 +31,7 @@ protected:
 private:
     class collect_namespaces_exc_t {
     public:
-        collect_namespaces_exc_t(const std::string &_msg) : msg(_msg) { }
+        explicit collect_namespaces_exc_t(const std::string &_msg) : msg(_msg) { }
         const char *what() const { return msg.c_str(); }
     private:
         std::string msg;
