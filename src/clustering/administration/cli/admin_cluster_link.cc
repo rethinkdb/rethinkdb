@@ -832,12 +832,18 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
     const std::vector<std::string> split_points = guarantee_param_vec(data.params, "split-points");
     std::string error;
 
+    defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(false);
+
     if (ns_path[0] == "rdb_namespaces") {
+        const namespace_id_t ns_id = str_to_uuid(ns_path[1]);
+        prioritize_distr_for_ns.set(ns_id, true);
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
         error = admin_split_shard_internal(change.get(),
-                                           str_to_uuid(ns_path[1]),
+                                           ns_id,
                                            split_points);
     } else if (ns_path[0] == "memcached_namespaces") {
+        const namespace_id_t ns_id = str_to_uuid(ns_path[1]);
+        prioritize_distr_for_ns.set(ns_id, true);
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
         error = admin_split_shard_internal(change.get(),
                                            str_to_uuid(ns_path[1]),
@@ -848,10 +854,9 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    // TODO!
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(true));
+                       prioritize_distr_for_ns);
 
     if (!error.empty()) {
         if (split_points.size() > 1) {
@@ -958,22 +963,27 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
     const std::vector<std::string> split_points(guarantee_param_vec(data.params, "split-points"));
     std::string error;
 
+    defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(false);
+
     if (info->path[0] == "rdb_namespaces") {
+        const namespace_id_t ns_id = str_to_uuid(info->path[1]);
+        prioritize_distr_for_ns.set(ns_id, true);
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
-        admin_merge_shard_internal(change.get(), str_to_uuid(info->path[1]), split_points);
+        admin_merge_shard_internal(change.get(), ns_id, split_points);
     } else if (info->path[0] == "memcached_namespaces") {
+        const namespace_id_t ns_id = str_to_uuid(info->path[1]);
+        prioritize_distr_for_ns.set(ns_id, true);
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
-        admin_merge_shard_internal(change.get(), str_to_uuid(info->path[1]), split_points);
+        admin_merge_shard_internal(change.get(), ns_id, split_points);
     } else if (info->path[0] == "dummy_namespaces") {
         throw admin_cluster_exc_t("merging not supported for dummy tables");
     } else {
         throw admin_cluster_exc_t("invalid object type");
     }
 
-    // TODO!
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(true));
+                       prioritize_distr_for_ns);
 
     if (!error.empty()) {
         if (split_points.size() > 1) {

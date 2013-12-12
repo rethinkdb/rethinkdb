@@ -92,9 +92,23 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                     logINF("Applying data %s", absolute_change.PrintUnformatted().c_str());
                 }
 
-                // TODO!!
-                defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(
-                    !!req.find_query_param("prefer_distribution"));
+                // Determine for which namespaces we should prioritize distribution
+                // Default: none
+                defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(false);
+                const boost::optional<std::string> prefer_distribution_param =
+                    req.find_query_param("prefer_distribution");
+                if (prefer_distribution_param) {
+                    if (prefer_distribution_param.get() == "none") {
+                    } else if (prefer_distribution_param.get() == "all") {
+                        prioritize_distr_for_ns =
+                            defaulting_map_t<namespace_id_t, bool>(true);
+                    } else if (prefer_distribution_param.get() == "changed_only") {
+                        // TODO!
+                        prioritize_distr_for_ns =
+                            defaulting_map_t<namespace_id_t, bool>(true);
+                    }
+                }
+
                 metadata_change_callback(&metadata, prioritize_distr_for_ns);
                 metadata_change_handler->update(metadata);
 
