@@ -1794,7 +1794,10 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     acquire_superblock_for_write(txn_access, superblock_access, timestamp, expected_change_count, durability,
             &token_pair->main_write_token, txn_out, sb_out, interruptor);
 #endif
-    // RSI: Do whatever (*txn_out)->set_token_pair does.
+    // SRH: Do whatever (*txn_out)->set_token_pair does.
+    // JD: No need to worry about this, it was done as a hack so that we could
+    // assert that the sindex_token was used. It's all going away with the new
+    // cache though.
 #if !SLICE_ALT
     (*txn_out)->set_token_pair(token_pair);
 #endif
