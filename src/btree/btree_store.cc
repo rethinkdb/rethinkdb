@@ -900,29 +900,27 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         return false;
     } else {
         delete_secondary_index(sindex_block, id);
-        // RSI: Ahem?  We can't release sindex_block here with the alt cache -- since
-        // we re-acquire the sindex_superblock_lock over and over again.  Why do we
-        // re-acquire the sindex_superblock_lock over and over again?
-
-        // RSI: Erm -- we also can't release it because we don't own it.  Mybe talk
-        // to the caller about releasing it.
-
-        // RSI: (We MUST release the sindex block right away so that others can
-        // proceed, yes.)
-
-        // RSI: Does the cache let us mark a parent deleted and then acquire the
-        // child of that block?  Logically it seems that once you've "detached" the
-        // child from the parent, you could just acquire the child with the txn as
-        // parent.
+        /* After deleting sindex from the sindex_block we can now detach it as
+         * a child, it's now a parentless block. */
+        sindex_block->detach_child(sindex.superblock);
+        /* We need to save the txn because we are about to release this block. */
+        alt_txn_t *txn = sindex_block->txn();
+        /* Release the sindex block so others may proceed. */
+        sindex_block->reset_buf_lock();
 
         /* Make sure we have a record of the slice. */
         guarantee(std_contains(secondary_index_slices, id));
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
 
+        /* Notice we're acquire sindex.superblock twice below which seems odd,
+         * the reason for this is that erase_all releases the sindex_superblock
+         * that we pass to it because that makes sense at other call sites.
+         * Thus we need to reacquire it to delete it. */
         {
-            alt_buf_lock_t sindex_superblock_lock(sindex_block,
-                                                  sindex.superblock,
-                                                  alt_access_t::write);
+            /* We pass the txn as a parent, this is because
+             * sindex.superblock was detached and thus now has no parent. */
+            alt_buf_lock_t sindex_superblock_lock(
+                    alt_buf_parent_t(txn), sindex.superblock, alt_access_t::write);
             real_superblock_t sindex_superblock(&sindex_superblock_lock);
 
             erase_all(sizer, sindex_slice,
@@ -932,14 +930,10 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         secondary_index_slices.erase(id);
 
         {
-            alt_buf_lock_t sindex_superblock_lock(sindex_block,
-                                                  sindex.superblock,
-                                                  alt_access_t::write);
+            alt_buf_lock_t sindex_superblock_lock(
+                    alt_buf_parent_t(txn), sindex.superblock, alt_access_t::write);
             sindex_superblock_lock.mark_deleted();
         }
-        // RSI: Yeah, we don't want to do this here, thanks.
-        // RSI: We don't do this at all because it's the caller's block to delete, I think.
-        // sindex_block->reset_buf_lock();
     }
     return true;
 }
@@ -966,17 +960,6 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         return false;
     } else {
         delete_secondary_index(txn, sindex_block.get(), id);
-        // RSI: Ahem?  We can't release sindex_block here with the alt cache -- since
-        // we re-acquire the sindex_superblock_lock over and over again.  Why do we
-        // re-acquire the sindex_superblock_lock over and over again?
-
-        // RSI: (We MUST release the sindex block right away so that others can
-        // proceed, yes.)
-
-        // RSI: Does the cache let us mark a parent deleted and then acquire the
-        // child of that block?  Logically it seems that once you've "detached" the
-        // child from the parent, you could just acquire the child with the txn as
-        // parent.
         sindex_block->release(); //So others may proceed
 
         /* Make sure we have a record of the slice. */
