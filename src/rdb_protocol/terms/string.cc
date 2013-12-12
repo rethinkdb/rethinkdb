@@ -85,31 +85,34 @@ private:
         int64_t n = -1; // -1 means unlimited
         if (num_args() > 2) {
             n = arg(env, 2)->as_int();
-            rcheck(n >= -1 && n <= int64_t(array_size_limit()), base_exc_t::GENERIC,
+            rcheck(n >= -1 && n <= int64_t(array_size_limit()) - 1, base_exc_t::GENERIC,
                    strprintf("Error: `split` size argument must be in range [-1, %zu].",
-                             array_size_limit()));
+                             array_size_limit() - 1));
         }
         size_t maxnum = (n < 0 ? std::numeric_limits<decltype(maxnum)>::max() : n);
 
-        std::vector<counted_t<const datum_t>> res;
+        // This logic is extremely finicky so as to mimick the behavior of
+        // Python's `split`.  (With one exception; we handle "" as a separator
+        // differently.)  Be very careful if you change it.
+        std::vector<counted_t<const datum_t> > res;
         size_t last = 0;
-        for (;;) {
-            size_t next = delim ? s.find(*delim, last) : s.find_first_of(" \t\n", last);
-            if (next == std::string::npos) {
-                break;
-            } else {
-                std::string tmp = s.substr(last, next);
-                if (tmp.size() != 0) {
-                    if (res.size() + 1 == maxnum) {
-                        res.push_back(
-                            make_counted<const datum_t>(s.substr(last, s.size())));
-                        break;
-                    } else {
-                        res.push_back(make_counted<const datum_t>(std::move(tmp)));
-                    }
-                }
-                last = next+1;
+        while (last != std::string::npos) {
+            size_t next = res.size() == maxnum
+                ? std::string::npos
+                : (delim
+                   ? (delim->size() == 0 ? last + 1 : s.find(*delim, last))
+                   : s.find_first_of(" \t\n", last));
+            debugf("%zu %zu\n", last, next);
+            std::string tmp = next == std::string::npos
+                ? s.substr(last)
+                : s.substr(last, next - last);
+            debugf("%s\n", tmp.c_str());
+            if (delim || tmp.size() != 0) {
+                res.push_back(make_counted<const datum_t>(std::move(tmp)));
             }
+            last = (next == std::string::npos || next >= s.size())
+                ? std::string::npos
+                : next + (delim ? delim->size() : 1);
         }
 
         return new_val(make_counted<const datum_t>(std::move(res)));
