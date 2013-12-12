@@ -36,37 +36,39 @@ void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
     json_out->reset(json_adapter.render());
 }
 
-// Small helper to extract the changed namespace ids from a JSON change request
+// Small helper to extract the changed namespace id from a resource_t
+// TODO! Embed into a class
 class collect_namespaces_exc_t {
 public:
     collect_namespaces_exc_t(const std::string &_msg) : msg(_msg) { }
-    std::string get_msg() const { return msg; }
+    const char *what() const { return msg.c_str(); }
 private:
     std::string msg;
 };
-std::vector<namespace_id_t> collect_affected_namespaces(const cJSON *change_request)
+namespace_id_t get_resource_namespace(const http_req_t::resource_t &resource)
     THROWS_ONLY(collect_namespaces_exc_t) {
 
-    if (change_request == NULL) {
-        throw collect_namespaces_exc_t("Missing change request");
+    auto resource_it = resource.begin();
+    if (resource_it == resource.end()) {
+        throw collect_namespaces_exc_t("No namespace protocol defined");
     }
-    if (change_request->type != cJSON_Object ) {
-        throw collect_namespaces_exc_t("Unhandled change_request type");
+    const std::string protocol_ns(*resource_it);
+    if (protocol_ns != "rdb_namespaces" &&
+        protocol_ns != "dummy_namespaces" &&
+        protocol_ns != "memcached_namespaces") {
+
+        throw collect_namespaces_exc_t("Unhandled namespace protocol " + protocol_ns);
     }
-    std::vector<namespace_id_t> result;
-    const cJSON *entry = change_request->next;
-    while (entry) {
-        if (entry->string == NULL) throw collect_namespaces_exc_t("Missing field name");
-        try {
-            const namespace_id_t ns_id = str_to_uuid(std::string(entry->string));
-            result.push_back(ns_id);
-        } catch (...) {
-            throw collect_namespaces_exc_t("Unable to decode UUID: "
-                                           + std::string(entry->string));
-        }
-        entry = entry->next;
+    ++resource_it;
+    if (resource_it == resource.end()) {
+        throw collect_namespaces_exc_t("No namespace defined");
     }
-    return result;
+    const std::string ns(*resource_it);
+    try {
+        return str_to_uuid(ns);
+    } catch (...) {
+        throw collect_namespaces_exc_t("Unable to decode UUID " + ns);
+    }
 }
 
 template <class metadata_t>
@@ -125,16 +127,12 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                             defaulting_map_t<namespace_id_t, bool>(true);
                     } else if (prefer_distribution_param.get() == "changed_only") {
                         try {
-                            const std::vector<namespace_id_t> changed_ns =
-                                collect_affected_namespaces(change.get());
-                            for (auto jt = changed_ns.begin();
-                                 jt != changed_ns.end();
-                                 ++jt) {
-                                prioritize_distr_for_ns.set(*jt, true);
-                            }
+                            const namespace_id_t changed_ns =
+                                get_resource_namespace(req.resource);
+                            prioritize_distr_for_ns.set(changed_ns, true);
                         } catch (const collect_namespaces_exc_t &e) {
-                            logINF("Unable to extract affected namespaces from request: %s",
-                                e.get_msg().c_str());
+                            logINF("Unable to extract affected namespace from request: %s",
+                                e.what());
                             return http_res_t(HTTP_BAD_REQUEST);
                         }
                     } else {
