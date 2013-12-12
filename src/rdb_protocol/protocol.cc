@@ -1353,9 +1353,13 @@ store_t::store_t(serializer_t *serializer,
                                   &dummy_interruptor);
 #endif
 
-    // RSI: Should we not release the superblock here or something?  Maybe before we
+    // SRH: Should we not release the superblock here or something?  Maybe before we
     // didn't care because it was snapshotted?  But we do now.  Check everywhere for
     // code that holds on to blocks excessively.
+    // JD: It's not actually a huge deal because bring_sindexes_up_to_date
+    // spawns a coro to do its work and returns so this function doesn't last
+    // that long. No reason we can't release though.
+    superblock.reset();
 
     std::map<std::string, secondary_index_t> sindexes;
 #if SLICE_ALT
@@ -1396,7 +1400,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             boost::get<point_read_response_t>(&response->response);
         // debugf("about to rdb_get\n");
 #if SLICE_ALT
-        // RSI: Do we use txn in this class at all?
+        // SRH: Do we use txn in this class at all?
+        // JD: We don't, when we remove the mirrored cache it should go away
+        // completely.
         rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
 #else
         rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
@@ -1603,13 +1609,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         return &ql_env;
     }
 
-    profile::event_log_t &&get_event_log() RVALUE_THIS {
+    void get_event_log(profile::event_log_t *log_out) RVALUE_THIS {
         if (ql_env.trace.has()) {
-            return std::move(*ql_env.trace).get_event_log();
-        } else {
-            // RSI: fucking fuck what the fuck is this fucking shit
-            static profile::event_log_t event_log;
-            return std::move(event_log);
+            *log_out = std::move(*ql_env.trace).get_event_log();
         }
     }
 
@@ -1658,7 +1660,7 @@ void store_t::protocol_read(const read_t &read,
     }
 
     response->n_shards = 1;
-    response->event_log = std::move(v).get_event_log();
+    std::move(v).get_event_log(&response->event_log);
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
     response->event_log.push_back(profile::stop_t());
     // debugf("protocol_read return\n");
