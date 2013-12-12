@@ -29,8 +29,19 @@ protected:
     uuid_u us;
 
 private:
+    class collect_namespaces_exc_t {
+    public:
+        collect_namespaces_exc_t(const std::string &_msg) : msg(_msg) { }
+        const char *what() const { return msg.c_str(); }
+    private:
+        std::string msg;
+    };
+
     // Helper method
     bool verify_content_type(const http_req_t &, const std::string &expected_content_type) const;
+    // Helper to extract the changed namespace id from a resource_t
+    namespace_id_t get_resource_namespace(const http_req_t::resource_t &resource) const
+        THROWS_ONLY(collect_namespaces_exc_t);
 
     metadata_change_handler_t<metadata_t> *metadata_change_handler;
 

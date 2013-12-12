@@ -36,16 +36,9 @@ void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
     json_out->reset(json_adapter.render());
 }
 
-// Small helper to extract the changed namespace id from a resource_t
-// TODO! Embed into a class
-class collect_namespaces_exc_t {
-public:
-    collect_namespaces_exc_t(const std::string &_msg) : msg(_msg) { }
-    const char *what() const { return msg.c_str(); }
-private:
-    std::string msg;
-};
-namespace_id_t get_resource_namespace(const http_req_t::resource_t &resource)
+template <class metadata_t>
+namespace_id_t semilattice_http_app_t<metadata_t>::get_resource_namespace(
+    const http_req_t::resource_t &resource) const
     THROWS_ONLY(collect_namespaces_exc_t) {
 
     auto resource_it = resource.begin();
