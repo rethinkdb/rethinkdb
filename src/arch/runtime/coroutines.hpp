@@ -48,18 +48,23 @@ public:
 
     template<class Callable>
     static void spawn_now_dangerously(const Callable &action) {
-        get_and_init_coro(action)->notify_now_deprecated();
+        coro_t *coro = get_and_init_coro(action);
+        coro->notify_now_deprecated();
     }
 
     template<class Callable>
-    static void spawn_sometime(const Callable &action) {
-        get_and_init_coro(action)->notify_sometime();
+    static coro_t *spawn_sometime(const Callable &action) {
+        coro_t *coro = get_and_init_coro(action);
+        coro->notify_sometime();
+        return coro;
     }
 
     // DEPRECATED:  Use spawn_ordered.  It's the same thing, only its name is shorter!
     template<class Callable>
-    static void spawn_later_ordered(const Callable &action) {
-        get_and_init_coro(action)->notify_later_ordered();
+    static coro_t *spawn_later_ordered(const Callable &action) {
+        coro_t *coro = get_and_init_coro(action);
+        coro->notify_later_ordered();
+        return coro;
     }
 
     template<class Callable>
@@ -73,8 +78,8 @@ public:
     `notify_later_ordered()`. They are deprecated and new code should not use
     them. */
     template<class Callable>
-    static void spawn(const Callable &action) {
-        spawn_later_ordered(action);
+    static coro_t *spawn(const Callable &action) {
+        return spawn_later_ordered(action);
     }
 
     /* Pauses the current coroutine until it is notified */
@@ -85,6 +90,9 @@ public:
     `yield()` by different coroutines may return in a different order than they
     began in. */
     static void yield();
+    /* Like `yield()`, but guarantees that the ordering of coroutines calling 
+    `yield_ordered()` is maintained. */
+    static void yield_ordered();
 
     /* Returns a pointer to the current coroutine, or `NULL` if we are not in a
     coroutine. */
