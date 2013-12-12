@@ -676,6 +676,33 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
 }
 #endif
 
+void clear_sindex(
+        alt_txn_t *txn, block_id_t superblock_id,
+        btree_slice_t *slice, value_sizer_t<void> *sizer,
+        value_deleter_t *deleter, signal_t *interruptor) {
+    /* Notice we're acquire sindex.superblock twice below which seems odd,
+     * the reason for this is that erase_all releases the sindex_superblock
+     * that we pass to it because that makes sense at other call sites.
+     * Thus we need to reacquire it to delete it. */
+    {
+        /* We pass the txn as a parent, this is because
+         * sindex.superblock was detached and thus now has no parent. */
+        alt_buf_lock_t sindex_superblock_lock(
+                alt_buf_parent_t(txn), superblock_id, alt_access_t::write);
+        real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
+
+        erase_all(sizer, slice,
+                deleter, &sindex_superblock, interruptor);
+    }
+
+    {
+        alt_buf_lock_t sindex_superblock_lock(
+                alt_buf_parent_t(txn), superblock_id, alt_access_t::write);
+        sindex_superblock_lock.mark_deleted();
+    }
+}
+
+
 #if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::set_sindexes(
@@ -693,29 +720,17 @@ void btree_store_t<protocol_t>::set_sindexes(
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
         if (!std_contains(sindexes, it->first)) {
             delete_secondary_index(sindex_block, it->first);
+            /* After deleting sindex from the sindex_block we can now detach it as
+             * a child, it's now a parentless block. */
+            sindex_block->detach_child(it->second.superblock);
+            /* We need to save the txn because we are about to release this block. */
+            alt_txn_t *txn = sindex_block->txn();
 
             guarantee(std_contains(secondary_index_slices, it->first));
             btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
-
-            {
-                alt_buf_lock_t sindex_superblock_lock(sindex_block,
-                                                      it->second.superblock,
-                                                      alt_access_t::write);
-                real_superblock_t sindex_superblock(&sindex_superblock_lock);
-
-                erase_all(sizer, sindex_slice,
-                          deleter, &sindex_superblock,
-                          interruptor);
-            }
-
+            clear_sindex(txn, it->second.superblock,
+                    sindex_slice, sizer, deleter, interruptor);
             secondary_index_slices.erase(it->first);
-
-            {
-                alt_buf_lock_t sindex_superblock_lock(sindex_block,
-                                                      it->second.superblock,
-                                                      alt_access_t::write);
-                sindex_superblock_lock.mark_deleted();
-            }
         }
     }
 
@@ -882,32 +897,6 @@ THROWS_NOTHING {
     }
 
     return found;
-}
-
-void clear_sindex(
-        alt_txn_t *txn, block_id_t superblock_id,
-        btree_slice_t *slice, value_sizer_t<void> *sizer,
-        value_deleter_t *deleter, signal_t *interruptor) {
-    /* Notice we're acquire sindex.superblock twice below which seems odd,
-     * the reason for this is that erase_all releases the sindex_superblock
-     * that we pass to it because that makes sense at other call sites.
-     * Thus we need to reacquire it to delete it. */
-    {
-        /* We pass the txn as a parent, this is because
-         * sindex.superblock was detached and thus now has no parent. */
-        alt_buf_lock_t sindex_superblock_lock(
-                alt_buf_parent_t(txn), superblock_id, alt_access_t::write);
-        real_superblock_t sindex_superblock(&sindex_superblock_lock);
-
-        erase_all(sizer, slice,
-                deleter, &sindex_superblock, interruptor);
-    }
-
-    {
-        alt_buf_lock_t sindex_superblock_lock(
-                alt_buf_parent_t(txn), superblock_id, alt_access_t::write);
-        sindex_superblock_lock.mark_deleted();
-    }
 }
 
 #if SLICE_ALT
@@ -1184,10 +1173,11 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     alt_buf_lock_t superblock_lock(sindex_block.get(), sindex.superblock,
                                    alt_access_t::read);
     sindex_block->reset_buf_lock();
+    sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
 #else
     buf_lock_t superblock_lock(txn, sindex.superblock, rwi_read);
-#endif
     sindex_sb_out->init(new real_superblock_t(&superblock_lock));
+#endif
     return true;
 }
 
@@ -1239,10 +1229,11 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
 #if SLICE_ALT
     alt_buf_lock_t superblock_lock(sindex_block.get(), sindex.superblock,
                                    alt_access_t::write);
+    sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
 #else
     buf_lock_t superblock_lock(txn, sindex.superblock, rwi_write);
-#endif
     sindex_sb_out->init(new real_superblock_t(&superblock_lock));
+#endif
     return true;
 }
 
@@ -1328,7 +1319,6 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
 
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    // RSI: Callee doesn't use interruptor.
     acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
 #else
     scoped_ptr_t<buf_lock_t> sindex_block;
@@ -1421,21 +1411,20 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
         sindex_slice->assert_thread();
 
-        /* Notice this looks like a bug but isn't. This buf_lock_t will indeed
-         * get destructed at the end of this function but passing it to the
-         * real_superblock_t constructor below swaps out its acual lock so it's
-         * just default constructed lock when it gets destructed. */
-        // RSI: Yawn, just use std::move.
 #if SLICE_ALT
-        alt_buf_lock_t superblock_lock(sindex_block, it->second.superblock,
-                                       alt_access_t::write);
+        alt_buf_lock_t superblock_lock(
+                sindex_block, it->second.superblock, alt_access_t::write);
+
+        sindex_sbs_out->push_back(new
+                sindex_access_t(get_sindex_slice(it->first), it->second, new
+                    real_superblock_t(std::move(superblock_lock))));
 #else
         buf_lock_t superblock_lock(txn, it->second.superblock, rwi_write);
-#endif
 
         sindex_sbs_out->push_back(new
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
                     real_superblock_t(&superblock_lock)));
+#endif
     }
 
     //return's true if we got all of the sindexes requested.
@@ -1476,22 +1465,20 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
         sindex_slice->assert_thread();
 
-        /* Notice this looks like a bug but isn't. This buf_lock_t will indeed
-         * get destructed at the end of this function but passing it to the
-         * real_superblock_t constructor below swaps out its acual lock so it's
-         * just default constructed lock when it gets destructed. */
-        // RSI: copy/pasted comment?  Use std::move thx.
 #if SLICE_ALT
-        alt_buf_lock_t superblock_lock(sindex_block,
-                                       it->second.superblock,
-                                       alt_access_t::write);
+        alt_buf_lock_t superblock_lock(
+                sindex_block, it->second.superblock, alt_access_t::write);
+
+        sindex_sbs_out->push_back(new
+                sindex_access_t(get_sindex_slice(it->first), it->second, new
+                    real_superblock_t(std::move(superblock_lock))));
 #else
         buf_lock_t superblock_lock(txn, it->second.superblock, rwi_write);
-#endif
 
         sindex_sbs_out->push_back(new
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
                     real_superblock_t(&superblock_lock)));
+#endif
     }
 
     //return's true if we got all of the sindexes requested.

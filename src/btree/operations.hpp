@@ -64,7 +64,7 @@ private:
 class real_superblock_t : public superblock_t {
 public:
 #if SLICE_ALT
-    explicit real_superblock_t(alt::alt_buf_lock_t *sb_buf);
+    explicit real_superblock_t(alt::alt_buf_lock_t &&sb_buf);
 #else
     explicit real_superblock_t(buf_lock_t *sb_buf);
 #endif

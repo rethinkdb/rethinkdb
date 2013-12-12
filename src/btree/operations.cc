@@ -24,12 +24,14 @@ using alt::alt_txn_t;
 #endif
 
 #if SLICE_ALT
-real_superblock_t::real_superblock_t(alt_buf_lock_t *sb_buf) {
+real_superblock_t::real_superblock_t(alt_buf_lock_t &&sb_buf) {
+    sb_buf_ = std::move(sb_buf);
+}
 #else
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
-#endif
     sb_buf_.swap(*sb_buf);
 }
+#endif
 
 void real_superblock_t::release() {
 #if SLICE_ALT
@@ -916,7 +918,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
 void get_btree_superblock(alt_txn_t *txn, alt_access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out) {
     alt_buf_lock_t tmp_buf(alt_buf_parent_t(txn), SUPERBLOCK_ID, access);
-    scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(&tmp_buf));
+    scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
     *got_superblock_out = std::move(tmp_sb);
 }
 #else
