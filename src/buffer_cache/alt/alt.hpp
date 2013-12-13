@@ -89,8 +89,8 @@ public:
     alt_cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
 private:
+    const write_durability_t durability_;
     scoped_ptr_t<alt_inner_txn_t> inner_;
-    write_durability_t durability_;
     DISABLE_COPYING(alt_txn_t);
 };
 

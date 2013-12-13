@@ -36,18 +36,20 @@ alt_inner_txn_t::~alt_inner_txn_t() {
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      alt_txn_t *preceding_txn)
-    : inner_(new alt_inner_txn_t(cache,
-                                 preceding_txn == NULL ? NULL
-                                 : preceding_txn->inner_.get())),
-      durability_(write_durability_t::HARD) { }
+    : durability_(write_durability_t::HARD) {
+    inner_.init(new alt_inner_txn_t(cache,
+                                    preceding_txn == NULL ? NULL
+                                    : preceding_txn->inner_.get()));
+}
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      write_durability_t durability,
                      alt_txn_t *preceding_txn)
-    : inner_(new alt_inner_txn_t(cache,
-                                 preceding_txn == NULL ? NULL
-                                 : preceding_txn->inner_.get())),
-      durability_(durability) { }
+    : durability_(durability) {
+    inner_.init(new alt_inner_txn_t(cache,
+                                    preceding_txn == NULL ? NULL
+                                    : preceding_txn->inner_.get()));
+}
 
 void destroy_inner_txn(alt_inner_txn_t *inner, auto_drainer_t::lock_t) {
     delete inner;
@@ -55,7 +57,6 @@ void destroy_inner_txn(alt_inner_txn_t *inner, auto_drainer_t::lock_t) {
 
 alt_txn_t::~alt_txn_t() {
     if (durability_ == write_durability_t::SOFT) {
-        // RSI: This doesn't do throttling correctly.
         alt_inner_txn_t *inner = inner_.release();
         coro_t::spawn_sometime(std::bind(&destroy_inner_txn,
                                          inner,
