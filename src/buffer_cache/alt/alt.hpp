@@ -192,6 +192,10 @@ private:
 
     alt_snapshot_node_t *snapshot_node_;
 
+    // Keeps track of how many alt_buf_{read|write}_t have been created for
+    // this lock.
+    int access_ref_count_;
+
     DISABLE_COPYING(alt_buf_lock_t);
 };
 

@@ -1019,7 +1019,6 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
                 sindex_slice, sizer, deleter, interruptor);
         secondary_index_slices.erase(it->first);
     }
-    sindex_block->reset_buf_lock();
 }
 #else
 template <class protocol_t>

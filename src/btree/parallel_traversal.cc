@@ -441,20 +441,23 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
 
     void on_node_ready(scoped_ptr_t<alt_buf_lock_t> *buf) {
         rassert(coro_t::self());
-        alt_buf_read_t read(buf->get());
-        const node_t *node = static_cast<const node_t *>(read.get_data_read());
+        bool is_leaf;
+        {
+            alt_buf_read_t read(buf->get());
+            const node_t *node = static_cast<const node_t *>(read.get_data_read());
+            is_leaf = node::is_leaf(node);
+        }
 
         const btree_key_t *left_exclusive_or_null = left_unbounded ? NULL : left_exclusive.btree_key();
         const btree_key_t *right_inclusive_or_null = right_unbounded ? NULL : right_inclusive.btree_key();
 
-        if (node::is_leaf(node)) {
+        if (is_leaf) {
             if (state->helper->progress) {
                 state->helper->progress->inform(level, parallel_traversal_progress_t::ACQUIRE, parallel_traversal_progress_t::LEAF);
             }
             process_a_leaf_node(state, buf, level, left_exclusive_or_null, right_inclusive_or_null);
         } else {
-            rassert(node::is_internal(node));
-
+            // The node is internal
             if (state->helper->progress) {
                 state->helper->progress->inform(level, parallel_traversal_progress_t::ACQUIRE, parallel_traversal_progress_t::INTERNAL);
             }
@@ -500,12 +503,17 @@ void process_a_internal_node(traversal_state_t *state,
                              int level,
                              const btree_key_t *left_exclusive_or_null,
                              const btree_key_t *right_inclusive_or_null) {
-    alt_buf_read_t read(buf->get());
-    const internal_node_t *node
-        = static_cast<const internal_node_t *>(read.get_data_read());
+    boost::shared_ptr<ranged_block_ids_t> ids_source;
+    {
+        alt_buf_read_t read(buf->get());
+        const internal_node_t *node
+            = static_cast<const internal_node_t *>(read.get_data_read());
 
-    // RSI: Why not finally get rid of this boost::shared_ptr.
-    boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(state->slice->cache()->get_block_size(), node, left_exclusive_or_null, right_inclusive_or_null, level));
+        // RSI: Why not finally get rid of this boost::shared_ptr.
+        ids_source = boost::shared_ptr<ranged_block_ids_t>(
+                new ranged_block_ids_t(state->slice->cache()->get_block_size(), node,
+                    left_exclusive_or_null, right_inclusive_or_null, level));
+    }
 
     subtrees_traverse(state, new internal_node_releaser_t(buf, state),
                       level + 1, ids_source);
@@ -513,8 +521,8 @@ void process_a_internal_node(traversal_state_t *state,
 
 // This releases its buf_lock_t parameter.
 void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<alt_buf_lock_t> *buf,
-                         int level,
-                         const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null) {
+        int level, const btree_key_t *left_exclusive_or_null,
+        const btree_key_t *right_inclusive_or_null) {
     // TODO: The below comment is wrong because we acquire the stat block
     // This can be run in the scheduler thread.
     //
@@ -523,8 +531,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<alt_buf_lock_t> 
 
     try {
         state->helper->process_a_leaf(buf->get(), left_exclusive_or_null,
-                                      right_inclusive_or_null, state->interruptor,
-                                      &population_change);
+                right_inclusive_or_null, state->interruptor, &population_change);
     } catch (const interrupted_exc_t &) {
         rassert(state->interruptor->is_pulsed());
         /* ignore it; the backfill will come to a stop on its own now that
@@ -537,6 +544,8 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<alt_buf_lock_t> 
         // RSI: Should we _actually_ pass buf.get() as the parent?
         // RSI: This was opened with some buffer_cache_order_mode_ignore flag.
         // RSI: See operations.tcc for another use of the stat block.
+        // RSI: having buf as the parent doesn't really make sense. The stat block
+        // doesn't really have a parent.
         alt_buf_lock_t stat_block(buf->get(), state->stat_block, alt_access_t::write);
         alt_buf_write_t stat_block_write(&stat_block);
         auto stat_block_buf =

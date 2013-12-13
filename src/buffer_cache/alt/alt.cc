@@ -53,7 +53,8 @@ alt_txn_t::~alt_txn_t() {
 alt_buf_lock_t::alt_buf_lock_t()
     : txn_(NULL),
       current_page_acq_(),
-      snapshot_node_(NULL) {
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
 }
 
 #if ALT_DEBUG
@@ -67,7 +68,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                alt_access_t access)
     : txn_(parent.txn()),
       current_page_acq_(),
-      snapshot_node_(NULL) {
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
     alt_buf_lock_t::wait_for_parent(parent, access);
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
 #if ALT_DEBUG
@@ -81,7 +83,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
     : txn_(txn),
       current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
                                                alt_access_t::write, true)),
-      snapshot_node_(NULL) {
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
     guarantee(create == alt_create_t::create);
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id);
@@ -110,7 +113,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
                                alt_access_t access)
     : txn_(parent->txn_),
       current_page_acq_(),
-      snapshot_node_(NULL) {
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
 
     alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), access);
 
@@ -124,7 +128,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                alt_create_t create)
     : txn_(parent.txn()),
       current_page_acq_(),
-      snapshot_node_(NULL) {
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
     guarantee(create == alt_create_t::create);
     wait_for_parent(parent, alt_access_t::write);
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
@@ -138,7 +143,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
                                alt_create_t create)
     : txn_(parent->txn_),
       current_page_acq_(),
-      snapshot_node_(NULL) {
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
     guarantee(create == alt_create_t::create);
     wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
 
@@ -157,24 +163,31 @@ alt_buf_lock_t::~alt_buf_lock_t() {
 #endif
     // RSI: We'll have to do something with snapshot_node_ here.
     (void)snapshot_node_;
+    guarantee(access_ref_count_ == 0);
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t &&movee)
     : txn_(movee.txn_),
       current_page_acq_(std::move(movee.current_page_acq_)),
-      snapshot_node_(movee.snapshot_node_) {
+      snapshot_node_(movee.snapshot_node_),
+      access_ref_count_(0)
+{
+    guarantee(movee.access_ref_count_ == 0);
     movee.txn_ = NULL;
     movee.current_page_acq_.reset();
     movee.snapshot_node_ = NULL;
 }
 
 alt_buf_lock_t &alt_buf_lock_t::operator=(alt_buf_lock_t &&movee) {
+    guarantee(access_ref_count_ == 0);
     alt_buf_lock_t tmp(std::move(movee));
     swap(tmp);
     return *this;
 }
 
 void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
+    guarantee(access_ref_count_ == 0);
+    guarantee(other.access_ref_count_ == 0);
     std::swap(txn_, other.txn_);
     current_page_acq_.swap(other.current_page_acq_);
     std::swap(snapshot_node_, other.snapshot_node_);
@@ -214,10 +227,12 @@ repli_timestamp_t alt_buf_lock_t::get_recency() const {
 alt_buf_read_t::alt_buf_read_t(alt_buf_lock_t *lock)
     : lock_(lock) {
     guarantee(!lock_->empty());
+    lock_->access_ref_count_++;
 }
 
 alt_buf_read_t::~alt_buf_read_t() {
     guarantee(!lock_->empty());
+    lock_->access_ref_count_--;
 }
 
 const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
@@ -236,6 +251,8 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
 alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
     : lock_(lock) {
     guarantee(!lock_->empty());
+    lock_->access_ref_count_++;
+    lock_->access_ref_count_--;
 }
 
 alt_buf_write_t::~alt_buf_write_t() {
