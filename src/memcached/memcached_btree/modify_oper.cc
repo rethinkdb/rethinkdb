@@ -74,9 +74,11 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
         null_key_modification_callback_t<memcached_value_t> null_cb;
 #if SLICE_ALT
         apply_keyvalue_change(&kv_location, store_key.btree_key(), timestamp,
-                              expired, &null_cb);
+                              expired ? expired_t::YES : expired_t::NO, &null_cb);
 #else
-        apply_keyvalue_change(txn, &kv_location, store_key.btree_key(), timestamp, expired, &null_cb, &slice->root_eviction_priority);
+        apply_keyvalue_change(
+                txn, &kv_location, store_key.btree_key(), timestamp,
+                expired ? expired_t::YES : expired_t::NO, &null_cb, &slice->root_eviction_priority);
 #endif
     }
 }

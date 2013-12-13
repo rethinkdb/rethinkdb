@@ -330,15 +330,19 @@ void find_keyvalue_location_for_read(
     }
 }
 
+enum class expired_t { YES, NO };
+
 #if SLICE_ALT
 template <class Value>
 void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
-                           const btree_key_t *key, repli_timestamp_t tstamp,
-                           bool expired,
-                           key_modification_callback_t<Value> *km_callback) {
+        const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
+        key_modification_callback_t<Value> *km_callback) {
 #else
 template <class Value>
-void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc, const btree_key_t *key, repli_timestamp_t tstamp, bool expired, key_modification_callback_t<Value> *km_callback, eviction_priority_t *root_eviction_priority) {
+void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_loc,
+        const btree_key_t *key, repli_timestamp_t tstamp, expired_t expired,
+        key_modification_callback_t<Value> *km_callback,
+        eviction_priority_t *root_eviction_priority) {
 #endif
 
 #if SLICE_ALT

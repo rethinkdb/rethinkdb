@@ -116,7 +116,10 @@ struct btree_info_t {
 #if !SLICE_ALT
     transaction_t *const txn;
 #endif
-    // RSI: Could we use std::move here or something.
+    // SRH: Could we use std::move here or something.
+    // JD: It would be a big pain and why bother? Having a pointer to the value
+    // seems more correct to me we don't want its lifetime to be tied to this
+    // structure.
     const std::string *primary_key;
 };
 
@@ -129,7 +132,10 @@ struct btree_loc_info_t {
         guarantee(superblock != NULL);
         guarantee(key != NULL);
     }
-    // RSI: Could we use std::move here or something.
+    // SRH: Could we use std::move here or something.
+    // JD: We could in theory use std::move for the superblock but we would
+    // need promise to use move semantics. I think the other 2 should remain
+    // pointers.
     const btree_info_t *const btree;
     superblock_t *const superblock;
     const store_key_t *const key;
@@ -364,8 +370,12 @@ private:
     alt::alt_buf_lock_t *sindex_block_;
 #endif
 
-    // RSI: Figure out how this is used.  Does the caller release the superblock?
+    // SRH: Figure out how this is used.  Does the caller release the superblock?
     // How do we ensure that sindex ordering is correct?
+    // JD: Who's the caller in yur mind and what do you mean does it releae the
+    // superblock? There's no superblock in this class. Sindex ordering should
+    // be correct because from what I understand we acquire sindex_block_ while
+    // we hold the superblock.
 
     /* Fields initialized by calls to on_mod_report */
 #if !SLICE_ALT

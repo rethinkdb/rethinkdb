@@ -38,7 +38,7 @@ value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
 template<class Value>
 void find_keyvalue_location_for_write(
-    const btree_loc_info_t &info,  // RSI: Remove txn from info?
+    const btree_loc_info_t &info,  // SRH: Remove txn from info JD: there's no txn in btree_loc_info_t
     keyvalue_location_t<Value> *kv_loc_out,
     profile::trace_t *trace,
     promise_t<superblock_t *> *pass_back_superblock) {
@@ -135,6 +135,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
                         transaction_t *txn,
 #endif
                         rdb_modification_info_t *mod_info_out) {
+    // Notice this also implies that buf is valid.
     guarantee(kv_location->value.has());
 
 
@@ -142,7 +143,7 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
         guarantee(mod_info_out->deleted.second.empty());
 
 #if SLICE_ALT
-        // RSI: Prove that buf is valid.
+        // As noted above, we can be sure that buf is valid.
         block_size_t block_size = kv_location->buf.cache()->get_block_size();
 #else
         block_size_t block_size = txn->get_cache()->get_block_size();
@@ -163,10 +164,10 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
     null_key_modification_callback_t<rdb_value_t> null_cb;
 #if SLICE_ALT
     apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
-                          false, &null_cb);
+            expired_t::NO, &null_cb);
 #else
     apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp,
-                          false, &null_cb, &slice->root_eviction_priority);
+            expired_t::NO, &null_cb, &slice->root_eviction_priority);
 #endif
 }
 
@@ -230,13 +231,11 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     null_key_modification_callback_t<rdb_value_t> null_cb;
 #if SLICE_ALT
     apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
-                          false, &null_cb);
+                          expired_t::NO, &null_cb);
 #else
     apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp,
-                          false, &null_cb, &slice->root_eviction_priority);
+                          expired_t::NO, &null_cb, &slice->root_eviction_priority);
 #endif
-    //                    ^^^^^ That means the key isn't expired.
-    // RSI: replace `false` with an enum class
 }
 
 #if SLICE_ALT
@@ -260,12 +259,11 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     null_key_modification_callback_t<rdb_value_t> null_cb;
 #if SLICE_ALT
     apply_keyvalue_change(kv_location, key.btree_key(), timestamp,
-                          false, &null_cb);
+                          expired_t::NO, &null_cb);
 #else
     apply_keyvalue_change(txn, kv_location, key.btree_key(), timestamp,
-                          false, &null_cb, &slice->root_eviction_priority);
+                          expired_t::NO, &null_cb, &slice->root_eviction_priority);
 #endif
-    //                    ^^^^^ That means the key isn't expired.
 }
 
 void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
