@@ -1926,14 +1926,15 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               ql::protob_t<Query>()),
-        sindex_block_id((*superblock)->get_sindex_block_id()) {
+               ql::protob_t<Query>())
+#if !SLICE_ALT
+        , sindex_block_id((*superblock)->get_sindex_block_id())
+#endif
+    {
 #if SLICE_ALT
-        // RSI: sindex_block_id is probably an unused field.
         cond_t dummy_interruptor;
         store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
-                                              &sindex_block,
-                                              sindex_block_id);
+                &sindex_block, (*superblock)->get_sindex_block_id());
 #endif
     }
 
@@ -1996,7 +1997,9 @@ private:
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     ql::env_t ql_env;
+#if !SLICE_ALT
     block_id_t sindex_block_id;
+#endif
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
 #endif
