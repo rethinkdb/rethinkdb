@@ -130,6 +130,7 @@ class RDBVal extends TermBase
     union: varar(1, null, (others...) -> new Union {}, @, others...)
     nth: ar (index) -> new Nth {}, @, index
     match: ar (pattern) -> new Match {}, @, pattern
+    split: varar(0, null, (fields...) -> new Split {}, @, fields.map(funcWrap)...)
     upcase: ar () -> new Upcase {}, @
     downcase: ar () -> new Downcase {}, @
     isEmpty: ar () -> new IsEmpty {}, @
@@ -612,6 +613,10 @@ class Nth extends RDBOp
 class Match extends RDBOp
     tt: "MATCH"
     mt: 'match'
+
+class Split extends RDBOp
+    tt: "SPLIT"
+    mt: 'split'
 
 class Upcase extends RDBOp
     tt: "UPCASE"

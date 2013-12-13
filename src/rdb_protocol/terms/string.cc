@@ -92,8 +92,7 @@ private:
         size_t maxnum = (n < 0 ? std::numeric_limits<decltype(maxnum)>::max() : n);
 
         // This logic is extremely finicky so as to mimick the behavior of
-        // Python's `split`.  (With one exception; we handle "" as a separator
-        // differently.)  Be very careful if you change it.
+        // Python's `split` in edge cases.
         std::vector<counted_t<const datum_t> > res;
         size_t last = 0;
         while (last != std::string::npos) {
@@ -102,11 +101,13 @@ private:
                 : (delim
                    ? (delim->size() == 0 ? last + 1 : s.find(*delim, last))
                    : s.find_first_of(" \t\n", last));
-            debugf("%zu %zu\n", last, next);
-            std::string tmp = next == std::string::npos
-                ? s.substr(last)
-                : s.substr(last, next - last);
-            debugf("%s\n", tmp.c_str());
+            std::string tmp;
+            if (next == std::string::npos) {
+                size_t start = delim ? last : s.find_first_not_of(" \t\n", last);
+                tmp = start == std::string::npos ? "" : s.substr(start);
+            } else {
+                tmp = s.substr(last, next - last);
+            }
             if (delim || tmp.size() != 0) {
                 res.push_back(make_counted<const datum_t>(std::move(tmp)));
             }
