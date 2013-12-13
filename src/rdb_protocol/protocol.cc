@@ -1954,8 +1954,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
 #if !SLICE_ALT
-        // RSI: In SLICE_ALT move sindex_block to a member variable and create it in
-        // the constructor as a child of superblock.
         scoped_ptr_t<buf_lock_t> sindex_block;
         // Don't allow interruption here, or we may end up with inconsistent data
         cond_t dummy_interruptor;
@@ -1963,8 +1961,9 @@ private:
                                               sindex_block_id, &dummy_interruptor);
 #endif
 
-        // RSI: Does this lock_sindex_queue function require us to wait for
+        // SRH: Does this lock_sindex_queue function require us to wait for
         // sindex_block to become acquired?  Check all its callers.
+        // JD: Yes it does. Which I believe is what we want.
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
@@ -2183,9 +2182,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         interruptor(_interruptor),
         sindex_block_id(superblock->get_sindex_block_id()) {
 #if SLICE_ALT
-        // RSI: Use dummy_interruptor still?  In update_sindexes we can't because we
-        // could end up with inconsistent data.  (Why are we using an interruptor at
-        // all?)
         store->acquire_sindex_block_for_write(
             superblock->expose_buf(),
             &sindex_block,
@@ -2285,8 +2281,12 @@ private:
             sindex_block_id, &dummy_interruptor);
 #endif
 
-        // RSI: Same comment about lock_sindex_queue having to wait for sindex_block
+        // SRH: Same comment about lock_sindex_queue having to wait for sindex_block
         // to be acquired.  (Uh, just have the callee wait?)
+        // JD: We could do that, although I think having the lock_sindex_queue
+        // method wait for the block the be acquired is an acceptable API. I
+        // certainly wouldn't consider this something that needs to be fixed
+        // before we merge this code.
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
