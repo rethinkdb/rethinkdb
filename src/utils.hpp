@@ -69,16 +69,18 @@ public:
  */
 #define NOINLINE __attribute__ ((noinline))
 
-/* Pad a value to the size of a cache line to avoid false sharing.
- * TODO: This is implemented as a struct with subtraction rather than a union
- * so that it gives an error when trying to pad a value bigger than
- * CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
+/* Pad a value to the size of one or multiple cache lines to avoid false sharing.
  */
+#define COMPUTE_PADDING_SIZE(value, alignment) \
+        alignment - (((value + alignment - 1) % alignment) + 1)
 template<typename value_t>
 struct cache_line_padded_t {
+    cache_line_padded_t() { }
+    explicit cache_line_padded_t(value_t const &_value) : value(_value) { }
     value_t value;
-    char padding[CACHE_LINE_SIZE - sizeof(value_t)];
+    char padding[COMPUTE_PADDING_SIZE(sizeof(value_t), CACHE_LINE_SIZE)];
 };
+#undef COMPUTE_PADDING_SIZE
 
 void *malloc_aligned(size_t size, size_t alignment);
 

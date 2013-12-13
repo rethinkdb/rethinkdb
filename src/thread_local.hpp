@@ -72,15 +72,16 @@
     }
 
 #else  // THREADED_COROUTINES
-#define TLS_with_init(type, name, initial)              \
-    static std::vector<type> TLS_ ## name(MAX_THREADS, initial); \
-                                                        \
-    type TLS_get_ ## name () {                          \
-        return TLS_ ## name[get_thread_id().threadnum]; \
-    }                                                   \
-                                                        \
-    void TLS_set_ ## name(type const &val) {            \
-        TLS_ ## name[get_thread_id().threadnum] = val;  \
+#define TLS_with_init(type, name, initial)                              \
+    static std::vector<cache_line_padded_t<type> >                      \
+        TLS_ ## name(MAX_THREADS, cache_line_padded_t<type>(initial));  \
+                                                                        \
+    type TLS_get_ ## name () {                                          \
+        return TLS_ ## name[get_thread_id().threadnum].value;           \
+    }                                                                   \
+                                                                        \
+    void TLS_set_ ## name(type const &val) {                            \
+        TLS_ ## name[get_thread_id().threadnum].value = val;            \
     }
 
 #endif  // THREADED_COROUTINES
@@ -98,15 +99,15 @@
     }
 
 #else // THREADED_COROUTINES
-#define TLS(type, name)                                 \
-    static type TLS_ ## name[MAX_THREADS];              \
-                                                        \
-    type TLS_get_ ## name () {                          \
-        return TLS_ ## name[get_thread_id().threadnum]; \
-    }                                                   \
-                                                        \
-    void TLS_set_ ## name(type const &val) {            \
-        TLS_ ## name[get_thread_id().threadnum] = val;  \
+#define TLS(type, name)                                                 \
+    static cache_line_padded_t<type> TLS_ ## name[MAX_THREADS];         \
+                                                                        \
+    type TLS_get_ ## name () {                                          \
+        return TLS_ ## name[get_thread_id().threadnum].value;           \
+    }                                                                   \
+                                                                        \
+    void TLS_set_ ## name(type const &val) {                            \
+        TLS_ ## name[get_thread_id().threadnum].value = val;            \
     }
 
 #endif // not THREADED_COROUTINES

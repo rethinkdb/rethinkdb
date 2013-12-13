@@ -90,7 +90,7 @@ scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
 
 void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
     scoped_ptr_t<on_thread_t> thread_switcher;
-    if (coroutines_have_been_initialized()) {
+    if (coroutines_have_been_initialized() && coro_t::self() != NULL) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
@@ -100,7 +100,7 @@ void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
 
 void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
     scoped_ptr_t<on_thread_t> thread_switcher;
-    if (coroutines_have_been_initialized()) {
+    if (coroutines_have_been_initialized() && coro_t::self() != NULL) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 

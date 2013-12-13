@@ -23,12 +23,6 @@
 #include "rethinkdb_backtrace.hpp"
 #include "arch/runtime/coro_profiler.hpp"
 
-static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
-static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
-    &pm_active_coroutines, "active_coroutines",
-    &pm_allocated_coroutines, "allocated_coroutines",
-    NULLPTR);
-
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
 /* `coro_globals_t` holds all of the thread-local variables that coroutines need
@@ -96,6 +90,15 @@ struct coro_globals_t {
 };
 
 TLS_with_init(coro_globals_t *, cglobals, NULL);
+
+// These must be initialized after TLS_cglobals, because perfmon_multi_membership_t
+// construction depends on coro_t::coroutines_have_been_initialized() which in turn
+// depends on cglobals.
+static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
+static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
+    &pm_active_coroutines, "active_coroutines",
+    &pm_allocated_coroutines, "allocated_coroutines",
+    NULLPTR);
 
 coro_runtime_t::coro_runtime_t() {
     rassert(!TLS_get_cglobals(), "coro runtime initialized twice on this thread");
