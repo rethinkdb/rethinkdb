@@ -334,11 +334,9 @@ void set_superblock_metainfo(alt_buf_lock_t *superblock,
 void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value) {
 #endif
 #if SLICE_ALT
-    btree_superblock_t *data;
-    {
-        alt_buf_write_t write(superblock);
-        data = static_cast<btree_superblock_t *>(write.get_data_write());
-    }
+    alt_buf_write_t write(superblock);
+    btree_superblock_t *data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
 #else
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
 #endif
@@ -443,11 +441,9 @@ void delete_superblock_metainfo(alt_buf_lock_t *superblock,
 void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key) {
 #endif
 #if SLICE_ALT
-    btree_superblock_t *const data;
-    {
-        alt_buf_write_t write(superblock);
-        data = static_cast<btree_superblock_t *>(write.get_data_write());
-    }
+    alt_buf_write_t write(superblock);
+    btree_superblock_t *const data
+        = static_cast<btree_superblock_t *>(write.get_data_write());
 #else
     btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
 #endif
