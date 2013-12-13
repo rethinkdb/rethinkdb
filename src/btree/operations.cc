@@ -981,7 +981,7 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_to
     slice->assert_thread();
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
                                    write_durability_t::SOFT /* RSI: read txn */);
-    // RSI: Support all the stuff this old line does.  (What's rwi_read_sync, here?)
+    // RSI: Support all the stuff this old line does.  (rwi_read_sync is so that the read txn can't cross write txns -- the old cache is weird)
     // transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
     //                                        slice->pre_begin_txn_checkpoint_.check_through(token));
     txn_out->init(txn);
