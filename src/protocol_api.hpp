@@ -326,7 +326,7 @@ private:
  * they acquire the primary. This could in theory be acquired as 2 seperate
  * objects but this would be twice as much typing and runs the risk that people
  * pass one exit read in to a function that accesses the other. */
-// RSI: Update this comment ^^
+// RSI: read_token_pair_t should go away and we should just pass around a single token.
 struct read_token_pair_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
 #if !SLICE_ALT
