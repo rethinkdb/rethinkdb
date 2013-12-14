@@ -449,6 +449,7 @@ void do_a_replace_from_batched_replace(
 
     // debugf("do_a_replace_from_batched_replace before xiter.wait\n");
     // RSI: What is this for?  are we waiting to get in line to call on_mod_report?  I guess so.
+    // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
     // debugf("do_a_replace_from_batched_replace xiter.wait returned\n");
     sindex_cb->on_mod_report(mod_report);
@@ -644,17 +645,9 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 #if SLICE_ALT
         mod_info->deleted.first = get_data(kv_location.value.get(),
                                            alt_buf_parent_t(&kv_location.buf));
-#else
-        mod_info->deleted.first = get_data(kv_location.value.get(), txn);
-#endif
-    }
-
-    // RSI: We re-check exists condition, this be crazy.
-
-    if (exists) {
-#if SLICE_ALT
         kv_location_delete(&kv_location, key, timestamp, mod_info);
 #else
+        mod_info->deleted.first = get_data(kv_location.value.get(), txn);
         kv_location_delete(&kv_location, key, slice, timestamp, txn, mod_info);
 #endif
     }
@@ -710,9 +703,8 @@ typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vect
 
 #if SLICE_ALT
 void sindex_erase_range(const key_range_t &key_range,
-                        const sindex_access_t *sindex_access,
-                        auto_drainer_t::lock_t,
-                        signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
+        const sindex_access_t *sindex_access, auto_drainer_t::lock_t,
+        signal_t *interruptor, bool release_superblock) THROWS_NOTHING {
 #else
 void sindex_erase_range(const key_range_t &key_range,
         transaction_t *txn, const sindex_access_t *sindex_access, auto_drainer_t::lock_t,
@@ -742,7 +734,6 @@ void sindex_erase_range(const key_range_t &key_range,
 }
 
 /* Spawns a coro to carry out the erase range for each sindex. */
-// RSI: Make sure sindex_access has the right parent node.
 void spawn_sindex_erase_ranges(
         const sindex_access_vector_t *sindex_access,
         const key_range_t &key_range,
@@ -1311,8 +1302,11 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 #endif
 {
 #if SLICE_ALT
-    // RSI: Could we just release the sindex_block_ right here?  (Maybe not, the
+    // SRH: Could we just release the sindex_block_ right here?  (Maybe not, the
     // caller owns the block for its own purposes?)
+    // JD: We could but I think it's better to just let the caller do that if
+    // he wants. Since doing it right after the constructor returns is
+    // basically the same performance wise.
     store_->acquire_post_constructed_sindex_superblocks_for_write(
             sindex_block_, &sindexes_);
 #endif
@@ -1443,7 +1437,6 @@ void rdb_update_single_sindex(
 
                     if (kv_location.value.has()) {
 #if SLICE_ALT
-                        // RSI: Does sindex->btree get used anywhere anymore?
                         kv_location_delete(&kv_location, *it,
                             repli_timestamp_t::distant_past, NULL);
 #else
@@ -1622,18 +1615,6 @@ public:
         try {
             scoped_ptr_t<real_superblock_t> superblock;
 
-#if SLICE_ALT
-            // RSI: Duplicate the non-alt comment.
-            store_->acquire_superblock_for_write(
-                    alt_access_t::write,
-                    repli_timestamp_t::distant_past,
-                    2,
-                    write_durability_t::SOFT,
-                    &token_pair,
-                    &wtxn,
-                    &superblock,
-                    interruptor_);
-#else
             // We want soft durability because having a partially constructed secondary index is
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
@@ -1646,6 +1627,17 @@ public:
             // the way down. However in this special case this is already
             // guaranteed by the token_pair that all secondary index operations
             // use, so we can safely acquire it with `rwi_read` instead.
+#if SLICE_ALT
+            store_->acquire_superblock_for_write(
+                    alt_access_t::write,
+                    repli_timestamp_t::distant_past,
+                    2,
+                    write_durability_t::SOFT,
+                    &token_pair,
+                    &wtxn,
+                    &superblock,
+                    interruptor_);
+#else
             store_->acquire_superblock_for_write(
                 rwi_write,
                 rwi_read,
@@ -1686,8 +1678,7 @@ public:
                 interruptor_);
 #endif
 #if SLICE_ALT
-            // RSI: just do superblock.reset(), nay?
-            superblock->release();
+            superblock.reset();
 #endif
 
             store_->acquire_sindex_superblocks_for_write(

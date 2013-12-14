@@ -149,16 +149,13 @@ private:
 };
 
 void btree_erase_range_generic(value_sizer_t<void> *sizer, btree_slice_t *slice,
-                               key_tester_t *tester,
-                               value_deleter_t *deleter,
-                               const btree_key_t *left_exclusive_or_null,
-                               const btree_key_t *right_inclusive_or_null,
+        key_tester_t *tester, value_deleter_t *deleter,
+        const btree_key_t *left_exclusive_or_null,
+        const btree_key_t *right_inclusive_or_null,
 #if !SLICE_ALT
-                               transaction_t *txn,
+        transaction_t *txn,
 #endif
-                               superblock_t *superblock,
-                               signal_t *interruptor,
-                               bool release_superblock) {
+        superblock_t *superblock, signal_t *interruptor, bool release_superblock) {
     erase_range_helper_t helper(sizer, tester, deleter,
                                 left_exclusive_or_null, right_inclusive_or_null);
 #if SLICE_ALT
