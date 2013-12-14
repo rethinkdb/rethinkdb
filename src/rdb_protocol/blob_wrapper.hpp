@@ -2,6 +2,8 @@
 #ifndef RDB_PROTOCOL_BLOB_WRAPPER_HPP_
 #define RDB_PROTOCOL_BLOB_WRAPPER_HPP_
 
+#include <string>
+
 #include "btree/btree_store.hpp"
 #include "buffer_cache/blob.hpp"
 

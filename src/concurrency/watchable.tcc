@@ -79,24 +79,20 @@ private:
             // The closure is to avoid copying the whole value from the parent.
 
             bool value_changed = false;
-            /* C++11: auto op = [&] (const outer_type *val) -> void { ... }
-            Because we cannot use C++11 lambdas yet due to missing support in
-            GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
-                void operator()(const outer_type *val) {
-                    value_changed = lens(*val, &cached_value);
+                static void apply(callable_type *_lens,
+                                  bool *_value_changed,
+                                  result_type *_cached_value,
+                                  const outer_type *val) {
+                    *_value_changed = (*_lens)(*val, _cached_value);
                 }
-                op_closure_t(callable_type &c1, bool &c2, result_type &c3) :
-                    lens(c1),
-                    value_changed(c2),
-                    cached_value(c3) { }
-                callable_type &lens;
-                bool &value_changed;
-                result_type &cached_value;
             };
-            op_closure_t op(lens, value_changed, cached_value);
 
-            parent->apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+            parent->apply_read(std::bind(&op_closure_t::apply,
+                                         &lens,
+                                         &value_changed,
+                                         &cached_value,
+                                         std::placeholders::_1));
 
             return value_changed;
         }
@@ -115,7 +111,7 @@ private:
         typename watchable_t<outer_type>::subscription_t parent_subscription;
     };
 
-    subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
+    explicit subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
         cache(_cache) { }
 
     // If you clone a subview_watchable_t, all clones share the same cache.

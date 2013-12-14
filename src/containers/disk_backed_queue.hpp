@@ -37,7 +37,7 @@ public:
 
 protected:
     buffer_group_viewer_t() { }
-    ~buffer_group_viewer_t() { }
+    virtual ~buffer_group_viewer_t() { }
 
     DISABLE_COPYING(buffer_group_viewer_t);
 };
@@ -80,7 +80,7 @@ private:
 template <class T>
 class deserializing_viewer_t : public buffer_group_viewer_t {
 public:
-    deserializing_viewer_t(T *value_out) : value_out_(value_out) { }
+    explicit deserializing_viewer_t(T *value_out) : value_out_(value_out) { }
     virtual ~deserializing_viewer_t() { }
 
     virtual void view_buffer_group(const const_buffer_group_t *group) {

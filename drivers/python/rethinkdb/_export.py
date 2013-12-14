@@ -359,8 +359,13 @@ def run_clients(options, db_table_set):
         if error_queue.empty() and not interrupt_event.is_set():
             print_progress(1.0)
 
-        # Continue past the progress output line
+        # Continue past the progress output line and print total rows processed
+        def plural(num, text):
+            return "%d %s%s" % (num, text, "" if num == 1 else "s")
+
         print ""
+        print "%s exported from %s" % (plural(sum([info[0].value for info in progress_info]), "row"),
+                                       plural(len(db_table_set), "table"))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 

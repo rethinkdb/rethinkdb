@@ -459,7 +459,8 @@ void sanitize_time(datum_t *time) {
     r_sanity_check(time != NULL);
     r_sanity_check(time->is_ptype(time_string));
     std::string msg;
-    bool has_epoch_time = false, has_timezone = false;;
+    bool has_epoch_time = false;
+    bool has_timezone = false;
     for (auto it = time->as_object().begin(); it != time->as_object().end(); ++it) {
         if (it->first == epoch_time_key) {
             if (it->second->get_type() == datum_t::R_NUM) {

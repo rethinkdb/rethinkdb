@@ -15,7 +15,7 @@ typedef int fd_t;
 
 class linux_thread_message_t : public intrusive_list_node_t<linux_thread_message_t> {
 public:
-    linux_thread_message_t(int _priority)
+    explicit linux_thread_message_t(int _priority)
         : priority(_priority),
         is_ordered(false)
 #ifndef NDEBUG
@@ -30,7 +30,7 @@ public:
 #endif
         { }
     virtual void on_thread_switch() = 0;
-    
+
     void set_priority(int _priority) { priority = _priority; }
     int get_priority() const { return priority; }
 protected:

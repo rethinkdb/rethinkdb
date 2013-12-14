@@ -43,7 +43,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         point_write_response_t response;
 
-        store_key_t pk(make_counted<const ql::datum_t>(double(i))->print_primary());
+        store_key_t pk(make_counted<const ql::datum_t>(static_cast<double>(i))->print_primary());
         rdb_modification_report_t mod_report(pk);
         rdb_set(pk,
                 make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),

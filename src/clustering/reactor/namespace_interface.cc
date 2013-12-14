@@ -167,9 +167,8 @@ void cluster_namespace_interface_t<protocol_t>::perform_immediate_op(
         op_response_type *,
         order_token_t,
         fifo_enforcer_token_type *,
-        signal_t *) /* THROWS_ONLY(interrupted_exc_t,
-                                  resource_lost_exc_t,
-                                  cannot_perform_query_exc_t) */,
+        signal_t *)
+    /* THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) */,
     boost::ptr_vector<immediate_op_info_t<op_type, fifo_enforcer_token_type> > *
         masters_to_contact,
     std::vector<op_response_type> *results,

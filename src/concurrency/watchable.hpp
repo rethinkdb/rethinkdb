@@ -184,7 +184,7 @@ public:
     // Applies an atomic modification to the value.
     // `op` must return true if the value was modified,
     // and should return false otherwise.
-    void apply_atomic_op(const std::function<bool(value_t*)> &op) {
+    void apply_atomic_op(const std::function<bool(value_t*)> &op) {  // NOLINT(readability/casting)
         DEBUG_VAR rwi_lock_assertion_t::write_acq_t acquisition(&rwi_lock_assertion);
         bool was_modified;
         {

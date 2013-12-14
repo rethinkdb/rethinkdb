@@ -9,8 +9,8 @@
 #include <inttypes.h>
 #include <time.h>
 
-#include <algorithm>
 #include <string>
+#include <utility>
 
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"

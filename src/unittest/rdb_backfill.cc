@@ -30,7 +30,7 @@ void run_with_broadcaster(
     boost::function< void(
         std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
         branch_history_manager_t<rdb_protocol_t> *,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<
+        clone_ptr_t< watchable_t< boost::optional< boost::optional<
             broadcaster_business_card_t<rdb_protocol_t> > > > >,
         scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
         test_store_t<rdb_protocol_t> *,
