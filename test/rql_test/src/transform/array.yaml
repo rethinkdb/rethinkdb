@@ -150,8 +150,8 @@ tests:
       rb: arr.reduce{ |a, b| a + b }
       ot: 6
 
-    - py: arr.reduce(lambda a, b:a + b, base=0)
-      js: arr.reduce(function(a,b) { return a.add(b); }, 0)
+    - py: arr.reduce(lambda a, b:a + b)
+      js: arr.reduce(function(a,b) { return a.add(b); })
       rb: arr.reduce(0){ |a, b| a + b }
       ot: 6
 
@@ -160,8 +160,8 @@ tests:
       rb: arr.union(arr).reduce{ |a, b| a + b }
       ot: 12
 
-    - py: arr.union(arr).reduce(lambda a, b:a + b, base=0)
-      js: arr.union(arr).reduce(function(a,b) { return a.add(b); }, 0)
+    - py: arr.union(arr).reduce(lambda a, b:a + b)
+      js: arr.union(arr).reduce(function(a,b) { return a.add(b); })
       rb: arr.union(arr).reduce(0){ |a, b| a + b }
       ot: 12
 

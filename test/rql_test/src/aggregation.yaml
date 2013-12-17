@@ -150,10 +150,9 @@ tests:
             {'group':2, 'reduction':2500},
             {'group':3, 'reduction':2550}])
 
-    # gmr optional base
     - py:
-        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b, base=0)
-        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b, base=0)
+        - tbl.grouped_map_reduce(lambda row:row['a'], lambda row:row['id'], lambda a,b:a + b)
+        - tbl.grouped_map_reduce(r.row['a'], r.row['id'], lambda a,b:a + b)
       js:
         - |
           tbl.groupedMapReduce(function(row) {
