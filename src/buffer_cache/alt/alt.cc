@@ -266,11 +266,11 @@ alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
     : lock_(lock) {
     guarantee(!lock_->empty());
     lock_->access_ref_count_++;
-    lock_->access_ref_count_--;
 }
 
 alt_buf_write_t::~alt_buf_write_t() {
     guarantee(!lock_->empty());
+    lock_->access_ref_count_--;
 }
 
 void *alt_buf_write_t::get_data_write(uint32_t block_size) {
