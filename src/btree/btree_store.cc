@@ -283,10 +283,6 @@ void btree_store_t<protocol_t>::receive_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
-    // SRH: Make sure that protocol_receive_backfill acquires the secondary index
-    // block at the right time.
-    // JD: This is correct, as long as we hold on to the superblock until
-    // it acquires the lock on the sindex block.
 #if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
         token_destroyer(&token_pair->sindex_write_token);
@@ -333,10 +329,6 @@ void btree_store_t<protocol_t>::reset_data(
 #endif
     scoped_ptr_t<real_superblock_t> superblock;
 
-    // SRH: Make sure protocol_reset_data acquires the secondary index block at the
-    // right time.
-    // JD: This is correct, as long as we hold on to the superblock until
-    // it acquires the lock on the sindex block.
 #if !SLICE_ALT
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
         token_destroyer(&token_pair->sindex_write_token);
@@ -391,6 +383,9 @@ void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block, mute
 #endif
     assert_thread();
 #if SLICE_ALT
+    // RSI (for sam): Review this conversation and the code and learn how everything
+    // works.
+
     // SRH: WTF should we do here?  Why is there a mutex?
     // JD: There's a mutex to protect the sindex queue which is an in memory
     // structure.
@@ -1777,11 +1772,12 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     acquire_superblock_for_write(txn_access, superblock_access, timestamp, expected_change_count, durability,
             &token_pair->main_write_token, txn_out, sb_out, interruptor);
 #endif
+
+#if !SLICE_ALT
     // SRH: Do whatever (*txn_out)->set_token_pair does.
     // JD: No need to worry about this, it was done as a hack so that we could
     // assert that the sindex_token was used. It's all going away with the new
     // cache though.
-#if !SLICE_ALT
     (*txn_out)->set_token_pair(token_pair);
 #endif
 }

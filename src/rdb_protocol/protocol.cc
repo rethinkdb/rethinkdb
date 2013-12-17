@@ -1353,12 +1353,6 @@ store_t::store_t(serializer_t *serializer,
                                   &dummy_interruptor);
 #endif
 
-    // SRH: Should we not release the superblock here or something?  Maybe before we
-    // didn't care because it was snapshotted?  But we do now.  Check everywhere for
-    // code that holds on to blocks excessively.
-    // JD: It's not actually a huge deal because bring_sindexes_up_to_date
-    // spawns a coro to do its work and returns so this function doesn't last
-    // that long. No reason we can't release though.
     superblock.reset();
 
     std::map<std::string, secondary_index_t> sindexes;
@@ -1400,9 +1394,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             boost::get<point_read_response_t>(&response->response);
         // debugf("about to rdb_get\n");
 #if SLICE_ALT
-        // SRH: Do we use txn in this class at all?
-        // JD: We don't, when we remove the mirrored cache it should go away
-        // completely.
         rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
 #else
         rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
@@ -1962,9 +1953,6 @@ private:
                                               sindex_block_id, &dummy_interruptor);
 #endif
 
-        // SRH: Does this lock_sindex_queue function require us to wait for
-        // sindex_block to become acquired?  Check all its callers.
-        // JD: Yes it does. Which I believe is what we want.
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
@@ -2282,12 +2270,6 @@ private:
             sindex_block_id, &dummy_interruptor);
 #endif
 
-        // SRH: Same comment about lock_sindex_queue having to wait for sindex_block
-        // to be acquired.  (Uh, just have the callee wait?)
-        // JD: We could do that, although I think having the lock_sindex_queue
-        // method wait for the block the be acquired is an acceptable API. I
-        // certainly wouldn't consider this something that needs to be fixed
-        // before we merge this code.
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 

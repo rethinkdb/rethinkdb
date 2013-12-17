@@ -362,13 +362,6 @@ private:
     alt::alt_buf_lock_t *sindex_block_;
 #endif
 
-    // SRH: Figure out how this is used.  Does the caller release the superblock?
-    // How do we ensure that sindex ordering is correct?
-    // JD: Who's the caller in yur mind and what do you mean does it releae the
-    // superblock? There's no superblock in this class. Sindex ordering should
-    // be correct because from what I understand we acquire sindex_block_ while
-    // we hold the superblock.
-
     /* Fields initialized by calls to on_mod_report */
 #if !SLICE_ALT
     scoped_ptr_t<buf_lock_t> sindex_block_;
