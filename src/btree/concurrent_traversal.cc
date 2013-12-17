@@ -51,9 +51,9 @@ public:
 
         bool success;
         try {
-            success = cb_->handle_pair(std::move(keyvalue),
-                                       concurrent_traversal_fifo_enforcer_signal_t(&exit_write,
-                                                                     this));
+            success = cb_->handle_pair(
+                std::move(keyvalue),
+                concurrent_traversal_fifo_enforcer_signal_t(&exit_write, this));
         } catch (const interrupted_exc_t &) {
             success = false;
         }
@@ -105,13 +105,15 @@ private:
     DISABLE_COPYING(concurrent_traversal_adapter_t);
 };
 
-concurrent_traversal_fifo_enforcer_signal_t::concurrent_traversal_fifo_enforcer_signal_t(
+concurrent_traversal_fifo_enforcer_signal_t::
+concurrent_traversal_fifo_enforcer_signal_t(
         signal_t *eval_exclusivity_signal,
         concurrent_traversal_adapter_t *parent)
     : eval_exclusivity_signal_(eval_exclusivity_signal),
       parent_(parent) { }
 
-void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible() THROWS_ONLY(interrupted_exc_t) {
+void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible()
+    THROWS_ONLY(interrupted_exc_t) {
     incr_decr_t incr_decr(&parent_->sink_waiters_);
 
     if (parent_->sink_waiters_ >= 2) {
@@ -120,13 +122,15 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible() THROWS_ON
         // seem abrupt (especially considering that our semapoher_.get_capacity()
         // concurrent reads can finish in any order), but we have the trickle fraction
         // set to 0.5, so there's smoothing.
-        parent_->semaphore_.set_capacity(std::max(concurrent_traversal::min_semaphore_capacity,
-                                                  parent_->semaphore_.get_capacity() - 1));
+        parent_->semaphore_.set_capacity(
+            std::max(concurrent_traversal::min_semaphore_capacity,
+                     parent_->semaphore_.get_capacity() - 1));
     } else if (parent_->sink_waiters_ == 1) {
         // We're the only thing waiting for the signal?  We might not be looking far
         // ahead enough.
-        parent_->semaphore_.set_capacity(std::min(concurrent_traversal::max_semaphore_capacity,
-                                                  parent_->semaphore_.get_capacity() + 1));
+        parent_->semaphore_.set_capacity(
+            std::min(concurrent_traversal::max_semaphore_capacity,
+                     parent_->semaphore_.get_capacity() + 1));
     }
 
     ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
