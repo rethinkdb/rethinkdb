@@ -24,9 +24,8 @@ using alt::alt_txn_t;
 #endif
 
 #if SLICE_ALT
-real_superblock_t::real_superblock_t(alt_buf_lock_t &&sb_buf) {
-    sb_buf_ = std::move(sb_buf);
-}
+real_superblock_t::real_superblock_t(alt_buf_lock_t &&sb_buf)
+    : sb_buf_(std::move(sb_buf)) {}
 #else
 real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
     sb_buf_.swap(*sb_buf);
