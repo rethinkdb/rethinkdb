@@ -263,7 +263,6 @@ disabler_t::~disabler_t() {
 }
 
 void disabler_t::init(trace_t *parent) {
-    guarantee(parent_ == NULL);
     parent_ = parent;
     if (parent_) {
         parent_->disable();
