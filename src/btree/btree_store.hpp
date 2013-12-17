@@ -305,6 +305,10 @@ public:
     // superblock of the secondary index we then use that block_id_t to acquire
     // the superblock but I'm betting we don't have the buffer to pass as its
     // parent. I suspect that this is a bug.
+
+    // RSI: This should release the superblock internally after getting its
+    // sindex_block.  It would be nice in general if we supported passing the
+    // superblock_t in some way by rvalue reference.
     void get_sindexes(
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out)
