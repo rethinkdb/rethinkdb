@@ -1299,13 +1299,7 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
 #endif
 }
 
-#if SLICE_ALT
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
-        block_id_t sindex_block_id,
-        alt_buf_parent_t parent,
-        sindex_access_vector_t *sindex_sbs_out)
-#else
+#if !SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
@@ -1313,29 +1307,18 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
         transaction_t *txn,
         sindex_access_vector_t *sindex_sbs_out,
         signal_t *interruptor)
-#endif
     THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-#if SLICE_ALT
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
-#else
     scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
-#endif
 
-#if SLICE_ALT
-    acquire_post_constructed_sindex_superblocks_for_write(
-            sindex_block.get(),
-            sindex_sbs_out);
-#else
     acquire_post_constructed_sindex_superblocks_for_write(
             sindex_block.get(),
             txn,
             sindex_sbs_out);
-#endif
 }
+#endif
 
 #if SLICE_ALT
 template <class protocol_t>

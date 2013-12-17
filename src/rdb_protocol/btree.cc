@@ -36,7 +36,7 @@ value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
 template<class Value>
 void find_keyvalue_location_for_write(
-    const btree_loc_info_t &info,  // SRH: Remove txn from info JD: there's no txn in btree_loc_info_t
+    const btree_loc_info_t &info,
     keyvalue_location_t<Value> *kv_loc_out,
     profile::trace_t *trace,
     promise_t<superblock_t *> *pass_back_superblock) {
@@ -1302,11 +1302,6 @@ rdb_modification_report_cb_t::rdb_modification_report_cb_t(
 #endif
 {
 #if SLICE_ALT
-    // SRH: Could we just release the sindex_block_ right here?  (Maybe not, the
-    // caller owns the block for its own purposes?)
-    // JD: We could but I think it's better to just let the caller do that if
-    // he wants. Since doing it right after the constructor returns is
-    // basically the same performance wise.
     store_->acquire_post_constructed_sindex_superblocks_for_write(
             sindex_block_, &sindexes_);
 #endif

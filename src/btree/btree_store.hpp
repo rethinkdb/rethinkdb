@@ -298,17 +298,10 @@ public:
 #endif
 
 #if SLICE_ALT
-    // RSI(bug): Shouldn't we be acquiring and holding some sindex block or something?  Do
-    // we end up acquiring it twice, the second time when we use the secondary
-    // indexes?
-    // JD: The secondary_index_t structure contains a block_id_t which is the
-    // superblock of the secondary index we then use that block_id_t to acquire
-    // the superblock but I'm betting we don't have the buffer to pass as its
-    // parent. I suspect that this is a bug.
-
     // RSI: This should release the superblock internally after getting its
-    // sindex_block.  It would be nice in general if we supported passing the
-    // superblock_t in some way by rvalue reference.
+    // sindex_block (so that sindex_list_t and sindex_status_t, the queries which use
+    // this, don't block other queries).  It would be nice in general if we supported
+    // passing the superblock_t in some way by rvalue reference.
     void get_sindexes(
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out)
@@ -417,13 +410,7 @@ public:
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 #endif
 
-#if SLICE_ALT
-    void acquire_post_constructed_sindex_superblocks_for_write(
-            block_id_t sindex_block_id,
-            alt::alt_buf_parent_t parent,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(interrupted_exc_t);
-#else
+#if !SLICE_ALT
     void acquire_post_constructed_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
             write_token_pair_t *token_pair,

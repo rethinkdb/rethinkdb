@@ -116,10 +116,6 @@ struct btree_info_t {
 #if !SLICE_ALT
     transaction_t *const txn;
 #endif
-    // SRH: Could we use std::move here or something.
-    // JD: It would be a big pain and why bother? Having a pointer to the value
-    // seems more correct to me we don't want its lifetime to be tied to this
-    // structure.
     const std::string *primary_key;
 };
 
@@ -132,10 +128,6 @@ struct btree_loc_info_t {
         guarantee(superblock != NULL);
         guarantee(key != NULL);
     }
-    // SRH: Could we use std::move here or something.
-    // JD: We could in theory use std::move for the superblock but we would
-    // need promise to use move semantics. I think the other 2 should remain
-    // pointers.
     const btree_info_t *const btree;
     superblock_t *const superblock;
     const store_key_t *const key;
