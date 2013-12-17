@@ -263,6 +263,7 @@ disabler_t::~disabler_t() {
 }
 
 void disabler_t::init(trace_t *parent) {
+    guarantee(parent_ == NULL);
     parent_ = parent;
     if (parent_) {
         parent_->disable();
@@ -278,8 +279,11 @@ counted_t<const ql::datum_t> trace_t::as_datum() {
     return construct_datum(&begin, event_log_.end());
 }
 
-event_log_t trace_t::get_event_log() RVALUE_THIS {
-    guarantee(!redirected_event_log_);
+event_log_t trace_t::extract_event_log() RVALUE_THIS {
+    // These guarantees imply that this trace_t gets left in a default-constructed
+    // state (which is valid, thereby acceptable for an RVALUE_THIS function).
+    guarantee(redirected_event_log_ == NULL);
+    guarantee(disabled_ref_count == 0);
     return std::move(event_log_);
 }
 

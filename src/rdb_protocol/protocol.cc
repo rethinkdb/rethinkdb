@@ -1611,7 +1611,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     profile::event_log_t extract_event_log() {
         if (ql_env.trace.has()) {
-            return std::move(*ql_env.trace).get_event_log();
+            return std::move(*ql_env.trace).extract_event_log();
         } else {
             return profile::event_log_t();
         }
@@ -1946,7 +1946,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     profile::event_log_t extract_event_log() {
         if (ql_env.trace.has()) {
-            return std::move(*ql_env.trace).get_event_log();
+            return std::move(*ql_env.trace).extract_event_log();
         } else {
             return profile::event_log_t();
         }
