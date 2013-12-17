@@ -1609,9 +1609,11 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         return &ql_env;
     }
 
-    void get_event_log(profile::event_log_t *log_out) RVALUE_THIS {
+    profile::event_log_t extract_event_log() {
         if (ql_env.trace.has()) {
-            *log_out = std::move(*ql_env.trace).get_event_log();
+            return std::move(*ql_env.trace).get_event_log();
+        } else {
+            return profile::event_log_t();
         }
     }
 
@@ -1660,7 +1662,7 @@ void store_t::protocol_read(const read_t &read,
     }
 
     response->n_shards = 1;
-    std::move(v).get_event_log(&response->event_log);
+    response->event_log = v.extract_event_log();
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
     response->event_log.push_back(profile::stop_t());
     // debugf("protocol_read return\n");
@@ -1942,12 +1944,11 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         return &ql_env;
     }
 
-    profile::event_log_t &&get_event_log() RVALUE_THIS {
+    profile::event_log_t extract_event_log() {
         if (ql_env.trace.has()) {
             return std::move(*ql_env.trace).get_event_log();
         } else {
-            static profile::event_log_t event_log;
-            return std::move(event_log);
+            return profile::event_log_t();
         }
     }
 
@@ -2035,7 +2036,7 @@ void store_t::protocol_write(const write_t &write,
     }
 
     response->n_shards = 1;
-    response->event_log = std::move(v).get_event_log();
+    response->event_log = v.extract_event_log();
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
     response->event_log.push_back(profile::stop_t());
 }
