@@ -1618,15 +1618,6 @@ public:
             // We want soft durability because having a partially constructed secondary index is
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
-            // While we need wtxn to be a write transaction (thus calling
-            // `acquire_superblock_for_write`), we only need a read lock
-            // on the superblock (which is why we pass in `rwi_read`).
-            // Usually in btree code, we are supposed to acquire the superblock
-            // in write mode if we are going to do writes further down the tree,
-            // in order to guarantee that no other read can bypass the write on
-            // the way down. However in this special case this is already
-            // guaranteed by the token_pair that all secondary index operations
-            // use, so we can safely acquire it with `rwi_read` instead.
 #if SLICE_ALT
             store_->acquire_superblock_for_write(
                     alt_access_t::write,
@@ -1638,6 +1629,15 @@ public:
                     &superblock,
                     interruptor_);
 #else
+            // While we need wtxn to be a write transaction (thus calling
+            // `acquire_superblock_for_write`), we only need a read lock
+            // on the superblock (which is why we pass in `rwi_read`).
+            // Usually in btree code, we are supposed to acquire the superblock
+            // in write mode if we are going to do writes further down the tree,
+            // in order to guarantee that no other read can bypass the write on
+            // the way down. However in this special case this is already
+            // guaranteed by the token_pair that all secondary index operations
+            // use, so we can safely acquire it with `rwi_read` instead.
             store_->acquire_superblock_for_write(
                 rwi_write,
                 rwi_read,
