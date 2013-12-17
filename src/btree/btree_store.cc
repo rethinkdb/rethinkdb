@@ -723,12 +723,10 @@ void btree_store_t<protocol_t>::set_sindexes(
             /* After deleting sindex from the sindex_block we can now detach it as
              * a child, it's now a parentless block. */
             sindex_block->detach_child(it->second.superblock);
-            /* We need to save the txn because we are about to release this block. */
-            alt_txn_t *txn = sindex_block->txn();
 
             guarantee(std_contains(secondary_index_slices, it->first));
             btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
-            clear_sindex(txn, it->second.superblock,
+            clear_sindex(sindex_block->txn(), it->second.superblock,
                     sindex_slice, sizer, deleter, interruptor);
             secondary_index_slices.erase(it->first);
         }
