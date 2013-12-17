@@ -3,6 +3,7 @@
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "buffer_cache/alt/page.hpp"
+#include "buffer_cache/alt/alt.hpp"  // RSI: for alt_memory_tracker_t.  We'll want to have some mock one here probably.
 #include "concurrency/auto_drainer.hpp"
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
@@ -22,6 +23,7 @@ using alt::page_txn_t;
 struct mock_ser_t {
     mock_file_opener_t opener;
     scoped_ptr_t<standard_serializer_t> ser;
+    scoped_ptr_t<alt::alt_memory_tracker_t> tracker;
 
     mock_ser_t()
         : opener() {
@@ -30,6 +32,7 @@ struct mock_ser_t {
         ser = make_scoped<standard_serializer_t>(log_serializer_t::dynamic_config_t(),
                                                  &opener,
                                                  &get_global_perfmon_collection());
+        tracker = make_scoped<alt::alt_memory_tracker_t>();
     }
 };
 
@@ -43,7 +46,7 @@ TEST(PageTest, Control) {
 
 void run_CreateDestroy() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get());
+    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
 }
 
 TEST(PageTest, CreateDestroy) {
@@ -53,7 +56,7 @@ TEST(PageTest, CreateDestroy) {
 void run_OneTxn() {
     mock_ser_t mock;
     {
-        page_cache_t page_cache(mock.ser.get());
+        page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
         {
             page_txn_t txn(&page_cache);
         }
@@ -66,7 +69,7 @@ TEST(PageTest, OneTxn) {
 
 void run_TwoIndependentTxn() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get());
+    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     page_txn_t txn1(&page_cache);
     page_txn_t txn2(&page_cache);
 }
@@ -77,7 +80,7 @@ TEST(PageTest, TwoIndependentTxn) {
 
 void run_TwoIndependentTxnSwitch() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get());
+    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<page_txn_t>(&page_cache);
     page_txn_t txn2(&page_cache);
     txn1.reset();
@@ -89,7 +92,7 @@ TEST(PageTest, TwoIndependentTxnSwitch) {
 
 void run_TwoSequentialTxnSwitch() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get());
+    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<page_txn_t>(&page_cache);
     page_txn_t txn2(&page_cache, txn1.get());
     txn1.reset();
@@ -101,7 +104,7 @@ TEST(PageTest, TwoSequentialTxnSwitch) {
 
 void run_OneReadAcq() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get());
+    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     page_txn_t txn(&page_cache);
     current_page_acq_t acq(&txn, 0, alt_access_t::read);
     // Do nothing with the acq.
@@ -113,7 +116,7 @@ TEST(PageTest, OneReadAcq) {
 
 void run_OneWriteAcq() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get());
+    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     page_txn_t txn(&page_cache);
     current_page_acq_t acq(&txn, 0, alt_access_t::write);
     // Do nothing with the acq.
@@ -125,7 +128,7 @@ TEST(PageTest, OneWriteAcq) {
 
 void run_OneWriteAcqWait() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get());
+    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     page_txn_t txn(&page_cache);
     current_page_acq_t acq(&txn, alt_access_t::write);
     page_acq_t page_acq;
@@ -152,7 +155,7 @@ public:
 
     void run() {
         {
-            page_cache_t cache(mock.ser.get(), memory_limit);
+            page_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
             auto_drainer_t drain;
             c = &cache;
 
@@ -197,7 +200,7 @@ public:
         c = NULL;
 
         {
-            page_cache_t cache(mock.ser.get(), memory_limit);
+            page_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
             auto_drainer_t drain;
             c = &cache;
             coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn14,
@@ -208,7 +211,7 @@ public:
         c = NULL;
 
         {
-            page_cache_t cache(mock.ser.get(), memory_limit);
+            page_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
             c = &cache;
             page_txn_t txn(c);
 

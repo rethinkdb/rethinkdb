@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "concurrency/wait_any.hpp"
+#include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 
 template<class metadata_t>
@@ -34,6 +35,8 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, string_read_stream_t *s) THROWS_NOTHING {
+    with_priority_t p(CORO_PRIORITY_DIRECTORY_CHANGES);
+
     uint8_t code = 0;
     {
         archive_result_t res = deserialize(s, &code);
@@ -214,6 +217,12 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
         fifo_enforcer_sink_t::exit_write_t fifo_exit(session->metadata_fifo_sink.get(),
                                                      metadata_fifo_token);
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
+
+        // This yield is here to avoid heartbeat timeouts in the following scenario:
+        //  1. Have a cluster of many nodes, e.g. 64
+        //  2. Create a table
+        //  3. Reshard the table to 32 shards
+        coro_t::yield();
 
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);

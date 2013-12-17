@@ -947,7 +947,7 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
     // RSI: Support this stuff.
     // const order_token_t pre_begin_txn_token
     //     = slice->pre_begin_txn_checkpoint_.check_through(token);
-    alt_txn_t *txn = new alt_txn_t(slice->cache());
+    alt_txn_t *txn = new alt_txn_t(slice->cache(), durability);
     // RSI: Support all the stuff this old line does.
     // transaction_t *txn = new transaction_t(slice->cache(), txn_access, expected_change_count, tstamp,
     //                                        pre_begin_txn_token, durability);
@@ -980,8 +980,9 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_to
                                                   scoped_ptr_t<alt_txn_t> *txn_out) {
     (void)token;  // RSI: Use this parameter.
     slice->assert_thread();
-    alt_txn_t *txn = new alt_txn_t(slice->cache());
-    // RSI: Support all the stuff this old line does.  (What's rwi_read_sync, here?)
+    alt_txn_t *txn = new alt_txn_t(slice->cache(),
+                                   write_durability_t::SOFT /* RSI: read txn */);
+    // RSI: Support all the stuff this old line does.  (rwi_read_sync is so that the read txn can't cross write txns -- the old cache is weird)
     // transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
     //                                        slice->pre_begin_txn_checkpoint_.check_through(token));
     txn_out->init(txn);
@@ -1021,7 +1022,8 @@ void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
                                               scoped_ptr_t<alt_txn_t> *txn_out) {
     (void)token;  // RSI: Make this be used.
     slice->assert_thread();
-    alt_txn_t *txn = new alt_txn_t(slice->cache());
+    alt_txn_t *txn = new alt_txn_t(slice->cache(),
+                                   write_durability_t::SOFT /* RSI: read txn */);
     // RSI: Support the use of the order token.
     // transaction_t *txn = new transaction_t(slice->cache(), access,
     //                                        slice->pre_begin_txn_checkpoint_.check_through(token));

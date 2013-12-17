@@ -53,7 +53,7 @@ module RethinkDB
               "This is almost always a precedence error.\n" +
               "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
               "If you really want this behavior, use `.or` or `.and` instead."
-            raise ArgumentError, err
+            raise RqlDriverError, err
           end
         }
       end

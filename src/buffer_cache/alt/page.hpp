@@ -403,6 +403,13 @@ private:
     DISABLE_COPYING(eviction_bag_t);
 };
 
+class memory_tracker_t {
+public:
+    virtual ~memory_tracker_t() { }
+    virtual void inform_memory_change(uint64_t in_memory_size,
+                                      uint64_t memory_limit) = 0;
+};
+
 class evicter_t : public home_thread_mixin_t {
 public:
     void add_not_yet_loaded(page_t *page);
@@ -414,14 +421,18 @@ public:
     eviction_bag_t *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
 
-    explicit evicter_t(uint64_t memory_limit);
+    explicit evicter_t(memory_tracker_t *tracker,
+                       uint64_t memory_limit);
     ~evicter_t();
 
 private:
     void evict_if_necessary();
     uint64_t in_memory_size() const;
 
+    void inform_tracker() const;
+
     // RSI: Implement issue 97.
+    memory_tracker_t *const tracker_;
     uint64_t memory_limit_;
 
     // These track whether every page's eviction status.
@@ -436,7 +447,9 @@ private:
 class page_cache_t : public home_thread_mixin_t {
 public:
     // RSI: Remove default parameter of memory_limit?
-    explicit page_cache_t(serializer_t *serializer, uint64_t memory_limit = GIGABYTE);
+    explicit page_cache_t(serializer_t *serializer,
+                          memory_tracker_t *tracker,
+                          uint64_t memory_limit = GIGABYTE);
     ~page_cache_t();
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);

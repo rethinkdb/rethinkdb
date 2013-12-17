@@ -1,5 +1,6 @@
 #include "buffer_cache/alt/alt.hpp"
 
+#include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
 
 // RSI: get rid of this.
@@ -8,7 +9,9 @@
 namespace alt {
 
 alt_cache_t::alt_cache_t(serializer_t *serializer)
-    : page_cache_(serializer) { }
+    : tracker_(),
+      page_cache_(serializer, &tracker_),
+      drainer_(make_scoped<auto_drainer_t>()) { }
 
 alt_cache_t::~alt_cache_t() {
     drainer_.reset();
@@ -33,21 +36,32 @@ alt_inner_txn_t::~alt_inner_txn_t() {
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      alt_txn_t *preceding_txn)
-    : inner_(new alt_inner_txn_t(cache,
-                                 preceding_txn == NULL ? NULL
-                                 : preceding_txn->inner_.get())),
-      durability_(write_durability_t::HARD) { }
+    : durability_(write_durability_t::HARD) {
+    inner_.init(new alt_inner_txn_t(cache,
+                                    preceding_txn == NULL ? NULL
+                                    : preceding_txn->inner_.get()));
+}
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      write_durability_t durability,
                      alt_txn_t *preceding_txn)
-    : inner_(new alt_inner_txn_t(cache,
-                                 preceding_txn == NULL ? NULL
-                                 : preceding_txn->inner_.get())),
-      durability_(durability) { }
+    : durability_(durability) {
+    inner_.init(new alt_inner_txn_t(cache,
+                                    preceding_txn == NULL ? NULL
+                                    : preceding_txn->inner_.get()));
+}
+
+void destroy_inner_txn(alt_inner_txn_t *inner, auto_drainer_t::lock_t) {
+    delete inner;
+}
 
 alt_txn_t::~alt_txn_t() {
-    (void)durability_;  // RSI: Use this field.
+    if (durability_ == write_durability_t::SOFT) {
+        alt_inner_txn_t *inner = inner_.release();
+        coro_t::spawn_sometime(std::bind(&destroy_inner_txn,
+                                         inner,
+                                         inner->cache()->drainer_->lock()));
+    }
 }
 
 alt_buf_lock_t::alt_buf_lock_t()

@@ -20,18 +20,39 @@ enum class alt_create_t {
     create,
 };
 
+class alt_memory_tracker_t : public memory_tracker_t {
+public:
+    alt_memory_tracker_t() { }
+    void inform_memory_change(UNUSED uint64_t in_memory_size,
+                              UNUSED uint64_t memory_limit) {
+        // RSI: implement this.
+    }
+    DISABLE_COPYING(alt_memory_tracker_t);
+};
+
 class alt_cache_t : public home_thread_mixin_t {
 public:
-    explicit alt_cache_t(serializer_t *serializer);
+    alt_cache_t(serializer_t *serializer);
     ~alt_cache_t();
 
     block_size_t max_block_size() const;
     // RSI: Remove this.
     block_size_t get_block_size() const { return max_block_size(); }
 
+private:
+    friend class alt_txn_t;  // for drainer_->lock()
+    friend class alt_inner_txn_t;  // for &page_cache_
+    friend class alt_buf_read_t;  // for &page_cache_
+    friend class alt_buf_write_t;  // for &page_cache_
+
+    // tracker_ is used for throttling (which can cause the alt_txn_t constructor to
+    // block).  RSI: The throttling interface is bad (maybe) because it's worried
+    // about transaction_t's passing one another(?) or maybe the callers are bad with
+    // their use of chained mutexes.  Make sure that timestamps don't get mixed up in
+    // their ordering, once they begin to play a role.
+    alt_memory_tracker_t tracker_;
     page_cache_t page_cache_;
 
-private:
     scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(alt_cache_t);
@@ -68,8 +89,8 @@ public:
     alt_cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
 private:
+    const write_durability_t durability_;
     scoped_ptr_t<alt_inner_txn_t> inner_;
-    write_durability_t durability_;
     DISABLE_COPYING(alt_txn_t);
 };
 

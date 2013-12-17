@@ -246,6 +246,12 @@ void coro_t::wait() {   /* class method */
 
 void coro_t::yield() {  /* class method */
     rassert(self(), "Not in a coroutine context");
+    self()->notify_sometime();
+    self()->wait();
+}
+
+void coro_t::yield_ordered() {  /* class method */
+    rassert(self(), "Not in a coroutine context");
     self()->notify_later_ordered();
     self()->wait();
 }
