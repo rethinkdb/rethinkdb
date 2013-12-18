@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_SEMAPHORE_HPP_
 #define CONCURRENCY_SEMAPHORE_HPP_
 
@@ -18,12 +18,12 @@ class semaphore_t {
 public:
     virtual ~semaphore_t() { }
 
-    virtual void lock(semaphore_available_callback_t *cb, int count = 1) = 0;
-    virtual void co_lock(int count = 1) = 0;
-    virtual void co_lock_interruptible(signal_t *interruptor, int count = 1) = 0;
-    virtual void unlock(int count = 1) = 0;
-    virtual void lock_now(int count = 1) = 0;
-    virtual void force_lock(int count = 1) = 0;
+    virtual void lock(semaphore_available_callback_t *cb, int64_t count = 1) = 0;
+    virtual void co_lock(int64_t count = 1) = 0;
+    virtual void co_lock_interruptible(signal_t *interruptor, int64_t count = 1) = 0;
+    virtual void unlock(int64_t count = 1) = 0;
+    virtual void lock_now(int64_t count = 1) = 0;
+    virtual void force_lock(int64_t count = 1) = 0;
 };
 
 
@@ -33,7 +33,7 @@ public:
 class static_semaphore_t : public semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;
-        int count;
+        int64_t count;
         void on_available() {
             cb->on_semaphore_available();
             delete this;
@@ -59,15 +59,15 @@ public:
         rassert(waiters.empty());
     }
 
-    void lock(semaphore_available_callback_t *cb, int count = 1);
+    void lock(semaphore_available_callback_t *cb, int64_t count = 1);
 
-    void co_lock(int count = 1);
+    void co_lock(int64_t count = 1);
 
-    void co_lock_interruptible(signal_t *interruptor, int count = 1);
+    void co_lock_interruptible(signal_t *interruptor, int64_t count = 1);
 
-    void unlock(int count = 1);
-    void lock_now(int count = 1);
-    void force_lock(int count = 1);
+    void unlock(int64_t count = 1);
+    void lock_now(int64_t count = 1);
+    void force_lock(int64_t count = 1);
 };
 
 /* `adjustable_semaphore_t` is a `semaphore_t` where you can change the
@@ -79,7 +79,7 @@ leaving until the number of objects drops to the desired capacity. */
 class adjustable_semaphore_t : public semaphore_t {
     struct lock_request_t : public intrusive_list_node_t<lock_request_t> {
         semaphore_available_callback_t *cb;
-        int count;
+        int64_t count;
         void on_available() {
             cb->on_semaphore_available();
             delete this;
@@ -108,21 +108,21 @@ public:
         rassert(waiters.empty());
     }
 
-    void lock(semaphore_available_callback_t *cb, int count = 1);
+    void lock(semaphore_available_callback_t *cb, int64_t count = 1);
 
-    void co_lock(int count = 1);
-    void co_lock_interruptible(signal_t *interruptor, int count = 1);
+    void co_lock(int64_t count = 1);
+    void co_lock_interruptible(signal_t *interruptor, int64_t count = 1);
 
-    void unlock(int count = 1);
-    void lock_now(int count = 1);
-    void force_lock(int count = 1);
+    void unlock(int64_t count = 1);
+    void lock_now(int64_t count = 1);
+    void force_lock(int64_t count = 1);
 
-    void set_capacity(int new_capacity);
+    void set_capacity(int64_t new_capacity);
 
     int get_capacity() const { return capacity; }
 
 private:
-    bool try_lock(int count);
+    bool try_lock(int64_t count);
 
     void pump();
 };
@@ -130,7 +130,7 @@ private:
 
 class semaphore_acq_t {
 public:
-    semaphore_acq_t(semaphore_t *_acquiree, int _count = 1, bool _force = false) :
+    semaphore_acq_t(semaphore_t *_acquiree, int64_t _count = 1, bool _force = false) :
         acquiree(_acquiree),
         count(_count) {
 
@@ -156,7 +156,7 @@ public:
 
 private:
     semaphore_t *acquiree;
-    int count;
+    int64_t count;
     DISABLE_COPYING(semaphore_acq_t);
 };
 
