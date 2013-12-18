@@ -40,7 +40,8 @@ class static_semaphore_t : public semaphore_t {
         }
     };
 
-    int capacity, current;
+    int64_t capacity;
+    int64_t current;
     intrusive_list_t<lock_request_t> waiters;
 
 #ifndef NDEBUG
@@ -48,7 +49,7 @@ class static_semaphore_t : public semaphore_t {
 #endif
 
 public:
-    explicit static_semaphore_t(int cap) : capacity(cap), current(0)
+    explicit static_semaphore_t(int64_t cap) : capacity(cap), current(0)
 #ifndef NDEBUG
                          , in_callback(false)
 #endif
@@ -86,7 +87,8 @@ class adjustable_semaphore_t : public semaphore_t {
         }
     };
 
-    int capacity, current;
+    int64_t capacity;
+    int64_t current;
     double trickle_fraction, trickle_points;
     intrusive_list_t<lock_request_t> waiters;
 
@@ -95,7 +97,7 @@ class adjustable_semaphore_t : public semaphore_t {
 #endif
 
 public:
-    explicit adjustable_semaphore_t(int cap, double tf = 0.0) :
+    explicit adjustable_semaphore_t(int64_t cap, double tf = 0.0) :
         capacity(cap), current(0), trickle_fraction(tf), trickle_points(0)
 #ifndef NDEBUG
         , in_callback(false)
@@ -119,7 +121,7 @@ public:
 
     void set_capacity(int64_t new_capacity);
 
-    int get_capacity() const { return capacity; }
+    int64_t get_capacity() const { return capacity; }
 
 private:
     bool try_lock(int64_t count);

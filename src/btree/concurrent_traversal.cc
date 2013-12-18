@@ -120,13 +120,15 @@ void concurrent_traversal_fifo_enforcer_signal_t::wait_interruptible() THROWS_ON
         // seem abrupt (especially considering that our semapoher_.get_capacity()
         // concurrent reads can finish in any order), but we have the trickle fraction
         // set to 0.5, so there's smoothing.
-        parent_->semaphore_.set_capacity(std::max(concurrent_traversal::min_semaphore_capacity,
-                                                  parent_->semaphore_.get_capacity() - 1));
+        parent_->semaphore_.set_capacity(
+            std::max<int64_t>(concurrent_traversal::min_semaphore_capacity,
+                              parent_->semaphore_.get_capacity() - 1));
     } else if (parent_->sink_waiters_ == 1) {
         // We're the only thing waiting for the signal?  We might not be looking far
         // ahead enough.
-        parent_->semaphore_.set_capacity(std::min(concurrent_traversal::max_semaphore_capacity,
-                                                  parent_->semaphore_.get_capacity() + 1));
+        parent_->semaphore_.set_capacity(
+            std::min<int64_t>(concurrent_traversal::max_semaphore_capacity,
+                              parent_->semaphore_.get_capacity() + 1));
     }
 
     ::wait_interruptible(eval_exclusivity_signal_, parent_->failure_cond_);
