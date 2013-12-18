@@ -330,7 +330,7 @@ void find_keyvalue_location_for_read(
     }
 }
 
-enum class expired_t { YES, NO };
+enum class expired_t { NO, YES };
 
 #if SLICE_ALT
 template <class Value>
@@ -415,7 +415,7 @@ void apply_keyvalue_change(transaction_t *txn, keyvalue_location_t<Value> *kv_lo
     } else {
         // Delete the value if it's there.
         if (kv_loc->there_originally_was_value) {
-            if (!expired) {
+            if (expired == expired_t::NO) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
                 {
 #if SLICE_ALT
