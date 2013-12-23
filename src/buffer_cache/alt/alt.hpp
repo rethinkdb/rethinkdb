@@ -22,17 +22,17 @@ enum class alt_create_t {
 
 class alt_memory_tracker_t : public memory_tracker_t {
 public:
-    alt_memory_tracker_t() { }
-    void inform_memory_change(UNUSED uint64_t in_memory_size,
-                              UNUSED uint64_t memory_limit) {
-        // RSI: implement this.
-    }
+    alt_memory_tracker_t();
+    ~alt_memory_tracker_t();
+    void inform_memory_change(uint64_t in_memory_size,
+                              uint64_t memory_limit);
+    void begin_txn_or_throttle(int64_t expected_change_count);
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
 class alt_cache_t : public home_thread_mixin_t {
 public:
-    alt_cache_t(serializer_t *serializer);
+    explicit alt_cache_t(serializer_t *serializer);
     ~alt_cache_t();
 
     block_size_t max_block_size() const;
@@ -81,9 +81,14 @@ private:
 
 class alt_txn_t {
 public:
-    alt_txn_t(alt_cache_t *cache, write_durability_t durability,
+    // RSI: Remove default parameter for expected_change_count.
+    alt_txn_t(alt_cache_t *cache,
+              write_durability_t durability,
+              int64_t expected_change_count = 2,
               alt_txn_t *preceding_txn = NULL);
-    alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn = NULL);
+    alt_txn_t(alt_cache_t *cache,
+              int64_t expected_change_count = 2,
+              alt_txn_t *preceding_txn = NULL);
     ~alt_txn_t();
 
     alt_cache_t *cache() { return inner_->cache(); }

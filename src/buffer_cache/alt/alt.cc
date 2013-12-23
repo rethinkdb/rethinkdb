@@ -8,6 +8,18 @@
 
 namespace alt {
 
+alt_memory_tracker_t::alt_memory_tracker_t() { }
+alt_memory_tracker_t::~alt_memory_tracker_t() { }
+
+void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
+                                                UNUSED uint64_t memory_limit) {
+    // RSI: implement this.
+}
+
+void alt_memory_tracker_t::begin_txn_or_throttle(UNUSED int64_t expected_change_count) {
+    // RSI: implement this.
+}
+
 alt_cache_t::alt_cache_t(serializer_t *serializer)
     : tracker_(),
       page_cache_(serializer, &tracker_),
@@ -35,17 +47,21 @@ alt_inner_txn_t::~alt_inner_txn_t() {
 }
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
+                     write_durability_t durability,
+                     int64_t expected_change_count,
                      alt_txn_t *preceding_txn)
-    : durability_(write_durability_t::HARD) {
+    : durability_(durability) {
+    cache->tracker_.begin_txn_or_throttle(expected_change_count);
     inner_.init(new alt_inner_txn_t(cache,
                                     preceding_txn == NULL ? NULL
                                     : preceding_txn->inner_.get()));
 }
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
-                     write_durability_t durability,
+                     int64_t expected_change_count,
                      alt_txn_t *preceding_txn)
-    : durability_(durability) {
+    : durability_(write_durability_t::HARD) {
+    cache->tracker_.begin_txn_or_throttle(expected_change_count);
     inner_.init(new alt_inner_txn_t(cache,
                                     preceding_txn == NULL ? NULL
                                     : preceding_txn->inner_.get()));
