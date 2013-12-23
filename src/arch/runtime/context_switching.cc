@@ -424,8 +424,10 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
                                            size_t *stacksize_out) {
 #ifdef __MACH__
     // Implementation for OS X
-    *stackaddr_out = pthread_get_stackaddr_np(thread);
     *stacksize_out = pthread_get_stacksize_np(thread);
+    *stackaddr_out = reinterpret_cast<void *>(
+        reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(thread))
+        - static_cast<uintptr_t>(*stacksize_out));
 #else
     // Implementation for Linux
     pthread_attr_t attr;
