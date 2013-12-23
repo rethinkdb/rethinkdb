@@ -492,7 +492,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
 #endif
         block_id_t sindex_block_id
 #if !SLICE_ALT
-        ,signal_t *interruptor
+        , signal_t *interruptor
 #endif
         )
     THROWS_ONLY(interrupted_exc_t) {
