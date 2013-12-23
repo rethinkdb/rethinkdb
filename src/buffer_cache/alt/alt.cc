@@ -20,6 +20,11 @@ void alt_memory_tracker_t::begin_txn_or_throttle(UNUSED int64_t expected_change_
     // RSI: implement this.
 }
 
+void alt_memory_tracker_t::end_txn(UNUSED int64_t saved_expected_change_count) {
+    // RSI: implement this.
+}
+
+
 alt_cache_t::alt_cache_t(serializer_t *serializer)
     : tracker_(),
       page_cache_(serializer, &tracker_),
@@ -50,7 +55,8 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      write_durability_t durability,
                      int64_t expected_change_count,
                      alt_txn_t *preceding_txn)
-    : durability_(durability) {
+    : durability_(durability),
+      saved_expected_change_count_(expected_change_count) {
     cache->tracker_.begin_txn_or_throttle(expected_change_count);
     inner_.init(new alt_inner_txn_t(cache,
                                     preceding_txn == NULL ? NULL
@@ -60,23 +66,33 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache,
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      int64_t expected_change_count,
                      alt_txn_t *preceding_txn)
-    : durability_(write_durability_t::HARD) {
+    : durability_(write_durability_t::HARD),
+      saved_expected_change_count_(expected_change_count) {
     cache->tracker_.begin_txn_or_throttle(expected_change_count);
     inner_.init(new alt_inner_txn_t(cache,
                                     preceding_txn == NULL ? NULL
                                     : preceding_txn->inner_.get()));
 }
 
-void destroy_inner_txn(alt_inner_txn_t *inner, auto_drainer_t::lock_t) {
+void alt_txn_t::destroy_inner_txn(alt_inner_txn_t *inner, alt_cache_t *cache,
+                                  int64_t saved_expected_change_count,
+                                  auto_drainer_t::lock_t) {
     delete inner;
+    cache->tracker_.end_txn(saved_expected_change_count);
 }
 
 alt_txn_t::~alt_txn_t() {
+    alt_cache_t *cache = inner_->cache();
+    alt_inner_txn_t *inner = inner_.release();
     if (durability_ == write_durability_t::SOFT) {
-        alt_inner_txn_t *inner = inner_.release();
-        coro_t::spawn_sometime(std::bind(&destroy_inner_txn,
+        coro_t::spawn_sometime(std::bind(&alt_txn_t::destroy_inner_txn,
                                          inner,
-                                         inner->cache()->drainer_->lock()));
+                                         cache,
+                                         saved_expected_change_count_,
+                                         cache->drainer_->lock()));
+    } else {
+        alt_txn_t::destroy_inner_txn(inner, cache, saved_expected_change_count_,
+                                     cache->drainer_->lock());
     }
 }
 

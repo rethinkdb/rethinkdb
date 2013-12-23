@@ -6,10 +6,10 @@
 
 #include "buffer_cache/alt/page.hpp"
 #include "buffer_cache/general_types.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
-class auto_drainer_t;
 class serializer_t;
 
 namespace alt {
@@ -27,6 +27,7 @@ public:
     void inform_memory_change(uint64_t in_memory_size,
                               uint64_t memory_limit);
     void begin_txn_or_throttle(int64_t expected_change_count);
+    void end_txn(int64_t saved_expected_change_count);
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
@@ -94,7 +95,14 @@ public:
     alt_cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
 private:
+    static void destroy_inner_txn(alt_inner_txn_t *inner,
+                                  alt_cache_t *cache,
+                                  int64_t saved_expected_change_count,
+                                  auto_drainer_t::lock_t);
+
     const write_durability_t durability_;
+    const int64_t saved_expected_change_count_;  // RSI: A fugly relationship with
+                                                 // the tracker.
     scoped_ptr_t<alt_inner_txn_t> inner_;
     DISABLE_COPYING(alt_txn_t);
 };
