@@ -113,6 +113,9 @@ SIGN_PACKAGE ?= 1
 # variable should be incremented.
 PACKAGE_BUILD_NUMBER ?= 0
 
+# Implement coroutines on top of (POSIX) threads
+THREADED_COROUTINES ?= 0
+
 # TODO: Document these variables
 STATIC_LIBGCC ?= 0
 DISABLE_BREAKPOINTS ?= 0
@@ -132,7 +135,6 @@ SERIALIZER_DEBUG ?= 0
 MEMCACHED_STRICT ?= 0
 NO_EVENTFD ?= 0
 NO_EPOLL ?= 0
-THREADED_COROUTINES ?= 0
 LEGACY_PROC_STAT ?= 0
 UNIT_TEST_FILTER ?= *
 PACKAGE_FOR_SUSE_10 ?= 0
