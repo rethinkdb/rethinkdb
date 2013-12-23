@@ -7,6 +7,7 @@
 #include "buffer_cache/alt/page.hpp"
 #include "buffer_cache/general_types.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "concurrency/semaphore.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
@@ -28,6 +29,8 @@ public:
                               uint64_t memory_limit);
     void begin_txn_or_throttle(int64_t expected_change_count);
     void end_txn(int64_t saved_expected_change_count);
+private:
+    adjustable_semaphore_t semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 

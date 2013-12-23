@@ -8,7 +8,8 @@
 
 namespace alt {
 
-alt_memory_tracker_t::alt_memory_tracker_t() { }
+alt_memory_tracker_t::alt_memory_tracker_t()
+    : semaphore_(200) { }
 alt_memory_tracker_t::~alt_memory_tracker_t() { }
 
 void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
@@ -16,12 +17,16 @@ void alt_memory_tracker_t::inform_memory_change(UNUSED uint64_t in_memory_size,
     // RSI: implement this.
 }
 
+// RSI: An interface problem here is that this is measured in blocks while
+// inform_memory_change is measured in bytes.
 void alt_memory_tracker_t::begin_txn_or_throttle(UNUSED int64_t expected_change_count) {
-    // RSI: implement this.
+    semaphore_.co_lock(expected_change_count);
+    // RSI: _Really_ implement this.
 }
 
 void alt_memory_tracker_t::end_txn(UNUSED int64_t saved_expected_change_count) {
-    // RSI: implement this.
+    // RSI: _Really_ implement this.
+    semaphore_.unlock(saved_expected_change_count);
 }
 
 
@@ -57,6 +62,7 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      alt_txn_t *preceding_txn)
     : durability_(durability),
       saved_expected_change_count_(expected_change_count) {
+    cache->assert_thread();
     cache->tracker_.begin_txn_or_throttle(expected_change_count);
     inner_.init(new alt_inner_txn_t(cache,
                                     preceding_txn == NULL ? NULL
@@ -83,6 +89,7 @@ void alt_txn_t::destroy_inner_txn(alt_inner_txn_t *inner, alt_cache_t *cache,
 
 alt_txn_t::~alt_txn_t() {
     alt_cache_t *cache = inner_->cache();
+    cache->assert_thread();
     alt_inner_txn_t *inner = inner_.release();
     if (durability_ == write_durability_t::SOFT) {
         coro_t::spawn_sometime(std::bind(&alt_txn_t::destroy_inner_txn,
