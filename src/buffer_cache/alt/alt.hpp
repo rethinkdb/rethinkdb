@@ -90,9 +90,7 @@ public:
               write_durability_t durability,
               int64_t expected_change_count = 2,
               alt_txn_t *preceding_txn = NULL);
-    alt_txn_t(alt_cache_t *cache,
-              int64_t expected_change_count = 2,
-              alt_txn_t *preceding_txn = NULL);
+
     ~alt_txn_t();
 
     alt_cache_t *cache() { return inner_->cache(); }

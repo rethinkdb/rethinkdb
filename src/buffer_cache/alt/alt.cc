@@ -69,17 +69,6 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache,
                                     : preceding_txn->inner_.get()));
 }
 
-alt_txn_t::alt_txn_t(alt_cache_t *cache,
-                     int64_t expected_change_count,
-                     alt_txn_t *preceding_txn)
-    : durability_(write_durability_t::HARD),
-      saved_expected_change_count_(expected_change_count) {
-    cache->tracker_.begin_txn_or_throttle(expected_change_count);
-    inner_.init(new alt_inner_txn_t(cache,
-                                    preceding_txn == NULL ? NULL
-                                    : preceding_txn->inner_.get()));
-}
-
 void alt_txn_t::destroy_inner_txn(alt_inner_txn_t *inner, alt_cache_t *cache,
                                   int64_t saved_expected_change_count,
                                   auto_drainer_t::lock_t) {
