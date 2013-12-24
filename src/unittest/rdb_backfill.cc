@@ -1,9 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-// These unit tests need to access some private methods.
-#define private public
-
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
