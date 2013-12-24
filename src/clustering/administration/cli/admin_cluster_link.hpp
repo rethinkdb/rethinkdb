@@ -113,7 +113,7 @@ private:
 
     void do_metadata_update(cluster_semilattice_metadata_t *cluster_metadata,
             metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request,
-            const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns);
+            const boost::optional<namespace_id_t> &prioritize_distr_for_ns);
 
     template <class protocol_t>
     std::string admin_merge_shard_internal(namespaces_semilattice_metadata_t<protocol_t> *ns_map,

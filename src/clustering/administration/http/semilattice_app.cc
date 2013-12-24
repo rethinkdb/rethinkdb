@@ -37,34 +37,6 @@ void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
 }
 
 template <class metadata_t>
-namespace_id_t semilattice_http_app_t<metadata_t>::get_resource_namespace(
-    const http_req_t::resource_t &resource) const
-    THROWS_ONLY(collect_namespaces_exc_t) {
-
-    auto resource_it = resource.begin();
-    if (resource_it == resource.end()) {
-        throw collect_namespaces_exc_t("No namespace protocol defined");
-    }
-    const std::string protocol_ns(*resource_it);
-    if (protocol_ns != "rdb_namespaces" &&
-        protocol_ns != "dummy_namespaces" &&
-        protocol_ns != "memcached_namespaces") {
-
-        throw collect_namespaces_exc_t("Unhandled namespace protocol " + protocol_ns);
-    }
-    ++resource_it;
-    if (resource_it == resource.end()) {
-        throw collect_namespaces_exc_t("No namespace defined");
-    }
-    const std::string ns(*resource_it);
-    try {
-        return str_to_uuid(ns);
-    } catch (...) {
-        throw collect_namespaces_exc_t("Unable to decode UUID " + ns);
-    }
-}
-
-template <class metadata_t>
 http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
     try {
         metadata_t metadata = metadata_change_handler->get();
@@ -110,26 +82,16 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
 
                 // Determine for which namespaces we should prioritize distribution
                 // Default: none
-                defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(false);
+                boost::optional<namespace_id_t> prioritize_distr_for_ns;
                 const boost::optional<std::string> prefer_distribution_param =
-                    req.find_query_param("prefer_distribution");
+                    req.find_query_param("prefer_distribution_for");
                 if (prefer_distribution_param) {
-                    if (prefer_distribution_param.get() == "none") {
-                    } else if (prefer_distribution_param.get() == "all") {
-                        prioritize_distr_for_ns =
-                            defaulting_map_t<namespace_id_t, bool>(true);
-                    } else if (prefer_distribution_param.get() == "changed_only") {
-                        try {
-                            const namespace_id_t changed_ns =
-                                get_resource_namespace(req.resource);
-                            prioritize_distr_for_ns.set(changed_ns, true);
-                        } catch (const collect_namespaces_exc_t &e) {
-                            logINF("Unable to extract affected namespace from request: %s",
-                                e.what());
-                            return http_res_t(HTTP_BAD_REQUEST);
-                        }
-                    } else {
-                        logINF("Invalid value for prefer_distribution argument: %s",
+                    try {
+                        const namespace_id_t ns_id =
+                            str_to_uuid(prefer_distribution_param.get());
+                        prioritize_distr_for_ns.reset(ns_id);
+                    } catch (...) {
+                        logINF("Invalid value for prefer_distribution_for argument: %s",
                            prefer_distribution_param.get().c_str());
                         return http_res_t(HTTP_BAD_REQUEST);
                     }
@@ -162,7 +124,7 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                 logINF("Deleting %s", req.resource.as_string().c_str());
 
                 metadata_change_callback(&metadata,
-                                         defaulting_map_t<namespace_id_t, bool>(false));
+                                         boost::optional<namespace_id_t>());
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
@@ -199,7 +161,7 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
                 json_adapter_head->apply(change.get());
 
                 metadata_change_callback(&metadata,
-                                         defaulting_map_t<namespace_id_t, bool>(false));
+                                         boost::optional<namespace_id_t>());
                 metadata_change_handler->update(metadata);
 
                 scoped_cJSON_t json_repr(json_adapter_head->render());
@@ -259,7 +221,7 @@ cluster_semilattice_http_app_t::~cluster_semilattice_http_app_t() {
 }
 
 void cluster_semilattice_http_app_t::metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns) {
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
 
     try {
         fill_in_blueprints(new_metadata,
@@ -282,7 +244,7 @@ auth_semilattice_http_app_t::~auth_semilattice_http_app_t() {
 }
 
 void auth_semilattice_http_app_t::metadata_change_callback(auth_semilattice_metadata_t *,
-        const defaulting_map_t<namespace_id_t, bool> &) {
+        const boost::optional<namespace_id_t> &) {
 
     // Do nothing
 }

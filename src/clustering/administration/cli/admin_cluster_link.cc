@@ -232,7 +232,7 @@ std::string admin_cluster_link_t::truncate_uuid(const uuid_u& uuid) {
 
 void admin_cluster_link_t::do_metadata_update(cluster_semilattice_metadata_t *cluster_metadata,
         metadata_change_handler_t<cluster_semilattice_metadata_t>::metadata_change_request_t *change_request,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns) {
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
     std::string error;
     try {
         fill_in_blueprints(cluster_metadata,
@@ -627,7 +627,7 @@ void admin_cluster_link_t::do_admin_pin_shard(const admin_command_parser_t::comm
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 template <class protocol_t>
@@ -832,18 +832,18 @@ void admin_cluster_link_t::do_admin_split_shard(const admin_command_parser_t::co
     const std::vector<std::string> split_points = guarantee_param_vec(data.params, "split-points");
     std::string error;
 
-    defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(false);
+    boost::optional<namespace_id_t> prioritize_distr_for_ns;
 
     if (ns_path[0] == "rdb_namespaces") {
         const namespace_id_t ns_id = str_to_uuid(ns_path[1]);
-        prioritize_distr_for_ns.set(ns_id, true);
+        prioritize_distr_for_ns.reset(ns_id);
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
         error = admin_split_shard_internal(change.get(),
                                            ns_id,
                                            split_points);
     } else if (ns_path[0] == "memcached_namespaces") {
         const namespace_id_t ns_id = str_to_uuid(ns_path[1]);
-        prioritize_distr_for_ns.set(ns_id, true);
+        prioritize_distr_for_ns.reset(ns_id);
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
         error = admin_split_shard_internal(change.get(),
                                            str_to_uuid(ns_path[1]),
@@ -963,16 +963,16 @@ void admin_cluster_link_t::do_admin_merge_shard(const admin_command_parser_t::co
     const std::vector<std::string> split_points(guarantee_param_vec(data.params, "split-points"));
     std::string error;
 
-    defaulting_map_t<namespace_id_t, bool> prioritize_distr_for_ns(false);
+    boost::optional<namespace_id_t> prioritize_distr_for_ns;
 
     if (info->path[0] == "rdb_namespaces") {
         const namespace_id_t ns_id = str_to_uuid(info->path[1]);
-        prioritize_distr_for_ns.set(ns_id, true);
+        prioritize_distr_for_ns.reset(ns_id);
         cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> >::change_t change(&cluster_metadata.rdb_namespaces);
         admin_merge_shard_internal(change.get(), ns_id, split_points);
     } else if (info->path[0] == "memcached_namespaces") {
         const namespace_id_t ns_id = str_to_uuid(info->path[1]);
-        prioritize_distr_for_ns.set(ns_id, true);
+        prioritize_distr_for_ns.reset(ns_id);
         cow_ptr_t<namespaces_semilattice_metadata_t<memcached_protocol_t> >::change_t change(&cluster_metadata.memcached_namespaces);
         admin_merge_shard_internal(change.get(), ns_id, split_points);
     } else if (info->path[0] == "dummy_namespaces") {
@@ -1948,7 +1948,7 @@ void admin_cluster_link_t::do_admin_create_database(const admin_command_parser_t
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
@@ -1967,7 +1967,7 @@ void admin_cluster_link_t::do_admin_create_datacenter(const admin_command_parser
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
@@ -2066,7 +2066,7 @@ void admin_cluster_link_t::do_admin_create_table(const admin_command_parser_t::c
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
     printf("uuid: %s\n", uuid_to_str(new_id).c_str());
 }
 
@@ -2150,7 +2150,7 @@ void admin_cluster_link_t::do_admin_set_primary(const admin_command_parser_t::co
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::command_data_t& data) {
@@ -2176,7 +2176,7 @@ void admin_cluster_link_t::do_admin_unset_primary(const admin_command_parser_t::
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t::command_data_t& data) {
@@ -2202,7 +2202,7 @@ void admin_cluster_link_t::do_admin_set_datacenter(const admin_command_parser_t:
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_t::command_data_t& data) {
@@ -2221,7 +2221,7 @@ void admin_cluster_link_t::do_admin_unset_datacenter(const admin_command_parser_
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::command_data_t& data) {
@@ -2254,7 +2254,7 @@ void admin_cluster_link_t::do_admin_set_database(const admin_command_parser_t::c
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 template <class obj_map>
@@ -2433,7 +2433,7 @@ void admin_cluster_link_t::do_admin_set_name(const admin_command_parser_t::comma
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 void do_assign_string_to_name(name_string_t &assignee, const std::string& s) THROWS_ONLY(admin_cluster_exc_t) {
@@ -2515,7 +2515,7 @@ void admin_cluster_link_t::do_admin_set_acks(const admin_command_parser_t::comma
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 template <class protocol_t>
@@ -2593,7 +2593,7 @@ void admin_cluster_link_t::do_admin_set_durability(const admin_command_parser_t:
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 template <class protocol_t>
@@ -2655,7 +2655,7 @@ void admin_cluster_link_t::do_admin_set_replicas(const admin_command_parser_t::c
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 template <class map_type>
@@ -2783,7 +2783,7 @@ void admin_cluster_link_t::do_admin_remove_internal(const std::string& obj_type,
     if (do_update) {
         do_metadata_update(&cluster_metadata,
                            &change_request,
-                           defaulting_map_t<namespace_id_t, bool>(false));
+                           boost::optional<namespace_id_t>());
     }
 
     if (!error.empty()) {
@@ -2893,7 +2893,7 @@ void admin_cluster_link_t::do_admin_touch(const admin_command_parser_t::command_
 
     do_metadata_update(&cluster_metadata,
                        &change_request,
-                       defaulting_map_t<namespace_id_t, bool>(false));
+                       boost::optional<namespace_id_t>());
 }
 
 template <class protocol_t>
@@ -3463,7 +3463,7 @@ void admin_cluster_link_t::do_admin_resolve(const admin_command_parser_t::comman
 
         do_metadata_update(&cluster_metadata,
                            &change_request,
-                           defaulting_map_t<namespace_id_t, bool>(false));
+                           boost::optional<namespace_id_t>());
     }
 }
 

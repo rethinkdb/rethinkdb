@@ -55,7 +55,7 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
         const std::map<peer_id_t, namespaces_directory_metadata_t<protocol_t> > &namespaces_directory,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t)
 {
     std::map<machine_id_t, int> usage;
@@ -101,6 +101,8 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
             }
         }
         try {
+            const bool prioritize_distr = prioritize_distr_for_ns
+                && prioritize_distr_for_ns.get() == *it;
             out.insert(
                 std::make_pair(*it,
                     suggest_blueprint_for_namespace<protocol_t>(
@@ -109,7 +111,7 @@ std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > suggest_blueprint
                         machine_id_translation_table,
                         machine_data_centers,
                         &usage,
-                        prioritize_distr_for_ns.get(*it))));
+                        prioritize_distr)));
         } catch (const cannot_satisfy_goals_exc_t &e) {
             logERR("Namespace %s has unsatisfiable goals", uuid_to_str(*it).c_str());
         } catch (const in_conflict_exc_t &e) {
@@ -126,7 +128,7 @@ void fill_in_blueprints_for_protocol(
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t)
 {
     typedef std::map<namespace_id_t, persistable_blueprint_t<protocol_t> > blueprint_map_t;
@@ -149,7 +151,7 @@ void fill_in_blueprints_for_protocol(
 void fill_in_blueprints(cluster_semilattice_metadata_t *cluster_metadata,
         const std::map<peer_id_t, cluster_directory_metadata_t> &directory,
         const uuid_u &us,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns) {
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns) {
     std::map<machine_id_t, datacenter_id_t> machine_assignments;
 
     for (std::map<machine_id_t, deletable_t<machine_semilattice_metadata_t> >::iterator it = cluster_metadata->machines.machines.begin();
@@ -215,7 +217,7 @@ std::map<namespace_id_t, persistable_blueprint_t<mock::dummy_protocol_t> > sugge
         const std::map<peer_id_t, namespaces_directory_metadata_t<mock::dummy_protocol_t> > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t);
 
 template
@@ -225,7 +227,7 @@ void fill_in_blueprints_for_protocol<mock::dummy_protocol_t>(
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t);
 
 
@@ -247,7 +249,7 @@ std::map<namespace_id_t, persistable_blueprint_t<memcached_protocol_t> > suggest
         const std::map<peer_id_t, namespaces_directory_metadata_t<memcached_protocol_t> > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t);
 
 template
@@ -257,7 +259,7 @@ void fill_in_blueprints_for_protocol<memcached_protocol_t>(
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t);
 
 #include "rdb_protocol/protocol.hpp"
@@ -278,7 +280,7 @@ std::map<namespace_id_t, persistable_blueprint_t<rdb_protocol_t> > suggest_bluep
         const std::map<peer_id_t, namespaces_directory_metadata_t<rdb_protocol_t> > &reactor_directory_view,
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t);
 
 template
@@ -288,5 +290,5 @@ void fill_in_blueprints_for_protocol<rdb_protocol_t>(
         const std::map<peer_id_t, machine_id_t> &machine_id_translation_table,
         const std::map<machine_id_t, datacenter_id_t> &machine_data_centers,
         const machine_id_t &us,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns)
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns)
         THROWS_ONLY(missing_machine_exc_t);

@@ -5,8 +5,10 @@
 #include <map>
 #include <string>
 
+#include "errors.hpp"
+#include <boost/optional.hpp>
+
 #include "clustering/administration/metadata.hpp"
-#include "containers/defaulting_map.hpp"
 #include "http/json.hpp"
 
 template <class metadata_t>
@@ -23,7 +25,7 @@ public:
 
 protected:
     virtual void metadata_change_callback(metadata_t *new_metadata,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns) = 0;
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns) = 0;
 
     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > > directory_metadata;
     uuid_u us;
@@ -58,7 +60,7 @@ public:
 
 private:
     void metadata_change_callback(cluster_semilattice_metadata_t *new_metadata,
-        const defaulting_map_t<namespace_id_t, bool> &prioritize_distr_for_ns);
+        const boost::optional<namespace_id_t> &prioritize_distr_for_ns);
 };
 
 class auth_semilattice_http_app_t : public semilattice_http_app_t<auth_semilattice_metadata_t> {
@@ -71,7 +73,7 @@ public:
 
 private:
     void metadata_change_callback(auth_semilattice_metadata_t *new_metadata,
-        const defaulting_map_t<namespace_id_t, bool> &unused);
+        const boost::optional<namespace_id_t> &unused);
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_HTTP_SEMILATTICE_APP_HPP_ */

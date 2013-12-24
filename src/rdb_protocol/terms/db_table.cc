@@ -129,7 +129,7 @@ private:
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
                                env->env->cluster_access.this_machine,
-                               defaulting_map_t<namespace_id_t, bool>(false));
+                               boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
@@ -231,7 +231,7 @@ private:
                 fill_in_blueprints(&meta.metadata,
                                    directory_metadata(env->env)->get().get_inner(),
                                    env->env->cluster_access.this_machine,
-                                   defaulting_map_t<namespace_id_t, bool>(false));
+                                   boost::optional<namespace_id_t>());
             } catch (const missing_machine_exc_t &e) {
                 rfail(base_exc_t::GENERIC, "%s", e.what());
             }
@@ -289,7 +289,7 @@ private:
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
                                env->env->cluster_access.this_machine,
-                               defaulting_map_t<namespace_id_t, bool>(false));
+                               boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
@@ -335,7 +335,7 @@ private:
             fill_in_blueprints(&meta.metadata,
                                directory_metadata(env->env)->get().get_inner(),
                                env->env->cluster_access.this_machine,
-                               defaulting_map_t<namespace_id_t, bool>(false));
+                               boost::optional<namespace_id_t>());
         } catch (const missing_machine_exc_t &e) {
             rfail(base_exc_t::GENERIC, "%s", e.what());
         }
