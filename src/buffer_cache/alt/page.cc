@@ -80,14 +80,23 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
     if (current_pages_.size() <= block_id) {
         current_pages_.resize(block_id + 1, NULL);
     }
+
+    scoped_malloc_t<ser_buffer_t> buf = serializer_->malloc();
+
+#if !defined(NDEBUG) || defined(VALGRIND)
+        // RSI: This should actually _not_ exist -- we are ignoring legitimate errors
+        // where we write uninitialized data to disk.
+        memset(buf.get()->cache_data, 0xCD, serializer_->get_block_size().value());
+#endif
+
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
             new current_page_t(serializer_->get_block_size(),
-                               serializer_->malloc(),
+                               std::move(buf),
                                this);
     } else {
         current_pages_[block_id]->make_non_deleted(serializer_->get_block_size(),
-                                                   serializer_->malloc(),
+                                                   std::move(buf),
                                                    this);
     }
 
@@ -380,8 +389,18 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                     // need to put it into a non-deleted state.  We initialize the
                     // page to a full-sized page.
                     // TODO: We should consider whether we really want this behavior.
+
+                    // RSI: Duplicate memset code.
+                    scoped_malloc_t<ser_buffer_t> buf = help.page_cache->serializer()->malloc();
+
+#if !defined(NDEBUG) || defined(VALGRIND)
+                    // RSI: This should actually _not_ exist -- we are ignoring legitimate errors
+                    // where we write uninitialized data to disk.
+                    memset(buf.get()->cache_data, 0xCD, help.page_cache->serializer()->get_block_size().value());
+#endif
+
                     page_.init(new page_t(help.page_cache->serializer()->get_block_size(),
-                                          help.page_cache->serializer()->malloc(),
+                                          std::move(buf),
                                           help.page_cache),
                                help.page_cache);
                     is_deleted_ = false;
