@@ -219,6 +219,10 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
 
     /* If that was the last blob in this block move on to the next one. */
     if (tail->live_data_offset == tail->data_size) {
+#if DBQ_USE_ALT_CACHE
+        // RSI: This manual write/_tail resetting is a bit ghetto -- can we clean it up a bit?
+        write.reset();
+#endif
         _tail.reset();
         remove_block_from_tail(&txn);
     }
