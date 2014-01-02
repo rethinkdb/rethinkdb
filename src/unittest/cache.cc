@@ -96,7 +96,8 @@ public:
             alt_buf_lock_t *lock = new alt_buf_lock_t(p, i, alt_access_t::write);
             alt_buf_write_t data(lock);
             int *val = static_cast<int *>(data.get_data_write());
-            EXPECT_EQ(in_memory_record[i], *val); //For some reason this doesn't compile when it's an ASSERT_TRUE
+            EXPECT_EQ(in_memory_record[i], *val);
+            debugf("%ld -> %d\n", i, *val);
             *val = ++in_memory_record[i];
             return lock;
         } else {
@@ -104,6 +105,7 @@ public:
             alt_buf_write_t data(lock);
             int *val = static_cast<int *>(data.get_data_write());
             *val = in_memory_record[i] = 0;
+            debugf("%ld <- %d\n", i, *val);
             return lock;
         }
     }
@@ -135,6 +137,10 @@ public:
     }
     void write(block_id_t bid) {
         buf_lock.reset(parent->write(bid, txn.get(), buf_lock.get()));
+    }
+    void snapshot() {
+        guarantee(buf_lock);
+        buf_lock->snapshot_subtree();
     }
 
     block_grinder_t *parent;
@@ -193,29 +199,45 @@ void init_tree(block_grinder_t *g) {
     }
 }
 
-void write_tree(block_grinder_t *g) {
+void write_tree(block_grinder_t *g, auto_drainer_t::lock_t) {
     block_thread_t thread(g, write_durability_t::HARD);
     for (block_id_t id = 1; id < (1 << tree_levels); id = next_random_tree_node(id)) {
         thread.write(id);
+        coro_t::yield();
     }
 }
 
-void read_tree(block_grinder_t *g) {
+void read_tree(block_grinder_t *g, auto_drainer_t::lock_t) {
     block_thread_t thread(g);
     for (block_id_t id = 1; id < (1 << tree_levels); id = next_random_tree_node(id)) {
         thread.read(id);
+        coro_t::yield();
     }
 }
 
 void runBlockTree() {
     block_grinder_t grinder;
     init_tree(&grinder);
-    write_tree(&grinder);
-    read_tree(&grinder);
+
+    auto_drainer_t drainer;
+    for (int i = 0; i < 100; ++i) {
+        coro_t::spawn(std::bind(&write_tree, &grinder, drainer.lock()));
+        coro_t::spawn(std::bind(&read_tree, &grinder, drainer.lock()));
+    }
 }
 
 TEST(Cache, BlockTree) {
     run_in_thread_pool(runBlockTree, 4);
+}
+
+void runSnapshotTest() {
+    block_grinder_t grinder;
+    init_tree(&grinder);
+
+    block_thread_t read_thread(&grinder);
+    block_id_t read_id = 1;
+    read_thread.read(read_id);
+    read_id = next_random_tree_node(read_id);
 }
 
 } //namespace unittest 
