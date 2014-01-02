@@ -172,20 +172,37 @@ clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::ty
         new subview_watchable_t<typename wrapped_callable_type::result_type, value_type, wrapped_callable_type>(wrapped_lens, this));
 }
 
+// These are helper functions for `run_until_satisfied()` and `run_until_satisfied_2()`
+// that can be passed into a watchable's `apply_read()`. They simply apply the
+// provided function `_fun` to the current value of the watchable(s) and pass out
+// its boolean return value.
+template<class value_type, class callable_type>
+void run_until_satisfied_apply(const callable_type &_fun, const value_type *val,
+        bool *is_done_out) {
+    *is_done_out = _fun(*val);
+}
+template<class a_type, class b_type, class callable_type>
+void run_until_satisfied_2_apply_inner(const callable_type &_fun,
+        const a_type *a_val, const b_type *b_val, bool *is_done_out) {
+    *is_done_out = _fun(*a_val, *b_val);
+}
+template<class a_type, class b_type, class callable_type>
+void run_until_satisfied_2_apply_outer(const callable_type &_fun,
+        const clone_ptr_t<watchable_t<b_type> > &_b, const a_type *a_val,
+        bool *is_done_out) {
+    _b->apply_read(std::bind(
+        &run_until_satisfied_2_apply_inner<a_type, b_type, callable_type>, _fun, a_val,
+        std::placeholders::_1, is_done_out));
+}
+
 template<class value_type>
 template<class callable_type>
-void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void watchable_t<value_type>::run_until_satisfied(const callable_type &fun,
+        signal_t *interruptor, int64_t nap_before_retry_ms) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    struct op_closure_t {
-        static void apply(const callable_type &_fun,
-                          const value_type *val,
-                          bool *is_done_out) {
-            *is_done_out = _fun(*val);
-        }
-    };
     bool is_done = false;
-    auto op = std::bind(&op_closure_t::apply,
+    auto op = std::bind(&run_until_satisfied_apply<value_type, callable_type>,
                         fun,
                         std::placeholders::_1,
                         &is_done);
@@ -203,6 +220,10 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, sign
             }
             subs.reset(clone_this, &freeze);
         }
+        // Nap a little so changes to the watchables can accumulate.
+        // This is purely a performance optimization to save CPU cycles,
+        // in case that applying `fun` is expensive.
+        nap(nap_before_retry_ms, interruptor);
         wait_interruptible(&changed, interruptor);
     }
 }
@@ -212,35 +233,13 @@ void run_until_satisfied_2(
         const clone_ptr_t<watchable_t<a_type> > &a,
         const clone_ptr_t<watchable_t<b_type> > &b,
         const callable_type &fun,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        signal_t *interruptor,
+        int64_t nap_before_retry_ms) THROWS_ONLY(interrupted_exc_t) {
     a->assert_thread();
     b->assert_thread();
 
-    // Wrap the application of `fun` into closures which we can pass
-    // into the `apply_read()` methods of the watchables.
-    // This avoids copying the value of the watchable.
-    struct b_op_closure_t {
-        static void apply(const callable_type &_fun,
-                          const a_type *a_val,
-                          const b_type *b_val,
-                          bool *is_done_out) {
-            *is_done_out = _fun(*a_val, *b_val);
-        }
-    };
-    struct a_op_closure_t {
-        static void apply(const callable_type &_fun,
-                          const clone_ptr_t<watchable_t<b_type> > &_b,
-                          const a_type *a_val,
-                          bool *is_done_out) {
-            _b->apply_read(std::bind(&b_op_closure_t::apply,
-                                     _fun,
-                                     a_val,
-                                     std::placeholders::_1,
-                                     is_done_out));
-        }
-    };
     bool is_done = false;
-    auto op = std::bind(&a_op_closure_t::apply,
+    auto op = std::bind(&run_until_satisfied_2_apply_outer<a_type, b_type, callable_type>,
                         fun,
                         b,
                         std::placeholders::_1,
@@ -265,7 +264,7 @@ void run_until_satisfied_2(
         // This is purely a performance optimization to save CPU cycles,
         // in case that applying `fun` is expensive (which it is in our
         // applications in the reactors as of 12/10/2013).
-        nap(100, interruptor);
+        nap(nap_before_retry_ms, interruptor);
         wait_interruptible(&changed, interruptor);
     }
 }
