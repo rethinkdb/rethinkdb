@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "config/args.hpp"
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::find_broadcaster_in_directory(
@@ -194,7 +195,8 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                     directory_echo_mirror.get_internal(),
                     blueprint,
                     boost::bind(&reactor_t<protocol_t>::find_broadcaster_in_directory, this, region, _2, _1, &broadcaster),
-                    interruptor);
+                    interruptor,
+                    REACTOR_RUN_UNTIL_SATISFIED_NAP);
 
                 /* We need to save this to a local variable because there may be a
                  * race condition should the broadcaster go down. */
@@ -212,7 +214,8 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                     directory_echo_mirror.get_internal(),
                     blueprint,
                     boost::bind(&reactor_t<protocol_t>::find_replier_in_directory, this, region, branch_id, _2, _1, &location_to_backfill_from, &peer_id, &activity_id),
-                    interruptor);
+                    interruptor,
+                    REACTOR_RUN_UNTIL_SATISFIED_NAP);
 
                 /* Note, the backfiller goes out of scope here, that's because
                  * we're about to start backfilling from someone else and thus

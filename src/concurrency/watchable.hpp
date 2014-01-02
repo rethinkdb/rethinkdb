@@ -141,7 +141,8 @@ public:
     `this` until either `fun` returns `true` or `interruptor` is pulsed. It's
     efficient because it only retries `fun` when the value changes. */
     template<class callable_type>
-    void run_until_satisfied(const callable_type &fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+    void run_until_satisfied(const callable_type &fun, signal_t *interruptor,
+            int64_t nap_before_retry_ms = 0) THROWS_ONLY(interrupted_exc_t);
 
 protected:
     watchable_t() { }
@@ -158,7 +159,8 @@ void run_until_satisfied_2(
         const clone_ptr_t<watchable_t<a_type> > &a,
         const clone_ptr_t<watchable_t<b_type> > &b,
         const callable_type &fun,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
+        signal_t *interruptor,
+        int64_t nap_before_retry_ms = 0) THROWS_ONLY(interrupted_exc_t);
 
 inline void call_function(const boost::function<void()> &f) {
     f();
