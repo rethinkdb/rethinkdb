@@ -145,6 +145,12 @@ public:
     alt_buf_lock_t(alt_buf_lock_t *parent,
                    alt_create_t access);
 
+    // Nonblocking constructor, IF parent->{access}_acq_signal() has already
+    // been pulsed.  Creates a new block with specified block id.
+    alt_buf_lock_t(alt_buf_parent_t parent,
+                   block_id_t block_id,
+                   alt_create_t create);
+
     ~alt_buf_lock_t();
 
     alt_buf_lock_t(alt_buf_lock_t &&movee);

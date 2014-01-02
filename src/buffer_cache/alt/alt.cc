@@ -105,6 +105,20 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
 #endif
 }
 
+alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
+                               block_id_t block_id,
+                               alt_create_t create)
+    : txn_(parent.txn()),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0)
+{
+    guarantee(create == alt_create_t::create);
+    alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
+    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
+                                                  alt_access_t::write, true));
+}
+
 
 bool is_subordinate(alt_access_t parent, alt_access_t child) {
     return parent == alt_access_t::write || child == alt_access_t::read;
