@@ -87,7 +87,7 @@ public:
         alt_buf_parent_t p = parent ? alt_buf_parent_t(parent) : alt_buf_parent_t(txn);
         alt_buf_lock_t *lock = new alt_buf_lock_t(p, i, alt_access_t::read);
         alt_buf_read_t data(lock);
-        guarantee(*static_cast<const int *>(data.get_data_read()) == in_memory_record[i]);
+        EXPECT_EQ(in_memory_record[i], *static_cast<const int *>(data.get_data_read()));
         return lock;
     }
     alt_buf_lock_t *write(block_id_t i, alt_txn_t *txn, alt_buf_lock_t *parent) {
@@ -96,8 +96,8 @@ public:
             alt_buf_lock_t *lock = new alt_buf_lock_t(p, i, alt_access_t::write);
             alt_buf_write_t data(lock);
             int *val = static_cast<int *>(data.get_data_write());
-            guarantee(*val == in_memory_record[i]); //For some reason this doesn't compile when it's an ASSERT_TRUE
-            *val = in_memory_record[i]++;
+            EXPECT_EQ(in_memory_record[i], *val); //For some reason this doesn't compile when it's an ASSERT_TRUE
+            *val = ++in_memory_record[i];
             return lock;
         } else {
             alt_buf_lock_t *lock = new alt_buf_lock_t(p, i, alt_create_t::create);
@@ -210,8 +210,8 @@ void read_tree(block_grinder_t *g) {
 void runBlockTree() {
     block_grinder_t grinder;
     init_tree(&grinder);
-    //write_tree(&grinder);
-    //read_tree(&grinder);
+    write_tree(&grinder);
+    read_tree(&grinder);
 }
 
 TEST(Cache, BlockTree) {
