@@ -223,7 +223,9 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun,
         // Nap a little so changes to the watchables can accumulate.
         // This is purely a performance optimization to save CPU cycles,
         // in case that applying `fun` is expensive.
-        nap(nap_before_retry_ms, interruptor);
+        if (nap_before_retry_ms > 0) {
+            nap(nap_before_retry_ms, interruptor);
+        }
         wait_interruptible(&changed, interruptor);
     }
 }
@@ -264,7 +266,9 @@ void run_until_satisfied_2(
         // This is purely a performance optimization to save CPU cycles,
         // in case that applying `fun` is expensive (which it is in our
         // applications in the reactors as of 12/10/2013).
-        nap(nap_before_retry_ms, interruptor);
+        if (nap_before_retry_ms > 0) {
+            nap(nap_before_retry_ms, interruptor);
+        }
         wait_interruptible(&changed, interruptor);
     }
 }
