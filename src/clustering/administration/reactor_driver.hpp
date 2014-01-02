@@ -116,6 +116,12 @@ private:
         const namespace_id_t reactor_namespace,
         const boost::optional<reactor_directory_entry_t> &new_value);
     void commit_directory_changes(auto_drainer_t::lock_t lock);
+    // This function is passed by `commit_directory_changes()` into the
+    // `apply_read()` method of the directory watchable
+    static bool apply_directory_changes(
+        std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
+            *_changed_reactor_directories,
+        namespaces_directory_metadata_t<protocol_t> *directory);
 
     const base_path_t base_path;
     io_backender_t *const io_backender;

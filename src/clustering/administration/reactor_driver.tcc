@@ -428,6 +428,11 @@ void reactor_driver_t<protocol_t>::commit_directory_changes(auto_drainer_t::lock
     // Delay the commit for a moment in anticipation that more changes come in
     lock.assert_is_holding(&directory_change_drainer);
     try {
+        // The nap time of 200 ms was determined experimentally as follows:
+        // In the specific test, a 200 ms nap provided a high speed up when
+        // resharding a table in a cluster of 64 nodes. Higher values improved the
+        // efficiency of the operation only marginally, while unnecessarily slowing
+        // down directory changes in smaller clusters.
         nap(200, lock.get_drain_signal());
     } catch (const interrupted_exc_t &e) {
     }
@@ -435,33 +440,29 @@ void reactor_driver_t<protocol_t>::commit_directory_changes(auto_drainer_t::lock
 
     DEBUG_VAR mutex_assertion_t::acq_t acq(&watchable_variable_lock);
 
-    /* C++11: auto op = [&] (namespaces_directory_metadata_t<protocol_t> *directory) -> bool { ... }
-    Because we cannot use C++11 lambdas yet due to missing support in
-    GCC 4.4, this is the messy work-around: */
-    struct op_closure_t {
-        static bool apply(
-            std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
-                *_changed_reactor_directories,
-            namespaces_directory_metadata_t<protocol_t> *directory) {
-
-            for (auto it = _changed_reactor_directories->begin();
-                 it != _changed_reactor_directories->end();
-                 ++it) {
-                // it->second is a boost::optional<reactor_directory_entry_t>
-                if (it->second) {
-                    directory->reactor_bcards[it->first] = it->second.get();
-                } else {
-                    directory->reactor_bcards.erase(it->first);
-                }
-            }
-            _changed_reactor_directories->clear();
-            return true;
-        }
-    };
-
-    watchable_variable.apply_atomic_op(std::bind(&op_closure_t::apply,
+    watchable_variable.apply_atomic_op(std::bind(&apply_directory_changes,
                                                  &changed_reactor_directories,
                                                  std::placeholders::_1));
+}
+
+template<class protocol_t>
+bool reactor_driver_t<protocol_t>::apply_directory_changes(
+    std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
+        *_changed_reactor_directories,
+    namespaces_directory_metadata_t<protocol_t> *directory) {
+
+    for (auto it = _changed_reactor_directories->begin();
+         it != _changed_reactor_directories->end();
+         ++it) {
+        // it->second is a boost::optional<reactor_directory_entry_t>
+        if (it->second) {
+            directory->reactor_bcards[it->first] = it->second.get();
+        } else {
+            directory->reactor_bcards.erase(it->first);
+        }
+    }
+    _changed_reactor_directories->clear();
+    return true;
 }
 
 template<class protocol_t>
