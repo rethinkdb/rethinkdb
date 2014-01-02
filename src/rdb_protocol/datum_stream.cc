@@ -697,7 +697,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(
 
         {
             profile::sampler_t sampler(
-                "Grouping, mapping, and reducing lazily with base.", env->trace);
+                "Applying base to distributed grouped map reduce.", env->trace);
             for (size_t f = 0; f < dm_arr->size(); ++f) {
                 counted_t<const datum_t> key = dm_arr->get(f)->get("group");
                 counted_t<const datum_t> val = dm_arr->get(f)->get("reduction");
