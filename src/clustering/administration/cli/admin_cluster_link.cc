@@ -341,13 +341,16 @@ void admin_cluster_link_t::update_metadata_maps() {
     add_subset_to_maps("machines", cluster_metadata.machines.machines);
     add_subset_to_maps("databases", cluster_metadata.databases.databases);
     add_subset_to_maps("datacenters", cluster_metadata.datacenters.datacenters);
-    add_subset_to_maps("rdb_namespaces", cluster_metadata.rdb_namespaces->namespaces);
-    add_subset_to_maps("dummy_namespaces", cluster_metadata.dummy_namespaces->namespaces);
-    add_subset_to_maps("memcached_namespaces", cluster_metadata.memcached_namespaces->namespaces);
+
+    // This also adds "db.table" notation to the name_map, and depends on databases already being done
+    add_ns_subset_to_maps("rdb_namespaces", cluster_metadata.rdb_namespaces->namespaces);
+    add_ns_subset_to_maps("dummy_namespaces", cluster_metadata.dummy_namespaces->namespaces);
+    add_ns_subset_to_maps("memcached_namespaces", cluster_metadata.memcached_namespaces->namespaces);
 }
 
 void admin_cluster_link_t::clear_metadata_maps() {
-    // All metadata infos will be in the name_map and uuid_map exactly one each
+    // All metadata infos will be in the uuid map exactly once, but in the name map 0 to 2 times
+    //  depending on name vclock conflicts.  Therefore, delete from the uuid map.
     for (std::map<std::string, metadata_info_t *>::iterator i = uuid_map.begin(); i != uuid_map.end(); ++i) {
         delete i->second;
     }
@@ -357,23 +360,50 @@ void admin_cluster_link_t::clear_metadata_maps() {
 }
 
 template <class T>
+void admin_cluster_link_t::add_ns_subset_to_maps(const std::string& base, const T& ns_map) {
+    for (typename T::const_iterator i = ns_map.begin(); i != ns_map.end(); ++i) {
+        if (!i->second.is_deleted()) {
+            metadata_info_t *info = new metadata_info_t;
+            info->uuid = i->first;
+            std::string uuid_str = uuid_to_str(i->first);
+            info->path.push_back(base);
+            info->path.push_back(uuid_str);
+
+            if (!i->second.get_ref().name.in_conflict()) {
+                info->name = i->second.get_ref().name.get().str();
+                name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
+
+                // Get the database name and add "db.table" as well
+                if (!i->second.get_ref().database.in_conflict()) {
+                    auto db_it = uuid_map.find(uuid_to_str(i->second.get_ref().database.get()));
+                    if (db_it != uuid_map.end() &&
+                        db_it->second->name.length() != 0) {
+                        info->alt_name = strprintf("%s.%s", db_it->second->name.c_str(), info->name.c_str());
+                        name_map.insert(std::pair<std::string, metadata_info_t *>(info->alt_name, info));
+                    }
+                }
+            }
+            uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
+        }
+    }
+}
+
+template <class T>
 void admin_cluster_link_t::add_subset_to_maps(const std::string& base, const T& data_map) {
     for (typename T::const_iterator i = data_map.begin(); i != data_map.end(); ++i) {
-        if (i->second.is_deleted()) {
-            continue;
-        }
+        if (!i->second.is_deleted()) {
+            metadata_info_t *info = new metadata_info_t;
+            info->uuid = i->first;
+            std::string uuid_str = uuid_to_str(i->first);
+            info->path.push_back(base);
+            info->path.push_back(uuid_str);
 
-        metadata_info_t * info = new metadata_info_t;
-        info->uuid = i->first;
-        std::string uuid_str = uuid_to_str(i->first);
-        info->path.push_back(base);
-        info->path.push_back(uuid_str);
-
-        if (!i->second.get_ref().name.in_conflict()) {
-            info->name = i->second.get_ref().name.get().str();
-            name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
+            if (!i->second.get_ref().name.in_conflict()) {
+                info->name = i->second.get_ref().name.get().str();
+                name_map.insert(std::pair<std::string, metadata_info_t *>(info->name, info));
+            }
+            uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
         }
-        uuid_map.insert(std::pair<std::string, metadata_info_t *>(uuid_str, info));
     }
 }
 
