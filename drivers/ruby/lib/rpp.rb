@@ -6,14 +6,10 @@ module RethinkDB
     @@termtype_to_str = Hash[
       Term::TermType.constants.map{|x| [Term::TermType.const_get(x), x.to_s]}
     ]
+    @@regex = if __FILE__ =~ /^(.*\/)[^\/]+.rb$/ then /^#{$1}/ else nil end
 
     def self.sanitize_context context
-      if __FILE__ =~ /^(.*\/)[^\/]+.rb$/
-        prefix = $1;
-        context.reject{|x| x =~ /^#{prefix}/}
-      else
-        context
-      end
+      @@regex ? context.reject{|x| x =~ @@regex} : context
     end
 
     def self.pp_int_optargs(q, optargs, pre_dot = false)
