@@ -12,6 +12,7 @@
 #include "btree/slice.hpp"
 #include "btree/superblock.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/reactor/reactor.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
@@ -534,7 +535,12 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const rget_read_t &rg) const {
-        return rangey_read(rg);
+        bool do_read = rangey_read(rg);
+        if (do_read) {
+            auto rg_out = boost::get<rget_read_t>(&read_out->read);
+            rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+        }
+        return do_read;
     }
 
     bool operator()(const distribution_read_t &dg) const {
