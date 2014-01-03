@@ -6,8 +6,10 @@ function beginLoad($host, $port, $query)
     $pids = array();
     for ($i = 0; $i < $numClients; ++$i) {
         $pid = pcntl_fork();
-        if ($pid != 0) continue;
-        $pids[] = $pid;
+        if ($pid != 0) {
+            $pids[] = $pid;
+            continue;
+        }
 
         $conn = r\connect($host, $port);
         while (true) {

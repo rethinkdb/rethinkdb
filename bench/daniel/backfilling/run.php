@@ -23,7 +23,7 @@ $conn = r\connect($argv[3], 28015 + $argv[4]);
 echo "done\n";
 
 echo "Setting up table: ";
-$table = setupTable($conn, $argv[2]);
+$table = setupTable($conn, "backBench", $argv[2]);
 echo "done\n";
 
 echo "Inserting values: ";
@@ -43,6 +43,11 @@ $t = microtime(true) - $t;
 echo "done\n";
 echo "  Inserting values took " . round($t) . " s\n";
 
+echo "Backfilling (test run): ";
+setNumReplicas($conn, $table, "backBench", $argv[3], 29015 + $argv[4], 2);
+setNumReplicas($conn, $table, "backBench", $argv[3], 29015 + $argv[4], 1);
+echo "done\n";
+
 echo "Backfilling (idle): ";
 $t = microtime(true);
 setNumReplicas($conn, $table, "backBench", $argv[3], 29015 + $argv[4], 2);
@@ -51,16 +56,28 @@ setNumReplicas($conn, $table, "backBench", $argv[3], 29015 + $argv[4], 1);
 echo "done\n";
 echo "  Backfilling (idle) took " . round($t) . " s\n";
 
-// TODO: This is currently somewhat broken. Because we up the ack requirements in setNumReplicas,
-// the queries fail while replicating.
-/*echo "Backfilling (read load): ";
-$pids = beginLoad($argv[3], 28015 + $argv[4], $table->sample(10));
+$loadTable = setupTable($conn, "load", 1024);
+$loadTable->insert(array('id' => 'foo'))->run($conn);
+setNumReplicas($conn, $loadTable, "load", $argv[3], 29015 + $argv[4], 2);
+
+echo "Backfilling (read load): ";
+$pids = beginLoad($argv[3], 28015 + $argv[4], $loadTable->get('foo'));
 $t = microtime(true);
 setNumReplicas($conn, $table, "backBench", $argv[3], 29015 + $argv[4], 2);
 $t = microtime(true) - $t;
 killLoad($pids);
 setNumReplicas($conn, $table, "backBench", $argv[3], 29015 + $argv[4], 1);
 echo "done\n";
-echo "  Backfilling (read load) took " . round($t) . " s\n";*/
+echo "  Backfilling (read load) took " . round($t) . " s\n";
+
+echo "Backfilling (write load): ";
+$pids = beginLoad($argv[3], 28015 + $argv[4], $loadTable->insert(array_fill(0, 100, array('a' => 'foo'))));
+$t = microtime(true);
+setNumReplicas($conn, $table, "backBench", $argv[3], 29015 + $argv[4], 2);
+$t = microtime(true) - $t;
+killLoad($pids);
+setNumReplicas($conn, $table, "backBench", $argv[3], 29015 + $argv[4], 1);
+echo "done\n";
+echo "  Backfilling (write load) took " . round($t) . " s\n";
 
 ?>
