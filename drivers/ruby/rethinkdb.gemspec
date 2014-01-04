@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency "json"
   s.add_runtime_dependency "ruby-protocol-buffers"
+  s.add_runtime_dependency "varint"
   s.required_ruby_version = '>= 1.9.0'
 end
 
