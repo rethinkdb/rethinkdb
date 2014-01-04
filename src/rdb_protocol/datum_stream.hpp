@@ -354,7 +354,7 @@ private:
     const bool use_outdated;
     transform_t transform;
 
-    bool started, finished;
+    bool started, shards_exhausted;
     const scoped_ptr_t<const readgen_t> readgen;
     key_range_t active_range;
 
