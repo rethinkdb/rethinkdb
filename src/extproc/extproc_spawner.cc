@@ -189,7 +189,7 @@ void extproc_spawner_t::fork_spawner() {
         // This is the spawner process, just instantiate ourselves and handle requests
         do {
             res = ::close(fds[0]);
-        } while (res == 0 && errno == EINTR);
+        } while (res == 0 && get_errno() == EINTR);
 
         spawner_run_t spawner(fds[1]);
         spawner.main_loop();

@@ -19,7 +19,13 @@ const int poll_event_rdhup = 16;
 std::string format_poll_event(int event);
 
 // Queue stats (declared here so whichever queue is chosen can access it)
-extern perfmon_duration_sampler_t pm_eventloop;
+// This is a singleton initialized on first use.
+// Note that we cannot put it into a static variable since its initialization
+// would race with the initialization of coroutine globals which are accessed
+// by the constructor of `perfmon_membership_t`.
+struct pm_eventloop_singleton_t {
+    static perfmon_duration_sampler_t *get();
+};
 
 /* Pick the queue now*/
 #if !defined(__linux) || defined(NO_EPOLL)

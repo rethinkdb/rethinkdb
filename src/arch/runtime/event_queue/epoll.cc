@@ -63,7 +63,7 @@ void epoll_event_queue_t::run() {
 
         // epoll_wait might return with EINTR in some cases (in
         // particular under GDB), we just need to retry.
-        if (res == -1 && errno == EINTR) {
+        if (res == -1 && get_errno() == EINTR) {
             // If the thread has been signalled, we already handled
             // the signal in our signal action.
             res = 0;
@@ -96,7 +96,7 @@ void epoll_event_queue_t::run() {
         // (see section 7 [CPU scheduling] in B-tree Indexes and CPU
         // Caches by Goetz Graege and Pre-Ake Larson).
 
-        block_pm_duration event_loop_timer(&pm_eventloop);
+        block_pm_duration event_loop_timer(pm_eventloop_singleton_t::get());
 
         for (int i = 0; i < nevents; i++) {
             if (events[i].data.ptr == NULL) {

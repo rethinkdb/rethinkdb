@@ -248,7 +248,7 @@ void linux_message_hub_t::sort_incoming_messages_by_priority(bool reset_is_woken
 }
 
 void linux_message_hub_t::deliver_local_messages() {
-    const int local_thread = thread_pool_->thread_id;
+    const int local_thread = thread_pool_->get_thread_id();
 
     if (!queues_[local_thread].msg_local_list.empty()) {
         bool do_wake_up;

@@ -12,6 +12,7 @@
 #include <valgrind/valgrind.h>
 #endif
 
+#include "errors.hpp"
 #include "utils.hpp"
 
 /* We have a custom implementation of `swapcontext()` that doesn't swap the
@@ -21,13 +22,13 @@ performance reasons.
 Our custom context-switching code is derived from GLibC, which is covered by the
 LGPL. */
 
-context_ref_t::context_ref_t() : pointer(NULL) { }
+artificial_stack_context_ref_t::artificial_stack_context_ref_t() : pointer(NULL) { }
 
-context_ref_t::~context_ref_t() {
+artificial_stack_context_ref_t::~artificial_stack_context_ref_t() {
     rassert(is_nil(), "You're leaking a context.");
 }
 
-bool context_ref_t::is_nil() {
+bool artificial_stack_context_ref_t::is_nil() {
     return pointer == NULL;
 }
 
@@ -132,13 +133,17 @@ artificial_stack_t::~artificial_stack_t() {
 }
 
 bool artificial_stack_t::address_in_stack(void *addr) {
-    return (uintptr_t)addr >= (uintptr_t)stack &&
-        (uintptr_t)addr < (uintptr_t)stack + stack_size;
+    return reinterpret_cast<uintptr_t>(addr) >=
+            reinterpret_cast<uintptr_t>(get_stack_bound())
+        && reinterpret_cast<uintptr_t>(addr) <
+            reinterpret_cast<uintptr_t>(get_stack_base());
 }
 
 bool artificial_stack_t::address_is_stack_overflow(void *addr) {
-    void *base = reinterpret_cast<void *>(floor_aligned(uintptr_t(addr), getpagesize()));
-    return stack == base;
+    void *addr_base =
+        reinterpret_cast<void *>(floor_aligned(reinterpret_cast<uintptr_t>(addr),
+                                               getpagesize()));
+    return get_stack_bound() == addr_base;
 }
 
 extern "C" {
@@ -150,7 +155,7 @@ extern void lightweight_swapcontext(void **current_pointer_out, void *dest_point
     asm("_lightweight_swapcontext");
 }
 
-void context_switch(context_ref_t *current_context_out, context_ref_t *dest_context_in) {
+void context_switch(artificial_stack_context_ref_t *current_context_out, artificial_stack_context_ref_t *dest_context_in) {
 
     /* In the catch-clause of a C++ exception handler, executing a `throw` with
     no parameter will re-throw the exception that we caught. This works even if
@@ -256,4 +261,184 @@ asm(
 #error "Unsupported architecture."
 #endif
 );
+
+
+
+
+
+
+
+
+/* ____ Threaded version of context_switching ____ */
+
+#include <pthread.h>
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/runtime/coroutines.hpp"
+#include "arch/io/concurrency.hpp"
+#include "containers/scoped.hpp"
+
+static system_mutex_t virtual_thread_mutexes[MAX_THREADS];
+
+void context_switch(threaded_context_ref_t *current_context,
+                    threaded_context_ref_t *dest_context) {
+    guarantee(current_context != NULL);
+    guarantee(dest_context != NULL);
+
+    bool is_scheduler = false;
+    if (!current_context->lock.has()) {
+        // This must be the scheduler. We need to acquire a lock.
+        is_scheduler = true;
+        current_context->lock.init(new system_mutex_t::lock_t(
+            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+    }
+
+    dest_context->rethread_to_current();
+    dest_context->cond.signal();
+    // ==== dest_context runs here ====
+    current_context->wait();
+    // ==== now back on current_context ====
+    if (is_scheduler) {
+        // We must not hold the lock, or we will get deadlocks because the scheduler
+        // can end up waiting on a system event. If another thread then
+        // wants to re-thread to our thread, it will be unable to do so.
+        current_context->lock.reset();
+    }
+}
+
+void threaded_context_ref_t::rethread_to_current() {
+    int32_t old_thread = my_thread_id;
+    store_virtual_thread();
+    if (my_thread_id == old_thread) {
+        return;
+    }
+
+    do_rethread = true;
+}
+
+void threaded_context_ref_t::wait() {
+    cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
+    if (do_rethread) {
+        restore_virtual_thread();
+        // Re-lock to a different thread mutex
+        lock.reset();
+        lock.init(new system_mutex_t::lock_t(
+            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+        do_rethread = false;
+    }
+}
+
+void threaded_context_ref_t::restore_virtual_thread() {
+    // Fake our thread
+    linux_thread_pool_t::set_thread_pool(my_thread_pool);
+    linux_thread_pool_t::set_thread_id(my_thread_id);
+    linux_thread_pool_t::set_thread(my_thread);
+}
+
+void threaded_context_ref_t::store_virtual_thread() {
+    my_thread_pool = linux_thread_pool_t::get_thread_pool();
+    my_thread_id = linux_thread_pool_t::get_thread_id();
+    my_thread = linux_thread_pool_t::get_thread();
+}
+
+threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size) :
+    initial_fun(initial_fun_),
+    dummy_stack(initial_fun, stack_size) {
+
+    scoped_ptr_t<system_mutex_t::lock_t> possible_lock_acq;
+    if (!coro_t::self()) {
+        // If we are not in a coroutine, we have to acquire the lock first.
+        // (coroutines would already hold the lock)
+        possible_lock_acq.init(new system_mutex_t::lock_t(
+            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+    }
+
+    int result = pthread_create(&thread,
+                                NULL,
+                                threaded_stack_t::internal_run,
+                                reinterpret_cast<void *>(this));
+    guarantee_xerr(result == 0, result, "Could not create thread: %i", result);
+    // Wait for the thread to start
+    launch_cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
+}
+
+threaded_stack_t::~threaded_stack_t() {
+    // This is ugly. But our coroutines currently never terminate. Instead
+    // they just end up in an endless loop. Usually we would just destroy
+    // their stack context, but here we have to kill the thread first.
+    // TODO (daniel): If we ever want to use the threaded_stack_t in
+    //  a (semi-)production environment, we should fix this.
+    //  I think the better way of doing this would be to send a non-SIGKILL
+    //  signal and to install an appropriate signal handler on the threads.
+    int result = pthread_kill(thread, SIGKILL);
+    guarantee_xerr(result == 0, result, "Could not kill thread: %i", result);
+    result = pthread_join(thread, NULL);
+    guarantee_xerr(result == 0, result, "Could not join with thread: %i", result);
+}
+
+void *threaded_stack_t::internal_run(void *p) {
+    threaded_stack_t *parent = reinterpret_cast<threaded_stack_t *>(p);
+
+    parent->context.restore_virtual_thread();
+
+    parent->context.lock.init(new system_mutex_t::lock_t(
+        &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+    // Notify our parent that we have been created
+    parent->launch_cond.signal();
+
+    parent->context.wait();
+    parent->initial_fun();
+    return NULL;
+}
+
+bool threaded_stack_t::address_in_stack(void *addr) {
+    return reinterpret_cast<uintptr_t>(addr) >=
+            reinterpret_cast<uintptr_t>(get_stack_bound())
+        && reinterpret_cast<uintptr_t>(addr) <
+            reinterpret_cast<uintptr_t>(get_stack_base());
+}
+
+bool threaded_stack_t::address_is_stack_overflow(void *addr) {
+    void *addr_base =
+        reinterpret_cast<void *>(floor_aligned(reinterpret_cast<uintptr_t>(addr),
+                                               getpagesize()));
+    return get_stack_bound() == addr_base;
+}
+
+void *threaded_stack_t::get_stack_base() {
+    void *stackaddr;
+    size_t stacksize;
+    get_stack_addr_size(&stackaddr, &stacksize);
+    uintptr_t base = reinterpret_cast<uintptr_t>(stackaddr)
+                     + reinterpret_cast<uintptr_t>(stacksize);
+    return reinterpret_cast<void *>(base);
+}
+
+void *threaded_stack_t::get_stack_bound() {
+    void *stackaddr;
+    size_t stacksize;
+    get_stack_addr_size(&stackaddr, &stacksize);
+    return stackaddr;
+}
+
+void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
+                                           size_t *stacksize_out) {
+#ifdef __MACH__
+    // Implementation for OS X
+    *stacksize_out = pthread_get_stacksize_np(thread);
+    *stackaddr_out = reinterpret_cast<void *>(
+        reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(thread))
+        - static_cast<uintptr_t>(*stacksize_out));
+#else
+    // Implementation for Linux
+    pthread_attr_t attr;
+    int res = pthread_getattr_np(thread, &attr);
+    guarantee_xerr(res == 0, res, "Unable to get pthread attributes");
+    res = pthread_attr_getstack(&attr, stackaddr_out, stacksize_out);
+    guarantee_xerr(res == 0, res, "Unable to get pthread stack attribute");
+    res = pthread_attr_destroy(&attr);
+    guarantee_xerr(res == 0, res, "Unable to destroy pthread attributes");
+#endif
+}
+
+/* ^^^^ Threaded version of context_switching ^^^^ */
 

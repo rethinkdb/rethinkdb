@@ -14,14 +14,22 @@
 #include "logger.hpp"
 #include "utils.hpp"
 #include "backtrace.hpp"
+#include "thread_local.hpp"
 #include "clustering/administration/logger.hpp"
 #include "arch/timing.hpp"
 
-static __thread bool crashed = false; // to prevent crashing within crashes
+TLS_with_init(bool, crashed, false); // to prevent crashing within crashes
+
+NOINLINE int get_errno() {
+    return errno;
+}
+NOINLINE void set_errno(int new_errno) {
+    errno = new_errno;
+}
 
 void report_user_error(const char *msg, ...) {
     fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
-    if (crashed) {
+    if (TLS_get_crashed()) {
         va_list args;
         va_start(args, msg);
         fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
@@ -30,7 +38,7 @@ void report_user_error(const char *msg, ...) {
         return;
     }
 
-    crashed = true;
+    TLS_set_crashed(true);
 
     thread_log_writer_disabler_t disabler;
 
@@ -42,7 +50,7 @@ void report_user_error(const char *msg, ...) {
 
 void report_fatal_error(const char *file, int line, const char *msg, ...) {
     fprintf(stderr, "Version: %s\n", RETHINKDB_VERSION_STR);
-    if (crashed) {
+    if (TLS_get_crashed()) {
         va_list args;
         va_start(args, msg);
         fprintf(stderr, "Crashing while already crashed. Printing error message to stderr.\n");
@@ -51,7 +59,7 @@ void report_fatal_error(const char *file, int line, const char *msg, ...) {
         return;
     }
 
-    crashed = true;
+    TLS_set_crashed(true);
 
     thread_log_writer_disabler_t disabler;
 
