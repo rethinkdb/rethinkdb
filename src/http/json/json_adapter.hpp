@@ -62,9 +62,10 @@ public:
     ~permission_denied_exc_t() throw () { }
 };
 
+// This is almost certainly a vector clock conflict
 struct multiple_choices_exc_t : public json_adapter_exc_t {
     const char *what() const throw () {
-        return "Multiple choices exists for this json value (probably vector clock divergence).";
+        return "Multiple choices exists for this json value.  Resolve the conflict issue in the web UI or the admin CLI.";
     }
 };
 
