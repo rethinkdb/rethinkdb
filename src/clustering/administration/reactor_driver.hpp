@@ -104,12 +104,24 @@ private:
     friend class watchable_and_reactor_t;
 
     typedef boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_map_t;
+    typedef directory_echo_wrapper_t<cow_ptr_t<reactor_business_card_t<protocol_t> > >
+        reactor_directory_entry_t;
 
     void delete_reactor_data(
             auto_drainer_t::lock_t lock,
             typename reactor_map_t::auto_type *thing_to_delete,
             namespace_id_t namespace_id);
     void on_change();
+    void set_reactor_directory_entry(
+        const namespace_id_t reactor_namespace,
+        const boost::optional<reactor_directory_entry_t> &new_value);
+    void commit_directory_changes(auto_drainer_t::lock_t lock);
+    // This function is passed by `commit_directory_changes()` into the
+    // `apply_read()` method of the directory watchable
+    static bool apply_directory_changes(
+        std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
+            *_changed_reactor_directories,
+        namespaces_directory_metadata_t<protocol_t> *directory);
 
     const base_path_t base_path;
     io_backender_t *const io_backender;
@@ -127,7 +139,18 @@ private:
     watchable_variable_t<namespaces_directory_metadata_t<protocol_t> > watchable_variable;
     mutex_assertion_t watchable_variable_lock;
 
-    boost::ptr_map<namespace_id_t, watchable_and_reactor_t<protocol_t> > reactor_data;
+    // `changed_reactor_directories` collects reactor directory entries that
+    // have changed since the last execution of commit_directory_changes().
+    // This is a performance optimization, as it allows us to aggregate
+    // multiple directory changes into a single commit.
+    // If the optional is none, that means that the entry should be deleted.
+    std::map<namespace_id_t, boost::optional<reactor_directory_entry_t> >
+        changed_reactor_directories;
+    // We need a separate drainer for this because it must stay alive
+    // until after reactor_data is destructed.
+    auto_drainer_t directory_change_drainer;
+
+    reactor_map_t reactor_data;
 
     auto_drainer_t drainer;
 
