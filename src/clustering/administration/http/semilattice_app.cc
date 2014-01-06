@@ -186,9 +186,12 @@ http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
     } catch (const cannot_satisfy_goals_exc_t &e) {
         logINF("The server was given a set of goals for which it couldn't find a valid blueprint. %s", e.what());
         return http_error_res(e.what(), HTTP_INTERNAL_SERVER_ERROR);
-    } catch (const gone_exc_t & e) {
+    } catch (const gone_exc_t &e) {
         logINF("HTTP request throw a gone_exc_t with what = %s", e.what());
         return http_error_res(e.what(), HTTP_GONE);
+    } catch (const multiple_choices_exc_t &e) {
+        logINF("HTTP request failed to change semilattice data. %s", e.what());
+        return http_error_res(e.what(), HTTP_METHOD_NOT_ALLOWED);
     }
     unreachable();
 }
