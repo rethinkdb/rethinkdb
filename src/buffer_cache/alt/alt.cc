@@ -273,6 +273,7 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
     }
     page_acq_.buf_ready_signal()->wait();
     *block_size_out = page_acq_.get_buf_size();
+    lock_->cache()->checker.check(lock_->block_id(), page_acq_.get_buf_read(), *block_size_out);
     return page_acq_.get_buf_read();
 }
 
@@ -284,6 +285,7 @@ alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
 
 alt_buf_write_t::~alt_buf_write_t() {
     guarantee(!lock_->empty());
+    lock_->cache()->checker.set(lock_->block_id(), get_data_write(0), 4096);
     lock_->access_ref_count_--;
 }
 

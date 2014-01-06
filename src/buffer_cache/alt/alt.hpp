@@ -8,6 +8,7 @@
 #include "buffer_cache/general_types.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
+#include "buffer_cache/alt/semantic_checker.hpp"
 
 class auto_drainer_t;
 class serializer_t;
@@ -55,6 +56,10 @@ private:
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 
+public:
+    alt_semantic_checker_t checker;
+
+private:
     DISABLE_COPYING(alt_cache_t);
 };
 

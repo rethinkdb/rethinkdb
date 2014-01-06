@@ -2,6 +2,7 @@
 #define BUFFER_CACHE_ALT_SEMANTIC_CHECKER_HPP_
 
 #include "containers/two_level_array.hpp"
+#include "serializer/types.hpp"
 
 namespace alt {
 
@@ -11,8 +12,8 @@ typedef uint32_t crc_t;
 
 class alt_semantic_checker_t {
 public:
-    void set(alt_buf_lock_t *lock);
-    void check(alt_buf_lock_t *lock);
+    void set(block_id_t bid, const void *data, uint32_t size);
+    void check(block_id_t bid, const void *data, uint32_t size);
 private:
     two_level_array_t<crc_t> crc_map;
 };
