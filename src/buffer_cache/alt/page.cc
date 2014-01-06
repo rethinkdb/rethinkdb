@@ -967,6 +967,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
                 pages_modified_last_.push_back(acq->current_page_);
 
                 if (previous_modifier != NULL) {
+                    // RSP: Performance.
                     auto it = std::find(previous_modifier->pages_modified_last_.begin(),
                                         previous_modifier->pages_modified_last_.end(),
                                         acq->current_page_);

@@ -92,6 +92,14 @@ alt_txn_t::~alt_txn_t() {
     }
 }
 
+alt_snapshot_node_t::alt_snapshot_node_t()
+    : ref_count_(0) { }
+
+alt_snapshot_node_t::~alt_snapshot_node_t() {
+    // RSI: Other guarantees to make here?
+    guarantee(ref_count_ == 0);
+}
+
 alt_buf_lock_t::alt_buf_lock_t()
     : txn_(NULL),
       current_page_acq_(),

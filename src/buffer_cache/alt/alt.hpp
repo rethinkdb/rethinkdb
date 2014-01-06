@@ -108,15 +108,23 @@ private:
     DISABLE_COPYING(alt_txn_t);
 };
 
-class alt_snapshot_node_t : public single_threaded_countable_t<alt_snapshot_node_t> {
+class alt_snapshot_node_t {
 public:
     alt_snapshot_node_t();
     ~alt_snapshot_node_t();
 
 private:
-    page_t *page_;
+    page_ptr_t page_;
 
-    std::vector<alt_snapshot_node_t *> children_;
+    // RSP: std::map memory usage.
+    // A NULL pointer associated with a block id indicates that the block is deleted.
+    std::map<block_id_t, alt_snapshot_node_t *> children_;
+
+    // The number of alt_buf_lock_t's referring to this node, plus the number of
+    // alt_snapshot_node_t's referring to this node (via its children_ vector).
+    int64_t ref_count_;
+
+
     DISABLE_COPYING(alt_snapshot_node_t);
 };
 
