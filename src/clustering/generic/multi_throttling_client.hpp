@@ -8,6 +8,10 @@
 #include "concurrency/promise.hpp"
 #include "rpc/mailbox/typed.hpp"
 
+namespace profile {
+    class trace_t;
+} //namespace profile
+
 template <class> class registrant_t;
 template <class> class clone_ptr_t;
 template <class> class watchable_t;
@@ -46,7 +50,8 @@ public:
 
     signal_t *get_failed_signal();
 
-    void spawn_request(const request_type &request, ticket_acq_t *ticket_acq, signal_t *interruptor);
+    void spawn_request(const request_type &request, ticket_acq_t *ticket_acq,
+            profile::trace_t *trace, signal_t *interruptor);
 
 private:
     static boost::optional<boost::optional<registrar_business_card_t<client_business_card_t> > > extract_registrar_business_card(const boost::optional<boost::optional<mt_business_card_t> > &bcard);

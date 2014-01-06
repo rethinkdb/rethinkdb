@@ -12,15 +12,16 @@
 #include "btree/btree_store.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/archive/stl_types.hpp"
+#include "hash_region.hpp"
 #include "memcached/memcached_btree/backfill.hpp"
 #include "memcached/queries.hpp"
 #include "memcached/region.hpp"
-#include "hash_region.hpp"
+#include "perfmon/types.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/profile.hpp"
+#include "repli_timestamp.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "timestamps.hpp"
-#include "perfmon/types.hpp"
-#include "repli_timestamp.hpp"
 
 class io_backender_t;
 class real_superblock_t;
@@ -65,6 +66,8 @@ public:
         explicit read_response_t(const result_t &r) : result(r) { }
 
         result_t result;
+
+        profile::event_log_t event_log; //just for compatibility sake
     };
 
     struct read_t {
@@ -103,6 +106,8 @@ public:
         explicit write_response_t(const result_t& rv) : result(rv) { }
 
         result_t result;
+
+        profile::event_log_t event_log; //just for compatibility sake
     };
 
     struct write_t {

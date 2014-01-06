@@ -6,6 +6,7 @@
 #include "arch/timing.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "rdb_protocol/profile.hpp"
 
 // TODO: Was this macro supposed to be used?
 // #define THROTTLE_THRESHOLD 200
@@ -46,6 +47,7 @@ void master_access_t<protocol_t>::read(
         THROWS_ONLY(interrupted_exc_t,
                     resource_lost_exc_t,
                     cannot_perform_query_exc_t) {
+    profile::trace_t trace;
     rassert(region_is_superset(region, read.get_region()));
 
     promise_t<boost::variant<typename protocol_t::read_response_t, std::string> >
@@ -57,24 +59,30 @@ void master_access_t<protocol_t>::read(
                                                   std::string> >::pulse,
                         &result_or_failure, _1));
 
-    wait_interruptible(token, interruptor);
-    fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
-    typename multi_throttling_client_t<
-            typename master_business_card_t<protocol_t>::request_t,
-            typename master_business_card_t<protocol_t>::inner_client_business_card_t
-            >::ticket_acq_t ticket(&multi_throttling_client);
-    token->end();
+    {
+        profile::starter_t get_master_token("Getting master token.", &trace);
+        wait_interruptible(token, interruptor);
+        fifo_enforcer_read_token_t token_for_master = source_for_master.enter_read();
+        typename multi_throttling_client_t<
+                typename master_business_card_t<protocol_t>::request_t,
+                typename master_business_card_t<protocol_t>::inner_client_business_card_t
+                >::ticket_acq_t ticket(&multi_throttling_client);
+        token->end();
 
-    typename master_business_card_t<protocol_t>::read_request_t read_request(
-        read,
-        otok,
-        token_for_master,
-        result_or_failure_mailbox.get_address());
+        typename master_business_card_t<protocol_t>::read_request_t read_request(
+            read,
+            otok,
+            token_for_master,
+            result_or_failure_mailbox.get_address());
 
-    multi_throttling_client.spawn_request(read_request, &ticket, interruptor);
+        multi_throttling_client.spawn_request(read_request, &ticket, &trace, interruptor);
+    }
 
-    wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
-    wait_interruptible(&waiter, interruptor);
+    {
+        profile::starter_t wait_for_response("Waiting for response.", &trace);
+        wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
+        wait_interruptible(&waiter, interruptor);
+    }
 
     if (result_or_failure.is_pulsed()) {
         if (const std::string *error
@@ -84,6 +92,8 @@ void master_access_t<protocol_t>::read(
                 boost::get<typename protocol_t::read_response_t>(
                     &result_or_failure.wait())) {
             *response = *result;
+            profile::event_log_t local_ev_log = std::move(trace).get_event_log();
+            response->event_log.insert(response->event_log.begin(), local_ev_log.begin(), local_ev_log.end());
         } else {
             unreachable();
         }
@@ -105,6 +115,7 @@ void master_access_t<protocol_t>::write(
         fifo_enforcer_sink_t::exit_write_t *token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t, cannot_perform_query_exc_t) {
+    profile::trace_t trace;
     rassert(region_is_superset(region, write.get_region()));
 
     promise_t<boost::variant<typename protocol_t::write_response_t, std::string> > result_or_failure;
@@ -112,21 +123,25 @@ void master_access_t<protocol_t>::write(
         mailbox_manager,
         boost::bind(&promise_t<boost::variant<typename protocol_t::write_response_t, std::string> >::pulse, &result_or_failure, _1));
 
-    wait_interruptible(token, interruptor);
-    fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();
-    typename multi_throttling_client_t<
-            typename master_business_card_t<protocol_t>::request_t,
-            typename master_business_card_t<protocol_t>::inner_client_business_card_t
-            >::ticket_acq_t ticket(&multi_throttling_client);
-    token->end();
+    {
+        profile::starter_t get_master_token("Getting master token.", &trace);
+        wait_interruptible(token, interruptor);
+        fifo_enforcer_write_token_t token_for_master = source_for_master.enter_write();
+        typename multi_throttling_client_t<
+                typename master_business_card_t<protocol_t>::request_t,
+                typename master_business_card_t<protocol_t>::inner_client_business_card_t
+                >::ticket_acq_t ticket(&multi_throttling_client);
+        token->end();
 
-    typename master_business_card_t<protocol_t>::write_request_t write_request(
-        write,
-        otok,
-        token_for_master,
-        result_or_failure_mailbox.get_address());
 
-    multi_throttling_client.spawn_request(write_request, &ticket, interruptor);
+        typename master_business_card_t<protocol_t>::write_request_t write_request(
+            write,
+            otok,
+            token_for_master,
+            result_or_failure_mailbox.get_address());
+
+        multi_throttling_client.spawn_request(write_request, &ticket, &trace, interruptor);
+    }
 
     wait_any_t waiter(result_or_failure.get_ready_signal(), get_failed_signal());
     wait_interruptible(&waiter, interruptor);
@@ -137,6 +152,8 @@ void master_access_t<protocol_t>::write(
         } else if (const typename protocol_t::write_response_t *result =
                 boost::get<typename protocol_t::write_response_t>(&result_or_failure.wait())) {
             *response = *result;
+            profile::event_log_t local_ev_log = std::move(trace).get_event_log();
+            response->event_log.insert(response->event_log.begin(), local_ev_log.begin(), local_ev_log.end());
         } else {
             unreachable();
         }

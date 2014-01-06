@@ -17,6 +17,7 @@
 #include "timestamps.hpp"
 #include "perfmon/types.hpp"
 #include "utils.hpp"
+#include "rdb_protocol/profile.hpp"
 
 class signal_t;
 class io_backender_t;
@@ -46,6 +47,8 @@ public:
         RDB_MAKE_ME_SERIALIZABLE_1(values);
 
         std::map<std::string, std::string> values;
+
+        profile::event_log_t event_log; //just for compatibility sake
     };
 
     class read_t {
@@ -66,7 +69,10 @@ public:
     class write_response_t {
     public:
         RDB_MAKE_ME_SERIALIZABLE_1(old_values);
+
         std::map<std::string, std::string> old_values;
+
+        profile::event_log_t event_log; //just for compatibility sake
     };
 
     class write_t {

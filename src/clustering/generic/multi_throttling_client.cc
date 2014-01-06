@@ -2,6 +2,7 @@
 
 #include "clustering/generic/registrant.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "rdb_protocol/profile.hpp"
 
 template <class request_type, class inner_client_business_card_type>
 multi_throttling_client_t<request_type, inner_client_business_card_type>::ticket_acq_t::ticket_acq_t(multi_throttling_client_t *p) : parent(p) {
@@ -89,8 +90,12 @@ signal_t *multi_throttling_client_t<request_type, inner_client_business_card_typ
 }
 
 template <class request_type, class inner_client_business_card_type>
-void multi_throttling_client_t<request_type, inner_client_business_card_type>::spawn_request(const request_type &request, ticket_acq_t *ticket_acq, signal_t *interruptor) {
-    wait_interruptible(ticket_acq, interruptor);
+void multi_throttling_client_t<request_type, inner_client_business_card_type>::spawn_request(const request_type &request, ticket_acq_t *ticket_acq,
+        profile::trace_t *trace, signal_t *interruptor) {
+    {
+        profile::starter_t get_throttled("Getting throttled.", trace);
+        wait_interruptible(ticket_acq, interruptor);
+    }
     guarantee(ticket_acq->state == ticket_acq_t::state_acquired_ticket);
     ticket_acq->state = ticket_acq_t::state_used_ticket;
     send(mailbox_manager, intro_promise.wait().request_addr, request);
