@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "concurrency/wait_any.hpp"
+#include "config/args.hpp"
 #include "containers/archive/archive.hpp"
 
 template<class metadata_t>
@@ -34,6 +35,8 @@ void directory_read_manager_t<metadata_t>::on_connect(peer_id_t peer) THROWS_NOT
 
 template<class metadata_t>
 void directory_read_manager_t<metadata_t>::on_message(peer_id_t source_peer, string_read_stream_t *s) THROWS_NOTHING {
+    with_priority_t p(CORO_PRIORITY_DIRECTORY_CHANGES);
+
     uint8_t code = 0;
     {
         archive_result_t res = deserialize(s, &code);
@@ -117,22 +120,17 @@ void directory_read_manager_t<metadata_t>::on_disconnect(peer_id_t peer) THROWS_
     if (got_initialization) {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-        /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
-        Because we cannot use C++11 lambdas yet due to missing support in
-        GCC 4.4, this is the messy work-around: */
         struct op_closure_t {
-            bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+            static bool apply(peer_id_t _peer,
+                              change_tracking_map_t<peer_id_t, metadata_t> *map) {
                 map->begin_version();
-                map->delete_value(peer);
+                map->delete_value(_peer);
                 return true;
             }
-            op_closure_t(peer_id_t &c1) :
-                peer(c1) { }
-            peer_id_t &peer;
         };
-        op_closure_t op(peer);
 
-        variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+        variable.apply_atomic_op(std::bind(&op_closure_t::apply, peer,
+                                           std::placeholders::_1));
     }
 }
 
@@ -160,25 +158,19 @@ void directory_read_manager_t<metadata_t>::propagate_initialization(peer_id_t pe
     {
         DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-        /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
-        Because we cannot use C++11 lambdas yet due to missing support in
-        GCC 4.4, this is the messy work-around: */
         struct op_closure_t {
-            bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+            static bool apply(peer_id_t _peer,
+                              const boost::shared_ptr<metadata_t> &_initial_value,
+                              change_tracking_map_t<peer_id_t, metadata_t> *map) {
                 map->begin_version();
-                map->set_value(peer, std::move(*initial_value));
+                map->set_value(_peer, std::move(*_initial_value));
                 return true;
             }
-            op_closure_t(peer_id_t &c1,
-                         const boost::shared_ptr<metadata_t> &c2) :
-                peer(c1),
-                initial_value(c2) { }
-            peer_id_t &peer;
-            const boost::shared_ptr<metadata_t> &initial_value;
         };
-        op_closure_t op(peer, initial_value);
 
-        variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+        variable.apply_atomic_op(std::bind(&op_closure_t::apply, peer,
+                                           std::ref(initial_value),
+                                           std::placeholders::_1));
     }
 
     /* Create a metadata FIFO sink and pulse the `got_initial_message` cond so
@@ -226,38 +218,38 @@ void directory_read_manager_t<metadata_t>::propagate_update(peer_id_t peer, uuid
                                                      metadata_fifo_token);
         wait_interruptible(&fifo_exit, session_keepalive.get_drain_signal());
 
+        // This yield is here to avoid heartbeat timeouts in the following scenario:
+        //  1. Have a cluster of many nodes, e.g. 64
+        //  2. Create a table
+        //  3. Reshard the table to 32 shards
+        coro_t::yield();
+
         {
             DEBUG_VAR mutex_assertion_t::acq_t acq(&variable_lock);
 
-            /* C++11: auto op = [&] (change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool { ... }
-            Because we cannot use C++11 lambdas yet due to missing support in
-            GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
-                bool operator()(change_tracking_map_t<peer_id_t, metadata_t> *map) {
+                static bool apply(const peer_id_t _peer,
+                                  const boost::shared_ptr<metadata_t> &_new_value,
+                                  const boost::ptr_map<peer_id_t, session_t> &_sessions,
+                                  change_tracking_map_t<peer_id_t, metadata_t> *map) {
                     typename std::map<peer_id_t, metadata_t>::const_iterator var_it
-                        = map->get_inner().find(peer);
+                        = map->get_inner().find(_peer);
                     if (var_it == map->get_inner().end()) {
-                        guarantee(!std_contains(sessions, peer));
+                        guarantee(!std_contains(_sessions, _peer));
                         //The session was deleted we can ignore this update.
                         return false;
                     }
                     map->begin_version();
-                    map->set_value(peer, std::move(*new_value));
+                    map->set_value(_peer, std::move(*_new_value));
                     return true;
                 }
-                op_closure_t(peer_id_t &c1,
-                             const boost::shared_ptr<metadata_t> &c2,
-                             boost::ptr_map<peer_id_t, session_t> &c3) :
-                    peer(c1),
-                    new_value(c2),
-                    sessions(c3) { }
-                peer_id_t &peer;
-                const boost::shared_ptr<metadata_t> &new_value;
-                boost::ptr_map<peer_id_t, session_t> &sessions;
             };
-            op_closure_t op(peer, new_value, sessions);
 
-            variable.apply_atomic_op(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+            variable.apply_atomic_op(std::bind(&op_closure_t::apply,
+                                               peer,
+                                               std::ref(new_value),
+                                               std::ref(sessions),
+                                               std::placeholders::_1));
         }
     } catch (const interrupted_exc_t &) {
         /* Here's what happened: `on_disconnect()` was called for the peer. It

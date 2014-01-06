@@ -1,10 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/blocker_pool.hpp"
 
-#include "utils.hpp"
-#include "config/args.hpp"
-
 #include <string.h>
+
+#include "config/args.hpp"
+#include "utils.hpp"
 
 __thread int thread_is_blocker_pool_thread = 0;
 // Access functions to thread_is_blocker_pool_thread. Marked as NOINLINE

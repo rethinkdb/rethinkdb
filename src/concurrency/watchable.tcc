@@ -7,6 +7,7 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "arch/timing.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/wait_any.hpp"
 
@@ -79,24 +80,20 @@ private:
             // The closure is to avoid copying the whole value from the parent.
 
             bool value_changed = false;
-            /* C++11: auto op = [&] (const outer_type *val) -> void { ... }
-            Because we cannot use C++11 lambdas yet due to missing support in
-            GCC 4.4, this is the messy work-around: */
             struct op_closure_t {
-                void operator()(const outer_type *val) {
-                    value_changed = lens(*val, &cached_value);
+                static void apply(callable_type *_lens,
+                                  bool *_value_changed,
+                                  result_type *_cached_value,
+                                  const outer_type *val) {
+                    *_value_changed = (*_lens)(*val, _cached_value);
                 }
-                op_closure_t(callable_type &c1, bool &c2, result_type &c3) :
-                    lens(c1),
-                    value_changed(c2),
-                    cached_value(c3) { }
-                callable_type &lens;
-                bool &value_changed;
-                result_type &cached_value;
             };
-            op_closure_t op(lens, value_changed, cached_value);
 
-            parent->apply_read(std::bind(&op_closure_t::operator(), &op, std::placeholders::_1));
+            parent->apply_read(std::bind(&op_closure_t::apply,
+                                         &lens,
+                                         &value_changed,
+                                         &cached_value,
+                                         std::placeholders::_1));
 
             return value_changed;
         }
@@ -115,7 +112,7 @@ private:
         typename watchable_t<outer_type>::subscription_t parent_subscription;
     };
 
-    subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
+    explicit subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
         cache(_cache) { }
 
     // If you clone a subview_watchable_t, all clones share the same cache.
@@ -175,10 +172,41 @@ clone_ptr_t<watchable_t<typename boost::result_of<callable_type(value_type)>::ty
         new subview_watchable_t<typename wrapped_callable_type::result_type, value_type, wrapped_callable_type>(wrapped_lens, this));
 }
 
+// These are helper functions for `run_until_satisfied()` and `run_until_satisfied_2()`
+// that can be passed into a watchable's `apply_read()`. They simply apply the
+// provided function `_fun` to the current value of the watchable(s) and pass out
+// its boolean return value.
+template<class value_type, class callable_type>
+void run_until_satisfied_apply(const callable_type &_fun, const value_type *val,
+        bool *is_done_out) {
+    *is_done_out = _fun(*val);
+}
+template<class a_type, class b_type, class callable_type>
+void run_until_satisfied_2_apply_inner(const callable_type &_fun,
+        const a_type *a_val, const b_type *b_val, bool *is_done_out) {
+    *is_done_out = _fun(*a_val, *b_val);
+}
+template<class a_type, class b_type, class callable_type>
+void run_until_satisfied_2_apply_outer(const callable_type &_fun,
+        const clone_ptr_t<watchable_t<b_type> > &_b, const a_type *a_val,
+        bool *is_done_out) {
+    _b->apply_read(std::bind(
+        &run_until_satisfied_2_apply_inner<a_type, b_type, callable_type>, _fun, a_val,
+        std::placeholders::_1, is_done_out));
+}
+
 template<class value_type>
 template<class callable_type>
-void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void watchable_t<value_type>::run_until_satisfied(const callable_type &fun,
+        signal_t *interruptor, int64_t nap_before_retry_ms) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
+
+    bool is_done = false;
+    auto op = std::bind(&run_until_satisfied_apply<value_type, callable_type>,
+                        fun,
+                        std::placeholders::_1,
+                        &is_done);
+
     clone_ptr_t<watchable_t<value_type> > clone_this(this->clone());
     while (true) {
         cond_t changed;
@@ -186,10 +214,17 @@ void watchable_t<value_type>::run_until_satisfied(const callable_type &fun, sign
         {
             typename watchable_t<value_type>::freeze_t freeze(clone_this);
             ASSERT_FINITE_CORO_WAITING;
-            if (fun(clone_this->get())) {
+            clone_this->apply_read(op);
+            if (is_done) {
                 return;
             }
             subs.reset(clone_this, &freeze);
+        }
+        // Nap a little so changes to the watchables can accumulate.
+        // This is purely a performance optimization to save CPU cycles,
+        // in case that applying `fun` is expensive.
+        if (nap_before_retry_ms > 0) {
+            nap(nap_before_retry_ms, interruptor);
         }
         wait_interruptible(&changed, interruptor);
     }
@@ -200,9 +235,18 @@ void run_until_satisfied_2(
         const clone_ptr_t<watchable_t<a_type> > &a,
         const clone_ptr_t<watchable_t<b_type> > &b,
         const callable_type &fun,
-        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+        signal_t *interruptor,
+        int64_t nap_before_retry_ms) THROWS_ONLY(interrupted_exc_t) {
     a->assert_thread();
     b->assert_thread();
+
+    bool is_done = false;
+    auto op = std::bind(&run_until_satisfied_2_apply_outer<a_type, b_type, callable_type>,
+                        fun,
+                        b,
+                        std::placeholders::_1,
+                        &is_done);
+
     while (true) {
         cond_t changed;
         typename watchable_t<a_type>::subscription_t a_subs(boost::bind(&cond_t::pulse_if_not_already_pulsed, &changed));
@@ -211,11 +255,19 @@ void run_until_satisfied_2(
             typename watchable_t<a_type>::freeze_t a_freeze(a);
             typename watchable_t<b_type>::freeze_t b_freeze(b);
             ASSERT_FINITE_CORO_WAITING;
-            if (fun(a->get(), b->get())) {
+            a->apply_read(op);
+            if (is_done) {
                 return;
             }
             a_subs.reset(a, &a_freeze);
             b_subs.reset(b, &b_freeze);
+        }
+        // Nap a little so changes to the watchables can accumulate.
+        // This is purely a performance optimization to save CPU cycles,
+        // in case that applying `fun` is expensive (which it is in our
+        // applications in the reactors as of 12/10/2013).
+        if (nap_before_retry_ms > 0) {
+            nap(nap_before_retry_ms, interruptor);
         }
         wait_interruptible(&changed, interruptor);
     }

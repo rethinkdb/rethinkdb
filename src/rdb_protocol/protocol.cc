@@ -12,6 +12,7 @@
 #include "btree/slice.hpp"
 #include "btree/superblock.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/reactor/reactor.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
@@ -534,7 +535,12 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const rget_read_t &rg) const {
-        return rangey_read(rg);
+        bool do_read = rangey_read(rg);
+        if (do_read) {
+            auto rg_out = boost::get<rget_read_t>(&read_out->read);
+            rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+        }
+        return do_read;
     }
 
     bool operator()(const distribution_read_t &dg) const {
@@ -1621,7 +1627,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
-        rdb_value_deleter_t deleter;
+        rdb_value_non_deleter_t deleter;
 
         res.success = store->drop_sindex(token_pair,
                                          d.id,
@@ -1877,7 +1883,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
         value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
-        rdb_value_deleter_t deleter;
+        rdb_value_non_deleter_t deleter;
         scoped_ptr_t<buf_lock_t> sindex_block;
         std::set<std::string> created_sindexes;
         store->set_sindexes(token_pair, s.sindexes, txn, superblock, &sizer, &deleter, &sindex_block, &created_sindexes, interruptor);

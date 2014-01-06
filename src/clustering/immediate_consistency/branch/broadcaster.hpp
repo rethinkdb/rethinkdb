@@ -1,9 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BRANCH_BROADCASTER_HPP_
 
 #include <list>
 #include <map>
+#include <vector>
 
 #include "utils.hpp"
 #include <boost/shared_ptr.hpp>

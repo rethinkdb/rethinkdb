@@ -3,6 +3,7 @@
 #define RDB_PROTOCOL_TRANSFORM_VISITORS_HPP_
 
 #include <list>
+#include <vector>
 
 #include "http/json.hpp"
 #include "rdb_protocol/env.hpp"

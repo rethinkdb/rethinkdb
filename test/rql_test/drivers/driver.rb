@@ -79,7 +79,7 @@ def cmp_test(one, two)
     cmp = one.class.name <=> two.class.name
     return cmp if cmp != 0
     if not two.regex
-      one_msg = one.message.sub(/:\n.*|:$/, ".")
+      one_msg = one.message.sub(/:\n(.|\n)*|:$/, ".")
       [one.type, one_msg] <=> [two.type, two.message]
     else
       if (Regexp.compile two.type) =~ one.type and

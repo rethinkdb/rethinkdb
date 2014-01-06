@@ -1,8 +1,9 @@
 #include "rethinkdb_backtrace.hpp"
 
+#include <execinfo.h>
+
 #ifdef __MACH__
 
-#include <execinfo.h>
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -92,9 +93,9 @@ int rethinkdb_backtrace(void **buffer, int size) {
 }
 
 #else
-#include <execinfo.h>
 
 int rethinkdb_backtrace(void **buffer, int size) {
     return backtrace(buffer, size);
 }
+
 #endif  // __MACH__

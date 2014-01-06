@@ -7,6 +7,7 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "config/args.hpp"
 
 template<class key_t, class value_t>
 bool collapse_optionals_in_map(const change_tracking_map_t<key_t, boost::optional<value_t> > &map, change_tracking_map_t<key_t, value_t> *current_out) {
@@ -71,6 +72,7 @@ reactor_t<protocol_t>::reactor_t(
     blueprint_subscription(boost::bind(&reactor_t<protocol_t>::on_blueprint_changed, this)),
     ctx(_ctx)
 {
+    with_priority_t p(CORO_PRIORITY_REACTOR);
     {
         typename watchable_t<blueprint_t<protocol_t> >::freeze_t freeze(blueprint_watchable);
         blueprint_watchable->get().guarantee_valid();
@@ -259,7 +261,9 @@ void reactor_t<protocol_t>::run_role(
              * correct assumption. The below line waits until the bcard shows
              * up in the directory thus make sure that the bcard is in the
              * directory before the be_role functions get called. */
-            directory_echo_mirror.get_internal()->run_until_satisfied(boost::bind(&we_see_our_bcard<protocol_t>, _1, get_me()), &wait_any);
+            directory_echo_mirror.get_internal()->run_until_satisfied(
+                boost::bind(&we_see_our_bcard<protocol_t>, _1, get_me()), &wait_any,
+                REACTOR_RUN_UNTIL_SATISFIED_NAP);
             // guarantee(CLUSTER_CPU_SHARDING_FACTOR == svs_subview.num_stores());
 
             pmap(svs_subview.num_stores(), boost::bind(&reactor_t<protocol_t>::run_cpu_sharded_role, this, _1, role, region, &svs_subview, &wait_any, &role->abort_roles));
