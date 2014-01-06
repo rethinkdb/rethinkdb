@@ -57,6 +57,8 @@ private:
     alt_memory_tracker_t tracker_;
     page_cache_t page_cache_;
 
+    segmented_vector_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
+
     scoped_ptr_t<auto_drainer_t> drainer_;
 
     DISABLE_COPYING(alt_cache_t);
@@ -108,7 +110,10 @@ private:
     DISABLE_COPYING(alt_txn_t);
 };
 
-class alt_snapshot_node_t {
+// The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
+// given block id, in order by version.  (See
+// alt_cache_t::snapshot_nodes_by_block_id_.)
+class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
 public:
     alt_snapshot_node_t();
     ~alt_snapshot_node_t();
