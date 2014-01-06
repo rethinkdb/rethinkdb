@@ -130,6 +130,10 @@ public:
 
     page_ptr_t(page_ptr_t &&movee);
     page_ptr_t &operator=(page_ptr_t &&movee);
+
+    // RSI: Does anybody use this?
+    page_ptr_t copy();
+
     void init(page_t *page, page_cache_t *page_cache);
 
     page_t *get_page_for_read() const;
@@ -195,6 +199,10 @@ public:
 
     bool operator<(block_version_t other) const {
         return value_ < other.value_;
+    }
+
+    bool operator<=(block_version_t other) const {
+        return value_ <= other.value_;
     }
 
     bool operator==(block_version_t other) const {
@@ -299,11 +307,17 @@ public:
     page_t *current_page_for_read();
     page_t *current_page_for_write();
 
+    // Returns current_page_for_read, except it guarantees that the page acq has
+    // already snapshotted the page and is not waiting for the page_t *.
+    page_t *snapshotted_page_ptr();
+
     block_id_t block_id() const { return block_id_; }
     alt_access_t access() const { return access_; }
     repli_timestamp_t recency() const;
 
     void mark_deleted();
+
+    block_version_t block_version() const;
 
 private:
     void init(page_txn_t *txn,
@@ -318,7 +332,6 @@ private:
 
     // Returns true if the page has been created, edited, or deleted.
     bool dirtied_page() const;
-    block_version_t block_version() const;
     // Declares ourself readonly.  Only page_txn_t::remove_acquirer can do this!
     void declare_readonly();
 

@@ -16,6 +16,7 @@ class serializer_t;
 namespace alt {
 
 class alt_buf_lock_t;
+class alt_snapshot_node_t;
 
 enum class alt_create_t {
     create,
@@ -49,6 +50,13 @@ private:
     friend class alt_buf_read_t;  // for &page_cache_
     friend class alt_buf_write_t;  // for &page_cache_
 
+    friend class alt_buf_lock_t;  // for latest_snapshot_node and
+                                  // push_latest_snapshot_node
+
+    alt_snapshot_node_t *latest_snapshot_node(block_id_t block_id);
+    void push_latest_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
+    void remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
+
     // tracker_ is used for throttling (which can cause the alt_txn_t constructor to
     // block).  RSI: The throttling interface is bad (maybe) because it's worried
     // about transaction_t's passing one another(?) or maybe the callers are bad with
@@ -57,6 +65,9 @@ private:
     alt_memory_tracker_t tracker_;
     page_cache_t page_cache_;
 
+    // RSI: Is there any reason for this to be an intrusive_list_t?  I think we only
+    // use the last node on the list -- and only when it has the latest block
+    // version.
     segmented_vector_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
 
     scoped_ptr_t<auto_drainer_t> drainer_;
@@ -119,7 +130,15 @@ public:
     ~alt_snapshot_node_t();
 
 private:
+    // RSI: Should this really use friends?  Does this type need to be visible in the
+    // header?
+    friend class alt_buf_lock_t;
+
     page_ptr_t page_;
+
+    block_version_t block_version_;
+
+    repli_timestamp_t recency_;
 
     // RSP: std::map memory usage.
     // A NULL pointer associated with a block id indicates that the block is deleted.
@@ -231,8 +250,11 @@ public:
 private:
     static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
 
-    friend class alt_buf_read_t;
-    friend class alt_buf_write_t;
+    friend class alt_buf_read_t;  // for get_held_page_for_read, access_ref_count_.
+    friend class alt_buf_write_t;  // for get_held_page_for_write, access_ref_count_.
+
+    page_t *get_held_page_for_read();
+    page_t *get_held_page_for_write();
 
     alt_txn_t *txn_;
 

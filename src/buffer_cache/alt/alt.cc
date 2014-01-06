@@ -43,6 +43,23 @@ block_size_t alt_cache_t::max_block_size() const {
     return page_cache_.max_block_size();
 }
 
+alt_snapshot_node_t *alt_cache_t::latest_snapshot_node(block_id_t block_id) {
+    if (block_id < snapshot_nodes_by_block_id_.size()) {
+        return snapshot_nodes_by_block_id_[block_id].tail();
+    } else {
+        return NULL;
+    }
+}
+
+void alt_cache_t::push_latest_snapshot_node(block_id_t block_id,
+                                            alt_snapshot_node_t *node) {
+    snapshot_nodes_by_block_id_[block_id].push_back(node);
+}
+
+void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {
+    snapshot_nodes_by_block_id_[block_id].remove(node);
+}
+
 alt_inner_txn_t::alt_inner_txn_t(alt_cache_t *cache, alt_inner_txn_t *preceding_txn)
     : cache_(cache),
       page_txn_(&cache->page_cache_,
@@ -93,7 +110,7 @@ alt_txn_t::~alt_txn_t() {
 }
 
 alt_snapshot_node_t::alt_snapshot_node_t()
-    : ref_count_(0) { }
+    : recency_(repli_timestamp_t::invalid), ref_count_(0) { }
 
 alt_snapshot_node_t::~alt_snapshot_node_t() {
     // RSI: Other guarantees to make here?
@@ -211,9 +228,17 @@ alt_buf_lock_t::~alt_buf_lock_t() {
         debugf("%p: alt_buf_lock_t %p destroy %lu\n", cache(), this, block_id());
     }
 #endif
-    // RSI: We'll have to do something with snapshot_node_ here.
-    (void)snapshot_node_;
     guarantee(access_ref_count_ == 0);
+
+    if (snapshot_node_ != NULL) {
+        // RSI: This will surely be duplicated elsewhere (the other place we reduce the
+        // refcount).
+        --snapshot_node_->ref_count_;
+        if (snapshot_node_->ref_count_ == 0) {
+            cache()->remove_snapshot_node(block_id(),
+                                          snapshot_node_);
+        }
+    }
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t &&movee)
@@ -248,9 +273,45 @@ void alt_buf_lock_t::reset_buf_lock() {
     swap(tmp);
 }
 
+// RSI: Rename this to snapshot_subdag.
 void alt_buf_lock_t::snapshot_subtree() {
     guarantee(!empty());
-    // RSI: Actually implement this.
+    if (snapshot_node_ != NULL) {
+        return;
+    }
+
+    // Wait for read access.  Not waiting for read access would make subdag
+    // snapshotting more difficult to implement.
+    read_acq_signal()->wait();
+
+    alt_snapshot_node_t *latest_node = cache()->latest_snapshot_node(block_id());
+
+    rassert(latest_node == NULL
+            || latest_node->block_version_ <= current_page_acq_->block_version());
+    if (latest_node != NULL
+        && latest_node->block_version_ == current_page_acq_->block_version()) {
+        snapshot_node_ = latest_node;
+        ++snapshot_node_->ref_count_;
+    } else {
+        // RSI: There's gotta be a more encapsulated way to do this.
+        alt_snapshot_node_t *node = new alt_snapshot_node_t;
+        node->block_version_ = current_page_acq_->block_version();
+        node->page_.init(current_page_acq_->current_page_for_read(),
+                         &cache()->page_cache_);
+        rassert(node->ref_count_ == 0);
+        ++node->ref_count_;
+        node->recency_ = current_page_acq_->recency();
+
+        cache()->push_latest_snapshot_node(block_id(), node);
+        snapshot_node_ = node;
+    }
+
+    // Snapshotting's set up, so we can now declare our hold on the block to be
+    // snapshotted.  Or no, we can just release our hold on the block, since we never
+    // use current_page_acq_ again -- snapshotted alt_buf_lock_t's just use the
+    // snapshot node.
+    // RSI: We do use declare_snapshotted in the page cache -- but is it overengineered?
+    current_page_acq_.reset();
 }
 
 void alt_buf_lock_t::detach_child(block_id_t child_id) {
@@ -271,7 +332,30 @@ void alt_buf_lock_t::reduce_to_nothing() {
 
 repli_timestamp_t alt_buf_lock_t::get_recency() const {
     guarantee(!empty());
-    return current_page_acq_->recency();
+    if (snapshot_node_ != NULL) {
+        return snapshot_node_->recency_;
+    } else {
+        return current_page_acq_->recency();
+    }
+}
+
+page_t *alt_buf_lock_t::get_held_page_for_read() {
+    guarantee(!empty());
+    if (snapshot_node_ != NULL) {
+        return snapshot_node_->page_.get_page_for_read();
+    } else {
+        current_page_acq_->read_acq_signal()->wait();
+        guarantee(!empty());
+        return current_page_acq_->current_page_for_read();
+    }
+}
+
+page_t *alt_buf_lock_t::get_held_page_for_write() {
+    guarantee(!empty());
+    rassert(snapshot_node_ == NULL);
+    current_page_acq_->write_acq_signal()->wait();
+    guarantee(!empty());
+    return current_page_acq_->current_page_for_write();
 }
 
 alt_buf_read_t::alt_buf_read_t(alt_buf_lock_t *lock)
@@ -286,10 +370,7 @@ alt_buf_read_t::~alt_buf_read_t() {
 }
 
 const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
-    guarantee(!lock_->empty());
-    lock_->current_page_acq_->read_acq_signal()->wait();
-    page_t *page = lock_->current_page_acq_->current_page_for_read();
-    guarantee(!lock_->empty());
+    page_t *page = lock_->get_held_page_for_read();
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache()->page_cache_);
     }
@@ -310,12 +391,9 @@ alt_buf_write_t::~alt_buf_write_t() {
 }
 
 void *alt_buf_write_t::get_data_write(uint32_t block_size) {
-    guarantee(!lock_->empty());
     // RSI: Use block_size somehow.
     (void)block_size;
-    lock_->current_page_acq_->write_acq_signal()->wait();
-    guarantee(!lock_->empty());
-    page_t *page = lock_->current_page_acq_->current_page_for_write();
+    page_t *page = lock_->get_held_page_for_write();
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache()->page_cache_);
     }
