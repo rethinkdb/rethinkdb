@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_OPERATIONS_HPP_
 #define BTREE_OPERATIONS_HPP_
 
@@ -11,8 +11,9 @@
 #include "btree/slice.hpp"  // RSI: Remove.  for SLICE_ALT
 #if SLICE_ALT
 #include "buffer_cache/alt/alt.hpp"
-#endif
+#else
 #include "buffer_cache/buffer_cache.hpp"
+#endif
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -264,9 +265,10 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
                             alt::alt_buf_lock_t *last_buf,
                             superblock_t *sb,
                             const btree_key_t *key, void *new_value);
-#endif
+#else
 void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                             const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority);
+#endif
 
 #if SLICE_ALT
 void check_and_handle_underfull(value_sizer_t<void> *sizer,
@@ -274,25 +276,28 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                 alt::alt_buf_lock_t *last_buf,
                                 superblock_t *sb,
                                 const btree_key_t *key);
-#endif
+#else
 void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
                                 const btree_key_t *key);
+#endif
 
 // Metainfo functions
 #if SLICE_ALT
 bool get_superblock_metainfo(alt::alt_buf_lock_t *superblock,
                              const std::vector<char> &key,
                              std::vector<char> *value_out);
-#endif
+#else
 bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, std::vector<char> *value_out);
+#endif
 
 #if SLICE_ALT
 void get_superblock_metainfo(
     alt::alt_buf_lock_t *superblock,
     std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
-#endif
+#else
 void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector< std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out);
+#endif
 
 #if SLICE_ALT
 void set_superblock_metainfo(alt::alt_buf_lock_t *superblock,
@@ -315,20 +320,22 @@ void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock);
 #endif
 
 /* Set sb to have root id as its root block and release sb */
-void insert_root(block_id_t root_id, superblock_t* sb);
+void insert_root(block_id_t root_id, superblock_t *sb);
 
 /* Create a stat block for the superblock if it doesn't already have one. */
 #if SLICE_ALT
 void ensure_stat_block(superblock_t *sb);
-#endif
+#else
 void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority);
+#endif
 
 #if SLICE_ALT
 // RSI: return the scoped_ptr_t.
 void get_btree_superblock(alt::alt_txn_t *txn, alt::alt_access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out);
-#endif
+#else
 void get_btree_superblock(transaction_t *txn, access_t access, scoped_ptr_t<real_superblock_t> *got_superblock_out);
+#endif
 
 #if SLICE_ALT
 void get_btree_superblock_and_txn(btree_slice_t *slice,
@@ -339,22 +346,24 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<alt::alt_txn_t> *txn_out);
-#endif
+#else
 void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
                                   access_t superblock_access, int expected_change_count,
                                   repli_timestamp_t tstamp, order_token_t token,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<transaction_t> *txn_out);
+#endif
 
 #if SLICE_ALT
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<alt::alt_txn_t> *txn_out);
-#endif
+#else
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<transaction_t> *txn_out);
+#endif
 
 #if SLICE_ALT
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
@@ -362,11 +371,12 @@ void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<alt::alt_txn_t> *txn_out);
-#endif
+#else
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<transaction_t> *txn_out);
+#endif
 
 #include "btree/operations.tcc"
 

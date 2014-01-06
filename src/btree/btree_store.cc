@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/btree_store.hpp"
 
 #include "btree/operations.hpp"
@@ -102,7 +102,8 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 #else
         scoped_ptr_t<buf_lock_t> sindex_block;
         acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
-                                      superblock->get_sindex_block_id())
+                                      superblock->get_sindex_block_id(),
+                                      &dummy_interruptor);
 #endif
 
         std::map<std::string, secondary_index_t> sindexes;
@@ -671,6 +672,7 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
 }
 #endif
 
+#if SLICE_ALT
 void clear_sindex(
         alt_txn_t *txn, block_id_t superblock_id,
         btree_slice_t *slice, value_sizer_t<void> *sizer,
@@ -696,7 +698,7 @@ void clear_sindex(
         sindex_superblock_lock.mark_deleted();
     }
 }
-
+#endif
 
 #if SLICE_ALT
 template <class protocol_t>

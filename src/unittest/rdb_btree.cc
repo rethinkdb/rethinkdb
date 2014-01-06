@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <functional>
 
 #include "arch/io/disk.hpp"
@@ -334,7 +334,12 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
                 &token_pair, txn.get(),
 #endif
                 &sindex_sb,
+#if SLICE_ALT
                 static_cast<std::vector<char>*>(NULL));
+#else
+                static_cast<std::vector<char>*>(NULL),
+                &dummy_interruptor);
+#endif
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
