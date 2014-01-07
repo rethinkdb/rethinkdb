@@ -6,6 +6,8 @@
 // RSI: get rid of this.
 #define ALT_DEBUG 0
 
+// RSI: Add ASSERT_FINITE_CORO_WAITING or ASSERT_NO_CORO_WAITING wherever we can.
+
 namespace alt {
 
 alt_memory_tracker_t::alt_memory_tracker_t()
@@ -110,7 +112,7 @@ alt_txn_t::~alt_txn_t() {
 }
 
 alt_snapshot_node_t::alt_snapshot_node_t()
-    : recency_(repli_timestamp_t::invalid), ref_count_(0) { }
+    : ref_count_(0) { }
 
 alt_snapshot_node_t::~alt_snapshot_node_t() {
     // RSI: Other guarantees to make here?
@@ -287,20 +289,19 @@ void alt_buf_lock_t::snapshot_subtree() {
     alt_snapshot_node_t *latest_node = cache()->latest_snapshot_node(block_id());
 
     rassert(latest_node == NULL
-            || latest_node->block_version_ <= current_page_acq_->block_version());
+            || latest_node->current_page_acq_->block_version() <= current_page_acq_->block_version());
     if (latest_node != NULL
-        && latest_node->block_version_ == current_page_acq_->block_version()) {
+        && latest_node->current_page_acq_->block_version() == current_page_acq_->block_version()) {
         snapshot_node_ = latest_node;
         ++snapshot_node_->ref_count_;
     } else {
+        ASSERT_FINITE_CORO_WAITING;
         // RSI: There's gotta be a more encapsulated way to do this.
         alt_snapshot_node_t *node = new alt_snapshot_node_t;
-        node->block_version_ = current_page_acq_->block_version();
-        node->page_.init(current_page_acq_->current_page_for_read(),
-                         &cache()->page_cache_);
+        node->current_page_acq_ = std::move(current_page_acq_);
+        current_page_acq_.reset();
         rassert(node->ref_count_ == 0);
         ++node->ref_count_;
-        node->recency_ = current_page_acq_->recency();
 
         cache()->push_latest_snapshot_node(block_id(), node);
         snapshot_node_ = node;
@@ -333,7 +334,8 @@ void alt_buf_lock_t::reduce_to_nothing() {
 repli_timestamp_t alt_buf_lock_t::get_recency() const {
     guarantee(!empty());
     if (snapshot_node_ != NULL) {
-        return snapshot_node_->recency_;
+        // RSI: dedup these branches?
+        return snapshot_node_->current_page_acq_->recency();
     } else {
         return current_page_acq_->recency();
     }
@@ -342,7 +344,10 @@ repli_timestamp_t alt_buf_lock_t::get_recency() const {
 page_t *alt_buf_lock_t::get_held_page_for_read() {
     guarantee(!empty());
     if (snapshot_node_ != NULL) {
-        return snapshot_node_->page_.get_page_for_read();
+        // RSI: dedup these branches?
+        snapshot_node_->current_page_acq_->read_acq_signal()->wait();
+        guarantee(!empty());
+        return snapshot_node_->current_page_acq_->current_page_for_read();
     } else {
         current_page_acq_->read_acq_signal()->wait();
         guarantee(!empty());

@@ -134,11 +134,10 @@ private:
     // header?
     friend class alt_buf_lock_t;
 
-    page_ptr_t page_;
-
-    block_version_t block_version_;
-
-    repli_timestamp_t recency_;
+    // This is never null (and is always a current_page_acq_t that has had
+    // declare_snapshotted() called).
+    // RSI: Is that true?
+    scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
     // RSP: std::map memory usage.
     // A NULL pointer associated with a block id indicates that the block is deleted.
