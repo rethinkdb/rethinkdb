@@ -27,6 +27,10 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += scs
   endif
 
+  ifeq (1,$(SEMANTIC_CACHE_CHECK))
+    BUILD_DIR += scc
+  endif
+
   ifeq (1,$(LEGACY_LINUX))
     BUILD_DIR += legacy
   endif

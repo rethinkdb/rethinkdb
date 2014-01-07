@@ -56,8 +56,10 @@ private:
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 
+#ifdef SEMANTIC_CACHE_CHECK
 public:
     alt_semantic_checker_t checker;
+#endif //#ifdef SEMANTIC_CACHE_CHECK
 
 private:
     DISABLE_COPYING(alt_cache_t);
@@ -291,6 +293,8 @@ public:
 private:
     alt_buf_lock_t *lock_;
     page_acq_t page_acq_;
+
+    uint32_t set_block_size;
 
     DISABLE_COPYING(alt_buf_write_t);
 };

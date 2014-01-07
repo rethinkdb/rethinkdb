@@ -8,6 +8,7 @@ namespace alt {
 
 class alt_buf_lock_t;
 
+#ifdef SEMANTIC_CACHE_CHECK
 typedef uint32_t crc_t;
 
 class alt_semantic_checker_t {
@@ -17,7 +18,8 @@ public:
 private:
     two_level_array_t<crc_t> crc_map;
 };
+#endif //#ifdef SEMANTIC_CACHE_CHECK
 
-} //namespace alt 
+} //namespace alt
 
 #endif

@@ -7,6 +7,8 @@
 
 namespace alt {
 
+#ifdef SEMANTIC_CACHE_CHECK
+
 crc_t crc(const void *data, uint32_t size) {
     boost::crc_optimal<32, 0x04C11DB7, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc_computer;
     crc_computer.process_bytes(data, size);
@@ -25,9 +27,9 @@ void alt_semantic_checker_t::set(block_id_t bid, const void *data, uint32_t size
 }
 
 void alt_semantic_checker_t::check(block_id_t bid, const void *data, uint32_t size) {
-    BREAKPOINT;
-    debugf("check %ld\n", bid);
     guarantee(crc(data, size) == crc_map.get(bid));
 }
+
+#endif //#ifdef SEMANTIC_CACHE_CHECK
 
 } //namespace alt 

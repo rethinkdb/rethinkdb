@@ -273,24 +273,32 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
     }
     page_acq_.buf_ready_signal()->wait();
     *block_size_out = page_acq_.get_buf_size();
+#ifdef SEMANTIC_CACHE_CHECK
     lock_->cache()->checker.check(lock_->block_id(), page_acq_.get_buf_read(), *block_size_out);
+#endif //#ifdef SEMANTIC_CACHE_CHECK
     return page_acq_.get_buf_read();
 }
 
 alt_buf_write_t::alt_buf_write_t(alt_buf_lock_t *lock)
-    : lock_(lock) {
+    : lock_(lock), set_block_size(0) {
     guarantee(!lock_->empty());
     lock_->access_ref_count_++;
 }
 
 alt_buf_write_t::~alt_buf_write_t() {
     guarantee(!lock_->empty());
-    lock_->cache()->checker.set(lock_->block_id(), get_data_write(0), 4096);
+#ifdef SEMANTIC_CACHE_CHECK
+    if (set_block_size != 0) {
+        lock_->cache()->checker.set(lock_->block_id(), get_data_write(set_block_size), set_block_size);
+    }
+#endif //#ifdef SEMANTIC_CACHE_CHECK
     lock_->access_ref_count_--;
 }
 
 void *alt_buf_write_t::get_data_write(uint32_t block_size) {
     guarantee(!lock_->empty());
+    guarantee(block_size != 0);
+    set_block_size = block_size;
     // RSI: Use block_size somehow.
     (void)block_size;
     lock_->current_page_acq_->write_acq_signal()->wait();
