@@ -327,7 +327,7 @@ void alt_buf_lock_t::reduce_to_readonly() {
 
 void alt_buf_lock_t::reduce_to_nothing() {
     guarantee(!empty());
-    // RSI: Actually implement this.
+    // RSI: Actually implement this.  Or don't, if nobody uses it.
 }
 
 repli_timestamp_t alt_buf_lock_t::get_recency() const {
