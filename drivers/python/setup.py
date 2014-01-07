@@ -12,16 +12,16 @@ class build_ext_genproto(build_ext):
 
     def build_extension(self, ext):
         if os.environ.get('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION') == 'cpp':
-            print "Calling protoc to generate ql2.pb.cc and ql2.pb.h"
+            print("Calling protoc to generate ql2.pb.cc and ql2.pb.h")
             check_call(['protoc', 'ql2.proto', '--cpp_out=.'])
             ext.sources = ['./ql2.pb.cc'] + ext.sources
             build_ext.build_extension(self, ext)
         else:
-            print "* * * * * * * * * * * * * * * * *"
-            print "* WARNING: The faster C++ protobuf backend is not enabled."
-            print "* WARNING: To enable it, run `export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp' and reinstall the rethinkdb package."
-            print "* WARNING: See http://rethinkdb.com/docs/driver-performance/ for more information."
-            print "* * * * * * * * * * * * * * * * *"
+            print("* * * * * * * * * * * * * * * * *")
+            print("* WARNING: The faster C++ protobuf backend is not enabled.")
+            print("* WARNING: To enable it, run `export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp' and reinstall the rethinkdb package.")
+            print("* WARNING: See http://rethinkdb.com/docs/driver-performance/ for more information.")
+            print("* * * * * * * * * * * * * * * * *")
 
 setup(name="rethinkdb"
       ,version = "1.11.0-1"
