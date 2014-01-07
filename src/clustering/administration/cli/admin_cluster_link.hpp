@@ -375,6 +375,9 @@ private:
     template <class T>
     void add_subset_to_maps(const std::string& base, const T& data_map);
 
+    template <class T>
+    void add_ns_subset_to_maps(const std::string& base, const T& ns_map);
+
     metadata_info_t *get_info_from_id(const std::string& id);
 
     local_issue_tracker_t local_issue_tracker;
@@ -423,6 +426,7 @@ private:
     struct metadata_info_t {
         uuid_u uuid;
         std::string name;
+        std::string alt_name; // Used by namespaces for "db.table" notation
         std::vector<std::string> path;
     };
 
