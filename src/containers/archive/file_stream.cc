@@ -16,10 +16,10 @@ bool blocking_read_file_stream_t::init(const char *path, int *errsv_out) {
     int res;
     do {
         res = open(path, O_RDONLY);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
 
     if (res == -1) {
-        *errsv_out = errno;
+        *errsv_out = get_errno();
         return false;
     } else {
         fd_.reset(res);
@@ -42,7 +42,7 @@ int64_t blocking_read_file_stream_t::read(void *p, int64_t n) {
     ssize_t res;
     do {
         res = ::read(fd_.get(), p, n);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
 
     return res;
 }

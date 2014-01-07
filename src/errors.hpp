@@ -47,6 +47,19 @@
 
 #define NORETURN __attribute__((__noreturn__))
 
+/* Accessors to errno.
+ * Please access errno *only* through these access functions.
+ * Accessing errno directly is unsafe in the context of
+ * coroutines because compiler optimizations can interfer with TLS, which
+ * might be used for errno.
+ * See thread_local.hpp for a more detailed explanation of the issue. */
+int get_errno();
+void set_errno(int new_errno);
+/* The following line can be useful for identifying illegal direct access in our
+ * code. However it cannot be turned on in general because some system headers use
+ * errno and don't compile with this. */
+//#pragma GCC poison errno
+
 /* Error handling
  *
  * There are several ways to report errors in RethinkDB:
@@ -132,7 +145,7 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
             }                                                                   \
         }                                                                       \
     } while (0)
-#define guarantee_err(cond, msg, args...) guarantee_xerr(cond, errno, msg, ##args)
+#define guarantee_err(cond, msg, args...) guarantee_xerr(cond, get_errno(), msg, ##args)
 
 #define unreachable(msg, ...) crash("Unreachable code: " msg, ##__VA_ARGS__)    // can't use crash_or_trap since code needs to depend on its noreturn property
 #define not_implemented(msg, ...) crash_or_trap("Not implemented: " msg, ##__VA_ARGS__)
@@ -147,7 +160,7 @@ MUST_USE const char *errno_string_maybe_using_buffer(int errsv, char *buf, size_
         }                                                                 \
     } while (0)
 #define rassert_err(cond, msg, args...) do {                                \
-        int rassert_err_errsv = errno;                                      \
+        int rassert_err_errsv = get_errno();                                      \
         if (!(cond)) {                                                      \
             if (rassert_err_errsv == 0) {                                   \
                 crash_or_trap(format_assert_message("Assert", cond) msg);   \
