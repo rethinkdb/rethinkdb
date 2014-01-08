@@ -311,7 +311,7 @@ private:
                         this, _1);
         incremental_map_lens_t<peer_id_t,
                                namespaces_directory_metadata_t<protocol_t>,
-                               typeof extract_reactor_directory_per_peer_fun>
+                               __typeof__ extract_reactor_directory_per_peer_fun>
             extract_reactor_directory(extract_reactor_directory_per_peer_fun);
 
         reactor_.init(new reactor_t<protocol_t>(

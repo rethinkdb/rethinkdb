@@ -53,6 +53,7 @@ configure () {
             var $var "$val"
         fi
     done
+    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Operating System"
     var OS $(uname)
     require "OS Version"

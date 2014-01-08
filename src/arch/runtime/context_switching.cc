@@ -422,12 +422,16 @@ void *threaded_stack_t::get_stack_bound() {
 
 void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
                                            size_t *stacksize_out) {
-#ifdef __MACH__
+#if defined(__MACH__)
     // Implementation for OS X
     *stacksize_out = pthread_get_stacksize_np(thread);
     *stackaddr_out = reinterpret_cast<void *>(
         reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(thread))
         - static_cast<uintptr_t>(*stacksize_out));
+#elseif defined(__FreeBSD__) */
+    // TODO: Implement
+    *stackaddr_out = NULL;
+    *stacksize_out = 0;
 #else
     // Implementation for Linux
     pthread_attr_t attr;

@@ -24,7 +24,7 @@ class printf_buffer_t;
 
 class host_lookup_exc_t : public std::exception {
 public:
-    host_lookup_exc_t(const std::string& _host, int gai_res, int _errno_val) :
+    host_lookup_exc_t(const std::string& _host, int _errno_val) :
         host(_host),
         errno_val(_errno_val),
         error_string(strprintf("getaddrinfo() failed for hostname: %s, errno: %d", host.c_str(), errno_val)) { }

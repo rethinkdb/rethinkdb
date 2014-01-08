@@ -3,6 +3,7 @@
 #define ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_
 
 #include <pthread.h>
+#include <stdint.h>
 
 #include "errors.hpp"
 
