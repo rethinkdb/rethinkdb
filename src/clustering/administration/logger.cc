@@ -172,7 +172,7 @@ log_message_t assemble_log_message(log_level_t level, const std::string &message
 
 void throw_unless(bool condition, const std::string &where) {
     if (!condition) {
-        throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(errno).c_str() + ")");
+        throw std::runtime_error("file IO error: " + where + " (errno = " + errno_string(get_errno()).c_str() + ")");
     }
 }
 
@@ -186,7 +186,7 @@ public:
             int res;
             do {
                 res = open(filename.c_str(), O_RDONLY);
-            } while (res == -1 && errno == EINTR);
+            } while (res == -1 && get_errno() == EINTR);
             throw_unless(res != -1, strprintf("could not open '%s' for reading.", filename.c_str()));
             fd.reset(res);
         }
@@ -299,7 +299,7 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     int res;
     do {
         res = open(filename.path().c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
 
     fd.reset(res);
 
@@ -330,13 +330,13 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
     ssize_t write_res = ::write(STDERR_FILENO, console_formatted.data(), console_formatted.length());
     if (write_res != static_cast<ssize_t>(console_formatted.length())) {
-        error_out->assign("cannot write to standard error: " + errno_string(errno));
+        error_out->assign("cannot write to standard error: " + errno_string(get_errno()));
         return false;
     }
 
     int res = fsync(STDERR_FILENO);
-    if (res != 0 && !(errno == EROFS || errno == EINVAL)) {
-        error_out->assign("cannot flush stderr: " + errno_string(errno));
+    if (res != 0 && !(get_errno() == EROFS || get_errno() == EINVAL)) {
+        error_out->assign("cannot flush stderr: " + errno_string(get_errno()));
         return false;
     }
 
@@ -349,19 +349,19 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
     res = fcntl(fd.get(), F_SETLKW, &filelock);
     if (res != 0) {
-        error_out->assign("cannot lock log file: " + errno_string(errno));
+        error_out->assign("cannot lock log file: " + errno_string(get_errno()));
         return false;
     }
 
     write_res = ::write(fd.get(), formatted.data(), formatted.length());
     if (write_res != static_cast<ssize_t>(formatted.length())) {
-        error_out->assign("cannot write to log file: " + errno_string(errno));
+        error_out->assign("cannot write to log file: " + errno_string(get_errno()));
         return false;
     }
 
     res = fcntl(fd.get(), F_SETLK, &fileunlock);
     if (res != 0) {
-        error_out->assign("cannot unlock log file: " + errno_string(errno));
+        error_out->assign("cannot unlock log file: " + errno_string(get_errno()));
         return false;
     }
 

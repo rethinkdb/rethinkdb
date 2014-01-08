@@ -233,11 +233,11 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
         gid_t group_id;
         if (!get_group_id(rungroup->c_str(), &group_id)) {
             throw std::runtime_error(strprintf("Group '%s' not found: %s",
-                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
         if (setgid(group_id) != 0) {
             throw std::runtime_error(strprintf("Could not set group to '%s': %s",
-                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
     }
 
@@ -246,18 +246,18 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
         gid_t user_group_id;
         if (!get_user_ids(runuser->c_str(), &user_id, &user_group_id)) {
             throw std::runtime_error(strprintf("User '%s' not found: %s",
-                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
         if (!rungroup) {
             // No group specified, use the user's group
             if (setgid(user_group_id) != 0) {
                 throw std::runtime_error(strprintf("Could not use the group of user '%s': %s",
-                                                   runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                                   runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
             }
         }
         if (setuid(user_id) != 0) {
             throw std::runtime_error(strprintf("Could not set user account to '%s': %s",
-                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
     }
 }
@@ -1229,7 +1229,7 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
         pid_t pid = fork();
         if (pid < 0) {
-            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (pid > 0) {
@@ -1240,21 +1240,21 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
 
         pid_t sid = setsid();
         if (sid == 0) {
-            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (chdir("/") < 0) {
-            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (freopen("/dev/null", "r", stdin) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
         if (freopen("/dev/null", "w", stdout) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
         if (freopen("/dev/null", "w", stderr) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
     }
     return true;
@@ -1485,7 +1485,7 @@ void run_backup_script(const std::string& script_name, char * const arguments[])
                 "Instructions for installing the RethinkDB Python driver are available here:\n"
                 "http://www.rethinkdb.com/docs/install-drivers/python/\n",
                 script_name.c_str(),
-                errno_string(errno).c_str(),
+                errno_string(get_errno()).c_str(),
                 script_name.c_str());
     }
 }

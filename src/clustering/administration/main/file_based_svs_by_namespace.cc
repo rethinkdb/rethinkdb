@@ -201,7 +201,7 @@ void file_based_svs_by_namespace_t<protocol_t>::destroy_svs(namespace_id_t names
     // let's just ignore it?
     const std::string filepath = file_name_for(namespace_id).permanent_path();
     const int res = ::unlink(filepath.c_str());
-    guarantee_err(res == 0 || errno == ENOENT,
+    guarantee_err(res == 0 || get_errno() == ENOENT,
                   "unlink failed for file %s", filepath.c_str());
 }
 

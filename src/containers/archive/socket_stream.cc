@@ -168,10 +168,10 @@ int64_t socket_stream_t::read(void *buf, int64_t size) {
             guarantee(res <= size);
             return res;
 
-        } else if (res == -1 && errno == EINTR) {
+        } else if (res == -1 && get_errno() == EINTR) {
             // Go around loop & retry system call.
 
-        } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        } else if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             // Wait until we can read, or we shut down, or we're interrupted.
             if (!wait_for_read())
                 return -1;      // we shut down.
@@ -180,9 +180,9 @@ int64_t socket_stream_t::read(void *buf, int64_t size) {
         } else {
             // EOF or error
             if (res == -1) {
-                if (errno != EPIPE && errno != ECONNRESET && errno != ENOTCONN) {
+                if (get_errno() != EPIPE && get_errno() != ECONNRESET && get_errno() != ENOTCONN) {
                     // Unexpected error (not just "we closed").
-                    logERR("Could not read from socket: %s", errno_string(errno).c_str());
+                    logERR("Could not read from socket: %s", errno_string(get_errno()).c_str());
                 }
             } else {
                 guarantee(res == 0); // sanity
@@ -215,10 +215,10 @@ int64_t socket_stream_t::write(const void *buf, int64_t size) {
             size -= res;
             // Go around the loop; keep writing until done.
 
-        } else if (res == -1 && errno == EINTR) {
+        } else if (res == -1 && get_errno() == EINTR) {
             // Go around the loop & retry system call
 
-        } else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        } else if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             // Wait until we can write, or we shut down, or we're interrupted.
             if (!wait_for_write())
                 return -1;      // we shut down.
@@ -226,9 +226,9 @@ int64_t socket_stream_t::write(const void *buf, int64_t size) {
 
         } else {
             if (res == -1) {
-                if (errno != EPIPE && errno != ENOTCONN && errno != ECONNRESET) {
+                if (get_errno() != EPIPE && get_errno() != ENOTCONN && get_errno() != ECONNRESET) {
                     // Unexpected error (not just "we closed")
-                    logERR("Could not write to socket: %s", errno_string(errno).c_str());
+                    logERR("Could not write to socket: %s", errno_string(get_errno()).c_str());
                 }
             } else {
                 logERR("Didn't expect write() to return %zd.", res);
@@ -246,8 +246,8 @@ void socket_stream_t::shutdown_read() {
     assert_thread();
 
     int res = ::shutdown(fd_, SHUT_RD);
-    if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s", errno_string(errno).c_str());
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR("Could not shutdown socket for reading: %s", errno_string(get_errno()).c_str());
     }
 
     if (fd_watcher_->is_read_open())
@@ -258,8 +258,8 @@ void socket_stream_t::shutdown_write() {
     assert_thread();
 
     int res = ::shutdown(fd_, SHUT_WR);
-    if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s", errno_string(errno).c_str());
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR("Could not shutdown socket for writing: %s", errno_string(get_errno()).c_str());
     }
 
     if (fd_watcher_->is_write_open())

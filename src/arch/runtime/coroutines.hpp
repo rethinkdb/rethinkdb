@@ -134,7 +134,7 @@ public:
 
     static void set_coroutine_stack_size(size_t size);
 
-    artificial_stack_t * get_stack();
+    coro_stack_t *get_stack();
     
     void set_priority(int _priority) {
         linux_thread_message_t::set_priority(_priority);
@@ -197,7 +197,7 @@ private:
 
     virtual void on_thread_switch();
 
-    artificial_stack_t stack;
+    coro_stack_t stack;
 
     threadnum_t current_thread_;
 

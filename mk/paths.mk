@@ -47,6 +47,10 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += valgrind
   endif
 
+  ifeq (1,$(THREADED_COROUTINES))
+    BUILD_DIR += threaded
+  endif
+
   ifeq (1,$(NO_TCMALLOC))
     BUILD_DIR += notcmalloc
   endif
