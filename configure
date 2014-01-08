@@ -60,17 +60,21 @@ configure () {
     case "$OS" in
         Darwin)
             with_tcmalloc=false ;
+            var PTHREAD_LIBS "" ;
+            var RT_LIBS "" ;;
         FreeBSD)
             [[ -z "$lib_paths" ]] && lib_paths="/usr/local/lib"
             var_append CXXFLAGS -I/usr/local/include
             var_append CXXFLAGS -std=c++11
             var_append LDFLAGS -lstdc++
-            var PTHREAD_LIBS -pthread ;
+            var RT_LIBS "" ;
+            var PTHREAD_LIBS -pthread ;;
         Linux)
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
         *) error "unsupported operating system: $OS" ;;
     esac
+    var M_LIBS -lm
     require "Without tcmalloc"
     boolvar NO_TCMALLOC not $with_tcmalloc
     require "Build client drivers"
