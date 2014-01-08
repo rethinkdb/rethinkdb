@@ -97,7 +97,7 @@ reader_t::reader_t(
     scoped_ptr_t<readgen_t> &&_readgen)
     : ns_access(_ns_access),
       use_outdated(_use_outdated),
-      started(false), finished(false),
+      started(false), shards_exhausted(false),
       readgen(std::move(_readgen)),
       active_range(readgen->original_keyrange()) { }
 
@@ -109,7 +109,7 @@ void reader_t::add_transformation(transform_variant_t &&tv) {
 rget_read_response_t::result_t
 reader_t::run_terminal(env_t *env, terminal_variant_t &&tv) {
     r_sanity_check(!started);
-    started = finished = true;
+    started = shards_exhausted = true;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     rget_read_response_t res
         = do_read(env, readgen->terminal_read(transform, std::move(tv), batchspec));
@@ -163,7 +163,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
         *key = rng.left;
     }
 
-    finished = readgen->update_range(&active_range, res.last_considered_key);
+    shards_exhausted = readgen->update_range(&active_range, res.last_considered_key);
     auto v = boost::get<std::vector<rget_item_t> >(&res.result);
     r_sanity_check(v);
     return std::move(*v);
@@ -171,7 +171,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
 
 bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     started = true;
-    if (items_index >= items.size() && !finished) { // read some more
+    if (items_index >= items.size() && !shards_exhausted) { // read some more
         items_index = 0;
         items = do_range_read(
             env, readgen->next_read(active_range, transform, batchspec));
@@ -202,7 +202,7 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
         readgen->sindex_sort(&items);
     }
     if (items_index >= items.size()) {
-        finished = true;
+        shards_exhausted = true;
     }
     return items_index < items.size();
 }
@@ -277,11 +277,13 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
         tmp.swap(items);
     }
 
-    finished = (res.size() == 0) ? true : finished;
+    shards_exhausted = (res.size() == 0) ? true : shards_exhausted;
     return res;
 }
 
-bool reader_t::is_finished() const { return finished; }
+bool reader_t::is_finished() const {
+    return shards_exhausted && items_index >= items.size();
+}
 
 readgen_t::readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,

@@ -409,7 +409,7 @@ void *threaded_stack_t::get_stack_base() {
     size_t stacksize;
     get_stack_addr_size(&stackaddr, &stacksize);
     uintptr_t base = reinterpret_cast<uintptr_t>(stackaddr)
-                     + reinterpret_cast<uintptr_t>(stacksize);
+                     + static_cast<uintptr_t>(stacksize);
     return reinterpret_cast<void *>(base);
 }
 
