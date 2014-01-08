@@ -111,8 +111,8 @@ alt_txn_t::~alt_txn_t() {
     }
 }
 
-alt_snapshot_node_t::alt_snapshot_node_t()
-    : ref_count_(0) { }
+alt_snapshot_node_t::alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq)
+    : current_page_acq_(std::move(acq)), ref_count_(0) { }
 
 alt_snapshot_node_t::~alt_snapshot_node_t() {
     // RSI: Other guarantees to make here?
@@ -297,14 +297,14 @@ void alt_buf_lock_t::snapshot_subtree() {
     } else {
         ASSERT_FINITE_CORO_WAITING;
         // RSI: There's gotta be a more encapsulated way to do this.
-        alt_snapshot_node_t *node = new alt_snapshot_node_t;
-        node->current_page_acq_ = std::move(current_page_acq_);
-        current_page_acq_.reset();
+        alt_snapshot_node_t *node
+            = new alt_snapshot_node_t(std::move(current_page_acq_));
         rassert(node->ref_count_ == 0);
         ++node->ref_count_;
-
         cache()->push_latest_snapshot_node(block_id(), node);
         snapshot_node_ = node;
+
+        current_page_acq_.reset();
     }
 
     // Snapshotting's set up, so we can now declare our hold on the block to be
