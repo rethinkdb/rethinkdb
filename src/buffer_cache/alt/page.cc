@@ -132,6 +132,12 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
     init(txn, access);
 }
 
+current_page_acq_t::current_page_acq_t(UNUSED page_cache_t *cache,
+                                       UNUSED block_id_t block_id,
+                                       UNUSED alt_access_t access) {
+    crash("not implemented");
+}
+
 void current_page_acq_t::init(page_txn_t *txn,
                               block_id_t block_id,
                               alt_access_t access,

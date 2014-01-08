@@ -248,6 +248,16 @@ public:
 
 private:
     static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
+    static alt_snapshot_node_t *
+    get_or_create_child_snapshot_node(alt_cache_t *cache,
+                                      alt_snapshot_node_t *parent,
+                                      block_id_t child_id);
+    static void create_empty_child_snapshot_nodes(alt_cache_t *cache,
+                                                  block_id_t parent_id,
+                                                  block_id_t child_id);
+    static void create_child_snapshot_nodes(alt_cache_t *cache,
+                                            block_id_t parent_id,
+                                            block_id_t child_id);
     current_page_acq_t *current_page_acq() const;
 
     friend class alt_buf_read_t;  // for get_held_page_for_read, access_ref_count_.
