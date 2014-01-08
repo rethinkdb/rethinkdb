@@ -303,8 +303,6 @@ void alt_buf_lock_t::snapshot_subtree() {
         ++node->ref_count_;
         cache()->push_latest_snapshot_node(block_id(), node);
         snapshot_node_ = node;
-
-        current_page_acq_.reset();
     }
 
     // Snapshotting's set up, so we can now declare our hold on the block to be
@@ -313,6 +311,14 @@ void alt_buf_lock_t::snapshot_subtree() {
     // snapshot node.
     // RSI: We do use declare_snapshotted in the page cache -- but is it overengineered?
     current_page_acq_.reset();
+}
+
+current_page_acq_t *alt_buf_lock_t::current_page_acq() const {
+    if (snapshot_node_) {
+        return snapshot_node_->current_page_acq_.get();
+    } else {
+        return current_page_acq_.get();
+    }
 }
 
 void alt_buf_lock_t::detach_child(block_id_t child_id) {
@@ -333,26 +339,15 @@ void alt_buf_lock_t::reduce_to_nothing() {
 
 repli_timestamp_t alt_buf_lock_t::get_recency() const {
     guarantee(!empty());
-    if (snapshot_node_ != NULL) {
-        // RSI: dedup these branches?
-        return snapshot_node_->current_page_acq_->recency();
-    } else {
-        return current_page_acq_->recency();
-    }
+    return current_page_acq()->recency();
 }
 
 page_t *alt_buf_lock_t::get_held_page_for_read() {
     guarantee(!empty());
-    if (snapshot_node_ != NULL) {
-        // RSI: dedup these branches?
-        snapshot_node_->current_page_acq_->read_acq_signal()->wait();
-        guarantee(!empty());
-        return snapshot_node_->current_page_acq_->current_page_for_read();
-    } else {
-        current_page_acq_->read_acq_signal()->wait();
-        guarantee(!empty());
-        return current_page_acq_->current_page_for_read();
-    }
+    current_page_acq_t *cpa = current_page_acq();
+    cpa->read_acq_signal()->wait();
+    guarantee(!empty());
+    return cpa->current_page_for_read();
 }
 
 page_t *alt_buf_lock_t::get_held_page_for_write() {

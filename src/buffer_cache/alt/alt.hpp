@@ -216,7 +216,7 @@ public:
 
     block_id_t block_id() const {
         guarantee(txn_ != NULL);
-        return current_page_acq_->block_id();
+        return current_page_acq()->block_id();
     }
     // RSI: Remove get_block_id().
     block_id_t get_block_id() const { return block_id(); }
@@ -226,21 +226,21 @@ public:
 
     alt_access_t access() const {
         guarantee(!empty());
-        return current_page_acq_->access();
+        return current_page_acq()->access();
     }
 
     signal_t *read_acq_signal() {
         guarantee(!empty());
-        return current_page_acq_->read_acq_signal();
+        return current_page_acq()->read_acq_signal();
     }
     signal_t *write_acq_signal() {
         guarantee(!empty());
-        return current_page_acq_->write_acq_signal();
+        return current_page_acq()->write_acq_signal();
     }
 
     void mark_deleted() {
         guarantee(!empty());
-        current_page_acq_->mark_deleted();
+        current_page_acq()->mark_deleted();
     }
 
     alt_txn_t *txn() const { return txn_; }
@@ -248,6 +248,7 @@ public:
 
 private:
     static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
+    current_page_acq_t *current_page_acq() const;
 
     friend class alt_buf_read_t;  // for get_held_page_for_read, access_ref_count_.
     friend class alt_buf_write_t;  // for get_held_page_for_write, access_ref_count_.
