@@ -140,42 +140,42 @@ const char *create_datacenter_name_option = "<NAME>";
 const char *create_database_name_option = "<NAME>";
 const char *remove_id_option = "<ID>";
 
-const char *list_id_option_desc = "print out a detailed description of a single object in the cluster, this can be a machine, table, or datacenter";
+const char *list_id_option_desc = "Print out a detailed description of a single object in the cluster, this can be a machine, table, or datacenter.  These may be referred to by <UUID> or <NAME>, and in the case of tables, <DB_NAME>.<TABLE_NAME> as well.";
 const char *list_long_option_desc = "print out full uuids (and extra information when listing machines, tables, datacenters, or databases)";
-const char *list_stats_machine_option_desc = "limit stat collection to the set of machines specified";
-const char *list_stats_table_option_desc = "limit stat collection to the set of tables specified";
+const char *list_stats_machine_option_desc = "Limit stat collection to the set of machines specified, may be <UUID> or <MACHINE_NAME>.";
+const char *list_stats_table_option_desc = "Limit stat collection to the set of tables specified, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 // TODO: fix this once multiple protocols are supported again
 // const char *list_tables_protocol_option_desc = "limit the list of tables to tables matching the specified protocol";
 const char *resolve_id_option_desc = "the name or uuid of an object with a conflicted field";
 // TODO: fix this once multiple protocols are supported again
-const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', 'primary_key', primary_pinnings', or 'secondary_pinnings', if no object is specified, this may be 'auth'";
+const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'database', 'datacenter', 'replicas', 'acks', 'shards', 'primary_key', 'primary_pinnings', or 'secondary_pinnings', if no object is specified, this may be 'auth'";
 // const char *resolve_field_option_desc = "the conflicted field of the specified object to resolve, for machines this can be 'name' or 'datacenter', for datacenters and databases this can be 'name' only, and for tables, this can be 'name', 'datacenter', 'database', 'replicas', 'acks', 'shards', 'port', master_pinnings', or 'replica_pinnings'";
-const char *pin_shard_table_option_desc = "the table to change the shard pinnings of";
+const char *pin_shard_table_option_desc = "The table to change the shard pinnings of, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *pin_shard_shard_option_desc = "the shard to be affected, this is of the format [<LOWER-BOUND>]-[<UPPER-BOUND>] where one or more of the bounds must be specified.  Any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~', the minimum and maximum bounds can be referred to as '-inf' and '+inf', respectively.  Only one shard may be modified at a time.";
 const char *pin_shard_master_option_desc = "the machine to host the master replica of the shard, this machine must belong to the primary datacenter of the table";
 const char *pin_shard_replicas_option_desc = "the machines to host the replicas of the shards, these must belong to datacenters that have been configured to replicate the table using the 'set replicas' command, and their numbers should not exceed the number of replicas.  The master replica counts towards this value.";
-const char *split_shard_table_option_desc = "the table to add another shard to";
+const char *split_shard_table_option_desc = "The table to add another shard to, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *split_shard_split_point_option_desc = "the key at which to split an existing shard into two shards, any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~'";
-const char *merge_shard_table_option_desc = "the table to remove a shard from";
+const char *merge_shard_table_option_desc = "The table to remove a shard from, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *merge_shard_split_point_option_desc = "the shard boundary to remove, combining the shard on each side into one, any non-alphanumeric character should be specified using escaped hexadecimal ASCII, e.g. '\\7E' for '~'";
 const char *set_name_id_option_desc = "a machine, datacenter, or table to change the name of";
 const char *set_name_new_name_option_desc = "the new name for the specified object";
-const char *set_acks_table_option_desc = "the table to change the acks for";
+const char *set_acks_table_option_desc = "The table to change the acks for, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *set_acks_datacenter_option_desc = "a datacenter hosting the table to change the acks for, defaults to 'universe' if not specified";
 const char *set_acks_num_acks_option_desc = "the number of acknowledgements required from the replicas in a datacenter for a write operation to be considered successful, this value should not exceed the number of replicas of the specified table for the specified datacenter";
-const char *set_durability_table_option_desc = "the table to change the durability of";
+const char *set_durability_table_option_desc = "The table to change the durability of, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *set_durability_soft_option_desc = "give soft durability, acks are sent when writes have reached memory and before they reach disk";
 const char *set_durability_hard_option_desc = "give hard durability, acks are not sent until writes have reached disk";
-const char *set_replicas_table_option_desc = "the table to change the number of replicas of";
+const char *set_replicas_table_option_desc = "The table to change the number of replicas of, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *set_replicas_datacenter_option_desc = "the datacenter which will host the replicas, defaults to 'universe' if not specified";
 const char *set_replicas_num_replicas_option_desc = "the number of replicas of the specified table to host in the specified datacenter, this value should not exceed the number of machines in the datacenter";
-const char *set_primary_table_option_desc = "the table which will have its shards' master replicas moved to the specified datacenter";
+const char *set_primary_table_option_desc = "The table which will have its shards' master replicas moved to the specified datacenter, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *set_primary_datacenter_option_desc = "the datacenter to move to";
-const char *unset_primary_table_option_desc = "the table which will have its shards' master replicas automatically redistributed across the cluster";
+const char *unset_primary_table_option_desc = "The table which will have its shards' master replicas automatically redistributed across the cluster, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *set_datacenter_machine_option_desc = "the machine to move to the specified datacenter";
 const char *set_datacenter_datacenter_option_desc = "the datacenter to move to";
 const char *unset_datacenter_machine_option_desc = "the machine to move out of any datacenter";
-const char *set_database_table_option_desc = "the table to move to the specified database";
+const char *set_database_table_option_desc = "The table to move to the specified database, may be <UUID>, <TABLE_NAME>, or <DB_NAME>.<TABLE_NAME>.";
 const char *set_database_database_option_desc = "the database to move to";
 const char *set_auth_key_option_desc = "the key that clients must provide when connecting, maximum length is 2048 characters";
 const char *create_table_name_option_desc = "the name of the new table";
@@ -1166,8 +1166,6 @@ void admin_command_parser_t::run_console(bool exit_on_failure) {
     char *raw_line;
     linenoiseCallable linenoise_blocker(prompt, &raw_line);
     std::string line;
-
-    // TODO: Make this use strprintf, not snprintf.
 
     // Build the prompt based on our initial join command
     std::string join_peer_truncated(join_peer);

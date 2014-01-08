@@ -46,7 +46,7 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(wire_func_type_t, int8_t,
 
 class wire_func_serialization_visitor_t : public func_visitor_t {
 public:
-    wire_func_serialization_visitor_t(write_message_t *_msg) : msg(_msg) { }
+    explicit wire_func_serialization_visitor_t(write_message_t *_msg) : msg(_msg) { }
 
     void on_reql_func(const reql_func_t *reql_func) {
         *msg << wire_func_type_t::REQL;
@@ -75,7 +75,7 @@ private:
 };
 
 
-void wire_func_t::rdb_serialize(write_message_t &msg) const {
+void wire_func_t::rdb_serialize(write_message_t &msg) const {  // NOLINT(runtime/references)
     wire_func_serialization_visitor_t v(&msg);
     func->visit(&v);
 }

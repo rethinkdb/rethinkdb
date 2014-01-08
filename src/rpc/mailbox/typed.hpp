@@ -12,6 +12,7 @@ Please modify '../scripts/generate_rpc_templates.py' instead of modifying this f
 #include "containers/archive/archive.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "rpc/mailbox/mailbox.hpp"
+#include "rpc/semilattice/joins/macros.hpp"
 
 template <class> class mailbox_t;
 
@@ -24,6 +25,7 @@ public:
     friend class mailbox_t<T>;
 
     RDB_MAKE_ME_SERIALIZABLE_1(addr);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);
 
 private:
     friend void send(mailbox_manager_t *, mailbox_addr_t<void()>);

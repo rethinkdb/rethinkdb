@@ -22,14 +22,14 @@ def expr(val, nesting_depth=20):
 
     if isinstance(val, RqlQuery):
         return val
-    elif isinstance(val, datetime.datetime):
-        if not val.tzinfo:
-            raise RqlDriverError("""Cannot convert datetime to ReQL time object
+    elif isinstance(val, datetime.datetime) or isinstance(val, datetime.date):
+        if not hasattr(val, 'tzinfo') or not val.tzinfo:
+            raise RqlDriverError("""Cannot convert %s to ReQL time object
             without timezone information. You can add timezone information with
             the third party module \"pytz\" or by constructing ReQL compatible
             timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
             use one of ReQL's bultin time constructors, r.now, r.time, or r.iso8601.
-            """)
+            """ % (type(val).__name__))
         return ISO8601(val.isoformat())
     elif isinstance(val, list):
         val = [expr(v, nesting_depth - 1) for v in val]
@@ -183,16 +183,16 @@ class RqlQuery(object):
         return Mod(other, self)
 
     def __and__(self, other):
-        return All(self, other)
+        return All(self, other, infix=True)
 
     def __rand__(self, other):
-        return All(other, self)
+        return All(other, self, infix=True)
 
     def __or__(self, other):
-        return Any(self, other)
+        return Any(self, other, infix=True)
 
     def __ror__(self, other):
-        return Any(other, self)
+        return Any(other, self, infix=True)
 
     # Non-operator versions of the above
 
@@ -228,6 +228,12 @@ class RqlQuery(object):
 
     def mod(self, other):
         return Mod(self, other)
+
+    def and_(*args):
+        return All(*args)
+
+    def or_(*args):
+        return Any(*args)
 
     def not_(self):
         return Not(self)
@@ -276,8 +282,8 @@ class RqlQuery(object):
     def type_of(self):
         return TypeOf(self)
 
-    def merge(self, other):
-        return Merge(self, other)
+    def merge(self, *others):
+        return Merge(self, *map(func_wrap, others))
 
     def append(self, val):
         return Append(self, val)
@@ -312,6 +318,15 @@ class RqlQuery(object):
             return Nth(self, index)
         elif isinstance(index, types.StringTypes):
             return GetField(self, index)
+        elif isinstance(index, RqlQuery):
+            raise RqlDriverError(
+                "Bracket operator called with a ReQL expression parameter.\n"+
+                "Dynamic typing is not supported in this syntax,\n"+
+                "use `.nth`, `.slice`, or `.get_field` instead.")
+        else:
+            raise RqlDriverError(
+                "bracket operator called with an unsupported parameter type: %s.%s" %
+                (index.__class__.__module__, index.__class__.__name__))
 
     def __iter__(self):
         raise RqlDriverError(
@@ -324,6 +339,12 @@ class RqlQuery(object):
 
     def match(self, pattern):
         return Match(self, pattern)
+
+    def upcase(self):
+        return Upcase(self)
+
+    def downcase(self):
+        return Downcase(self)
 
     def is_empty(self):
         return IsEmpty(self)
@@ -467,12 +488,44 @@ class RqlQuery(object):
 def needs_wrap(arg):
     return isinstance(arg, Datum) or isinstance(arg, MakeArray) or isinstance(arg, MakeObj)
 
+class RqlBoolOperQuery(RqlQuery):
+    def __init__(self, *args, **optargs):
+        if 'infix' in optargs:
+            self.infix = optargs['infix']
+            del optargs['infix']
+        else:
+            self.infix = False
+
+        RqlQuery.__init__(self, *args, **optargs)
+
+    def compose(self, args, optargs):
+        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
+
+        if self.infix:
+            return T('(', T(*t_args, intsp=[' ', self.st_infix, ' ']), ')')
+        else:
+            return T('r.', self.st, '(', T(*t_args, intsp=', '), ')')
+
 class RqlBiOperQuery(RqlQuery):
     def compose(self, args, optargs):
-        if needs_wrap(self.args[0]) and needs_wrap(self.args[1]):
-            args[0] = T('r.expr(', args[0], ')')
+        t_args = [T('r.expr(', args[i], ')') if needs_wrap(self.args[i]) else args[i] for i in xrange(len(args))]
+        return T('(', T(*t_args, intsp=[' ', self.st, ' ']), ')')
 
-        return T('(', args[0], ' ', self.st, ' ', args[1], ')')
+class RqlBiCompareOperQuery(RqlBiOperQuery):
+    def __init__(self, *args, **optargs):
+        RqlBiOperQuery.__init__(self, *args, **optargs)
+
+        for arg in args:
+            try:
+                if arg.infix:
+                    err = "Calling '%s' on result of infix bitwise operator:\n" + \
+                          "%s.\n" + \
+                          "This is almost always a precedence error.\n" + \
+                          "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" + \
+                          "If you really want this behavior, use `.or_` or `.and_` instead."
+                    raise RqlDriverError(err % (self.st, QueryPrinter(self).print_query()))
+            except AttributeError:
+                pass # No infix attribute, so not possible to be an infix bool operator
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
@@ -498,6 +551,12 @@ class RqlTzinfo(datetime.tzinfo):
         self.offsetstr = offsetstr
         self.delta = datetime.timedelta(hours=hours, minutes=minutes)
 
+    def __copy__(self):
+        return RqlTzinfo(self.offsetstr)
+
+    def __deepcopy__(self, memo):
+        return RqlTzinfo(self.offsetstr)
+
     def utcoffset(self, dt):
         return self.delta
 
@@ -509,7 +568,7 @@ class RqlTzinfo(datetime.tzinfo):
 
 def reql_type_time_to_datetime(obj):
     if not 'epoch_time' in obj:
-        raise RqlDriverError('psudo-type TIME object %s does not have expected field "epoch_time".' % py_json.dumps(obj))
+        raise RqlDriverError('pseudo-type TIME object %s does not have expected field "epoch_time".' % py_json.dumps(obj))
 
     if 'timezone' in obj:
         return datetime.datetime.fromtimestamp(obj['epoch_time'], RqlTzinfo(obj['timezone']))
@@ -551,12 +610,54 @@ class Datum(RqlQuery):
         return repr(self.data)
 
     @staticmethod
+    def _convert_pseudotype(obj, time_format):
+        reql_type = obj.get('$reql_type$')
+        if reql_type is not None:
+            if reql_type == 'TIME':
+                if time_format == 'native':
+                    # Convert to native python datetime object
+                    return reql_type_time_to_datetime(obj)
+                elif time_format != 'raw':
+                    raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
+            else:
+                raise RqlDriverError("Unknown pseudo-type %s" % reql_type)
+        # If there was no pseudotype, or the time format is raw, return the original object
+        return obj
+
+    @staticmethod
+    def _recursively_convert_pseudotypes(obj, time_format):
+        if isinstance(obj, dict):
+            for (key, value) in obj.iteritems():
+                obj[key] = Datum._recursively_convert_pseudotypes(value, time_format)
+            obj = Datum._convert_pseudotype(obj, time_format)
+        elif isinstance(obj, list):
+            for i in xrange(len(obj)):
+                obj[i] = Datum._recursively_convert_pseudotypes(obj[i], time_format)
+        return obj
+
+    @staticmethod
     def deconstruct(datum, time_format='native'):
-        if datum.type == p.Datum.R_NULL:
-            return None
-        elif datum.type == p.Datum.R_BOOL:
-            return datum.r_bool
-        elif datum.type == p.Datum.R_NUM:
+        d_type = datum.type
+        if d_type == p.Datum.R_JSON:
+            obj = py_json.loads(datum.r_str)
+            return Datum._recursively_convert_pseudotypes(obj, time_format)
+        elif d_type == p.Datum.R_OBJECT:
+            obj = { }
+            for pair in datum.r_object:
+                obj[pair.key] = Datum.deconstruct(pair.val, time_format)
+
+            # Thanks to "pseudo-types" we can't yet be quite sure if this object is meant to
+            # be an object or something else. We need a second layer of type switching, this
+            # time on an obfuscated field "$reql_type$" rather than the datum type field we
+            # already switched on.
+            Datum._convert_pseudotype(obj, time_format)
+            return obj
+        elif d_type == p.Datum.R_ARRAY:
+            array = datum.r_array
+            return [Datum.deconstruct(e, time_format) for e in array]
+        elif d_type == p.Datum.R_STR:
+            return datum.r_str
+        elif d_type == p.Datum.R_NUM:
             # Convert to an integer if we think maybe the user might think of this
             # number as an integer. I have been assured that this is a "temporary"
             # behavior change until RQL supports native integers.
@@ -566,33 +667,10 @@ class Datum(RqlQuery):
                 # number is meant be an integer and "helpfully" convert types for them.
                 num = int(num)
             return num
-        elif datum.type == p.Datum.R_STR:
-            return datum.r_str
-        elif datum.type == p.Datum.R_ARRAY:
-            return [Datum.deconstruct(e, time_format) for e in datum.r_array]
-        elif datum.type == p.Datum.R_OBJECT:
-            obj = {}
-            for pair in datum.r_object:
-                obj[pair.key] = Datum.deconstruct(pair.val, time_format)
-
-            # Thanks to "psudo-types" we can't yet be quite sure if this object is meant to
-            # be an object or something else. We need a second layer of type switching, this
-            # time on an obfuscated field "$reql_type$" rather than the datum type field we
-            # already switched on.
-            if '$reql_type$' in obj:
-                if obj['$reql_type$'] == 'TIME':
-                    if time_format == 'native':
-                        # Convert to native python datetime object
-                        return reql_type_time_to_datetime(obj)
-                    elif time_format == 'raw':
-                        # Just return the raw `{'$reql_type':...}` dict
-                        return obj
-                    else:
-                        raise RqlDriverError("Unknown time_format run option \"%s\"." % time_format)
-                else:
-                    raise RqlDriverError("Unknown psudo-type %s" % obj['$reql_type$'])
-
-            return obj
+        elif d_type == p.Datum.R_BOOL:
+            return datum.r_bool
+        elif d_type == p.Datum.R_NULL:
+            return None
         else:
             raise RuntimeError("Unknown Datum type %d encountered in response." % datum.type)
 
@@ -647,27 +725,27 @@ class ImplicitVar(RqlQuery):
     def compose(self, args, optargs):
         return 'r.row'
 
-class Eq(RqlBiOperQuery):
+class Eq(RqlBiCompareOperQuery):
     tt = p.Term.EQ
     st = "=="
 
-class Ne(RqlBiOperQuery):
+class Ne(RqlBiCompareOperQuery):
     tt = p.Term.NE
     st = "!="
 
-class Lt(RqlBiOperQuery):
+class Lt(RqlBiCompareOperQuery):
     tt = p.Term.LT
     st = "<"
 
-class Le(RqlBiOperQuery):
+class Le(RqlBiCompareOperQuery):
     tt = p.Term.LE
     st = "<="
 
-class Gt(RqlBiOperQuery):
+class Gt(RqlBiCompareOperQuery):
     tt = p.Term.GT
     st = ">"
 
-class Ge(RqlBiOperQuery):
+class Ge(RqlBiCompareOperQuery):
     tt = p.Term.GE
     st = ">="
 
@@ -832,6 +910,15 @@ class Table(RqlQuery):
     def index_list(self):
         return IndexList(self)
 
+    def index_status(self, *indexes):
+        return IndexStatus(self, *indexes)
+
+    def index_wait(self, *indexes):
+        return IndexWait(self, *indexes)
+
+    def sync(self):
+        return Sync(self)
+
     def compose(self, args, optargs):
         if isinstance(self.args[0], DB):
             return T(args[0], '.table(', args[1], ')')
@@ -887,6 +974,14 @@ class Nth(RqlQuery):
 class Match(RqlMethodQuery):
     tt = p.Term.MATCH
     st = 'match'
+
+class Upcase(RqlMethodQuery):
+    tt = p.Term.UPCASE
+    st = 'upcase'
+
+class Downcase(RqlMethodQuery):
+    tt = p.Term.DOWNCASE
+    st = 'downcase'
 
 class IndexesOf(RqlMethodQuery):
     tt = p.Term.INDEXES_OF
@@ -992,17 +1087,31 @@ class IndexList(RqlMethodQuery):
     tt = p.Term.INDEX_LIST
     st = 'index_list'
 
+class IndexStatus(RqlMethodQuery):
+    tt = p.Term.INDEX_STATUS
+    st = 'index_status'
+
+class IndexWait(RqlMethodQuery):
+    tt = p.Term.INDEX_WAIT
+    st = 'index_wait'
+
+class Sync(RqlMethodQuery):
+    tt = p.Term.SYNC
+    st = 'sync'
+
 class Branch(RqlTopLevelQuery):
     tt = p.Term.BRANCH
     st = "branch"
 
-class Any(RqlBiOperQuery):
+class Any(RqlBoolOperQuery):
     tt = p.Term.ANY
-    st = "|"
+    st = "or_"
+    st_infix = "|"
 
-class All(RqlBiOperQuery):
+class All(RqlBoolOperQuery):
     tt = p.Term.ALL
-    st = "&"
+    st = "and_"
+    st_infix = "&"
 
 class ForEach(RqlMethodQuery):
     tt = p.Term.FOREACH

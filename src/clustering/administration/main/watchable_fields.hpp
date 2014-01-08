@@ -6,6 +6,7 @@
 
 #include "concurrency/watchable.hpp"
 #include "rpc/connectivity/connectivity.hpp"
+#include "containers/incremental_lenses.hpp"
 
 template<class inner_t, class outer_t>
 class field_copier_t {
@@ -56,6 +57,42 @@ public:
 
 private:
     inner_t outer_t::*const field;
+};
+
+// `incremental_field_getter_t` does the same as field_getter_t, except that
+// it is implemented as an incremental lens and operates on a 
+// `change_tracking_map_t` instead of an `std::map`.
+// `inner_field_getter_t` provides a mapping function, which is applied by
+// `incremental_field_getter_t` to every value of a given map. It simply
+// extracts a given field from the provided value.
+template<class inner_t, class outer_t>
+class inner_field_getter_t {
+public:
+    explicit inner_field_getter_t(inner_t outer_t::*f) : field(f) { }
+
+    inner_t operator()(const outer_t &outer) const {
+        return outer.*field;
+    }
+
+    /* Support `boost::result_of`'s protocol for indicating functor return types
+    so that we work with `watchable_t::subview()`. */
+    template<class T>
+    class result {
+    public:
+        typedef inner_t type;
+    };
+
+private:
+    inner_t outer_t::*const field;
+};
+template<class inner_t, class outer_t>
+class incremental_field_getter_t
+    : public incremental_map_lens_t<peer_id_t, outer_t, inner_field_getter_t<inner_t, outer_t> > {
+public:
+    explicit incremental_field_getter_t(inner_t outer_t::*f) :
+        incremental_map_lens_t<peer_id_t, outer_t, inner_field_getter_t<inner_t, outer_t> >(
+            inner_field_getter_t<inner_t, outer_t>(f)) {
+    };
 };
 
 #endif /* CLUSTERING_ADMINISTRATION_MAIN_WATCHABLE_FIELDS_HPP_ */

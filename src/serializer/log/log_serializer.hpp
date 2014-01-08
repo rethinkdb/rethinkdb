@@ -138,6 +138,9 @@ public:
     scoped_malloc_t<ser_buffer_t> malloc();
     scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
+#ifndef SEMANTIC_SERIALIZER_CHECK
+    using serializer_t::make_io_account;
+#endif
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
@@ -148,9 +151,9 @@ public:
     bool get_delete_bit(block_id_t id);
     counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
 
-    void block_read(const counted_t<ls_block_token_pointee_t>& token, ser_buffer_t *buf, file_account_t *io_account);
+    void block_read(const counted_t<ls_block_token_pointee_t> &token, ser_buffer_t *buf, file_account_t *io_account);
 
-    void index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account);
+    void index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account);
 
     std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
                                                                    file_account_t *io_account, iocallback_t *cb);

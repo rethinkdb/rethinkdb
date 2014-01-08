@@ -2,10 +2,34 @@
 #include "containers/archive/archive.hpp"
 
 #include <string.h>
+#include <netinet/in.h>
 
 #include <algorithm>
 
 #include "containers/uuid.hpp"
+#include "rpc/serialize_macros.hpp"
+
+const char *archive_result_as_str(archive_result_t archive_result) {
+    switch (archive_result) {
+    case ARCHIVE_SUCCESS:
+        return "ARCHIVE_SUCCESS";
+        break;
+    case ARCHIVE_SOCK_ERROR:
+        return "ARCHIVE_SOCK_ERROR";
+        break;
+    case ARCHIVE_SOCK_EOF:
+        return "ARCHIVE_SOCK_EOF";
+        break;
+    case ARCHIVE_RANGE_ERROR:
+        return "ARCHIVE_RANGE_ERROR";
+        break;
+    case ARCHIVE_GENERIC_ERROR:
+        return "ARCHIVE_GENERIC_ERROR";
+        break;
+    default:
+        unreachable();
+    }
+}
 
 int64_t force_read(read_stream_t *s, void *p, int64_t n) {
     rassert(n >= 0);
@@ -54,6 +78,14 @@ void write_message_t::append(const void *p, int64_t n) {
     }
 }
 
+size_t write_message_t::size() const {
+    size_t ret = 0;
+    for (write_buffer_t *h = buffers_.head(); h != NULL; h = buffers_.next(h)) {
+        ret += h->size;
+    }
+    return ret;
+}
+
 int send_write_message(write_stream_t *s, const write_message_t *msg) {
     intrusive_list_t<write_buffer_t> *list = const_cast<write_message_t *>(msg)->unsafe_expose_buffers();
     for (write_buffer_t *p = list->head(); p; p = list->next(p)) {
@@ -65,7 +97,6 @@ int send_write_message(write_stream_t *s, const write_message_t *msg) {
     }
     return 0;
 }
-
 
 write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid) {
     rassert(!uuid.is_unset());
@@ -83,3 +114,19 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid) {
     return ARCHIVE_SUCCESS;
 }
 
+write_message_t &operator<<(write_message_t &msg, const in6_addr &addr) {
+    msg.append(&addr.s6_addr, sizeof(addr.s6_addr));
+    return msg;
+}
+
+MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr) {
+    int64_t sz = sizeof(addr->s6_addr);
+    int64_t res = force_read(s, &addr->s6_addr, sz);
+
+    if (res == -1) { return ARCHIVE_SOCK_ERROR; }
+    if (res < sz) { return ARCHIVE_SOCK_EOF; }
+    rassert(res == sz);
+    return ARCHIVE_SUCCESS;
+}
+
+RDB_IMPL_SERIALIZABLE_1(in_addr, s_addr);

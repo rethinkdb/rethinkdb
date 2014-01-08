@@ -3,7 +3,7 @@ import sys, os, datetime, time, shutil, tempfile, subprocess
 from optparse import OptionParser
 
 info = "'rethinkdb dump' creates an archive of data from a RethinkDB cluster"
-usage = "rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [-e (DB | DB.TABLE)]..."
+usage = "rethinkdb dump [-c HOST:PORT] [-a AUTH_KEY] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
 
 def print_dump_help():
     print info
@@ -17,6 +17,8 @@ def print_dump_help():
     print "                                   rethinkdb_dump_DATE_TIME.tar.gz)"
     print "  -e [ --export ] (DB | DB.TABLE)  limit dump to the given database or table (may"
     print "                                   be specified multiple times)"
+    print "  --clients NUM_CLIENTS            number of tables to export simultaneously (defaults"
+    print "                                   to 3)"
     print ""
     print "EXAMPLES:"
     print "rethinkdb dump -c mnemosyne:39500"
@@ -34,6 +36,8 @@ def parse_options():
     parser.add_option("-a", "--auth", dest="auth_key", metavar="key", default="", type="string")
     parser.add_option("-f", "--file", dest="out_file", metavar="file", default=None, type="string")
     parser.add_option("-e", "--export", dest="tables", metavar="(db | db.table)", default=[], action="append", type="string")
+
+    parser.add_option("--clients", dest="clients", metavar="NUM", default=3, type="int")
     parser.add_option("-h", "--help", dest="help", default=False, action="store_true")
     (options, args) = parser.parse_args()
 
@@ -65,6 +69,11 @@ def parse_options():
     if os.path.exists(res["out_file"]):
         raise RuntimeError("Error: Output file already exists: %s" % res["out_file"])
 
+    # Verify valid client count
+    if options.clients < 1:
+       raise RuntimeError("Error: invalid number of clients (%d), must be greater than zero" % options.clients)
+    res["clients"] = options.clients
+
     res["tables"] = options.tables
     res["auth_key"] = options.auth_key
     return res
@@ -75,6 +84,7 @@ def do_export(temp_dir, options):
     export_args.extend(["--connect", "%s:%s" % (options["host"], options["port"])])
     export_args.extend(["--directory", os.path.join(temp_dir, options["temp_filename"])])
     export_args.extend(["--auth", options["auth_key"]])
+    export_args.extend(["--clients", str(options["clients"])])
     for table in options["tables"]:
         export_args.extend(["--export", table])
 

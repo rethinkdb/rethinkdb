@@ -79,7 +79,7 @@ def cmp_test(one, two)
     cmp = one.class.name <=> two.class.name
     return cmp if cmp != 0
     if not two.regex
-      one_msg = one.message.sub(/:\n.*|:$/, ".")
+      one_msg = one.message.sub(/:\n(.|\n)*|:$/, ".")
       [one.type, one_msg] <=> [two.type, two.message]
     else
       if (Regexp.compile two.type) =~ one.type and
@@ -145,7 +145,11 @@ $test_count = 0
 $success_count = 0
 
 def test src, expected, name, opthash=nil
-  $opthash = opthash
+  if opthash
+    $opthash = Hash[opthash.map{|k,v| [k, eval(v, $defines)]}]
+  else
+    $opthash = {batch_conf: {max_els: 3}}
+  end
   $test_count += 1
   begin
     query = eval src, $defines

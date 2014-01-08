@@ -110,9 +110,16 @@ void transform_visitor_t::operator()(const ql::map_wire_func_t &func) const {
 }
 
 void transform_visitor_t::operator()(const ql::concatmap_wire_func_t &func) const {
-    counted_t<ql::datum_stream_t> ds = func.compile_wire_func()->call(ql_env, arg)->as_seq(ql_env);
-    while (counted_t<const ql::datum_t> d = ds->next(ql_env)) {
-        out->push_back(d);
+    counted_t<ql::datum_stream_t> ds
+        = func.compile_wire_func()->call(ql_env, arg)->as_seq(ql_env);
+    ql::batchspec_t batchspec
+        = ql::batchspec_t::user(ql::batch_type_t::TERMINAL, ql_env);
+    {
+        profile::sampler_t sampler("Evaluating elements in concat map.", ql_env->trace);
+        while (counted_t<const ql::datum_t> d = ds->next(ql_env, batchspec)) {
+            out->push_back(d);
+            sampler.new_sample();
+        }
     }
 }
 
@@ -204,7 +211,7 @@ void terminal_apply(ql::env_t *ql_env,
 /* A visitor for setting the result type based on a terminal. */
 class terminal_initializer_visitor_t : public boost::static_visitor<void> {
 public:
-    terminal_initializer_visitor_t(rget_read_response_t::result_t *_out)
+    explicit terminal_initializer_visitor_t(rget_read_response_t::result_t *_out)
         : out(_out) { }
 
     void operator()(const ql::gmr_wire_func_t &f) const {

@@ -9,11 +9,14 @@
 
 class superblock_t;
 
+namespace profile { class trace_t; }
+
 class counted_buf_lock_t : public buf_lock_t,
                            public single_threaded_countable_t<counted_buf_lock_t> {
 public:
     template <class... Args>
-    counted_buf_lock_t(Args &&... args) : buf_lock_t(std::forward<Args>(args)...) { }
+    explicit counted_buf_lock_t(Args &&... args)
+        : buf_lock_t(std::forward<Args>(args)...) { }
 };
 
 // A btree leaf key/value pair that also owns a reference to the buf_lock_t that
@@ -59,6 +62,7 @@ public:
     /* Return value of `true` indicates to keep going; `false` indicates to stop
     traversing the tree. */
     virtual bool handle_pair(scoped_key_value_t &&keyvalue) = 0;
+    virtual profile::trace_t *get_trace() THROWS_NOTHING { return NULL; }
 protected:
     virtual ~depth_first_traversal_callback_t() { }
 };

@@ -10,6 +10,7 @@
 #endif
 
 #include <inttypes.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -25,6 +26,7 @@
 #include "containers/printf_buffer.hpp"
 #include "errors.hpp"
 #include "config/args.hpp"
+
 
 class Term;
 void pb_print(Term *t);
@@ -64,16 +66,23 @@ public:
     }
 };
 
-/* Pad a value to the size of a cache line to avoid false sharing.
- * TODO: This is implemented as a struct with subtraction rather than a union
- * so that it gives an error when trying to pad a value bigger than
- * CACHE_LINE_SIZE. If that's needed, this may have to be done differently.
+/* Forbid the following function definition to be inlined
+ * (note: some compilers might require `noinline` instead of `__attribute__ ((noinline))`)
  */
+#define NOINLINE __attribute__ ((noinline))
+
+/* Pad a value to the size of one or multiple cache lines to avoid false sharing.
+ */
+#define COMPUTE_PADDING_SIZE(value, alignment) \
+        alignment - (((value + alignment - 1) % alignment) + 1)
 template<typename value_t>
 struct cache_line_padded_t {
+    cache_line_padded_t() { }
+    explicit cache_line_padded_t(value_t const &_value) : value(_value) { }
     value_t value;
-    char padding[CACHE_LINE_SIZE - sizeof(value_t)];
+    char padding[COMPUTE_PADDING_SIZE(sizeof(value_t), CACHE_LINE_SIZE)];
 };
+#undef COMPUTE_PADDING_SIZE
 
 void *malloc_aligned(size_t size, size_t alignment);
 
@@ -287,6 +296,18 @@ public:
     ~on_thread_t();
 };
 
+/* `with_priority_t` changes the priority of the current coroutine to the
+ value given in its constructor. When it is destructed, it restores the
+ original priority of the coroutine. */
+
+class with_priority_t {
+public:
+    explicit with_priority_t(int priority);
+    ~with_priority_t();
+private:
+    int previous_priority;
+};
+
 
 template <class InputIterator, class UnaryPredicate>
 bool all_match_predicate(InputIterator begin, InputIterator end, UnaryPredicate f) {
@@ -428,7 +449,7 @@ bool range_inside_of_byte_range(const void *p, size_t n_bytes, const void *range
 
 class debug_timer_t {
 public:
-    debug_timer_t(std::string _name = "");
+    explicit debug_timer_t(std::string _name = "");
     ~debug_timer_t();
     microtime_t tick(const std::string &tag);
 private:
@@ -456,5 +477,38 @@ private:
 #define DBLPRI "%.20g"
 
 #define ANY_PORT 0
+
+/** RVALUE_THIS
+ *
+ * This macro is used to annotate methods that treat *this as an
+ * rvalue reference. On compilers that support it, it expands to &&
+ * and all uses of the method on non-rvlaue *this are reported as
+ * errors.
+ *
+ * The supported compilers are clang >= 2.9 and gcc >= 4.8.1
+ *
+ **/
+#if defined(__clang__)
+#if __has_extension(cxx_rvalue_references)
+#define RVALUE_THIS &&
+#else
+#define RVALUE_THIS
+#endif
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && \
+    (__GNUC_MINOR__ > 8 || (__GNUC_MINOR__ == 8 && \
+                            __GNUC_PATCHLEVEL__ > 1)))
+#define RVALUE_THIS &&
+#else
+#define RVALUE_THIS
+#endif
+
+template <class T>
+double safe_to_double(T val) {
+    double res = static_cast<double>(val);
+    if (val != static_cast<T>(res)) {
+        return NAN;
+    }
+    return res;
+}
 
 #endif // UTILS_HPP_

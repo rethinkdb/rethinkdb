@@ -72,6 +72,8 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
               temporary_file_name().c_str(), file_name().c_str());
     }
 
+    guarantee_fsync_parent_directory(file_name().c_str());
+
     opened_temporary_ = false;
 }
 
@@ -97,10 +99,10 @@ void filepath_file_opener_t::open_semantic_checking_file(scoped_ptr_t<semantic_c
     do {
         semantic_fd = open(semantic_filepath.c_str(),
                            O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-    } while (semantic_fd == -1 && errno == EINTR);
+    } while (semantic_fd == -1 && get_errno() == EINTR);
 
     if (semantic_fd == INVALID_FD) {
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(errno).c_str());
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(get_errno()).c_str());
     } else {
         file_out->init(new linux_semantic_checking_file_t(semantic_fd));
     }
@@ -404,7 +406,7 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t>& token,
+void log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
                                   ser_buffer_t *buf, file_account_t *io_account) {
     assert_thread();
     guarantee(token.has());
@@ -437,7 +439,7 @@ get_ls_block_token(const counted_t<scs_block_token_t<log_serializer_t> >& tok) {
 #endif  // SEMANTIC_SERIALIZER_CHECK
 
 
-void log_serializer_t::index_write(const std::vector<index_write_op_t>& write_ops, file_account_t *io_account) {
+void log_serializer_t::index_write(const std::vector<index_write_op_t> &write_ops, file_account_t *io_account) {
     assert_thread();
     ticks_t pm_time;
     stats->pm_serializer_index_writes.begin(&pm_time);
@@ -515,7 +517,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     struct : public cond_t, public lba_list_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
     } on_lba_sync;
-    const bool offsets_were_written = lba_index->sync(io_account, &on_lba_sync);
+    lba_index->sync(io_account, &on_lba_sync);
 
     /* Prepare metablock now instead of in when we write it so that we will have the correct
     metablock information for this write even if another write starts before we finish writing
@@ -537,7 +539,7 @@ void log_serializer_t::index_write_finish(index_write_context_t *context, file_a
     }
     last_write = context;
 
-    if (!offsets_were_written) on_lba_sync.wait();
+    on_lba_sync.wait();
     if (waiting_for_prev_write) on_prev_write_submitted_metablock.wait();
 
     struct : public cond_t, public mb_manager_t::metablock_write_callback_t {

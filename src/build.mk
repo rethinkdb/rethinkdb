@@ -3,7 +3,6 @@
 ##### Build parameters
 
 # We assemble path directives.
-LDPATHDS ?=
 CXXPATHDS ?=
 LDFLAGS ?=
 CXXFLAGS ?=
@@ -37,7 +36,7 @@ ifeq ($(COMPILER),CLANG)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) -lm
+  RT_LDFLAGS += $(M_LIBS)
 
 else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -B/opt/intel/bin
@@ -50,7 +49,7 @@ else ifeq ($(COMPILER),INTEL)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS) -lstdc++
+  RT_LDFLAGS += -lstdc++
 else ifeq ($(COMPILER),GCC)
 
   ifeq ($(OS),Linux)
@@ -65,12 +64,10 @@ else ifeq ($(COMPILER),GCC)
     endif
   endif
 
-  RT_LDFLAGS += $(LDPATHDS)
+  RT_LDFLAGS +=
 endif
 
-ifeq ($(OS),Linux)
-  RT_LDFLAGS += -lrt
-endif
+RT_LDFLAGS += $(RT_LIBS)
 
 ifeq ($(OS),FreeBSD)
   RT_CXXFLAGS += -I/usr/local/include
@@ -220,10 +217,6 @@ ifeq ($(JSON_SHORTCUTS),1)
   RT_CXXFLAGS += -DJSON_SHORTCUTS
 endif
 
-ifeq ($(MALLOC_PROF),1)
-  RT_CXXFLAGS += -DMALLOC_PROF
-endif
-
 ifeq ($(SERIALIZER_DEBUG),1)
   RT_CXXFLAGS += -DSERIALIZER_MARKERS
 endif
@@ -248,6 +241,10 @@ ifeq ($(NO_EPOLL),1)
   RT_CXXFLAGS += -DNO_EPOLL
 endif
 
+ifeq ($(THREADED_COROUTINES),1)
+  RT_CXXFLAGS += -DTHREADED_COROUTINES
+endif
+
 ifeq ($(VALGRIND),1)
   ifneq (1,$(NO_TCMALLOC))
     $(error cannot build with VALGRIND=1 when NO_TCMALLOC=0)
@@ -267,16 +264,18 @@ ifeq ($(FULL_PERFMON),1)
   RT_CXXFLAGS += -DFULL_PERFMON
 endif
 
+ifeq ($(CORO_PROFILING),1)
+  RT_CXXFLAGS += -DENABLE_CORO_PROFILER
+endif
+
 RT_CXXFLAGS += -I$(PROTO_DIR)
 
 UNIT_STATIC_LIBRARY_PATH := $(EXTERNAL_DIR)/gtest/make/gtest.a
 UNIT_TEST_INCLUDE_FLAG := -I$(EXTERNAL_DIR)/gtest/include
 
-RT_CXXFLAGS += -DMIGRATION_SCRIPT_LOCATION=\"$(scripts_dir)/rdb_migrate\"
-
 #### Finding what to build
 
-SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc')
+SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' | grep -v '/\.')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 

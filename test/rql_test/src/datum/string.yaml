@@ -40,3 +40,8 @@ tests:
     - cd: r.expr('inf').coerce_to('NUMBER')
       ot: |
         err("RqlRuntimeError", "Non-finite number: inf", [])
+
+    - cd: r.expr("abc-dEf-GHJ").upcase()
+      ot: ("ABC-DEF-GHJ")
+    - cd: r.expr("abc-dEf-GHJ").downcase()
+      ot: ("abc-def-ghj")

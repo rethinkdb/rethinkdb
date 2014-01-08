@@ -41,7 +41,6 @@ durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                  str.c_str());
 }
 
-
 class insert_term_t : public op_term_t {
 public:
     insert_term_t(compile_env_t *env, const protob_t<const Term> &term)
@@ -51,6 +50,7 @@ public:
 private:
     void maybe_generate_key(counted_t<table_t> tbl,
                             std::vector<std::string> *generated_keys_out,
+                            size_t *keys_skipped_out,
                             counted_t<const datum_t> *datum_out) {
         if (!(*datum_out)->get(tbl->get_pkey(), NOTHROW).has()) {
             std::string key = uuid_to_str(generate_uuid());
@@ -59,7 +59,11 @@ private:
             bool conflict = d.add(tbl->get_pkey(), keyd);
             r_sanity_check(!conflict);
             *datum_out = (*datum_out)->merge(d.to_counted(), pure_merge);
-            generated_keys_out->push_back(key);
+            if (generated_keys_out->size() < array_size_limit()) {
+                generated_keys_out->push_back(key);
+            } else {
+                *keys_skipped_out += 1;
+            }
         }
     }
 
@@ -76,13 +80,14 @@ private:
         bool done = false;
         counted_t<const datum_t> stats = new_stats_object();
         std::vector<std::string> generated_keys;
+        size_t keys_skipped = 0;
         counted_t<val_t> v1 = arg(env, 1);
         if (v1->get_type().is_convertible(val_t::type_t::DATUM)) {
             std::vector<counted_t<const datum_t> > datums;
             datums.push_back(v1->as_datum());
             if (datums[0]->get_type() == datum_t::R_OBJECT) {
                 try {
-                    maybe_generate_key(t, &generated_keys, &datums[0]);
+                    maybe_generate_key(t, &generated_keys, &keys_skipped, &datums[0]);
                 } catch (const base_exc_t &) {
                     // We just ignore it, the same error will be handled in `replace`.
                     // TODO: that solution sucks.
@@ -100,16 +105,17 @@ private:
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row inserts.");
 
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = datum_stream->next_batch(env->env);
+                    = datum_stream->next_batch(env->env, batchspec);
                 if (datums.empty()) {
                     break;
                 }
 
                 for (auto it = datums.begin(); it != datums.end(); ++it) {
                     try {
-                        maybe_generate_key(t, &generated_keys, &*it);
+                        maybe_generate_key(t, &generated_keys, &keys_skipped, &*it);
                     } catch (const base_exc_t &) {
                         // We just ignore it, the same error will be handled in
                         // `replace`.  TODO: that solution sucks.
@@ -118,7 +124,7 @@ private:
 
                 counted_t<const datum_t> replace_stats = t->batched_insert(
                     env->env, std::move(datums), upsert, durability_requirement, false);
-                stats = stats->merge(replace_stats);
+                stats = stats->merge(replace_stats, stats_merge);
             }
         }
 
@@ -132,6 +138,19 @@ private:
             UNUSED bool b = d.add("generated_keys",
                                   make_counted<datum_t>(std::move(genkeys)));
             stats = stats->merge(d.to_counted(), pure_merge);
+        }
+
+        if (keys_skipped > 0) {
+            std::vector<counted_t<const datum_t> > warnings;
+            warnings.push_back(
+                make_counted<const datum_t>(
+                    strprintf("Too many generated keys (%zu), array truncated to %zu.",
+                              keys_skipped + generated_keys.size(),
+                              generated_keys.size())));
+            datum_ptr_t d(datum_t::R_OBJECT);
+            UNUSED bool b = d.add("warnings",
+                                  make_counted<const datum_t>(std::move(warnings)));
+            stats = stats->merge(d.to_counted(), stats_merge);
         }
 
         return new_val(stats);
@@ -183,9 +202,10 @@ private:
             rcheck(!return_vals, base_exc_t::GENERIC,
                    "Optarg RETURN_VALS is invalid for multi-row modifications.");
 
+            batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
             for (;;) {
                 std::vector<counted_t<const datum_t> > datums
-                    = ds->next_batch(env->env);
+                    = ds->next_batch(env->env, batchspec);
                 if (datums.empty()) {
                     break;
                 }
@@ -213,21 +233,28 @@ private:
 
         counted_t<datum_stream_t> ds = arg(env, 0)->as_seq(env->env);
         counted_t<const datum_t> stats(new datum_t(datum_t::R_OBJECT));
-        while (counted_t<const datum_t> row = ds->next(env->env)) {
-            counted_t<val_t> v = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
-            try {
-                counted_t<const datum_t> d = v->as_datum();
-                if (d->get_type() == datum_t::R_OBJECT) {
-                    stats = stats->merge(d, stats_merge);
-                } else {
-                    for (size_t i = 0; i < d->size(); ++i) {
-                        stats = stats->merge(d->get(i), stats_merge);
+        batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
+        {
+            profile::sampler_t sampler("Evaluating elements in for each.",
+                                       env->env->trace);
+            while (counted_t<const datum_t> row = ds->next(env->env, batchspec)) {
+                counted_t<val_t> v
+                    = arg(env, 1)->as_func(CONSTANT_SHORTCUT)->call(env->env, row);
+                try {
+                    counted_t<const datum_t> d = v->as_datum();
+                    if (d->get_type() == datum_t::R_OBJECT) {
+                        stats = stats->merge(d, stats_merge);
+                    } else {
+                        for (size_t i = 0; i < d->size(); ++i) {
+                            stats = stats->merge(d->get(i), stats_merge);
+                        }
                     }
+                } catch (const exc_t &e) {
+                    throw exc_t(e.get_type(), fail_msg, e.backtrace());
+                } catch (const datum_exc_t &de) {
+                    rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
                 }
-            } catch (const exc_t &e) {
-                throw exc_t(e.get_type(), fail_msg, e.backtrace());
-            } catch (const datum_exc_t &de) {
-                rfail_target(v, base_exc_t::GENERIC, "%s  %s", fail_msg, de.what());
+                sampler.new_sample();
             }
         }
         return new_val(stats);

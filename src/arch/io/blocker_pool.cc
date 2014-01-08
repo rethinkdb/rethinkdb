@@ -1,16 +1,28 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/blocker_pool.hpp"
-
-#include "config/args.hpp"
 
 #include <string.h>
 
+#include "config/args.hpp"
+#include "utils.hpp"
+
 __thread int thread_is_blocker_pool_thread = 0;
+// Access functions to thread_is_blocker_pool_thread. Marked as NOINLINE
+// to avoid certain compiler optimizations that can break TLS. See
+// thread_local.hpp for a more detailed explanation.
+NOINLINE void set_in_blocker_pool_thread(int value) {
+    thread_is_blocker_pool_thread = value;
+}
+NOINLINE bool i_am_in_blocker_pool_thread() {
+    return thread_is_blocker_pool_thread == 1;
+}
+// Make sure thread_is_blocker_pool_thread is not accessed directly
+#pragma GCC poison thread_is_blocker_pool_thread
 
 // IO thread function
 void* blocker_pool_t::event_loop(void *arg) {
 
-    thread_is_blocker_pool_thread = 1;
+    set_in_blocker_pool_thread(1);
 
     blocker_pool_t *parent = reinterpret_cast<blocker_pool_t*>(arg);
 
@@ -146,8 +158,3 @@ void blocker_pool_t::on_event(DEBUG_VAR int event) {
     }
 }
 
-
-
-bool i_am_in_blocker_pool_thread() {
-    return thread_is_blocker_pool_thread == 1;
-}

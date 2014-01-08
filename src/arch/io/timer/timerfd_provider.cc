@@ -31,7 +31,7 @@ timerfd_provider_t::~timerfd_provider_t() {
 
     guarantee(callback == NULL);
     const int res = close(timer_fd);
-    guarantee_err(res == 0 || errno == EINTR, "Could not close the timer.");
+    guarantee_err(res == 0 || get_errno() == EINTR, "Could not close the timer.");
 }
 
 void timerfd_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_callback_t *const cb) {
@@ -74,7 +74,7 @@ void timerfd_provider_t::on_event(int events) {
 
     eventfd_t nexpirations;
     const int res = eventfd_read(timer_fd, &nexpirations);
-    guarantee_err(res == 0 || errno == EAGAIN, "Could not read timer_fd value");
+    guarantee_err(res == 0 || get_errno() == EAGAIN, "Could not read timer_fd value");
     if (res == 0 && nexpirations > 0) {
         // The callback could be unscheduled but after the timerfd rang, maybe.  So we check here.
         if (callback != NULL) {

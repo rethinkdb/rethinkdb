@@ -50,7 +50,7 @@ struct btree_superblock_t {
     char metainfo_blob[METAINFO_BLOB_MAXREFLEN];
 
     static const block_magic_t expected_magic;
-};
+} __attribute__((packed));
 
 struct btree_statblock_t {
     //The total number of keys in the btree

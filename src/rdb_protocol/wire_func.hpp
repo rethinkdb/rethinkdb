@@ -38,7 +38,7 @@ public:
     counted_t<func_t> compile_wire_func() const;
     protob_t<const Backtrace> get_bt() const;
 
-    void rdb_serialize(write_message_t &msg) const;
+    void rdb_serialize(write_message_t &msg) const;  // NOLINT(runtime/references)
     archive_result_t rdb_deserialize(read_stream_t *s);
 
 private:

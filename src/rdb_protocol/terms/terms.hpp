@@ -59,6 +59,7 @@ counted_t<term_t> make_db_list_term(compile_env_t *env, const protob_t<const Ter
 counted_t<term_t> make_table_create_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_table_drop_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_table_list_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_sync_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // error.cc
 counted_t<term_t> make_error_term(compile_env_t *env, const protob_t<const Term> &term);
@@ -75,6 +76,12 @@ counted_t<term_t> make_json_term(compile_env_t *env, const protob_t<const Term> 
 
 // match.cc
 counted_t<term_t> make_match_term(compile_env_t *env, const protob_t<const Term> &term);
+
+// case.cc
+counted_t<term_t> make_upcase_term(
+    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_downcase_term(
+    compile_env_t *env, const protob_t<const Term> &term);
 
 // obj.cc
 counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term);
@@ -116,6 +123,8 @@ counted_t<term_t> make_zip_term(compile_env_t *env, const protob_t<const Term> &
 counted_t<term_t> make_sindex_create_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_sindex_drop_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_sindex_list_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_sindex_status_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_sindex_wait_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // sort.cc
 counted_t<term_t> make_orderby_term(compile_env_t *env, const protob_t<const Term> &term);

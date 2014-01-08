@@ -121,10 +121,21 @@ tests:
       rb: tbl.order_by(:id)[0]
       ot: ({'id':0, 'a':0})
 
+    - py: tbl.order_by([1,2,3])
+      js: tbl.orderBy([1,2,3])
+      rb: tbl.order_by([1,2,3])
+      ot: err('RqlRuntimeError', 'Expected type STRING but found ARRAY.', [0])
+
     - py: tbl.order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).nth(0)
       rb: tbl.order_by('a', :index => :id)[0]
       ot: ({'id':0, 'a':0})
+
+    - py: tbl.order_by(index='id').order_by(index='id')[0]
+      js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)
+      rb: tbl.order_by(:index => :id).order_by(:index => :id)[0]
+      ot: err('RqlRuntimeError', 'Indexed order_by can only be performed on a TABLE.', [0])
+
 
     - py: tbl.order_by(index='id').order_by(index='id')[0]
       js: tbl.orderBy({index:'id'}).orderBy({index:'id'}).nth(0)
@@ -197,7 +208,7 @@ tests:
       ot: ({'id':96,'a':0})
 
     - cd: tbl.order_by('id').type_of()
-      ot: "'SELECTION'"
+      ot: "'SELECTION<ARRAY>'"
 
     - cd: tbl.order_by('missing').order_by('id').nth(0)
       ot: ({'id':0, 'a':0})
@@ -459,7 +470,7 @@ tests:
 
     # Coerce a table to an array
     - cd: tbl.limit(5).type_of()
-      ot: '"SELECTION"'
+      ot: '"SELECTION<STREAM>"'
 
     - cd: tbl.limit(5).coerce_to('array').type_of()
       ot: '"ARRAY"'

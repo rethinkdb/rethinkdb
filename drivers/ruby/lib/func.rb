@@ -53,7 +53,7 @@ module RethinkDB
               "This is almost always a precedence error.\n" +
               "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
               "If you really want this behavior, use `.or` or `.and` instead."
-            raise ArgumentError, err
+            raise RqlDriverError, err
           end
         }
       end
@@ -99,9 +99,10 @@ module RethinkDB
     end
     def groupby(*a, &b); group_by(*a, &b); end
 
-    def connect(*args)
+    def connect(*args, &b)
       unbound_if @body
-      Connection.new(*args)
+      c = Connection.new(*args)
+      b ? begin b.call(c) ensure c.close end : c
     end
 
     def avg(attr)

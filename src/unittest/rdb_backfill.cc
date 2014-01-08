@@ -1,14 +1,18 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+// These unit tests need to access some private methods.
+#define private public
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/immediate_consistency/branch/broadcaster.hpp"
 #include "clustering/immediate_consistency/branch/listener.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
-#include "rdb_protocol/env.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/env.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rpc/directory/read_manager.hpp"
@@ -26,7 +30,7 @@ void run_with_broadcaster(
     boost::function< void(
         std::pair<io_backender_t *, simple_mailbox_cluster_t *>,
         branch_history_manager_t<rdb_protocol_t> *,
-        clone_ptr_t<watchable_t<boost::optional<boost::optional<
+        clone_ptr_t< watchable_t< boost::optional< boost::optional<
             broadcaster_business_card_t<rdb_protocol_t> > > > >,
         scoped_ptr_t<broadcaster_t<rdb_protocol_t> > *,
         test_store_t<rdb_protocol_t> *,
@@ -128,10 +132,13 @@ void write_to_broadcaster(size_t value_padding_length,
                           const std::string &value,
                           order_token_t otok,
                           signal_t *) {
-    rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t(key),
-                                                                generate_document(value_padding_length, value),
-                                                                true),
-                                  DURABILITY_REQUIREMENT_DEFAULT);
+    rdb_protocol_t::write_t write(
+            rdb_protocol_t::point_write_t(
+                store_key_t(key),
+                generate_document(value_padding_length, value),
+                true),
+            DURABILITY_REQUIREMENT_DEFAULT,
+            profile_bool_t::PROFILE);
 
     fake_fifo_enforcement_t enforce;
     fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
@@ -210,7 +217,8 @@ void run_backfill_test(size_t value_padding_length,
 
     for (std::map<std::string, std::string>::iterator it = inserter_state.begin();
             it != inserter_state.end(); it++) {
-        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)));
+        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t(it->first)),
+                profile_bool_t::PROFILE);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;
@@ -251,20 +259,20 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
     watchable_variable_t<boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > > >
         replier_business_card_variable(boost::optional<boost::optional<replier_business_card_t<rdb_protocol_t> > >(boost::optional<replier_business_card_t<rdb_protocol_t> >(replier.get_business_card())));
 
-    std::string sindex_id("sid");
+    std::string id("sid");
     {
         /* Create a secondary index object. */
         const ql::sym_t one(1);
-        ql::protob_t<Term> twrap = ql::make_counted_term();
-        Term *arg = twrap.get();
-        N2(GET_FIELD, NVAR(one), NDATUM("id"));
+        ql::protob_t<const Term> mapping = ql::r::var(one)["id"].release_counted();
+        ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
-        ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
-
-        rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(sindex_id, m, SINGLE));
+        rdb_protocol_t::write_t write(
+            rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE),
+            profile_bool_t::PROFILE);
 
         fake_fifo_enforcement_t enforce;
-        fifo_enforcer_sink_t::exit_write_t exiter(&enforce.sink, enforce.source.enter_write());
+        fifo_enforcer_sink_t::exit_write_t exiter(
+            &enforce.sink, enforce.source.enter_write());
         class : public broadcaster_t<rdb_protocol_t>::write_callback_t, public cond_t {
         public:
             void on_response(peer_id_t, const rdb_protocol_t::write_response_t &) {
@@ -326,8 +334,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
             it != inserter_state.end(); it++) {
         scoped_cJSON_t sindex_key_json(cJSON_Parse(it->second.c_str()));
         auto sindex_key_literal = make_counted<const ql::datum_t>(sindex_key_json);
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)));
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         fake_fifo_enforcement_t enforce;
         fifo_enforcer_sink_t::exit_read_t exiter(&enforce.sink, enforce.source.enter_read());
         cond_t non_interruptor;

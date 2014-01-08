@@ -16,6 +16,7 @@
 #include "serializer/translator.hpp"
 #include "unittest/dummy_namespace_interface.hpp"
 #include "unittest/gtest.hpp"
+#include "rdb_protocol/minidriver.hpp"
 
 #include "memcached/protocol_json_adapter.hpp"
 
@@ -125,23 +126,26 @@ TEST(RDBProtocol, OvershardedSetupTeardown) {
 /* `GetSet` tests basic get and set operations */
 void run_get_set_test(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     {
-        rdb_protocol_t::write_t write(rdb_protocol_t::point_write_t(store_key_t("a"),
-                                                                    make_counted<ql::datum_t>(ql::datum_t::R_NULL)),
-                                      DURABILITY_REQUIREMENT_DEFAULT);
+        rdb_protocol_t::write_t write(
+                rdb_protocol_t::point_write_t(store_key_t("a"),
+                    make_counted<ql::datum_t>(ql::datum_t::R_NULL)),
+                DURABILITY_REQUIREMENT_DEFAULT,
+                profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
         nsi->write(write, &response, osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"), &interruptor);
 
         if (rdb_protocol_t::point_write_response_t *maybe_point_write_response_t = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_write_response_t->result, STORED);
+            ASSERT_EQ(maybe_point_write_response_t->result, point_write_result_t::STORED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
     }
 
     {
-        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t("a")));
+        rdb_protocol_t::read_t read(rdb_protocol_t::point_read_t(store_key_t("a")),
+                profile_bool_t::PROFILE);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -168,14 +172,12 @@ std::string create_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
                           order_source_t *osource) {
     std::string id = uuid_to_str(generate_uuid());
 
-    ql::protob_t<Term> twrap = ql::make_counted_term();
-    Term *arg = twrap.get();
-    const ql::sym_t one(1);
-    N2(GET_FIELD, NVAR(one), NDATUM("sid"));
+    const ql::sym_t arg(1);
+    ql::protob_t<const Term> mapping = ql::r::var(arg)["sid"].release_counted();
 
-    ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
+    ql::map_wire_func_t m(mapping, make_vector(arg), get_backtrace(mapping));
 
-    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, SINGLE));
+    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_create_t(id, m, sindex_multi_bool_t::SINGLE), profile_bool_t::PROFILE);
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;
@@ -192,7 +194,7 @@ bool drop_sindex(namespace_interface_t<rdb_protocol_t> *nsi,
                  order_source_t *osource,
                  const std::string &id) {
     rdb_protocol_t::sindex_drop_t d(id);
-    rdb_protocol_t::write_t write(d);
+    rdb_protocol_t::write_t write(d, profile_bool_t::PROFILE);
     rdb_protocol_t::write_response_t response;
 
     cond_t interruptor;
@@ -225,7 +227,8 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
          * index). */
         rdb_protocol_t::write_t write(
             rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
-            DURABILITY_REQUIREMENT_DEFAULT);
+            DURABILITY_REQUIREMENT_DEFAULT,
+            profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
@@ -237,7 +240,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
         if (rdb_protocol_t::point_write_response_t *maybe_point_write_response
             = boost::get<rdb_protocol_t::point_write_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_write_response->result, STORED);
+            ASSERT_EQ(maybe_point_write_response->result, point_write_result_t::STORED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -245,8 +248,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)));
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -265,14 +267,15 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
     {
         /* Delete the data. */
         rdb_protocol_t::point_delete_t d(pk);
-        rdb_protocol_t::write_t write(d, DURABILITY_REQUIREMENT_DEFAULT);
+        rdb_protocol_t::write_t write(
+                d, DURABILITY_REQUIREMENT_DEFAULT, profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;
         nsi->write(write, &response, osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol_t.cc-A"), &interruptor);
 
         if (rdb_protocol_t::point_delete_response_t *maybe_point_delete_response = boost::get<rdb_protocol_t::point_delete_response_t>(&response.response)) {
-            ASSERT_EQ(maybe_point_delete_response->result, DELETED);
+            ASSERT_EQ(maybe_point_delete_response->result, point_delete_result_t::DELETED);
         } else {
             ADD_FAILURE() << "got wrong type of result back";
         }
@@ -280,9 +283,7 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
 
     {
         /* Access the data using the secondary index. */
-        rdb_protocol_t::read_t read(rdb_protocol_t::rget_read_t(
-            id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false)));
-
+        rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
         rdb_protocol_t::read_response_t response;
 
         cond_t interruptor;
@@ -310,7 +311,7 @@ TEST(RDBProtocol, OvershardedSindexCreateDrop) {
 
 std::set<std::string> list_sindexes(namespace_interface_t<rdb_protocol_t> *nsi, order_source_t *osource) {
     rdb_protocol_t::sindex_list_t l;
-    rdb_protocol_t::read_t read(l);
+    rdb_protocol_t::read_t read(l, profile_bool_t::PROFILE);
     rdb_protocol_t::read_response_t response;
 
     cond_t interruptor;
@@ -385,7 +386,8 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                  * index). */
                 rdb_protocol_t::write_t write(
                     rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
-                    DURABILITY_REQUIREMENT_DEFAULT);
+                    DURABILITY_REQUIREMENT_DEFAULT,
+                    profile_bool_t::PROFILE);
                 rdb_protocol_t::write_response_t response;
 
                 cond_t interruptor;
@@ -401,15 +403,14 @@ void run_sindex_oversized_keys_test(namespace_interface_t<rdb_protocol_t> *nsi, 
                 if (!resp) {
                     ADD_FAILURE() << "got wrong type of result back";
                 } else {
-                    ASSERT_EQ(resp->result, STORED);
+                    ASSERT_EQ(resp->result, point_write_result_t::STORED);
                 }
             }
 
             {
                 /* Access the data using the secondary index. */
-                rdb_protocol_t::rget_read_t rget(
-                    sindex_id, sindex_range_t(sindex_key_literal, false, sindex_key_literal, false));
-                rdb_protocol_t::read_t read(rget);
+                rdb_protocol_t::read_t read
+                    = make_sindex_read(sindex_key_literal, sindex_id);
                 rdb_protocol_t::read_response_t response;
 
                 cond_t interruptor;
@@ -450,7 +451,8 @@ void run_sindex_missing_attr_test(namespace_interface_t<rdb_protocol_t> *nsi, or
          * index). */
         rdb_protocol_t::write_t write(
             rdb_protocol_t::point_write_t(pk, make_counted<ql::datum_t>(*data)),
-            DURABILITY_REQUIREMENT_DEFAULT);
+            DURABILITY_REQUIREMENT_DEFAULT,
+            profile_bool_t::PROFILE);
         rdb_protocol_t::write_response_t response;
 
         cond_t interruptor;

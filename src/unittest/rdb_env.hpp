@@ -69,6 +69,7 @@ private:
         void NORETURN operator()(UNUSED const rdb_protocol_t::rget_read_t &rget);
         void NORETURN operator()(UNUSED const rdb_protocol_t::distribution_read_t &dg);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_list_t &sl);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_status_t &ss);
 
         read_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, rdb_protocol_t::read_response_t *_response);
 
@@ -83,6 +84,7 @@ private:
         void NORETURN operator()(UNUSED const rdb_protocol_t::point_delete_t &d);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_create_t &s);
         void NORETURN operator()(UNUSED const rdb_protocol_t::sindex_drop_t &s);
+        void NORETURN operator()(UNUSED const rdb_protocol_t::sync_t &s);
 
         write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data, ql::env_t *_env, rdb_protocol_t::write_response_t *_response);
 

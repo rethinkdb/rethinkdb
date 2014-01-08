@@ -38,6 +38,15 @@ enum archive_result_t {
     ARCHIVE_GENERIC_ERROR = 1,
 };
 
+const char *archive_result_as_str(archive_result_t archive_result);
+
+#define guarantee_deserialization(result, ...) do {                     \
+        guarantee(result == ARCHIVE_SUCCESS,                            \
+                  "Deserialization of %s failed with error %s.",        \
+                  strprintf(__VA_ARGS__).c_str(),                       \
+                  archive_result_as_str(result));                       \
+    } while (0)
+
 // We wrap things in this class for making friend declarations more
 // compilable under gcc-4.5.
 class archive_deserializer_t {
@@ -65,7 +74,7 @@ class write_stream_t {
 public:
     write_stream_t() { }
     // Returns n, or -1 upon error. Blocks until all bytes are written.
-    virtual int64_t write(const void *p, int64_t n) = 0;
+    virtual MUST_USE int64_t write(const void *p, int64_t n) = 0;
 protected:
     virtual ~write_stream_t() { }
 private:
@@ -97,6 +106,8 @@ public:
 
     void append(const void *p, int64_t n);
 
+    size_t size() const;
+
     intrusive_list_t<write_buffer_t> *unsafe_expose_buffers() { return &buffers_; }
 
     template <class T>
@@ -122,7 +133,7 @@ write_message_t &operator<<(write_message_t& msg, const T &x) {
 MUST_USE int send_write_message(write_stream_t *s, const write_message_t *msg);
 
 template <class T>
-T *deserialize_deref(T &val) {
+T *deserialize_deref(T &val) {  // NOLINT(runtime/references)
     return &val;
 }
 
@@ -151,7 +162,7 @@ public:
 
 private:
     template <class U>
-    friend empty_ok_t<U> empty_ok(U &field);
+    friend empty_ok_t<U> empty_ok(U &field);  // NOLINT(runtime/references)
 
     explicit empty_ok_t(T *ptr) : ptr_(ptr) { }
 
@@ -169,7 +180,7 @@ empty_ok_ref_t<T> deserialize_deref(const empty_ok_t<T> &val) {
 // empty_ok_t<counted_t<const datum_t> > is made that lets you serialize empty datum's.
 // Simply wrap the name with empty_ok(...) in the serialization macro.
 template <class T>
-empty_ok_t<T> empty_ok(T &field) {
+empty_ok_t<T> empty_ok(T &field) {  // NOLINT(runtime/references)
     return empty_ok_t<T>(&field);
 }
 
@@ -266,5 +277,13 @@ struct serialized_size_t<bool> : public serialized_size_t<int8_t> { };
 write_message_t &operator<<(write_message_t &msg, const uuid_u &uuid);
 MUST_USE archive_result_t deserialize(read_stream_t *s, uuid_u *uuid);
 
+struct in_addr;
+struct in6_addr;
+
+write_message_t &operator<<(write_message_t &msg, const in_addr &addr);
+MUST_USE archive_result_t deserialize(read_stream_t *s, in_addr *addr);
+
+write_message_t &operator<<(write_message_t &msg, const in6_addr &addr);
+MUST_USE archive_result_t deserialize(read_stream_t *s, in6_addr *addr);
 
 #endif  // CONTAINERS_ARCHIVE_ARCHIVE_HPP_

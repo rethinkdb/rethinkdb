@@ -184,14 +184,22 @@ class ResunderDaemon(Daemon):
 
         if dest_port not in self.blocked_ports[source_port]:
             self.blocked_ports[source_port][dest_port] = time.time()
-            subprocess.check_output(["iptables", "-AOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP"])
-            subprocess.check_output(["iptables", "-AINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP"])
+            args_out = ["-AOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP"]
+            args_in = ["-AINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP"]
+            subprocess.check_output(["iptables"] + args_out)
+            subprocess.check_output(["iptables"] + args_in)
+            subprocess.check_output(["ip6tables"] + args_out)
+            subprocess.check_output(["ip6tables"] + args_in)
 
     def unblock_port(self, source_port, dest_port):
         if source_port in self.blocked_ports and dest_port in self.blocked_ports[source_port]:
             del self.blocked_ports[source_port][dest_port]
-            subprocess.check_output(["iptables", "-DOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP"])
-            subprocess.check_output(["iptables", "-DINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP"])
+            args_out = ["-DOUTPUT", "-ptcp", "--sport", source_port, "--dport", dest_port, "-jDROP"]
+            args_in = ["-DINPUT", "-ptcp", "--sport", dest_port, "--dport", source_port, "-jDROP"]
+            subprocess.check_output(["iptables"] + args_out)
+            subprocess.check_output(["iptables"] + args_in)
+            subprocess.check_output(["ip6tables"] + args_out)
+            subprocess.check_output(["ip6tables"] + args_in)
 
             if len(self.blocked_ports[source_port]) == 0:
                 del self.blocked_ports[source_port]
@@ -208,6 +216,8 @@ if __name__ == "__main__":
             daemon.stop()
         elif 'restart' == sys.argv[1]:
             daemon.restart()
+        elif 'inline' == sys.argv[1]:
+            daemon.run()
         else:
             print "Unknown command"
             sys.exit(2)

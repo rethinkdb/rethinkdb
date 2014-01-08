@@ -80,14 +80,14 @@ void linux_event_watcher_t::remask() {
     if (old_registered) {
         if (new_registered) {
             if (old_mask != new_mask) {
-                linux_thread_pool_t::thread->queue.adjust_resource(fd, new_mask, this);
+                linux_thread_pool_t::get_thread()->queue.adjust_resource(fd, new_mask, this);
             }
         } else {
-            linux_thread_pool_t::thread->queue.forget_resource(fd, this);
+            linux_thread_pool_t::get_thread()->queue.forget_resource(fd, this);
         }
     } else {
         if (new_registered) {
-            linux_thread_pool_t::thread->queue.watch_resource(fd, new_mask, this);
+            linux_thread_pool_t::get_thread()->queue.watch_resource(fd, new_mask, this);
         }
     }
 

@@ -47,11 +47,15 @@ datum_t::datum_t(const char *cstr)
     : type(R_STR), r_str(new std::string(cstr)) { }
 
 datum_t::datum_t(std::vector<counted_t<const datum_t> > &&_array)
-    : type(R_ARRAY), r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) { }
+    : type(R_ARRAY),
+      r_array(new std::vector<counted_t<const datum_t> >(std::move(_array))) {
+    rcheck_array_size(*r_array, base_exc_t::GENERIC);
+}
 
 datum_t::datum_t(std::map<std::string, counted_t<const datum_t> > &&_object)
     : type(R_OBJECT),
-      r_object(new std::map<std::string, counted_t<const datum_t> >(std::move(_object))) {
+      r_object(new std::map<std::string, counted_t<const datum_t> >(
+                   std::move(_object))) {
     maybe_sanitize_ptype();
 }
 
@@ -136,6 +140,7 @@ void datum_t::init_json(cJSON *json) {
     case cJSON_String: {
         init_str();
         *r_str = json->valuestring;
+        check_str_validity(*r_str);
     } break;
     case cJSON_Array: {
         init_array();
@@ -595,7 +600,7 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
 }
 
 struct datum_rcheckable_t : public rcheckable_t {
-    datum_rcheckable_t(const datum_t *_datum) : datum(_datum) { }
+    explicit datum_rcheckable_t(const datum_t *_datum) : datum(_datum) { }
     void runtime_fail(base_exc_t::type_t type,
                       const char *test, const char *file, int line,
                       std::string msg) const {
@@ -759,6 +764,7 @@ void datum_t::add(counted_t<const datum_t> val) {
     check_type(R_ARRAY);
     r_sanity_check(val.has());
     r_array->push_back(val);
+    rcheck_array_size(*r_array, base_exc_t::GENERIC);
 }
 
 MUST_USE bool datum_t::add(const std::string &key, counted_t<const datum_t> val,
@@ -930,6 +936,10 @@ void datum_t::init_from_pb(const Datum *d) {
         *r_str = d->r_str();
         check_str_validity(*r_str);
     } break;
+    case Datum::R_JSON: {
+        scoped_cJSON_t cjson(cJSON_Parse(d->r_str().c_str()));
+        init_json(cjson.get());
+    } break;
     case Datum::R_ARRAY: {
         init_array();
         for (int i = 0; i < d->r_array_size(); ++i) {
@@ -974,43 +984,51 @@ bool datum_t::key_is_truncated(const store_key_t &key) {
     }
 }
 
-void datum_t::write_to_protobuf(Datum *d) const {
-    switch (get_type()) {
-    case R_NULL: {
-        d->set_type(Datum::R_NULL);
-    } break;
-    case R_BOOL: {
-        d->set_type(Datum::R_BOOL);
-        d->set_r_bool(r_bool);
-    } break;
-    case R_NUM: {
-        d->set_type(Datum::R_NUM);
-        // so we can use `isfinite` in a GCC 4.4.3-compatible way
-        using namespace std;  // NOLINT(build/namespaces)
-        r_sanity_check(isfinite(r_num));
-        d->set_r_num(r_num);
-    } break;
-    case R_STR: {
-        d->set_type(Datum::R_STR);
-        d->set_r_str(*r_str);
-    } break;
-    case R_ARRAY: {
-        d->set_type(Datum::R_ARRAY);
-        for (size_t i = 0; i < r_array->size(); ++i) {
-            (*r_array)[i]->write_to_protobuf(d->add_r_array());
+void datum_t::write_to_protobuf(Datum *d, use_json_t use_json) const {
+    switch (use_json) {
+    case use_json_t::NO: {
+        switch (get_type()) {
+        case R_NULL: {
+            d->set_type(Datum::R_NULL);
+        } break;
+        case R_BOOL: {
+            d->set_type(Datum::R_BOOL);
+            d->set_r_bool(r_bool);
+        } break;
+        case R_NUM: {
+            d->set_type(Datum::R_NUM);
+            // so we can use `isfinite` in a GCC 4.4.3-compatible way
+            using namespace std;  // NOLINT(build/namespaces)
+            r_sanity_check(isfinite(r_num));
+            d->set_r_num(r_num);
+        } break;
+        case R_STR: {
+            d->set_type(Datum::R_STR);
+            d->set_r_str(*r_str);
+        } break;
+        case R_ARRAY: {
+            d->set_type(Datum::R_ARRAY);
+            for (size_t i = 0; i < r_array->size(); ++i) {
+                (*r_array)[i]->write_to_protobuf(d->add_r_array(), use_json);
+            }
+        } break;
+        case R_OBJECT: {
+            d->set_type(Datum::R_OBJECT);
+            // We use rbegin and rend so that things print the way we expect.
+            for (auto it = r_object->rbegin(); it != r_object->rend(); ++it) {
+                Datum_AssocPair *ap = d->add_r_object();
+                ap->set_key(it->first);
+                it->second->write_to_protobuf(ap->mutable_val(), use_json);
+            }
+        } break;
+        case UNINITIALIZED: // fallthru
+        default: unreachable();
         }
     } break;
-    case R_OBJECT: {
-        d->set_type(Datum::R_OBJECT);
-        // We use rbegin and rend so that things print the way we expect.
-        for (std::map<std::string, counted_t<const datum_t> >::const_reverse_iterator
-                 it = r_object->rbegin(); it != r_object->rend(); ++it) {
-            Datum_AssocPair *ap = d->add_r_object();
-            ap->set_key(it->first);
-            it->second->write_to_protobuf(ap->mutable_val());
-        }
+    case use_json_t::YES: {
+        d->set_type(Datum::R_JSON);
+        d->set_r_str(as_json().PrintUnformatted());
     } break;
-    case UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -1278,8 +1296,8 @@ void wire_datum_map_t::finalize() {
     r_sanity_check(state == COMPILED);
     while (!map.empty()) {
         map_pb.push_back(std::make_pair(Datum(), Datum()));
-        map.begin()->first->write_to_protobuf(&map_pb.back().first);
-        map.begin()->second->write_to_protobuf(&map_pb.back().second);
+        map.begin()->first->write_to_protobuf(&map_pb.back().first, use_json_t::NO);
+        map.begin()->second->write_to_protobuf(&map_pb.back().second, use_json_t::NO);
         map.erase(map.begin());
     }
     state = SERIALIZABLE;
@@ -1299,7 +1317,9 @@ counted_t<const datum_t> wire_datum_map_t::to_arr() const {
 }
 
 void wire_datum_map_t::rdb_serialize(write_message_t &msg /* NOLINT */) const {
+    /* Should be guaranteed by finalize. */
     r_sanity_check(state == SERIALIZABLE);
+    r_sanity_check(map.empty());
     msg << map_pb;
 }
 

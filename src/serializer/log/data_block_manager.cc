@@ -41,6 +41,8 @@ public:
           timestamp(current_microtime()),
           was_written(false),
           state(state_active),
+          garbage_bytes_stat(_parent->static_config->extent_size()),
+          num_live_blocks_stat(0),
           extent_offset(extent_ref.offset()) {
         add_self_to_parent_entries();
     }
@@ -53,6 +55,8 @@ public:
           timestamp(current_microtime()),
           was_written(false),
           state(state_reconstructing),
+          garbage_bytes_stat(_parent->static_config->extent_size()),
+          num_live_blocks_stat(0),
           extent_offset(extent_ref.offset()) {
         add_self_to_parent_entries();
     }
@@ -61,6 +65,7 @@ public:
         parent->extent_manager->release_extent(std::move(extent_ref));
         delete this;
     }
+
     ~gc_entry_t() {
         uint64_t extent_id = parent->static_config->extent_index(extent_offset);
         guarantee(parent->entries.get(extent_id) == this);
@@ -135,6 +140,7 @@ public:
             *relative_offset_out = offset;
             *block_index_out = block_infos.size();
             block_infos.push_back(block_info_t{offset, block_size, false, false});
+            update_stats(NULL, &block_infos.back());
             return true;
         }
     }
@@ -148,28 +154,16 @@ public:
         return block_infos.size();
     }
 
-    unsigned int num_garbage_blocks() const {
-        unsigned int count = 0;
-        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-            if (!it->token_referenced && !it->index_referenced) {
-                ++count;
-            }
-        }
-        return count;
+    unsigned int num_live_blocks() const {
+        rassert(compute_num_live_blocks() == num_live_blocks_stat);
+        return num_live_blocks_stat;
     }
-
-    unsigned int num_live_blocks() const { return num_blocks() - num_garbage_blocks(); }
 
     bool all_garbage() const { return num_live_blocks() == 0; }
 
     uint32_t garbage_bytes() const {
-        uint32_t b = parent->static_config->extent_size();
-        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
-            if (it->token_referenced || it->index_referenced) {
-                b -= aligned_value(it->block_size);
-            }
-        }
-        return b;
+        rassert(compute_garbage_bytes() == garbage_bytes_stat);
+        return garbage_bytes_stat;
     }
 
     bool block_is_garbage(unsigned int block_index) const {
@@ -181,13 +175,17 @@ public:
     void mark_live_tokenwise(unsigned int block_index) {
         guarantee(state != state_reconstructing);
         guarantee(block_index < block_infos.size());
+        const block_info_t old_info = block_infos[block_index];
         block_infos[block_index].token_referenced = true;
+        update_stats(&old_info, &block_infos[block_index]);
     }
 
     void mark_garbage_tokenwise(unsigned int block_index) {
         guarantee(state != state_reconstructing);
         guarantee(block_index < block_infos.size());
+        const block_info_t old_info = block_infos[block_index];
         block_infos[block_index].token_referenced = false;
+        update_stats(&old_info, &block_infos[block_index]);
     }
 
     uint32_t token_bytes() const {
@@ -208,10 +206,6 @@ public:
         return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
     }
 
-    std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
-        return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
-    }
-
     void mark_live_indexwise_with_offset(int64_t offset, block_size_t block_size) {
         guarantee(offset >= extent_ref.offset() && offset < extent_ref.offset() + UINT32_MAX);
 
@@ -220,20 +214,26 @@ public:
         auto it = find_lower_bound_iter(relative_offset);
         if (it == block_infos.end()) {
             block_infos.push_back(block_info_t{relative_offset, block_size, false, true});
+            update_stats(NULL, &block_infos.back());
         } else if (it->relative_offset > relative_offset) {
             guarantee(it->relative_offset >= relative_offset + aligned_value(block_size));
-            block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
+            auto new_block = block_infos.insert(it, block_info_t{relative_offset, block_size, false, true});
+            update_stats(NULL, &*new_block);
         } else {
             guarantee(it->relative_offset == relative_offset);
             guarantee(it->block_size == block_size);
+            const block_info_t old_info = *it;
             it->index_referenced = true;
+            update_stats(&old_info, &*it);
         }
     }
 
     void mark_garbage_indexwise(unsigned int block_index) {
         guarantee(state != state_reconstructing);
         guarantee(block_infos[block_index].index_referenced);
+        const block_info_t old_info = block_infos[block_index];
         block_infos[block_index].index_referenced = false;
+        update_stats(&old_info, &block_infos[block_index]);
     }
 
     bool block_referenced_by_index(unsigned int block_index) const {
@@ -270,6 +270,52 @@ public:
     }
 
 private:
+    // Private because we cannot guarantee that our stats remain consistent if somebody
+    // gets a non-const iterator.
+    std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t relative_offset) {
+        return std::lower_bound(block_infos.begin(), block_infos.end(), relative_offset, &gc_entry_t::info_less);
+    }
+    
+#ifndef NDEBUG
+    uint32_t compute_garbage_bytes() const {
+        uint32_t b = parent->static_config->extent_size();
+        for (auto it = block_infos.begin(); it < block_infos.end(); ++it) {
+            if (it->token_referenced || it->index_referenced) {
+                b -= aligned_value(it->block_size);
+            }
+        }
+        return b;
+    }
+    unsigned int compute_num_live_blocks() const {
+        unsigned int count = 0;
+        for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
+            if (it->token_referenced || it->index_referenced) {
+                ++count;
+            }
+        }
+        return count;
+    }
+#endif
+    
+    // old_block can be NULL if a block_info was freshly added
+    void update_stats(const block_info_t *old_block, const block_info_t *new_block) {
+        rassert(new_block != NULL);
+        if (old_block != NULL) {
+            // Undo old_block
+            if (old_block->token_referenced || old_block->index_referenced) {
+                // Block is live
+                num_live_blocks_stat -= 1;
+                garbage_bytes_stat += aligned_value(old_block->block_size);
+            }
+        }
+        // Apply new_block
+        if (new_block->token_referenced || new_block->index_referenced) {
+            // Block is live
+            num_live_blocks_stat += 1;
+            garbage_bytes_stat -= aligned_value(new_block->block_size);
+        }
+    }
+    
     // Used by constructors.
     void add_self_to_parent_entries() {
         uint64_t extent_id = parent->static_config->extent_index(extent_offset);
@@ -311,6 +357,10 @@ public:
 private:
     // Block information, ordered by relative offset.
     std::vector<block_info_t> block_infos;
+    
+    // Some stats we maintain to make certain operations faster
+    uint32_t garbage_bytes_stat;
+    unsigned int num_live_blocks_stat;
 
     // Only to be used by the destructor, used to look up the gc entry in the
     // parent's entries array.
@@ -745,6 +795,12 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     return ret;
 }
 
+void data_block_manager_t::destroy_entry(gc_entry_t *entry) {
+    rassert(entry != NULL);
+    ++stats->pm_serializer_data_extents_reclaimed;
+    entry->destroy();
+}
+
 void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
     gc_entry_t *entry = entries.get(extent_id);
     if (!entry) {
@@ -781,9 +837,7 @@ void data_block_manager_t::check_and_handle_empty_extent(uint64_t extent_id) {
                 unreachable();
         }
 
-        ++stats->pm_serializer_data_extents_reclaimed;
-        entry->destroy();
-        rassert(entries.get(extent_id) == NULL);
+        destroy_entry(entry);
 
     } else if (entry->state == gc_entry_t::state_old) {
         entry->our_pq_entry->update();
@@ -1258,13 +1312,19 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
         unsigned int block_index = valgrind_undefined<unsigned int>(UINT_MAX);
         if (!active_extent->new_offset(it->block_size,
                                        &relative_offset, &block_index)) {
-            // Move the active_extent gc_entry_t to the young extent queue, and make a
-            // new gc_entry_t.
-            active_extent->state = gc_entry_t::state_young;
-            young_extent_queue.push_back(active_extent);
-            mark_unyoung_entries();
+            // Move the active_extent gc_entry_t to the young extent queue (if it's
+            // not already empty), and make a new gc_entry_t.
+            if (active_extent->num_live_blocks() == 0) {
+                gc_entry_t *old_active_extent = active_extent;
+                active_extent = new gc_entry_t(this);
+                destroy_entry(old_active_extent);
+            } else {
+                active_extent->state = gc_entry_t::state_young;
+                young_extent_queue.push_back(active_extent);
+                mark_unyoung_entries();
+                active_extent = new gc_entry_t(this);
+            }
 
-            active_extent = new gc_entry_t(this);
             ++stats->pm_serializer_data_extents_allocated;
             const bool succeeded = active_extent->new_offset(it->block_size,
                                                              &relative_offset,

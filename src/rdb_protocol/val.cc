@@ -4,7 +4,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/meta_utils.hpp"
-#include "rdb_protocol/pb_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/term.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -18,7 +18,8 @@ table_t::table_t(env_t *env,
       db(_db),
       name(_name),
       use_outdated(_use_outdated),
-      sorting(UNORDERED) {
+      bounds(datum_range_t::universe()),
+      sorting(sorting_t::UNORDERED) {
     uuid_u db_id = db->id;
     name_string_t table_name;
     bool b = table_name.assign_value(name);
@@ -37,8 +38,7 @@ table_t::table_t(env_t *env,
                               strprintf("Table `%s` does not exist.",
                                         table_name.c_str()), this);
 
-    access.init(new namespace_repo_t<rdb_protocol_t>::access_t(
-                    env->cluster_access.ns_repo, id, env->interruptor));
+    access.init(new rdb_namespace_access_t(id, env));
 
     metadata_search_status_t status;
     metadata_searcher_t<namespace_semilattice_metadata_t<rdb_protocol_t> >::iterator
@@ -73,10 +73,10 @@ counted_t<const datum_t> table_t::make_error_datum(const base_exc_t &exception) 
 template<class T> // batched_replace_t and batched_insert_t
 counted_t<const datum_t> table_t::do_batched_write(
     env_t *env, T &&t, durability_requirement_t durability_requirement) {
-    rdb_protocol_t::write_t write(std::move(t), durability_requirement);
+    rdb_protocol_t::write_t write(std::move(t), durability_requirement, env->profile());
     rdb_protocol_t::write_response_t response;
-    access->get_namespace_if()->write(
-        write, &response, order_token_t::ignore, env->interruptor);
+    access->get_namespace_if().write(
+        &write, &response, order_token_t::ignore, env->interruptor);
     auto dp = boost::get<counted_t<const datum_t> >(&response.response);
     r_sanity_check(dp != NULL);
     return *dp;
@@ -177,11 +177,11 @@ MUST_USE bool table_t::sindex_create(env_t *env,
     index_func->assert_deterministic("Index functions must be deterministic.");
     map_wire_func_t wire_func(index_func);
     rdb_protocol_t::write_t write(
-            rdb_protocol_t::sindex_create_t(id, wire_func, multi));
+            rdb_protocol_t::sindex_create_t(id, wire_func, multi), env->profile());
 
     rdb_protocol_t::write_response_t res;
-    access->get_namespace_if()->write(
-        write, &res, order_token_t::ignore, env->interruptor);
+    access->get_namespace_if().write(
+        &write, &res, order_token_t::ignore, env->interruptor);
 
     rdb_protocol_t::sindex_create_response_t *response =
         boost::get<rdb_protocol_t::sindex_create_response_t>(&res.response);
@@ -190,12 +190,11 @@ MUST_USE bool table_t::sindex_create(env_t *env,
 }
 
 MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
-    rdb_protocol_t::write_t write((
-            rdb_protocol_t::sindex_drop_t(id)));
+    rdb_protocol_t::write_t write(rdb_protocol_t::sindex_drop_t(id), env->profile());
 
     rdb_protocol_t::write_response_t res;
-    access->get_namespace_if()->write(
-        write, &res, order_token_t::ignore, env->interruptor);
+    access->get_namespace_if().write(
+        &write, &res, order_token_t::ignore, env->interruptor);
 
     rdb_protocol_t::sindex_drop_response_t *response =
         boost::get<rdb_protocol_t::sindex_drop_response_t>(&res.response);
@@ -205,10 +204,10 @@ MUST_USE bool table_t::sindex_drop(env_t *env, const std::string &id) {
 
 counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     rdb_protocol_t::sindex_list_t sindex_list;
-    rdb_protocol_t::read_t read(sindex_list);
+    rdb_protocol_t::read_t read(sindex_list, env->profile());
     try {
         rdb_protocol_t::read_response_t res;
-        access->get_namespace_if()->read(
+        access->get_namespace_if().read(
             read, &res, order_token_t::ignore, env->interruptor);
         rdb_protocol_t::sindex_list_response_t *s_res =
             boost::get<rdb_protocol_t::sindex_list_response_t>(&res.response);
@@ -228,16 +227,76 @@ counted_t<const datum_t> table_t::sindex_list(env_t *env) {
     }
 }
 
+counted_t<const datum_t> table_t::sindex_status(env_t *env, std::set<std::string> sindexes) {
+    rdb_protocol_t::sindex_status_t sindex_status(sindexes);
+    rdb_protocol_t::read_t read(sindex_status, env->profile());
+    try {
+        rdb_protocol_t::read_response_t res;
+        access->get_namespace_if().read(
+            read, &res, order_token_t::ignore, env->interruptor);
+        auto s_res = boost::get<rdb_protocol_t::sindex_status_response_t>(&res.response);
+        r_sanity_check(s_res);
+
+        std::vector<counted_t<const datum_t> > array;
+        for (auto it = s_res->statuses.begin(); it != s_res->statuses.end(); ++it) {
+            r_sanity_check(std_contains(sindexes, it->first) || sindexes.empty());
+            sindexes.erase(it->first);
+            std::map<std::string, counted_t<const datum_t> > status;
+            if (it->second.blocks_processed != 0) {
+                status["blocks_processed"] =
+                    make_counted<const datum_t>(
+                        safe_to_double(it->second.blocks_processed));
+                status["blocks_total"] =
+                    make_counted<const datum_t>(
+                        safe_to_double(it->second.blocks_total));
+            }
+            status["ready"] = make_counted<const datum_t>(datum_t::R_BOOL, it->second.ready);
+            std::string index_name = it->first;
+            status["index"] = make_counted<const datum_t>(std::move(index_name));
+            array.push_back(make_counted<const datum_t>(std::move(status)));
+        }
+        rcheck(sindexes.empty(), base_exc_t::GENERIC,
+               strprintf("Index `%s` was not found.", sindexes.begin()->c_str()));
+        return make_counted<const datum_t>(std::move(array));
+    } catch (const cannot_perform_query_exc_t &ex) {
+        rfail(ql::base_exc_t::GENERIC, "cannot perform read %s", ex.what());
+    }
+}
+
+MUST_USE bool table_t::sync(env_t *env, const rcheckable_t *parent) {
+    rcheck_target(parent, base_exc_t::GENERIC,
+                  bounds.is_universe() && sorting == sorting_t::UNORDERED,
+                  "sync can only be applied directly to a table.");
+    // In order to get the guarantees that we expect from a user-facing command,
+    // we always have to use hard durability in combination with sync.
+    return sync_depending_on_durability(env, DURABILITY_REQUIREMENT_HARD);
+}
+
+MUST_USE bool table_t::sync_depending_on_durability(env_t *env,
+                durability_requirement_t durability_requirement) {
+    rdb_protocol_t::write_t write(
+        rdb_protocol_t::sync_t(), durability_requirement, env->profile());
+    rdb_protocol_t::write_response_t res;
+    access->get_namespace_if().write(
+        &write, &res, order_token_t::ignore, env->interruptor);
+
+    rdb_protocol_t::sync_response_t *response =
+        boost::get<rdb_protocol_t::sync_response_t>(&res.response);
+    r_sanity_check(response);
+    return true; // With our current implementation, a sync can never fail.
+}
+
 const std::string &table_t::get_pkey() { return pkey; }
 
 counted_t<const datum_t> table_t::get_row(env_t *env, counted_t<const datum_t> pval) {
     std::string pks = pval->print_primary();
-    rdb_protocol_t::read_t read((rdb_protocol_t::point_read_t(store_key_t(pks))));
+    rdb_protocol_t::read_t read(
+            rdb_protocol_t::point_read_t(store_key_t(pks)), env->profile());
     rdb_protocol_t::read_response_t res;
     if (use_outdated) {
-        access->get_namespace_if()->read_outdated(read, &res, env->interruptor);
+        access->get_namespace_if().read_outdated(read, &res, env->interruptor);
     } else {
-        access->get_namespace_if()->read(
+        access->get_namespace_if().read(
             read, &res, order_token_t::ignore, env->interruptor);
     }
     rdb_protocol_t::point_read_response_t *p_res =
@@ -253,29 +312,29 @@ counted_t<datum_stream_t> table_t::get_all(
         const protob_t<const Backtrace> &bt) {
     rcheck_src(bt.get(), base_exc_t::GENERIC, !sindex_id,
             "Cannot chain get_all and other indexed operations.");
-    r_sanity_check(sorting == UNORDERED);
-    r_sanity_check(!bounds);
+    r_sanity_check(sorting == sorting_t::UNORDERED);
+    r_sanity_check(bounds.is_universe());
 
     if (get_all_sindex_id == get_pkey()) {
         return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                value, false,
-                value, false,
-                UNORDERED, bt);
+            access.get(),
+            use_outdated,
+            primary_readgen_t::make(env, datum_range_t(value)),
+            bt);
     } else {
         return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                value, false,
-                value, false,
-                get_all_sindex_id, UNORDERED, bt);
+            access.get(),
+            use_outdated,
+            sindex_readgen_t::make(env, get_all_sindex_id, datum_range_t(value)),
+            bt);
     }
 }
 
 void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
                           const rcheckable_t *parent) {
-    r_sanity_check(_sorting != UNORDERED);
+    r_sanity_check(_sorting != sorting_t::UNORDERED);
 
-    rcheck_target(parent, base_exc_t::GENERIC, !sorting,
+    rcheck_target(parent, base_exc_t::GENERIC, sorting == sorting_t::UNORDERED,
             "Cannot apply 2 indexed orderings to the same TABLE.");
     rcheck_target(parent, base_exc_t::GENERIC, !sindex_id || *sindex_id == new_sindex_id,
             strprintf(
@@ -286,54 +345,33 @@ void table_t::add_sorting(const std::string &new_sindex_id, sorting_t _sorting,
     sorting = _sorting;
 }
 
-void table_t::add_bounds(
-    counted_t<const datum_t> left_bound, bool left_bound_open,
-    counted_t<const datum_t> right_bound, bool right_bound_open,
-    const std::string &new_sindex_id, const rcheckable_t *parent) {
-
+void table_t::add_bounds(datum_range_t &&new_bounds,
+                         const std::string &new_sindex_id,
+                         const rcheckable_t *parent) {
     if (sindex_id) {
-        rcheck_target(parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
+        rcheck_target(
+            parent, base_exc_t::GENERIC, *sindex_id == new_sindex_id,
             strprintf(
-                "Cannot use 2 indexes in the same operation. Trying to use %s and %s",
+                "Cannot use 2 indexes in the same operation.  Trying to use %s and %s.",
                 sindex_id->c_str(), new_sindex_id.c_str()));
+    } else {
+        sindex_id = new_sindex_id;
     }
 
-    rcheck_target(parent, base_exc_t::GENERIC, !bounds,
-            "Cannot chain multiple betweens to the same table.");
-
-    sindex_id = new_sindex_id;
-    bounds = std::make_pair(
-            bound_t(left_bound, left_bound_open),
-            bound_t(right_bound, right_bound_open));
+    rcheck_target(parent, base_exc_t::GENERIC, bounds.is_universe(),
+                  "Cannot chain multiple betweens to the same table.");
+    bounds = std::move(new_bounds);
 }
 
 counted_t<datum_stream_t> table_t::as_datum_stream(env_t *env,
                                                    const protob_t<const Backtrace> &bt) {
-    if (!sindex_id || *sindex_id == get_pkey()) {
-        if (bounds) {
-            return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                bounds->first.value, bounds->first.bound_open,
-                bounds->second.value, bounds->second.bound_open,
-                sorting, bt);
-        } else {
-            return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                sorting, bt);
-        }
-    } else {
-        if (bounds) {
-            return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                bounds->first.value, bounds->first.bound_open,
-                bounds->second.value, bounds->second.bound_open,
-                *sindex_id, sorting, bt);
-        } else {
-            return make_counted<lazy_datum_stream_t>(
-                env, use_outdated, access.get(),
-                *sindex_id, sorting, bt);
-        }
-    }
+    return make_counted<lazy_datum_stream_t>(
+        access.get(),
+        use_outdated,
+        (!sindex_id || *sindex_id == get_pkey())
+            ? primary_readgen_t::make(env, bounds, sorting)
+            : sindex_readgen_t::make(env, *sindex_id, bounds, sorting),
+        bt);
 }
 
 val_t::type_t::type_t(val_t::type_t::raw_type_t _raw_type) : raw_type(_raw_type) { }

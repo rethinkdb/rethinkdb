@@ -109,6 +109,10 @@ void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED cons
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::read_visitor_t::operator()(UNUSED const rdb_protocol_t::sindex_status_t &ss) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 mock_namespace_interface_t::read_visitor_t::read_visitor_t(std::map<store_key_t, scoped_cJSON_t *> *_data,
                                                            rdb_protocol_t::read_response_t *_response) :
     data(_data), response(_response) {
@@ -219,6 +223,10 @@ void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_
     throw cannot_perform_query_exc_t("unimplemented");
 }
 
+void NORETURN mock_namespace_interface_t::write_visitor_t::operator()(const rdb_protocol_t::sync_t &) {
+    throw cannot_perform_query_exc_t("unimplemented");
+}
+
 mock_namespace_interface_t::write_visitor_t::write_visitor_t(std::map<store_key_t, scoped_cJSON_t*> *_data,
                                                              ql::env_t *_env,
                                                              rdb_protocol_t::write_response_t *_response) :
@@ -312,7 +320,7 @@ test_rdb_env_t::instance_t::instance_t(test_rdb_env_t *test_env) :
                            NULL,
                            &interruptor,
                            test_env->machine_id,
-                           std::map<std::string, ql::wire_func_t>()));
+                           ql::protob_t<Query>()));
     rdb_ns_repo.set_env(env.get());
 
     // Set up any initial datas

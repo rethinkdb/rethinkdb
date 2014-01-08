@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "rpc/connectivity/cluster.hpp"
 
+#include <netinet/in.h>
 #include "errors.hpp"
 #include <boost/optional.hpp>
 
@@ -54,11 +55,11 @@ peer_address_t our_peer_address(std::set<ip_address_t> local_addresses,
     } else {
         // Otherwise we need to use the local addresses with the cluster port
         if (local_addresses.empty()) {
-            local_addresses = ip_address_t::get_local_addresses(std::set<ip_address_t>(), true);
+            local_addresses = get_local_ips(std::set<ip_address_t>(), true);
         }
         for (auto it = local_addresses.begin();
              it != local_addresses.end(); ++it) {
-            our_addrs.insert(host_and_port_t(it->as_dotted_decimal(), cluster_port));
+            our_addrs.insert(host_and_port_t(it->to_string(), cluster_port));
         }
     }
     return peer_address_t(our_addrs);
@@ -93,7 +94,7 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     /* This constructor makes an entry for us in `routing_table`. The destructor
     will remove the entry. If the set of local addresses passed in is empty, it
     means that we bind to all local addresses.  That also means we need to get
-    a new set of all local addresses from get_local_addresses() in that case. */
+    a new set of all local addresses from get_local_ips() in that case. */
     routing_table_entry_for_ourself(&routing_table,
                                     parent->me,
                                     our_peer_address(local_addresses,
@@ -114,6 +115,11 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
 }
 
 connectivity_cluster_t::run_t::~run_t() { }
+
+std::set<ip_and_port_t> connectivity_cluster_t::run_t::get_ips() const {
+    parent->assert_thread();
+    return routing_table.at(parent->me).ips();
+}
 
 int connectivity_cluster_t::run_t::get_port() {
     return cluster_listener_port;
@@ -273,7 +279,7 @@ void connectivity_cluster_t::run_t::join_blocking(
 
     // Attempt to connect to all known ip addresses of the peer
     bool successful_join = false; // Variable so that handle() can check that only one connection succeeds
-    semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
+    static_semaphore_t rate_control(peer.ips().size()); // Mutex to control the rate that connection attempts are made
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
     pmap(peer.ips().size(),
@@ -422,6 +428,22 @@ static bool deserialize_compatible_string(tcp_conn_stream_t *conn,
     return true;
 }
 
+// This implementation is used over operator == because we want to ignore different scope ids
+//  in the case of IPv6
+bool is_similar_ip_address(const ip_and_port_t &left,
+                           const ip_and_port_t &right) {
+    if (left.port().value() != right.port().value() ||
+        left.ip().get_address_family() != right.ip().get_address_family()) {
+        return false;
+    }
+
+    if (left.ip().is_ipv4()) {
+        return left.ip().get_ipv4_addr().s_addr == right.ip().get_ipv4_addr().s_addr;
+    } else {
+        return IN6_ARE_ADDR_EQUAL(&left.ip().get_ipv6_addr(), &right.ip().get_ipv6_addr());
+    }
+}
+
 bool is_similar_peer_address(const peer_address_t &left,
                              const peer_address_t &right) {
     bool left_loopback_only = true;
@@ -445,7 +467,7 @@ bool is_similar_peer_address(const peer_address_t &left,
                 right_loopback_only = false;
             }
 
-            if (*right_it == *left_it) {
+            if (is_similar_ip_address(*right_it, *left_it)) {
                 return true;
             }
         }
@@ -512,7 +534,7 @@ void connectivity_cluster_t::run_t::handle(
     ip_address_t peer_addr;
     std::string peerstr = "(unknown)";
     if (!conn->get_underlying_conn()->getpeername(&peer_addr))
-        peerstr = peer_addr.as_dotted_decimal();
+        peerstr = peer_addr.to_string();
     const char *peername = peerstr.c_str();
 
     // Make sure that if we're ordered to shut down, any pending read
@@ -790,6 +812,7 @@ void connectivity_cluster_t::run_t::handle(
 
                 string_read_stream_t stream(std::move(message), 0);
                 message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
+                coro_t::yield();
             }
         } catch (const fake_archive_exc_t &) {
             /* The exception broke us out of the loop, and that's what we
@@ -857,7 +880,7 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
 
     guarantee(!dest.is_nil());
 
-    /* We currently write the message to a vector_stream_t, then
+    /* We currently write the message to a string_stream_t, then
        serialize that as a string. It's horribly inefficient, of course. */
     // TODO: If we don't do it this way, we (or the caller) will need
     // to worry about having the writer run on the connection thread.

@@ -13,7 +13,7 @@ SUPPRESSED_LINTIAN_TAGS := new-package-should-close-itp-bug
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
 DIST_FILE_LIST_REL := admin bench demos docs drivers external lib mk packaging scripts src test
-DIST_FILE_LIST_REL += configure COPYRIGHT DEPENDENCIES Makefile NOTES README.md
+DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES.md README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$/$x)
 
@@ -58,7 +58,11 @@ ifneq ($(shell echo $(UBUNTU_RELEASE) | grep '^[q-zQ-Z]'),)
   DEB_BUILD_DEPENDS += , nodejs-legacy
 endif
 ifneq (1,$(STATIC_V8))
-  DEB_BUILD_DEPENDS += , libv8-dev
+  ifeq ($(UBUNTU_RELEASE),saucy)
+    DEB_BUILD_DEPENDS += , libv8-3.14-dev
+  else
+    DEB_BUILD_DEPENDS += , libv8-dev
+  endif
 endif
 ifneq (1,$(BUILD_PORTABLE))
   DEB_BUILD_DEPENDS += , protobuf-compiler, protobuf-c-compiler, libprotobuf-dev
@@ -124,12 +128,13 @@ build-osx: install-osx
 	mkdir -p $(OSX_PACKAGE_DIR)/install
 	pkgbuild --root $(OSX_PACKAGE_DIR)/pkg --identifier rethinkdb $(OSX_PACKAGE_DIR)/install/rethinkdb.pkg
 	mkdir $(OSX_PACKAGE_DIR)/dmg
-	productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb.pkg
+	productbuild --distribution $(OSX_PACKAGING_DIR)/Distribution.xml --package-path $(OSX_PACKAGE_DIR)/install/ $(OSX_PACKAGE_DIR)/dmg/rethinkdb-$(RETHINKDB_VERSION).pkg
 # TODO: the PREFIX should not be hardcoded in the uninstall script
 	cp $(OSX_PACKAGING_DIR)/uninstall-rethinkdb.sh $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
 	chmod +x $(OSX_PACKAGE_DIR)/dmg/uninstall-rethinkdb.sh
-	cp $(TOP)/NOTES $(OSX_PACKAGE_DIR)/dmg/
-	hdiutil create -volname RethinkDB -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
+	cp $(TOP)/NOTES.md $(OSX_PACKAGE_DIR)/dmg/
+	cp $(TOP)/COPYRIGHT $(OSX_PACKAGE_DIR)/dmg/
+	hdiutil create -volname RethinkDB-$(RETHINKDB_VERSION) -srcfolder $(OSX_PACKAGE_DIR)/dmg -ov $(OSX_PACKAGE_DIR)/rethinkdb.dmg
 
 ##### Source distribution
 

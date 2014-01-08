@@ -234,11 +234,11 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
         gid_t group_id;
         if (!get_group_id(rungroup->c_str(), &group_id)) {
             throw std::runtime_error(strprintf("Group '%s' not found: %s",
-                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
         if (setgid(group_id) != 0) {
             throw std::runtime_error(strprintf("Could not set group to '%s': %s",
-                                               rungroup->c_str(), errno_string(errno).c_str()).c_str());
+                                               rungroup->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
     }
 
@@ -247,18 +247,18 @@ void set_user_group(const std::map<std::string, options::values_t> &opts) {
         gid_t user_group_id;
         if (!get_user_ids(runuser->c_str(), &user_id, &user_group_id)) {
             throw std::runtime_error(strprintf("User '%s' not found: %s",
-                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
         if (!rungroup) {
             // No group specified, use the user's group
             if (setgid(user_group_id) != 0) {
                 throw std::runtime_error(strprintf("Could not use the group of user '%s': %s",
-                                                   runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                                   runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
             }
         }
         if (setuid(user_id) != 0) {
             throw std::runtime_error(strprintf("Could not set user account to '%s': %s",
-                                               runuser->c_str(), errno_string(errno).c_str()).c_str());
+                                               runuser->c_str(), errno_string(get_errno()).c_str()).c_str());
         }
     }
 }
@@ -404,21 +404,70 @@ std::string get_web_path(const std::map<std::string, options::values_t> &opts, c
 
 // Note that this defaults to the peer port if no port is specified
 //  (at the moment, this is only used for parsing --join directives)
+// Possible formats:
+//  host only: newton
+//  host and port: newton:60435
+//  IPv4 addr only: 192.168.0.1
+//  IPv4 addr and port: 192.168.0.1:60435
+//  IPv6 addr only: ::dead:beef
+//  IPv6 addr only: [::dead:beef]
+//  IPv6 addr and port: [::dead:beef]:60435
+//  IPv4-mapped IPv6 addr only: ::ffff:192.168.0.1
+//  IPv4-mapped IPv6 addr only: [::ffff:192.168.0.1]
+//  IPv4-mapped IPv6 addr and port: [::ffff:192.168.0.1]:60435
 host_and_port_t parse_host_and_port(const std::string &source, const std::string &option_name,
                                     const std::string &value, int default_port) {
-    size_t colon_loc = value.find_first_of(':');
-    if (colon_loc != std::string::npos) {
-        std::string host = value.substr(0, colon_loc);
-        int port = atoi(value.substr(colon_loc + 1).c_str());
-        if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
-            return host_and_port_t(host, port_t(port));
+    // First disambiguate IPv4 vs IPv6
+    size_t colon_count = std::count(value.begin(), value.end(), ':');
+
+    if (colon_count < 2) {
+        // IPv4 will have 1 or less colons
+        size_t colon_loc = value.find_last_of(':');
+        if (colon_loc != std::string::npos) {
+            std::string host = value.substr(0, colon_loc);
+            int port = atoi(value.substr(colon_loc + 1).c_str());
+            if (host.size() != 0 && port != 0 && port <= MAX_PORT) {
+                return host_and_port_t(host, port_t(port));
+            }
+        } else if (value.size() != 0) {
+            return host_and_port_t(value, port_t(default_port));
         }
-    } else if (value.size() != 0) {
-        return host_and_port_t(value, port_t(default_port));
+    } else {
+        // IPv6 will have 2 or more colons
+        size_t last_colon_loc = value.find_last_of(':');
+        size_t start_bracket_loc = value.find_first_of('[');
+        size_t end_bracket_loc = value.find_last_of(']');
+
+        if (start_bracket_loc > end_bracket_loc) {
+            // Error condition fallthrough
+        } else if (start_bracket_loc == std::string::npos || end_bracket_loc == std::string::npos) {
+            // No brackets, therefore no port, just parse the whole thing as a hostname
+            return host_and_port_t(value, port_t(default_port));
+        } else if (last_colon_loc < end_bracket_loc) {
+            // Brackets, but no port, verify no other characters outside the brackets
+            if (value.find_last_not_of(" \t\r\n[", start_bracket_loc) == std::string::npos &&
+                value.find_first_not_of(" \t\r\n]", end_bracket_loc) == std::string::npos) {
+                std::string host = value.substr(start_bracket_loc + 1, end_bracket_loc - start_bracket_loc - 1);
+                return host_and_port_t(host, port_t(default_port));
+            }
+        } else {
+            // Brackets and port
+            std::string host = value.substr(start_bracket_loc + 1, end_bracket_loc - start_bracket_loc - 1);
+            std::string remainder = value.substr(end_bracket_loc + 1);
+            size_t remainder_colon_loc = remainder.find_first_of(':');
+            int port = atoi(remainder.substr(remainder_colon_loc + 1).c_str());
+
+            // Verify no characters before the brackets and up to the port colon
+            if (port != 0 && port <= MAX_PORT && remainder_colon_loc == 0 &&
+                value.find_last_not_of(" \t\r\n[", start_bracket_loc) == std::string::npos) {
+                return host_and_port_t(host, port_t(port));
+            }
+        }
     }
 
+
     throw options::value_error_t(source, option_name,
-                                 strprintf("Option '%s' has invalid host and port number '%s'",
+                                 strprintf("Option '%s' has invalid host and port format '%s'",
                                            option_name.c_str(), value.c_str()));
 }
 
@@ -441,25 +490,31 @@ std::set<ip_address_t> get_local_addresses(const std::vector<std::string> &bind_
             all = true;
         } else {
             // Verify that all specified addresses are valid ip addresses
-            struct in_addr addr;
-            if (inet_pton(AF_INET, bind_options[i].c_str(), &addr) == 1) {
-                if (addr.s_addr == INADDR_ANY) {
+            try {
+                ip_address_t addr(bind_options[i]);
+                if (addr.is_any()) {
                     all = true;
                 } else {
-                    set_filter.insert(ip_address_t(addr));
+                    set_filter.insert(addr);
                 }
-            } else {
-                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed", bind_options[i].c_str()));
+            } catch (const std::exception &ex) {
+                throw address_lookup_exc_t(strprintf("bind ip address '%s' could not be parsed: %s",
+                                                     bind_options[i].c_str(),
+                                                     ex.what()));
             }
         }
     }
 
-    std::set<ip_address_t> result = ip_address_t::get_local_addresses(set_filter, all);
+    std::set<ip_address_t> result = get_local_ips(set_filter, all);
 
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
         if (result.find(*i) == result.end()) {
-            throw address_lookup_exc_t(strprintf("could not find bind ip address '%s'", i->as_dotted_decimal().c_str()));
+            std::string errmsg = strprintf("could not find bind ip address '%s'", i->to_string().c_str());
+            if (i->is_ipv6_link_local()) {
+                errmsg += strprintf(", this is an IPv6 link-local address, make sure the scope is correct");
+            }
+            throw address_lookup_exc_t(errmsg);
         }
     }
 
@@ -893,7 +948,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
 
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
 
     return help;
 }
@@ -1004,7 +1059,7 @@ void get_rethinkdb_admin_options(std::vector<options::help_section_t> *help_out,
 
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times"); 
+    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
 
     options_out->push_back(options::option_t(options::names_t("--exit-failure", "-x"),
                                              options::OPTIONAL_NO_PARAMETER));
@@ -1175,7 +1230,7 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--daemon")) {
         pid_t pid = fork();
         if (pid < 0) {
-            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to fork daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (pid > 0) {
@@ -1186,21 +1241,21 @@ bool maybe_daemonize(const std::map<std::string, options::values_t> &opts) {
 
         pid_t sid = setsid();
         if (sid == 0) {
-            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to create daemon session: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (chdir("/") < 0) {
-            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to change directory: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
 
         if (freopen("/dev/null", "r", stdin) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
         if (freopen("/dev/null", "w", stdout) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stdin for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
         if (freopen("/dev/null", "w", stderr) == NULL) {
-            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(errno).c_str()).c_str());
+            throw std::runtime_error(strprintf("Failed to redirect stderr for daemon: %s\n", errno_string(get_errno()).c_str()).c_str());
         }
     }
     return true;
@@ -1431,7 +1486,7 @@ void run_backup_script(const std::string& script_name, char * const arguments[])
                 "Instructions for installing the RethinkDB Python driver are available here:\n"
                 "http://www.rethinkdb.com/docs/install-drivers/python/\n",
                 script_name.c_str(),
-                errno_string(errno).c_str(),
+                errno_string(get_errno()).c_str(),
                 script_name.c_str());
     }
 }

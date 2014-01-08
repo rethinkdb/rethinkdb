@@ -17,6 +17,7 @@
 #include "serializer/config.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "rdb_protocol/minidriver.hpp"
 
 #define TOTAL_KEYS_TO_INSERT 1000
 #define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
@@ -34,7 +35,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
         store->acquire_superblock_for_write(
-            rwi_write, repli_timestamp_t::invalid,
+            repli_timestamp_t::invalid,
             1, WRITE_DURABILITY_SOFT,
             &token_pair, &txn, &superblock, &dummy_interruptor);
         block_id_t sindex_block_id = superblock->get_sindex_block_id();
@@ -42,12 +43,13 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         std::string data = strprintf("{\"id\" : %d, \"sid\" : %d}", i, i * i);
         point_write_response_t response;
 
-        store_key_t pk(make_counted<const ql::datum_t>(double(i))->print_primary());
+        store_key_t pk(make_counted<const ql::datum_t>(static_cast<double>(i))->print_primary());
         rdb_modification_report_t mod_report(pk);
         rdb_set(pk,
                 make_counted<ql::datum_t>(scoped_cJSON_t(cJSON_Parse(data.c_str()))),
                 false, store->btree.get(), repli_timestamp_t::invalid, txn.get(),
-                superblock.get(), &response, &mod_report.info);
+                superblock.get(), &response, &mod_report.info,
+                static_cast<profile::trace_t *>(NULL));
 
         {
             scoped_ptr_t<buf_lock_t> sindex_block;
@@ -86,18 +88,15 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
 
-    store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+    store->acquire_superblock_for_write(repli_timestamp_t::invalid,
                                         1, WRITE_DURABILITY_SOFT,
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
-    Term mapping;
-    const ql::sym_t one(1);
-    ql::protob_t<Term> twrap = ql::make_counted_term();
-    Term *arg = twrap.get();
-    N2(GET_FIELD, NVAR(one), NDATUM("sid"));
+    ql::sym_t one(1);
+    ql::protob_t<const Term> mapping = ql::r::var(one)["sid"].release_counted();
+    ql::map_wire_func_t m(mapping, make_vector(one), get_backtrace(mapping));
 
-    ql::map_wire_func_t m(twrap, make_vector(one), get_backtrace(twrap));
-    sindex_multi_bool_t multi_bool = SINGLE;
+    sindex_multi_bool_t multi_bool = sindex_multi_bool_t::SINGLE;
 
     write_message_t wm;
     wm << m;
@@ -126,7 +125,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
 
-    store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+    store->acquire_superblock_for_write(repli_timestamp_t::invalid,
                                         1, WRITE_DURABILITY_SOFT, &token_pair,
                                         &txn, &super_block, &dummy_interuptor);
 
@@ -151,7 +150,7 @@ void bring_sindexes_up_to_date(
 
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
-    store->acquire_superblock_for_write(rwi_write, repli_timestamp_t::invalid,
+    store->acquire_superblock_for_write(repli_timestamp_t::invalid,
                                         1, WRITE_DURABILITY_SOFT,
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
@@ -178,7 +177,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
     scoped_ptr_t<transaction_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(
-        rwi_write, repli_timestamp_t::invalid,
+        repli_timestamp_t::invalid,
         1, WRITE_DURABILITY_SOFT,
         &token_pair, &txn, &super_block, &dummy_interruptor);
 
@@ -223,12 +222,23 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
-        rdb_rget_slice(store->get_sindex_slice(sindex_id),
+        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
+         * which prevents to profiling code from crashing. */
+        ql::env_t dummy_env(NULL);
+        rdb_rget_slice(
+            store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
-            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
+            txn.get(),
+            sindex_sb.get(),
+            &dummy_env, // env_t
+            ql::batchspec_t::user(ql::batch_type_t::NORMAL,
+                                  counted_t<const ql::datum_t>()),
+            rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(),
+            sorting_t::ASCENDING,
+            &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
@@ -279,12 +289,23 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
 
         rdb_protocol_t::rget_read_response_t res;
         double ii = i * i;
-        rdb_rget_slice(store->get_sindex_slice(sindex_id),
+        /* The only thing this does is have a NULL scoped_ptr_t<trace_t> in it
+         * which prevents to profiling code from crashing. */
+        ql::env_t dummy_env(NULL);
+        rdb_rget_slice(
+            store->get_sindex_slice(sindex_id),
             rdb_protocol_t::sindex_key_range(
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary()),
                 store_key_t(make_counted<const ql::datum_t>(ii)->print_primary())),
-            txn.get(), sindex_sb.get(), NULL, rdb_protocol_details::transform_t(),
-            boost::optional<rdb_protocol_details::terminal_t>(), ASCENDING, &res);
+            txn.get(),
+            sindex_sb.get(),
+            &dummy_env, // env_t
+            ql::batchspec_t::user(ql::batch_type_t::NORMAL,
+                                  counted_t<const ql::datum_t>()),
+            rdb_protocol_details::transform_t(),
+            boost::optional<rdb_protocol_details::terminal_t>(),
+            sorting_t::ASCENDING,
+            &res);
 
         rdb_protocol_t::rget_read_response_t::stream_t *stream
             = boost::get<rdb_protocol_t::rget_read_response_t::stream_t>(&res.result);
@@ -396,8 +417,7 @@ void run_erase_range_test() {
 
         scoped_ptr_t<transaction_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
-        store.acquire_superblock_for_write(rwi_write,
-                                           repli_timestamp_t::invalid,
+        store.acquire_superblock_for_write(repli_timestamp_t::invalid,
                                            1,
                                            WRITE_DURABILITY_SOFT,
                                            &token_pair,

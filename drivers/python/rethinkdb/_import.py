@@ -15,9 +15,9 @@ except ImportError:
 info = "'rethinkdb import` loads data into a RethinkDB cluster"
 usage = "\
   rethinkdb import -d DIR [-c HOST:PORT] [-a AUTH_KEY] [--force]\n\
-      [-i (DB | DB.TABLE)]\n\
+      [-i (DB | DB.TABLE)] [--clients NUM]\n\
   rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [-a AUTH_KEY]\n\
-      [--force] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
+      [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]\n\
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"
 
 def print_import_help():
@@ -258,7 +258,7 @@ def client_process(host, port, auth_key, task_queue, error_queue, use_upsert):
                                        (task[0], task[1], res["first_error"]))
             else:
                 break
-    except (r.RqlClientError, r.RqlDriverError, r.RqlRuntimeError) as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
@@ -329,6 +329,7 @@ def read_json_array(json_data, file_in, callback, progress_info):
 
             (obj, offset) = decoder.raw_decode(json_data, idx=offset)
             callback(obj)
+            progress_info[2].value += 1
 
             # Read past whitespace to the next record
             file_offset += offset
@@ -373,6 +374,7 @@ def json_reader(task_queue, filename, db, table, primary_key, fields, progress_i
             json_data = read_json_array(json_data[offset + 1:], file_in, callback, progress_info)
         elif json_data[offset] == "{":
             json_data = read_json_single_object(json_data[offset:], file_in, callback)
+            progress_info[2].value = 1
         else:
             raise RuntimeError("Error: JSON format not recognized - file does not begin with an object or array")
 
@@ -426,6 +428,7 @@ def csv_reader(task_queue, filename, db, table, primary_key, options, progress_i
                 if len(obj[key]) == 0:
                     del obj[key]
             object_callback(obj, db, table, task_queue, object_buffers, buffer_sizes, options["fields"], exit_event)
+            progress_info[2].value += 1
 
     if len(object_buffers) > 0:
         task_queue.put((db, table, object_buffers))
@@ -458,7 +461,7 @@ def table_reader(options, file_info, task_queue, error_queue, progress_info, exi
                        exit_event)
         else:
             raise RuntimeError("Error: Unknown file format specified")
-    except (r.RqlClientError, r.RqlDriverError, r.RqlRuntimeError) as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except InterruptedError:
         pass # Don't save interrupted errors, they are side-effects
@@ -472,11 +475,11 @@ def abort_import(signum, frame, parent_pid, exit_event, task_queue, clients, int
         interrupt_event.set()
         exit_event.set()
 
-        for client in clients:
-            if client.is_alive():
-                # TODO: this could theoretically block indefinitely if
-                #   the queue is full and clients aren't reading
-                task_queue.put("exit")
+        alive_clients = sum([client.is_alive() for client in clients])
+        for i in xrange(alive_clients):
+            # TODO: this could theoretically block indefinitely if
+            #   the queue is full and clients aren't reading
+            task_queue.put("exit")
 
 def print_progress(ratio):
     total_width = 40
@@ -487,7 +490,7 @@ def print_progress(ratio):
 
 def update_progress(progress_info):
     lowest_completion = 1.0
-    for (current, max_count) in progress_info:
+    for (current, max_count, rows) in progress_info:
         curr_val = current.value
         max_val = max_count.value
         if curr_val < 0:
@@ -526,8 +529,9 @@ def spawn_import_clients(options, files_info):
             client_procs[-1].start()
 
         for file_info in files_info:
-            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1),
-                                  multiprocessing.Value(ctypes.c_longlong, 0)))
+            progress_info.append((multiprocessing.Value(ctypes.c_longlong, -1), # Current lines/bytes processed
+                                  multiprocessing.Value(ctypes.c_longlong, 0), # Total lines/bytes to process
+                                  multiprocessing.Value(ctypes.c_longlong, 0))) # Total rows processed
             reader_procs.append(multiprocessing.Process(target=table_reader,
                                                         args=(options,
                                                               file_info,
@@ -547,9 +551,9 @@ def spawn_import_clients(options, files_info):
             update_progress(progress_info)
 
         # Wait for all clients to finish
-        for client in client_procs:
-            if client.is_alive():
-                task_queue.put("exit")
+        alive_clients = sum([client.is_alive() for client in client_procs])
+        for i in xrange(alive_clients):
+            task_queue.put("exit")
 
         while len(client_procs) > 0:
             time.sleep(0.1)
@@ -560,7 +564,12 @@ def spawn_import_clients(options, files_info):
             print_progress(1.0)
 
         # Continue past the progress output line
+        def plural(num, text):
+            return "%d %s%s" % (num, text, "" if num == 1 else "s")
+
         print ""
+        print "%s imported in %s" % (plural(sum([info[2].value for info in progress_info]), "row"),
+                                       plural(len(files_info), "table"))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -647,7 +656,7 @@ def import_directory(options):
     # Ensure that all needed databases exist and tables don't
     try:
         conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    except r.RqlDriverError as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         raise RuntimeError(ex.message)
 
     db_list = r.db_list().run(conn)
@@ -692,7 +701,7 @@ def import_file(options):
 
     try:
         conn = r.connect(options["host"], options["port"], auth_key=options["auth_key"])
-    except r.RqlDriverError as ex:
+    except (r.RqlError, r.RqlDriverError) as ex:
         raise RuntimeError(ex.message)
 
     # Ensure that the database and table exist
