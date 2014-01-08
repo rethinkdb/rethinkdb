@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2013 RethinkDB.
+# Copyright 2014 RethinkDB.
 # Portions from Frank Trampe and Novell used with permission.
 
 # This file targets Ubuntu and is not in line with the Linux specification. Move runlevel 2 from Default-Start to Default-Stop for compliance.
@@ -91,10 +91,23 @@ is_running () {
     ps -p "$1" > /dev/null
 }
 
-if [ "$itask" = "" ] ; then
-    echo "Usage: /etc/init.d/rethinkdb [start|stop|restart|force-restart|status]" ;
+usage_fail () {
+    echo "Usage: /etc/init.d/rethinkdb [start|stop|restart|force-restart|status]"
     exit 1
-fi
+}
+
+case "$itask" in
+    start|stop|restart|force-restart|status)
+        true
+        ;;
+    "")
+        usage_fail
+        ;;
+    *)
+        echo "$0: error: unknown action $1"
+        usage_fail
+        ;;
+esac
 
 # We check for active configurations .
 if ! ls "$rtdbconfigdir"/instances.d/*.conf >/dev/null 2>/dev/null ; then
@@ -171,7 +184,7 @@ do
         fi
     fi
 
-    if [ "$itask" = "stop" -o "$itask" = "restart" -o "$itask" = "restart" -o "$itask" = "force-restart" ] ; then
+    if [ "$itask" = "stop" -o "$itask" = "restart" -o "$itask" = "force-restart" ] ; then
         # stop rethinkdb
 
         if [ ! -e "$rtdbpidfile" ] ; then
@@ -190,7 +203,7 @@ do
         fi
     fi
 
-    if [ "$itask" = "start" -o "$itask" = "restart" -o "$itask" = "restart" -o "$itask" = "force-restart" ] ; then
+    if [ "$itask" = "start" -o "$itask" = "restart" -o "$itask" = "force-restart" ] ; then
         # start rethinkdb
 
         if ! get "$conf" bind x; then
