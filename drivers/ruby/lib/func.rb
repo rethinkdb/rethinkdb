@@ -117,21 +117,6 @@ module RethinkDB
       !@body && a == [] ? {:COUNT => true} : super(*a, &b)
     end
 
-    def reduce(*a, &b)
-      args = a.dup
-      base_offset_front = (@body ? 0 : 1)
-      base_offset_back = args.size - (b ? 1 : 2)
-      if base_offset_front == base_offset_back
-        args << {:base => args.delete_at(base_offset_front)}
-      end
-      super(*args, &b)
-    end
-
-    def grouped_map_reduce(*a, &b)
-      a << {:base => a.delete_at(-2)} if a.size >= 2 && a[-2].class != Proc
-      super(*a, &b)
-    end
-
     def -@; RQL.new.sub(0, self); end
 
     def [](ind)

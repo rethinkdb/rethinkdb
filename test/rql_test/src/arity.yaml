@@ -290,7 +290,7 @@ tests:
 
     - ot:
         js: err("RqlDriverError", "Expected between 3 and 4 argument(s) but found 2.", [])
-        rb: err("RqlCompileError", "Expected 4 argument(s) but found 2.", [])
+        rb: err("RqlCompileError", "Expected 4 argument(s) but found 3.", [])
         py: err_regex('TypeError', ".*takes exactly 4 arguments \(3 given\)", [])
       cd: tbl.grouped_map_reduce(1,2)
 

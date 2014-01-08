@@ -152,7 +152,7 @@ tests:
 
     - py: arr.reduce(lambda a, b:a + b)
       js: arr.reduce(function(a,b) { return a.add(b); })
-      rb: arr.reduce(0){ |a, b| a + b }
+      rb: arr.reduce(){ |a, b| a + b }
       ot: 6
 
     - py: "arr.union(arr).reduce(lambda a, b: a + b)"
@@ -162,7 +162,7 @@ tests:
 
     - py: arr.union(arr).reduce(lambda a, b:a + b)
       js: arr.union(arr).reduce(function(a,b) { return a.add(b); })
-      rb: arr.union(arr).reduce(0){ |a, b| a + b }
+      rb: arr.union(arr).reduce(){ |a, b| a + b }
       ot: 12
 
     ## Filter
