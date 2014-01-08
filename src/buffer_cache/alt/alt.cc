@@ -277,14 +277,12 @@ void alt_buf_lock_t::reset_buf_lock() {
 
 // RSI: Rename this to snapshot_subdag.
 void alt_buf_lock_t::snapshot_subtree() {
+    // RSI: Can this be ASSERT_NO_CORO_WAITING?
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     if (snapshot_node_ != NULL) {
         return;
     }
-
-    // Wait for read access.  Not waiting for read access would make subdag
-    // snapshotting more difficult to implement.
-    read_acq_signal()->wait();
 
     alt_snapshot_node_t *latest_node = cache()->latest_snapshot_node(block_id());
 
@@ -295,8 +293,6 @@ void alt_buf_lock_t::snapshot_subtree() {
         snapshot_node_ = latest_node;
         ++snapshot_node_->ref_count_;
     } else {
-        ASSERT_FINITE_CORO_WAITING;
-        // RSI: There's gotta be a more encapsulated way to do this.
         alt_snapshot_node_t *node
             = new alt_snapshot_node_t(std::move(current_page_acq_));
         rassert(node->ref_count_ == 0);
