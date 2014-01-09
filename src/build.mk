@@ -72,7 +72,8 @@ RT_LDFLAGS += $(RT_LIBS)
 ifeq ($(OS),FreeBSD)
   RT_CXXFLAGS += -I/usr/local/include
   RT_CXXFLAGS += -D__STDC_LIMIT_MACROS
-  RT_LDFLAGS += -lrt
+  RT_LDFLAGS += -L/usr/local/lib
+  LIBRARY_PATHS += -lrt
 endif
 
 ifeq ($(STATICFORCE),1)
@@ -112,6 +113,7 @@ ifneq (1,$(ALLOW_WARNINGS))
 endif
 
 RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations
+RT_CXXSTDFLAGS = -std=gnu++0x
 
 ifeq ($(COMPILER), INTEL)
   RT_CXXFLAGS += -w1 -ftls-model=local-dynamic
@@ -127,6 +129,8 @@ else ifeq ($(COMPILER), GCC)
     RT_CXXFLAGS += -Wformat=2 -Wswitch-enum -Wswitch-default -Wno-array-bounds
   endif
 endif
+
+RT_CXXFLAGS += $(RT_CXXSTDFLAGS)
 
 ifeq ($(COVERAGE), 1)
   ifeq ($(COMPILER), GCC)

@@ -66,7 +66,7 @@ void hostname_to_ips_internal(const std::string &host,
     thread_pool_t::run_in_blocker_pool(fn);
 
     if (res != 0) {
-	throw host_lookup_exc_t(host, res, errno_res);
+	throw host_lookup_exc_t(host, errno_res);
     }
 
     guarantee(addrs);
