@@ -48,6 +48,7 @@ linux_message_hub_t::~linux_message_hub_t() {
 
 void linux_message_hub_t::do_store_message(threadnum_t nthread, linux_thread_message_t *msg) {
     rassert(0 <= nthread.threadnum && nthread.threadnum < thread_pool_->n_threads);
+    msg->enqueued_at = get_ticks();
     queues_[nthread.threadnum].msg_local_list.push_back(msg);
 }
 
@@ -163,6 +164,12 @@ void linux_message_hub_t::on_event(int events) {
             }
 #endif
 
+            ticks_t run_at = get_ticks();
+            ticks_t waited_for = run_at - m->enqueued_at;
+            double waited_for_secs = ticks_to_secs(waited_for);
+            if (waited_for_secs > 0.5) {
+                fprintf(stderr, "Message took %g s until being scheduled\n", waited_for_secs);
+            }
             m->on_thread_switch();
         }
     }

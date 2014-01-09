@@ -9,6 +9,7 @@
 
 #include "config/args.hpp"
 #include "containers/intrusive_list.hpp"
+#include "utils.hpp"
 
 typedef int fd_t;
 #define INVALID_FD fd_t(-1)
@@ -37,6 +38,7 @@ protected:
     virtual ~linux_thread_message_t() {}
 private:
     friend class linux_message_hub_t;
+    ticks_t enqueued_at;
     int priority;
     bool is_ordered; // Used internally by the message hub
 #ifndef NDEBUG
