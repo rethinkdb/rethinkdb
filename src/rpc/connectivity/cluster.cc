@@ -811,6 +811,13 @@ void connectivity_cluster_t::run_t::handle(
                     break;
 
                 string_read_stream_t stream(std::move(message), 0);
+                // TODO! Check time
+                time_t t;
+                UNUSED int64_t r = stream.read(&t, sizeof(t));
+                time_t current_t = get_secs();
+                if (current_t - t > 1) {
+                    fprintf(stderr, "Message took %i seconds to arrive\n", (int)(current_t - t));
+                }
                 message_handler->on_message(other_id, &stream); // might raise fake_archive_exc_t
                 coro_t::yield();
             }
@@ -887,6 +894,9 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
     string_stream_t buffer;
     {
         ASSERT_FINITE_CORO_WAITING;
+        // TODO! Prepend timestamp
+        time_t time = get_secs();
+        UNUSED int64_t r = buffer.write(&time, sizeof(time));
         callback->write(&buffer);
     }
 
@@ -936,6 +946,13 @@ void connectivity_cluster_t::send_message(peer_id_t dest, send_message_write_cal
         guarantee(dest == me);
         // We could be on any thread here! Oh no!
         string_read_stream_t read_stream(std::move(buffer.str()), 0);
+        // TODO! Check timestamp
+        time_t t;
+        UNUSED int64_t r = read_stream.read(&t, sizeof(t));
+        time_t current_t = get_secs();
+        if (current_t - t > 1) {
+            fprintf(stderr, "Local message took %i seconds to arrive\n", (int)(current_t - t));
+        }
         current_run->message_handler->on_message(me, &read_stream);
     } else {
         guarantee(dest != me);
