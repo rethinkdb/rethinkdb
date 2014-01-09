@@ -35,7 +35,7 @@ void do_getaddrinfo(const char *node,
     *errno_res = 0;
     *retval = getaddrinfo(node, service, hints, res);
     if (*retval < 0) {
-        *errno_res = errno;
+        *errno_res = get_errno();
     }
 }
 

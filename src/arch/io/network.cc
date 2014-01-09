@@ -35,7 +35,7 @@ int connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int 
         sa.sin_port = htons(local_port);
         sa.sin_addr.s_addr = INADDR_ANY;
         if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0)
-            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(errno).c_str());
+            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
     }
 
     sa.sin_port = htons(port);
@@ -44,7 +44,7 @@ int connect_ipv4_internal(fd_t socket, int local_port, const in_addr &addr, int 
     int res;
     do {
         res = connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
 
     return res;
 }
@@ -59,7 +59,7 @@ int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int
         sa.sin6_port = htons(local_port);
         sa.sin6_addr = in6addr_any;
         if (bind(socket, reinterpret_cast<sockaddr *>(&sa), sa_len) != 0)
-            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(errno).c_str());
+            logWRN("Failed to bind to local port %d: %s", local_port, errno_string(get_errno()).c_str());
     }
 
     sa.sin6_port = htons(port);
@@ -69,7 +69,7 @@ int connect_ipv6_internal(fd_t socket, int local_port, const in6_addr &addr, int
     int res;
     do {
         res = connect(socket, reinterpret_cast<sockaddr *>(&sa), sa_len);
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
 
     return res;
 }
@@ -94,7 +94,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
         // Set the socket to reusable so we don't block out other sockets from this port
         int reuse = 1;
         if (setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) != 0)
-            logWRN("Failed to set socket reuse to true: %s", errno_string(errno).c_str());
+            logWRN("Failed to set socket reuse to true: %s", errno_string(get_errno()).c_str());
     }
 
     int res;
@@ -106,7 +106,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
     }
 
     if (res != 0) {
-        if (errno == EINPROGRESS) {
+        if (get_errno() == EINPROGRESS) {
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
             wait_interruptible(&watch, interruptor);
             int error;
@@ -119,7 +119,7 @@ linux_tcp_conn_t::linux_tcp_conn_t(const ip_address_t &peer,
                 throw linux_tcp_conn_t::connect_failed_exc_t(error);
             }
         } else {
-            throw linux_tcp_conn_t::connect_failed_exc_t(errno);
+            throw linux_tcp_conn_t::connect_failed_exc_t(get_errno());
         }
     }
 }
@@ -182,7 +182,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
     while (true) {
         ssize_t res = ::read(sock.get(), buffer, size);
 
-        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             /* There's no data available right now, so we must wait for a notification from the
             epoll queue, or for an order to shut down. */
 
@@ -198,7 +198,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
 
             /* Go around the loop and try to read again */
 
-        } else if (res == 0 || (res == -1 && (errno == ECONNRESET || errno == ENOTCONN))) {
+        } else if (res == 0 || (res == -1 && (get_errno() == ECONNRESET || get_errno() == ENOTCONN))) {
             /* We were closed. This is the first notification that the kernel has given us, so we
             must call on_shutdown_read(). */
             on_shutdown_read();
@@ -207,7 +207,7 @@ size_t linux_tcp_conn_t::read_internal(void *buffer, size_t size) THROWS_ONLY(tc
         } else if (res == -1) {
             /* Unknown error. This is not expected, but it will probably happen sometime so we
             shouldn't crash. */
-            logERR("Could not read from socket: %s", errno_string(errno).c_str());
+            logERR("Could not read from socket: %s", errno_string(get_errno()).c_str());
             on_shutdown_read();
             throw tcp_conn_read_closed_exc_t();
 
@@ -290,8 +290,8 @@ void linux_tcp_conn_t::pop(size_t len, signal_t *closer) THROWS_ONLY(tcp_conn_re
 void linux_tcp_conn_t::shutdown_read() {
     assert_thread();
     int res = ::shutdown(sock.get(), SHUT_RD);
-    if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for reading: %s", errno_string(errno).c_str());
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR("Could not shutdown socket for reading: %s", errno_string(get_errno()).c_str());
     }
     on_shutdown_read();
 }
@@ -364,7 +364,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
     while (size > 0) {
         ssize_t res = ::write(sock.get(), buf, size);
 
-        if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        if (res == -1 && (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK)) {
             /* Wait for a notification from the event queue, or for an order to
             shut down */
             linux_event_watcher_t::watch_t watch(event_watcher.get(), poll_event_out);
@@ -379,8 +379,8 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
 
             /* Go around the loop and try to write again */
 
-        } else if (res == -1 && (errno == EPIPE || errno == ENOTCONN || errno == EHOSTUNREACH ||
-                                 errno == ENETDOWN || errno == EHOSTDOWN || errno == ECONNRESET)) {
+        } else if (res == -1 && (get_errno() == EPIPE || get_errno() == ENOTCONN || get_errno() == EHOSTUNREACH ||
+                                 get_errno() == ENETDOWN || get_errno() == EHOSTDOWN || get_errno() == ECONNRESET)) {
             /* These errors are expected to happen at some point in practice */
             on_shutdown_write();
             break;
@@ -388,7 +388,7 @@ void linux_tcp_conn_t::perform_write(const void *buf, size_t size) {
         } else if (res == -1) {
             /* In theory this should never happen, but it probably will. So we write a log message
                and then shut down normally. */
-            logERR("Could not write to socket: %s", errno_string(errno).c_str());
+            logERR("Could not write to socket: %s", errno_string(get_errno()).c_str());
             on_shutdown_write();
             break;
 
@@ -503,8 +503,8 @@ void linux_tcp_conn_t::shutdown_write() {
     assert_thread();
 
     int res = ::shutdown(sock.get(), SHUT_WR);
-    if (res != 0 && errno != ENOTCONN) {
-        logERR("Could not shutdown socket for writing: %s", errno_string(errno).c_str());
+    if (res != 0 && get_errno() != ENOTCONN) {
+        logERR("Could not shutdown socket for writing: %s", errno_string(get_errno()).c_str());
     }
 
     on_shutdown_write();
@@ -732,10 +732,10 @@ bool bind_ipv4_interface(fd_t sock, int *port_out, const struct in_addr &addr) {
     int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
 
     if (res != 0) {
-        if (errno == EADDRINUSE || errno == EACCES) {
+        if (get_errno() == EADDRINUSE || get_errno() == EACCES) {
             return false;
         } else {
-            crash("Could not bind socket at localhost:%i - %s\n", *port_out, errno_string(errno).c_str());
+            crash("Could not bind socket at localhost:%i - %s\n", *port_out, errno_string(get_errno()).c_str());
         }
     }
 
@@ -761,10 +761,10 @@ bool bind_ipv6_interface(fd_t sock, int *port_out, const ip_address_t &addr) {
     int res = bind(sock, reinterpret_cast<sockaddr *>(&serv_addr), sa_len);
 
     if (res != 0) {
-        if (errno == EADDRINUSE || errno == EACCES) {
+        if (get_errno() == EADDRINUSE || get_errno() == EACCES) {
             return false;
         } else {
-            crash("Could not bind socket at localhost:%i - %s\n", *port_out, errno_string(errno).c_str());
+            crash("Could not bind socket at localhost:%i - %s\n", *port_out, errno_string(get_errno()).c_str());
         }
     }
 
@@ -847,17 +847,17 @@ void linux_nonthrowing_tcp_listener_t::accept_loop(auto_drainer_t::lock_t lock) 
             is working. */
             log_next_error = true;
 
-        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        } else if (get_errno() == EAGAIN || get_errno() == EWOULDBLOCK) {
             active_fd = wait_for_any_socket(lock);
 
-        } else if (errno == EINTR) {
+        } else if (get_errno() == EINTR) {
             /* Harmless error; just try again. */
 
         } else {
             /* Unexpected error. Log it unless it's a repeat error. */
             if (log_next_error) {
                 logERR("accept() failed: %s.",
-                    errno_string(errno).c_str());
+                    errno_string(get_errno()).c_str());
                 log_next_error = false;
             }
 
