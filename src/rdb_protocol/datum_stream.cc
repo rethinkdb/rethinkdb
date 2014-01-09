@@ -540,6 +540,10 @@ counted_t<const datum_t> datum_stream_t::next(
     return d;
 }
 
+bool datum_stream_t::batch_cache_exhausted() const {
+    return batch_cache_index >= batch_cache.size();
+}
+
 counted_t<const datum_t> eager_datum_stream_t::count(env_t *env) {
     size_t acc = 0;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
@@ -720,7 +724,7 @@ lazy_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
 }
 
 bool lazy_datum_stream_t::is_exhausted() const {
-    return reader.is_finished();
+    return reader.is_finished() && batch_cache_exhausted();
 }
 
 // ARRAY_DATUM_STREAM_T
@@ -950,7 +954,8 @@ slice_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &_batchspec)
 }
 
 bool slice_datum_stream_t::is_exhausted() const {
-    return left >= right || index >= right || source->is_exhausted();
+    return (left >= right || index >= right || source->is_exhausted())
+        && batch_cache_exhausted();
 }
 
 // ZIP_DATUM_STREAM_T
@@ -1092,7 +1097,7 @@ bool union_datum_stream_t::is_exhausted() const {
             return false;
         }
     }
-    return true;
+    return batch_cache_exhausted();
 }
 
 std::vector<counted_t<const datum_t> >
