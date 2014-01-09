@@ -299,7 +299,7 @@ public:
                        alt_access_t access);  // access must be write.  (RSI)
     current_page_acq_t(page_cache_t *cache,
                        block_id_t block_id,
-                       alt_access_t access);  // access must be read.  (RSI)
+                       alt_access_t access) NORETURN /* RSI */;  // access must be read.  (RSI)
     ~current_page_acq_t();
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)
