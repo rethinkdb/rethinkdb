@@ -428,11 +428,11 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
     *stackaddr_out = reinterpret_cast<void *>(
         reinterpret_cast<uintptr_t>(pthread_get_stackaddr_np(thread))
         - static_cast<uintptr_t>(*stacksize_out));
-#elseif defined(__FreeBSD__) */
+#elif defined(__FreeBSD__)
     // TODO: Implement
     *stackaddr_out = NULL;
     *stacksize_out = 0;
-#else
+#elif defined(__linux__)
     // Implementation for Linux
     pthread_attr_t attr;
     int res = pthread_getattr_np(thread, &attr);
@@ -441,6 +441,8 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
     guarantee_xerr(res == 0, res, "Unable to get pthread stack attribute");
     res = pthread_attr_destroy(&attr);
     guarantee_xerr(res == 0, res, "Unable to destroy pthread attributes");
+#else
+#error Unsupported OS
 #endif
 }
 

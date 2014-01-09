@@ -24,10 +24,11 @@ class printf_buffer_t;
 
 class host_lookup_exc_t : public std::exception {
 public:
-    host_lookup_exc_t(const std::string& _host, int _errno_val) :
+    host_lookup_exc_t(const std::string& _host, int _gai_res, int _errno_val) :
         host(_host),
         errno_val(_errno_val),
-        error_string(strprintf("getaddrinfo() failed for hostname: %s, errno: %d", host.c_str(), errno_val)) { }
+        error_string(strprintf("getaddrinfo() failed for hostname %s: %s", host.c_str(),
+                               _gai_res == EAI_SYSTEM ? strerror(_errno_val) : gai_strerror(_gai_res))) { }
     ~host_lookup_exc_t() throw () { }
     const char *what() const throw () {
         return error_string.c_str();
