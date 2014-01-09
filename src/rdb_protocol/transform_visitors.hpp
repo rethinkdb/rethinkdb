@@ -32,6 +32,8 @@ void transform_apply(ql::env_t *ql_env, counted_t<const ql::datum_t> json,
 void terminal_initialize(const rdb_protocol_details::terminal_variant_t *t,
                          rdb_protocol_t::rget_read_response_t::result_t *out);
 
+bool terminal_uses_value(const rdb_protocol_details::terminal_variant_t &t);
+
 void terminal_apply(ql::env_t *ql_env, lazy_json_t json,
                     const rdb_protocol_details::terminal_variant_t *t,
                     rdb_protocol_t::rget_read_response_t::result_t *out);
