@@ -130,6 +130,7 @@ public:
     virtual bool is_exhausted() const = 0;
 
 protected:
+    bool batch_cache_exhausted() const;
     explicit datum_stream_t(const protob_t<const Backtrace> &bt_src);
 
 private:
@@ -174,7 +175,7 @@ public:
             : counted_t<const datum_t>();
     }
     virtual bool is_exhausted() const {
-        return source->is_exhausted();
+        return source->is_exhausted() && batch_cache_exhausted();
     }
 
 protected:
@@ -223,6 +224,10 @@ public:
     concatmap_datum_stream_t(counted_t<func_t> _f, counted_t<datum_stream_t> _source);
 
 private:
+    virtual bool is_exhausted() const {
+        return (!subsource || subsource->is_exhausted())
+            && wrapper_datum_stream_t::is_exhausted();
+    }
     std::vector<counted_t<const datum_t> >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
