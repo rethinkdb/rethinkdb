@@ -294,8 +294,12 @@ public:
                        block_id_t block_id,
                        alt_access_t access,
                        bool create = false);
+    // RSI: Add alt_write_access_t or alt_read_access_t types.
     current_page_acq_t(page_txn_t *txn,
-                       alt_access_t access);  // access must be write.
+                       alt_access_t access);  // access must be write.  (RSI)
+    current_page_acq_t(page_cache_t *cache,
+                       block_id_t block_id,
+                       alt_access_t access);  // access must be read.  (RSI)
     ~current_page_acq_t();
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)

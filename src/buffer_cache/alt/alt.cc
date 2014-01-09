@@ -132,6 +132,85 @@ const char *show(alt_access_t access) {
 }
 #endif
 
+// RSI: Add general explanation of correctness of snapshotting logic.  Explain why
+// it's correct for making a child snapshot node to just construct a
+// current_page_acq_t, and how there could not possibly be an intervening write
+// transaction that we need to jump ahead of.
+
+// RSI: make sure this is called _before_ the current_page_acq_t for the write is
+// constructed, so that the current_page_acq_t it creates gets in first.
+alt_snapshot_node_t *
+alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
+                                                  alt_snapshot_node_t *parent,
+                                                  block_id_t child_id) {
+    auto it = parent->children_.find(child_id);
+    if (it == parent->children_.end()) {
+        // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?  First see
+        // if the version would change.
+        auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_,
+                                                   child_id,
+                                                   alt_access_t::read);
+        acq->declare_snapshotted();
+        alt_snapshot_node_t *child = new alt_snapshot_node_t(std::move(acq));
+        rassert(child->ref_count_ == 0);
+        child->ref_count_++;
+        cache->push_latest_snapshot_node(child_id, child);
+        parent->children_.insert(std::make_pair(child_id, child));
+        return child;
+    } else {
+        return it->second;
+    }
+}
+
+// RSI: make sure this is called _before_ the current_page_acq_t for the write is
+// constructed, so that the current_page_acq_t it creates gets in first.
+void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
+                                                 block_id_t parent_id,
+                                                 block_id_t child_id) {
+    // We create at most one child snapshot node.
+
+    alt_snapshot_node_t *child = NULL;
+    intrusive_list_t<alt_snapshot_node_t> *list
+        = &cache->snapshot_nodes_by_block_id_[parent_id];
+    for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
+        auto it = p->children_.find(child_id);
+        if (it != p->children_.end()) {
+            break;
+        }
+
+        if (child == NULL) {
+            // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?  Dedup
+            // with get_or_create_child_snapshot_node, too.
+            auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
+                                                       alt_access_t::read);
+            acq->declare_snapshotted();
+            child = new alt_snapshot_node_t(std::move(acq));
+            child->ref_count_++;
+            cache->push_latest_snapshot_node(child_id, child);
+        }
+
+        p->children_.insert(std::make_pair(child_id, child));
+    }
+}
+
+// Puts markers in the parent saying that no such child exists.
+void alt_buf_lock_t::create_empty_child_snapshot_nodes(alt_cache_t *cache,
+                                                       block_id_t parent_id,
+                                                       block_id_t child_id) {
+    intrusive_list_t<alt_snapshot_node_t> *list
+        = &cache->snapshot_nodes_by_block_id_[parent_id];
+
+    for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
+        auto it = p->children_.find(child_id);
+        if (it != p->children_.end()) {
+            break;
+        }
+
+        p->children_.insert(std::make_pair(child_id,
+                                           static_cast<alt_snapshot_node_t *>(NULL)));
+    }
+}
+
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                                block_id_t block_id,
                                alt_access_t access)
@@ -140,7 +219,21 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
       snapshot_node_(NULL),
       access_ref_count_(0) {
     alt_buf_lock_t::wait_for_parent(parent, access);
-    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
+    if (parent.lock_or_null_ != NULL && parent.lock_or_null_->snapshot_node_ != NULL) {
+        alt_buf_lock_t *parent_lock = parent.lock_or_null_;
+        rassert(!parent_lock->current_page_acq_.has());
+        snapshot_node_
+            = get_or_create_child_snapshot_node(txn_->cache(),
+                                                parent_lock->snapshot_node_, block_id);
+    } else {
+        if (parent.lock_or_null_ != NULL) {
+            create_child_snapshot_nodes(txn_->cache(),
+                                        parent.lock_or_null_->block_id(),
+                                        block_id);
+        }
+        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
+    }
+
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
 #endif
@@ -154,7 +247,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
                                                alt_access_t::write, true)),
       snapshot_node_(NULL),
       access_ref_count_(0) {
-    guarantee(create == alt_create_t::create);
+    guarantee(create == alt_create_t::create);  // RSI: stupid
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id);
 #endif
@@ -184,10 +277,23 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
       current_page_acq_(),
       snapshot_node_(NULL),
       access_ref_count_(0) {
+    // This implementation should be identical to the alt_buf_parent_t version of
+    // this constructor.  (Unfortunately, we support compilers that lack full C++11
+    // support.)
 
     alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), access);
 
-    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id, access));
+    if (parent->snapshot_node_ != NULL) {
+        rassert(!parent->current_page_acq_.has());
+        snapshot_node_
+            = get_or_create_child_snapshot_node(txn_->cache(),
+                                                parent->snapshot_node_, block_id);
+    } else {
+        create_child_snapshot_nodes(txn_->cache(), parent->block_id(), block_id);
+        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
+                                                      access));
+    }
+
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
 #endif
@@ -200,9 +306,21 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
       snapshot_node_(NULL),
       access_ref_count_(0) {
     guarantee(create == alt_create_t::create);
-    wait_for_parent(parent, alt_access_t::write);
+    alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
+
+
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_access_t::write));
+
+    // RSI: We assume that current_page_acq_t is non-blocking by putting this _after_
+    // the current_page_acq_.  It would be better to claim the block id value
+    // separately from the current_page_acq_t construction.
+    if (parent.lock_or_null_ != NULL) {
+        create_empty_child_snapshot_nodes(txn_->cache(),
+                                          parent.lock_or_null_->block_id(),
+                                          current_page_acq_->block_id());
+    }
+
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id());
 #endif
@@ -215,10 +333,16 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
       snapshot_node_(NULL),
       access_ref_count_(0) {
     guarantee(create == alt_create_t::create);
-    wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
+    alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_access_t::write));
+
+    // RSI: See comment in previous constructor about getting the block id value
+    // separately.
+    create_empty_child_snapshot_nodes(txn_->cache(), parent->block_id(),
+                                      current_page_acq_->block_id());
+
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id());
 #endif
