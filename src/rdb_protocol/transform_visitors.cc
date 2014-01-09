@@ -241,6 +241,16 @@ void terminal_initialize(const rdb_protocol_details::terminal_variant_t *t,
     boost::apply_visitor(terminal_initializer_visitor_t(out), *t);
 }
 
+class terminal_uses_value_visitor_t : public boost::static_visitor<bool> {
+public:
+    bool operator()(const ql::gmr_wire_func_t &) const { return true; }
+    bool operator()(const ql::count_wire_func_t &) const { return false; }
+    bool operator()(const ql::reduce_wire_func_t &) const { return true; }
+};
+
+bool terminal_uses_value(const rdb_protocol_details::terminal_variant_t &t) {
+    return boost::apply_visitor(terminal_uses_value_visitor_t(), t);
+}
 
 
 }  // namespace query_language
