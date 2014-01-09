@@ -137,6 +137,8 @@ void linux_message_hub_t::on_event(int events) {
     for (int current_priority = MESSAGE_SCHEDULER_MAX_PRIORITY;
          current_priority >= MESSAGE_SCHEDULER_MIN_PRIORITY; --current_priority) {
 
+        bool has_warned = false;
+
         // Compute how many messages of `current_priority` we want to process
         // in this pass.
         // The priority has an exponential effect on how many messages
@@ -164,11 +166,14 @@ void linux_message_hub_t::on_event(int events) {
             }
 #endif
 
-            ticks_t run_at = get_ticks();
-            ticks_t waited_for = run_at - m->enqueued_at;
-            double waited_for_secs = ticks_to_secs(waited_for);
-            if (waited_for_secs > 0.5) {
-                fprintf(stderr, "Message took %g s until being scheduled\n", waited_for_secs);
+            if (!has_warned) {
+                ticks_t run_at = get_ticks();
+                ticks_t waited_for = run_at - m->enqueued_at;
+                double waited_for_secs = ticks_to_secs(waited_for);
+                if (waited_for_secs > 0.5) {
+                    fprintf(stderr, "Message with priority %d took %g s until being scheduled\n", m->get_priority(), waited_for_secs);
+                    has_warned = true;
+                }
             }
             m->on_thread_switch();
         }
