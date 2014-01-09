@@ -74,6 +74,7 @@ public:
  */
 #define COMPUTE_PADDING_SIZE(value, alignment) \
         alignment - (((value + alignment - 1) % alignment) + 1)
+
 template<typename value_t>
 struct cache_line_padded_t {
     cache_line_padded_t() { }

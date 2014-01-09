@@ -70,12 +70,12 @@ class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee
 
 #if SLICE_ALT
     // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and
-    // the leaf node parent from which to load it.
+    // the transaction with which to load it.  Non-NULL only if ptr is empty.
     const rdb_value_t *rdb_value;
     alt::alt_buf_parent_t parent;
 #else
     // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and
-    // the transaction with which to load it.
+    // the transaction with which to load it.  Non-NULL only if ptr is empty.
     const rdb_value_t *rdb_value;
     transaction_t *txn;
 #endif
@@ -97,6 +97,7 @@ public:
 #endif
 
     const counted_t<const ql::datum_t> &get() const;
+    void reset();
 
 private:
     counted_t<lazy_json_pointee_t> pointee;

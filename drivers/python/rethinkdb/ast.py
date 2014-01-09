@@ -361,8 +361,8 @@ class RqlQuery(object):
     def limit(self, index):
         return Limit(self, index)
 
-    def reduce(self, func, base=()):
-        return Reduce(self, func_wrap(func), base=base)
+    def reduce(self, func):
+        return Reduce(self, func_wrap(func))
 
     def map(self, func):
         return Map(self, func_wrap(func))
@@ -406,9 +406,9 @@ class RqlQuery(object):
     def zip(self):
         return Zip(self)
 
-    def grouped_map_reduce(self, grouping, mapping, data_collector, base=()):
+    def grouped_map_reduce(self, grouping, mapping, data_collector):
         return GroupedMapReduce(self, func_wrap(grouping), func_wrap(mapping),
-            func_wrap(data_collector), base=base)
+            func_wrap(data_collector))
 
     def group_by(self, arg1, arg2, *rest):
         args = [arg1, arg2] + list(rest)
