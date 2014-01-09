@@ -217,7 +217,10 @@ do
             if [ -e "$rtdbpidfile" ] ; then
                 rm "$rtdbpidfile"
             fi
-            echo "rethinkdb: $instance_name: Starting instance. (logging to \`$rtdb_directory/log_file')"
+            if ! get "$conf" log-file rtdblogfile; then
+                rtdblogfile=$rtdb_directory/log_file
+            fi    
+            echo "rethinkdb: $instance_name: Starting instance. (logging to \`$rtdblogfile')"
             "$rtdbbin" --daemon "$@"
         fi
     fi
