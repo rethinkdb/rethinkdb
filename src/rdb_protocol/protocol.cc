@@ -1488,7 +1488,7 @@ public:
         : env(_env), f(wf.compile_wire_func()), return_vals(_return_vals) { }
     counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t) const {
-        return f->call(env, d)->as_datum();
+        return f->call(env, d, ql::LITERAL_OK)->as_datum();
     }
     bool should_return_vals() const { return return_vals; }
 private:
