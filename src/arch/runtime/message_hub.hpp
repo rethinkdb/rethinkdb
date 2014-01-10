@@ -88,6 +88,8 @@ private:
     // MESSAGE_SCHEDULER_ORDERED_PRIORITY)
     msg_list_t priority_msg_lists_[NUM_SCHEDULER_PRIORITIES];
 
+    ticks_t last_warned_at_[NUM_SCHEDULER_PRIORITIES];
+
     void on_event(int events);
 
     // The eventfd (or pipe-based alternative) notified after the first incoming
