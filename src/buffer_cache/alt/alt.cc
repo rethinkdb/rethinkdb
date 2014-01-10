@@ -226,7 +226,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent_lock->snapshot_node_, block_id);
     } else {
-        if (parent.lock_or_null_ != NULL) {
+        if (access == alt_access_t::write && parent.lock_or_null_ != NULL) {
             create_child_snapshot_nodes(txn_->cache(),
                                         parent.lock_or_null_->block_id(),
                                         block_id);
@@ -289,7 +289,9 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent->snapshot_node_, block_id);
     } else {
-        create_child_snapshot_nodes(txn_->cache(), parent->block_id(), block_id);
+        if (access == alt_access_t::write) {
+            create_child_snapshot_nodes(txn_->cache(), parent->block_id(), block_id);
+        }
         current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
                                                       access));
     }
@@ -423,13 +425,10 @@ void alt_buf_lock_t::snapshot_subtree() {
         ++node->ref_count_;
         cache()->push_latest_snapshot_node(block_id(), node);
         snapshot_node_ = node;
+        node->current_page_acq_->declare_snapshotted();
     }
 
-    // Snapshotting's set up, so we can now declare our hold on the block to be
-    // snapshotted.  Or no, we can just release our hold on the block, since we never
-    // use current_page_acq_ again -- snapshotted alt_buf_lock_t's just use the
-    // snapshot node.
-    // RSI: We do use declare_snapshotted in the page cache -- but is it overengineered?
+    // Our hold on the block now uses snapshot_node_, not current_page_acq_.
     current_page_acq_.reset();
 }
 
