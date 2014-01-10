@@ -18,10 +18,6 @@ namespace alt {
 class alt_buf_lock_t;
 class alt_snapshot_node_t;
 
-enum class alt_create_t {
-    create,
-};
-
 class alt_memory_tracker_t : public memory_tracker_t {
 public:
     alt_memory_tracker_t();

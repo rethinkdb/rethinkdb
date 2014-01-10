@@ -180,7 +180,7 @@ alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
         // if the version would change.
         auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_,
                                                    child_id,
-                                                   alt_access_t::read);
+                                                   alt_read_access_t::read);
         acq->declare_snapshotted();
         alt_snapshot_node_t *child = new alt_snapshot_node_t(std::move(acq));
         rassert(child->ref_count_ == 0);
@@ -211,7 +211,7 @@ void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
             // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?  Dedup
             // with get_or_create_child_snapshot_node, too.
             auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
-                                                       alt_access_t::read);
+                                                       alt_read_access_t::read);
             acq->declare_snapshotted();
             child = new alt_snapshot_node_t(std::move(acq));
             child->ref_count_++;
@@ -346,7 +346,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
-                                                  alt_access_t::write));
+                                                  alt_create_t::create));
 
     if (parent.lock_or_null_ != NULL) {
         create_empty_child_snapshot_nodes(txn_->cache(),
@@ -375,7 +375,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     ASSERT_FINITE_CORO_WAITING;
 
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
-                                                  alt_access_t::write));
+                                                  alt_create_t::create));
 
     create_empty_child_snapshot_nodes(txn_->cache(), parent->block_id(),
                                       current_page_acq_->block_id());

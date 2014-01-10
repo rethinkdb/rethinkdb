@@ -28,6 +28,9 @@ class page_txn_t;
 
 
 enum class alt_access_t { read, write };
+enum class alt_read_access_t { read };
+enum class alt_create_t { create };
+
 
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
@@ -298,12 +301,11 @@ public:
                        block_id_t block_id,
                        alt_access_t access,
                        bool create = false);
-    // RSI: Add alt_write_access_t or alt_read_access_t types.
     current_page_acq_t(page_txn_t *txn,
-                       alt_access_t access);  // access must be write.  (RSI)
+                       alt_create_t create);
     current_page_acq_t(page_cache_t *cache,
                        block_id_t block_id,
-                       alt_access_t access);  // access must be read.  (RSI)
+                       alt_read_access_t read);
     ~current_page_acq_t();
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)
@@ -333,10 +335,10 @@ private:
               alt_access_t access,
               bool create);
     void init(page_txn_t *txn,
-              alt_access_t access);  // RSI: access must be write.
+              alt_create_t create);
     void init(page_cache_t *page_cache,
               block_id_t block_id,
-              alt_access_t access);  // RSI: access must be read.
+              alt_read_access_t read);
     friend class page_txn_t;
     friend class current_page_t;
 
