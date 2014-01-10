@@ -145,7 +145,7 @@ void current_page_acq_t::init(page_txn_t *txn,
     txn->page_cache()->assert_thread();
     guarantee(the_txn_ == NULL);
     page_cache_ = txn->page_cache();
-    the_txn_ = txn;
+    the_txn_ = (access == alt_access_t::write ? txn : NULL);
     access_ = access;
     declared_snapshotted_ = false;
     block_id_ = block_id;
@@ -156,7 +156,9 @@ void current_page_acq_t::init(page_txn_t *txn,
     }
     dirtied_page_ = false;
 
-    the_txn_->add_acquirer(this);
+    if (access == alt_access_t::write) {
+        the_txn_->add_acquirer(this);
+    }
     current_page_->add_acquirer(this);
 }
 
@@ -165,14 +167,16 @@ void current_page_acq_t::init(page_txn_t *txn,
     txn->page_cache()->assert_thread();
     guarantee(the_txn_ == NULL);
     page_cache_ = txn->page_cache();
-    the_txn_ = txn;
+    the_txn_ = (access == alt_access_t::write ? txn : NULL);
     access_ = access;
     declared_snapshotted_ = false;
     current_page_ = page_cache_->page_for_new_block_id(&block_id_);
     dirtied_page_ = false;
     rassert(access == alt_access_t::write);
 
-    the_txn_->add_acquirer(this);
+    if (access == alt_access_t::write) {  // RSI: access must be write.
+        the_txn_->add_acquirer(this);
+    }
     current_page_->add_acquirer(this);
 }
 
@@ -181,6 +185,7 @@ current_page_acq_t::~current_page_acq_t() {
     // Checking page_cache_ != NULL makes sure this isn't a default-constructed acq.
     if (page_cache_ != NULL) {
         if (the_txn_ != NULL) {
+            guarantee(access_ == alt_access_t::write);
             the_txn_->remove_acquirer(this);
         }
         if (current_page_ != NULL) {
@@ -328,6 +333,7 @@ void current_page_t::make_non_deleted(block_size_t block_size,
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
+    rassert(acq->access_ == alt_access_t::write);
     acquirers_.push_back(acq);
     pulse_pulsables(acq);
 }
@@ -940,6 +946,7 @@ void page_txn_t::add_acquirer(current_page_acq_t *acq) {
 }
 
 void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
+    guarantee(acq->access_ == alt_access_t::write);
     // This is called by acq's destructor.
     {
         auto it = std::find(live_acqs_.begin(), live_acqs_.end(), acq);
@@ -951,7 +958,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
     // before we got any kind of access to the block, then we can't have dirtied the
     // page or touched the page.
 
-    if (acq->read_cond_.is_pulsed() && acq->access_ == alt_access_t::write) {
+    if (acq->read_cond_.is_pulsed()) {
         // It's not snapshotted because you can't snapshot write acqs.  (We
         // rely on this fact solely because we need to grab the block_id_t
         // and current_page_acq_t currently doesn't know it.)
