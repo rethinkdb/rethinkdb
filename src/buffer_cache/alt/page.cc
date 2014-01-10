@@ -132,40 +132,61 @@ current_page_acq_t::current_page_acq_t(page_txn_t *txn,
     init(txn, access);
 }
 
-current_page_acq_t::current_page_acq_t(UNUSED page_cache_t *cache,
-                                       UNUSED block_id_t block_id,
-                                       UNUSED alt_access_t access) {
-    crash("not implemented");
+current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
+                                       block_id_t block_id,
+                                       alt_access_t access)
+    : page_cache_(NULL), the_txn_(NULL) {
+    init(page_cache, block_id, access);
+}
+
+void current_page_acq_t::init(page_cache_t *page_cache,
+                              block_id_t block_id,
+                              alt_access_t access) {
+    rassert(access == alt_access_t::read);
+    page_cache->assert_thread();
+    guarantee(page_cache_ == NULL);
+    page_cache_ = page_cache;
+    the_txn_ = NULL;
+    access_ = access;
+    declared_snapshotted_ = false;
+    block_id_ = block_id;
+    current_page_ = page_cache_->page_for_block_id(block_id);
+    dirtied_page_ = false;
+
+    current_page_->add_acquirer(this);
 }
 
 void current_page_acq_t::init(page_txn_t *txn,
                               block_id_t block_id,
                               alt_access_t access,
                               bool create) {
-    txn->page_cache()->assert_thread();
-    guarantee(the_txn_ == NULL);
-    page_cache_ = txn->page_cache();
-    the_txn_ = (access == alt_access_t::write ? txn : NULL);
-    access_ = access;
-    declared_snapshotted_ = false;
-    block_id_ = block_id;
-    if (create) {
-        current_page_ = page_cache_->page_for_new_chosen_block_id(block_id);
+    if (access == alt_access_t::read) {
+        rassert(create == false);
+        init(txn->page_cache(), block_id, access);
     } else {
-        current_page_ = page_cache_->page_for_block_id(block_id);
-    }
-    dirtied_page_ = false;
+        txn->page_cache()->assert_thread();
+        guarantee(page_cache_ == NULL);
+        page_cache_ = txn->page_cache();
+        the_txn_ = (access == alt_access_t::write ? txn : NULL);
+        access_ = access;
+        declared_snapshotted_ = false;
+        block_id_ = block_id;
+        if (create) {
+            current_page_ = page_cache_->page_for_new_chosen_block_id(block_id);
+        } else {
+            current_page_ = page_cache_->page_for_block_id(block_id);
+        }
+        dirtied_page_ = false;
 
-    if (access == alt_access_t::write) {
         the_txn_->add_acquirer(this);
+        current_page_->add_acquirer(this);
     }
-    current_page_->add_acquirer(this);
 }
 
 void current_page_acq_t::init(page_txn_t *txn,
                               alt_access_t access) {
     txn->page_cache()->assert_thread();
-    guarantee(the_txn_ == NULL);
+    guarantee(page_cache_ == NULL);
     page_cache_ = txn->page_cache();
     the_txn_ = (access == alt_access_t::write ? txn : NULL);
     access_ = access;

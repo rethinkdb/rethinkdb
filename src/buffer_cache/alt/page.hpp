@@ -301,7 +301,7 @@ public:
                        alt_access_t access);  // access must be write.  (RSI)
     current_page_acq_t(page_cache_t *cache,
                        block_id_t block_id,
-                       alt_access_t access) NORETURN /* RSI */;  // access must be read.  (RSI)
+                       alt_access_t access);  // access must be read.  (RSI)
     ~current_page_acq_t();
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)
@@ -332,7 +332,9 @@ private:
               bool create);
     void init(page_txn_t *txn,
               alt_access_t access);  // access must be write.
-
+    void init(page_cache_t *page_cache,
+              block_id_t block_id,
+              alt_access_t access);  // access must be read.
     friend class page_txn_t;
     friend class current_page_t;
 
