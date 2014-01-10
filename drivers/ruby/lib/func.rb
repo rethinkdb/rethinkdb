@@ -17,7 +17,7 @@ module RethinkDB
     # that can take a hash for the last non-optarg argument.
     # NOTE: we search for the optarg after we apply the rewrite rules below.
     # For example we need to use orderby not order_by
-    @@optarg_offsets = {
+    OPTARG_OFFSETS = {
       :replace => {:with_block => 0, :without => 1},
       :update => {:with_block => 0, :without => 1},
       :insert => 1,
@@ -29,7 +29,7 @@ module RethinkDB
       :slice => -1, :during => -1, :orderby => -1,
       :iso8601 => -1, :index_create => -1
     }
-    @@rewrites = {
+    METHOD_ALIASES = {
       :< => :lt, :<= => :le, :> => :gt, :>= => :ge,
       :+ => :add, :- => :sub, :* => :mul, :/ => :div, :% => :mod,
       :"|" => :any, :or => :any,
@@ -41,63 +41,75 @@ module RethinkDB
       :js => :javascript,
       :type_of => :typeof
     }
-    @@allow_json = {:insert => true}
-    def method_missing(m, *a, &b)
-      unbound_if(m.to_s.downcase != m.to_s, m)
-      bitop = [:"|", :"&"].include?(m) ? [m, a, b] : nil
-      if [:<, :<=, :>, :>=, :+, :-, :*, :/, :%].include?(m)
+    ALLOW_JSON = {:insert => true}
+
+    (Term::TermType.constants.map { |c| c.to_s.downcase.to_sym } + METHOD_ALIASES.keys).each do |old_m|
+      m = METHOD_ALIASES[old_m] || old_m
+
+      ruby = "def #{old_m}(*a, &b)\n"
+
+      if m == :count
+        ruby << "return {:COUNT => true} if !@body && a.empty?\n"
+      end
+
+      if %w(< <= > >= + - * / %).include?(old_m.to_s)
+        ruby << <<-RUBY
         a.each {|arg|
           if arg.class == RQL && arg.bitop
-            err = "Calling #{m} on result of infix bitwise operator:\n" +
-              "#{arg.inspect}.\n" +
-              "This is almost always a precedence error.\n" +
-              "Note that `a < b | b < c` <==> `a < (b | b) < c`.\n" +
+            err = "Calling #{old_m} on result of infix bitwise operator:\\n" +
+              "\#{arg.inspect}.\\n" +
+              "This is almost always a precedence error.\\n" +
+              "Note that `a < b | b < c` <==> `a < (b | b) < c`.\\n" +
               "If you really want this behavior, use `.or` or `.and` instead."
             raise RqlDriverError, err
           end
         }
+        RUBY
       end
 
-      old_m = m
-      m = @@rewrites[m] || m
-      begin
-        termtype = Term::TermType.const_get(m.to_s.upcase)
-      rescue NameError => e
-        unbound_if(true, old_m)
-      end
-      unbound_if(!termtype, m)
+      ruby << <<-RUBY
+        t = Term.new
+        t.type = #{Term::TermType.const_get(m.to_s.upcase)}
+        t.optargs = []
+      RUBY
 
-      if (opt_offset = @@optarg_offsets[m])
-        if opt_offset.class == Hash
-          opt_offset = opt_offset[b ? :with_block : :without]
+      if (opt_offset = OPTARG_OFFSETS[m])
+        if opt_offset.is_a?(Hash)
+          ruby << "opt_offset = b ? #{opt_offset[:with_block]} : #{opt_offset[:without]}\n"
+        else
+          ruby << "opt_offset = #{opt_offset}\n"
         end
         # TODO: This should drop the Hash comparison or at least
-        # @@optarg_offsets should stop specifying -1, where possible.
+        # OPTARG_OFFSETS should stop specifying -1, where possible.
         # Any time one of these operations is changed to support a
         # hash argument, we'll have to remember to fix
-        # @@optarg_offsets, otherwise.
-        optargs = a.delete_at(opt_offset) if a[opt_offset].class == Hash
+        # OPTARG_OFFSETS, otherwise.
+        ruby << <<-RUBY
+          if a[opt_offset].is_a?(Hash)
+            t.optargs = a.delete_at(opt_offset).map do |k,v|
+              ap = Term::AssocPair.new
+              ap.key = k.to_s
+              ap.val = RQL.new.expr(v, :allow_json => #{!!ALLOW_JSON[m]}).to_pb
+              ap
+            end
+          end
+        RUBY
       end
 
-      args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
+      ruby << <<-RUBY
+        args = (@body ? [self] : []) + a + (b ? [new_func(&b)] : [])
+        t.args = args.map{|x| RQL.new.expr(x, :allow_json => #{!!ALLOW_JSON[m]}).to_pb}
+        bitop = #{%w(| &).include?(old_m.to_s) ? "['#{old_m}', a, b]" : 'nil'}
+        return RQL.new(t, bitop)
+      end
+      RUBY
 
-      t = Term.new
-      t.type = termtype
-      t.args = args.map{|x| RQL.new.expr(x, :allow_json => @@allow_json[m]).to_pb}
-      t.optargs = (optargs || {}).map {|k,v|
-        ap = Term::AssocPair.new
-        ap.key = k.to_s
-        ap.val = RQL.new.expr(v, :allow_json => @@allow_json[m]).to_pb
-        ap
-      }
-      return RQL.new(t, bitop)
+      class_eval(ruby,  __FILE__)
     end
 
-    def group_by(*a, &b)
-      a = [self] + a if @body
-      RQL.new.method_missing(:group_by, a[0], a[1..-2], a[-1], &b)
+    def method_missing(m, *a, &b)
+      unbound_if(true, m)
     end
-    def groupby(*a, &b); group_by(*a, &b); end
 
     def connect(*args, &b)
       unbound_if @body
@@ -109,13 +121,18 @@ module RethinkDB
       unbound_if @body
       {:AVG => attr}
     end
+
     def sum(attr)
       unbound_if @body
       {:SUM => attr}
     end
-    def count(*a, &b)
-      !@body && a == [] ? {:COUNT => true} : super(*a, &b)
+
+    alias_method :orig_group_by, :group_by
+    def group_by(*a, &b)
+      a = [self] + a if @body
+      RQL.new.orig_group_by(a[0], a[1..-2], a[-1], &b)
     end
+    def groupby(*a, &b); group_by(*a, &b); end
 
     def -@; RQL.new.sub(0, self); end
 
