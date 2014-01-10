@@ -22,8 +22,15 @@ counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
 }
 
 const counted_t<const ql::datum_t> &lazy_json_t::get() const {
-    if (!pointee->ptr) {
+    guarantee(pointee.has());
+    if (!pointee->ptr.has()) {
         pointee->ptr = get_data(pointee->rdb_value, pointee->txn);
+        pointee->rdb_value = NULL;
+        pointee->txn = NULL;
     }
     return pointee->ptr;
+}
+
+void lazy_json_t::reset() {
+    pointee.reset();
 }

@@ -725,7 +725,28 @@ public:
         try {
             lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
                                     transaction);
-            first_value.get();
+
+            // When doing "count" queries, we don't want to actually load the json
+            // value. Here we detect up-front whether we will need to load the value.
+            // If nothing uses the value, we load it here.  Otherwise we never load
+            // it.  The main problem with this code is that we still need a time to
+            // exclusively process each row, in between the call to
+            // waiter.wait_interruptible() and the end of this function.  If we fixed
+            // the design that makes us need to _process_ each row one at a time, we
+            // wouldn't have to guess up front whether the lazy_json_t actually needs
+            // to be loaded, and the code would be safer (and algorithmically more
+            // parallelized).
+
+            if (sindex_function.has() || !transform.empty() || !terminal
+                || query_language::terminal_uses_value(*terminal)) {
+                // Force the value to be loaded.
+                first_value.get();
+            } else {
+                // We _must_ load the value before calling keyvalue.reset(), and
+                // before calling waiter.wait_interruptible().  So we call
+                // first_value.reset() to make any later call to .get() fail.
+                first_value.reset();
+            }
 
             keyvalue.reset();
 
