@@ -65,9 +65,6 @@ private:
     alt_memory_tracker_t tracker_;
     page_cache_t page_cache_;
 
-    // RSI: Is there any reason for this to be an intrusive_list_t?  I think we only
-    // use the last node on the list -- and only when it has the latest block
-    // version.
     segmented_vector_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
 
     scoped_ptr_t<auto_drainer_t> drainer_;
@@ -137,7 +134,6 @@ private:
 
     // This is never null (and is always a current_page_acq_t that has had
     // declare_snapshotted() called).
-    // RSI: Is that true?
     scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
     // RSP: std::map memory usage.
@@ -180,16 +176,15 @@ public:
                    block_id_t block_id,
                    alt_access_t access);
 
-    // Nonblocking constructor that acquires a block with a new block id.  (RSI: Is
-    // this useful for _anything_?  We refer to the superblock by name.)  `access`
+    // Nonblocking constructor that acquires a block with a new block id.  `access`
     // must be `write`.
     alt_buf_lock_t(alt_buf_parent_t parent,
-                   alt_create_t access);
+                   alt_create_t create);
 
     // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
     // pulsed.  Allocates a block with a new block id.  `access` must be `write`.
     alt_buf_lock_t(alt_buf_lock_t *parent,
-                   alt_create_t access);
+                   alt_create_t create);
 
     ~alt_buf_lock_t();
 
