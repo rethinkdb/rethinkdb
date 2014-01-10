@@ -286,17 +286,26 @@ class Connection extends events.EventEmitter
         # Serialize protobuf
         data = pb.SerializeQuery(query)
 
-        # Prepend length
-        totalBuf = new Buffer(data.length + 4)
-        totalBuf.writeUInt32LE(data.length, 0)
 
-        # Why loop and not just use Buffer.concat? Good question,
-        # The browserify implementation of Buffer.concat seems to
-        # be broken.
-        i = 0
-        while i < data.length
-            totalBuf.set(i+4, data.get(i))
-            i++
+        if pb.protobuf_implementation is 'cpp'
+            # The CPP backend can send back a SlowBuffer, which doesn't support .get() and .set()
+            lengthBuffer = new Buffer(4)
+            lengthBuffer.writeUInt32LE(data.length, 0)
+
+            totalBuf = Buffer.concat([lengthBuffer, data])
+        else
+            # Prepend length
+            totalBuf = new Buffer(data.length + 4)
+            totalBuf.writeUInt32LE(data.length, 0)
+
+            # Why loop and not just use Buffer.concat? Good question,
+            # The browserify implementation of Buffer.concat seems to
+            # be broken.
+            i = 0
+            while i < data.length
+                totalBuf.set(i+4, data.get(i))
+                i++
+            debugger
 
         @write totalBuf
 
