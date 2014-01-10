@@ -174,7 +174,7 @@ class Connection extends events.EventEmitter
         unless @open
             callback(new err.RqlDriverError "Connection is closed.")
             return
-        
+
         # Assign token
         token = @nextToken++
 
@@ -249,6 +249,12 @@ class Connection extends events.EventEmitter
             pair =
                 key: 'profile'
                 val: r.expr(!!opts.profile).build()
+            query.global_optargs.push(pair)
+
+        if opts.durability?
+            pair =
+                key: 'durability'
+                val: r.expr(opts.durability).build()
             query.global_optargs.push(pair)
 
         # Save callback
@@ -353,7 +359,7 @@ class TcpConnection extends Connection
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
-    
+
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
             opts = optsOrCallback
