@@ -179,7 +179,8 @@ are involved in startup and which parts are not. */
 struct ls_start_existing_fsm_t :
     public static_header_read_callback_t,
     public mb_manager_t::metablock_read_callback_t,
-    public lba_list_t::ready_callback_t
+    public lba_list_t::ready_callback_t,
+    public thread_message_t
 {
     explicit ls_start_existing_fsm_t(log_serializer_t *serializer)
         : ser(serializer), start_existing_state(state_start) {
@@ -207,6 +208,10 @@ struct ls_start_existing_fsm_t :
             to_signal_when_done = to_signal;
             return false;
         }
+    }
+
+    void on_thread_switch() {
+        next_starting_up_step();
     }
 
     bool next_starting_up_step() {
@@ -264,6 +269,7 @@ struct ls_start_existing_fsm_t :
             // STATE H
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                 start_existing_state = state_reconstruct;
+                num_blocks_reconstructed = 0;
                 // STATE J
             } else {
                 // STATE H
@@ -275,11 +281,13 @@ struct ls_start_existing_fsm_t :
 
         if (start_existing_state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
-            for (block_id_t id = 0; id < ser->lba_index->end_block_id(); id++) {
-                flagged_off64_t offset = ser->lba_index->get_block_offset(id);
+            for (; num_blocks_reconstructed < ser->lba_index->end_block_id(); num_blocks_reconstructed++) {
+                flagged_off64_t offset = ser->lba_index->get_block_offset(num_blocks_reconstructed);
                 if (offset.has_value()) {
-                    ser->data_block_manager->mark_live(offset.get_value(), ser->lba_index->get_block_size(id));
+                    ser->data_block_manager->mark_live(offset.get_value(), ser->lba_index->get_block_size(num_blocks_reconstructed));
                 }
+                call_later_on_this_thread(this);
+                return false;
             }
             ser->data_block_manager->end_reconstruct();
             ser->data_block_manager->start_existing(ser->dbfile, &metablock_buffer.data_block_manager_part);
@@ -322,6 +330,7 @@ struct ls_start_existing_fsm_t :
     void on_lba_ready() {
         rassert(start_existing_state == state_waiting_for_lba);
         start_existing_state = state_reconstruct;
+        num_blocks_reconstructed = 0;
         next_starting_up_step();
     }
 
@@ -340,6 +349,7 @@ struct ls_start_existing_fsm_t :
         state_finish,
         state_done
     } start_existing_state;
+    block_id_t num_blocks_reconstructed;
 
     bool metablock_found;
     log_serializer_t::metablock_t metablock_buffer;
