@@ -287,7 +287,9 @@ class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t>,
 public:
     // RSI: Right now we support a default constructor but alt_buf_lock_t actually
     // uses a scoped pointer now, because getting this type to be swappable was too
-    // hard.  Make this type be swappable or remove the default constructor.
+    // hard.  Make this type be swappable or remove the default constructor.  (Remove
+    // the page_cache_ != NULL check in the destructor we remove the default
+    // constructor.)
     current_page_acq_t();
     // RSI: Clean up the interface (w.r.t. this create = false parameter).
     current_page_acq_t(page_txn_t *txn,
@@ -345,7 +347,9 @@ private:
     void pulse_read_available(block_version_t block_version);
     void pulse_write_available();
 
-    page_txn_t *txn_;
+    // RSI: the_txn_ is NULL if and only if access_ == read, these fields are redundant.
+    page_cache_t *page_cache_;
+    page_txn_t *the_txn_;  // RSI: Rename back to txn_.
     alt_access_t access_;
     bool declared_snapshotted_;
     // The block id of the page we acquired.
