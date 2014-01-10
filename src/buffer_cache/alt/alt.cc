@@ -145,8 +145,11 @@ alt_snapshot_node_t::alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq)
     : current_page_acq_(std::move(acq)), ref_count_(0) { }
 
 alt_snapshot_node_t::~alt_snapshot_node_t() {
-    // RSI: Other guarantees to make here?
-    guarantee(ref_count_ == 0);
+    // The only thing that deletes an alt_snapshot_node_t should be the
+    // remove_snapshot_node function.
+    rassert(ref_count_ == 0);
+    rassert(current_page_acq_.has());
+    rassert(children_.empty());
 }
 
 alt_buf_lock_t::alt_buf_lock_t()
@@ -167,8 +170,6 @@ const char *show(alt_access_t access) {
 // current_page_acq_t, and how there could not possibly be an intervening write
 // transaction that we need to jump ahead of.
 
-// RSI: make sure this is called _before_ the current_page_acq_t for the write is
-// constructed, so that the current_page_acq_t it creates gets in first.
 alt_snapshot_node_t *
 alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
                                                   alt_snapshot_node_t *parent,
@@ -192,8 +193,6 @@ alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
     }
 }
 
-// RSI: make sure this is called _before_ the current_page_acq_t for the write is
-// constructed, so that the current_page_acq_t it creates gets in first.
 void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
                                                  block_id_t parent_id,
                                                  block_id_t child_id) {
@@ -340,7 +339,12 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
     guarantee(create == alt_create_t::create);
     alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
+    // Makes sure nothing funny can happen in current_page_acq_t constructor.
+    // Otherwise, we'd need to make choosing a block id a separate function, and call
+    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
+    // RSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
+
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_access_t::write));
 
@@ -364,7 +368,12 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     guarantee(create == alt_create_t::create);
     alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
 
+    // Makes sure nothing funny can happen in current_page_acq_t constructor.
+    // Otherwise, we'd need to make choosing a block id a separate function, and call
+    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
+    // RSI: Probably we should do that anyway.
     ASSERT_FINITE_CORO_WAITING;
+
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_access_t::write));
 
@@ -385,8 +394,6 @@ alt_buf_lock_t::~alt_buf_lock_t() {
     guarantee(access_ref_count_ == 0);
 
     if (snapshot_node_ != NULL) {
-        // RSI: This will surely be duplicated elsewhere (the other place we reduce the
-        // refcount).
         --snapshot_node_->ref_count_;
         if (snapshot_node_->ref_count_ == 0) {
             cache()->remove_snapshot_node(block_id(),
