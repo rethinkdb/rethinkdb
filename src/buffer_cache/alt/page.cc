@@ -987,11 +987,6 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         // and current_page_acq_t currently doesn't know it.)
         rassert(acq->current_page_ != NULL);
 
-        // Get the block id while current_page_ is non-null.  (It'll become
-        // null once we're snapshotted.)
-        // RSI: what's up with this comment -- is the block_id() function fragile?
-        const block_id_t block_id = acq->block_id();
-
         const block_version_t block_version = acq->block_version();
 
         if (acq->dirtied_page()) {
@@ -1034,7 +1029,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
             // It's okay to have two dirtied_page_t's or touched_page_t's for the
             // same block id -- compute_changes handles this.
             snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_version,
-                                                                block_id,
+                                                                acq->block_id(),
                                                                 std::move(local),
                                                                 repli_timestamp_t::invalid /* RSI: handle recency */));
         } else {
@@ -1235,7 +1230,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
                         rassert(page->destroy_ptr_ == NULL);
                         rassert(page->buf_.has());
 
-                        // RSI: Is there a page_acq-t for this buf we're writing?  Is it
+                        // RSI: Is there a page_acq_t for this buf we're writing?  Is it
                         // possible that we might be trying to do an unbacked eviction
                         // for this page right now?
                         write_infos.push_back(buf_write_info_t(page->buf_.get(),
