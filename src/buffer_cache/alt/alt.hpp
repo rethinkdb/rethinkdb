@@ -206,15 +206,6 @@ public:
 
     void detach_child(block_id_t child_id);
 
-    // Reduces access to readonly.
-    void reduce_to_readonly();
-
-    // Reduces access to nothing, but we still hold the block for snapshotting
-    // purposes.
-    void reduce_to_nothing();
-
-
-
     block_id_t block_id() const {
         guarantee(txn_ != NULL);
         return current_page_acq()->block_id();

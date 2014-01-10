@@ -476,19 +476,11 @@ current_page_acq_t *alt_buf_lock_t::current_page_acq() const {
 }
 
 void alt_buf_lock_t::detach_child(block_id_t child_id) {
-    (void)child_id;
     guarantee(!empty());
-    // RSI: Actually implement this.
-}
+    guarantee(access() == alt_access_t::write);
 
-void alt_buf_lock_t::reduce_to_readonly() {
-    guarantee(!empty());
-    // RSI: Actually implement this.
-}
-
-void alt_buf_lock_t::reduce_to_nothing() {
-    guarantee(!empty());
-    // RSI: Actually implement this.  Or don't, if nobody uses it.
+    alt_buf_lock_t::create_child_snapshot_nodes(cache(), block_id(),
+                                                child_id);
 }
 
 repli_timestamp_t alt_buf_lock_t::get_recency() const {
