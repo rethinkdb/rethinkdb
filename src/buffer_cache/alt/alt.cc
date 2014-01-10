@@ -310,13 +310,10 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
     guarantee(create == alt_create_t::create);
     alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
-
+    ASSERT_FINITE_CORO_WAITING;
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_access_t::write));
 
-    // RSI: We assume that current_page_acq_t is non-blocking by putting this _after_
-    // the current_page_acq_.  It would be better to claim the block id value
-    // separately from the current_page_acq_t construction.
     if (parent.lock_or_null_ != NULL) {
         create_empty_child_snapshot_nodes(txn_->cache(),
                                           parent.lock_or_null_->block_id(),
@@ -337,11 +334,10 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     guarantee(create == alt_create_t::create);
     alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
 
+    ASSERT_FINITE_CORO_WAITING;
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_access_t::write));
 
-    // RSI: See comment in previous constructor about getting the block id value
-    // separately.
     create_empty_child_snapshot_nodes(txn_->cache(), parent->block_id(),
                                       current_page_acq_->block_id());
 
