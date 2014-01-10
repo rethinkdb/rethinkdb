@@ -104,7 +104,7 @@ describe('Javascript connection API', function(){
         it("empty run", function(done) {
           assert.throws(function(){ r.expr(1).run(); },
                         checkError("RqlDriverError",
-                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>}."));
+                                   "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."));
           done();
         });
     });
@@ -255,10 +255,42 @@ describe('Javascript connection API', function(){
                                                             done));
                         }));}));}));}));}));
 
-        it("useOutdated", withConnection(function(done ,c){
+        it("useOutdated", withConnection(function(done, c){
             r.db('test').tableCreate('t1').run(c, function(){
                 r.db('test').table('t1', {useOutdated:true}).run(c, function(){
                     r.table('t1').run({connection: c, useOutdated: true}, done);});});
+        }));
+
+        it("test default durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: "default"},
+                    givesError("RqlRuntimeError", "Durability option `default` unrecognized (options are \"hard\" and \"soft\").", done));
+            });
+        }));
+
+        it("test wrong durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: "wrong"},
+                    givesError("RqlRuntimeError", "Durability option `wrong` unrecognized (options are \"hard\" and \"soft\").", done))
+            });
+        }));
+
+        it("test soft durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: "soft"}, noError(done));
+            });
+        }));
+
+        it("test hard durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: "hard"}, noError(done));
+            });
+        }));
+
+        it("test non-deterministic durability", withConnection(function(done, c){
+            r.db('test').tableCreate('t1').run(c, function(){
+                r.db('test').table('t1').insert({data:"5"}).run({connection: c, durability: r.js("'so' + 'ft'")}, noError(done));
+            });
         }));
 
         it("fails to query after kill", withConnection(function(done, c){

@@ -179,15 +179,15 @@ void throw_unless(bool condition, const std::string &where) {
 class file_reverse_reader_t {
 public:
     explicit file_reverse_reader_t(const std::string &filename) :
-        fd(-1),
+        fd(INVALID_FD),
         current_chunk(chunk_size) {
 
         {
             int res;
             do {
                 res = open(filename.c_str(), O_RDONLY);
-            } while (res == -1 && get_errno() == EINTR);
-            throw_unless(res != -1, strprintf("could not open '%s' for reading.", filename.c_str()));
+            } while (res == INVALID_FD && get_errno() == EINTR);
+            throw_unless(res != INVALID_FD, strprintf("could not open '%s' for reading.", filename.c_str()));
             fd.reset(res);
         }
 
@@ -294,31 +294,33 @@ void fallback_log_writer_t::install(const std::string &logfile_name) {
     guarantee(filename.path() == "-", "Attempted to install a fallback_log_writer_t that was already installed.");
     filename = base_path_t(logfile_name);
 
-    // It's ok if the file couldn't be opened -- we create a local
-    // issue for it later
     int res;
     do {
         res = open(filename.path().c_str(), O_WRONLY|O_APPEND|O_CREAT, 0644);
-    } while (res == -1 && get_errno() == EINTR);
+    } while (res == INVALID_FD && get_errno() == EINTR);
 
     fd.reset(res);
 
-    if (fd.get() != -1) {
-        // Get the absolute path for the log file, so it will still be valid if
-        //  the working directory changes
-        filename.make_absolute();
+    if (fd.get() == INVALID_FD) {
+        throw std::runtime_error(strprintf("Failed to open log file '%s': %s",
+                                           logfile_name.c_str(),
+                                           errno_string(errno).c_str()).c_str());
+    }
 
-        // For the case that the log file was newly created,
-        // call fsync() on the parent directory to guarantee that its
-        // directory entry is persisted to disk.
-        int sync_res = fsync_parent_directory(filename.path().c_str());
-        if (sync_res != 0) {
-            char errno_str_buf[250];
-            const char *errno_str = errno_string_maybe_using_buffer(sync_res,
-                errno_str_buf, sizeof(errno_str_buf));
-            logWRN("Parent directory of log file (%s) could not be synced. (%s)\n",
-                filename.path().c_str(), errno_str);
-        }
+    // Get the absolute path for the log file, so it will still be valid if
+    //  the working directory changes
+    filename.make_absolute();
+
+    // For the case that the log file was newly created,
+    // call fsync() on the parent directory to guarantee that its
+    // directory entry is persisted to disk.
+    int sync_res = fsync_parent_directory(filename.path().c_str());
+    if (sync_res != 0) {
+        char errno_str_buf[250];
+        const char *errno_str = errno_string_maybe_using_buffer(sync_res,
+            errno_str_buf, sizeof(errno_str_buf));
+        logWRN("Parent directory of log file (%s) could not be synced. (%s)\n",
+            filename.path().c_str(), errno_str);
     }
 }
 
@@ -342,7 +344,7 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
 
     funlockfile(stderr);
 
-    if (fd.get() == -1) {
+    if (fd.get() == INVALID_FD) {
         error_out->assign("cannot open or find log file");
         return false;
     }
