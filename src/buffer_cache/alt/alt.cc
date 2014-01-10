@@ -445,13 +445,12 @@ void alt_buf_lock_t::snapshot_subtree() {
 
     alt_snapshot_node_t *latest_node = cache()->latest_snapshot_node(block_id());
 
-    // RSI: A problem here's that we're using block_version() when that function
-    // might not yet be valid.  We need to update block versions before they become
-    // valid.
-    rassert(latest_node == NULL
-            || latest_node->current_page_acq_->block_version() <= current_page_acq_->block_version());
+    rassert(latest_node == NULL ||
+            latest_node->current_page_acq_->block_version() <=
+            current_page_acq_->block_version());
     if (latest_node != NULL
-        && latest_node->current_page_acq_->block_version() == current_page_acq_->block_version()) {
+        && latest_node->current_page_acq_->block_version()
+           == current_page_acq_->block_version()) {
         snapshot_node_ = latest_node;
         ++snapshot_node_->ref_count_;
     } else {

@@ -307,9 +307,8 @@ current_page_help_t current_page_acq_t::help() const {
     return current_page_help_t(block_id(), page_cache_);
 }
 
-void current_page_acq_t::pulse_read_available(block_version_t block_version) {
+void current_page_acq_t::pulse_read_available() {
     assert_thread();
-    block_version_ = block_version;
     read_cond_.pulse_if_not_already_pulsed();
 }
 
@@ -324,7 +323,7 @@ current_page_t::current_page_t()
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(block_version_.debug_value() == 0);
-    block_version_.increment();
+    block_version_ = block_version_.subsequent();
 }
 
 current_page_t::current_page_t(block_size_t block_size,
@@ -336,7 +335,7 @@ current_page_t::current_page_t(block_size_t block_size,
     // Increment the block version so that we can distinguish between unassigned
     // current_page_acq_t::block_version_ values (which are 0) and assigned ones.
     rassert(block_version_.debug_value() == 0);
-    block_version_.increment();
+    block_version_ = block_version_.subsequent();
 }
 
 current_page_t::~current_page_t() {
@@ -354,7 +353,11 @@ void current_page_t::make_non_deleted(block_size_t block_size,
 }
 
 void current_page_t::add_acquirer(current_page_acq_t *acq) {
-    rassert(acq->access_ == alt_access_t::write);
+    current_page_acq_t *back = acquirers_.tail();
+    const block_version_t prev_version
+        = (back == NULL ? block_version_ : back->block_version_);
+    acq->block_version_ = acq->access_ == alt_access_t::write ?
+        prev_version.subsequent() : prev_version;
     acquirers_.push_back(acq);
     pulse_pulsables(acq);
 }
@@ -394,7 +397,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
     while (cur != NULL) {
         // We know that the previous node has read access and has been pulsed as
         // readable, so we pulse the current node as readable.
-        cur->pulse_read_available(block_version_);
+        cur->pulse_read_available();
 
         if (cur->access_ == alt_access_t::read) {
             current_page_acq_t *next = acquirers_.next(cur);
@@ -443,9 +446,11 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                                help.page_cache);
                     is_deleted_ = false;
                 }
-                pagef("block version increment on %" PRIi64 " from %" PRIu64 "\n",
-                      acq->block_id(), block_version_.debug_value());
-                block_version_.increment();
+                pagef("block version increment on %" PRIi64 " from %" PRIu64
+                      " to %" PRIu64 "\n",
+                      acq->block_id(), block_version_.debug_value(),
+                      cur->block_version_);
+                block_version_ = cur->block_version_;
                 cur->pulse_write_available();
             }
             break;
@@ -963,6 +968,7 @@ page_txn_t::~page_txn_t() {
 }
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {
+    rassert(acq->access_ == alt_access_t::write);
     live_acqs_.push_back(acq);
 }
 

@@ -193,8 +193,10 @@ class block_version_t {
 public:
     block_version_t() : value_(0) { }
 
-    void increment() {
-        ++value_;
+    block_version_t subsequent() const {
+        block_version_t ret;
+        ret.value_ = value_ + 1;
+        return ret;
     }
 
     bool operator<(block_version_t other) const {
@@ -331,10 +333,10 @@ private:
               alt_access_t access,
               bool create);
     void init(page_txn_t *txn,
-              alt_access_t access);  // access must be write.
+              alt_access_t access);  // RSI: access must be write.
     void init(page_cache_t *page_cache,
               block_id_t block_id,
-              alt_access_t access);  // access must be read.
+              alt_access_t access);  // RSI: access must be read.
     friend class page_txn_t;
     friend class current_page_t;
 
@@ -346,7 +348,7 @@ private:
     current_page_help_t help() const;
     page_cache_t *page_cache() const;
 
-    void pulse_read_available(block_version_t block_version);
+    void pulse_read_available();
     void pulse_write_available();
 
     // RSI: the_txn_ is NULL if and only if access_ == read, these fields are redundant.
@@ -362,8 +364,11 @@ private:
     page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
-    // The block version for our acquisition of the page -- only valid once
-    // read_cond_ has been pulsed.
+
+    // The block version for our acquisition of the page -- every write acquirer sees
+    // a greater block version than the previous acquirer.  The current page's block
+    // version will be less than or equal to this value if we have not yet acquired
+    // the page.  It could be greater than this value if we're snapshotted.
     block_version_t block_version_;
 
     bool dirtied_page_;
