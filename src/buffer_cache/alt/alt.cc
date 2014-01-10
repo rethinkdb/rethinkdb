@@ -270,13 +270,12 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
 
 alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
                                block_id_t block_id,
-                               alt_create_t create)
+                               UNUSED alt_create_t create)
     : txn_(txn),
       current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
                                                alt_access_t::write, true)),
       snapshot_node_(NULL),
       access_ref_count_(0) {
-    guarantee(create == alt_create_t::create);  // RSI: stupid
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id);
 #endif
@@ -331,12 +330,11 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
-                               alt_create_t create)
+                               UNUSED alt_create_t create)
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
       access_ref_count_(0) {
-    guarantee(create == alt_create_t::create);
     alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -360,12 +358,11 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
-                               alt_create_t create)
+                               UNUSED alt_create_t create)
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
       access_ref_count_(0) {
-    guarantee(create == alt_create_t::create);
     alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
