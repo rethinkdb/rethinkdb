@@ -1,5 +1,7 @@
 #include "buffer_cache/alt/alt.hpp"
 
+#include <stack>
+
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
 
@@ -59,7 +61,35 @@ void alt_cache_t::push_latest_snapshot_node(block_id_t block_id,
 }
 
 void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {
-    snapshot_nodes_by_block_id_[block_id].remove(node);
+    // In some hypothetical cache data structure (a disk backed queue) we could have
+    // a long linked list of snapshot nodes.  So we avoid _recursively_ removing
+    // snapshot nodes.
+
+    // Nodes to be deleted.
+    std::stack<std::pair<block_id_t, alt_snapshot_node_t *> > stack;
+    stack.push(std::make_pair(block_id, node));
+
+    while (!stack.empty()) {
+        auto pair = stack.top();
+        stack.pop();
+        // Step 1. Remove the node to be deleted from its list in
+        // snapshot_nodes_by_block_id_.
+        snapshot_nodes_by_block_id_[pair.first].remove(pair.second);
+
+        const std::map<block_id_t, alt_snapshot_node_t *> children
+            = std::move(pair.second->children_);
+        // Step 2. Destroy the node.
+        delete pair.second;
+
+        // Step 3. Take its children and reduce their reference count, readying them
+        // for deletion if necessary.
+        for (auto it = children.begin(); it != children.end(); ++it) {
+            --it->second->ref_count_;
+            if (it->second->ref_count_ == 0) {
+                stack.push(*it);
+            }
+        }
+    }
 }
 
 alt_inner_txn_t::alt_inner_txn_t(alt_cache_t *cache, alt_inner_txn_t *preceding_txn)

@@ -133,6 +133,7 @@ private:
     // RSI: Should this really use friends?  Does this type need to be visible in the
     // header?
     friend class alt_buf_lock_t;
+    friend class alt_cache_t;
 
     // This is never null (and is always a current_page_acq_t that has had
     // declare_snapshotted() called).
