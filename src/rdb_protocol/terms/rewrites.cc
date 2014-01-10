@@ -266,7 +266,8 @@ private:
                 r::fun(row,
                     std::move(get_all).map(
                         r::fun(v,
-                            r::object(r::optarg("left", row), r::optarg("right", v))))));
+                            r::object(r::optarg("left", row),
+                                      r::optarg("right", v))))));
     }
     virtual const char *name() const { return "inner_join"; }
 };

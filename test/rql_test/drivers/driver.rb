@@ -207,7 +207,7 @@ end
 def fail_test name, src, res, expected
   @failure_count = @failure_count + 1
   puts "TEST FAILURE: #{name}"
-  puts "TEST BODY: #{src}" 
+  puts "TEST BODY: #{src}"
   puts "\tVALUE: #{show res}"
   puts "\tEXPECTED: #{show expected}"
   puts; puts;
