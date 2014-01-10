@@ -305,7 +305,6 @@ class Connection extends events.EventEmitter
             while i < data.length
                 totalBuf.set(i+4, data.get(i))
                 i++
-            debugger
 
         @write totalBuf
 
