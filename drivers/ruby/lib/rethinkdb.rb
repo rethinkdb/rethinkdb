@@ -64,7 +64,7 @@ module RethinkDB
     def initialize(body = nil, bitop = nil, context = nil)
       @body = body
       @bitop = bitop
-      @body.context = (context || RPP.sanitize_context(caller)) if @body
+      @body.context = context || caller if @body
     end
 
     def pp

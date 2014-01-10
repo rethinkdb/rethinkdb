@@ -203,7 +203,7 @@ module RethinkDB
     def expr(x, opts={})
       allow_json = opts[:allow_json]
       unbound_if @body
-      context = RPP.sanitize_context(caller)
+      context = caller
       res = fast_expr(reql_typify(x), context, allow_json)
       return res if res.class == RQL
       return RQL.new(any_to_pb(res, context), nil, context)
