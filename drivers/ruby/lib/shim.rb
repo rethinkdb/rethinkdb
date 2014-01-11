@@ -88,9 +88,8 @@ module RethinkDB
         else raise RqlRuntimeError, "Unexpected response: #{r.inspect}"
         end
       rescue RqlError => e
-        term = orig_term.dup
+        term = orig_term.deep_dup
         term.bt_tag(bt)
-        $t = term
         raise e.class, "#{e.message}\nBacktrace:\n#{RPP.pp(term)}"
       end
     end
