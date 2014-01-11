@@ -8,6 +8,7 @@
 #include "buffer_cache/general_types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/semaphore.hpp"
+#include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
@@ -61,7 +62,7 @@ private:
     alt_memory_tracker_t tracker_;
     page_cache_t page_cache_;
 
-    segmented_vector_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
+    two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 

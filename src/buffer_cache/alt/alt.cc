@@ -48,11 +48,7 @@ block_size_t alt_cache_t::max_block_size() const {
 }
 
 alt_snapshot_node_t *alt_cache_t::latest_snapshot_node(block_id_t block_id) {
-    if (block_id < snapshot_nodes_by_block_id_.size()) {
-        return snapshot_nodes_by_block_id_[block_id].tail();
-    } else {
-        return NULL;
-    }
+    return snapshot_nodes_by_block_id_[block_id].tail();
 }
 
 void alt_cache_t::push_latest_snapshot_node(block_id_t block_id,
