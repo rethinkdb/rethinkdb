@@ -51,6 +51,10 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += threaded
   endif
 
+  ifeq (1,$(CORO_PROFILING))
+    BUILD_DIR += coro-prof
+  endif
+
   ifeq (1,$(NO_TCMALLOC))
     BUILD_DIR += notcmalloc
   endif
