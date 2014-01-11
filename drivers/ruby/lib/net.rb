@@ -233,15 +233,7 @@ module RethinkDB
     # server (if :noreply_wait => false) and invalidate all outstanding
     # enumerables on the client.
     def reconnect(opts={})
-      raise ArgumentError, "Argument to reconnect must be a hash." if opts.class != Hash
-      if not (opts.keys - [:noreply_wait]).empty?
-        raise ArgumentError, "reconnect does not understand these options: " +
-          (opts.keys - [:noreply_wait]).to_s
-      end
-      opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
-
-      self.noreply_wait() if opts[:noreply_wait]
-      @socket.close if @socket
+      close(opts)
       @socket = TCPSocket.open(@host, @port)
       @waiters = {}
       @data = {}
@@ -254,15 +246,15 @@ module RethinkDB
     def close(opts={})
       raise ArgumentError, "Argument to close must be a hash." if opts.class != Hash
       if not (opts.keys - [:noreply_wait]).empty?
-        raise ArgumentError, "close does not understand these options: " +
+        raise ArgumentError, "invalid options: " +
           (opts.keys - [:noreply_wait]).to_s
       end
       opts[:noreply_wait] = true if not opts.keys.include?(:noreply_wait)
 
-      self.noreply_wait() if opts[:noreply_wait]
+      self.noreply_wait() if opts[:noreply_wait] rescue nil
       @listener.terminate if @listener
       @listener = nil
-      @socket.close
+      @socket.close if @socket
       @socket = nil
     end
 
