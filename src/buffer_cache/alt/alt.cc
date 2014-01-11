@@ -486,6 +486,7 @@ repli_timestamp_t alt_buf_lock_t::get_recency() const {
 page_t *alt_buf_lock_t::get_held_page_for_read() {
     guarantee(!empty());
     current_page_acq_t *cpa = current_page_acq();
+    guarantee(cpa != NULL);
     cpa->read_acq_signal()->wait();
     guarantee(!empty());
     return cpa->current_page_for_read();
