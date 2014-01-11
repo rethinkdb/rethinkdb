@@ -11,9 +11,22 @@ load 'shim.rb'
 load 'func.rb'
 load 'rpp.rb'
 
+class Term::AssocPair
+  def deep_dup
+    dup.tap { |pair| pair.val = pair.val.deep_dup }
+  end
+end
+
 class Term
   attr_accessor :context
   attr_accessor :is_error
+
+  def deep_dup
+    dup.tap {|term|
+      term.args.map!(&:deep_dup)
+      term.optargs.map!(&:deep_dup)
+    }
+  end
 
   def bt_tag bt
     @is_error = true
