@@ -211,6 +211,12 @@
 // doesn't return memory to the OS. If it's set too low, startup will take a longer time.
 #define LBA_READ_BUFFER_SIZE                      (128 * MEGABYTE)
 
+// After the LBA has been read, we reconstruct the in-memory LBA index.
+// For huge tables, this can take some considerable CPU time. We break the reconstruction
+// up into smaller batches, each batch reconstructing up to `LBA_RECONSTRUCTION_BATCH_SIZE`
+// block infos.
+#define LBA_RECONSTRUCTION_BATCH_SIZE             1024
+
 #define COROUTINE_STACK_SIZE                      131072
 
 #define MAX_COROS_PER_THREAD                      10000

@@ -210,10 +210,6 @@ struct ls_start_existing_fsm_t :
         }
     }
 
-    void on_thread_switch() {
-        next_starting_up_step();
-    }
-
     bool next_starting_up_step() {
         if (start_existing_state == state_read_static_header) {
             // STATE B
@@ -269,7 +265,6 @@ struct ls_start_existing_fsm_t :
             // STATE H
             if (ser->lba_index->start_existing(ser->dbfile, &metablock_buffer.lba_index_part, this)) {
                 start_existing_state = state_reconstruct;
-                num_blocks_reconstructed = 0;
                 // STATE J
             } else {
                 // STATE H
@@ -281,13 +276,24 @@ struct ls_start_existing_fsm_t :
 
         if (start_existing_state == state_reconstruct) {
             ser->data_block_manager->start_reconstruct();
+            start_existing_state = state_reconstruct_ongoing;
+            num_blocks_reconstructed = 0;
+            // Fall through into state_reconstruct_ongoing
+        }
+
+        if (start_existing_state == state_reconstruct_ongoing) {
+            int batch = 0;
             for (; num_blocks_reconstructed < ser->lba_index->end_block_id(); num_blocks_reconstructed++) {
                 flagged_off64_t offset = ser->lba_index->get_block_offset(num_blocks_reconstructed);
                 if (offset.has_value()) {
-                    ser->data_block_manager->mark_live(offset.get_value(), ser->lba_index->get_block_size(num_blocks_reconstructed));
+                    ser->data_block_manager->mark_live(offset.get_value(),
+                        ser->lba_index->get_block_size(num_blocks_reconstructed));
                 }
-                call_later_on_this_thread(this);
-                return false;
+                ++batch;
+                if (batch >= LBA_RECONSTRUCTION_BATCH_SIZE) {
+                    call_later_on_this_thread(this);
+                    return false;
+                }
             }
             ser->data_block_manager->end_reconstruct();
             ser->data_block_manager->start_existing(ser->dbfile, &metablock_buffer.data_block_manager_part);
@@ -330,7 +336,12 @@ struct ls_start_existing_fsm_t :
     void on_lba_ready() {
         rassert(start_existing_state == state_waiting_for_lba);
         start_existing_state = state_reconstruct;
-        num_blocks_reconstructed = 0;
+        next_starting_up_step();
+    }
+
+    void on_thread_switch() {
+        // Continue a previously started LBA reconstruction
+        rassert(start_existing_state == state_reconstruct_ongoing);
         next_starting_up_step();
     }
 
@@ -346,9 +357,13 @@ struct ls_start_existing_fsm_t :
         state_start_lba,
         state_waiting_for_lba,
         state_reconstruct,
+        state_reconstruct_ongoing,
         state_finish,
         state_done
     } start_existing_state;
+
+    // When in state_reconstruct_ongoing, we keep track of how many blocks we
+    // already have reconstructed.
     block_id_t num_blocks_reconstructed;
 
     bool metablock_found;
