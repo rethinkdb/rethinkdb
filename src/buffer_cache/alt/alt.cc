@@ -447,11 +447,12 @@ void alt_buf_lock_t::snapshot_subtree() {
         snapshot_node_ = latest_node;
         ++snapshot_node_->ref_count_;
     } else {
+        const block_id_t block_id = current_page_acq_->block_id();
         alt_snapshot_node_t *node
             = new alt_snapshot_node_t(std::move(current_page_acq_));
         rassert(node->ref_count_ == 0);
         ++node->ref_count_;
-        cache()->push_latest_snapshot_node(block_id(), node);
+        txn_->cache()->push_latest_snapshot_node(block_id, node);
         snapshot_node_ = node;
         node->current_page_acq_->declare_snapshotted();
     }
@@ -461,7 +462,8 @@ void alt_buf_lock_t::snapshot_subtree() {
 }
 
 current_page_acq_t *alt_buf_lock_t::current_page_acq() const {
-    if (snapshot_node_) {
+    guarantee(!empty());
+    if (snapshot_node_ != NULL) {
         return snapshot_node_->current_page_acq_.get();
     } else {
         return current_page_acq_.get();
