@@ -192,13 +192,10 @@
 
 // If the size of the LBA on a given disk exceeds LBA_MIN_SIZE_FOR_GC, then the fraction of the
 // entries that are live and not garbage should be at least LBA_MIN_UNGARBAGE_FRACTION.
-// TODO: Maybe change this back to 20 megabytes?
 #define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 1)
-// TODO: This used to be 0.15 but we figured why not do the opposite of our well-tested parameter?
-#define LBA_MIN_UNGARBAGE_FRACTION                0.85
+#define LBA_MIN_UNGARBAGE_FRACTION                0.5
 
 // How many LBA structures to have for each file
-// TODO: LBA_SHARD_FACTOR used to be 16.
 #define LBA_SHARD_FACTOR                          4
 
 // How much space to reserve in the metablock to store inline LBA entries
