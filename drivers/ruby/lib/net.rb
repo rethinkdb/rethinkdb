@@ -123,11 +123,20 @@ module RethinkDB
       @@last = self
       @default_opts = default_db ? {:db => RQL.new.db(default_db)} : {}
       @conn_id = 0
+      @token_cnt = 0
+      @mutex = Mutex.new
       reconnect(:noreply_wait => false)
     end
     attr_reader :default_db, :conn_id
 
-    @@token_cnt = 0
+    def get_new_token_locked
+      @token_cnt += 1
+    end
+
+    def get_new_token
+      @mutex.synchronize { get_new_token_locked }
+    end
+
     def run_internal(q, noreply=false)
       dispatch q
       noreply ? nil : wait(q.token)
@@ -135,7 +144,7 @@ module RethinkDB
     def run(msg, opts, &b)
       reconnect(:noreply_wait => false) if @auto_reconnect && (!@socket || !@listener)
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = RethinkDB::new_query(Query::QueryType::START, @@token_cnt += 1)
+      q = RethinkDB::new_query(Query::QueryType::START, get_new_token)
       q.query = msg
 
       all_opts = @default_opts.merge(opts)
@@ -233,17 +242,18 @@ module RethinkDB
     # server (if :noreply_wait => false) and invalidate all outstanding
     # enumerables on the client.
     def reconnect(opts={})
-      close(opts)
-      @socket = TCPSocket.open(@host, @port)
-      @waiters = {}
-      @data = {}
-      @mutex = Mutex.new
-      @conn_id += 1
-      start_listener
-      self
+      @mutex.synchronize {
+        close_locked(opts)
+        @socket = TCPSocket.open(@host, @port)
+        @waiters = {}
+        @data = {}
+        @conn_id += 1
+        start_listener
+        self
+      }
     end
 
-    def close(opts={})
+    def close_locked(opts={})
       raise ArgumentError, "Argument to close must be a hash." if opts.class != Hash
       if not (opts.keys - [:noreply_wait]).empty?
         raise ArgumentError, "invalid options: " +
@@ -258,9 +268,13 @@ module RethinkDB
       @socket = nil
     end
 
+    def close(opts={})
+      @mutex.synchronize { close_locked(opts) }
+    end
+
     def noreply_wait
       raise RqlRuntimeError, "Error: Connection Closed." if !@socket || !@listener
-      q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, @@token_cnt += 1)
+      q = RethinkDB::new_query(Query::QueryType::NOREPLY_WAIT, get_new_token_locked)
       res = run_internal(q)
       if res.type != Response::ResponseType::WAIT_COMPLETE
         raise RqlRuntimeError, "Unexpected response to noreply_wait: " + PP.pp(res, "")
