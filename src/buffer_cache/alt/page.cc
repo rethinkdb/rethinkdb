@@ -1035,7 +1035,7 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         } else {
             // It's okay to have two dirtied_page_t's or touched_page_t's for the
             // same block id -- compute_changes handles this.
-            touched_pages_.push_back(touched_page_t(block_version, block_id,
+            touched_pages_.push_back(touched_page_t(block_version, acq->block_id(),
                                                     repli_timestamp_t::invalid /* RSI: handle recency */));
         }
     }
