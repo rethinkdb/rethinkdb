@@ -7,11 +7,14 @@ Gem::Specification.new do |s|
   s.email     = 'bugs@rethinkdb.com'
   s.homepage  = 'http://rethinkdb.com'
   s.license   = 'Apache-2'
-  s.files     = Dir['lib/*.rb']
+  s.files     = Dir['lib/*.rb', 'bin/*']
+  s.bindir = 'bin'
+  s.executables = ['rethinkdb-cli']
 
   s.add_runtime_dependency "json"
   s.add_runtime_dependency "ruby-protocol-buffers"
   s.add_runtime_dependency "varint"
+  s.add_runtime_dependency "ripl"
   s.required_ruby_version = '>= 1.9.0'
 end
 
