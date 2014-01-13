@@ -326,11 +326,10 @@ void linux_thread_pool_t::interrupt_handler(int signo, siginfo_t *siginfo, void 
     (because of the intrusive list), and we could hypothetically get two SIGINTs
     in quick succession. */
     os_signal_cond_t *interrupt_signal = self->set_interrupt_message(NULL);
-    interrupt_signal->source_signo = signo;
-    interrupt_signal->source_pid = siginfo->si_pid;
-    interrupt_signal->source_uid = siginfo->si_uid;
-
     if (interrupt_signal != NULL) {
+        interrupt_signal->source_signo = signo;
+        interrupt_signal->source_pid = siginfo->si_pid;
+        interrupt_signal->source_uid = siginfo->si_uid;
         self->threads[self->n_threads - 1]->message_hub.insert_external_message(interrupt_signal);
     }
 }
