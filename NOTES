@@ -4,6 +4,7 @@ Released on 2014-01-14
 
 Bug fix update.
 
+* Fixed a crash on multiple ctrl-c (#1848)
 * Ruby driver: fixed mutable backtraces (#1846)
 * Fixed a build failure on older versions of GCC (#1824)
 * Added missing durability argument to the Javascript driver (#1821)
@@ -17,7 +18,6 @@ Bug fix update.
 * Fixed a JavaScript error in the Web UI (#1754)
 * Speed up count queries (#1733)
 * Fix a bug with thread-local storage that caused a segfault on certain platforms (#1731)
-
 --
 
 # Release 1.11.2 (Breakfast at Tiffany's)
