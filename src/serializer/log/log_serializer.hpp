@@ -12,6 +12,8 @@
 #include "utils.hpp"
 #include "concurrency/mutex.hpp"
 #include "concurrency/mutex_assertion.hpp"
+#include "concurrency/signal.hpp"
+#include "concurrency/cond_var.hpp"
 
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -192,7 +194,7 @@ private:
     Finally write the new metablock to disk. Returns once the write is complete.
     This function writes the metablock in the state that it has when called, i.e.
     it does not block between calling and preparing the new metablock. */
-    void write_metablock(const cond_t &safe_to_write_cond, file_account_t *io_account);
+    void write_metablock(const signal_t &safe_to_write_cond, file_account_t *io_account);
 
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);

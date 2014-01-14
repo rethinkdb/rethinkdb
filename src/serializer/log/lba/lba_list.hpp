@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "concurrency/signal.hpp"
+#include "concurrency/cond_var.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -20,7 +21,7 @@ class lba_list_t
     friend class lba_start_fsm_t;
     friend class lba_syncer_t;
 
-    typedef std::function<void(const cond_t &, file_account_t *)> write_metablock_fun_t;
+    typedef std::function<void(const signal_t &, file_account_t *)> write_metablock_fun_t;
 
 public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
@@ -76,7 +77,7 @@ public:
     // The reason for shutting down in two parts like this is because
     // the garbage collector depends on `write_metablock_fun` to be valid,
     // which would create circular dependencies in the shutdown process
-    // of the log_serializer_t.
+    // of log_serializer_t.
     void shutdown_gc();
     void shutdown();
 

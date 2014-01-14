@@ -569,7 +569,7 @@ void log_serializer_t::index_write_finish(extent_transaction_t *txn, file_accoun
     }
 }
 
-void log_serializer_t::write_metablock(const cond_t &safe_to_write_cond,
+void log_serializer_t::write_metablock(const signal_t &safe_to_write_cond,
                                        file_account_t *io_account) {
     assert_thread();
     metablock_t mb_buffer;
