@@ -449,7 +449,8 @@ private:
             db = arg(env, 0)->as_db();
             name = arg(env, 1)->as_str();
         }
-        return new_val(make_counted<table_t>(env->env, db, name, use_outdated, backtrace()));
+        return new_val(make_counted<table_t>(
+                           env->env, db, name, use_outdated, backtrace()));
     }
     virtual bool is_deterministic() const { return false; }
     virtual const char *name() const { return "table"; }
@@ -463,7 +464,7 @@ private:
         counted_t<table_t> table = arg(env, 0)->as_table();
         counted_t<const datum_t> pkey = arg(env, 1)->as_datum();
         counted_t<const datum_t> row = table->get_row(env->env, pkey);
-        return new_val(row, table);
+        return new_val(row, pkey, table);
     }
     virtual const char *name() const { return "get"; }
 };
