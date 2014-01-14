@@ -764,6 +764,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 #if !SLICE_ALT
                      transaction_t *txn,
 #endif
+#if SLICE_ALT
+                     alt_buf_lock_t *sindex_block,
+#endif
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
 #if !SLICE_ALT
@@ -779,17 +782,8 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     sindex_access_vector_t sindex_superblocks;
     {
 #if SLICE_ALT
-        scoped_ptr_t<alt_buf_lock_t> sindex_block;
-        store->acquire_sindex_block_for_write(
-            superblock->expose_buf(),
-            &sindex_block, superblock->get_sindex_block_id());
-
-        debugf("acquired sindex block for write\n");
-
         store->acquire_post_constructed_sindex_superblocks_for_write(
-                sindex_block.get(), &sindex_superblocks);
-
-        debugf("acquired post constructed sindex superblocks for write\n");
+                sindex_block, &sindex_superblocks);
 #else
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(
@@ -801,7 +795,11 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 #endif
 
         mutex_t::acq_t acq;
+#if SLICE_ALT
+        store->lock_sindex_queue(sindex_block, &acq);
+#else
         store->lock_sindex_queue(sindex_block.get(), &acq);
+#endif
 
         write_message_t wm;
         wm << rdb_sindex_change_t(rdb_erase_range_report_t(key_range));

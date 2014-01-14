@@ -314,6 +314,7 @@ void post_construct_and_drain_queue(
             queue_superblock->release();
 #endif
 
+            debugf_t eex("acq queue_sindex_block");
 #if SLICE_ALT
             scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
 #else
@@ -427,6 +428,7 @@ void post_construct_and_drain_queue(
         queue_superblock->release();
 #endif
 
+        debugf_t eex("queue_sindex_block II");
 #if SLICE_ALT
         scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
 #else
@@ -1347,6 +1349,7 @@ store_t::store_t(serializer_t *serializer,
                                 &superblock, &dummy_interruptor, false);
 #endif
 
+    debugf_t eex("store_t sindex_block");
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(superblock->expose_buf(),
@@ -2206,6 +2209,9 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 #if !SLICE_ALT
                         txn,
 #endif
+#if SLICE_ALT
+                        sindex_block.get(),
+#endif
                         superblock, store,
 #if !SLICE_ALT
                         token_pair,
@@ -2233,7 +2239,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
-        debugf("receive_backfill sindexes (%p) begin\n", &s);
+        debugf_t eex("receive_backfill sindexes (%p)", &s);
 #if SLICE_ALT
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
 #else
@@ -2273,7 +2279,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                     sindex_block.get(), txn);
 #endif
         }
-        debugf("receive_backfill sindexes (%p) end\n", &s);
+        debugf("receive_backfill sindexes (%p) ending\n", &s);
     }
 
 private:
@@ -2333,6 +2339,7 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
 #endif
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
+    debugf_t eex("protocol_receive_backfill");
     with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
 #if SLICE_ALT
     boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree,
@@ -2362,15 +2369,22 @@ void store_t::protocol_reset_data(const region_t& subregion,
     rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    acquire_sindex_block_for_write(superblock->expose_buf(),
+                                   &sindex_block,
+                                   superblock->get_sindex_block_id());
     rdb_erase_range(btree, &key_tester, subregion.inner,
-#if !SLICE_ALT
-                    txn,
-#endif
+                    sindex_block.get(),
                     superblock, this,
-#if !SLICE_ALT
-                    token_pair,
-#endif
                     interruptor);
+#else
+    rdb_erase_range(btree, &key_tester, subregion.inner,
+                    txn,
+                    superblock, this,
+                    token_pair,
+                    interruptor);
+#endif
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
