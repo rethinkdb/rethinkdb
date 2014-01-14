@@ -2303,7 +2303,6 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
 #endif
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
-    debugf_t eex("protocol_receive_backfill");
     with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
 #if SLICE_ALT
     boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree,
