@@ -781,7 +781,7 @@ class Func extends RDBOp
 
         body = func(args...)
         if body is undefined
-            throw new err.RqlDriverError "Annonymous function returned `undefined`. Did you forget a `return`?"
+            throw new err.RqlDriverError "Anonymous function returned `undefined`. Did you forget a `return`?"
 
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)
