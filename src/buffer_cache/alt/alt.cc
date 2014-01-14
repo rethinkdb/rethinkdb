@@ -80,8 +80,12 @@ void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t 
         // Step 3. Take its children and reduce their reference count, readying them
         // for deletion if necessary.
         for (auto it = children.begin(); it != children.end(); ++it) {
+            debugf("decring child %p from parent %p (in %p)\n",
+                   it->second, pair.second, this);
             --it->second->ref_count_;
             if (it->second->ref_count_ == 0) {
+                debugf("removing child %p from parent %p (in %p)\n",
+                       it->second, pair.second, this);
                 stack.push(*it);
             }
         }
@@ -152,7 +156,8 @@ alt_buf_lock_t::alt_buf_lock_t()
     : txn_(NULL),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0) {
+      access_ref_count_(0),
+      was_destroyed_(false) {
 }
 
 #if ALT_DEBUG
@@ -242,7 +247,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0) {
+      access_ref_count_(0),
+      was_destroyed_(false) {
     alt_buf_lock_t::wait_for_parent(parent, access);
     if (parent.lock_or_null_ != NULL && parent.lock_or_null_->snapshot_node_ != NULL) {
         alt_buf_lock_t *parent_lock = parent.lock_or_null_;
@@ -250,6 +256,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
         snapshot_node_
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent_lock->snapshot_node_, block_id);
+        ++snapshot_node_->ref_count_;
     } else {
         if (access == alt_access_t::write && parent.lock_or_null_ != NULL) {
             create_child_snapshot_nodes(txn_->cache(),
@@ -271,7 +278,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
       current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
                                                alt_access_t::write, true)),
       snapshot_node_(NULL),
-      access_ref_count_(0) {
+      access_ref_count_(0),
+      was_destroyed_(false) {
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id);
 #endif
@@ -300,7 +308,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0) {
+      access_ref_count_(0),
+      was_destroyed_(false) {
     // This implementation should be identical to the alt_buf_parent_t version of
     // this constructor.  (Unfortunately, we support compilers that lack full C++11
     // support.)
@@ -312,6 +321,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
         snapshot_node_
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent->snapshot_node_, block_id);
+        ++snapshot_node_->ref_count_;
     } else {
         if (access == alt_access_t::write) {
             create_child_snapshot_nodes(txn_->cache(), parent->block_id(), block_id);
@@ -330,7 +340,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0) {
+      access_ref_count_(0),
+      was_destroyed_(false) {
     alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -358,7 +369,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0) {
+      access_ref_count_(0),
+      was_destroyed_(false) {
     alt_buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -379,6 +391,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
 }
 
 alt_buf_lock_t::~alt_buf_lock_t() {
+    guarantee(!was_destroyed_);
+    was_destroyed_ = true;
 #if ALT_DEBUG
     if (txn_ != NULL) {
         debugf("%p: alt_buf_lock_t %p destroy %lu\n", cache(), this, block_id());
@@ -389,6 +403,8 @@ alt_buf_lock_t::~alt_buf_lock_t() {
     if (snapshot_node_ != NULL) {
         --snapshot_node_->ref_count_;
         if (snapshot_node_->ref_count_ == 0) {
+            debugf("remove_snapshot_node %p by %p (in %p)\n",
+                   snapshot_node_, this, cache());
             cache()->remove_snapshot_node(block_id(),
                                           snapshot_node_);
         }
@@ -399,8 +415,9 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t &&movee)
     : txn_(movee.txn_),
       current_page_acq_(std::move(movee.current_page_acq_)),
       snapshot_node_(movee.snapshot_node_),
-      access_ref_count_(0)
-{
+      access_ref_count_(0),
+      was_destroyed_(false) {
+    guarantee(!movee.was_destroyed_);
     guarantee(movee.access_ref_count_ == 0);
     movee.txn_ = NULL;
     movee.current_page_acq_.reset();
@@ -408,6 +425,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t &&movee)
 }
 
 alt_buf_lock_t &alt_buf_lock_t::operator=(alt_buf_lock_t &&movee) {
+    guarantee(!movee.was_destroyed_);
+    guarantee(!was_destroyed_);
     guarantee(access_ref_count_ == 0);
     alt_buf_lock_t tmp(std::move(movee));
     swap(tmp);
@@ -415,6 +434,8 @@ alt_buf_lock_t &alt_buf_lock_t::operator=(alt_buf_lock_t &&movee) {
 }
 
 void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
+    guarantee(!was_destroyed_);
+    guarantee(!other.was_destroyed_);
     guarantee(access_ref_count_ == 0);
     guarantee(other.access_ref_count_ == 0);
     std::swap(txn_, other.txn_);
@@ -423,12 +444,14 @@ void alt_buf_lock_t::swap(alt_buf_lock_t &other) {
 }
 
 void alt_buf_lock_t::reset_buf_lock() {
+    guarantee(!was_destroyed_);
     alt_buf_lock_t tmp;
     swap(tmp);
 }
 
 // RSI: Rename this to snapshot_subdag.
 void alt_buf_lock_t::snapshot_subtree() {
+    guarantee(!was_destroyed_);
     // RSI: Can this be ASSERT_NO_CORO_WAITING?
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());

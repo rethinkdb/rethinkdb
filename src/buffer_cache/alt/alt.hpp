@@ -260,6 +260,9 @@ private:
     // this lock, for assertion/guarantee purposes.
     intptr_t access_ref_count_;
 
+    // RSI: We should get rid of this variable.
+    bool was_destroyed_;
+
     DISABLE_COPYING(alt_buf_lock_t);
 };
 
