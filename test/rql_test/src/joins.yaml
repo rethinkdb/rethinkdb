@@ -96,6 +96,11 @@ tests:
       js: tbl.eq_join(function(x) { return x('a'); }, tbl3).count()
       ot: 100
 
+    # eq_join with r.row
+    - py: tbl.eq_join(r.row['a'], tbl2).count()
+      js: tbl.eq_join(r.row('a'), tbl2).count()
+      ot: 100
+
     # test an inner-join condition where inner-join differs from outer-join
     - def: left = r.expr([{'a':1},{'a':2},{'a':3}])
     - def: right = r.expr([{'b':2},{'b':3}])
