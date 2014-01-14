@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <list>
 
 #include "serializer/serializer.hpp"
 #include "serializer/log/config.hpp"
@@ -177,18 +178,10 @@ private:
             repli_timestamp_t recency_timestamp);
     bool should_perform_read_ahead();
 
-    struct index_write_context_t {
-        index_write_context_t() : next_metablock_write(NULL) { }
-        extent_transaction_t extent_txn;
-        cond_t *next_metablock_write;
-
-    private:
-        DISABLE_COPYING(index_write_context_t);
-    };
     /* Starts a new transaction, updates perfmons etc. */
-    void index_write_prepare(index_write_context_t *context, file_account_t *io_account);
+    void index_write_prepare(extent_transaction_t *txn);
     /* Finishes a write transaction */
-    void index_write_finish(index_write_context_t *context, file_account_t *io_account);
+    void index_write_finish(extent_transaction_t *txn, file_account_t *io_account);
 
     /* This mess is because the serializer is still mostly FSM-based */
     bool shutdown(cond_t *cb);
@@ -196,6 +189,12 @@ private:
 
     virtual void on_datablock_manager_shutdown();
     virtual void on_lba_shutdown();
+
+    /* Prepare a new metablock, then wait until safe_to_write_cond is pulsed.
+    Finally write the new metablock to disk. Returns once the write is complete.
+    This function writes the metablock in the state that it has when called, i.e.
+    it does not block between calling and preparing the new metablock. */
+    void write_metablock(const cond_t &safe_to_write_cond, file_account_t *io_account);
 
     typedef log_serializer_metablock_t metablock_t;
     void prepare_metablock(metablock_t *mb_buffer);
@@ -245,10 +244,9 @@ private:
     data_block_manager_t *data_block_manager;
 
     /* The running index writes organize themselves into a list so that they can be sure to
-    write their metablocks in the correct order. last_write points to the most recent
-    transaction that started but did not finish; new index writes use it to find the
-    end of the list so they can append themselves to it. */
-    index_write_context_t *last_write;
+    write their metablocks in the correct order. The first element in the list
+    is the oldest transaction that started but did not finish. */
+    std::list<cond_t *> metablock_waiter_queue;
 
     int active_write_count;
 

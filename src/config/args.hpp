@@ -56,7 +56,7 @@
 // 0 = minimal priority
 #define SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY   5
 
-// Garbage Colletion uses its own two IO accounts.
+// Garbage Collection uses its own two IO accounts.
 // There is one low-priority account that is meant to guarantee
 // (performance-wise) unintrusive garbage collection.
 // If the garbage ratio keeps growing,
@@ -195,6 +195,12 @@
 #define LBA_MIN_SIZE_FOR_GC                       (MEGABYTE * 1)
 #define LBA_MIN_UNGARBAGE_FRACTION                0.5
 
+// I/O priority for LBA garbage collection
+#define LBA_GC_IO_PRIORITY                        8
+
+// How many block ids should the LBA garbage collector rewrite before yielding?
+#define LBA_GC_BATCH_SIZE                         (1024 * 64)
+
 // How many LBA structures to have for each file
 #define LBA_SHARD_FACTOR                          4
 
@@ -265,6 +271,7 @@
 #define CORO_PRIORITY_RESET_DATA                (-2)
 #define CORO_PRIORITY_REACTOR                   (-1)
 #define CORO_PRIORITY_DIRECTORY_CHANGES         (-2)
+#define CORO_PRIORITY_LBA_GC                    (-2)
 
 
 #endif  // CONFIG_ARGS_HPP_

@@ -2,6 +2,9 @@
 #ifndef SERIALIZER_LOG_LBA_LBA_LIST_HPP_
 #define SERIALIZER_LOG_LBA_LBA_LIST_HPP_
 
+#include <functional>
+
+#include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/disk_format.hpp"
@@ -10,18 +13,19 @@
 
 class lba_start_fsm_t;
 class lba_syncer_t;
-class gc_fsm_t;
 
 class lba_list_t
 {
     friend class lba_start_fsm_t;
     friend class lba_syncer_t;
-    friend class gc_fsm_t;
+
+    typedef std::function<void(const cond_t &, file_account_t *)> write_metablock_fun_t;
 
 public:
     typedef lba_metablock_mixin_t metablock_mixin_t;
 
-    explicit lba_list_t(extent_manager_t *em);
+    explicit lba_list_t(extent_manager_t *em,
+                        const write_metablock_fun_t &_write_metablock_fun);
     ~lba_list_t();
 
     static void prepare_initial_metablock(metablock_mixin_t *mb_out);
@@ -31,7 +35,8 @@ public:
         virtual void on_lba_ready() = 0;
         virtual ~ready_callback_t() {}
     };
-    bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock, ready_callback_t *cb);
+    bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock,
+                        ready_callback_t *cb);
 
     index_block_info_t get_block_info(block_id_t block);
 
@@ -62,7 +67,7 @@ public:
     };
     void sync(file_account_t *io_account, sync_callback_t *cb);
 
-    void consider_gc(file_account_t *io_account, extent_transaction_t *txn);
+    void consider_gc();
 
     struct shutdown_callback_t {
         virtual void on_lba_shutdown() = 0;
@@ -72,8 +77,11 @@ public:
 
 private:
     shutdown_callback_t *shutdown_callback;
-    int gc_count;   // Number of active GC fsms
+    // Whether we are currently garbage-collecting a shard.
+    bool gc_active[LBA_SHARD_FACTOR];
     bool shutdown_now();
+
+    write_metablock_fun_t write_metablock_fun;
 
     extent_manager_t *const extent_manager;
 
@@ -86,6 +94,7 @@ private:
     } state;
 
     file_t *dbfile;
+    scoped_ptr_t<file_account_t> gc_io_account;
 
     in_memory_index_t in_memory_index;
 
@@ -103,7 +112,9 @@ private:
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
 
     // Garbage-collect the given shard
-    void gc(int i, file_account_t *io_account, extent_transaction_t *txn);
+    void gc(int lba_shard);
+
+    bool is_any_gc_active() const;
 
     // Returns true if the garbage ratio is bad enough that we want to
     // gc. The integer is which shard to GC.
