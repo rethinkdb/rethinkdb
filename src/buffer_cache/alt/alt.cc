@@ -84,13 +84,15 @@ void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t 
             debugf("decring child %p from parent %p (in %p)\n",
                    it->second, pair.second, this);
 #endif
-            --it->second->ref_count_;
-            if (it->second->ref_count_ == 0) {
+            if (it->second != NULL) {
+                --it->second->ref_count_;
+                if (it->second->ref_count_ == 0) {
 #if ALT_DEBUG
-                debugf("removing child %p from parent %p (in %p)\n",
-                       it->second, pair.second, this);
+                    debugf("removing child %p from parent %p (in %p)\n",
+                           it->second, pair.second, this);
 #endif
-                stack.push(*it);
+                    stack.push(*it);
+                }
             }
         }
     }
@@ -260,6 +262,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
         snapshot_node_
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent_lock->snapshot_node_, block_id);
+        guarantee(snapshot_node_ != NULL,
+                  "Tried to acquire a deleted block (with read access).");
         ++snapshot_node_->ref_count_;
     } else {
         if (access == alt_access_t::write && parent.lock_or_null_ != NULL) {
@@ -325,6 +329,8 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
         snapshot_node_
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent->snapshot_node_, block_id);
+        guarantee(snapshot_node_ != NULL,
+                  "Tried to acquire a deleted block (with read access.");
         ++snapshot_node_->ref_count_;
     } else {
         if (access == alt_access_t::write) {
