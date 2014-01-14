@@ -64,7 +64,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                    order_source_t *order_source)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
-    mailbox_manager_(mm),
+    mailbox_manager_((debugf("listener_t constructor A\n"), mm)),
     svs_(svs),
     uuid_(generate_uuid()),
     perfmon_collection_(),
@@ -83,6 +83,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
     read_mailbox_(mailbox_manager_,
         boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
 {
+    debugf("listener_t constructor body\n");
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
     if (!business_card || !business_card.get()) {
@@ -101,6 +102,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
     }
 
     our_branch_region_ = this_branch_history.region;
+    debugf("listener_t assigned our_branch_region_\n");
 
 #ifndef NDEBUG
     /* Sanity-check to make sure we're on the same timeline as the thing
@@ -134,6 +136,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
 
     /* Attempt to register for reads and writes */
     try_start_receiving_writes(broadcaster_metadata, interruptor);
+    debugf("listener_t did try_start_receiving_writes\n");
     listener_intro_t<protocol_t> listener_intro;
     bool registration_is_done = registration_done_cond_.try_get_value(&listener_intro);
     guarantee(registration_is_done);
@@ -156,6 +159,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         wait_any_t interruptor2(interruptor, replier_access.get_failed_signal());
         wait_interruptible(&backfiller_is_up_to_date, &interruptor2);
 
+        debugf("listener_t about to call backfillee\n");
         /* Backfill */
         backfillee<protocol_t>(mailbox_manager_,
                                branch_history_manager,
@@ -164,7 +168,9 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                replier->subview(&listener_t<protocol_t>::get_backfiller_from_replier_bcard),
                                backfill_session_id,
                                interruptor);
+        debugf("listener_t: backfillee returned, leaving scope\n");
     } catch (const resource_lost_exc_t &) {
+        debugf("listener_t: throwing resource lost exception\n");
         throw backfiller_lost_exc_t();
     }
 
@@ -222,6 +228,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
     }
 
     wait_interruptible(&write_queue_has_drained_, interruptor);
+    debugf("listener_t A returning\n");
 }
 
 
@@ -235,7 +242,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
                                    DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
-    mailbox_manager_(mm),
+    mailbox_manager_((debugf("listener_t constructor B\n"), mm)),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
     uuid_(generate_uuid()),

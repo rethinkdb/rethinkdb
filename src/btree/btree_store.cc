@@ -1334,18 +1334,21 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
     assert_thread();
     std::set<std::string> sindexes_to_acquire;
     std::map<std::string, secondary_index_t> sindexes;
+    // debugf("acquire_post... about to get_secondary_indexes\n");
 #if SLICE_ALT
     ::get_secondary_indexes(sindex_block, &sindexes);
 #else
     ::get_secondary_indexes(txn, sindex_block, &sindexes);
 #endif
 
+    // debugf("acquire_post... building map\n");
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (it->second.post_construction_complete) {
             sindexes_to_acquire.insert(it->first);
         }
     }
 
+    // debugf("acquire_post... about to acquire_sindex_superblocks_for_write\n");
 #if SLICE_ALT
     acquire_sindex_superblocks_for_write(
             sindexes_to_acquire, sindex_block,
@@ -1355,6 +1358,7 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
             sindexes_to_acquire, sindex_block,
             txn, sindex_sbs_out);
 #endif
+    // debugf("acquire_post... done.\n");
 }
 
 #if SLICE_ALT

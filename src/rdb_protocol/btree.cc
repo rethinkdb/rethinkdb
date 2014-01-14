@@ -770,6 +770,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      write_token_pair_t *token_pair,
 #endif
                      signal_t *interruptor) {
+    debugf("rdb_erase_range begin\n");
     /* This is guaranteed because the way the keys are calculated below would
      * lead to a single key being deleted even if the range was empty. */
     guarantee(!key_range.is_empty());
@@ -783,8 +784,12 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
             superblock->expose_buf(),
             &sindex_block, superblock->get_sindex_block_id());
 
+        debugf("acquired sindex block for write\n");
+
         store->acquire_post_constructed_sindex_superblocks_for_write(
                 sindex_block.get(), &sindex_superblocks);
+
+        debugf("acquired post constructed sindex superblocks for write\n");
 #else
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(
@@ -803,6 +808,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         store->sindex_queue_push(wm, &acq);
     }
 
+    debugf("rdb_erase_range about to spawn_sindex_erase_ranges\n");
     {
         auto_drainer_t sindex_erase_drainer;
 #if SLICE_ALT
@@ -827,8 +833,10 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         /* TL;DR it's very important that we make sure all of the coros spawned
          * by spawn_sindex_erase_ranges complete before we proceed past this
          * point. */
+        debugf("rdb_erase_range awaiting sindex_erase_drainer destruction\n");
     }
 
+    debugf("rdb_erase_range just did spawn_sindex_erase_ranges\n");
     /* Twiddle some keys to get the in the form we want. Notice these are keys
      * which will be made  exclusive and inclusive as their names suggest
      * below. At the point of construction they aren't. */
@@ -850,6 +858,7 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 
     rdb_value_deleter_t deleter;
 
+    debugf("rdb_erase_range about to erase_range_generic\n");
 #if SLICE_ALT
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
@@ -861,6 +870,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         right_key_supplied ? right_key_inclusive.btree_key() : NULL,
         txn, superblock, interruptor);
 #endif
+
+    debugf("rdb_erase_range just did erase_range_generic -- waiting?\n");
+    // RSI: this comment about auto_drainer_t is false.
 
     // auto_drainer_t is destructed here so this waits for other coros to finish.
 }

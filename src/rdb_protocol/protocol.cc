@@ -2185,6 +2185,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
+        debugf("receive_backfill delete_key (%p) begin\n", &delete_key);
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
@@ -2195,9 +2196,11 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                    static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
+        debugf("receive_backfill delete_key (%p) end\n", &delete_key);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
+        debugf("receive_backfill delete_range (%p) begin\n", &delete_range);
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(btree, &tester, delete_range.range.inner,
 #if !SLICE_ALT
@@ -2208,9 +2211,11 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                         token_pair,
 #endif
                         interruptor);
+        debugf("receive_backfill delete_range (%p) end\n", &delete_range);
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
+        debugf("receive_backfill key_value_pair (%p) begin\n", &kv);
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
         rdb_modification_report_t mod_report(bf_atom.key);
@@ -2222,10 +2227,13 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                 superblock, &response,
                 &mod_report.info, static_cast<profile::trace_t *>(NULL));
 
+        debugf("receive_backfill key_value_pair (%p) about to update sindexes\n", &kv);
         update_sindexes(&mod_report);
+        debugf("receive_backfill key_value_pair (%p) end\n", &kv);
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
+        debugf("receive_backfill sindexes (%p) begin\n", &s);
 #if SLICE_ALT
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
 #else
@@ -2244,6 +2252,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                             superblock, &sizer, &deleter, &sindex_block,
                             &created_sindexes, interruptor);
 #endif
+        debugf("receive_backfill sindexes (%p) done set_sindexes\n", &s);
 
         if (!created_sindexes.empty()) {
             sindex_access_vector_t sindexes;
@@ -2255,6 +2264,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 #endif
                     &sindexes);
 
+        debugf("receive_backfill sindexes (%p) about to bring up to date\n", &s);
 #if SLICE_ALT
             rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
                                                             sindex_block.get());
@@ -2263,6 +2273,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                     sindex_block.get(), txn);
 #endif
         }
+        debugf("receive_backfill sindexes (%p) end\n", &s);
     }
 
 private:

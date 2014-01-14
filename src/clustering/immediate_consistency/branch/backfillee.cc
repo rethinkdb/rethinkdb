@@ -55,12 +55,14 @@ public:
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
+        debugf("apply_backfill_chunk begin (%p)\n", &chunk_token);
         write_token_pair_t token_pair;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         svs->new_write_token_pair(&token_pair);
         chunk_queue->finish_write(chunk_token);
 
         svs->receive_backfill(chunk, &token_pair, interruptor);
+        debugf("apply_backfill_chunk end (%p)\n", &chunk_token);
     }
 
     void coro_pool_callback(backfill_queue_entry_t<protocol_t> chunk, signal_t *interruptor) {
@@ -153,6 +155,7 @@ void backfillee(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, resource_lost_exc_t)
 {
+    debugf("inside backfillee\n");
     rassert(region_is_superset(svs->get_region(), region));
     resource_access_t<backfiller_business_card_t<protocol_t> > backfiller(backfiller_metadata);
 
@@ -169,11 +172,13 @@ void backfillee(
 
     start_point = start_point.mask(region);
 
+    debugf("backfillee about to export branch history\n");
     branch_history_t<protocol_t> start_point_associated_history;
     {
         on_thread_t th(branch_history_manager->home_thread());
         branch_history_manager->export_branch_history(start_point, &start_point_associated_history);
     }
+    debugf("backfillee has exported branch history\n");
 
     /* The backfiller will send a message to `end_point_mailbox` before it sends
     any other messages; that message will tell us what the version will be when
@@ -209,6 +214,7 @@ void backfillee(
         mailbox_t<void(mailbox_addr_t<void(int)>)>  alloc_registration_mbox(
                 mailbox_manager, boost::bind(&promise_t<mailbox_addr_t<void(int)> >::pulse, &alloc_mailbox_promise, _1));
 
+        debugf("backfillee sending off backfill request\n");
         /* Send off the backfill request */
         send(mailbox_manager,
             backfiller.access().backfill_mailbox,
@@ -238,6 +244,7 @@ void backfillee(
                 backfill_session_id);
         }
 
+        debugf("backfillee waiting to get an allocation mailbox\n");
         /* Wait to get an allocation mailbox */
         mailbox_addr_t<void(int)> allocation_mailbox;
         {
@@ -250,6 +257,7 @@ void backfillee(
             guarantee(got_value);
         }
 
+        debugf("backfillee waiting to get a message in end_point_mailbox\n");
         /* Wait until we get a message in `end_point_mailbox`. */
         {
             wait_any_t waiter(end_point_cond.get_ready_signal(), backfiller.get_failed_signal());
@@ -260,6 +268,7 @@ void backfillee(
             guarantee(end_point_cond.get_ready_signal()->is_pulsed());
         }
 
+        debugf("backfillee recording the updated branch history information\n");
         /* Record the updated branch history information that we got. It's
         essential that we call `record_branch_history()` before we update the
         metainfo, because otherwise if we crashed at a bad time the data might
@@ -321,13 +330,16 @@ void backfillee(
 
         coro_pool_t<backfill_queue_entry_t<protocol_t> > backfill_workers(10, &chunk_queue, &chunk_callback);
 
+        debugf("backfillee waiting for the backfill to be over\n");
         /* Now wait for the backfill to be over */
         {
             wait_any_t waiter(&chunk_callback.done_cond, backfiller.get_failed_signal());
             wait_interruptible(&waiter, interruptor);
 
+            debugf("backfillee just waited for the done_cond\n");
             /* Throw an exception if backfiller died */
             backfiller.access();
+            debugf("backfillee reports backfiller did not apparently die\n");
 
             guarantee(chunk_callback.done_cond.is_pulsed());
         }
@@ -336,6 +348,7 @@ void backfillee(
         backfiller_notifier.fun = 0;
     }
 
+    debugf("backfillee updating metadata\n");
     /* Update the metadata to indicate that the backfill occurred */
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
     svs->new_write_token(&write_token);
@@ -346,6 +359,7 @@ void backfillee(
         order_source.check_in("backfillee(C)"),
         &write_token,
         interruptor);
+    debugf("returning from backfillee\n");
 }
 
 

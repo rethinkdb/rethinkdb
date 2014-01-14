@@ -190,6 +190,7 @@ void run_backfill_test(size_t value_padding_length,
     debugf("</nap A>, set up a second mirror\n");
     /* Set up a second mirror */
     test_store_t<rdb_protocol_t> store2(io_backender, order_source, ctx);
+    debugf("set up store2\n");
     cond_t interruptor;
     listener_t<rdb_protocol_t> listener2(
         base_path_t("."),
