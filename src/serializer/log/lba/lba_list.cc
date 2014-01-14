@@ -355,7 +355,8 @@ void lba_list_t::gc(int lba_shard) {
     // End the last extent manager transaction
     extent_manager->end_transaction(&txns.back());
 
-    // Write a new metablock once the LBA has synced
+    // Write a new metablock once the LBA has synced. We have to do this before
+    // we can commit the extent_manager transactions.
     write_metablock_fun(on_lba_sync, gc_io_account.get());
 
     // Commit all extent transactions. From that point on the data of extents
