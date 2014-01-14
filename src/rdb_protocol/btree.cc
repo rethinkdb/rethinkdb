@@ -408,7 +408,10 @@ void rdb_set(const store_key_t &key,
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
-    agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
+    agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb,
+                                     const key_range_t &kr,
+                                     btree_slice_t *slice) :
+        cb_(cb), kr_(kr), slice_(slice) { }
 
     void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.is_superset(range));
@@ -424,6 +427,8 @@ public:
         rassert(kr_.contains_key(key->contents, key->size));
         const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
 
+        slice_->stats.pm_keys_read.record();
+
         rdb_protocol_details::backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
         atom.value = get_data(value, txn);
@@ -437,6 +442,7 @@ public:
 
     rdb_backfill_callback_t *cb_;
     key_range_t kr_;
+    btree_slice_t *slice_;
 };
 
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
@@ -445,7 +451,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
         buf_lock_t *sindex_block,
         parallel_traversal_progress_t *p, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range);
+    agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
     value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, sindex_block, p, interruptor);
 }
@@ -629,7 +635,8 @@ public:
         boost::optional<rdb_protocol_details::terminal_t> _terminal,
         const key_range_t &range,
         sorting_t _sorting,
-        rget_read_response_t *_response)
+        rget_read_response_t *_response,
+        btree_slice_t *_slice)
         : bad_init(false),
           transaction(txn),
           response(_response),
@@ -637,7 +644,8 @@ public:
           batcher(batchspec.to_batcher()),
           transform(_transform),
           terminal(_terminal),
-          sorting(_sorting)
+          sorting(_sorting),
+          slice(_slice)
     {
         init(range);
     }
@@ -662,7 +670,8 @@ public:
         ql::map_wire_func_t _sindex_function,
         sindex_multi_bool_t _sindex_multi,
         datum_range_t _sindex_range,
-        rget_read_response_t *_response)
+        rget_read_response_t *_response,
+        btree_slice_t *_slice)
         : bad_init(false),
           transaction(txn),
           response(_response),
@@ -673,7 +682,8 @@ public:
           sorting(_sorting),
           primary_key_range(_primary_key_range),
           sindex_range(_sindex_range),
-          sindex_multi(_sindex_multi)
+          sindex_multi(_sindex_multi),
+          slice(_slice)
     {
         sindex_function = _sindex_function.compile_wire_func();
         init(range);
@@ -723,6 +733,7 @@ public:
                 return true;
             }
         }
+
         try {
             lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
                                     transaction);
@@ -742,6 +753,8 @@ public:
                 || query_language::terminal_uses_value(*terminal)) {
                 // Force the value to be loaded.
                 first_value.get();
+                // Increment reads here since the btree doesn't know if we actually do a read
+                slice->stats.pm_keys_read.record();
             } else {
                 // We _must_ load the value before calling keyvalue.reset(), and
                 // before calling waiter.wait_interruptible().  So we call
@@ -866,6 +879,8 @@ public:
 
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
+
+    btree_slice_t *slice;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -891,7 +906,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, batchspec, transform, terminal, range, sorting, response);
+        txn, ql_env, batchspec, transform, terminal, range, sorting, response, slice);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
 
@@ -918,7 +933,7 @@ void rdb_rget_secondary_slice(
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
     rdb_rget_depth_first_traversal_callback_t callback(
         txn, ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
-        sorting, sindex_func, sindex_multi, sindex_range, response);
+        sorting, sindex_func, sindex_multi, sindex_range, response, slice);
     btree_concurrent_traversal(
         slice, txn, superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
@@ -1159,7 +1174,7 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     {
         auto_drainer_t drainer;
 
-        for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
+        for (sindex_access_vector_t::const_iterator it = sindexes.begin();
                                                     it != sindexes.end();
                                                     ++it) {
             coro_t::spawn_sometime(boost::bind(
@@ -1274,6 +1289,8 @@ public:
         const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
 
         for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
+            store_->btree->stats.pm_keys_read.record();
+
             /* Grab relevant values from the leaf node. */
             const btree_key_t *key = (*it).first;
             const void *value = (*it).second;
