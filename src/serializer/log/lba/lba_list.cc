@@ -282,7 +282,6 @@ void lba_list_t::consider_gc() {
 }
 
 void lba_list_t::gc(int lba_shard) {
-    fprintf(stderr, "Starting GC\n"); // TODO!
     ++extent_manager->stats->pm_serializer_lba_gcs;
 
     // Start a transaction
@@ -315,7 +314,6 @@ void lba_list_t::gc(int lba_shard) {
             extent_manager->end_transaction(&txns.back());
 
             // Yield before processing the next batch of entries.
-            fprintf(stderr, "Yielding GC\n"); // TODO!
             coro_t::yield();
 
             // Check if we are shutting down. If yes, we simply abort garbage
@@ -348,7 +346,6 @@ void lba_list_t::gc(int lba_shard) {
     extent_manager->end_transaction(&txns.back());
 
     // Write a new metablock once the LBA has synced
-    fprintf(stderr, "Writing metablock GC\n"); // TODO!
     write_metablock_fun(on_lba_sync, gc_io_account.get());
 
     // Commit all extent transactions. From that point on the data of extents
@@ -359,7 +356,6 @@ void lba_list_t::gc(int lba_shard) {
 
     // If we are trying to shut down, but were waiting on this GC pass to finish,
     // shut down now.
-    fprintf(stderr, "Finished GC\n"); // TODO!
     gc_active[lba_shard] = false;
     if (state == lba_list_t::state_gc_shutting_down && !is_any_gc_active()) {
         on_gc_shutdown.pulse();
