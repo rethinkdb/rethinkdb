@@ -353,7 +353,7 @@ batched_replace_response_t rdb_batched_replace(
         for (size_t i = 0; i < keys.size(); ++i) {
             // Pass out the point_replace_response_t.
             promise_t<superblock_t *> superblock_promise;
-            coro_t::spawn(
+            coro_t::spawn_sometime(
                 boost::bind(
                     &do_a_replace_from_batched_replace,
                     auto_drainer_t::lock_t(&drainer),

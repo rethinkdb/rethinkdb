@@ -123,8 +123,8 @@ private:
  * {
  *     splitter_t splitter(trace);
  *     event_log_t log1, log2;
- *     coro_t::spawn(&perform_task_1, &log1);
- *     coro_t::spawn(&perform_task_2, &log2);
+ *     coro_t::spawn_*(&perform_task_1, &log1);
+ *     coro_t::spawn_*(&perform_task_2, &log2);
  *
  *     wait_for_tasks_to_complete();
  *     log1.insert(log2.begin(), log2.end(), log1.end());
