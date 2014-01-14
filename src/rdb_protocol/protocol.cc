@@ -314,7 +314,6 @@ void post_construct_and_drain_queue(
             queue_superblock->release();
 #endif
 
-            debugf_t eex("acq queue_sindex_block");
 #if SLICE_ALT
             scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
 #else
@@ -428,7 +427,6 @@ void post_construct_and_drain_queue(
         queue_superblock->release();
 #endif
 
-        debugf_t eex("queue_sindex_block II");
 #if SLICE_ALT
         scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
 #else
@@ -1323,7 +1321,6 @@ store_t::store_t(serializer_t *serializer,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
 {
-    // debugf_t eex("rdb store_t constructor");
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
     // This uses a dummy interruptor because this is the only thing using the store at
@@ -1333,13 +1330,11 @@ store_t::store_t(serializer_t *serializer,
     read_token_pair_t token_pair;
     new_read_token_pair(&token_pair);
 
-    // debugf_t eex2("rdb store_t outside txn\n");
 #if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
 #else
     scoped_ptr_t<transaction_t> txn;
 #endif
-    // debugf_t eex3("rdb store_t inside txn\n");
     scoped_ptr_t<real_superblock_t> superblock;
 #if SLICE_ALT
     acquire_superblock_for_read(&token_pair.main_read_token, &txn,
@@ -1349,7 +1344,6 @@ store_t::store_t(serializer_t *serializer,
                                 &superblock, &dummy_interruptor, false);
 #endif
 
-    debugf_t eex("store_t sindex_block");
 #if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(superblock->expose_buf(),
@@ -1387,7 +1381,6 @@ store_t::store_t(serializer_t *serializer,
                                                         sindex_block.get(), txn.get());
 #endif
     }
-    // debugf("rdb store_t end scope\n");
 }
 
 store_t::~store_t() {
@@ -1397,21 +1390,17 @@ store_t::~store_t() {
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_read_t &get) {
-        // debugf("point_read_t (%p)", response);
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-        // debugf("about to rdb_get\n");
 #if SLICE_ALT
         rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
 #else
         rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
 #endif
-        // debugf("rdb_get has returned\n");
     }
 
     void operator()(const rget_read_t &rget) {
-        // debugf("rget_read_t (%p)", response);
         if (rget.transform.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
@@ -1491,7 +1480,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
-        // debugf("distribution_read_t (%p)", response);
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
         rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left,
@@ -1518,7 +1506,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {
-        // debugf("sindex_list_t (%p)", response);
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
@@ -1536,7 +1523,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_status_t &sindex_status) {
-        // debugf("sindex_status_t (%p)", response);
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
@@ -1657,7 +1643,6 @@ void store_t::protocol_read(const read_t &read,
         ctx, response, read.profile, interruptor);
     {
         profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
-        // debugf("protocol_read (%p) apply visitor\n", response);
         boost::apply_visitor(v, read.read);
     }
 
@@ -1665,7 +1650,6 @@ void store_t::protocol_read(const read_t &read,
     response->event_log = v.extract_event_log();
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
     response->event_log.push_back(profile::stop_t());
-    // debugf("protocol_read return\n");
 }
 
 class func_replacer_t : public btree_batched_replacer_t {
@@ -1712,7 +1696,6 @@ private:
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
-        // debugf_t eex("batched_replace_t");
 #if !SLICE_ALT
         try {
 #endif
@@ -1747,7 +1730,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const batched_insert_t &bi) {
-        // debugf_t eex("batched_insert_t");
         rdb_modification_report_cb_t sindex_cb(
             store,
 #if SLICE_ALT
@@ -1763,7 +1745,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
             keys.emplace_back((*it)->get(bi.pkey)->print_primary());
         }
-        // debugf("about to rdb_batched_replace\n");
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
@@ -1776,7 +1757,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_write_t &w) {
-        // debugf_t eex("point_write_t");
         response->response = point_write_response_t();
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
@@ -1794,7 +1774,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_delete_t &d) {
-        // debugf_t eex("point_delete_t");
         response->response = point_delete_response_t();
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
@@ -1812,7 +1791,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_create_t &c) {
-        // debugf_t eex("sindex_create_t");
         sindex_create_response_t res;
 
         write_message_t wm;
@@ -1856,7 +1834,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &d) {
-        // debugf_t eex("sindex_drop_t");
         sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
         rdb_value_deleter_t deleter;
@@ -1881,7 +1858,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) {
-        // debugf_t eex("sync_t");
         response->response = sync_response_t();
 
 #if !SLICE_ALT
@@ -2014,7 +1990,6 @@ void store_t::protocol_write(const write_t &write,
                              write_token_pair_t *token_pair,
 #endif
                              signal_t *interruptor) {
-    // debugf_t eex("protocol_write\n");
     rdb_write_visitor_t v(btree, this,
 #if SLICE_ALT
                           (*superblock)->expose_buf().txn(),
@@ -2188,7 +2163,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
-        debugf("receive_backfill delete_key (%p) begin\n", &delete_key);
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
@@ -2199,11 +2173,9 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                    static_cast<profile::trace_t *>(NULL));
 
         update_sindexes(&mod_report);
-        debugf("receive_backfill delete_key (%p) end\n", &delete_key);
     }
 
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
-        debugf("receive_backfill delete_range (%p) begin\n", &delete_range);
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(btree, &tester, delete_range.range.inner,
 #if !SLICE_ALT
@@ -2217,11 +2189,9 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                         token_pair,
 #endif
                         interruptor);
-        debugf("receive_backfill delete_range (%p) end\n", &delete_range);
     }
 
     void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
-        debugf("receive_backfill key_value_pair (%p) begin\n", &kv);
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
         rdb_modification_report_t mod_report(bf_atom.key);
@@ -2233,13 +2203,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                 superblock, &response,
                 &mod_report.info, static_cast<profile::trace_t *>(NULL));
 
-        debugf("receive_backfill key_value_pair (%p) about to update sindexes\n", &kv);
         update_sindexes(&mod_report);
-        debugf("receive_backfill key_value_pair (%p) end\n", &kv);
     }
 
     void operator()(const backfill_chunk_t::sindexes_t &s) const {
-        debugf_t eex("receive_backfill sindexes (%p)", &s);
 #if SLICE_ALT
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
 #else
@@ -2258,7 +2225,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                             superblock, &sizer, &deleter, &sindex_block,
                             &created_sindexes, interruptor);
 #endif
-        debugf("receive_backfill sindexes (%p) done set_sindexes\n", &s);
 
         if (!created_sindexes.empty()) {
             sindex_access_vector_t sindexes;
@@ -2270,7 +2236,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 #endif
                     &sindexes);
 
-        debugf("receive_backfill sindexes (%p) about to bring up to date\n", &s);
 #if SLICE_ALT
             rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
                                                             sindex_block.get());
@@ -2279,7 +2244,6 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                     sindex_block.get(), txn);
 #endif
         }
-        debugf("receive_backfill sindexes (%p) ending\n", &s);
     }
 
 private:

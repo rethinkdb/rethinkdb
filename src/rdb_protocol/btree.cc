@@ -100,7 +100,6 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn,
         superblock_t *superblock, point_read_response_t *response, profile::trace_t *trace) {
 #endif
-    // debugf("rdb_get about to find_keyvalue_location_for_read\n");
     keyvalue_location_t<rdb_value_t> kv_location;
 #if SLICE_ALT
     find_keyvalue_location_for_read(superblock, store_key.btree_key(), &kv_location,
@@ -109,7 +108,6 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location,
             slice->root_eviction_priority, &slice->stats, trace);
 #endif
-    // debugf("rdb_get find_keyvalue_location_for_read returned\n");
 
     if (!kv_location.value.has()) {
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
@@ -437,23 +435,18 @@ void do_a_replace_from_batched_replace(
     batched_replace_response_t *stats_out,
     profile::trace_t *trace)
 {
-    // debugf_t eex("do_a_replace_from_batched_replace");
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
-    // debugf("do_a_replace_from_batched_replace made xiter\n");
     rdb_modification_report_t mod_report(*info.key);
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
         info, &one_replace, superblock_promise, &mod_report.info, trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
-    // debugf("do_a_replace_from_batched_replace before xiter.wait\n");
     // RSI: What is this for?  are we waiting to get in line to call on_mod_report?  I guess so.
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
-    // debugf("do_a_replace_from_batched_replace xiter.wait returned\n");
     sindex_cb->on_mod_report(mod_report);
-    // debugf("do_a_replace_from_batched_replace on_mod_report returned\n");
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -476,9 +469,7 @@ batched_replace_response_t rdb_batched_replace(
         // Note the destructor ordering: We release the superblock before draining
         // on all the write operations.
         scoped_ptr_t<superblock_t> current_superblock(superblock->release());
-        // debugf("About to do batched replace loop for %zu keys\n", keys.size());
         for (size_t i = 0; i < keys.size(); ++i) {
-            // debugf("batched replace loop i = %zu\n", i);
             // Pass out the point_replace_response_t.
             promise_t<superblock_t *> superblock_promise;
             coro_t::spawn(
@@ -773,7 +764,6 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      write_token_pair_t *token_pair,
 #endif
                      signal_t *interruptor) {
-    debugf("rdb_erase_range begin\n");
     /* This is guaranteed because the way the keys are calculated below would
      * lead to a single key being deleted even if the range was empty. */
     guarantee(!key_range.is_empty());
@@ -806,7 +796,6 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         store->sindex_queue_push(wm, &acq);
     }
 
-    debugf("rdb_erase_range about to spawn_sindex_erase_ranges\n");
     {
         auto_drainer_t sindex_erase_drainer;
 #if SLICE_ALT
@@ -831,10 +820,8 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         /* TL;DR it's very important that we make sure all of the coros spawned
          * by spawn_sindex_erase_ranges complete before we proceed past this
          * point. */
-        debugf("rdb_erase_range awaiting sindex_erase_drainer destruction\n");
     }
 
-    debugf("rdb_erase_range just did spawn_sindex_erase_ranges\n");
     /* Twiddle some keys to get the in the form we want. Notice these are keys
      * which will be made  exclusive and inclusive as their names suggest
      * below. At the point of construction they aren't. */
@@ -856,7 +843,6 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 
     rdb_value_deleter_t deleter;
 
-    debugf("rdb_erase_range about to erase_range_generic\n");
 #if SLICE_ALT
     btree_erase_range_generic(sizer, slice, tester, &deleter,
         left_key_supplied ? left_key_exclusive.btree_key() : NULL,
@@ -869,7 +855,6 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         txn, superblock, interruptor);
 #endif
 
-    debugf("rdb_erase_range just did erase_range_generic -- waiting?\n");
     // RSI: this comment about auto_drainer_t is false.
 
     // auto_drainer_t is destructed here so this waits for other coros to finish.

@@ -6,7 +6,7 @@
 #include "concurrency/auto_drainer.hpp"
 
 // RSI: get rid of this.
-#define ALT_DEBUG 1
+#define ALT_DEBUG 0
 
 // RSI: Add ASSERT_FINITE_CORO_WAITING or ASSERT_NO_CORO_WAITING wherever we can.
 
