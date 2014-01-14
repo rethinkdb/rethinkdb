@@ -108,8 +108,7 @@ class log_serializer_t :
 #else
     public home_thread_mixin_t,
 #endif  // SEMANTIC_SERIALIZER_CHECK
-    private data_block_manager::shutdown_callback_t,
-    private lba_list_t::shutdown_callback_t
+    private data_block_manager::shutdown_callback_t
 {
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
@@ -188,7 +187,6 @@ private:
     bool next_shutdown_step();
 
     virtual void on_datablock_manager_shutdown();
-    virtual void on_lba_shutdown();
 
     /* Prepare a new metablock, then wait until safe_to_write_cond is pulsed.
     Finally write the new metablock to disk. Returns once the write is complete.
@@ -223,8 +221,7 @@ private:
         shutdown_begin,
         shutdown_waiting_on_serializer,
         shutdown_waiting_on_datablock_manager,
-        shutdown_waiting_on_block_tokens,
-        shutdown_waiting_on_lba
+        shutdown_waiting_on_block_tokens
     } shutdown_state;
     bool shutdown_in_one_shot;
 

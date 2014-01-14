@@ -15,7 +15,7 @@
 
 lba_list_t::lba_list_t(extent_manager_t *em,
         const lba_list_t::write_metablock_fun_t &_write_metablock_fun)
-    : shutdown_callback(NULL), write_metablock_fun(_write_metablock_fun),
+    : write_metablock_fun(_write_metablock_fun),
       extent_manager(em), state(state_unstarted), inline_lba_entries_count(0)
 {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
@@ -320,10 +320,10 @@ void lba_list_t::gc(int lba_shard) {
 
             // Check if we are shutting down. If yes, we simply abort garbage
             // collection.
-            if (state == lba_list_t::state_shutting_down) {
+            if (state == lba_list_t::state_gc_shutting_down) {
                 gc_active[lba_shard] = false;
                 if (!is_any_gc_active()) {
-                    shutdown_now();
+                    on_gc_shutdown.pulse();
                 }
                 return;
             }
@@ -361,8 +361,8 @@ void lba_list_t::gc(int lba_shard) {
     // shut down now.
     fprintf(stderr, "Finished GC\n"); // TODO!
     gc_active[lba_shard] = false;
-    if (state == lba_list_t::state_shutting_down && !is_any_gc_active()) {
-        shutdown_now();
+    if (state == lba_list_t::state_gc_shutting_down && !is_any_gc_active()) {
+        on_gc_shutdown.pulse();
     }
 }
 
@@ -380,6 +380,11 @@ bool lba_list_t::we_want_to_gc(int i) {
 
     // Don't garbage collect if we are already garbage collecting
     if (gc_active[i]) {
+        return false;
+    }
+
+    // Never start garbage collecting if we are shutting down the GC
+    if (state == lba_list_t::state_gc_shutting_down) {
         return false;
     }
 
@@ -408,22 +413,22 @@ bool lba_list_t::we_want_to_gc(int i) {
     return true;
 }
 
-bool lba_list_t::shutdown(shutdown_callback_t *cb) {
-    rassert(state == state_ready);
-    rassert(cb);
+void lba_list_t::shutdown_gc() {
+    guarantee(state == state_ready);
+    guarantee(coro_t::self() != NULL);
+
+    state = state_gc_shutting_down;
 
     if (is_any_gc_active()) {
-        // We're gc'ing, can't shut down just yet...
-        state = state_shutting_down;
-        shutdown_callback = cb;
-        return false;
-    } else {
-        shutdown_callback = NULL;
-        return shutdown_now();
+        // Wait for the GC to finish
+        on_gc_shutdown.wait_lazily_unordered();
     }
 }
 
-bool lba_list_t::shutdown_now() {
+void lba_list_t::shutdown() {
+    guarantee(state == state_gc_shutting_down);
+    guarantee(!is_any_gc_active());
+
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         disk_structures[i]->shutdown();   // Also deletes it
         disk_structures[i] = NULL;
@@ -432,11 +437,6 @@ bool lba_list_t::shutdown_now() {
     gc_io_account.reset();
 
     state = state_shut_down;
-
-    if (shutdown_callback)
-        shutdown_callback->on_lba_shutdown();
-
-    return true;
 }
 
 lba_list_t::~lba_list_t() {

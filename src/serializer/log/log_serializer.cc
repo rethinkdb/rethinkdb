@@ -773,6 +773,13 @@ bool log_serializer_t::shutdown(cond_t *cb) {
     shutdown_state = shutdown_begin;
     shutdown_in_one_shot = true;
 
+    // We must shutdown the LBA GC before we shut down
+    // the data_block_manager or metablock_manager, because the LBA GC
+    // uses our `write_metablock()` method which depends on those.
+    // `shutdown_gc()` might block, but uses coroutine waiting in contrast
+    // to most of the remaining shutdown process which is still FSM-based.
+    lba_index->shutdown_gc();
+
     return next_shutdown_step();
 }
 
@@ -792,9 +799,6 @@ bool log_serializer_t::next_shutdown_step() {
 
     if (shutdown_state == shutdown_waiting_on_serializer) {
         shutdown_state = shutdown_waiting_on_datablock_manager;
-        // TODO! We cannot do this. The LBA still requires an active
-        // data_block_manager to write metablocks. I think
-        // we should shut down the LBA in two steps.
         if (!data_block_manager->shutdown(this)) {
             shutdown_in_one_shot = false;
             return false;
@@ -817,14 +821,7 @@ bool log_serializer_t::next_shutdown_step() {
     rassert(expecting_no_more_tokens);
 
     if (shutdown_state == shutdown_waiting_on_block_tokens) {
-        shutdown_state = shutdown_waiting_on_lba;
-        if (!lba_index->shutdown(this)) {
-            shutdown_in_one_shot = false;
-            return false;
-        }
-    }
-
-    if (shutdown_state == shutdown_waiting_on_lba) {
+        lba_index->shutdown();
         metablock_manager->shutdown();
         extent_manager->shutdown();
 
@@ -859,11 +856,6 @@ bool log_serializer_t::next_shutdown_step() {
 }
 
 void log_serializer_t::on_datablock_manager_shutdown() {
-    assert_thread();
-    next_shutdown_step();
-}
-
-void log_serializer_t::on_lba_shutdown() {
     assert_thread();
     next_shutdown_step();
 }

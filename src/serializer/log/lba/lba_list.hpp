@@ -4,6 +4,7 @@
 
 #include <functional>
 
+#include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -69,17 +70,22 @@ public:
 
     void consider_gc();
 
-    struct shutdown_callback_t {
-        virtual void on_lba_shutdown() = 0;
-        virtual ~shutdown_callback_t() {}
-    };
-    bool shutdown(shutdown_callback_t *cb);
+    // The garbage collector must be shut down first through `shutdown_gc()`
+    // (must be run in a coroutine). Once that is done, call `shutdown()` to
+    // shut down the whole lba_list.
+    // The reason for shutting down in two parts like this is because
+    // the garbage collector depends on `write_metablock_fun` to be valid,
+    // which would create circular dependencies in the shutdown process
+    // of the log_serializer_t.
+    void shutdown_gc();
+    void shutdown();
 
 private:
-    shutdown_callback_t *shutdown_callback;
+    bool shutdown_now();
+
     // Whether we are currently garbage-collecting a shard.
     bool gc_active[LBA_SHARD_FACTOR];
-    bool shutdown_now();
+    cond_t on_gc_shutdown;
 
     write_metablock_fun_t write_metablock_fun;
 
@@ -89,7 +95,7 @@ private:
         state_unstarted,
         state_starting_up,
         state_ready,
-        state_shutting_down,
+        state_gc_shutting_down,
         state_shut_down
     } state;
 
