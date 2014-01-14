@@ -45,6 +45,15 @@ namespace ql {
              stream_cache2_t *stream_cache2);
 }
 
+class scoped_ops_running_stat_t {
+public:
+    scoped_ops_running_stat_t(perfmon_counter_t *_counter) : counter(_counter) { ++(*counter); }
+    ~scoped_ops_running_stat_t() { --(*counter); }
+private:
+    perfmon_counter_t *counter;
+    DISABLE_COPYING(scoped_ops_running_stat_t);
+};
+
 bool query2_server_t::handle(ql::protob_t<Query> q,
                              Response *response_out,
                              context_t *query2_context) {
@@ -58,6 +67,7 @@ bool query2_server_t::handle(ql::protob_t<Query> q,
          noreply->get_type() == ql::datum_t::type_t::R_BOOL &&
          noreply->as_bool());
     try {
+        scoped_ops_running_stat_t stat(&ctx->ql_ops_running);
         guarantee(ctx->directory_read_manager);
         // `ql::run` will set the status code
         ql::run(q, ctx, interruptor, response_out, stream_cache2);
