@@ -80,12 +80,16 @@ void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t 
         // Step 3. Take its children and reduce their reference count, readying them
         // for deletion if necessary.
         for (auto it = children.begin(); it != children.end(); ++it) {
+#if ALT_DEBUG
             debugf("decring child %p from parent %p (in %p)\n",
                    it->second, pair.second, this);
+#endif
             --it->second->ref_count_;
             if (it->second->ref_count_ == 0) {
+#if ALT_DEBUG
                 debugf("removing child %p from parent %p (in %p)\n",
                        it->second, pair.second, this);
+#endif
                 stack.push(*it);
             }
         }
@@ -403,8 +407,10 @@ alt_buf_lock_t::~alt_buf_lock_t() {
     if (snapshot_node_ != NULL) {
         --snapshot_node_->ref_count_;
         if (snapshot_node_->ref_count_ == 0) {
+#if ALT_DEBUG
             debugf("remove_snapshot_node %p by %p (in %p)\n",
                    snapshot_node_, this, cache());
+#endif
             cache()->remove_snapshot_node(block_id(),
                                           snapshot_node_);
         }
