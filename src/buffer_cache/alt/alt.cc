@@ -180,8 +180,8 @@ alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
         acq->declare_snapshotted();
         alt_snapshot_node_t *child = new alt_snapshot_node_t(std::move(acq));
         rassert(child->ref_count_ == 0);
-        child->ref_count_++;
         cache->push_latest_snapshot_node(child_id, child);
+        child->ref_count_++;
         parent->children_.insert(std::make_pair(child_id, child));
         return child;
     } else {
@@ -210,10 +210,10 @@ void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
                                                        alt_read_access_t::read);
             acq->declare_snapshotted();
             child = new alt_snapshot_node_t(std::move(acq));
-            child->ref_count_++;
             cache->push_latest_snapshot_node(child_id, child);
         }
 
+        child->ref_count_++;
         p->children_.insert(std::make_pair(child_id, child));
     }
 }
