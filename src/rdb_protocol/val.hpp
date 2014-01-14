@@ -52,7 +52,8 @@ public:
 
     counted_t<const datum_t> batched_replace(
         env_t *env,
-        const std::vector<counted_t<const datum_t> > &original_values,
+        const std::vector<counted_t<const datum_t> > &vals,
+        const std::vector<counted_t<const datum_t> > &keys,
         counted_t<func_t> replacement_generator,
         bool nondeterministic_replacements_ok,
         durability_requirement_t durability_requirement,
@@ -150,10 +151,17 @@ public:
     const char *get_type_name() const;
 
     val_t(counted_t<const datum_t> _datum, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
-    val_t(env_t *env, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
+          protob_t<const Backtrace> backtrace);
+    val_t(counted_t<const datum_t> _datum,
+          counted_t<const datum_t> _orig_key,
+          counted_t<table_t> _table,
+          protob_t<const Backtrace> backtrace);
+    val_t(env_t *env, counted_t<datum_stream_t> _sequence,
+          protob_t<const Backtrace> backtrace);
     val_t(counted_t<table_t> _table, protob_t<const Backtrace> backtrace);
-    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence, protob_t<const Backtrace> backtrace);
+    val_t(counted_t<table_t> _table, counted_t<datum_stream_t> _sequence,
+          protob_t<const Backtrace> backtrace);
     val_t(counted_t<const db_t> _db, protob_t<const Backtrace> backtrace);
     val_t(counted_t<func_t> _func, protob_t<const Backtrace> backtrace);
     ~val_t();
@@ -185,12 +193,15 @@ public:
     std::string print() const;
     std::string trunc_print() const;
 
+    counted_t<const datum_t> get_orig_key() const;
+
 private:
     friend int val_type(counted_t<val_t> v); // type_manip version
     void rcheck_literal_type(type_t::raw_type_t expected_raw_type) const;
 
     type_t type;
     counted_t<table_t> table;
+    counted_t<const datum_t> orig_key;
 
     // We pretend that this variant is a union -- as if it doesn't have type
     // information.  The sequence, datum, func, and db_ptr functions get the
