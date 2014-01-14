@@ -313,8 +313,18 @@ void lba_list_t::gc(int lba_shard) {
             // we have written a new metablock (see below).
             extent_manager->end_transaction(&txns.back());
 
-            // Yield before processing the next batch of entries.
-            coro_t::yield();
+            // Sync the LBA. This is simply to make the final sync at the end
+            // (as well as other LBA syncs done from inside the serializer) finish
+            // faster.
+            // If those took too long, it would block out serializer index writes,
+            // because those have to get in line for writing the metablock,
+            // and `write_metablock()` has to wait for the LBA sync to complete.
+            struct : public cond_t, public lba_disk_structure_t::sync_callback_t {
+                void on_lba_sync() { pulse(); }
+            } on_lba_sync;
+            disk_structures[lba_shard]->sync(gc_io_account.get(), &on_lba_sync);
+
+            on_lba_sync.wait();
 
             // Check if we are shutting down. If yes, we simply abort garbage
             // collection.
@@ -336,7 +346,7 @@ void lba_list_t::gc(int lba_shard) {
     disk_structures[lba_shard]->destroy_extents(gced_extents, gc_io_account.get(),
             &txns.back());
 
-    // Sync the changed LBA
+    // Sync the changed LBA for a final time
     struct : public cond_t, public lba_disk_structure_t::sync_callback_t {
         void on_lba_sync() { pulse(); }
     } on_lba_sync;

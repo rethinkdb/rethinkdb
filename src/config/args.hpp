@@ -177,7 +177,7 @@
 #define LBA_GC_IO_PRIORITY                        8
 
 // How many block ids should the LBA garbage collector rewrite before yielding?
-#define LBA_GC_BATCH_SIZE                         (1024 * 64)
+#define LBA_GC_BATCH_SIZE                         (1024 * 8)
 
 // How many LBA structures to have for each file
 #define LBA_SHARD_FACTOR                          4
