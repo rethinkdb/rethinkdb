@@ -295,6 +295,7 @@ void lba_list_t::gc(int lba_shard) {
 
     // Begin rewriting all LBA entries, one batch of entries at a time.
     int num_written_in_batch = 0;
+    bool aborted = false;
     const block_id_t end_id = end_block_id();
     for (block_id_t id = lba_shard; id < end_id; id += LBA_SHARD_FACTOR) {
         flagged_off64_t off = get_block_offset(id);
@@ -326,25 +327,24 @@ void lba_list_t::gc(int lba_shard) {
 
             on_lba_sync.wait();
 
-            // Check if we are shutting down. If yes, we simply abort garbage
-            // collection.
-            if (state == lba_list_t::state_gc_shutting_down) {
-                gc_active[lba_shard] = false;
-                if (!is_any_gc_active()) {
-                    on_gc_shutdown.pulse();
-                }
-                return;
-            }
-
             // Start a new transaction for the next batch of entries
             txns.push_back(new extent_transaction_t());
             extent_manager->begin_transaction(&txns.back());
+
+            // Check if we are shutting down. If yes, we simply abort garbage
+            // collection.
+            if (state == lba_list_t::state_gc_shutting_down) {
+                aborted = true;
+                break;
+            }
         }
     }
 
     // Discard the old LBA extents
-    disk_structures[lba_shard]->destroy_extents(gced_extents, gc_io_account.get(),
-            &txns.back());
+    if (!aborted) {
+        disk_structures[lba_shard]->destroy_extents(gced_extents, gc_io_account.get(),
+                &txns.back());
+    }
 
     // Sync the changed LBA for a final time
     struct : public cond_t, public lba_disk_structure_t::sync_callback_t {
