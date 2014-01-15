@@ -179,7 +179,7 @@ module RethinkDB
         }.flatten.join("\n") +
           (@@context ?
            "\nErroneous_Portion_Constructed:\n" +
-           "#{@@context.map{|x| "\tfrom "+x}.join("\n")}" +
+           "#{sanitize_context(@@context).map{|x| "\tfrom "+x}.join("\n")}" +
            "\nCalled:" : "")
       rescue Exception => e
         raise e
