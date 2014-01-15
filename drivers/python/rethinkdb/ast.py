@@ -841,6 +841,10 @@ class Keys(RqlMethodQuery):
     tt = p.Term.KEYS
     st = 'keys'
 
+class Object(RqlMethodQuery):
+    tt = p.Term.OBJECT
+    st = 'object'
+
 class Pluck(RqlMethodQuery):
     tt = p.Term.PLUCK
     st = 'pluck'
