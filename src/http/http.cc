@@ -6,6 +6,7 @@
 #include "utils.hpp"
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
+#include <zlib.h>
 
 #include "arch/io/network.hpp"
 #include "logger.hpp"
@@ -175,6 +176,68 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
     body = content;
 }
 
+bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
+    // Don't bother zipping anything less than 0.5k
+    size_t body_size = res->body.size();
+    if (body_size < 512) {
+        return false;
+    }
+
+    boost::optional<std::string> supported_encoding = req.find_header_line("accept-encoding");
+    if (!supported_encoding) {
+        return false;
+    }
+
+    if (supported_encoding.get().find("gzip") == std::string::npos) {
+        return false;
+    }
+
+    // Gzip is supported, gzip the body of the result
+    scoped_array_t<char> out_buffer(body_size);
+
+    z_stream zstream;
+    zstream.zalloc = Z_NULL;
+    zstream.zfree = Z_NULL;
+    zstream.opaque = Z_NULL;
+    zstream.avail_in = body_size;
+    zstream.avail_out = body_size;
+    zstream.next_in = reinterpret_cast<unsigned char*>(const_cast<char *>(res->body.data()));
+    zstream.next_out = reinterpret_cast<unsigned char*>(out_buffer.data());
+    zstream.total_in = 0;
+    zstream.total_out = 0;
+    zstream.data_type = Z_ASCII;
+
+    int zres = deflateInit2(&zstream, Z_DEFAULT_COMPRESSION,
+                            Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY);
+    if (zres != Z_OK) {
+        return false;
+    }
+
+    zres = deflate(&zstream, Z_FINISH);
+    if (zres != Z_STREAM_END) {
+        return false;
+    }
+
+    zres = deflateEnd(&zstream);
+    if (zres != Z_OK) {
+        return false;
+    }
+
+    // Would be nice if we could do this without copying
+    res->body.assign(out_buffer.data(), zstream.total_out);
+
+    // Update the body size in the headers
+    for (auto it = res->header_lines.begin(); it != res->header_lines.end(); ++it) {
+        if (it->key == "Content-Length") {
+            it->val = strprintf("%zu", zstream.total_out);
+            break;
+        }
+    }
+
+    res->add_header_line("Content-Encoding", "gzip");
+    return true;
+}
+
 http_res_t http_error_res(const std::string &content, http_status_code_t rescode) {
     return http_res_t(rescode, "application/text", content);
 }
@@ -306,6 +369,7 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
             /* TODO pass interruptor */
             http_res_t res = application->handle(req);
             res.version = req.version;
+            maybe_gzip_response(req, &res);
             write_http_msg(conn.get(), res, keepalive.get_drain_signal());
         } else {
             // Write error
