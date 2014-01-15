@@ -119,7 +119,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         cond_t *done_cond;
 
         void got_subtree_recencies() {
-            coro_t::spawn(boost::bind(&annoying_t::do_got_subtree_recencies, this));
+            coro_t::spawn_sometime(boost::bind(&annoying_t::do_got_subtree_recencies, this));
         }
 
         void do_got_subtree_recencies() {

@@ -245,7 +245,8 @@ bool do_serve(
                                           semilattice_manager_cluster.get_root_view(),
                                           auth_manager_cluster.get_root_view(),
                                           &directory_read_manager,
-                                          machine_id);
+                                          machine_id,
+                                          &get_global_perfmon_collection());
 
         namespace_repo_t<rdb_protocol_t> rdb_namespace_repo(&mailbox_manager,
             directory_read_manager.get_root_view()->incremental_subview(

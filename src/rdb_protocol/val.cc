@@ -84,15 +84,17 @@ counted_t<const datum_t> table_t::do_batched_write(
 
 counted_t<const datum_t> table_t::batched_replace(
     env_t *env,
-    const std::vector<counted_t<const datum_t> > &original_values,
+    const std::vector<counted_t<const datum_t> > &vals,
+    const std::vector<counted_t<const datum_t> > &keys,
     counted_t<func_t> replacement_generator,
     bool nondeterministic_replacements_ok,
     durability_requirement_t durability_requirement,
     bool return_vals) {
+    r_sanity_check(vals.size() == keys.size());
 
-    if (original_values.empty()) {
+    if (vals.empty()) {
         return make_counted<const datum_t>(ql::datum_t::R_OBJECT);
-    } else if (original_values.size() != 1) {
+    } else if (vals.size() != 1) {
         r_sanity_check(!return_vals);
     }
 
@@ -100,12 +102,12 @@ counted_t<const datum_t> table_t::batched_replace(
         r_sanity_check(nondeterministic_replacements_ok);
         datum_ptr_t stats(datum_t::R_OBJECT);
         std::vector<counted_t<const datum_t> > replacement_values;
-        replacement_values.reserve(original_values.size());
-        for (auto it = original_values.begin(); it != original_values.end(); ++it) {
+        replacement_values.reserve(vals.size());
+        for (size_t i = 0; i < vals.size(); ++i) {
             counted_t<const datum_t> new_val;
             try {
-                new_val = replacement_generator->call(env, *it)->as_datum();
-                new_val->rcheck_valid_replace(*it, get_pkey());
+                new_val = replacement_generator->call(env, vals[i])->as_datum();
+                new_val->rcheck_valid_replace(vals[i], keys[i], get_pkey());
                 r_sanity_check(new_val.has());
                 replacement_values.push_back(new_val);
             } catch (const base_exc_t &e) {
@@ -117,15 +119,15 @@ counted_t<const datum_t> table_t::batched_replace(
             durability_requirement, return_vals);
         return stats.to_counted()->merge(insert_stats, stats_merge);
     } else {
-        std::vector<store_key_t> keys;
-        keys.reserve(original_values.size());
-        for (auto it = original_values.begin(); it != original_values.end(); ++it) {
-            keys.push_back(store_key_t((*it)->get(get_pkey())->print_primary()));
+        std::vector<store_key_t> store_keys;
+        store_keys.reserve(keys.size());
+        for (auto it = keys.begin(); it != keys.end(); ++it) {
+            store_keys.push_back(store_key_t((*it)->print_primary()));
         }
         return do_batched_write(
             env,
             rdb_protocol_t::batched_replace_t(
-                std::move(keys),
+                std::move(store_keys),
                 get_pkey(),
                 replacement_generator,
                 env->global_optargs.get_all_optargs(),
@@ -144,10 +146,11 @@ counted_t<const datum_t> table_t::batched_insert(
     datum_ptr_t stats(datum_t::R_OBJECT);
     std::vector<counted_t<const datum_t> > valid_inserts;
     valid_inserts.reserve(insert_datums.size());
-    counted_t<const datum_t> empty_old_val(new datum_t(datum_t::R_NULL));
     for (auto it = insert_datums.begin(); it != insert_datums.end(); ++it) {
         try {
-            (*it)->rcheck_valid_replace(empty_old_val, get_pkey());
+            (*it)->rcheck_valid_replace(counted_t<const datum_t>(),
+                                        counted_t<const datum_t>(),
+                                        get_pkey());
             counted_t<const ql::datum_t> keyval = (*it)->get(get_pkey(), ql::NOTHROW);
             (*it)->get(get_pkey())->print_primary(); // does error checking
             valid_inserts.push_back(std::move(*it));
@@ -433,6 +436,19 @@ val_t::val_t(counted_t<const datum_t> _datum, counted_t<table_t> _table,
     guarantee(datum().has());
 }
 
+val_t::val_t(counted_t<const datum_t> _datum,
+             counted_t<const datum_t> _orig_key,
+             counted_t<table_t> _table,
+             protob_t<const Backtrace> backtrace)
+    : pb_rcheckable_t(backtrace),
+      type(type_t::SINGLE_SELECTION),
+      table(_table),
+      orig_key(_orig_key),
+      u(_datum) {
+    guarantee(table.has());
+    guarantee(datum().has());
+}
+
 val_t::val_t(env_t *env, counted_t<datum_stream_t> _sequence,
              protob_t<const Backtrace> backtrace)
     : pb_rcheckable_t(backtrace),
@@ -638,5 +654,8 @@ std::string val_t::trunc_print() const {
     }
 }
 
+counted_t<const datum_t> val_t::get_orig_key() const {
+    return orig_key;
+}
 
 } // namespace ql
