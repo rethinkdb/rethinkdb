@@ -255,9 +255,8 @@ page_t *current_page_acq_t::current_page_for_read() {
 
 repli_timestamp_t current_page_acq_t::recency() const {
     assert_thread();
-    rassert(snapshotted_page_.has() || current_page_ != NULL);
-    // RSI: Give this a real implementation.  (Make it not have to wait for
-    // read_cond_ -- don't allow touch_recency.)
+    // RSI: Have this return recency_ (once we properly load the information from the
+    // serializer).
     return repli_timestamp_t::distant_past;
 }
 
@@ -351,8 +350,22 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
     current_page_acq_t *back = acquirers_.tail();
     const block_version_t prev_version
         = (back == NULL ? block_version_ : back->block_version_);
+    const repli_timestamp_t prev_recency
+        = (back == NULL ? recency_ : back->recency_);
+
     acq->block_version_ = acq->access_ == alt_access_t::write ?
         prev_version.subsequent() : prev_version;
+
+    if (acq->access_ == alt_access_t::read) {
+        acq->recency_ = prev_recency;
+    } else {
+        rassert(acq->the_txn_ != NULL);
+        if (acq->the_txn_->this_txn_recency_ == repli_timestamp_t::invalid) {
+            acq->the_txn_->this_txn_recency_ = prev_recency.next();
+        }
+        acq->recency_ = acq->the_txn_->this_txn_recency_;
+    }
+
     acquirers_.push_back(acq);
     pulse_pulsables(acq);
 }
@@ -446,6 +459,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                       acq->block_id(), block_version_.debug_value(),
                       cur->block_version_);
                 block_version_ = cur->block_version_;
+                recency_ = cur->recency_;
                 cur->pulse_write_available();
             }
             break;
@@ -901,6 +915,7 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
 
 page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_null)
     : page_cache_(page_cache),
+      this_txn_recency_(repli_timestamp_t::invalid),
       began_waiting_for_flush_(false),
       spawned_flush_(false) {
     if (preceding_txn_or_null != NULL) {
@@ -1030,12 +1045,12 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
             snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_version,
                                                                 acq->block_id(),
                                                                 std::move(local),
-                                                                repli_timestamp_t::invalid /* RSI: handle recency */));
+                                                                acq->recency()));
         } else {
             // It's okay to have two dirtied_page_t's or touched_page_t's for the
             // same block id -- compute_changes handles this.
             touched_pages_.push_back(touched_page_t(block_version, acq->block_id(),
-                                                    repli_timestamp_t::invalid /* RSI: handle recency */));
+                                                    acq->recency()));
         }
     }
 }

@@ -85,8 +85,6 @@ private:
 
     alt_cache_t *cache_;
     page_txn_t page_txn_;
-    // RSI: Is this_txn_timestamp_ used?  How?
-    repli_timestamp_t this_txn_timestamp_;
 
     DISABLE_COPYING(alt_inner_txn_t);
 };

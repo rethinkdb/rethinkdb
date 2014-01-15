@@ -286,6 +286,8 @@ private:
     // different page_txn_t's can know which was the last to modify the block.
     block_version_t block_version_;
 
+    repli_timestamp_t recency_;
+
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
     DISABLE_COPYING(current_page_t);
@@ -370,6 +372,11 @@ private:
     page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
+
+    // The recency for our acquisition of the page.
+    repli_timestamp_t recency_;
+
+    // RSI: Isn't recency_ redundant with the block version?
 
     // The block version for our acquisition of the page -- every write acquirer sees
     // a greater block version than the previous acquirer.  The current page's block
@@ -601,9 +608,13 @@ public:
 
     page_cache_t *page_cache() const { return page_cache_; }
 
+
 private:
     // page cache has access to all of this type's innards, including fields.
     friend class page_cache_t;
+
+    // For access to this_txn_recency_.
+    friend class current_page_t;
 
     // Adds and connects a preceder.
     void connect_preceder(page_txn_t *preceder);
@@ -622,6 +633,8 @@ private:
     void announce_waiting_for_flush_if_we_should();
 
     page_cache_t *page_cache_;
+
+    repli_timestamp_t this_txn_recency_;
 
     // The transactions that must be committed before or at the same time as this
     // transaction.  RSI: Are all these transactions those that still need to be

@@ -110,11 +110,7 @@ void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t 
 alt_inner_txn_t::alt_inner_txn_t(alt_cache_t *cache, alt_inner_txn_t *preceding_txn)
     : cache_(cache),
       page_txn_(&cache->page_cache_,
-                preceding_txn == NULL ? NULL : &preceding_txn->page_txn_),
-      this_txn_timestamp_(repli_timestamp_t::invalid) {
-    // RSI: Use this_txn_timestamp_ for something.
-    (void)this_txn_timestamp_;
-}
+                preceding_txn == NULL ? NULL : &preceding_txn->page_txn_) { }
 
 alt_inner_txn_t::~alt_inner_txn_t() {
     // RSI: Do anything?
