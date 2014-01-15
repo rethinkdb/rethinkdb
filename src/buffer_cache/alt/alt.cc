@@ -522,7 +522,7 @@ void alt_buf_lock_t::snapshot_subtree() {
         = cache()->matching_snapshot_node_or_null(block_id(),
                                                   current_page_acq_->block_version());
 
-    if (matching_node == NULL) {
+    if (matching_node != NULL) {
         snapshot_node_ = matching_node;
         ++matching_node->ref_count_;
     } else {
