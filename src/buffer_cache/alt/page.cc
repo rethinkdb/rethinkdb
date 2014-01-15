@@ -288,7 +288,6 @@ bool current_page_acq_t::dirtied_page() const {
 
 block_version_t current_page_acq_t::block_version() const {
     assert_thread();
-    rassert(read_cond_.is_pulsed());
     return block_version_;
 }
 
