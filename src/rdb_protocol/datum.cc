@@ -366,17 +366,25 @@ void datum_t::rcheck_is_ptype(const std::string s) const {
 }
 
 void datum_t::rcheck_valid_replace(counted_t<const datum_t> old_val,
+                                   counted_t<const datum_t> orig_key,
                                    const std::string &pkey) const {
     counted_t<const datum_t> pk = get(pkey, NOTHROW);
     rcheck(pk.has(), base_exc_t::GENERIC,
            strprintf("Inserted object must have primary key `%s`:\n%s",
                      pkey.c_str(), print().c_str()));
-    if (old_val.has() && old_val->get_type() != R_NULL) {
-        counted_t<const datum_t> old_pk = old_val->get(pkey, NOTHROW);
-        r_sanity_check(old_pk.has());
-        rcheck(*old_pk == *pk, base_exc_t::GENERIC,
-               strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
-                         pkey.c_str(), old_val->print().c_str(), print().c_str()));
+    if (old_val.has()) {
+        counted_t<const datum_t> old_pk = orig_key;
+        if (old_val->get_type() != R_NULL) {
+            old_pk = old_val->get(pkey, NOTHROW);
+            r_sanity_check(old_pk.has());
+        }
+        if (old_pk.has()) {
+            rcheck(*old_pk == *pk, base_exc_t::GENERIC,
+                   strprintf("Primary key `%s` cannot be changed (`%s` -> `%s`).",
+                             pkey.c_str(), old_val->print().c_str(), print().c_str()));
+        }
+    } else {
+        r_sanity_check(!orig_key.has());
     }
 }
 

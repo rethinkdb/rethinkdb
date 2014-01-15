@@ -317,7 +317,7 @@ void writeback_t::start_concurrent_flush() {
     writeback_in_progress = true;
     ++active_flushes;
 
-    coro_t::spawn(boost::bind(&writeback_t::do_concurrent_flush, this));
+    coro_t::spawn_sometime(boost::bind(&writeback_t::do_concurrent_flush, this));
 }
 
 // TODO(rntz) break this up into smaller functions

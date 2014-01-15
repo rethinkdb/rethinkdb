@@ -59,7 +59,9 @@ public:
         return coro;
     }
 
-    // DEPRECATED:  Use spawn_ordered.  It's the same thing, only its name is shorter!
+    /* Whenever possible, `spawn_sometime()` should be used instead of
+    `spawn_later_ordered()` (or `spawn_ordered()`). `spawn_later_ordered()` does not
+    honor scheduler priorities. */
     template<class Callable>
     static coro_t *spawn_later_ordered(const Callable &action) {
         coro_t *coro = get_and_init_coro(action);
@@ -73,14 +75,6 @@ public:
     }
 
     // Use coro_t::spawn_*(boost::bind(...)) for spawning with parameters.
-
-    /* `spawn()` and `notify()` are aliases for `spawn_later_ordered()` and
-    `notify_later_ordered()`. They are deprecated and new code should not use
-    them. */
-    template<class Callable>
-    static coro_t *spawn(const Callable &action) {
-        return spawn_later_ordered(action);
-    }
 
     /* Pauses the current coroutine until it is notified */
     static void wait();
@@ -110,12 +104,8 @@ public:
     /* Schedules the coroutine to be woken up eventually. Can be safely called
     from any thread. Returns immediately. Does not provide any ordering
     guarantees. If you don't need the ordering guarantees that
-    `notify_later_ordered()` provides, use `notify_sometime()` instead. */
+    `notify_later_ordered()` provides, use `notify_sometime()`. */
     void notify_sometime();
-
-    // TODO: notify_later_ordered is usually what naive people want
-    // and should get, but it's such a long and onerous name.  It
-    // should have the shortest name.
 
     /* Pushes the coroutine onto the event queue for the thread it's currently
     on, such that it will be run. This can safely be called from any thread.
