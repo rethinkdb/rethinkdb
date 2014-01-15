@@ -47,12 +47,21 @@ block_size_t alt_cache_t::max_block_size() const {
     return page_cache_.max_block_size();
 }
 
-alt_snapshot_node_t *alt_cache_t::latest_snapshot_node(block_id_t block_id) {
-    return snapshot_nodes_by_block_id_[block_id].tail();
+alt_snapshot_node_t *
+alt_cache_t::matching_snapshot_node_or_null(block_id_t block_id,
+                                            block_version_t block_version) {
+    intrusive_list_t<alt_snapshot_node_t> *list
+        = &snapshot_nodes_by_block_id_[block_id];
+    for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
+        if (p->current_page_acq_->block_version() == block_version) {
+            return p;
+        }
+    }
+    return NULL;
 }
 
-void alt_cache_t::push_latest_snapshot_node(block_id_t block_id,
-                                            alt_snapshot_node_t *node) {
+void alt_cache_t::add_snapshot_node(block_id_t block_id,
+                                     alt_snapshot_node_t *node) {
     snapshot_nodes_by_block_id_[block_id].push_back(node);
 }
 
@@ -191,7 +200,7 @@ alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
         acq->declare_snapshotted();
         alt_snapshot_node_t *child = new alt_snapshot_node_t(std::move(acq));
         rassert(child->ref_count_ == 0);
-        cache->push_latest_snapshot_node(child_id, child);
+        cache->add_snapshot_node(child_id, child);
         child->ref_count_++;
         parent->children_.insert(std::make_pair(child_id, child));
         return child;
@@ -201,6 +210,7 @@ alt_buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
 }
 
 void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
+                                                 block_version_t parent_version,
                                                  block_id_t parent_id,
                                                  block_id_t child_id) {
     // We create at most one child snapshot node.
@@ -211,17 +221,23 @@ void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
-            break;
+            // RSI: Can we kick nodes with children out of this list?
+            // Already has a child, continue.
+            continue;
+        }
+        if (p->current_page_acq_->block_version() >= parent_version) {
+            // Version of snapshot node is _after_ the parent's version.
+            continue;
         }
 
         if (child == NULL) {
-            // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?  Dedup
-            // with get_or_create_child_snapshot_node, too.
+            // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?
+            // Dedup with get_or_create_child_snapshot_node, too.
             auto acq = make_scoped<current_page_acq_t>(&cache->page_cache_, child_id,
                                                        alt_read_access_t::read);
             acq->declare_snapshotted();
             child = new alt_snapshot_node_t(std::move(acq));
-            cache->push_latest_snapshot_node(child_id, child);
+            cache->add_snapshot_node(child_id, child);
         }
 
         child->ref_count_++;
@@ -231,6 +247,7 @@ void alt_buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
 
 // Puts markers in the parent saying that no such child exists.
 void alt_buf_lock_t::create_empty_child_snapshot_nodes(alt_cache_t *cache,
+                                                       block_version_t parent_version,
                                                        block_id_t parent_id,
                                                        block_id_t child_id) {
     intrusive_list_t<alt_snapshot_node_t> *list
@@ -239,7 +256,12 @@ void alt_buf_lock_t::create_empty_child_snapshot_nodes(alt_cache_t *cache,
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
-            break;
+            // Already has a child, continue.
+            continue;
+        }
+        if (p->current_page_acq_->block_version() >= parent_version) {
+            // Version of snapshot node is _after_ the parent's version.
+            continue;
         }
 
         p->children_.insert(std::make_pair(child_id,
@@ -271,6 +293,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
     } else {
         if (access == alt_access_t::write && parent.lock_or_null_ != NULL) {
             create_child_snapshot_nodes(txn_->cache(),
+                                        parent.lock_or_null_->current_page_acq()->block_version(),
                                         parent.lock_or_null_->block_id(),
                                         block_id);
         }
@@ -344,7 +367,9 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
         ++snapshot_node_->ref_count_;
     } else {
         if (access == alt_access_t::write) {
-            create_child_snapshot_nodes(txn_->cache(), parent->block_id(), block_id);
+            create_child_snapshot_nodes(txn_->cache(),
+                                        parent->current_page_acq()->block_version(),
+                                        parent->block_id(), block_id);
         }
         current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
                                                       access));
@@ -375,6 +400,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
 
     if (parent.lock_or_null_ != NULL) {
         create_empty_child_snapshot_nodes(txn_->cache(),
+                                          parent.lock_or_null_->current_page_acq()->block_version(),
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
 #if ALT_DEBUG
@@ -408,7 +434,9 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
     current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
                                                   alt_create_t::create));
 
-    create_empty_child_snapshot_nodes(txn_->cache(), parent->block_id(),
+    create_empty_child_snapshot_nodes(txn_->cache(),
+                                      parent->current_page_acq()->block_version(),
+                                      parent->block_id(),
                                       current_page_acq_->block_id());
 
 #if ALT_DEBUG
@@ -490,23 +518,20 @@ void alt_buf_lock_t::snapshot_subtree() {
         return;
     }
 
-    alt_snapshot_node_t *latest_node = cache()->latest_snapshot_node(block_id());
+    alt_snapshot_node_t *matching_node
+        = cache()->matching_snapshot_node_or_null(block_id(),
+                                                  current_page_acq_->block_version());
 
-    rassert(latest_node == NULL ||
-            latest_node->current_page_acq_->block_version() <=
-            current_page_acq_->block_version());
-    if (latest_node != NULL
-        && latest_node->current_page_acq_->block_version()
-           == current_page_acq_->block_version()) {
-        snapshot_node_ = latest_node;
-        ++snapshot_node_->ref_count_;
+    if (matching_node == NULL) {
+        snapshot_node_ = matching_node;
+        ++matching_node->ref_count_;
     } else {
         const block_id_t block_id = current_page_acq_->block_id();
         alt_snapshot_node_t *node
             = new alt_snapshot_node_t(std::move(current_page_acq_));
         rassert(node->ref_count_ == 0);
         ++node->ref_count_;
-        txn_->cache()->push_latest_snapshot_node(block_id, node);
+        txn_->cache()->add_snapshot_node(block_id, node);
         snapshot_node_ = node;
         node->current_page_acq_->declare_snapshotted();
     }
@@ -528,7 +553,9 @@ void alt_buf_lock_t::detach_child(block_id_t child_id) {
     guarantee(!empty());
     guarantee(access() == alt_access_t::write);
 
-    alt_buf_lock_t::create_child_snapshot_nodes(cache(), block_id(),
+    alt_buf_lock_t::create_child_snapshot_nodes(cache(),
+                                                current_page_acq()->block_version(),
+                                                block_id(),
                                                 child_id);
 }
 

@@ -50,8 +50,9 @@ private:
     friend class alt_buf_lock_t;  // for latest_snapshot_node and
                                   // push_latest_snapshot_node
 
-    alt_snapshot_node_t *latest_snapshot_node(block_id_t block_id);
-    void push_latest_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
+    alt_snapshot_node_t *matching_snapshot_node_or_null(block_id_t block_id,
+                                                        block_version_t block_version);
+    void add_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
     void remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
 
     // tracker_ is used for throttling (which can cause the alt_txn_t constructor to
@@ -234,9 +235,11 @@ private:
                                       alt_snapshot_node_t *parent,
                                       block_id_t child_id);
     static void create_empty_child_snapshot_nodes(alt_cache_t *cache,
+                                                  block_version_t parent_version,
                                                   block_id_t parent_id,
                                                   block_id_t child_id);
     static void create_child_snapshot_nodes(alt_cache_t *cache,
+                                            block_version_t parent_version,
                                             block_id_t parent_id,
                                             block_id_t child_id);
     current_page_acq_t *current_page_acq() const;

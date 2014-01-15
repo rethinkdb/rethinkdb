@@ -210,6 +210,10 @@ public:
         return value_ <= other.value_;
     }
 
+    bool operator>=(block_version_t other) const {
+        return value_ >= other.value_;
+    }
+
     bool operator==(block_version_t other) const {
         return value_ == other.value_;
     }
