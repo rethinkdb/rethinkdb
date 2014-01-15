@@ -1176,7 +1176,7 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
 #if SLICE_ALT
     rdb_rget_depth_first_traversal_callback_t callback(
-            ql_env, batchspec, transform, terminal, range, sorting, response);
+            ql_env, batchspec, transform, terminal, range, sorting, response, slice);
     btree_concurrent_traversal(slice, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
 #else
@@ -1212,7 +1212,7 @@ void rdb_rget_secondary_slice(
 #if SLICE_ALT
     rdb_rget_depth_first_traversal_callback_t callback(
         ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
-        sorting, sindex_func, sindex_multi, sindex_range, response);
+        sorting, sindex_func, sindex_multi, sindex_range, response, slice);
     btree_concurrent_traversal(
         slice, superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
