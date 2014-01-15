@@ -6,7 +6,7 @@
 #include "concurrency/auto_drainer.hpp"
 
 // RSI: get rid of this.
-#define ALT_DEBUG 0
+#define ALT_DEBUG 1
 
 // RSI: Add ASSERT_FINITE_CORO_WAITING or ASSERT_NO_CORO_WAITING wherever we can.
 
@@ -263,7 +263,10 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
             = get_or_create_child_snapshot_node(txn_->cache(),
                                                 parent_lock->snapshot_node_, block_id);
         guarantee(snapshot_node_ != NULL,
-                  "Tried to acquire a deleted block (with read access).");
+                  "Tried to acquire (in cache %p) a deleted block (%" PRIu64
+                  " as child of %" PRIu64 ") (with read access).",
+                  txn_->cache(),
+                  block_id, parent_lock->block_id());
         ++snapshot_node_->ref_count_;
     } else {
         if (access == alt_access_t::write && parent.lock_or_null_ != NULL) {
@@ -293,6 +296,13 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
 #endif
 }
 
+void alt_buf_lock_t::mark_deleted() {
+#if ALT_DEBUG
+    debugf("%p: alt_buf_lock_t %p delete %lu\n", cache(), this, block_id());
+#endif
+    guarantee(!empty());
+    current_page_acq()->mark_deleted();
+}
 
 bool is_subordinate(alt_access_t parent, alt_access_t child) {
     return parent == alt_access_t::write || child == alt_access_t::read;
@@ -367,11 +377,17 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
         create_empty_child_snapshot_nodes(txn_->cache(),
                                           parent.lock_or_null_->block_id(),
                                           current_page_acq_->block_id());
+#if ALT_DEBUG
+        debugf("%p: alt_buf_lock_t %p create %lu (as child of %lu)\n",
+               cache(), this, block_id(), parent.lock_or_null_->block_id());
+#endif
+    } else {
+#if ALT_DEBUG
+        debugf("%p: alt_buf_lock_t %p create %lu (no parent)\n",
+               cache(), this, block_id());
+#endif
     }
 
-#if ALT_DEBUG
-    debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id());
-#endif
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
@@ -463,6 +479,9 @@ void alt_buf_lock_t::reset_buf_lock() {
 
 // RSI: Rename this to snapshot_subdag.
 void alt_buf_lock_t::snapshot_subtree() {
+#if ALT_DEBUG
+    debugf("%p: alt_buf_lock_t %p snapshot %lu\n", cache(), this, block_id());
+#endif
     guarantee(!was_destroyed_);
     // RSI: Can this be ASSERT_NO_CORO_WAITING?
     ASSERT_FINITE_CORO_WAITING;

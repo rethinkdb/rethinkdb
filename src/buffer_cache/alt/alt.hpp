@@ -222,10 +222,7 @@ public:
         return current_page_acq()->write_acq_signal();
     }
 
-    void mark_deleted() {
-        guarantee(!empty());
-        current_page_acq()->mark_deleted();
-    }
+    void mark_deleted();
 
     alt_txn_t *txn() const { return txn_; }
     alt_cache_t *cache() const { return txn_->cache(); }
