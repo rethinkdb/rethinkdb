@@ -219,7 +219,8 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
-            new_val->rcheck_valid_replace(old_val, primary_key);
+            new_val->rcheck_valid_replace(
+                old_val, counted_t<const ql::datum_t>(), primary_key);
             counted_t<const ql::datum_t> pk = new_val->get(primary_key, ql::NOTHROW);
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,

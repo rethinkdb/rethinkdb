@@ -35,6 +35,9 @@ public:
     // Allocates a new value in the current environment.
     counted_t<val_t> new_val(counted_t<const datum_t> d);
     counted_t<val_t> new_val(counted_t<const datum_t> d, counted_t<table_t> t);
+    counted_t<val_t> new_val(counted_t<const datum_t> d,
+                             counted_t<const datum_t> orig_key,
+                             counted_t<table_t> t);
     counted_t<val_t> new_val(env_t *env, counted_t<datum_stream_t> s);
     counted_t<val_t> new_val(counted_t<datum_stream_t> s, counted_t<table_t> t);
     counted_t<val_t> new_val(counted_t<const db_t> db);

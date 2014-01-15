@@ -112,6 +112,11 @@ tests:
       rb: tbl.replace{ |row| nil }
       ot: ({'deleted':99,'replaced':0.0,'unchanged':0.0,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
+    - cd: r.table('test1').get('sdfjk').replace({'id':'sdfjk'})['inserted']
+      ot: 1
+    - cd: r.table('test1').get('sdfjki').replace({'id':'sdfjk'})['errors']
+      ot: 1
+
     # clean up
     - cd: r.db('test').table_drop('test1')
       ot: "({'dropped':1})"
