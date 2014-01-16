@@ -125,7 +125,7 @@ void extproc_worker_t::run_job(bool (*fn) (read_stream_t *, write_stream_t *)) {
     write_message_t msg;
     msg.append(&fn, sizeof(fn));
     int res = send_write_message(get_write_stream(), &msg);
-    guarantee(res == 0);
+    if (res != 0) { throw std::runtime_error("failed to send job function to worker"); }
 }
 
 read_stream_t *extproc_worker_t::get_read_stream() {

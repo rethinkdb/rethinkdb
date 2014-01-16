@@ -401,7 +401,7 @@ class RqlQuery(object):
         return OuterJoin(self, other, predicate)
 
     def eq_join(self, left_attr, other, index=()):
-        return EqJoin(self, left_attr, other, index=index)
+        return EqJoin(self, func_wrap(left_attr), other, index=index)
 
     def zip(self):
         return Zip(self)
