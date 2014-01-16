@@ -1590,34 +1590,14 @@ private:
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
-#if !SLICE_ALT
-        try {
-#endif
-            ql_env.global_optargs.init_optargs(br.optargs);
-#if !SLICE_ALT
-        } catch (const interrupted_exc_t &) {
-            // Clear the sindex_write_token because we didn't have a chance to use it
-            token_pair->sindex_write_token.reset();
-            throw;
-        }
-#endif
-#if SLICE_ALT
+        ql_env.global_optargs.init_optargs(br.optargs);
         rdb_modification_report_cb_t sindex_cb(
             store, sindex_block.get(),
             auto_drainer_t::lock_t(&store->drainer));
-#else
-        rdb_modification_report_cb_t sindex_cb(
-            store, token_pair, txn,
-            (*superblock)->get_sindex_block_id(),
-            auto_drainer_t::lock_t(&store->drainer));
-#endif
         func_replacer_t replacer(&ql_env, br.f, br.return_vals);
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
-#if !SLICE_ALT
-                             txn,
-#endif
                              &br.pkey),
                 superblock, br.keys, &replacer, &sindex_cb,
                 ql_env.trace.get_or_null());
@@ -1626,12 +1606,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_insert_t &bi) {
         rdb_modification_report_cb_t sindex_cb(
             store,
-#if SLICE_ALT
             sindex_block.get(),
-#else
-            token_pair, txn,
-            (*superblock)->get_sindex_block_id(),
-#endif
             auto_drainer_t::lock_t(&store->drainer));
         datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey, bi.return_vals);
         std::vector<store_key_t> keys;
@@ -1642,9 +1617,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
-#if !SLICE_ALT
-                             txn,
-#endif
                              &bi.pkey),
                 superblock, keys, &replacer, &sindex_cb,
                 ql_env.trace.get_or_null());
@@ -1656,13 +1628,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             boost::get<point_write_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(w.key);
-#if SLICE_ALT
         rdb_set(w.key, w.data, w.overwrite, btree, timestamp, superblock->get(),
                 res, &mod_report.info, ql_env.trace.get_or_null());
-#else
-        rdb_set(w.key, w.data, w.overwrite, btree, timestamp, txn, superblock->get(),
-                res, &mod_report.info, ql_env.trace.get_or_null());
-#endif
 
         update_sindexes(&mod_report);
     }
@@ -1673,13 +1640,8 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             boost::get<point_delete_response_t>(&response->response);
 
         rdb_modification_report_t mod_report(d.key);
-#if SLICE_ALT
         rdb_delete(d.key, btree, timestamp, superblock->get(), res,
                 &mod_report.info, ql_env.trace.get_or_null());
-#else
-        rdb_delete(d.key, btree, timestamp, txn, superblock->get(), res,
-                &mod_report.info, ql_env.trace.get_or_null());
-#endif
 
         update_sindexes(&mod_report);
     }
@@ -1695,33 +1657,16 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         int write_res = send_write_message(&stream, &wm);
         guarantee(write_res == 0);
 
-#if SLICE_ALT
         res.success = store->add_sindex(
             c.id,
             stream.vector(),
             sindex_block.get());
-#else
-        scoped_ptr_t<buf_lock_t> sindex_block;
-        res.success = store->add_sindex(
-            token_pair,
-            c.id,
-            stream.vector(),
-            txn,
-            superblock->get(),
-            &sindex_block,
-            &interruptor);
-#endif
 
         if (res.success) {
             std::set<std::string> sindexes;
             sindexes.insert(c.id);
-#if SLICE_ALT
             rdb_protocol_details::bring_sindexes_up_to_date(
                 sindexes, store, sindex_block.get());
-#else
-            rdb_protocol_details::bring_sindexes_up_to_date(
-                sindexes, store, sindex_block.get(), txn);
-#endif
         }
 
         response->response = res;
@@ -1732,50 +1677,24 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
         rdb_value_deleter_t deleter;
 
-#if SLICE_ALT
         res.success = store->drop_sindex(d.id,
                                          sindex_block.get(),
                                          &sizer,
                                          &deleter,
                                          &interruptor);
-#else
-        res.success = store->drop_sindex(token_pair,
-                                         d.id,
-                                         txn,
-                                         superblock->get(),
-                                         &sizer,
-                                         &deleter,
-                                         &interruptor);
-#endif
 
         response->response = res;
     }
 
     void operator()(const sync_t &) {
         response->response = sync_response_t();
-
-#if !SLICE_ALT
-        /* With our current cache, we can ensure that all previous
-         * write transactions are persisted simply by following them
-         * up with another transaction with hard durability.
-         */
-
-        token_pair->sindex_write_token.reset();
-#endif
     }
 
 
     rdb_write_visitor_t(btree_slice_t *_btree,
                         btree_store_t<rdb_protocol_t> *_store,
-#if SLICE_ALT
                         alt_txn_t *_txn,
-#else
-                        transaction_t *_txn,
-#endif
                         scoped_ptr_t<superblock_t> *_superblock,
-#if !SLICE_ALT
-                        write_token_pair_t *_token_pair,
-#endif
                         repli_timestamp_t _timestamp,
                         rdb_protocol_t::context_t *ctx,
                         write_response_t *_response,
@@ -1785,9 +1704,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         txn(_txn),
         response(_response),
         superblock(_superblock),
-#if !SLICE_ALT
-        token_pair(_token_pair),
-#endif
         timestamp(_timestamp),
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
@@ -1798,16 +1714,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                NULL,
                &interruptor,
                ctx->machine_id,
-               ql::protob_t<Query>())
-#if !SLICE_ALT
-        , sindex_block_id((*superblock)->get_sindex_block_id())
-#endif
-    {
-#if SLICE_ALT
-        cond_t dummy_interruptor;
+               ql::protob_t<Query>()) {
         store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
                 &sindex_block, (*superblock)->get_sindex_block_id());
-#endif
     }
 
     ql::env_t *get_env() {
@@ -1824,14 +1733,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
-#if !SLICE_ALT
-        scoped_ptr_t<buf_lock_t> sindex_block;
-        // Don't allow interruption here, or we may end up with inconsistent data
-        cond_t dummy_interruptor;
-        store->acquire_sindex_block_for_write(token_pair, txn, &sindex_block,
-                                              sindex_block_id, &dummy_interruptor);
-#endif
-
         mutex_t::acq_t acq;
         store->lock_sindex_queue(sindex_block.get(), &acq);
 
@@ -1840,60 +1741,32 @@ private:
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
-#if SLICE_ALT
         store->acquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(),
                                                                      &sindexes);
-#else
-        store->acquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(), txn, &sindexes);
-#endif
         rdb_update_sindexes(sindexes, mod_report, txn);
     }
 
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
-#if SLICE_ALT
     alt_txn_t *txn;
-#else
-    transaction_t *txn;
-#endif
     write_response_t *response;
     scoped_ptr_t<superblock_t> *superblock;
-#if !SLICE_ALT
-    write_token_pair_t *token_pair;
-#endif
     repli_timestamp_t timestamp;
+    // RSI: Is interruptor actually used?
     wait_any_t interruptor;
     ql::env_t ql_env;
-#if !SLICE_ALT
-    block_id_t sindex_block_id;
-#endif
-#if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-#endif
 };
 
 void store_t::protocol_write(const write_t &write,
                              write_response_t *response,
                              transition_timestamp_t timestamp,
                              btree_slice_t *btree,
-#if !SLICE_ALT
-                             transaction_t *txn,
-#endif
                              scoped_ptr_t<superblock_t> *superblock,
-#if !SLICE_ALT
-                             write_token_pair_t *token_pair,
-#endif
                              signal_t *interruptor) {
     rdb_write_visitor_t v(btree, this,
-#if SLICE_ALT
                           (*superblock)->expose_buf().txn(),
-#else
-                          txn,
-#endif
                           superblock,
-#if !SLICE_ALT
-                          token_pair,
-#endif
                           timestamp.to_repli_timestamp(), ctx,
                           response, interruptor);
     {
