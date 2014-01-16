@@ -48,7 +48,8 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     cache.init(new alt_cache_t(serializer.get()));
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
     // RSI: Is this actually necessary?
-    alt_txn_t txn(cache.get(), write_durability_t::HARD);
+    alt_txn_t txn(cache.get(), write_durability_t::HARD,
+                  repli_timestamp_t::distant_past, 1);
     alt_buf_lock_t block(&txn, SUPERBLOCK_ID, alt_create_t::create);
     alt_buf_write_t write(&block);
     const block_size_t block_size = cache->max_block_size();
@@ -71,7 +72,11 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     mutex_t::acq_t mutex_acq(&mutex);
 
 #if DBQ_USE_ALT_CACHE
-    alt_txn_t txn(cache.get(), write_durability_t::SOFT);
+    // There's no need for hard durability with an unlinked dbq file.
+    alt_txn_t txn(cache.get(),
+                  write_durability_t::SOFT,
+                  repli_timestamp_t::distant_past,
+                  2);
 #else
     // First, we need a transaction.
     transaction_t txn(cache.get(),
@@ -150,7 +155,11 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
 
     char buffer[MAX_REF_SIZE];
 #if DBQ_USE_ALT_CACHE
-    alt_txn_t txn(cache.get(), write_durability_t::SOFT);
+    // No need for hard durability with an unlinked dbq file.
+    alt_txn_t txn(cache.get(),
+                  write_durability_t::SOFT,
+                  repli_timestamp_t::distant_past,
+                  2);
 #else
     transaction_t txn(cache.get(),
                       rwi_write,

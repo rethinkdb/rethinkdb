@@ -619,7 +619,10 @@ public:
 
     // Our transaction has to get committed to disk _after_ or at the same time as
     // preceding_txn, if it's not NULL.
-    explicit page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn = NULL);
+    page_txn_t(page_cache_t *page_cache,
+               // Unused for read transactions, pass repli_timestamp_t::invalid.
+               repli_timestamp_t txn_recency,
+               page_txn_t *preceding_txn = NULL);
     ~page_txn_t();
 
     page_cache_t *page_cache() const { return page_cache_; }

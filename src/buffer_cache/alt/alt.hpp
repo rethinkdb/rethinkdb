@@ -77,7 +77,10 @@ public:
 
 private:
     friend class alt_txn_t;
-    alt_inner_txn_t(alt_cache_t *cache, alt_inner_txn_t *preceding_txn_or_null);
+    alt_inner_txn_t(alt_cache_t *cache,
+                    // Unused for read transactions, pass repli_timestamp_t::invalid.
+                    repli_timestamp_t txn_recency,
+                    alt_inner_txn_t *preceding_txn_or_null);
 
     alt_cache_t *cache() { return cache_; }
 
@@ -95,6 +98,7 @@ public:
     // RSI: Generally speaking I don't think we use preceding_txn -- and should read
     // transactions use preceding_txn at all?
     explicit alt_txn_t(alt_cache_t *cache,
+                       alt_read_access_t read_access,
                        alt_txn_t *preceding_txn = NULL);
 
 
@@ -102,6 +106,7 @@ public:
     // RSI: Generally speaking I don't think we use preceding_txn and we should.
     alt_txn_t(alt_cache_t *cache,
               write_durability_t durability,
+              repli_timestamp_t txn_timestamp,
               int64_t expected_change_count = 2,
               alt_txn_t *preceding_txn = NULL);
 
