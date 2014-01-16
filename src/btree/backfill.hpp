@@ -5,11 +5,14 @@
 #include <map>
 #include <string>
 
-#include "btree/slice.hpp"  // RSI: for SLICE_ALT
 #include "buffer_cache/types.hpp"
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 
+namespace alt {
+class alt_buf_parent_t;
+class alt_buf_lock_t;
+}
 class btree_slice_t;
 struct btree_key_t;
 struct key_range_t;
@@ -25,13 +28,9 @@ class agnostic_backfill_callback_t {
 public:
     virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-#if SLICE_ALT
     virtual void on_pair(alt::alt_buf_parent_t leaf_node, repli_timestamp_t recency,
                          const btree_key_t *key, const void *value,
                          signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-#else
-    virtual void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *value, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-#endif
     virtual void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual ~agnostic_backfill_callback_t() { }
 };
@@ -45,17 +44,10 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
                                 btree_slice_t *slice, const key_range_t& key_range,
                                 repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback,
-#if !SLICE_ALT
-                                transaction_t *txn,
-#endif
                                 superblock_t *superblock,
-#if SLICE_ALT
                                 alt::alt_buf_lock_t *sindex_block,
-#else
-                                buf_lock_t *sindex_block,
-#endif
                                 parallel_traversal_progress_t *p,
-        signal_t *interruptor)
-THROWS_ONLY(interrupted_exc_t);
+                                signal_t *interruptor)
+    THROWS_ONLY(interrupted_exc_t);
 
 #endif  // BTREE_BACKFILL_HPP_
