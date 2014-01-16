@@ -18,6 +18,9 @@ Bug fix update.
 * Fixed a JavaScript error in the Web UI (#1754)
 * Speed up count queries (#1733)
 * Fix a bug with thread-local storage that caused a segfault on certain platforms (#1731)
+* `get` of a non-existent document followed by `replace` now works as documented (#1570)
+* `r.literal` now works inside lambdas (#1839)
+
 --
 
 # Release 1.11.2 (Breakfast at Tiffany's)
