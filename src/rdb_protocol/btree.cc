@@ -1162,30 +1162,18 @@ void rdb_update_single_sindex(
     }
 }
 
-#if SLICE_ALT
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
                          alt_txn_t *txn) {
-#else
-void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
-                         const rdb_modification_report_t *modification,
-                         transaction_t *txn) {
-#endif
     {
         auto_drainer_t drainer;
 
         for (sindex_access_vector_t::const_iterator it = sindexes.begin();
                                                     it != sindexes.end();
                                                     ++it) {
-#if SLICE_ALT
             coro_t::spawn_sometime(std::bind(
                         &rdb_update_single_sindex, &*it,
                         modification, auto_drainer_t::lock_t(&drainer)));
-#else
-            coro_t::spawn_sometime(boost::bind(
-                        &rdb_update_single_sindex, &*it,
-                        modification, txn, auto_drainer_t::lock_t(&drainer)));
-#endif
         }
     }
 
@@ -1193,24 +1181,14 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
      * deleted blob if it exists. */
     std::vector<char> ref_cpy(modification->info.deleted.second);
     if (modification->info.deleted.first) {
-#if SLICE_ALT
         ref_cpy.insert(ref_cpy.end(), alt::blob::btree_maxreflen - ref_cpy.size(), 0);
         guarantee(ref_cpy.size() == static_cast<size_t>(alt::blob::btree_maxreflen));
-#else
-        ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
-        guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
-#endif
 
         rdb_value_deleter_t deleter;
-#if SLICE_ALT
         deleter.delete_value(alt_buf_parent_t(txn), ref_cpy.data());
-#else
-        deleter.delete_value(txn, ref_cpy.data());
-#endif
     }
 }
 
-#if SLICE_ALT
 void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
                               const rdb_erase_range_report_t *erase_range,
                               signal_t *interruptor) {
@@ -1220,17 +1198,6 @@ void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
                               &drainer, auto_drainer_t::lock_t(&drainer),
                               false /* don't release the superblock */, interruptor);
 }
-#else
-void rdb_erase_range_sindexes(const sindex_access_vector_t &sindexes,
-        const rdb_erase_range_report_t *erase_range,
-        transaction_t *txn, signal_t *interruptor) {
-    auto_drainer_t drainer;
-
-    spawn_sindex_erase_ranges(&sindexes, erase_range->range_to_erase,
-            txn, &drainer, auto_drainer_t::lock_t(&drainer),
-            false, /* don't release the superblock */ interruptor);
-}
-#endif
 
 class post_construct_traversal_helper_t : public btree_traversal_helper_t {
 public:
