@@ -164,20 +164,11 @@ void post_construct_and_drain_queue(
 
 /* Creates a queue of operations for the sindex, runs a post construction for
  * the data already in the btree and finally drains the queue. */
-#if SLICE_ALT
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         alt_buf_lock_t *sindex_block)
     THROWS_NOTHING
-#else
-void bring_sindexes_up_to_date(
-        const std::set<std::string> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block,
-        transaction_t *txn)
-    THROWS_NOTHING
-#endif
 {
     with_priority_t p(CORO_PRIORITY_SINDEX_CONSTRUCTION);
 
@@ -204,11 +195,7 @@ void bring_sindexes_up_to_date(
     }
 
     std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
     store->get_sindexes(sindex_block, &sindexes);
-#else
-    store->get_sindexes(sindex_block, txn, &sindexes);
-#endif
     std::set<uuid_u> sindexes_to_bring_up_to_date_uuid;
 
     for (auto it = sindexes_to_bring_up_to_date.begin();
@@ -228,11 +215,7 @@ void bring_sindexes_up_to_date(
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
 public:
     apply_sindex_change_visitor_t(const sindex_access_vector_t *sindexes,
-#if SLICE_ALT
             alt_txn_t *txn,
-#else
-            transaction_t *txn,
-#endif
             signal_t *interruptor)
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
@@ -240,20 +223,12 @@ public:
     }
 
     void operator()(const rdb_erase_range_report_t &erase_range_report) const {
-#if SLICE_ALT
         rdb_erase_range_sindexes(*sindexes_, &erase_range_report, interruptor_);
-#else
-        rdb_erase_range_sindexes(*sindexes_, &erase_range_report, txn_, interruptor_);
-#endif
     }
 
 private:
     const sindex_access_vector_t *sindexes_;
-#if SLICE_ALT
     alt_txn_t *txn_;
-#else
-    transaction_t *txn_;
-#endif
     signal_t *interruptor_;
 };
 
