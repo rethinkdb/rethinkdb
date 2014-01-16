@@ -246,7 +246,7 @@ private:
             return;
         }
 
-        static const int min_chunk_size = ceil_divide(100, static_cast<int>(clients.size()));
+        const int min_chunk_size = ceil_divide(100, static_cast<int>(clients.size()));
         static const int min_reasonable_tickets = 10;
 
         {
@@ -275,8 +275,8 @@ private:
                 int gift_size_for_critical_clients = std::min(min_reasonable_tickets,
                         ceil_divide(free_tickets, critical_clients.size()));
                 for (auto itr = critical_clients.begin(); itr != critical_clients.end(); ++itr) {
-                    int tickets_client_actually_wants =
-                        (*itr)->get_target_tickets() - (*itr)->get_current_tickets();
+                    int tickets_client_actually_wants = std::max(0,
+                        (*itr)->get_target_tickets() - (*itr)->get_current_tickets());
                     int gift_size = std::min(free_tickets,
                         std::min(tickets_client_actually_wants, gift_size_for_critical_clients));
                     free_tickets -= gift_size;
@@ -290,7 +290,9 @@ private:
                to avoid flooding the network with many small ticket updates. */
             priority_queue_t<std::pair<int, client_t *> > needy_clients;
             for (client_t *c = clients.head(); c; c = clients.next(c)) {
-                int need_size = c->get_target_tickets() - c->get_current_tickets();
+                int need_size = c->get_target_tickets()
+                        - c->get_current_tickets()
+                        - tickets_to_give[c];
                 if (need_size >= min_chunk_size) {
                     needy_clients.push(std::pair<int, client_t *>(need_size, c));
                 }
@@ -308,7 +310,9 @@ private:
 
             /* Now actually send the tickets to the clients */
             for (auto itr = tickets_to_give.begin(); itr != tickets_to_give.end(); ++itr) {
-                itr->first->give_tickets(itr->second);
+                if (itr->second > 0) {
+                    itr->first->give_tickets(itr->second);
+                }
             }
         }
     }
