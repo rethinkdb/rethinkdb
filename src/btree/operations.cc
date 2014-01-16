@@ -16,6 +16,7 @@ using alt::alt_buf_parent_t;
 using alt::alt_buf_read_t;
 using alt::alt_buf_write_t;
 using alt::alt_create_t;
+using alt::alt_read_access_t;
 using alt::alt_txn_t;
 
 real_superblock_t::real_superblock_t(alt_buf_lock_t &&sb_buf)
@@ -571,7 +572,6 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)tstamp;  // RSI: Use this.
     (void)token;  // RSI: Use this.
     slice->assert_thread();
 
@@ -579,7 +579,8 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
     // const order_token_t pre_begin_txn_token
     //     = slice->pre_begin_txn_checkpoint_.check_through(token);
     // RSI: We should pass a preceding_txn here or something.
-    alt_txn_t *txn = new alt_txn_t(slice->cache(), durability, expected_change_count);
+    alt_txn_t *txn = new alt_txn_t(slice->cache(), durability,
+                                   tstamp, expected_change_count);
     // RSI: Support all the stuff this old line does.
     // transaction_t *txn = new transaction_t(slice->cache(), txn_access, expected_change_count, tstamp,
     //                                        pre_begin_txn_token, durability);
@@ -613,7 +614,7 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_to
     (void)token;  // RSI: Use this parameter.
     slice->assert_thread();
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
-                                   write_durability_t::SOFT /* RSI: read txn */);
+                                   alt_read_access_t::read);
     // RSI: Support all the stuff this old line does.  (rwi_read_sync is so that the read txn can't cross write txns -- the old cache is weird)
     // transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
     //                                        slice->pre_begin_txn_checkpoint_.check_through(token));
@@ -655,7 +656,7 @@ void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
     (void)token;  // RSI: Make this be used.
     slice->assert_thread();
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
-                                   write_durability_t::SOFT /* RSI: read txn */);
+                                   alt_read_access_t::read);
     // RSI: Support the use of the order token.
     // transaction_t *txn = new transaction_t(slice->cache(), access,
     //                                        slice->pre_begin_txn_checkpoint_.check_through(token));

@@ -363,12 +363,10 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
         prev_version.subsequent() : prev_version;
 
     if (acq->access_ == alt_access_t::read) {
+        rassert(acq->the_txn_->this_txn_recency_ == repli_timestamp_t::invalid);
         acq->recency_ = prev_recency;
     } else {
         rassert(acq->the_txn_ != NULL);
-        if (acq->the_txn_->this_txn_recency_ == repli_timestamp_t::invalid) {
-            acq->the_txn_->this_txn_recency_ = prev_recency.next();
-        }
         acq->recency_ = acq->the_txn_->this_txn_recency_;
     }
 
@@ -920,9 +918,11 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache) {
     return page_;
 }
 
-page_txn_t::page_txn_t(page_cache_t *page_cache, page_txn_t *preceding_txn_or_null)
+page_txn_t::page_txn_t(page_cache_t *page_cache,
+                       repli_timestamp_t txn_recency,
+                       page_txn_t *preceding_txn_or_null)
     : page_cache_(page_cache),
-      this_txn_recency_(repli_timestamp_t::invalid),
+      this_txn_recency_(txn_recency),
       began_waiting_for_flush_(false),
       spawned_flush_(false) {
     if (preceding_txn_or_null != NULL) {

@@ -77,7 +77,10 @@ public:
 
 private:
     friend class alt_txn_t;
-    alt_inner_txn_t(alt_cache_t *cache, alt_inner_txn_t *preceding_txn_or_null);
+    alt_inner_txn_t(alt_cache_t *cache,
+                    // Unused for read transactions, pass repli_timestamp_t::invalid.
+                    repli_timestamp_t txn_recency,
+                    alt_inner_txn_t *preceding_txn_or_null);
 
     alt_cache_t *cache() { return cache_; }
 
@@ -91,10 +94,19 @@ private:
 
 class alt_txn_t {
 public:
+    // Constructor for read-only transactions.
+    // RSI: Generally speaking I don't think we use preceding_txn -- and should read
+    // transactions use preceding_txn at all?
+    explicit alt_txn_t(alt_cache_t *cache,
+                       alt_read_access_t read_access,
+                       alt_txn_t *preceding_txn = NULL);
+
+
     // RSI: Remove default parameter for expected_change_count.
-    // RSI: Generally speaking I don't think we use preceding_txn much.
+    // RSI: Generally speaking I don't think we use preceding_txn and we should.
     alt_txn_t(alt_cache_t *cache,
               write_durability_t durability,
+              repli_timestamp_t txn_timestamp,
               int64_t expected_change_count = 2,
               alt_txn_t *preceding_txn = NULL);
 
@@ -102,12 +114,16 @@ public:
 
     alt_cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
+    alt_access_t access() const { return access_; }
 private:
     static void destroy_inner_txn(alt_inner_txn_t *inner,
                                   alt_cache_t *cache,
                                   int64_t saved_expected_change_count,
                                   auto_drainer_t::lock_t);
 
+    const alt_access_t access_;
+
+    // Only applicable if access_ == write.
     const write_durability_t durability_;
     const int64_t saved_expected_change_count_;  // RSI: A fugly relationship with
                                                  // the tracker.
