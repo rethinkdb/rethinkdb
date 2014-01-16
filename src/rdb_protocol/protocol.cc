@@ -1310,40 +1310,20 @@ store_t::store_t(serializer_t *serializer,
     read_token_pair_t token_pair;
     new_read_token_pair(&token_pair);
 
-#if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
-#else
-    scoped_ptr_t<transaction_t> txn;
-#endif
     scoped_ptr_t<real_superblock_t> superblock;
-#if SLICE_ALT
     acquire_superblock_for_read(&token_pair.main_read_token, &txn,
                                 &superblock, &dummy_interruptor, false);
-#else
-    acquire_superblock_for_read(rwi_read, &token_pair.main_read_token, &txn,
-                                &superblock, &dummy_interruptor, false);
-#endif
 
-#if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(superblock->expose_buf(),
                                   &sindex_block,
                                   superblock->get_sindex_block_id());
-#else
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
-                                  superblock->get_sindex_block_id(),
-                                  &dummy_interruptor);
-#endif
 
     superblock.reset();
 
     std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
     get_secondary_indexes(sindex_block.get(), &sindexes);
-#else
-    get_secondary_indexes(txn.get(), sindex_block.get(), &sindexes);
-#endif
 
     std::set<std::string> sindexes_to_update;
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -1353,13 +1333,8 @@ store_t::store_t(serializer_t *serializer,
     }
 
     if (!sindexes_to_update.empty()) {
-#if SLICE_ALT
         rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
                                                         sindex_block.get());
-#else
-        rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
-                                                        sindex_block.get(), txn.get());
-#endif
     }
 }
 
