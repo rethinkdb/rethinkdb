@@ -1986,20 +1986,13 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
 
 void store_t::protocol_reset_data(const region_t& subregion,
                                   btree_slice_t *btree,
-#if !SLICE_ALT
-                                  transaction_t *txn,
-#endif
                                   superblock_t *superblock,
-#if !SLICE_ALT
-                                  write_token_pair_t *token_pair,
-#endif
                                   signal_t *interruptor) {
     with_priority_t p(CORO_PRIORITY_RESET_DATA);
     value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
     rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
-#if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(superblock->expose_buf(),
                                    &sindex_block,
@@ -2008,13 +2001,6 @@ void store_t::protocol_reset_data(const region_t& subregion,
                     sindex_block.get(),
                     superblock, this,
                     interruptor);
-#else
-    rdb_erase_range(btree, &key_tester, subregion.inner,
-                    txn,
-                    superblock, this,
-                    token_pair,
-                    interruptor);
-#endif
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,
