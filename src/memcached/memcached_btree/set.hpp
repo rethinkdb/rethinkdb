@@ -5,6 +5,7 @@
 #include "btree/node.hpp"
 #include "memcached/queries.hpp"
 
+class btree_slice_t;
 class superblock_t;
 
 set_result_t memcached_set(const store_key_t &key,

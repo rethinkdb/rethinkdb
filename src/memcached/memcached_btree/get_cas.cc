@@ -5,7 +5,7 @@
 #include <boost/bind.hpp>
 
 #include "arch/runtime/coroutines.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "concurrency/promise.hpp"
 #include "memcached/memcached_btree/btree_data_provider.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"

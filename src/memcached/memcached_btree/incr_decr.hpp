@@ -5,6 +5,7 @@
 #include "btree/node.hpp"
 #include "memcached/queries.hpp"
 
+class btree_slice_t;
 class superblock_t;
 
 incr_decr_result_t

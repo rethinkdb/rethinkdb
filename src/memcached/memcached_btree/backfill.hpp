@@ -7,6 +7,10 @@
 #include "repli_timestamp.hpp"
 #include "memcached/queries.hpp"
 
+namespace alt {
+class alt_buf_lock_t;
+}
+
 class btree_slice_t;
 class parallel_traversal_progress_t;
 class printf_buffer_t;

@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "btree/slice.hpp"  // RSI: For SLICE_ALT.
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -329,16 +328,10 @@ private:
 // RSI: read_token_pair_t should go away and we should just pass around a single token.
 struct read_token_pair_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
-#if !SLICE_ALT
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t> sindex_read_token;
-#endif
 };
 
 struct write_token_pair_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
-#if !SLICE_ALT
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t> sindex_write_token;
-#endif
 };
 
 // Specifies the durability requirements of a write operation.

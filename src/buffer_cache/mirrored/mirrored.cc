@@ -7,6 +7,7 @@
 
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
+#include "btree/slice.hpp"  // for SLICE_ALT
 #include "do_on_thread.hpp"
 #include "serializer/serializer.hpp"
 #include "protocol_api.hpp"
