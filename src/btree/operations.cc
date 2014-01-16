@@ -937,16 +937,15 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)expected_change_count;  // RSI: Use this.
     (void)tstamp;  // RSI: Use this.
-    (void)durability;  // RSI: Use this.
     (void)token;  // RSI: Use this.
     slice->assert_thread();
 
     // RSI: Support this stuff.
     // const order_token_t pre_begin_txn_token
     //     = slice->pre_begin_txn_checkpoint_.check_through(token);
-    alt_txn_t *txn = new alt_txn_t(slice->cache(), durability);
+    // RSI: We should pass a preceding_txn here or something.
+    alt_txn_t *txn = new alt_txn_t(slice->cache(), durability, expected_change_count);
     // RSI: Support all the stuff this old line does.
     // transaction_t *txn = new transaction_t(slice->cache(), txn_access, expected_change_count, tstamp,
     //                                        pre_begin_txn_token, durability);
