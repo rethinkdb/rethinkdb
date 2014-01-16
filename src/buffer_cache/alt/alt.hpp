@@ -92,6 +92,7 @@ private:
 class alt_txn_t {
 public:
     // RSI: Remove default parameter for expected_change_count.
+    // RSI: Generally speaking I don't think we use preceding_txn much.
     alt_txn_t(alt_cache_t *cache,
               write_durability_t durability,
               int64_t expected_change_count = 2,
