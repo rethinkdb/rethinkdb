@@ -31,12 +31,24 @@ run: $(TEST_FILES) cursor connect
 
 .PHONY: py
 py: py_connect py_cursor py_polyglot
+py_connect py_cursor py_polyglot: py_build
+
+py_build:
+	MAKEFLAGS= make -C ../../drivers/python
 
 .PHONY: js
 js: js_connect js_cursor js_polyglot
+js_connect js_cursor js_polyglot: js_build
+
+js_build:
+	MAKEFLAGS= make -C ../../drivers/javascript
 
 .PHONY: rb
 rb: rb_polyglot
+rb_polyglot: rb_build
+
+rb_build:
+	MAKEFLAGS= make -C ../../drivers/ruby
 
 .PHONY: py_polyglot
 py_polyglot: $(TEST_FILES)

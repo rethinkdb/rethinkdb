@@ -30,6 +30,9 @@ $(DRIVER_COFFEE_BUILD_DIR)/%.js: $(JS_SRC_DIR)/%.coffee | $(DRIVER_COFFEE_BUILD_
 	$P COFFEE
 	$(COFFEE) -b -p -c $< > $@
 
+.PHONY: js-dist
+js-dist: $(JS_PKG_DIR) $(JS_PKG_DIR)/node_modules
+
 $(JS_PKG_DIR): $(JS_PKG_FILES)
 	$P DIST-JS $(JS_PKG_DIR)
 	rm -rf $(JS_PKG_DIR)
