@@ -938,18 +938,13 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)token;  // RSI: Use this.
+    (void)token;  // RSI: Get rid of this parameter.
     slice->assert_thread();
 
-    // RSI: Support this stuff.
-    // const order_token_t pre_begin_txn_token
-    //     = slice->pre_begin_txn_checkpoint_.check_through(token);
     // RSI: We should pass a preceding_txn here or something.
     alt_txn_t *txn = new alt_txn_t(slice->cache(), durability,
                                    tstamp, expected_change_count);
-    // RSI: Support all the stuff this old line does.
-    // transaction_t *txn = new transaction_t(slice->cache(), txn_access, expected_change_count, tstamp,
-    //                                        pre_begin_txn_token, durability);
+
     txn_out->init(txn);
 
     get_btree_superblock(txn, superblock_access, got_superblock_out);
@@ -977,18 +972,14 @@ void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)token;  // RSI: Use this parameter.
+    (void)token;  // RSI: Get rid of this parameter.
     slice->assert_thread();
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
                                    alt_read_access_t::read);
-    // RSI: Support all the stuff this old line does.  (rwi_read_sync is so that the read txn can't cross write txns -- the old cache is weird)
-    // transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
-    //                                        slice->pre_begin_txn_checkpoint_.check_through(token));
     txn_out->init(txn);
     // RSI: Support the use of this account, if applicable.
     // txn->set_account(slice->get_backfill_account());
 
-    // RSI: This used rwi_read_sync instead of rwi_read -- what does this mean?
     get_btree_superblock(txn, alt_access_t::read, got_superblock_out);
     // RSI: This is bad -- we want to backfill, we don't want to snapshot from the
     // superblock (and therefore secondary indexes)-- we really want to snapshot the
@@ -1019,13 +1010,10 @@ void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)token;  // RSI: Make this be used.
+    (void)token;  // RSI: Get rid of this paremeter.
     slice->assert_thread();
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
                                    alt_read_access_t::read);
-    // RSI: Support the use of the order token.
-    // transaction_t *txn = new transaction_t(slice->cache(), access,
-    //                                        slice->pre_begin_txn_checkpoint_.check_through(token));
     txn_out->init(txn);
 
     get_btree_superblock(txn, alt_access_t::read, got_superblock_out);
