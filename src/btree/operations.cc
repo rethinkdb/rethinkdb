@@ -6,14 +6,10 @@
 #include <stdint.h>
 
 #include "btree/slice.hpp"
-#if SLICE_ALT
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/alt_blob.hpp"
-#endif
-#include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
-#if SLICE_ALT
 using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_parent_t;
@@ -21,105 +17,49 @@ using alt::alt_buf_read_t;
 using alt::alt_buf_write_t;
 using alt::alt_create_t;
 using alt::alt_txn_t;
-#endif
 
-#if SLICE_ALT
 real_superblock_t::real_superblock_t(alt_buf_lock_t &&sb_buf)
     : sb_buf_(std::move(sb_buf)) {}
-#else
-real_superblock_t::real_superblock_t(buf_lock_t *sb_buf) {
-    sb_buf_.swap(*sb_buf);
-}
-#endif
 
 void real_superblock_t::release() {
-#if SLICE_ALT
     sb_buf_.reset_buf_lock();
-#else
-    sb_buf_.release_if_acquired();
-#endif
 }
 
 block_id_t real_superblock_t::get_root_block_id() {
-#if SLICE_ALT
     alt_buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->root_block;
-#else
-    rassert(sb_buf_.is_acquired());
-    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->root_block;
-#endif
 }
 
 void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
-#if SLICE_ALT
     alt_buf_write_t write(&sb_buf_);
     btree_superblock_t *sb_data
         = static_cast<btree_superblock_t *>(write.get_data_write());
-#else
-    rassert(sb_buf_.is_acquired());
-    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
-#endif
     sb_data->root_block = new_root_block;
 }
 
 block_id_t real_superblock_t::get_stat_block_id() {
-#if SLICE_ALT
     alt_buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->stat_block;
-#else
-    rassert(sb_buf_.is_acquired());
-    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->stat_block;
-#endif
 }
 
 void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
-#if SLICE_ALT
     alt_buf_write_t write(&sb_buf_);
     btree_superblock_t *sb_data
         = static_cast<btree_superblock_t *>(write.get_data_write());
-#else
-    rassert(sb_buf_.is_acquired());
-    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
-#endif
     sb_data->stat_block = new_stat_block;
 }
 
 block_id_t real_superblock_t::get_sindex_block_id() {
-#if SLICE_ALT
     alt_buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->sindex_block;
-#else
-    rassert(sb_buf_.is_acquired());
-    return static_cast<const btree_superblock_t *>(sb_buf_.get_data_read())->sindex_block;
-#endif
 }
 
 void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
-#if SLICE_ALT
     alt_buf_write_t write(&sb_buf_);
     btree_superblock_t *sb_data
         = static_cast<btree_superblock_t *>(write.get_data_write());
-#else
-    rassert(sb_buf_.is_acquired());
-    btree_superblock_t *sb_data = static_cast<btree_superblock_t *>(sb_buf_.get_data_write());
-#endif
     sb_data->sindex_block = new_sindex_block;
 }
-
-#if !SLICE_ALT
-void real_superblock_t::set_eviction_priority(eviction_priority_t eviction_priority) {
-    rassert(sb_buf_.is_acquired());
-    sb_buf_.set_eviction_priority(eviction_priority);
-}
-#endif
-
-#if !SLICE_ALT
-eviction_priority_t real_superblock_t::get_eviction_priority() {
-    rassert(sb_buf_.is_acquired());
-    return sb_buf_.get_eviction_priority();
-}
-#endif
-
 
 bool find_superblock_metainfo_entry(char *beg, char *end, const std::vector<char> &key, char **verybeg_ptr_out,  uint32_t **size_ptr_out, char **beg_ptr_out, char **end_ptr_out) {
     superblock_metainfo_iterator_t::sz_t len = static_cast<superblock_metainfo_iterator_t::sz_t>(key.size());
@@ -186,7 +126,6 @@ void superblock_metainfo_iterator_t::operator++() {
     }
 }
 
-#if SLICE_ALT
 bool get_superblock_metainfo(alt_buf_lock_t *superblock,
                              const std::vector<char> &key,
                              std::vector<char> *value_out) {
@@ -226,42 +165,7 @@ bool get_superblock_metainfo(alt_buf_lock_t *superblock,
         return false;
     }
 }
-#else
-bool get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock,
-                             const std::vector<char> &key,
-                             std::vector<char> *value_out) {
-    const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
 
-    // The const cast is okay because we access the data with rwi_read
-    // and don't write to the blob.
-    blob_t blob(txn->get_cache()->get_block_size(),
-                const_cast<char *>(data->metainfo_blob),
-                btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-
-    blob_acq_t acq;
-    buffer_group_t group;
-    blob.expose_all(txn, rwi_read, &group, &acq);
-
-    int64_t group_size = group.get_size();
-    std::vector<char> metainfo(group_size);
-
-    buffer_group_t group_cpy;
-    group_cpy.add_buffer(group_size, metainfo.data());
-
-    buffer_group_copy_data(&group_cpy, const_view(&group));
-
-    uint32_t *size;
-    char *verybeg, *info_begin, *info_end;
-    if (find_superblock_metainfo_entry(metainfo.data(), metainfo.data() + metainfo.size(), key, &verybeg, &size, &info_begin, &info_end)) {
-        value_out->assign(info_begin, info_end);
-        return true;
-    } else {
-        return false;
-    }
-}
-#endif
-
-#if SLICE_ALT
 void get_superblock_metainfo(
         alt_buf_lock_t *superblock,
         std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
@@ -271,7 +175,7 @@ void get_superblock_metainfo(
         const btree_superblock_t *data
             = static_cast<const btree_superblock_t *>(read.get_data_read());
 
-        // The const cast is okay because we access the data with rwi_read
+        // The const cast is okay because we access the data with alt_access_t::read
         // and don't write to the blob.
         alt::blob_t blob(superblock->cache()->get_block_size(),
                          const_cast<char *>(data->metainfo_blob),
@@ -281,7 +185,7 @@ void get_superblock_metainfo(
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
 
-        int64_t group_size = group.get_size();
+        const int64_t group_size = group.get_size();
         metainfo.resize(group_size);
 
         buffer_group_t group_cpy;
@@ -296,73 +200,24 @@ void get_superblock_metainfo(
         kv_pairs_out->push_back(std::make_pair(std::vector<char>(key.second, key.second + key.first), std::vector<char>(value.second, value.second + value.first)));
     }
 }
-#else
-void get_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
-    const btree_superblock_t *data = static_cast<const btree_superblock_t *>(superblock->get_data_read());
 
-    // The const cast is okay because we access the data with rwi_read
-    // and don't write to the blob.
-    blob_t blob(txn->get_cache()->get_block_size(),
-                const_cast<char *>(data->metainfo_blob),
-                btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-    blob_acq_t acq;
-    buffer_group_t group;
-    blob.expose_all(txn, rwi_read, &group, &acq);
-
-    int64_t group_size = group.get_size();
-    std::vector<char> metainfo(group_size);
-
-    buffer_group_t group_cpy;
-    group_cpy.add_buffer(group_size, metainfo.data());
-
-    buffer_group_copy_data(&group_cpy, const_view(&group));
-
-    for (superblock_metainfo_iterator_t kv_iter(metainfo.data(), metainfo.data() + metainfo.size()); !kv_iter.is_end(); ++kv_iter) {
-        superblock_metainfo_iterator_t::key_t key = kv_iter.key();
-        superblock_metainfo_iterator_t::value_t value = kv_iter.value();
-        kv_pairs_out->push_back(std::make_pair(std::vector<char>(key.second, key.second + key.first), std::vector<char>(value.second, value.second + value.first)));
-    }
-}
-#endif
-
-#if SLICE_ALT
 void set_superblock_metainfo(alt_buf_lock_t *superblock,
                              const std::vector<char> &key,
                              const std::vector<char> &value) {
-#else
-void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key, const std::vector<char> &value) {
-#endif
-#if SLICE_ALT
     alt_buf_write_t write(superblock);
     btree_superblock_t *data
         = static_cast<btree_superblock_t *>(write.get_data_write());
-#else
-    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
-#endif
 
-#if SLICE_ALT
     alt::blob_t blob(superblock->cache()->get_block_size(),
                      data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-#else
-    blob_t blob(txn->get_cache()->get_block_size(),
-                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-#endif
 
     std::vector<char> metainfo;
 
     {
-#if SLICE_ALT
         alt::blob_acq_t acq;
-#else
-        blob_acq_t acq;
-#endif
         buffer_group_t group;
-#if SLICE_ALT
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
-#else
-        blob.expose_all(txn, rwi_read, &group, &acq);
-#endif
 
         int64_t group_size = group.get_size();
         metainfo.resize(group_size);
@@ -373,11 +228,7 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
-#if SLICE_ALT
     blob.clear(alt_buf_parent_t(superblock));
-#else
-    blob.clear(txn);
-#endif
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -408,23 +259,13 @@ void set_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const s
         metainfo.insert(metainfo.end(), value.begin(), value.end());
     }
 
-#if SLICE_ALT
     blob.append_region(alt_buf_parent_t(superblock), metainfo.size());
-#else
-    blob.append_region(txn, metainfo.size());
-#endif
 
     {
-#if SLICE_ALT
         alt::blob_acq_t acq;
         buffer_group_t write_group;
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::write,
                         &write_group, &acq);
-#else
-        blob_acq_t acq;
-        buffer_group_t write_group;
-        blob.expose_all(txn, rwi_write, &write_group, &acq);
-#endif
 
         buffer_group_t group_cpy;
         group_cpy.add_buffer(metainfo.size(), metainfo.data());
