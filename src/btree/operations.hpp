@@ -8,12 +8,7 @@
 
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
-#include "btree/slice.hpp"  // RSI: Remove.  for SLICE_ALT
-#if SLICE_ALT
 #include "buffer_cache/alt/alt.hpp"
-#else
-#include "buffer_cache/buffer_cache.hpp"
-#endif
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/archive/stl_types.hpp"
@@ -24,6 +19,7 @@
 // RSI: This code doesn't use the notion of "parent transaction" at all, and it must.
 
 class btree_slice_t;
+class order_token_t;
 
 template <class> class promise_t;
 
