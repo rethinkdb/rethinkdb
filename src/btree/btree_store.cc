@@ -667,67 +667,33 @@ void btree_store_t<protocol_t>::set_sindexes(
 }
 #endif
 
-#if SLICE_ALT
 template <class protocol_t>
 bool btree_store_t<protocol_t>::mark_index_up_to_date(const std::string &id,
                                                       alt_buf_lock_t *sindex_block)
     THROWS_NOTHING {
-#else
-template <class protocol_t>
-bool btree_store_t<protocol_t>::mark_index_up_to_date(
-    const std::string &id,
-    transaction_t *txn,
-    buf_lock_t *sindex_block)
-THROWS_NOTHING {
-#endif
     secondary_index_t sindex;
-#if SLICE_ALT
     bool found = ::get_secondary_index(sindex_block, id, &sindex);
-#else
-    bool found = ::get_secondary_index(txn, sindex_block, id, &sindex);
-#endif
 
     if (found) {
         sindex.post_construction_complete = true;
 
-#if SLICE_ALT
         ::set_secondary_index(sindex_block, id, sindex);
-#else
-        ::set_secondary_index(txn, sindex_block, id, sindex);
-#endif
     }
 
     return found;
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 bool btree_store_t<protocol_t>::mark_index_up_to_date(uuid_u id,
                                                       alt_buf_lock_t *sindex_block)
     THROWS_NOTHING {
-#else
-template <class protocol_t>
-bool btree_store_t<protocol_t>::mark_index_up_to_date(
-    uuid_u id,
-    transaction_t *txn,
-    buf_lock_t *sindex_block)
-THROWS_NOTHING {
-#endif
     secondary_index_t sindex;
-#if SLICE_ALT
     bool found = ::get_secondary_index(sindex_block, id, &sindex);
-#else
-    bool found = ::get_secondary_index(txn, sindex_block, id, &sindex);
-#endif
 
     if (found) {
         sindex.post_construction_complete = true;
 
-#if SLICE_ALT
         ::set_secondary_index(sindex_block, id, sindex);
-#else
-        ::set_secondary_index(txn, sindex_block, id, sindex);
-#endif
     }
 
     return found;
@@ -897,40 +863,21 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
 }
 #endif
 
-#if SLICE_ALT
+// RSI: This used to take an interruptor.
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out)
     THROWS_ONLY(interrupted_exc_t) {
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::get_sindexes(
-        read_token_pair_t *token_pair,
-        transaction_t *txn,
-        superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-#endif
-#if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    // RSI: This call used to take the interruptor.
     acquire_sindex_block_for_read(super_block->expose_buf(),
                                   &sindex_block,
                                   super_block->get_sindex_block_id());
-#else
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_read(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
-#endif
 
-#if SLICE_ALT
     return get_secondary_indexes(sindex_block.get(), sindexes_out);
-#else
-    return get_secondary_indexes(txn, sindex_block.get(), sindexes_out);
-#endif
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         alt_buf_lock_t *sindex_block,
@@ -938,18 +885,9 @@ void btree_store_t<protocol_t>::get_sindexes(
     THROWS_NOTHING {
     return get_secondary_indexes(sindex_block, sindexes_out);
 }
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::get_sindexes(
-        buf_lock_t *sindex_block,
-        transaction_t *txn,
-        std::map<std::string, secondary_index_t> *sindexes_out)
-    THROWS_NOTHING {
-    return get_secondary_indexes(txn, sindex_block, sindexes_out);
-}
-#endif
 
-#if SLICE_ALT
+// RSI: This used to take an interruptor.
+// RSI: Should anybody really rightfully use this?  The caller wants us to be the sindex_block constructor?
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         const std::string &id,
@@ -958,39 +896,16 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-#else
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
-        const std::string &id,
-        block_id_t sindex_block_id,
-        read_token_pair_t *token_pair,
-        transaction_t *txn,
-        scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-        std::vector<char> *opaque_definition_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-#endif
     assert_thread();
 
     /* Acquire the sindex block. */
-#if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-#else
-    scoped_ptr_t<buf_lock_t> sindex_block;
-#endif
-#if SLICE_ALT
+    // RSI: This call used to take an interruptor.
     acquire_sindex_block_for_read(parent, &sindex_block, sindex_block_id);
-#else
-    acquire_sindex_block_for_read(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
-#endif
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-#if SLICE_ALT
     if (!::get_secondary_index(sindex_block.get(), id, &sindex)) {
-#else
-    if (!::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
-#endif
         return false;
     }
 
@@ -1002,15 +917,10 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         throw sindex_not_post_constructed_exc_t(id);
     }
 
-#if SLICE_ALT
     alt_buf_lock_t superblock_lock(sindex_block.get(), sindex.superblock,
                                    alt_access_t::read);
     sindex_block->reset_buf_lock();
     sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
-#else
-    buf_lock_t superblock_lock(txn, sindex.superblock, rwi_read);
-    sindex_sb_out->init(new real_superblock_t(&superblock_lock));
-#endif
     return true;
 }
 
