@@ -1,5 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "btree/erase_range.hpp"
+
+#include "buffer_cache/alt/alt.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"

@@ -4,7 +4,7 @@
 
 #include "btree/keys.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "containers/archive/archive.hpp"
 
 class superblock_t;

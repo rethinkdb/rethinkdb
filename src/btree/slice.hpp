@@ -7,16 +7,21 @@
 
 #define SLICE_ALT 1
 
-#include "buffer_cache/alt/alt.hpp"  // RSI: Probably could remove.
+#include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
-// RSI: Why is this 2 << 16?  (and not 1 << 16?)
-const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
-
+namespace alt {
+class alt_buf_parent_t;
+class alt_cache_t;
+}
 class backfill_callback_t;
 class key_tester_t;
+
+
+// RSI: Why is this 2 << 16?  (and not 1 << 16?)
+const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
 
 class btree_stats_t {
 public:

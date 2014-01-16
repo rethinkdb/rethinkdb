@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "rdb_protocol/blob_wrapper.hpp"
 
+#include "buffer_cache/alt/alt.hpp"
+
 using namespace alt;  // RSI
 
 rdb_blob_wrapper_t::rdb_blob_wrapper_t(block_size_t block_size, char *ref,

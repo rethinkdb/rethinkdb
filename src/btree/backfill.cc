@@ -13,7 +13,7 @@
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "protocol_api.hpp"
 
 using namespace alt;  // RSI
