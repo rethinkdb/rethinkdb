@@ -117,10 +117,26 @@ alt_inner_txn_t::~alt_inner_txn_t() {
 }
 
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
+                     alt_txn_t *preceding_txn)
+    : access_(alt_access_t::read),
+      durability_(write_durability_t::SOFT),  // A B.S. value.
+      saved_expected_change_count_(0) {
+    // RSI: We could dedup the constructor body a bit.
+    cache->assert_thread();
+    // RSI: If I remember correctly the mirrored cache used 1 for some reason.
+    cache->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
+    inner_.init(new alt_inner_txn_t(cache,
+                                    preceding_txn == NULL ? NULL
+                                    : preceding_txn->inner_.get()));
+
+}
+
+alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      write_durability_t durability,
                      int64_t expected_change_count,
                      alt_txn_t *preceding_txn)
-    : durability_(durability),
+    : access_(alt_access_t::write),
+      durability_(durability),
       saved_expected_change_count_(expected_change_count) {
     cache->assert_thread();
     cache->tracker_.begin_txn_or_throttle(expected_change_count);
@@ -301,6 +317,10 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
 #endif
 }
 
+bool is_subordinate(alt_access_t parent, alt_access_t child) {
+    return parent == alt_access_t::write || child == alt_access_t::read;
+}
+
 alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
                                block_id_t block_id,
                                UNUSED alt_create_t create)
@@ -310,6 +330,7 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
       snapshot_node_(NULL),
       access_ref_count_(0),
       was_destroyed_(false) {
+    guarantee(is_subordinate(txn_->access(), alt_access_t::write));
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p create %lu\n", cache(), this, block_id);
 #endif
@@ -323,10 +344,6 @@ void alt_buf_lock_t::mark_deleted() {
     current_page_acq()->mark_deleted();
 }
 
-bool is_subordinate(alt_access_t parent, alt_access_t child) {
-    return parent == alt_access_t::write || child == alt_access_t::read;
-}
-
 void alt_buf_lock_t::wait_for_parent(alt_buf_parent_t parent, alt_access_t access) {
     if (parent.lock_or_null_ != NULL) {
         alt_buf_lock_t *lock = parent.lock_or_null_;
@@ -336,6 +353,8 @@ void alt_buf_lock_t::wait_for_parent(alt_buf_parent_t parent, alt_access_t acces
         } else {
             lock->read_acq_signal()->wait();
         }
+    } else {
+        guarantee(is_subordinate(parent.txn()->access(), access));
     }
 }
 
