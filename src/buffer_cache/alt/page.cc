@@ -8,6 +8,8 @@
 #include "serializer/serializer.hpp"
 #include "stl_utils.hpp"
 
+// RSI: Have good assertions about nobody trying to acquire a block that is deleted.
+
 // RSI: temporary debugging macro
 // #define pagef debugf
 #define pagef(...) do { } while (0)
@@ -26,6 +28,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         reads_io_account.init(serializer->make_io_account(CACHE_READS_IO_PRIORITY));
         writes_io_account.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
         index_write_sink.init(new fifo_enforcer_sink_t);
+        recencies_ = serializer->get_all_recencies();
     }
 }
 
@@ -89,6 +92,7 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
         memset(buf.get()->cache_data, 0xCD, serializer_->get_block_size().value());
 #endif
 
+    set_recency_for_block_id(block_id, repli_timestamp_t::distant_past);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
             new current_page_t(serializer_->get_block_size(),
@@ -351,7 +355,9 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
     const block_version_t prev_version
         = (back == NULL ? block_version_ : back->block_version_);
     const repli_timestamp_t prev_recency
-        = (back == NULL ? recency_ : back->recency_);
+        = (back == NULL
+           ? acq->page_cache()->recency_for_block_id(acq->block_id())
+           : back->recency_);
 
     acq->block_version_ = acq->access_ == alt_access_t::write ?
         prev_version.subsequent() : prev_version;
@@ -459,7 +465,8 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                       acq->block_id(), block_version_.debug_value(),
                       cur->block_version_);
                 block_version_ = cur->block_version_;
-                recency_ = cur->recency_;
+                acq->page_cache()->set_recency_for_block_id(acq->block_id(),
+                                                            cur->recency_);
                 cur->pulse_write_available();
             }
             break;

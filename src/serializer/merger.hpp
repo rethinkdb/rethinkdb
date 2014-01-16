@@ -76,6 +76,13 @@ public:
     /* Gets a block's timestamp.  This may return repli_timestamp_t::invalid. */
     repli_timestamp_t get_recency(block_id_t id) { return inner->get_recency(id); }
 
+    /* Gets timestamps of all blocks with ids first + step*k, for k = 0, 1, 2,
+       ... */
+    segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
+                                                            block_id_t step) {
+        return inner->get_all_recencies(first, step);
+    }
+
     /* Reads the block's delete bit. */
     bool get_delete_bit(block_id_t id) { return inner->get_delete_bit(id); }
 

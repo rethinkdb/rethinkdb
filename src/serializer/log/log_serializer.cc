@@ -733,6 +733,12 @@ repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
     return lba_index->get_block_recency(id);
 }
 
+segmented_vector_t<repli_timestamp_t>
+log_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
+    assert_thread();
+    return lba_index->get_block_recencies(first, step);
+}
+
 bool log_serializer_t::shutdown(cond_t *cb) {
     assert_thread();
     rassert(coro_t::self());

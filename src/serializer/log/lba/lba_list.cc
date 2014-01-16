@@ -152,6 +152,17 @@ repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
     return get_block_info(block).recency;
 }
 
+segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t first,
+                                                                      block_id_t step) {
+    rassert(state == state_ready);
+    segmented_vector_t<repli_timestamp_t> ret;
+    block_id_t end = in_memory_index.end_block_id();
+    for (block_id_t i = first; i < end; i += step) {
+        ret.push_back(in_memory_index.get_block_info(i).recency);
+    }
+    return ret;
+}
+
 void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
                                 flagged_off64_t offset, uint32_t ser_block_size,
                                 file_account_t *io_account, extent_transaction_t *txn) {

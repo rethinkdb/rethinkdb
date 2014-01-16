@@ -221,7 +221,6 @@ void counted_release(scs_block_token_t<inner_serializer_t> *p) {
 }
 
 
-
 template <class inner_serializer_type>
 struct serializer_traits_t<semantic_checking_serializer_t<inner_serializer_type> > {
     typedef scs_block_token_t<inner_serializer_type> block_token_type;
@@ -233,6 +232,15 @@ inline counted_t< scs_block_token_t<log_serializer_t> > to_standard_block_token(
                                                               scs_block_info_t(),
                                                               tok);
 }
+
+template <class inner_serializer_t>
+void debug_print(printf_buffer_t *buf,
+                 const counted_t<scs_block_token_t<inner_serializer_t> > &token) {
+    debug_print(buf, token->inner_token);
+}
+
+
+
 
 #else
 

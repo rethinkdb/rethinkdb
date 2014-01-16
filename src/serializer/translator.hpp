@@ -133,6 +133,8 @@ public:
     block_id_t max_block_id();
 
     repli_timestamp_t get_recency(block_id_t id);
+    segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
+                                                            block_id_t step);
     bool get_delete_bit(block_id_t id);
 
     void block_read(const counted_t<standard_block_token_t> &token, ser_buffer_t *buf, file_account_t *io_account);

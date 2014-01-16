@@ -286,7 +286,7 @@ private:
     // different page_txn_t's can know which was the last to modify the block.
     block_version_t block_version_;
 
-    repli_timestamp_t recency_;
+    // Instead of storing the recency here, we store it page_cache_t::recencies_.
 
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
@@ -541,9 +541,24 @@ private:
 
     void im_waiting_for_flush(page_txn_t *txn);
 
+    repli_timestamp_t recency_for_block_id(block_id_t id) {
+        return recencies_.size() <= id
+            ? repli_timestamp_t::invalid
+            : recencies_[id];
+    }
+
+    void set_recency_for_block_id(block_id_t id, repli_timestamp_t recency) {
+        while (recencies_.size() <= id) {
+            recencies_.push_back(repli_timestamp_t::invalid);
+        }
+        recencies_[id] = recency;
+    }
+
     friend class current_page_t;
     serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
+
+    // RSI: Some of these things need postfix underscores.
 
     // We use a separate IO account for reads and writes, so reads can pass ahead of
     // active writebacks. Otherwise writebacks could badly block out readers, thereby
@@ -558,6 +573,7 @@ private:
     scoped_ptr_t<fifo_enforcer_sink_t> index_write_sink;
 
     serializer_t *serializer_;
+    segmented_vector_t<repli_timestamp_t> recencies_;
 
     // RSP: Array growth slow.
     std::vector<current_page_t *> current_pages_;
