@@ -93,7 +93,7 @@ private:
         for (size_t i = 1; i < num_args(); ++i) {
             args.push_back(arg(env, i)->as_datum());
         }
-        return f->call(env->env, args, flags);
+        return f->call(env->env, args);
     }
     virtual const char *name() const { return "funcall"; }
 };
