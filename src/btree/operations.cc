@@ -381,27 +381,14 @@ void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
 // Split the node if necessary. If the node is a leaf_node, provide the new
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
-#if SLICE_ALT
 void check_and_handle_split(value_sizer_t<void> *sizer,
                             alt_buf_lock_t *buf,
                             alt_buf_lock_t *last_buf,
                             superblock_t *sb,
                             const btree_key_t *key, void *new_value) {
-#else
-void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
-                            const btree_key_t *key, void *new_value, eviction_priority_t *root_eviction_priority) {
-#endif
-#if !SLICE_ALT
-    txn->assert_thread();
-#endif
-
     {
-#if SLICE_ALT
         alt_buf_read_t buf_read(buf);
         const node_t *node = static_cast<const node_t *>(buf_read.get_data_read());
-#else
-        const node_t *node = static_cast<const node_t *>(buf->get_data_read());
-#endif
 
         // If the node isn't full, we don't need to split, so we're done.
         if (!node::is_internal(node)) { // This should only be called when update_needed.
@@ -420,19 +407,14 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
 
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
-#if SLICE_ALT
     // RSI: Assert that one of last_buf and sb is valid.
     alt_buf_lock_t rbuf(last_buf->empty()
                         ? sb->expose_buf()
                         : alt_buf_parent_t(last_buf),
                         alt_create_t::create);
-#else
-    buf_lock_t rbuf(txn);
-#endif
     store_key_t median_buffer;
     btree_key_t *median = median_buffer.btree_key();
 
-#if SLICE_ALT
     {
         alt_buf_write_t buf_write(buf);
         alt_buf_write_t rbuf_write(&rbuf);
@@ -441,52 +423,24 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
                     static_cast<node_t *>(rbuf_write.get_data_write()),
                     median);
     }
-#else
-    node::split(sizer,
-                static_cast<node_t *>(buf->get_data_write()),
-                static_cast<node_t *>(rbuf.get_data_write()),
-                median);
-#endif
-#if !SLICE_ALT
-    rbuf.set_eviction_priority(buf->get_eviction_priority());
-#endif
 
     // Insert the key that sets the two nodes apart into the parent.
-#if SLICE_ALT
     if (last_buf->empty()) {
-#else
-    if (!last_buf->is_acquired()) {
-#endif
         // We're splitting what was previously the root, so create a new root to use as the parent.
-#if SLICE_ALT
         // RSI: Make sure that this root insertion logic is actually correct!  Will
         // snapshotting handle it??  Could something skip?  Probably OK because this
         // is a write transaction and we hold the superblock...
         alt_buf_lock_t temp_buf(sb->expose_buf(), alt_create_t::create);
-#else
-        buf_lock_t temp_buf(txn);
-#endif
         last_buf->swap(temp_buf);
-#if SLICE_ALT
         {
             alt_buf_write_t last_write(last_buf);
             internal_node::init(sizer->block_size(),
                                 static_cast<internal_node_t *>(last_write.get_data_write()));
         }
-#else
-        internal_node::init(sizer->block_size(),
-                            static_cast<internal_node_t *>(last_buf->get_data_write()));
-#endif
-#if !SLICE_ALT
-        rassert(ZERO_EVICTION_PRIORITY < buf->get_eviction_priority());
-        last_buf->set_eviction_priority(decr_priority(buf->get_eviction_priority()));
-        *root_eviction_priority = last_buf->get_eviction_priority();
-#endif
 
         insert_root(last_buf->get_block_id(), sb);
     }
 
-#if SLICE_ALT
     {
         alt_buf_write_t last_write(last_buf);
         DEBUG_VAR bool success
@@ -496,12 +450,6 @@ void check_and_handle_split(value_sizer_t<void> *sizer, transaction_t *txn, buf_
                                     buf->get_block_id(), rbuf.get_block_id());
         rassert(success, "could not insert internal btree node");
     }
-#else
-    DEBUG_VAR bool success = internal_node::insert(sizer->block_size(),
-                                                   static_cast<internal_node_t *>(last_buf->get_data_write()), median,
-                                                   buf->get_block_id(), rbuf.get_block_id());
-    rassert(success, "could not insert internal btree node");
-#endif
 
     // We've split the node; now figure out where the key goes and release the other buf (since we're done with it).
     if (0 >= sized_strcmp(key->contents, key->size, median->contents, median->size)) {
