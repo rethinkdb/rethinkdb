@@ -266,16 +266,10 @@ void btree_store_t<protocol_t>::reset_data(
                         interruptor);
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::lock_sindex_queue(alt_buf_lock_t *sindex_block,
                                                   mutex_t::acq_t *acq) {
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq) {
-#endif
     assert_thread();
-#if SLICE_ALT
     // RSI (for sam): Review this conversation and the code and learn how everything
     // works.
 
@@ -297,9 +291,6 @@ void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block, mute
     // the sindex block could fill the same role.
     guarantee(!sindex_block->empty());
     sindex_block->write_acq_signal()->wait();
-#else
-    guarantee(sindex_block->is_acquired());
-#endif
     acq->reset(&sindex_queue_mutex);
 }
 
@@ -373,73 +364,26 @@ progress_completion_fraction_t btree_store_t<protocol_t>::get_progress(uuid_u id
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
-#if !SLICE_ALT
-        read_token_pair_t *token_pair,
-#endif
-#if SLICE_ALT
         alt_buf_parent_t parent,
         scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
-#else
-        transaction_t *txn,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-#endif
-        block_id_t sindex_block_id
-#if !SLICE_ALT
-        , signal_t *interruptor
-#endif
-        )
+        block_id_t sindex_block_id)
     THROWS_ONLY(interrupted_exc_t) {
-#if !SLICE_ALT
-    /* First wait for our turn. */
-    wait_interruptible(token_pair->sindex_read_token.get(), interruptor);
-
-    /* Make sure others will be allowed to proceed after this function is
-     * completes. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->sindex_read_token);
-#endif
 
     /* Finally acquire the block. */
-#if SLICE_ALT
     sindex_block_out->init(new alt_buf_lock_t(parent, sindex_block_id,
                                               alt_access_t::read));
-#else
-    sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_read));
-#endif
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         alt_buf_parent_t parent,
         scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id)
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        block_id_t sindex_block_id,
-        signal_t *interruptor)
-#endif
     THROWS_ONLY(interrupted_exc_t) {
 
-#if !SLICE_ALT
-    /* First wait for our turn. */
-    wait_interruptible(token_pair->sindex_write_token.get(), interruptor);
-
-    /* Make sure others will be allowed to proceed after this function is
-     * completes. */
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->sindex_write_token);
-#endif
-
     /* Finally acquire the block. */
-#if SLICE_ALT
     sindex_block_out->init(new alt_buf_lock_t(parent, sindex_block_id,
                                               alt_access_t::write));
-#else
-    sindex_block_out->init(new buf_lock_t(txn, sindex_block_id, rwi_write));
-#endif
 }
 
 template <class region_map_t>
