@@ -185,41 +185,19 @@ public:
         virtual ~store_t();
 
     private:
-#if SLICE_ALT
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
                            superblock_t *superblock,
                            signal_t *interruptor);
-#else
-        void protocol_read(const read_t &read,
-                           read_response_t *response,
-                           btree_slice_t *btree,
-                           transaction_t *txn,
-                           superblock_t *superblock,
-                           read_token_pair_t *token,
-                           signal_t *interruptor);
-#endif
 
-#if SLICE_ALT
         void protocol_write(const write_t &write,
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
                             scoped_ptr_t<superblock_t> *superblock,
                             signal_t *interruptor);
-#else
-        void protocol_write(const write_t &write,
-                            write_response_t *response,
-                            transition_timestamp_t timestamp,
-                            btree_slice_t *btree,
-                            transaction_t *txn,
-                            scoped_ptr_t<superblock_t> *superblock,
-                            write_token_pair_t *token,
-                            signal_t *interruptor);
-#endif
 
-#if SLICE_ALT
         void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,
@@ -228,38 +206,15 @@ public:
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)
                                     THROWS_ONLY(interrupted_exc_t);
-#else
-        void protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
-                                    chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
-                                    superblock_t *superblock,
-                                    buf_lock_t *sindex_block,
-                                    btree_slice_t *btree,
-                                    transaction_t *txn,
-                                    backfill_progress_t *progress,
-                                    signal_t *interruptor)
-                                    THROWS_ONLY(interrupted_exc_t);
-#endif
 
         void protocol_receive_backfill(btree_slice_t *btree,
-#if !SLICE_ALT
-                                       transaction_t *txn,
-#endif
                                        superblock_t *superblock,
-#if !SLICE_ALT
-                                       write_token_pair_t *token_pair,
-#endif
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 
-        void protocol_reset_data(const region_t& subregion,
+        void protocol_reset_data(const region_t &subregion,
                                  btree_slice_t *btree,
-#if !SLICE_ALT
-                                 transaction_t *txn,
-#endif
                                  superblock_t *superblock,
-#if !SLICE_ALT
-                                 write_token_pair_t *token_pair,
-#endif
                                  signal_t *interruptor);
     };
 
