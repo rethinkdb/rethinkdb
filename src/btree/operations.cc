@@ -464,35 +464,17 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
 }
 
 // Merge or level the node if necessary.
-#if SLICE_ALT
 void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                 alt_buf_lock_t *buf,
                                 alt_buf_lock_t *last_buf,
                                 superblock_t *sb,
                                 const btree_key_t *key) {
-#else
-void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
-                                buf_lock_t *buf, buf_lock_t *last_buf, superblock_t *sb,
-                                const btree_key_t *key) {
-#endif
-#if SLICE_ALT
     alt_buf_read_t buf_read(buf);
     const node_t *const node = static_cast<const node_t *>(buf_read.get_data_read());
-#else
-    const node_t *const node = static_cast<const node_t *>(buf->get_data_read());
-#endif
-#if SLICE_ALT
     if (!last_buf->empty() && node::is_underfull(sizer, node)) { // The root node is never underfull.
-#else
-    if (last_buf->is_acquired() && node::is_underfull(sizer, node)) { // The root node is never underfull.
-#endif
 
-#if SLICE_ALT
         alt_buf_read_t last_buf_read(last_buf);
         const internal_node_t *const parent_node = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
-#else
-        const internal_node_t *const parent_node = static_cast<const internal_node_t *>(last_buf->get_data_read());
-#endif
 
         // Acquire a sibling to merge or level with.
         store_key_t key_in_middle;
@@ -500,15 +482,10 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
         int nodecmp_node_with_sib = internal_node::sibling(parent_node, key, &sib_node_id, &key_in_middle);
 
         // Now decide whether to merge or level.
-#if SLICE_ALT
         alt_buf_lock_t sib_buf(last_buf, sib_node_id, alt_access_t::write);
         alt_buf_read_t sib_buf_read(&sib_buf);
         const node_t *sib_node
             = static_cast<const node_t *>(sib_buf_read.get_data_read());
-#else
-        buf_lock_t sib_buf(txn, sib_node_id, rwi_write);
-        const node_t *sib_node = static_cast<const node_t *>(sib_buf.get_data_read());
-#endif
 
 #ifndef NDEBUG
         node::validate(sizer, sib_node);
@@ -517,7 +494,6 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
         if (node::is_mergable(sizer, node, sib_node, parent_node)) { // Merge.
 
             if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
-#if SLICE_ALT
                 {
                     alt_buf_write_t buf_write(buf);
                     alt_buf_write_t sib_buf_write(&sib_buf);
@@ -526,16 +502,9 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 static_cast<node_t *>(sib_buf_write.get_data_write()),
                                 parent_node);
                 }
-#else
-                node::merge(sizer,
-                            static_cast<node_t *>(buf->get_data_write()),
-                            static_cast<node_t *>(sib_buf.get_data_write()),
-                            parent_node);
-#endif
                 buf->mark_deleted();
                 buf->swap(sib_buf);
             } else {
-#if SLICE_ALT
                 {
                     alt_buf_write_t sib_buf_write(&sib_buf);
                     alt_buf_write_t buf_write(buf);
@@ -544,32 +513,16 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                 static_cast<node_t *>(buf_write.get_data_write()),
                                 parent_node);
                 }
-#else
-                node::merge(sizer,
-                            static_cast<node_t *>(sib_buf.get_data_write()),
-                            static_cast<node_t *>(buf->get_data_write()),
-                            parent_node);
-#endif
                 sib_buf.mark_deleted();
             }
 
-#if SLICE_ALT
             sib_buf.reset_buf_lock();
-#else
-            sib_buf.release();
-#endif
 
             if (!internal_node::is_singleton(parent_node)) {
-#if SLICE_ALT
                 alt_buf_write_t last_buf_write(last_buf);
                 internal_node::remove(sizer->block_size(),
                                       static_cast<internal_node_t *>(last_buf_write.get_data_write()),
                                       key_in_middle.btree_key());
-#else
-                internal_node::remove(sizer->block_size(),
-                                      static_cast<internal_node_t *>(last_buf->get_data_write()),
-                                      key_in_middle.btree_key());
-#endif
             } else {
                 // The parent has only 1 key after the merge (which means that
                 // it's the root and our node is its only child). Insert our
@@ -581,7 +534,6 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
             store_key_t replacement_key_buffer;
             btree_key_t *replacement_key = replacement_key_buffer.btree_key();
 
-#if SLICE_ALT
             bool leveled;
             {
                 alt_buf_write_t buf_write(buf);
@@ -592,22 +544,12 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer, transaction_t *txn,
                                   static_cast<node_t *>(sib_buf_write.get_data_write()),
                                   replacement_key, parent_node);
             }
-#else
-            bool leveled = node::level(sizer, nodecmp_node_with_sib,
-                                       static_cast<node_t *>(buf->get_data_write()),
-                                       static_cast<node_t *>(sib_buf.get_data_write()),
-                                       replacement_key, parent_node);
-#endif
 
             if (leveled) {
-#if SLICE_ALT
                 alt_buf_write_t last_buf_write(last_buf);
                 internal_node::update_key(static_cast<internal_node_t *>(last_buf_write.get_data_write()),
                                           key_in_middle.btree_key(),
                                           replacement_key);
-#else
-                internal_node::update_key(static_cast<internal_node_t *>(last_buf->get_data_write()), key_in_middle.btree_key(), replacement_key);
-#endif
             }
         }
     }
