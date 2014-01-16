@@ -563,7 +563,6 @@ void get_btree_superblock(alt_txn_t *txn, alt_access_t access,
     *got_superblock_out = std::move(tmp_sb);
 }
 
-#if SLICE_ALT
 void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   alt_access_t superblock_access,
                                   int expected_change_count,
@@ -572,7 +571,7 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)token;  // RSI: Get rid of this parameter.
+    (void)token;  // RSI: Remove this parameter.
     slice->assert_thread();
 
     // RSI: We should pass a preceding_txn here or something.
@@ -583,30 +582,12 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
 
     get_btree_superblock(txn, superblock_access, got_superblock_out);
 }
-#else
-void get_btree_superblock_and_txn(btree_slice_t *slice, access_t txn_access,
-                                  access_t superblock_access,
-                                  int expected_change_count,
-                                  repli_timestamp_t tstamp, order_token_t token,
-                                  write_durability_t durability,
-                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<transaction_t> *txn_out) {
-    slice->assert_thread();
-
-    const order_token_t pre_begin_txn_token = slice->pre_begin_txn_checkpoint_.check_through(token);
-    transaction_t *txn = new transaction_t(slice->cache(), txn_access, expected_change_count, tstamp,
-                                           pre_begin_txn_token, durability);
-    txn_out->init(txn);
-
-    get_btree_superblock(txn, superblock_access, got_superblock_out);
-}
-#endif
 
 #if SLICE_ALT
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)token;  // RSI: Get rid of this parameter.
+    (void)token;  // RSI: Stop using this parameter.
     slice->assert_thread();
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
                                    alt_read_access_t::read);
@@ -636,7 +617,6 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_to
 }
 #endif
 
-#if SLICE_ALT
 // RSI: This function is possibly stupid: it's nonsensical to talk about the entire
 // cache being snapshotted -- we want some subtree to be snapshotted, at least.
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
@@ -657,21 +637,3 @@ void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
         (*got_superblock_out)->get()->snapshot_subtree();
     }
 }
-#else
-void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice, access_t access, order_token_t token,
-                                              cache_snapshotted_t snapshotted,
-                                              scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<transaction_t> *txn_out) {
-    slice->assert_thread();
-    rassert(is_read_mode(access));
-    transaction_t *txn = new transaction_t(slice->cache(), access,
-                                           slice->pre_begin_txn_checkpoint_.check_through(token));
-    txn_out->init(txn);
-
-    if (snapshotted == CACHE_SNAPSHOTTED_YES) {
-        txn->snapshot();
-    }
-
-    get_btree_superblock(txn, access, got_superblock_out);
-}
-#endif
