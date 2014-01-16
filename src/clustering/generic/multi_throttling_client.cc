@@ -118,9 +118,7 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::o
 
 template <class request_type, class inner_client_business_card_type>
 void multi_throttling_client_t<request_type, inner_client_business_card_type>::pump_free_tickets() {
-    // If we still have tickets left to relinquish, we relinquish those first.
-    try_to_relinquish_tickets();
-    // Then we hand out the remaining free tickets to the waiters.
+    // Hand out tickets to the waiter
     while (free_tickets > 0 && !ticket_queue.empty()) {
         ticket_acq_t *lucky_winner = ticket_queue.head();
         ticket_queue.remove(lucky_winner);
@@ -128,6 +126,9 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::p
         free_tickets--;
         lucky_winner->pulse();
     }
+    // If we didn't need all tickets, see if we are still supposed to return some
+    // of them to the server.
+    try_to_relinquish_tickets();
 }
 
 template <class request_type, class inner_client_business_card_type>
@@ -136,7 +137,7 @@ void multi_throttling_client_t<request_type, inner_client_business_card_type>::o
        to. Otherwise the target tickets can drift increasingly far away
        from the actual tickets we have.
        To do this, we keep track of how many more tickets we are supposed to
-       relinquish and then return them to the server as soon as we have anything
+       relinquish and then return them to the server as soon as we have something left
        to return. */
     to_relinquish += count;
     try_to_relinquish_tickets();

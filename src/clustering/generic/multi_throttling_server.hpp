@@ -247,7 +247,7 @@ private:
         }
 
         const int min_chunk_size = ceil_divide(100, static_cast<int>(clients.size()));
-        static const int min_reasonable_tickets = 10;
+        const int min_reasonable_tickets = 10;
 
         {
             /* We cannot risk a client disconnecting while we are in here. That would
