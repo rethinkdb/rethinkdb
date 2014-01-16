@@ -274,43 +274,22 @@ void set_superblock_metainfo(alt_buf_lock_t *superblock,
     }
 }
 
-#if SLICE_ALT
 void delete_superblock_metainfo(alt_buf_lock_t *superblock,
                                 const std::vector<char> &key) {
-#else
-void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, const std::vector<char> &key) {
-#endif
-#if SLICE_ALT
     alt_buf_write_t write(superblock);
     btree_superblock_t *const data
         = static_cast<btree_superblock_t *>(write.get_data_write());
-#else
-    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
-#endif
 
-#if SLICE_ALT
     alt::blob_t blob(superblock->cache()->get_block_size(),
                      data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-#else
-    blob_t blob(txn->get_cache()->get_block_size(),
-                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-#endif
 
     std::vector<char> metainfo;
 
     {
-#if SLICE_ALT
         alt::blob_acq_t acq;
-#else
-        blob_acq_t acq;
-#endif
         buffer_group_t group;
-#if SLICE_ALT
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
-#else
-        blob.expose_all(txn, rwi_read, &group, &acq);
-#endif
 
         int64_t group_size = group.get_size();
         metainfo.resize(group_size);
@@ -321,11 +300,7 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
-#if SLICE_ALT
     blob.clear(alt_buf_parent_t(superblock));
-#else
-    blob.clear(txn);
-#endif
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -339,25 +314,13 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
         std::vector<char>::iterator q = metainfo.begin() + (info_end - metainfo.data());
         metainfo.erase(p, q);
 
-#if SLICE_ALT
         blob.append_region(alt_buf_parent_t(superblock), metainfo.size());
-#else
-        blob.append_region(txn, metainfo.size());
-#endif
 
         {
-#if SLICE_ALT
             alt::blob_acq_t acq;
-#else
-            blob_acq_t acq;
-#endif
             buffer_group_t write_group;
-#if SLICE_ALT
             blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::write,
                             &write_group, &acq);
-#else
-            blob.expose_all(txn, rwi_write, &write_group, &acq);
-#endif
 
             buffer_group_t group_cpy;
             group_cpy.add_buffer(metainfo.size(), metainfo.data());
@@ -367,7 +330,6 @@ void delete_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock, cons
     }
 }
 
-#if SLICE_ALT
 void clear_superblock_metainfo(alt_buf_lock_t *superblock) {
     alt_buf_write_t write(superblock);
     auto data = static_cast<btree_superblock_t *>(write.get_data_write());
@@ -376,20 +338,11 @@ void clear_superblock_metainfo(alt_buf_lock_t *superblock) {
                      btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob.clear(alt_buf_parent_t(superblock));
 }
-#else
-void clear_superblock_metainfo(transaction_t *txn, buf_lock_t *superblock) {
-    btree_superblock_t *data = static_cast<btree_superblock_t *>(superblock->get_data_write());
-    blob_t blob(txn->get_cache()->get_block_size(),
-                data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-    blob.clear(txn);
-}
-#endif
 
 void insert_root(block_id_t root_id, superblock_t* sb) {
     sb->set_root_block_id(root_id);
 }
 
-#if SLICE_ALT
 void ensure_stat_block(superblock_t *sb) {
     const block_id_t node_id = sb->get_stat_block_id();
 
@@ -403,25 +356,7 @@ void ensure_stat_block(superblock_t *sb) {
         sb->set_stat_block_id(temp_lock.block_id());
     }
 }
-#endif
 
-void ensure_stat_block(transaction_t *txn, superblock_t *sb, eviction_priority_t stat_block_eviction_priority) {
-    rassert(ZERO_EVICTION_PRIORITY < stat_block_eviction_priority);
-
-    block_id_t node_id = sb->get_stat_block_id();
-
-    if (node_id == NULL_BLOCK_ID) {
-        //Create a block
-        buf_lock_t temp_lock(txn);
-        //Make the stat block be the default constructed statblock
-        *static_cast<btree_statblock_t *>(temp_lock.get_data_write()) = btree_statblock_t();
-        sb->set_stat_block_id(temp_lock.get_block_id());
-
-        temp_lock.set_eviction_priority(stat_block_eviction_priority);
-    }
-}
-
-#if SLICE_ALT
 void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
               alt_buf_lock_t *buf_out) {
     guarantee(buf_out->empty());
@@ -440,29 +375,6 @@ void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
         }
         insert_root(temp_lock.block_id(), sb);
         buf_out->swap(temp_lock);
-    }
-}
-#endif
-
-// Get a root block given a superblock, or make a new root if there isn't one.
-void get_root(value_sizer_t<void> *sizer, transaction_t *txn, superblock_t* sb, buf_lock_t *buf_out, eviction_priority_t root_eviction_priority) {
-    rassert(!buf_out->is_acquired());
-    rassert(ZERO_EVICTION_PRIORITY < root_eviction_priority);
-
-    block_id_t node_id = sb->get_root_block_id();
-
-    if (node_id != NULL_BLOCK_ID) {
-        buf_lock_t temp_lock(txn, node_id, rwi_write);
-        buf_out->swap(temp_lock);
-    } else {
-        buf_lock_t temp_lock(txn);
-        buf_out->swap(temp_lock);
-        leaf::init(sizer, static_cast<leaf_node_t *>(buf_out->get_data_write()));
-        insert_root(buf_out->get_block_id(), sb);
-    }
-
-    if (buf_out->get_eviction_priority() == DEFAULT_EVICTION_PRIORITY) {
-        buf_out->set_eviction_priority(root_eviction_priority);
     }
 }
 
