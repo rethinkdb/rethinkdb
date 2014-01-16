@@ -241,12 +241,12 @@ private:
     }
 
     void redistribute_tickets() {
-        static const int min_chunk_size = ceil_divide(100, static_cast<int>(clients.size()));
-        static const int min_reasonable_tickets = 10;
-
-        if (free_tickets <= 0) {
+        if (free_tickets <= 0 || clients.empty()) {
             return;
         }
+
+        static const int min_chunk_size = ceil_divide(100, static_cast<int>(clients.size()));
+        static const int min_reasonable_tickets = 10;
 
         {
             /* We cannot risk a client disconnecting while we are in here. That would
@@ -270,15 +270,17 @@ private:
                have enough free tickets to give at least 1 to every critical client.
                That way we will at least give something to the first couple
                of clients.*/
-            int gift_size_for_critical_clients = std::min(min_reasonable_tickets,
-                    ceil_divide(free_tickets, critical_clients.size()));
-            for (auto itr = critical_clients.begin(); itr != critical_clients.end(); ++itr) {
-                int tickets_client_actually_wants =
-                    (*itr)->get_target_tickets() - (*itr)->get_current_tickets();
-                int gift_size = std::min(free_tickets,
-                    std::min(tickets_client_actually_wants, gift_size_for_critical_clients));
-                free_tickets -= gift_size;
-                tickets_to_give[*itr] += gift_size;
+            if (!critical_clients.empty()) {
+                int gift_size_for_critical_clients = std::min(min_reasonable_tickets,
+                        ceil_divide(free_tickets, critical_clients.size()));
+                for (auto itr = critical_clients.begin(); itr != critical_clients.end(); ++itr) {
+                    int tickets_client_actually_wants =
+                        (*itr)->get_target_tickets() - (*itr)->get_current_tickets();
+                    int gift_size = std::min(free_tickets,
+                        std::min(tickets_client_actually_wants, gift_size_for_critical_clients));
+                    free_tickets -= gift_size;
+                    tickets_to_give[*itr] += gift_size;
+                }
             }
 
             /* Next, look for clients with a large difference between their target
