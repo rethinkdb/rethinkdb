@@ -908,9 +908,6 @@ public:
 };
 
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-#if !SLICE_ALT
-                    transaction_t *txn,
-#endif
                     superblock_t *superblock,
                     ql::env_t *ql_env, const ql::batchspec_t &batchspec,
                     const rdb_protocol_details::transform_t &transform,
@@ -918,17 +915,10 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     sorting_t sorting,
                     rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
-#if SLICE_ALT
     rdb_rget_depth_first_traversal_callback_t callback(
             ql_env, batchspec, transform, terminal, range, sorting, response, slice);
     btree_concurrent_traversal(slice, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
-#else
-    rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, batchspec, transform, terminal, range, sorting, response, slice);
-    btree_concurrent_traversal(slice, txn, superblock, range, &callback,
-                               (!reversed(sorting) ? FORWARD : BACKWARD));
-#endif
 
     response->truncated = callback.batcher.should_send_batch();
 
@@ -939,9 +929,6 @@ void rdb_rget_secondary_slice(
     btree_slice_t *slice,
     const datum_range_t &sindex_range,
     const rdb_protocol_t::region_t &sindex_region,
-#if !SLICE_ALT
-    transaction_t *txn,
-#endif
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
@@ -953,46 +940,26 @@ void rdb_rget_secondary_slice(
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response) {
     profile::starter_t starter("Do range scan on secondary index.", ql_env->trace);
-#if SLICE_ALT
     rdb_rget_depth_first_traversal_callback_t callback(
         ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
         sorting, sindex_func, sindex_multi, sindex_range, response, slice);
     btree_concurrent_traversal(
         slice, superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
-#else
-    rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
-        sorting, sindex_func, sindex_multi, sindex_range, response, slice);
-    btree_concurrent_traversal(
-        slice, txn, superblock, sindex_region.inner, &callback,
-        (!reversed(sorting) ? FORWARD : BACKWARD));
-#endif
 
     response->truncated = callback.batcher.should_send_batch();
 
     boost::apply_visitor(result_finalizer_visitor_t(), response->result);
 }
 
-#if SLICE_ALT
 void rdb_distribution_get(btree_slice_t *slice, int max_depth,
                           const store_key_t &left_key,
                           superblock_t *superblock,
                           distribution_read_response_t *response) {
-#else
-void rdb_distribution_get(btree_slice_t *slice, int max_depth,
-                          const store_key_t &left_key,
-                          transaction_t *txn, superblock_t *superblock,
-                          distribution_read_response_t *response) {
-#endif
     int64_t key_count_out;
     std::vector<store_key_t> key_splits;
-#if SLICE_ALT
     get_btree_key_distribution(slice, superblock, max_depth,
                                &key_count_out, &key_splits);
-#else
-    get_btree_key_distribution(slice, txn, superblock, max_depth, &key_count_out, &key_splits);
-#endif
 
     int64_t keys_per_bucket;
     if (key_splits.size() == 0) {
@@ -1058,70 +1025,26 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         btree_store_t<rdb_protocol_t> *store,
-#if !SLICE_ALT
-        write_token_pair_t *token_pair,
-#endif
-#if SLICE_ALT
         alt_buf_lock_t *sindex_block,
-#else
-        transaction_t *txn,
-        block_id_t sindex_block_id,
-#endif
         auto_drainer_t::lock_t lock)
-    : lock_(lock), store_(store)
-#if SLICE_ALT
-    , sindex_block_(sindex_block)
-#else
-    , token_pair_(token_pair)
-    , txn_(txn)
-    , sindex_block_id_(sindex_block_id)
-#endif
-{
-#if SLICE_ALT
+    : lock_(lock), store_(store),
+      sindex_block_(sindex_block) {
     store_->acquire_post_constructed_sindex_superblocks_for_write(
             sindex_block_, &sindexes_);
-#endif
 }
 
-rdb_modification_report_cb_t::~rdb_modification_report_cb_t() {
-#if !SLICE_ALT
-    if (token_pair_->sindex_write_token.has()) {
-        token_pair_->sindex_write_token.reset();
-    }
-#endif
-}
+rdb_modification_report_cb_t::~rdb_modification_report_cb_t() { }
 
 void rdb_modification_report_cb_t::on_mod_report(
         const rdb_modification_report_t &mod_report) {
-#if !SLICE_ALT
-    if (!sindex_block_.has()) {
-        // Don't allow interruption here, or we may end up with inconsistent data
-        cond_t dummy_interruptor;
-        store_->acquire_sindex_block_for_write(
-            token_pair_, txn_, &sindex_block_,
-            sindex_block_id_, &dummy_interruptor);
-
-        store_->acquire_post_constructed_sindex_superblocks_for_write(
-                sindex_block_.get(), txn_, &sindexes_);
-    }
-#endif
-
     mutex_t::acq_t acq;
-#if SLICE_ALT
     store_->lock_sindex_queue(sindex_block_, &acq);
-#else
-    store_->lock_sindex_queue(sindex_block_.get(), &acq);
-#endif
 
     write_message_t wm;
     wm << rdb_sindex_change_t(mod_report);
     store_->sindex_queue_push(wm, &acq);
 
-#if SLICE_ALT
     rdb_update_sindexes(sindexes_, &mod_report, sindex_block_->txn());
-#else
-    rdb_update_sindexes(sindexes_, &mod_report, txn_);
-#endif
 }
 
 typedef btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindex_access_vector_t;
@@ -1147,9 +1070,6 @@ void compute_keys(const store_key_t &primary_key, counted_t<const ql::datum_t> d
 void rdb_update_single_sindex(
         const btree_store_t<rdb_protocol_t>::sindex_access_t *sindex,
         const rdb_modification_report_t *modification,
-#if !SLICE_ALT
-        transaction_t *txn,
-#endif
         auto_drainer_t::lock_t) {
     // Note if you get this error it's likely that you've passed in a default
     // constructed mod_report. Don't do that.  Mod reports should always be passed
@@ -1189,31 +1109,16 @@ void rdb_update_single_sindex(
                 {
                     keyvalue_location_t<rdb_value_t> kv_location;
 
-#if SLICE_ALT
                     find_keyvalue_location_for_write(super_block,
                                                      it->btree_key(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
                                                      env.trace.get_or_null(),
                                                      &return_superblock_local);
-#else
-                    find_keyvalue_location_for_write(txn, super_block,
-                                                     it->btree_key(),
-                                                     &kv_location,
-                                                     &sindex->btree->root_eviction_priority,
-                                                     &sindex->btree->stats,
-                                                     env.trace.get_or_null(),
-                                                     &return_superblock_local);
-#endif
 
                     if (kv_location.value.has()) {
-#if SLICE_ALT
                         kv_location_delete(&kv_location, *it,
                             repli_timestamp_t::distant_past, NULL);
-#else
-                        kv_location_delete(&kv_location, *it,
-                            sindex->btree, repli_timestamp_t::distant_past, txn, NULL);
-#endif
                     }
                     // The keyvalue location gets destroyed here.
                 }
@@ -1237,32 +1142,16 @@ void rdb_update_single_sindex(
                 {
                     keyvalue_location_t<rdb_value_t> kv_location;
 
-#if SLICE_ALT
                     find_keyvalue_location_for_write(super_block,
                                                      it->btree_key(),
                                                      &kv_location,
                                                      &sindex->btree->stats,
                                                      env.trace.get_or_null(),
                                                      &return_superblock_local);
-#else
-                    find_keyvalue_location_for_write(txn, super_block,
-                                                     it->btree_key(),
-                                                     &kv_location,
-                                                     &sindex->btree->root_eviction_priority,
-                                                     &sindex->btree->stats,
-                                                     env.trace.get_or_null(),
-                                                     &return_superblock_local);
-#endif
 
-#if SLICE_ALT
                     kv_location_set(&kv_location, *it,
                                     modification->info.added.second,
                                     repli_timestamp_t::distant_past);
-#else
-                    kv_location_set(&kv_location, *it,
-                                    modification->info.added.second, sindex->btree,
-                                    repli_timestamp_t::distant_past, txn);
-#endif
                     // The keyvalue location gets destroyed here.
                 }
                 super_block = return_superblock_local.wait();
