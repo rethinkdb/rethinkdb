@@ -44,12 +44,23 @@ counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
 }
 
 const counted_t<const ql::datum_t> &lazy_json_t::get() const {
-    if (!pointee->ptr) {
+    guarantee(pointee.has());
+    if (!pointee->ptr.has()) {
 #if SLICE_ALT
         pointee->ptr = get_data(pointee->rdb_value, pointee->parent);
 #else
         pointee->ptr = get_data(pointee->rdb_value, pointee->txn);
 #endif
+        pointee->rdb_value = NULL;
+#if SLICE_ALT
+        pointee->parent = alt_buf_parent_t();
+#else
+        pointee->txn = NULL;
+#endif
     }
     return pointee->ptr;
+}
+
+void lazy_json_t::reset() {
+    pointee.reset();
 }

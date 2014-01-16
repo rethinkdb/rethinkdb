@@ -161,6 +161,7 @@ public:
 
     void rcheck_is_ptype(const std::string s = "") const;
     void rcheck_valid_replace(counted_t<const datum_t> old_val,
+                              counted_t<const datum_t> orig_key,
                               const std::string &pkey) const;
 
 private:

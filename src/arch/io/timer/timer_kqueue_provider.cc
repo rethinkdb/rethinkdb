@@ -92,7 +92,7 @@ void timer_kqueue_provider_t::on_event(int eventmask) {
         int res;
         do {
             res = kevent64(kq_fd_, NULL, 0, events, num_events, 0, &timeout);
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
 
         guarantee_err(res != -1, "kevent64 failed when reading timer");
 

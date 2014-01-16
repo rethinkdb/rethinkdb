@@ -39,8 +39,8 @@ struct test_driver_t {
     int old_thread_id;
     test_driver_t() : conflict_resolver(&get_global_perfmon_collection()) {
         /* Fake thread-context to make perfmons work. */
-        old_thread_id = linux_thread_pool_t::thread_id;
-        linux_thread_pool_t::thread_id = 0;
+        old_thread_id = linux_thread_pool_t::get_thread_id();
+        linux_thread_pool_t::set_thread_id(0);
 
         conflict_resolver.submit_fun = boost::bind(
             &test_driver_t::submit_from_conflict_resolving_diskmgr, this, _1);
@@ -48,7 +48,7 @@ struct test_driver_t {
             &test_driver_t::done_from_conflict_resolving_diskmgr, this, _1);
     }
     ~test_driver_t() {
-        linux_thread_pool_t::thread_id = old_thread_id;
+        linux_thread_pool_t::set_thread_id(old_thread_id);
     }
 
     void submit(action_t *a) {

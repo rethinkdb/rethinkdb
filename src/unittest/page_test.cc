@@ -13,6 +13,7 @@
 namespace unittest {
 
 using alt::alt_access_t;
+using alt::alt_create_t;
 using alt::current_page_acq_t;
 using alt::current_page_t;
 using alt::page_acq_t;
@@ -130,7 +131,7 @@ void run_OneWriteAcqWait() {
     mock_ser_t mock;
     page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     page_txn_t txn(&page_cache);
-    current_page_acq_t acq(&txn, alt_access_t::write);
+    current_page_acq_t acq(&txn, alt_create_t::create);
     page_acq_t page_acq;
     page_t *page = acq.current_page_for_write();
     page_acq.init(page, &page_cache);
@@ -241,7 +242,8 @@ private:
         {
             page_txn_t txn1(c);
             txn1_ptr = &txn1;
-            auto acq6 = make_scoped<current_page_acq_t>(&txn1, alt_access_t::write);
+            auto acq6 = make_scoped<current_page_acq_t>(&txn1,
+                                                        alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[6]);
             b[6] = acq6->block_id();
 
@@ -283,7 +285,7 @@ private:
 
             condE.wait();
 
-            auto acq7 = make_scoped<current_page_acq_t>(&txn2, alt_access_t::write);
+            auto acq7 = make_scoped<current_page_acq_t>(&txn2, alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[7]);
             b[7] = acq7->block_id();
 
@@ -296,11 +298,11 @@ private:
 
             condF.wait();
 
-            auto acq8 = make_scoped<current_page_acq_t>(&txn2, alt_access_t::write);
+            auto acq8 = make_scoped<current_page_acq_t>(&txn2, alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[8]);
             b[8] = acq8->block_id();
 
-            auto acq9 = make_scoped<current_page_acq_t>(&txn2, alt_access_t::write);
+            auto acq9 = make_scoped<current_page_acq_t>(&txn2, alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[9]);
             b[9] = acq9->block_id();
 
@@ -431,8 +433,7 @@ private:
             acq6.reset();
             acq7->write_acq_signal()->wait();
             check_and_append(acq7, "t2", "t5");
-            auto acq10 = make_scoped<current_page_acq_t>(&txn5,
-                                                         alt_access_t::write);
+            auto acq10 = make_scoped<current_page_acq_t>(&txn5, alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[10]);
             b[10] = acq10->block_id();
 
@@ -443,7 +444,7 @@ private:
             make_empty(acq10);
             check_and_append(acq10, "", "t5");
 
-            auto acq16 = make_scoped<current_page_acq_t>(&txn5, alt_access_t::write);
+            auto acq16 = make_scoped<current_page_acq_t>(&txn5, alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[16]);
             b[16] = acq16->block_id();
 
@@ -462,20 +463,20 @@ private:
     void run_txn6(auto_drainer_t::lock_t) {
         {
             page_txn_t txn6(c);
-            auto acq0 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
+            auto acq0 = make_scoped<current_page_acq_t>(&txn6, alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[0]);
             b[0] = acq0->block_id();
             acq0->write_acq_signal()->wait();
             make_empty(acq0);
             check_and_append(acq0, "", "t6");
-            auto acq1 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
+            auto acq1 = make_scoped<current_page_acq_t>(&txn6, alt_create_t::create);
             acq0.reset();
             ASSERT_EQ(NULL_BLOCK_ID, b[1]);
             b[1] = acq1->block_id();
             acq1->write_acq_signal()->wait();
             make_empty(acq1);
             check_and_append(acq1, "", "t6");
-            auto acq2 = make_scoped<current_page_acq_t>(&txn6, alt_access_t::write);
+            auto acq2 = make_scoped<current_page_acq_t>(&txn6, alt_create_t::create);
             acq1.reset();
             ASSERT_EQ(NULL_BLOCK_ID, b[2]);
             b[2] = acq2->block_id();
@@ -496,13 +497,13 @@ private:
     void run_txn7(auto_drainer_t::lock_t) {
         {
             page_txn_t txn7(c);
-            auto acq3 = make_scoped<current_page_acq_t>(&txn7, alt_access_t::write);
+            auto acq3 = make_scoped<current_page_acq_t>(&txn7, alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[3]);
             b[3] = acq3->block_id();
             acq3->write_acq_signal()->wait();
             make_empty(acq3);
             check_and_append(acq3, "", "t7");
-            auto acq4 = make_scoped<current_page_acq_t>(&txn7, alt_access_t::write);
+            auto acq4 = make_scoped<current_page_acq_t>(&txn7, alt_create_t::create);
             acq3.reset();
             ASSERT_EQ(NULL_BLOCK_ID, b[4]);
             b[4] = acq4->block_id();
@@ -519,7 +520,7 @@ private:
     void run_txn8(auto_drainer_t::lock_t) {
         {
             page_txn_t txn8(c);
-            auto acq5 = make_scoped<current_page_acq_t>(&txn8, alt_access_t::write);
+            auto acq5 = make_scoped<current_page_acq_t>(&txn8, alt_create_t::create);
             ASSERT_EQ(NULL_BLOCK_ID, b[5]);
             b[5] = acq5->block_id();
             acq5->write_acq_signal()->wait();
@@ -558,7 +559,7 @@ private:
     }
 
     void run_txn9A(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
-        auto acq11 = make_scoped<current_page_acq_t>(txn9, alt_access_t::write);
+        auto acq11 = make_scoped<current_page_acq_t>(txn9, alt_create_t::create);
         ASSERT_EQ(NULL_BLOCK_ID, b[11]);
         b[11] = acq11->block_id();
 
@@ -594,7 +595,7 @@ private:
     }
 
     void run_txn9C(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
-        auto acq12 = make_scoped<current_page_acq_t>(txn9, alt_access_t::write);
+        auto acq12 = make_scoped<current_page_acq_t>(txn9, alt_create_t::create);
         ASSERT_EQ(NULL_BLOCK_ID, b[12]);
         b[12] = acq12->block_id();
 
@@ -610,7 +611,7 @@ private:
     }
 
     void run_txn9D(page_txn_t *txn9, auto_drainer_t::lock_t) {
-        auto acq13 = make_scoped<current_page_acq_t>(txn9, alt_access_t::write);
+        auto acq13 = make_scoped<current_page_acq_t>(txn9, alt_create_t::create);
         ASSERT_EQ(NULL_BLOCK_ID, b[13]);
         b[13] = acq13->block_id();
 
@@ -623,7 +624,7 @@ private:
     }
 
     void run_txn9E(page_txn_t *txn9, auto_drainer_t::lock_t) {
-        auto acq14 = make_scoped<current_page_acq_t>(txn9, alt_access_t::write);
+        auto acq14 = make_scoped<current_page_acq_t>(txn9, alt_create_t::create);
         ASSERT_EQ(NULL_BLOCK_ID, b[14]);
         b[14] = acq14->block_id();
 
@@ -637,7 +638,7 @@ private:
     void run_txn9F(page_txn_t *txn9, auto_drainer_t::lock_t lock) {
         condU.wait();
 
-        auto acq15 = make_scoped<current_page_acq_t>(txn9, alt_access_t::write);
+        auto acq15 = make_scoped<current_page_acq_t>(txn9, alt_create_t::create);
         ASSERT_EQ(NULL_BLOCK_ID, b[15]);
         b[15] = acq15->block_id();
 
@@ -780,7 +781,7 @@ private:
             // Thanks to predictable free list behavior, we expect this new block to have
             // the same block id as the block id b[8], which was deleted by run_txn11
             // just before condX2 got pulsed.
-            auto acq8 = make_scoped<current_page_acq_t>(&txn12, alt_access_t::write);
+            auto acq8 = make_scoped<current_page_acq_t>(&txn12, alt_create_t::create);
             ASSERT_EQ(b[8], acq8->block_id());
             acq7.reset();
 

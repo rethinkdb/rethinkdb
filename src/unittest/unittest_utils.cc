@@ -60,7 +60,7 @@ temp_file_t::temp_file_t() {
 
         // Check that both the permanent and temporary file paths are unused.
         const std::string tmpfilename = std::string(tmpl) + temp_file_create_suffix;
-        if (::access(tmpfilename.c_str(), F_OK) == -1 && errno == ENOENT) {
+        if (::access(tmpfilename.c_str(), F_OK) == -1 && get_errno() == ENOENT) {
             filename = tmpl;
             break;
         } else {
@@ -73,9 +73,9 @@ temp_file_t::temp_file_t() {
 temp_file_t::~temp_file_t() {
     // Unlink both possible locations of the file.
     const int res1 = ::unlink(name().temporary_path().c_str());
-    EXPECT_TRUE(res1 == 0 || errno == ENOENT);
+    EXPECT_TRUE(res1 == 0 || get_errno() == ENOENT);
     const int res2 = ::unlink(name().permanent_path().c_str());
-    EXPECT_TRUE(res2 == 0 || errno == ENOENT);
+    EXPECT_TRUE(res2 == 0 || get_errno() == ENOENT);
 }
 
 serializer_filepath_t temp_file_t::name() const {

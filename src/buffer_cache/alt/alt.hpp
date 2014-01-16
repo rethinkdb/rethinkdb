@@ -6,34 +6,36 @@
 
 #include "buffer_cache/alt/page.hpp"
 #include "buffer_cache/general_types.hpp"
+#include "concurrency/auto_drainer.hpp"
+#include "concurrency/semaphore.hpp"
+#include "containers/two_level_array.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 #include "buffer_cache/alt/semantic_checker.hpp"
 
-class auto_drainer_t;
 class serializer_t;
 
 namespace alt {
 
 class alt_buf_lock_t;
-
-enum class alt_create_t {
-    create,
-};
+class alt_snapshot_node_t;
 
 class alt_memory_tracker_t : public memory_tracker_t {
 public:
-    alt_memory_tracker_t() { }
-    void inform_memory_change(UNUSED uint64_t in_memory_size,
-                              UNUSED uint64_t memory_limit) {
-        // RSI: implement this.
-    }
+    alt_memory_tracker_t();
+    ~alt_memory_tracker_t();
+    void inform_memory_change(uint64_t in_memory_size,
+                              uint64_t memory_limit);
+    void begin_txn_or_throttle(int64_t expected_change_count);
+    void end_txn(int64_t saved_expected_change_count);
+private:
+    adjustable_semaphore_t semaphore_;
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
 class alt_cache_t : public home_thread_mixin_t {
 public:
-    alt_cache_t(serializer_t *serializer);
+    explicit alt_cache_t(serializer_t *serializer);
     ~alt_cache_t();
 
     block_size_t max_block_size() const;
@@ -46,6 +48,14 @@ private:
     friend class alt_buf_read_t;  // for &page_cache_
     friend class alt_buf_write_t;  // for &page_cache_
 
+    friend class alt_buf_lock_t;  // for latest_snapshot_node and
+                                  // push_latest_snapshot_node
+
+    alt_snapshot_node_t *matching_snapshot_node_or_null(block_id_t block_id,
+                                                        block_version_t block_version);
+    void add_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
+    void remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
+
     // tracker_ is used for throttling (which can cause the alt_txn_t constructor to
     // block).  RSI: The throttling interface is bad (maybe) because it's worried
     // about transaction_t's passing one another(?) or maybe the callers are bad with
@@ -53,6 +63,8 @@ private:
     // their ordering, once they begin to play a role.
     alt_memory_tracker_t tracker_;
     page_cache_t page_cache_;
+
+    two_level_nevershrink_array_t<intrusive_list_t<alt_snapshot_node_t> > snapshot_nodes_by_block_id_;
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 
@@ -80,36 +92,62 @@ private:
 
     alt_cache_t *cache_;
     page_txn_t page_txn_;
-    // RSI: Is this_txn_timestamp_ used?  How?
-    repli_timestamp_t this_txn_timestamp_;
 
     DISABLE_COPYING(alt_inner_txn_t);
 };
 
 class alt_txn_t {
 public:
-    alt_txn_t(alt_cache_t *cache, write_durability_t durability,
+    // RSI: Remove default parameter for expected_change_count.
+    alt_txn_t(alt_cache_t *cache,
+              write_durability_t durability,
+              int64_t expected_change_count = 2,
               alt_txn_t *preceding_txn = NULL);
-    alt_txn_t(alt_cache_t *cache, alt_txn_t *preceding_txn = NULL);
+
     ~alt_txn_t();
 
     alt_cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
 private:
+    static void destroy_inner_txn(alt_inner_txn_t *inner,
+                                  alt_cache_t *cache,
+                                  int64_t saved_expected_change_count,
+                                  auto_drainer_t::lock_t);
+
     const write_durability_t durability_;
+    const int64_t saved_expected_change_count_;  // RSI: A fugly relationship with
+                                                 // the tracker.
     scoped_ptr_t<alt_inner_txn_t> inner_;
     DISABLE_COPYING(alt_txn_t);
 };
 
-class alt_snapshot_node_t : public single_threaded_countable_t<alt_snapshot_node_t> {
+// The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
+// given block id, in order by version.  (See
+// alt_cache_t::snapshot_nodes_by_block_id_.)
+class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
 public:
-    alt_snapshot_node_t();
+    alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
     ~alt_snapshot_node_t();
 
 private:
-    page_t *page_;
+    // RSI: Should this really use friends?  Does this type need to be visible in the
+    // header?
+    friend class alt_buf_lock_t;
+    friend class alt_cache_t;
 
-    std::vector<alt_snapshot_node_t *> children_;
+    // This is never null (and is always a current_page_acq_t that has had
+    // declare_snapshotted() called).
+    scoped_ptr_t<current_page_acq_t> current_page_acq_;
+
+    // RSP: std::map memory usage.
+    // A NULL pointer associated with a block id indicates that the block is deleted.
+    std::map<block_id_t, alt_snapshot_node_t *> children_;
+
+    // The number of alt_buf_lock_t's referring to this node, plus the number of
+    // alt_snapshot_node_t's referring to this node (via its children_ vector).
+    int64_t ref_count_;
+
+
     DISABLE_COPYING(alt_snapshot_node_t);
 };
 
@@ -141,16 +179,15 @@ public:
                    block_id_t block_id,
                    alt_access_t access);
 
-    // Nonblocking constructor that acquires a block with a new block id.  (RSI: Is
-    // this useful for _anything_?  We refer to the superblock by name.)  `access`
+    // Nonblocking constructor that acquires a block with a new block id.  `access`
     // must be `write`.
     alt_buf_lock_t(alt_buf_parent_t parent,
-                   alt_create_t access);
+                   alt_create_t create);
 
     // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
     // pulsed.  Allocates a block with a new block id.  `access` must be `write`.
     alt_buf_lock_t(alt_buf_lock_t *parent,
-                   alt_create_t access);
+                   alt_create_t create);
 
     // Nonblocking constructor, IF parent->{access}_acq_signal() has already
     // been pulsed.  Creates a new block with specified block id.
@@ -173,18 +210,9 @@ public:
 
     void detach_child(block_id_t child_id);
 
-    // Reduces access to readonly.
-    void reduce_to_readonly();
-
-    // Reduces access to nothing, but we still hold the block for snapshotting
-    // purposes.
-    void reduce_to_nothing();
-
-
-
     block_id_t block_id() const {
         guarantee(txn_ != NULL);
-        return current_page_acq_->block_id();
+        return current_page_acq()->block_id();
     }
     // RSI: Remove get_block_id().
     block_id_t get_block_id() const { return block_id(); }
@@ -194,31 +222,44 @@ public:
 
     alt_access_t access() const {
         guarantee(!empty());
-        return current_page_acq_->access();
+        return current_page_acq()->access();
     }
 
     signal_t *read_acq_signal() {
         guarantee(!empty());
-        return current_page_acq_->read_acq_signal();
+        return current_page_acq()->read_acq_signal();
     }
     signal_t *write_acq_signal() {
         guarantee(!empty());
-        return current_page_acq_->write_acq_signal();
+        return current_page_acq()->write_acq_signal();
     }
 
-    void mark_deleted() {
-        guarantee(!empty());
-        current_page_acq_->mark_deleted();
-    }
+    void mark_deleted();
 
     alt_txn_t *txn() const { return txn_; }
     alt_cache_t *cache() const { return txn_->cache(); }
 
 private:
     static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
+    static alt_snapshot_node_t *
+    get_or_create_child_snapshot_node(alt_cache_t *cache,
+                                      alt_snapshot_node_t *parent,
+                                      block_id_t child_id);
+    static void create_empty_child_snapshot_nodes(alt_cache_t *cache,
+                                                  block_version_t parent_version,
+                                                  block_id_t parent_id,
+                                                  block_id_t child_id);
+    static void create_child_snapshot_nodes(alt_cache_t *cache,
+                                            block_version_t parent_version,
+                                            block_id_t parent_id,
+                                            block_id_t child_id);
+    current_page_acq_t *current_page_acq() const;
 
-    friend class alt_buf_read_t;
-    friend class alt_buf_write_t;
+    friend class alt_buf_read_t;  // for get_held_page_for_read, access_ref_count_.
+    friend class alt_buf_write_t;  // for get_held_page_for_write, access_ref_count_.
+
+    page_t *get_held_page_for_read();
+    page_t *get_held_page_for_write();
 
     alt_txn_t *txn_;
 
@@ -229,6 +270,9 @@ private:
     // Keeps track of how many alt_buf_{read|write}_t have been created for
     // this lock, for assertion/guarantee purposes.
     intptr_t access_ref_count_;
+
+    // RSI: We should get rid of this variable.
+    bool was_destroyed_;
 
     DISABLE_COPYING(alt_buf_lock_t);
 };

@@ -174,7 +174,7 @@ class Connection extends events.EventEmitter
         unless @open
             callback(new err.RqlDriverError "Connection is closed.")
             return
-        
+
         # Assign token
         token = @nextToken++
 
@@ -251,6 +251,12 @@ class Connection extends events.EventEmitter
                 val: r.expr(!!opts.profile).build()
             query.global_optargs.push(pair)
 
+        if opts.durability?
+            pair =
+                key: 'durability'
+                val: r.expr(opts.durability).build()
+            query.global_optargs.push(pair)
+
         # Save callback
         if (not opts.noreply?) or !opts.noreply
             @outstandingCallbacks[token] = {cb:cb, root:term, opts:opts}
@@ -280,17 +286,25 @@ class Connection extends events.EventEmitter
         # Serialize protobuf
         data = pb.SerializeQuery(query)
 
-        # Prepend length
-        totalBuf = new Buffer(data.length + 4)
-        totalBuf.writeUInt32LE(data.length, 0)
 
-        # Why loop and not just use Buffer.concat? Good question,
-        # The browserify implementation of Buffer.concat seems to
-        # be broken.
-        i = 0
-        while i < data.length
-            totalBuf.set(i+4, data.get(i))
-            i++
+        if pb.protobuf_implementation is 'cpp'
+            # The CPP backend can send back a SlowBuffer, which doesn't support .get() and .set()
+            lengthBuffer = new Buffer(4)
+            lengthBuffer.writeUInt32LE(data.length, 0)
+
+            totalBuf = Buffer.concat([lengthBuffer, data])
+        else
+            # Prepend length
+            totalBuf = new Buffer(data.length + 4)
+            totalBuf.writeUInt32LE(data.length, 0)
+
+            # Why loop and not just use Buffer.concat? Good question,
+            # The browserify implementation of Buffer.concat seems to
+            # be broken.
+            i = 0
+            while i < data.length
+                totalBuf.set(i+4, data.get(i))
+                i++
 
         @write totalBuf
 
@@ -353,7 +367,7 @@ class TcpConnection extends Connection
         @rawSocket.on 'error', (args...) => @emit 'error', args...
 
         @rawSocket.on 'close', => @open = false; @emit 'close', {noreplyWait: false}
-    
+
     close: (varar 0, 2, (optsOrCallback, callback) ->
         if callback?
             opts = optsOrCallback

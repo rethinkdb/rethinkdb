@@ -28,6 +28,9 @@ class page_txn_t;
 
 
 enum class alt_access_t { read, write };
+enum class alt_read_access_t { read };
+enum class alt_create_t { create };
+
 
 // A page_t represents a page (a byte buffer of a specific size), having a definite
 // value known at the construction of the page_t (and possibly later modified
@@ -130,6 +133,10 @@ public:
 
     page_ptr_t(page_ptr_t &&movee);
     page_ptr_t &operator=(page_ptr_t &&movee);
+
+    // RSI: Does anybody use this?
+    page_ptr_t copy();
+
     void init(page_t *page, page_cache_t *page_cache);
 
     page_t *get_page_for_read() const;
@@ -189,12 +196,22 @@ class block_version_t {
 public:
     block_version_t() : value_(0) { }
 
-    void increment() {
-        ++value_;
+    block_version_t subsequent() const {
+        block_version_t ret;
+        ret.value_ = value_ + 1;
+        return ret;
     }
 
     bool operator<(block_version_t other) const {
         return value_ < other.value_;
+    }
+
+    bool operator<=(block_version_t other) const {
+        return value_ <= other.value_;
+    }
+
+    bool operator>=(block_version_t other) const {
+        return value_ >= other.value_;
     }
 
     bool operator==(block_version_t other) const {
@@ -269,6 +286,8 @@ private:
     // different page_txn_t's can know which was the last to modify the block.
     block_version_t block_version_;
 
+    // Instead of storing the recency here, we store it page_cache_t::recencies_.
+
     // All list elements have current_page_ != NULL, snapshotted_page_ == NULL.
     intrusive_list_t<current_page_acq_t> acquirers_;
     DISABLE_COPYING(current_page_t);
@@ -279,7 +298,9 @@ class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t>,
 public:
     // RSI: Right now we support a default constructor but alt_buf_lock_t actually
     // uses a scoped pointer now, because getting this type to be swappable was too
-    // hard.  Make this type be swappable or remove the default constructor.
+    // hard.  Make this type be swappable or remove the default constructor.  (Remove
+    // the page_cache_ != NULL check in the destructor we remove the default
+    // constructor.)
     current_page_acq_t();
     // RSI: Clean up the interface (w.r.t. this create = false parameter).
     current_page_acq_t(page_txn_t *txn,
@@ -287,7 +308,10 @@ public:
                        alt_access_t access,
                        bool create = false);
     current_page_acq_t(page_txn_t *txn,
-                       alt_access_t access);  // access must be write.
+                       alt_create_t create);
+    current_page_acq_t(page_cache_t *cache,
+                       block_id_t block_id,
+                       alt_read_access_t read);
     ~current_page_acq_t();
 
     // Declares ourself snapshotted.  (You must be readonly to do this.)
@@ -299,11 +323,17 @@ public:
     page_t *current_page_for_read();
     page_t *current_page_for_write();
 
+    // Returns current_page_for_read, except it guarantees that the page acq has
+    // already snapshotted the page and is not waiting for the page_t *.
+    page_t *snapshotted_page_ptr();
+
     block_id_t block_id() const { return block_id_; }
     alt_access_t access() const { return access_; }
     repli_timestamp_t recency() const;
 
     void mark_deleted();
+
+    block_version_t block_version() const;
 
 private:
     void init(page_txn_t *txn,
@@ -311,24 +341,27 @@ private:
               alt_access_t access,
               bool create);
     void init(page_txn_t *txn,
-              alt_access_t access);  // access must be write.
-
+              alt_create_t create);
+    void init(page_cache_t *page_cache,
+              block_id_t block_id,
+              alt_read_access_t read);
     friend class page_txn_t;
     friend class current_page_t;
 
     // Returns true if the page has been created, edited, or deleted.
     bool dirtied_page() const;
-    block_version_t block_version() const;
     // Declares ourself readonly.  Only page_txn_t::remove_acquirer can do this!
     void declare_readonly();
 
     current_page_help_t help() const;
     page_cache_t *page_cache() const;
 
-    void pulse_read_available(block_version_t block_version);
+    void pulse_read_available();
     void pulse_write_available();
 
-    page_txn_t *txn_;
+    // RSI: the_txn_ is NULL if and only if access_ == read, these fields are redundant.
+    page_cache_t *page_cache_;
+    page_txn_t *the_txn_;  // RSI: Rename back to txn_.
     alt_access_t access_;
     bool declared_snapshotted_;
     // The block id of the page we acquired.
@@ -339,8 +372,16 @@ private:
     page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
-    // The block version for our acquisition of the page -- only valid once
-    // read_cond_ has been pulsed.
+
+    // The recency for our acquisition of the page.
+    repli_timestamp_t recency_;
+
+    // RSI: Isn't recency_ redundant with the block version?
+
+    // The block version for our acquisition of the page -- every write acquirer sees
+    // a greater block version than the previous acquirer.  The current page's block
+    // version will be less than or equal to this value if we have not yet acquired
+    // the page.  It could be greater than this value if we're snapshotted.
     block_version_t block_version_;
 
     bool dirtied_page_;
@@ -500,9 +541,24 @@ private:
 
     void im_waiting_for_flush(page_txn_t *txn);
 
+    repli_timestamp_t recency_for_block_id(block_id_t id) {
+        return recencies_.size() <= id
+            ? repli_timestamp_t::invalid
+            : recencies_[id];
+    }
+
+    void set_recency_for_block_id(block_id_t id, repli_timestamp_t recency) {
+        while (recencies_.size() <= id) {
+            recencies_.push_back(repli_timestamp_t::invalid);
+        }
+        recencies_[id] = recency;
+    }
+
     friend class current_page_t;
     serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
+
+    // RSI: Some of these things need postfix underscores.
 
     // We use a separate IO account for reads and writes, so reads can pass ahead of
     // active writebacks. Otherwise writebacks could badly block out readers, thereby
@@ -517,6 +573,7 @@ private:
     scoped_ptr_t<fifo_enforcer_sink_t> index_write_sink;
 
     serializer_t *serializer_;
+    segmented_vector_t<repli_timestamp_t> recencies_;
 
     // RSP: Array growth slow.
     std::vector<current_page_t *> current_pages_;
@@ -567,9 +624,13 @@ public:
 
     page_cache_t *page_cache() const { return page_cache_; }
 
+
 private:
     // page cache has access to all of this type's innards, including fields.
     friend class page_cache_t;
+
+    // For access to this_txn_recency_.
+    friend class current_page_t;
 
     // Adds and connects a preceder.
     void connect_preceder(page_txn_t *preceder);
@@ -588,6 +649,8 @@ private:
     void announce_waiting_for_flush_if_we_should();
 
     page_cache_t *page_cache_;
+
+    repli_timestamp_t this_txn_recency_;
 
     // The transactions that must be committed before or at the same time as this
     // transaction.  RSI: Are all these transactions those that still need to be

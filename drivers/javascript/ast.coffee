@@ -46,8 +46,8 @@ class TermBase
         # Parse out run options from connOrOptions object
         if connOrOptions? and connOrOptions.constructor is Object
             for own key of connOrOptions
-                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'profile']
-                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>}."
+                unless key in ['connection', 'useOutdated', 'noreply', 'timeFormat', 'profile', 'durability']
+                    throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."
             conn = connOrOptions.connection
             opts = connOrOptions
         else
@@ -57,7 +57,7 @@ class TermBase
         # This only checks that the argument is of the right type, connection
         # closed errors will be handled elsewhere
         unless conn? and conn._start?
-            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>}."
+            throw new err.RqlDriverError "First argument to `run` must be an open connection or { connection: <connection>, useOutdated: <bool>, noreply: <bool>, timeFormat: <string>, profile: <bool>, durability: <string>}."
 
         # We only require a callback if noreply isn't set
         if not opts.noreply and typeof(cb) isnt 'function'
@@ -121,7 +121,7 @@ class RDBVal extends TermBase
 
     merge: varar(1, null, (fields...) -> new Merge {}, @, fields.map(funcWrap)...)
     between: aropt (left, right, opts) -> new Between opts, @, left, right
-    reduce: varar(1, 2, (func, base) -> new Reduce {base:base}, @, funcWrap(func))
+    reduce: varar(1, 2, (func) -> new Reduce {}, @, funcWrap(func))
     map: ar (func) -> new Map {}, @, funcWrap(func)
     filter: aropt (predicate, opts) -> new Filter opts, @, funcWrap(predicate)
     concatMap: ar (func) -> new ConcatMap {}, @, funcWrap(func)
@@ -133,7 +133,7 @@ class RDBVal extends TermBase
     upcase: ar () -> new Upcase {}, @
     downcase: ar () -> new Downcase {}, @
     isEmpty: ar () -> new IsEmpty {}, @
-    groupedMapReduce: varar(3, 4, (group, map, reduce, base) -> new GroupedMapReduce {base:base}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
+    groupedMapReduce: varar(3, 4, (group, map, reduce) -> new GroupedMapReduce {}, @, funcWrap(group), funcWrap(map), funcWrap(reduce))
     innerJoin: ar (other, predicate) -> new InnerJoin {}, @, other, predicate
     outerJoin: ar (other, predicate) -> new OuterJoin {}, @, other, predicate
     eqJoin: aropt (left_attr, right, opts) -> new EqJoin opts, @, left_attr, right
@@ -781,7 +781,7 @@ class Func extends RDBOp
 
         body = func(args...)
         if body is undefined
-            throw new err.RqlDriverError "Annonymous function returned `undefined`. Did you forget a `return`?"
+            throw new err.RqlDriverError "Anonymous function returned `undefined`. Did you forget a `return`?"
 
         argsArr = new MakeArray({}, argNums...)
         return super(optargs, argsArr, body)

@@ -97,7 +97,7 @@ reader_t::reader_t(
     scoped_ptr_t<readgen_t> &&_readgen)
     : ns_access(_ns_access),
       use_outdated(_use_outdated),
-      started(false), finished(false),
+      started(false), shards_exhausted(false),
       readgen(std::move(_readgen)),
       active_range(readgen->original_keyrange()) { }
 
@@ -109,7 +109,7 @@ void reader_t::add_transformation(transform_variant_t &&tv) {
 rget_read_response_t::result_t
 reader_t::run_terminal(env_t *env, terminal_variant_t &&tv) {
     r_sanity_check(!started);
-    started = finished = true;
+    started = shards_exhausted = true;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
     rget_read_response_t res
         = do_read(env, readgen->terminal_read(transform, std::move(tv), batchspec));
@@ -163,7 +163,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
         *key = rng.left;
     }
 
-    finished = readgen->update_range(&active_range, res.last_considered_key);
+    shards_exhausted = readgen->update_range(&active_range, res.last_considered_key);
     auto v = boost::get<std::vector<rget_item_t> >(&res.result);
     r_sanity_check(v);
     return std::move(*v);
@@ -171,7 +171,7 @@ std::vector<rget_item_t> reader_t::do_range_read(env_t *env, const read_t &read)
 
 bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
     started = true;
-    if (items_index >= items.size() && !finished) { // read some more
+    if (items_index >= items.size() && !shards_exhausted) { // read some more
         items_index = 0;
         items = do_range_read(
             env, readgen->next_read(active_range, transform, batchspec));
@@ -202,7 +202,7 @@ bool reader_t::load_items(env_t *env, const batchspec_t &batchspec) {
         readgen->sindex_sort(&items);
     }
     if (items_index >= items.size()) {
-        finished = true;
+        shards_exhausted = true;
     }
     return items_index < items.size();
 }
@@ -277,11 +277,13 @@ reader_t::next_batch(env_t *env, const batchspec_t &batchspec) {
         tmp.swap(items);
     }
 
-    finished = (res.size() == 0) ? true : finished;
+    shards_exhausted = (res.size() == 0) ? true : shards_exhausted;
     return res;
 }
 
-bool reader_t::is_finished() const { return finished; }
+bool reader_t::is_finished() const {
+    return shards_exhausted && items_index >= items.size();
+}
 
 readgen_t::readgen_t(
     const std::map<std::string, wire_func_t> &_global_optargs,
@@ -538,6 +540,10 @@ counted_t<const datum_t> datum_stream_t::next(
     return d;
 }
 
+bool datum_stream_t::batch_cache_exhausted() const {
+    return batch_cache_index >= batch_cache.size();
+}
+
 counted_t<const datum_t> eager_datum_stream_t::count(env_t *env) {
     size_t acc = 0;
     batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env);
@@ -697,7 +703,7 @@ counted_t<const datum_t> lazy_datum_stream_t::gmr(
 
         {
             profile::sampler_t sampler(
-                "Grouping, mapping, and reducing lazily with base.", env->trace);
+                "Applying base to distributed grouped map reduce.", env->trace);
             for (size_t f = 0; f < dm_arr->size(); ++f) {
                 counted_t<const datum_t> key = dm_arr->get(f)->get("group");
                 counted_t<const datum_t> val = dm_arr->get(f)->get("reduction");
@@ -718,7 +724,7 @@ lazy_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) {
 }
 
 bool lazy_datum_stream_t::is_exhausted() const {
-    return reader.is_finished();
+    return reader.is_finished() && batch_cache_exhausted();
 }
 
 // ARRAY_DATUM_STREAM_T
@@ -948,7 +954,8 @@ slice_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &_batchspec)
 }
 
 bool slice_datum_stream_t::is_exhausted() const {
-    return left >= right || index >= right || source->is_exhausted();
+    return (left >= right || index >= right || source->is_exhausted())
+        && batch_cache_exhausted();
 }
 
 // ZIP_DATUM_STREAM_T
@@ -1090,7 +1097,7 @@ bool union_datum_stream_t::is_exhausted() const {
             return false;
         }
     }
-    return true;
+    return batch_cache_exhausted();
 }
 
 std::vector<counted_t<const datum_t> >

@@ -238,6 +238,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 #if !SLICE_ALT
                      transaction_t *txn,
 #endif
+#if SLICE_ALT
+                     alt::alt_buf_lock_t *sindex_block,
+#endif
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
 #if !SLICE_ALT

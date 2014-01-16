@@ -14,7 +14,7 @@ MUST_USE archive_result_t deserialize(read_stream_t *s, repli_timestamp_t *tstam
     return deserialize(s, &tstamp->longtime);
 }
 
-const repli_timestamp_t repli_timestamp_t::invalid = { static_cast<uint32_t>(-1) };
+const repli_timestamp_t repli_timestamp_t::invalid = { static_cast<uint64_t>(-1) };
 const repli_timestamp_t repli_timestamp_t::distant_past = { 0 };
 
 void debug_print(printf_buffer_t *buf, repli_timestamp_t tstamp) {

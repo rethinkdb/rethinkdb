@@ -61,6 +61,21 @@ batchspec_t batchspec_t::with_at_most(uint64_t _max_els) const {
         end_time);
 }
 
+batchspec_t batchspec_t::scale_down(int64_t divisor) const {
+    // These numbers are sort of arbitrary, but they seem to work.  We divide by
+    // 7/8th of the divisor and add 8 to reduce the chances of needing a second
+    // round-trip (we add a constant because unequal division is more likely
+    // with very small sizes).  Law of large numbers says that the chances of
+    // needing a second round-trip for large, non-pathological datasets are
+    // extremely low.
+    int64_t new_els_left = (els_left * 8 / (7 * divisor)) + 8;
+    int64_t new_size_left = (size_left * 8 / (7 * divisor)) + 8;
+    return batchspec_t(batch_type,
+                       std::min(els_left, new_els_left),
+                       std::min(size_left, new_size_left),
+                       end_time);
+}
+
 batcher_t batchspec_t::to_batcher() const {
     microtime_t real_end_time =
         batch_type == batch_type_t::NORMAL && end_time > current_microtime()

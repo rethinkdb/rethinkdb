@@ -330,7 +330,7 @@ message Term {
         // changed by passing 'closed' or 'open for `right_bound` or
         // `left_bound`.
         BETWEEN   = 36; // StreamSelection, DATUM, DATUM, {index:!STRING, right_bound:STRING, left_bound:STRING} -> StreamSelection
-        REDUCE    = 37; // Sequence, Function(2), {base:DATUM} -> DATUM
+        REDUCE    = 37; // Sequence, Function(2) -> DATUM
         MAP       = 38; // Sequence, Function(1) -> Sequence
 
         // Filter a sequence with either a function or a shortcut
@@ -360,7 +360,7 @@ message Term {
         // - A function to group the sequence by.
         // - A function to map over the groups.
         // - A reduction to apply to each of the groups.
-        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2), {base:DATUM} -> ARRAY
+        GROUPED_MAP_REDUCE = 46; // Sequence, Function(1), Function(1), Function(2) -> ARRAY
         // Groups a sequence by one or more attributes, and then applies a reduction.
         // The third argument is a special object literal giving the kind of operation to be
         // performed and any necessary arguments.

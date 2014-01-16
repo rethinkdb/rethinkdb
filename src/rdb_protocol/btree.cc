@@ -100,7 +100,6 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *txn,
         superblock_t *superblock, point_read_response_t *response, profile::trace_t *trace) {
 #endif
-    // debugf("rdb_get about to find_keyvalue_location_for_read\n");
     keyvalue_location_t<rdb_value_t> kv_location;
 #if SLICE_ALT
     find_keyvalue_location_for_read(superblock, store_key.btree_key(), &kv_location,
@@ -109,7 +108,6 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice, transaction_t *
     find_keyvalue_location_for_read(txn, superblock, store_key.btree_key(), &kv_location,
             slice->root_eviction_priority, &slice->stats, trace);
 #endif
-    // debugf("rdb_get find_keyvalue_location_for_read returned\n");
 
     if (!kv_location.value.has()) {
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
@@ -338,7 +336,8 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             ended_empty = true;
         } else if (new_val->get_type() == ql::datum_t::R_OBJECT) {
             ended_empty = false;
-            new_val->rcheck_valid_replace(old_val, primary_key);
+            new_val->rcheck_valid_replace(
+                old_val, counted_t<const ql::datum_t>(), primary_key);
             counted_t<const ql::datum_t> pk = new_val->get(primary_key, ql::NOTHROW);
             rcheck_target(
                 new_val, ql::base_exc_t::GENERIC,
@@ -437,23 +436,18 @@ void do_a_replace_from_batched_replace(
     batched_replace_response_t *stats_out,
     profile::trace_t *trace)
 {
-    // debugf_t eex("do_a_replace_from_batched_replace");
     fifo_enforcer_sink_t::exit_write_t exiter(
         batched_replaces_fifo_sink, batched_replaces_fifo_token);
 
-    // debugf("do_a_replace_from_batched_replace made xiter\n");
     rdb_modification_report_t mod_report(*info.key);
     counted_t<const ql::datum_t> res = rdb_replace_and_return_superblock(
         info, &one_replace, superblock_promise, &mod_report.info, trace);
     *stats_out = (*stats_out)->merge(res, ql::stats_merge);
 
-    // debugf("do_a_replace_from_batched_replace before xiter.wait\n");
     // RSI: What is this for?  are we waiting to get in line to call on_mod_report?  I guess so.
     // JD: Looks like this is a do_a_replace_from_batched_replace specific thing.
     exiter.wait();
-    // debugf("do_a_replace_from_batched_replace xiter.wait returned\n");
     sindex_cb->on_mod_report(mod_report);
-    // debugf("do_a_replace_from_batched_replace on_mod_report returned\n");
 }
 
 batched_replace_response_t rdb_batched_replace(
@@ -476,12 +470,10 @@ batched_replace_response_t rdb_batched_replace(
         // Note the destructor ordering: We release the superblock before draining
         // on all the write operations.
         scoped_ptr_t<superblock_t> current_superblock(superblock->release());
-        // debugf("About to do batched replace loop for %zu keys\n", keys.size());
         for (size_t i = 0; i < keys.size(); ++i) {
-            // debugf("batched replace loop i = %zu\n", i);
             // Pass out the point_replace_response_t.
             promise_t<superblock_t *> superblock_promise;
-            coro_t::spawn(
+            coro_t::spawn_sometime(
                 boost::bind(
                     &do_a_replace_from_batched_replace,
                     auto_drainer_t::lock_t(&drainer),
@@ -551,7 +543,10 @@ void rdb_set(const store_key_t &key,
 
 class agnostic_rdb_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
-    agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }
+    agnostic_rdb_backfill_callback_t(rdb_backfill_callback_t *cb,
+                                     const key_range_t &kr,
+                                     btree_slice_t *slice) :
+        cb_(cb), kr_(kr), slice_(slice) { }
 
     void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.is_superset(range));
@@ -573,6 +568,8 @@ public:
         rassert(kr_.contains_key(key->contents, key->size));
         const rdb_value_t *value = static_cast<const rdb_value_t *>(val);
 
+        slice_->stats.pm_keys_read.record();
+
         rdb_protocol_details::backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
 #if SLICE_ALT
@@ -590,6 +587,7 @@ public:
 
     rdb_backfill_callback_t *cb_;
     key_range_t kr_;
+    btree_slice_t *slice_;
 };
 
 #if SLICE_ALT
@@ -607,7 +605,7 @@ void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
         parallel_traversal_progress_t *p, signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
 #endif
-    agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range);
+    agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
     value_sizer_t<rdb_value_t> sizer(slice->cache()->get_block_size());
 #if SLICE_ALT
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb,
@@ -764,6 +762,9 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 #if !SLICE_ALT
                      transaction_t *txn,
 #endif
+#if SLICE_ALT
+                     alt_buf_lock_t *sindex_block,
+#endif
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
 #if !SLICE_ALT
@@ -778,13 +779,8 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
     sindex_access_vector_t sindex_superblocks;
     {
 #if SLICE_ALT
-        scoped_ptr_t<alt_buf_lock_t> sindex_block;
-        store->acquire_sindex_block_for_write(
-            superblock->expose_buf(),
-            &sindex_block, superblock->get_sindex_block_id());
-
         store->acquire_post_constructed_sindex_superblocks_for_write(
-                sindex_block.get(), &sindex_superblocks);
+                sindex_block, &sindex_superblocks);
 #else
         scoped_ptr_t<buf_lock_t> sindex_block;
         store->acquire_sindex_block_for_write(
@@ -796,7 +792,11 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
 #endif
 
         mutex_t::acq_t acq;
+#if SLICE_ALT
+        store->lock_sindex_queue(sindex_block, &acq);
+#else
         store->lock_sindex_queue(sindex_block.get(), &acq);
+#endif
 
         write_message_t wm;
         wm << rdb_sindex_change_t(rdb_erase_range_report_t(key_range));
@@ -862,6 +862,8 @@ void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
         txn, superblock, interruptor);
 #endif
 
+    // RSI: this comment about auto_drainer_t is false.
+
     // auto_drainer_t is destructed here so this waits for other coros to finish.
 }
 
@@ -886,7 +888,8 @@ public:
         boost::optional<rdb_protocol_details::terminal_t> _terminal,
         const key_range_t &range,
         sorting_t _sorting,
-        rget_read_response_t *_response)
+        rget_read_response_t *_response,
+        btree_slice_t *_slice)
         : bad_init(false),
 #if !SLICE_ALT
           transaction(txn),
@@ -896,7 +899,8 @@ public:
           batcher(batchspec.to_batcher()),
           transform(_transform),
           terminal(_terminal),
-          sorting(_sorting)
+          sorting(_sorting),
+          slice(_slice)
     {
         init(range);
     }
@@ -923,7 +927,8 @@ public:
         ql::map_wire_func_t _sindex_function,
         sindex_multi_bool_t _sindex_multi,
         datum_range_t _sindex_range,
-        rget_read_response_t *_response)
+        rget_read_response_t *_response,
+        btree_slice_t *_slice)
         : bad_init(false),
 #if !SLICE_ALT
           transaction(txn),
@@ -936,7 +941,8 @@ public:
           sorting(_sorting),
           primary_key_range(_primary_key_range),
           sindex_range(_sindex_range),
-          sindex_multi(_sindex_multi)
+          sindex_multi(_sindex_multi),
+          slice(_slice)
     {
         sindex_function = _sindex_function.compile_wire_func();
         init(range);
@@ -986,6 +992,7 @@ public:
                 return true;
             }
         }
+
         try {
 #if SLICE_ALT
             lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
@@ -994,7 +1001,30 @@ public:
             lazy_json_t first_value(static_cast<const rdb_value_t *>(keyvalue.value()),
                                     transaction);
 #endif
-            first_value.get();
+
+            // When doing "count" queries, we don't want to actually load the json
+            // value. Here we detect up-front whether we will need to load the value.
+            // If nothing uses the value, we load it here.  Otherwise we never load
+            // it.  The main problem with this code is that we still need a time to
+            // exclusively process each row, in between the call to
+            // waiter.wait_interruptible() and the end of this function.  If we fixed
+            // the design that makes us need to _process_ each row one at a time, we
+            // wouldn't have to guess up front whether the lazy_json_t actually needs
+            // to be loaded, and the code would be safer (and algorithmically more
+            // parallelized).
+
+            if (sindex_function.has() || !transform.empty() || !terminal
+                || query_language::terminal_uses_value(*terminal)) {
+                // Force the value to be loaded.
+                first_value.get();
+                // Increment reads here since the btree doesn't know if we actually do a read
+                slice->stats.pm_keys_read.record();
+            } else {
+                // We _must_ load the value before calling keyvalue.reset(), and
+                // before calling waiter.wait_interruptible().  So we call
+                // first_value.reset() to make any later call to .get() fail.
+                first_value.reset();
+            }
 
             keyvalue.reset();
 
@@ -1115,6 +1145,8 @@ public:
 
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
+
+    btree_slice_t *slice;
 };
 
 class result_finalizer_visitor_t : public boost::static_visitor<void> {
@@ -1144,12 +1176,12 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
     profile::starter_t starter("Do range scan on primary index.", ql_env->trace);
 #if SLICE_ALT
     rdb_rget_depth_first_traversal_callback_t callback(
-            ql_env, batchspec, transform, terminal, range, sorting, response);
+            ql_env, batchspec, transform, terminal, range, sorting, response, slice);
     btree_concurrent_traversal(slice, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
 #else
     rdb_rget_depth_first_traversal_callback_t callback(
-        txn, ql_env, batchspec, transform, terminal, range, sorting, response);
+        txn, ql_env, batchspec, transform, terminal, range, sorting, response, slice);
     btree_concurrent_traversal(slice, txn, superblock, range, &callback,
                                (!reversed(sorting) ? FORWARD : BACKWARD));
 #endif
@@ -1180,14 +1212,14 @@ void rdb_rget_secondary_slice(
 #if SLICE_ALT
     rdb_rget_depth_first_traversal_callback_t callback(
         ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
-        sorting, sindex_func, sindex_multi, sindex_range, response);
+        sorting, sindex_func, sindex_multi, sindex_range, response, slice);
     btree_concurrent_traversal(
         slice, superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
 #else
     rdb_rget_depth_first_traversal_callback_t callback(
         txn, ql_env, batchspec, transform, terminal, sindex_region.inner, pk_range,
-        sorting, sindex_func, sindex_multi, sindex_range, response);
+        sorting, sindex_func, sindex_multi, sindex_range, response, slice);
     btree_concurrent_traversal(
         slice, txn, superblock, sindex_region.inner, &callback,
         (!reversed(sorting) ? FORWARD : BACKWARD));
@@ -1509,7 +1541,7 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
     {
         auto_drainer_t drainer;
 
-        for (sindex_access_vector_t::const_iterator it  = sindexes.begin();
+        for (sindex_access_vector_t::const_iterator it = sindexes.begin();
                                                     it != sindexes.end();
                                                     ++it) {
 #if SLICE_ALT
@@ -1701,6 +1733,8 @@ public:
 #endif
 
         for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
+            store_->btree->stats.pm_keys_read.record();
+
             /* Grab relevant values from the leaf node. */
             const btree_key_t *key = (*it).first;
             const void *value = (*it).second;

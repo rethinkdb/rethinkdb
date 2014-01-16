@@ -99,10 +99,10 @@ void filepath_file_opener_t::open_semantic_checking_file(scoped_ptr_t<semantic_c
     do {
         semantic_fd = open(semantic_filepath.c_str(),
                            O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
-    } while (semantic_fd == -1 && errno == EINTR);
+    } while (semantic_fd == -1 && get_errno() == EINTR);
 
     if (semantic_fd == INVALID_FD) {
-        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(errno).c_str());
+        fail_due_to_user_error("Inaccessible semantic checking file: \"%s\": %s", semantic_filepath.c_str(), errno_string(get_errno()).c_str());
     } else {
         file_out->init(new linux_semantic_checking_file_t(semantic_fd));
     }
@@ -731,6 +731,12 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
 repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
     assert_thread();
     return lba_index->get_block_recency(id);
+}
+
+segmented_vector_t<repli_timestamp_t>
+log_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
+    assert_thread();
+    return lba_index->get_block_recencies(first, step);
 }
 
 bool log_serializer_t::shutdown(cond_t *cb) {

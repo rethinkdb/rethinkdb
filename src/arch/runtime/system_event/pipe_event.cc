@@ -25,10 +25,10 @@ pipe_event_t::pipe_event_t() {
 
 pipe_event_t::~pipe_event_t() {
     int res = close(read_fd_);
-    guarantee_err(res == 0 || errno == EINTR, "Could not close notify pipe's reading end");
+    guarantee_err(res == 0 || get_errno() == EINTR, "Could not close notify pipe's reading end");
 
     res = close(write_fd_);
-    guarantee_err(res == 0 || errno == EINTR, "Could not close notify pipe's writing end");
+    guarantee_err(res == 0 || get_errno() == EINTR, "Could not close notify pipe's writing end");
 }
 
 void pipe_event_t::consume_wakey_wakeys() {
@@ -37,14 +37,14 @@ void pipe_event_t::consume_wakey_wakeys() {
     do {
         do {
             res = read(read_fd_, buf, sizeof(buf));
-        } while (res == -1 && errno == EINTR);
+        } while (res == -1 && get_errno() == EINTR);
     } while (res == sizeof(buf));
 
     if (res == -1) {
         // We normally expect a short read count, but if there were an exact multiple of sizeof(buf)
         // notifications on the pipe, we would get EAGAIN when we try to read again and there's
         // nothing on the pipe.
-        guarantee_err(errno == EAGAIN || errno == EWOULDBLOCK, "Could not read from notification pipe");
+        guarantee_err(get_errno() == EAGAIN || get_errno() == EWOULDBLOCK, "Could not read from notification pipe");
     }
 }
 
@@ -53,11 +53,11 @@ void pipe_event_t::wakey_wakey() {
     ssize_t res;
     do {
         res = write(write_fd_, buf, sizeof(buf));
-    } while (res == -1 && errno == EINTR);
+    } while (res == -1 && get_errno() == EINTR);
 
     if (res == -1) {
         // EAGAIN and EWOULDBLOCK are okay because that means the pipe is full, and the recipient
         // already has pending notifications anyway.
-        guarantee_err(errno == EAGAIN || errno == EWOULDBLOCK, "Could not write to notification pipe");
+        guarantee_err(get_errno() == EAGAIN || get_errno() == EWOULDBLOCK, "Could not write to notification pipe");
     }
 }

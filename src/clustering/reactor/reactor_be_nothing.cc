@@ -4,6 +4,7 @@
 #include "clustering/immediate_consistency/branch/backfiller.hpp"
 #include "clustering/immediate_consistency/branch/replier.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "config/args.hpp"
 
 
 /* Returns true if every peer listed as a primary for this shard in the
@@ -115,7 +116,8 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
                 directory_echo_mirror.get_internal(),
                 blueprint,
                 boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_nothing, this, _1, _2, region),
-                interruptor);
+                interruptor,
+                REACTOR_RUN_UNTIL_SATISFIED_NAP);
         }
 
         /* We now know that it's safe to shutdown so we tell the other peers

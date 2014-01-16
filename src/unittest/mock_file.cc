@@ -39,12 +39,6 @@ void mock_file_t::read_async(int64_t offset, size_t length, void *buf,
                 || offset + length > data_->size()));
     memcpy(buf, data_->data() + offset, length);
 
-    // This makes things fail intermittently when trying to make a serializer.
-    // RSI figure out if this should be turned back on
-    // for (int i = 0, n = randint(5); i < n; ++i) {
-    //     coro_t::yield();
-    // }
-
     // TODO: This spawn_sometime call is to silence the serializer
     // disk_structure.cc reader_t use-after-free bug:
     // https://github.com/rethinkdb/rethinkdb/issues/738
@@ -60,12 +54,6 @@ void mock_file_t::write_async(int64_t offset, size_t length, const void *buf,
                 || static_cast<uint64_t>(offset) > SIZE_MAX - length
                 || offset + length > data_->size()));
     memcpy(data_->data() + offset, buf, length);
-
-    // This makes things fail intermittently when trying to make a serializer.
-    // RSI figure out if this should be turned back on
-    // if (randint(2) == 0) {
-    //     coro_t::yield();
-    // }
 
     // TODO: This spawn_sometime call is to silence the serializer
     // disk_structure.cc reader_t use-after-free bug:

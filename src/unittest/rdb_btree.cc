@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <functional>
 
 #include "arch/io/disk.hpp"
@@ -334,7 +334,12 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
                 &token_pair, txn.get(),
 #endif
                 &sindex_sb,
+#if SLICE_ALT
                 static_cast<std::vector<char>*>(NULL));
+#else
+                static_cast<std::vector<char>*>(NULL),
+                &dummy_interruptor);
+#endif
         ASSERT_TRUE(sindex_exists);
 
         rdb_protocol_t::rget_read_response_t res;
@@ -574,8 +579,14 @@ void run_erase_range_test() {
         const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
         rdb_protocol_details::range_key_tester_t tester(&test_range);
 #if SLICE_ALT
+        scoped_ptr_t<alt_buf_lock_t> sindex_block;
+        store.acquire_sindex_block_for_write(
+            super_block->expose_buf(),
+            &sindex_block,
+            super_block->get_sindex_block_id());
         rdb_erase_range(store.btree.get(), &tester,
                         key_range_t::universe(),
+                        sindex_block.get(),
                         super_block.get(), &store,
                         &dummy_interruptor);
 #else

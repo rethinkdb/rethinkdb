@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+#include <utility>
 #include <vector>
 
 #include "errors.hpp"
@@ -13,6 +14,19 @@ class segmented_vector_t {
 public:
     explicit segmented_vector_t(size_t size = 0) : size_(0) {
         set_size(size);
+    }
+
+    segmented_vector_t(segmented_vector_t &&movee)
+        : segments_(std::move(movee.segments_)), size_(movee.size_) {
+        movee.segments_.clear();
+        movee.size_ = 0;
+    }
+
+    segmented_vector_t &operator=(segmented_vector_t &&movee) {
+        segmented_vector_t tmp(std::move(movee));
+        std::swap(segments_, tmp.segments_);
+        std::swap(size_, tmp.size_);
+        return *this;
     }
 
     ~segmented_vector_t() {
@@ -65,6 +79,7 @@ private:
         segment_t *seg = segments_[index / ELEMENTS_PER_SEGMENT];
         return seg->elements[index % ELEMENTS_PER_SEGMENT];
     }
+
 
     // Note: sometimes elements will be initialized before you ask the
     // array to grow to that size (e.g. one hundred elements might be

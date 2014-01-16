@@ -11,6 +11,7 @@
 
 #include "rdb_protocol/terms/terms.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "thread_local.hpp"
 #include "protob/protob.hpp"
 
 #pragma GCC diagnostic ignored "-Wshadow"
@@ -312,14 +313,14 @@ term_t::~term_t() { }
 // #define INSTRUMENT 1
 
 #ifdef INSTRUMENT
-__thread int DBG_depth = 0;
+TLS_with_init(int, DBG_depth, 0);
 #define DBG(s, args...) do {                                            \
         std::string DBG_s = "";                                         \
-        for (int DBG_i = 0; DBG_i < DBG_depth; ++DBG_i) DBG_s += " ";   \
+        for (int DBG_i = 0; DBG_i < TLS_get_DBG_depth(); ++DBG_i) DBG_s += " ";   \
         debugf("%s" s, DBG_s.c_str(), ##args);                          \
     } while (0)
-#define INC_DEPTH do { ++DBG_depth; } while (0)
-#define DEC_DEPTH do { --DBG_depth; } while (0)
+#define INC_DEPTH do { TLS_set_DBG_depth(TLS_get_DBG_depth()+1); } while (0)
+#define DEC_DEPTH do { TLS_set_DBG_depth(TLS_get_DBG_depth()-1); } while (0)
 #else // INSTRUMENT
 #define DBG(s, args...)
 #define INC_DEPTH
@@ -365,6 +366,12 @@ counted_t<val_t> term_t::new_val(counted_t<const datum_t> d) {
 }
 counted_t<val_t> term_t::new_val(counted_t<const datum_t> d, counted_t<table_t> t) {
     return make_counted<val_t>(d, t, backtrace());
+}
+
+counted_t<val_t> term_t::new_val(counted_t<const datum_t> d,
+                                 counted_t<const datum_t> orig_key,
+                                 counted_t<table_t> t) {
+    return make_counted<val_t>(d, orig_key, t, backtrace());
 }
 
 counted_t<val_t> term_t::new_val(env_t *env, counted_t<datum_stream_t> s) {

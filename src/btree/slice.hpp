@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_SLICE_HPP_
 #define BTREE_SLICE_HPP_
 
@@ -52,8 +52,9 @@ btree_key_value_store_t. */
 
 class btree_slice_t : public home_thread_mixin_debug_only_t {
 public:
-    // Initializes a cache for use with btrees (by creating the superblock in block SUPERBLOCK_ID),
-    // setting the initial value of the metainfo (with a single key/value pair).
+    // Initializes a cache for use with btrees (by creating the superblock in block
+    // SUPERBLOCK_ID), setting the initial value of the metainfo (with a single
+    // key/value pair).
 #if SLICE_ALT
     static void create(alt::alt_cache_t *cache,
                        const std::vector<char> &metainfo_key,

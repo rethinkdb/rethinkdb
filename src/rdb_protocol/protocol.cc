@@ -12,6 +12,7 @@
 #include "btree/slice.hpp"
 #include "btree/superblock.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/reactor/reactor.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/pmap.hpp"
 #include "concurrency/wait_any.hpp"
@@ -480,7 +481,9 @@ rdb_protocol_t::context_t::context_t()
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
     directory_read_manager(NULL),
-    signals(get_num_threads())
+    signals(get_num_threads()),
+    ql_stats_membership(&get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
+    ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 { }
 
 rdb_protocol_t::context_t::context_t(
@@ -492,7 +495,8 @@ rdb_protocol_t::context_t::context_t(
         _auth_metadata,
     directory_read_manager_t<cluster_directory_metadata_t>
         *_directory_read_manager,
-    machine_id_t _machine_id)
+    machine_id_t _machine_id,
+    perfmon_collection_t *global_stats)
     : extproc_pool(_extproc_pool), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
@@ -500,7 +504,9 @@ rdb_protocol_t::context_t::context_t(
       auth_metadata(_auth_metadata),
       directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
-      machine_id(_machine_id)
+      machine_id(_machine_id),
+      ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
+      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
@@ -613,7 +619,12 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
     }
 
     bool operator()(const rget_read_t &rg) const {
-        return rangey_read(rg);
+        bool do_read = rangey_read(rg);
+        if (do_read) {
+            auto rg_out = boost::get<rget_read_t>(&read_out->read);
+            rg_out->batchspec = rg_out->batchspec.scale_down(CPU_SHARDING_FACTOR);
+        }
+        return do_read;
     }
 
     bool operator()(const distribution_read_t &dg) const {
@@ -1315,7 +1326,6 @@ store_t::store_t(serializer_t *serializer,
             create, parent_perfmon_collection, _ctx, io, base_path),
     ctx(_ctx)
 {
-    // debugf_t eex("rdb store_t constructor");
     // Make sure to continue bringing sindexes up-to-date if it was interrupted earlier
 
     // This uses a dummy interruptor because this is the only thing using the store at
@@ -1325,13 +1335,11 @@ store_t::store_t(serializer_t *serializer,
     read_token_pair_t token_pair;
     new_read_token_pair(&token_pair);
 
-    // debugf_t eex2("rdb store_t outside txn\n");
 #if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
 #else
     scoped_ptr_t<transaction_t> txn;
 #endif
-    // debugf_t eex3("rdb store_t inside txn\n");
     scoped_ptr_t<real_superblock_t> superblock;
 #if SLICE_ALT
     acquire_superblock_for_read(&token_pair.main_read_token, &txn,
@@ -1378,7 +1386,6 @@ store_t::store_t(serializer_t *serializer,
                                                         sindex_block.get(), txn.get());
 #endif
     }
-    // debugf("rdb store_t end scope\n");
 }
 
 store_t::~store_t() {
@@ -1388,21 +1395,17 @@ store_t::~store_t() {
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_read_visitor_t : public boost::static_visitor<void> {
     void operator()(const point_read_t &get) {
-        // debugf("point_read_t (%p)", response);
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-        // debugf("about to rdb_get\n");
 #if SLICE_ALT
         rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
 #else
         rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
 #endif
-        // debugf("rdb_get has returned\n");
     }
 
     void operator()(const rget_read_t &rget) {
-        // debugf("rget_read_t (%p)", response);
         if (rget.transform.size() != 0 || rget.terminal) {
             rassert(rget.optargs.size() != 0);
         }
@@ -1482,7 +1485,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const distribution_read_t &dg) {
-        // debugf("distribution_read_t (%p)", response);
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
         rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left,
@@ -1509,7 +1511,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(UNUSED const sindex_list_t &sinner) {
-        // debugf("sindex_list_t (%p)", response);
         response->response = sindex_list_response_t();
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
@@ -1527,7 +1528,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_status_t &sindex_status) {
-        // debugf("sindex_status_t (%p)", response);
         response->response = sindex_status_response_t();
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
@@ -1648,7 +1648,6 @@ void store_t::protocol_read(const read_t &read,
         ctx, response, read.profile, interruptor);
     {
         profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
-        // debugf("protocol_read (%p) apply visitor\n", response);
         boost::apply_visitor(v, read.read);
     }
 
@@ -1656,7 +1655,6 @@ void store_t::protocol_read(const read_t &read,
     response->event_log = v.extract_event_log();
     //This is a tad hacky, this just adds a stop event to signal the end of the parallal task.
     response->event_log.push_back(profile::stop_t());
-    // debugf("protocol_read return\n");
 }
 
 class func_replacer_t : public btree_batched_replacer_t {
@@ -1665,7 +1663,7 @@ public:
         : env(_env), f(wf.compile_wire_func()), return_vals(_return_vals) { }
     counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t) const {
-        return f->call(env, d)->as_datum();
+        return f->call(env, d, ql::LITERAL_OK)->as_datum();
     }
     bool should_return_vals() const { return return_vals; }
 private:
@@ -1703,7 +1701,6 @@ private:
 // TODO: get rid of this extra response_t copy on the stack
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
-        // debugf_t eex("batched_replace_t");
 #if !SLICE_ALT
         try {
 #endif
@@ -1738,7 +1735,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const batched_insert_t &bi) {
-        // debugf_t eex("batched_insert_t");
         rdb_modification_report_cb_t sindex_cb(
             store,
 #if SLICE_ALT
@@ -1754,7 +1750,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         for (auto it = bi.inserts.begin(); it != bi.inserts.end(); ++it) {
             keys.emplace_back((*it)->get(bi.pkey)->print_primary());
         }
-        // debugf("about to rdb_batched_replace\n");
         response->response =
             rdb_batched_replace(
                 btree_info_t(btree, timestamp,
@@ -1767,7 +1762,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_write_t &w) {
-        // debugf_t eex("point_write_t");
         response->response = point_write_response_t();
         point_write_response_t *res =
             boost::get<point_write_response_t>(&response->response);
@@ -1785,7 +1779,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const point_delete_t &d) {
-        // debugf_t eex("point_delete_t");
         response->response = point_delete_response_t();
         point_delete_response_t *res =
             boost::get<point_delete_response_t>(&response->response);
@@ -1803,7 +1796,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_create_t &c) {
-        // debugf_t eex("sindex_create_t");
         sindex_create_response_t res;
 
         write_message_t wm;
@@ -1847,7 +1839,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sindex_drop_t &d) {
-        // debugf_t eex("sindex_drop_t");
         sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
         rdb_value_deleter_t deleter;
@@ -1872,7 +1863,6 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     }
 
     void operator()(const sync_t &) {
-        // debugf_t eex("sync_t");
         response->response = sync_response_t();
 
 #if !SLICE_ALT
@@ -2005,7 +1995,6 @@ void store_t::protocol_write(const write_t &write,
                              write_token_pair_t *token_pair,
 #endif
                              signal_t *interruptor) {
-    // debugf_t eex("protocol_write\n");
     rdb_write_visitor_t v(btree, this,
 #if SLICE_ALT
                           (*superblock)->expose_buf().txn(),
@@ -2197,6 +2186,9 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 #if !SLICE_ALT
                         txn,
 #endif
+#if SLICE_ALT
+                        sindex_block.get(),
+#endif
                         superblock, store,
 #if !SLICE_ALT
                         token_pair,
@@ -2225,7 +2217,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
 #else
         value_sizer_t<rdb_value_t> sizer(txn->get_cache()->get_block_size());
 #endif
-        rdb_value_deleter_t deleter;
+        rdb_value_non_deleter_t deleter;
 #if SLICE_ALT
         std::set<std::string> created_sindexes;
         store->set_sindexes(s.sindexes, sindex_block.get(), &sizer, &deleter,
@@ -2345,15 +2337,22 @@ void store_t::protocol_reset_data(const region_t& subregion,
     rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
+#if SLICE_ALT
+    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    acquire_sindex_block_for_write(superblock->expose_buf(),
+                                   &sindex_block,
+                                   superblock->get_sindex_block_id());
     rdb_erase_range(btree, &key_tester, subregion.inner,
-#if !SLICE_ALT
-                    txn,
-#endif
+                    sindex_block.get(),
                     superblock, this,
-#if !SLICE_ALT
-                    token_pair,
-#endif
                     interruptor);
+#else
+    rdb_erase_range(btree, &key_tester, subregion.inner,
+                    txn,
+                    superblock, this,
+                    token_pair,
+                    interruptor);
+#endif
 }
 
 region_t rdb_protocol_t::cpu_sharding_subspace(int subregion_number,

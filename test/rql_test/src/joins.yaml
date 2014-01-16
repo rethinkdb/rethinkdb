@@ -104,14 +104,30 @@ tests:
       js: left.innerJoin(right, function(l, r) { return l('a').eq(r('b')); }).zip()
       rb: left.inner_join(right){ |lt, rt| lt[:a].eq(rt[:b]) }.zip
       ot: [{'a':2,'b':2},{'a':3,'b':3}]
-    
+
     # test an outer-join condition where outer-join differs from inner-join
     - py: left.outer_join(right, lambda l, r:l['a'] == r['b']).zip()
       js: left.outerJoin(right, function(l, r) { return l('a').eq(r('b')); }).zip()
       rb: left.outer_join(right){ |lt, rt| lt[:a].eq(rt[:b]) }.zip
       ot: [{'a':1},{'a':2,'b':2},{'a':3,'b':3}]
-    
-    
+
+    - rb: r.table_create('senders')
+      ot: ({'created':1})
+    - rb: r.table_create('receivers')
+      ot: ({'created':1})
+    - rb: r.table_create('messages')
+      ot: ({'created':1})
+
+    - rb: r.table('senders').insert({id:1, sender:'Sender One'})['inserted']
+      ot: 1
+    - rb: r.table('receivers').insert({id:1, receiver:'Receiver One'})['inserted']
+      ot: 1
+    - rb: r.table('messages').insert([{id:10, sender_id:1, receiver_id:1, msg:'Message One'}, {id:20, sender_id:1, receiver_id:1, msg:'Message Two'}, {id:30, sender_id:1, receiver_id:1, msg:'Message Three'}])['inserted']
+      ot: 3
+
+    - rb: r.table('messages').orderby(index:'id').eq_join('sender_id', r.table('senders')).without({right:{id:true}}).zip.eq_join('receiver_id', r.table('receivers')).without({right:{id:true}}).zip
+      ot: [{'id':10,'msg':'Message One','receiver':'Receiver One','receiver_id':1,'sender':'Sender One','sender_id':1},{'id':20,'msg':'Message Two','receiver':'Receiver One','receiver_id':1,'sender':'Sender One','sender_id':1},{'id':30,'msg':'Message Three','receiver':'Receiver One','receiver_id':1,'sender':'Sender One','sender_id':1}]
+
     # Clean up
     - cd: r.db('test').table_drop('test1')
       ot: ({'dropped':1})

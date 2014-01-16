@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/btree_store.hpp"
 
 #include "btree/operations.hpp"
@@ -102,7 +102,8 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 #else
         scoped_ptr_t<buf_lock_t> sindex_block;
         acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
-                                      superblock->get_sindex_block_id())
+                                      superblock->get_sindex_block_id(),
+                                      &dummy_interruptor);
 #endif
 
         std::map<std::string, secondary_index_t> sindexes;
@@ -492,7 +493,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
 #endif
         block_id_t sindex_block_id
 #if !SLICE_ALT
-        ,signal_t *interruptor
+        , signal_t *interruptor
 #endif
         )
     THROWS_ONLY(interrupted_exc_t) {
@@ -671,6 +672,7 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
 }
 #endif
 
+#if SLICE_ALT
 void clear_sindex(
         alt_txn_t *txn, block_id_t superblock_id,
         btree_slice_t *slice, value_sizer_t<void> *sizer,
@@ -696,7 +698,7 @@ void clear_sindex(
         sindex_superblock_lock.mark_deleted();
     }
 }
-
+#endif
 
 #if SLICE_ALT
 template <class protocol_t>
@@ -1332,18 +1334,21 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
     assert_thread();
     std::set<std::string> sindexes_to_acquire;
     std::map<std::string, secondary_index_t> sindexes;
+    // debugf("acquire_post... about to get_secondary_indexes\n");
 #if SLICE_ALT
     ::get_secondary_indexes(sindex_block, &sindexes);
 #else
     ::get_secondary_indexes(txn, sindex_block, &sindexes);
 #endif
 
+    // debugf("acquire_post... building map\n");
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (it->second.post_construction_complete) {
             sindexes_to_acquire.insert(it->first);
         }
     }
 
+    // debugf("acquire_post... about to acquire_sindex_superblocks_for_write\n");
 #if SLICE_ALT
     acquire_sindex_superblocks_for_write(
             sindexes_to_acquire, sindex_block,
@@ -1353,6 +1358,7 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
             sindexes_to_acquire, sindex_block,
             txn, sindex_sbs_out);
 #endif
+    // debugf("acquire_post... done.\n");
 }
 
 #if SLICE_ALT

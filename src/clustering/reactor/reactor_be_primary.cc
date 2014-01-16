@@ -15,6 +15,7 @@
 #include "clustering/immediate_consistency/query/direct_reader.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "config/args.hpp"
 
 template <class protocol_t>
 reactor_t<protocol_t>::backfill_candidate_t::backfill_candidate_t(version_range_t _version_range, std::vector<backfill_location_t> _places_to_get_this_version, bool _present_in_our_store)
@@ -328,7 +329,8 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
         run_until_satisfied_2(directory_echo_mirror.get_internal(),
                               blueprint,
                               boost::bind(&reactor_t<protocol_t>::is_safe_for_us_to_be_primary, this, _1, _2, region, &best_backfillers, &branch_history_to_merge, &i_should_merge_branch_history),
-                              interruptor);
+                              interruptor,
+                              REACTOR_RUN_UNTIL_SATISFIED_NAP);
         if (i_should_merge_branch_history) {
             branch_history_manager->import_branch_history(branch_history_to_merge, interruptor);
         } else {
@@ -437,7 +439,9 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
         /* listener_t expects broadcaster to be visible in the directory at the
          * time that it's constructed. It might take some time to propogate to
          * ourselves after we've put it in the directory. */
-        broadcaster_business_card->run_until_satisfied(&check_that_we_see_our_broadcaster<protocol_t>, interruptor);
+        broadcaster_business_card->run_until_satisfied(
+            &check_that_we_see_our_broadcaster<protocol_t>, interruptor,
+            REACTOR_RUN_UNTIL_SATISFIED_NAP);
 
         cross_thread_watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > > ct_broadcaster_business_card(broadcaster_business_card, svs->home_thread());
 
