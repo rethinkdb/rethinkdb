@@ -1466,10 +1466,6 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::new_read_token_pair(read_token_pair_t *token_pair_out) {
     assert_thread();
     // debugf_t eex("%p new_read_token_pair", this);
-#if !SLICE_ALT
-    fifo_enforcer_read_token_t token = sindex_token_source.enter_read();
-    token_pair_out->sindex_read_token.create(&sindex_token_sink, token);
-#endif
 
     new_read_token(&(token_pair_out->main_read_token));
 }
@@ -1478,11 +1474,6 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::new_write_token_pair(write_token_pair_t *token_pair_out) {
     // debugf_t eex("%p new_write_token_pair", this);
     assert_thread();
-#if !SLICE_ALT
-    fifo_enforcer_write_token_t token = sindex_token_source.enter_write();
-    token_pair_out->sindex_write_token.create(&sindex_token_sink, token);
-#endif
-
     new_write_token(&(token_pair_out->main_write_token));
 }
 
