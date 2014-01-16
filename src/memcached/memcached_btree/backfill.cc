@@ -4,19 +4,15 @@
 #include "btree/backfill.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
-#if SLICE_ALT
 #include "buffer_cache/alt/alt.hpp"
-#endif
 #include "containers/printf_buffer.hpp"
 #include "memcached/memcached_btree/btree_data_provider.hpp"
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
-#if SLICE_ALT
+
 using alt::alt_buf_lock_t;
 using alt::alt_buf_parent_t;
-#endif
 
 class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
@@ -32,20 +28,12 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-#if SLICE_ALT
     void on_pair(alt_buf_parent_t parent, repli_timestamp_t recency,
                  const btree_key_t *key, const void *val,
                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-#else
-    void on_pair(transaction_t *txn, repli_timestamp_t recency, const btree_key_t *key, const void *val, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-#endif
         rassert(kr_.contains_key(key->contents, key->size));
         const memcached_value_t *value = static_cast<const memcached_value_t *>(val);
-#if SLICE_ALT
         counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, parent);
-#else
-        counted_t<data_buffer_t> data_provider = value_to_data_buffer(value, txn);
-#endif
         backfill_atom_t atom;
         atom.key.assign(key->size, key->contents);
         atom.value = data_provider;
@@ -69,26 +57,15 @@ public:
 
 void memcached_backfill(btree_slice_t *slice, const key_range_t& key_range,
                         repli_timestamp_t since_when, backfill_callback_t *callback,
-#if !SLICE_ALT
-                        transaction_t *txn,
-#endif
                         superblock_t *superblock,
-#if SLICE_ALT
                         alt_buf_lock_t *sindex_block,
-#else
-                        buf_lock_t *sindex_block,
-#endif
                         parallel_traversal_progress_t *p,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     agnostic_memcached_backfill_callback_t agnostic_cb(callback, key_range);
     value_sizer_t<memcached_value_t> sizer(slice->cache()->get_block_size());
-#if SLICE_ALT
     do_agnostic_btree_backfill(&sizer, slice, key_range, since_when,
                                &agnostic_cb, superblock, sindex_block, p,
                                interruptor);
-#else
-    do_agnostic_btree_backfill(&sizer, slice, key_range, since_when, &agnostic_cb, txn, superblock, sindex_block, p, interruptor);
-#endif
 }
 
 

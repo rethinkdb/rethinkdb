@@ -8,9 +8,7 @@
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
-#if SLICE_ALT
 using namespace alt;  // RSI
-#endif
 
 /*
  * Possible rget designs:
@@ -68,62 +66,36 @@ size_t estimate_rget_result_pair_size(const key_with_data_buffer_t &pair) {
 
 class rget_depth_first_traversal_callback_t : public depth_first_traversal_callback_t {
 public:
-#if SLICE_ALT
     rget_depth_first_traversal_callback_t(alt_buf_parent_t par,
                                           int max, exptime_t et) :
         parent(par), maximum(max), effective_time(et), cumulative_size(0) { }
-#else
-    rget_depth_first_traversal_callback_t(transaction_t *txn, int max, exptime_t et) :
-        transaction(txn), maximum(max), effective_time(et), cumulative_size(0) { }
-#endif
     bool handle_pair(scoped_key_value_t &&keyvalue) {
         const memcached_value_t *mc_value
             = static_cast<const memcached_value_t *>(keyvalue.value());
         if (mc_value->expired(effective_time)) {
             return true;
         }
-#if SLICE_ALT
         counted_t<data_buffer_t> data(value_to_data_buffer(mc_value, parent));
-#else
-        counted_t<data_buffer_t> data(value_to_data_buffer(mc_value, transaction));
-#endif
         result.pairs.push_back(key_with_data_buffer_t(store_key_t(keyvalue.key()),
                                                       mc_value->mcflags(),
                                                       data));
         cumulative_size += estimate_rget_result_pair_size(result.pairs.back());
         return static_cast<int64_t>(result.pairs.size()) < maximum && cumulative_size < rget_max_chunk_size;
     }
-#if SLICE_ALT
     alt_buf_parent_t parent;
-#else
-    transaction_t *transaction;
-#endif
     int maximum;
     exptime_t effective_time;
     rget_result_t result;
     size_t cumulative_size;
 };
 
-#if SLICE_ALT
 rget_result_t memcached_rget_slice(btree_slice_t *slice, const key_range_t &range,
                                    int maximum, exptime_t effective_time,
                                    superblock_t *superblock) {
-#else
-rget_result_t memcached_rget_slice(btree_slice_t *slice, const key_range_t &range,
-        int maximum, exptime_t effective_time, transaction_t *txn, superblock_t *superblock) {
-#endif
 
-#if SLICE_ALT
     rget_depth_first_traversal_callback_t callback(superblock->expose_buf(),
                                                    maximum, effective_time);
-#else
-    rget_depth_first_traversal_callback_t callback(txn, maximum, effective_time);
-#endif
-#if SLICE_ALT
     btree_depth_first_traversal(slice, superblock, range, &callback, FORWARD);
-#else
-    btree_depth_first_traversal(slice, txn, superblock, range, &callback, FORWARD);
-#endif
     if (callback.cumulative_size >= rget_max_chunk_size) {
         callback.result.truncated = true;
     } else {
