@@ -379,7 +379,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         alt_buf_parent_t parent,
         scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id)
-    THROWS_ONLY(interrupted_exc_t) {
+    THROWS_ONLY(interrupted_exc_t) {  // RSI: This no longer throws an interrupted_exc_t.
 
     /* Finally acquire the block. */
     sindex_block_out->init(new alt_buf_lock_t(parent, sindex_block_id,
@@ -869,6 +869,7 @@ void btree_store_t<protocol_t>::get_sindexes(
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out)
     THROWS_ONLY(interrupted_exc_t) {
+    // RSI: This function can't throw the interrupted_exc_t, can it?
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     // RSI: This call used to take the interruptor.
     acquire_sindex_block_for_read(super_block->expose_buf(),
@@ -886,7 +887,6 @@ void btree_store_t<protocol_t>::get_sindexes(
     return get_secondary_indexes(sindex_block, sindexes_out);
 }
 
-// RSI: This used to take an interruptor.
 // RSI: Should anybody really rightfully use this?  The caller wants us to be the sindex_block constructor?
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
@@ -896,11 +896,11 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
+    // RSI: This function can't throw the interrupted_exc_t, can it?
     assert_thread();
 
     /* Acquire the sindex block. */
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    // RSI: This call used to take an interruptor.
     acquire_sindex_block_for_read(parent, &sindex_block, sindex_block_id);
 
     /* Figure out what the superblock for this index is. */
@@ -924,7 +924,6 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     return true;
 }
 
-// RSI: This function used to take an interruptor.
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
@@ -932,11 +931,11 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         alt_buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
+    // RSI: This function can't throw the interrupted_exc_t, can it?
     assert_thread();
 
     /* Get the sindex block. */
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-    // RSI: This callee used to take the interruptor.
     // RSI: Does the callee do anything other than constructing the alt_buf_lock_t?
     acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
 
@@ -958,66 +957,31 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     return true;
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         alt_buf_parent_t parent,
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
-        block_id_t sindex_block_id,
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        sindex_access_vector_t *sindex_sbs_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-#endif
+    // RSI: This can't throw the interrupted_exc_t, can it?
     assert_thread();
 
     /* Get the sindex block. */
-#if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
-#else
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
-#endif
 
-#if SLICE_ALT
     acquire_all_sindex_superblocks_for_write(sindex_block.get(), sindex_sbs_out);
-#else
-    acquire_all_sindex_superblocks_for_write(sindex_block.get(), txn, sindex_sbs_out);
-#endif
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         alt_buf_lock_t *sindex_block,
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
-        buf_lock_t *sindex_block,
-        transaction_t *txn,
-        sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
-#endif
-#if SLICE_ALT
     acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> >(),
             sindex_block,
             sindex_sbs_out);
-#else
-    acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<std::string> >(),
-            sindex_block, txn,
-            sindex_sbs_out);
-#endif
 }
 
 #if !SLICE_ALT
