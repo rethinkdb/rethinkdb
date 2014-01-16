@@ -10,9 +10,6 @@ master_t<protocol_t>::master_t(mailbox_manager_t *mm, ack_checker_t *ac,
       ack_checker(ac),
       broadcaster(b),
       region(r),
-      // TODO (daniel): I'm uncertain whether this initialization for the
-      // multi_throttling_server's capacity is actually acceptable. Maybe it should be
-      // larger?
       multi_throttling_server(mm, this, broadcaster_t<protocol_t>::MAX_OUTSTANDING_WRITES) {
     guarantee(ack_checker);
 }

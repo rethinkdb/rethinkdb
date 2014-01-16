@@ -216,15 +216,16 @@ private:
            just leaving it at goal_capacity.
            This serves two purposes:
            1. It makes sure that when a new client connect, we always have some
-           free_ticket available to give to that client.
+           free_ticket available to give to that client (note that clients here mean
+           cluster nodes, not application clients).
            Otherwise new clients would have to wait until we send a relinquish_tickets
            message to one of the existing clients, then wait until that other client
            returns some of its tickets to us, which we could only then pass on to the
            newly connected client. The result would be a delay until a new client
            could actually process any query which we would like to avoid.
-           2. If we have more clients than total_tickets*fair_fraction, we would end
-           up assigning 0 tickets to some clients. Those clients could never process
-           any query. */
+           2. If we have more clients than total_tickets/fair_fraction_denom, we would
+           end up assigning 0 tickets to some clients. Those clients could never
+           process any query. */
 
         /* So fair_tickets in recompute_allocations() is at least 1 per client. */
         int per_client_capacity = fair_fraction_denom;
