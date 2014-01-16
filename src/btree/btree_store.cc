@@ -398,34 +398,13 @@ bool has_homogenous_value(const region_map_t &metainfo, typename region_map_t::m
     return true;
 }
 
-#if !SLICE_ALT
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::add_sindex(
-        write_token_pair_t *token_pair,
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        transaction_t *txn,
-        superblock_t *super_block,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    /* Get the sindex block which we will need to modify. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
-
-    return add_sindex(token_pair, id, definition, txn,
-                      super_block, &sindex_block,
-                      interruptor);
-}
-#endif
-
-#if SLICE_ALT
 template <class protocol_t>
 bool btree_store_t<protocol_t>::add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         alt_buf_lock_t *sindex_block)
     THROWS_ONLY(interrupted_exc_t) {
+    // RSI: This function can't throw an interrupted_exc_t, can it?
 
     secondary_index_t sindex;
     if (::get_secondary_index(sindex_block, id, &sindex)) {
@@ -458,55 +437,6 @@ bool btree_store_t<protocol_t>::add_sindex(
         return true;
     }
 }
-#endif
-
-#if !SLICE_ALT
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::add_sindex(
-        write_token_pair_t *token_pair,
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        transaction_t *txn,
-        superblock_t *super_block,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-
-    assert_thread();
-
-    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out,
-                                   super_block->get_sindex_block_id(), interruptor);
-
-    secondary_index_t sindex;
-    if (::get_secondary_index(txn, sindex_block_out->get(), id, &sindex)) {
-        return false; // sindex was already created
-    } else {
-        {
-            buf_lock_t sindex_superblock(txn);
-            sindex.superblock = sindex_superblock.get_block_id();
-            /* The buf lock is destroyed here which is important becase it allows
-             * us to reacquire later when we make a btree_store. */
-        }
-
-        sindex.opaque_definition = definition;
-
-        /* Notice we're passing in empty strings for metainfo. The metainfo in
-         * the sindexes isn't used for anything but this could perhaps be
-         * something that would give a better error if someone did try to use
-         * it... on the other hand this code isn't exactly idiot proof even
-         * with that. */
-        btree_slice_t::create(txn->get_cache(), sindex.superblock,
-                              txn, std::vector<char>(), std::vector<char>());
-        secondary_index_slices.insert(
-            id, new btree_slice_t(cache.get(), &perfmon_collection, id));
-
-        sindex.post_construction_complete = false;
-
-        ::set_secondary_index(txn, sindex_block_out->get(), id, sindex);
-        return true;
-    }
-}
-#endif
 
 #if SLICE_ALT
 void clear_sindex(
