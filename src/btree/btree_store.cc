@@ -150,30 +150,18 @@ void btree_store_t<protocol_t>::write(
 
     assert_thread();
 
-#if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
-#else
-    scoped_ptr_t<transaction_t> txn;
-#endif
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
     acquire_superblock_for_write(timestamp.to_repli_timestamp(),
                                  expected_change_count, durability, token_pair,
                                  &txn, &real_superblock, interruptor);
 
-#if SLICE_ALT
     check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo,
                               real_superblock.get());
-#else
-    check_and_update_metainfo(DEBUG_ONLY(metainfo_checker, ) new_metainfo, txn.get(), real_superblock.get());
-#endif
     scoped_ptr_t<superblock_t> superblock(real_superblock.release());
-#if SLICE_ALT
     protocol_write(write, response, timestamp, btree.get(), &superblock,
                    interruptor);
-#else
-    protocol_write(write, response, timestamp, btree.get(), txn.get(), &superblock, token_pair, interruptor);
-#endif
 }
 
 // TODO: Figure out wtf does the backfill filtering, figure out wtf constricts delete range operations to hit only a certain hash-interval, figure out what filters keys.
@@ -189,41 +177,20 @@ bool btree_store_t<protocol_t>::send_backfill(
 
     assert_thread();
 
-#if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
-#else
-    scoped_ptr_t<transaction_t> txn;
-#endif
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_backfill(&token_pair->main_read_token, &txn, &superblock, interruptor);
 
-#if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
-#else
-    scoped_ptr_t<buf_lock_t> sindex_block;
-#endif
-#if SLICE_ALT
+    // RSI: This used to be interruptible (to some degree).
     acquire_sindex_block_for_read(superblock->expose_buf(),
                                   &sindex_block, superblock->get_sindex_block_id());
-#else
-    acquire_sindex_block_for_read(token_pair, txn.get(),
-                                  &sindex_block, superblock->get_sindex_block_id(),
-                                  interruptor);
-#endif
 
     region_map_t<protocol_t, binary_blob_t> unmasked_metainfo;
-#if SLICE_ALT
     get_metainfo_internal(superblock->get(), &unmasked_metainfo);
-#else
-    get_metainfo_internal(txn.get(), superblock->get(), &unmasked_metainfo);
-#endif
     region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(metainfo)) {
-#if SLICE_ALT
         protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), sindex_block.get(), btree.get(), progress, interruptor);
-#else
-        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), sindex_block.get(), btree.get(), txn.get(), progress, interruptor);
-#endif
         return true;
     }
     return false;
@@ -239,18 +206,9 @@ void btree_store_t<protocol_t>::receive_backfill(
 
     assert_thread();
 
-#if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
-#else
-    scoped_ptr_t<transaction_t> txn;
-#endif
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
-
-#if !SLICE_ALT
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
-        token_destroyer(&token_pair->sindex_write_token);
-#endif
 
     // We don't want hard durability, this is a backfill chunk, and nobody
     // wants chunk-by-chunk acks.
@@ -263,13 +221,7 @@ void btree_store_t<protocol_t>::receive_backfill(
                                  interruptor);
 
     protocol_receive_backfill(btree.get(),
-#if !SLICE_ALT
-                              txn.get(),
-#endif
                               superblock.get(),
-#if !SLICE_ALT
-                              token_pair,
-#endif
                               interruptor,
                               chunk);
 }
@@ -286,17 +238,8 @@ void btree_store_t<protocol_t>::reset_data(
 
     assert_thread();
 
-#if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
-#else
-    scoped_ptr_t<transaction_t> txn;
-#endif
     scoped_ptr_t<real_superblock_t> superblock;
-
-#if !SLICE_ALT
-    object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
-        token_destroyer(&token_pair->sindex_write_token);
-#endif
 
     // We're passing 2 for the expected_change_count based on the
     // reasoning that we're probably going to touch a leaf-node-sized
@@ -314,26 +257,12 @@ void btree_store_t<protocol_t>::reset_data(
                                  interruptor);
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
-#if SLICE_ALT
     get_metainfo_internal(superblock->get(), &old_metainfo);
-#else
-    get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
-#endif
-#if SLICE_ALT
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
-#else
-    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
-#endif
 
     protocol_reset_data(subregion,
                         btree.get(),
-#if !SLICE_ALT
-                        txn.get(),
-#endif
                         superblock.get(),
-#if !SLICE_ALT
-                        token_pair,
-#endif
                         interruptor);
 }
 
