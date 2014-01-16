@@ -18,7 +18,6 @@
 #include "btree/btree_store.hpp"
 #include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
-#include "btree/slice.hpp"  // RSI: for SLICE_ALT
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
 #include "hash_region.hpp"
@@ -169,20 +168,11 @@ typedef boost::variant<ql::gmr_wire_func_t,
                        ql::reduce_wire_func_t> terminal_variant_t;
 typedef terminal_variant_t terminal_t;
 
-#if SLICE_ALT
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
         alt::alt_buf_lock_t *sindex_block)
     THROWS_NOTHING;
-#else
-void bring_sindexes_up_to_date(
-        const std::set<std::string> &sindexes_to_bring_up_to_date,
-        btree_store_t<rdb_protocol_t> *store,
-        buf_lock_t *sindex_block,
-        transaction_t *txn)
-    THROWS_NOTHING;
-#endif
 
 struct rget_item_t {
     rget_item_t() { }
@@ -830,13 +820,7 @@ struct rdb_protocol_t {
         void protocol_read(const read_t &read,
                            read_response_t *response,
                            btree_slice_t *btree,
-#if !SLICE_ALT
-                           transaction_t *txn,
-#endif
                            superblock_t *superblock,
-#if !SLICE_ALT
-                           read_token_pair_t *token_pair,
-#endif
                            signal_t *interruptor);
 
         friend struct write_visitor_t;
@@ -844,16 +828,9 @@ struct rdb_protocol_t {
                             write_response_t *response,
                             transition_timestamp_t timestamp,
                             btree_slice_t *btree,
-#if !SLICE_ALT
-                            transaction_t *txn,
-#endif
                             scoped_ptr_t<superblock_t> *superblock,
-#if !SLICE_ALT
-                            write_token_pair_t *token_pair,
-#endif
                             signal_t *interruptor);
 
-#if SLICE_ALT
         void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
                                     chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                     superblock_t *superblock,
@@ -862,38 +839,15 @@ struct rdb_protocol_t {
                                     backfill_progress_t *progress,
                                     signal_t *interruptor)
                                     THROWS_ONLY(interrupted_exc_t);
-#else
-        void protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
-                                    chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
-                                    superblock_t *superblock,
-                                    buf_lock_t *sindex_block,
-                                    btree_slice_t *btree,
-                                    transaction_t *txn,
-                                    backfill_progress_t *progress,
-                                    signal_t *interruptor)
-                                    THROWS_ONLY(interrupted_exc_t);
-#endif
 
         void protocol_receive_backfill(btree_slice_t *btree,
-#if !SLICE_ALT
-                                       transaction_t *txn,
-#endif
                                        superblock_t *superblock,
-#if !SLICE_ALT
-                                       write_token_pair_t *token_pair,
-#endif
                                        signal_t *interruptor,
                                        const backfill_chunk_t &chunk);
 
         void protocol_reset_data(const region_t& subregion,
                                  btree_slice_t *btree,
-#if !SLICE_ALT
-                                 transaction_t *txn,
-#endif
                                  superblock_t *superblock,
-#if !SLICE_ALT
-                                 write_token_pair_t *token_pair,
-#endif
                                  signal_t *interruptor);
         context_t *ctx;
     };
