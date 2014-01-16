@@ -14,6 +14,7 @@
 
 #include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
+#include "btree/slice.hpp"  // RSI: For SLICE_ALT
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
