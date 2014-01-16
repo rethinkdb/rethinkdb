@@ -16,28 +16,18 @@
 #include "buffer_cache/buffer_cache.hpp"
 #include "protocol_api.hpp"
 
-#if SLICE_ALT
 using namespace alt;  // RSI
-#endif
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
-#if SLICE_ALT
     void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
                         const btree_key_t *left_exclusive_or_null,
                         const btree_key_t *right_inclusive_or_null,
                         signal_t *interruptor,
                         int * /*population_change_out*/)
         THROWS_ONLY(interrupted_exc_t) {
-#else
-    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf, const btree_key_t *left_exclusive_or_null, const btree_key_t *right_inclusive_or_null, signal_t *interruptor, int * /*population_change_out*/) THROWS_ONLY(interrupted_exc_t) {
-#endif
         assert_thread();
-#if SLICE_ALT
         alt_buf_read_t read(leaf_node_buf);
         const leaf_node_t *data = static_cast<const leaf_node_t *>(read.get_data_read());
-#else
-        const leaf_node_t *data = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
-#endif
 
         key_range_t clipped_range(
             left_exclusive_or_null ? key_range_t::open : key_range_t::none,
@@ -47,9 +37,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         clipped_range = clipped_range.intersection(key_range_);
 
         struct our_cb_t : public leaf::entry_reception_callback_t {
-#if SLICE_ALT
             explicit our_cb_t(alt_buf_parent_t _parent) : parent(_parent) { }
-#endif
             void lost_deletions() {
                 cb->on_delete_range(range, interruptor);
             }
@@ -62,54 +50,32 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
 
             void key_value(const btree_key_t *k, const void *value, repli_timestamp_t tstamp) {
                 if (range.contains_key(k->contents, k->size)) {
-#if SLICE_ALT
                     cb->on_pair(parent, tstamp, k, value, interruptor);
-#else
-                    cb->on_pair(txn, tstamp, k, value, interruptor);
-#endif
                 }
             }
 
             agnostic_backfill_callback_t *cb;
-#if SLICE_ALT
             alt_buf_parent_t parent;
-#else
-            transaction_t *txn;
-#endif
             key_range_t range;
             signal_t *interruptor;
         } x
-#if SLICE_ALT
               // RSI: fix this formatting
             ((alt_buf_parent_t(leaf_node_buf)))
-#endif
               ;
         x.cb = callback_;
-#if !SLICE_ALT
-        x.txn = txn;
-#endif
         x.range = clipped_range;
         x.interruptor = interruptor;
 
         leaf::dump_entries_since_time(sizer_, data, since_when_, leaf_node_buf->get_recency(), &x);
     }
 
-#if SLICE_ALT
     void postprocess_internal_node(UNUSED alt_buf_lock_t *internal_node_buf) {
-#else
-    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
-#endif
         assert_thread();
         // do nothing
     }
 
-#if SLICE_ALT
     alt_access_t btree_superblock_mode() { return alt_access_t::read; }
     alt_access_t btree_node_mode() { return alt_access_t::read; }
-#else
-    access_t btree_superblock_mode() { return rwi_read; }
-    access_t btree_node_mode() { return rwi_read; }
-#endif
 
     struct annoying_t : public get_subtree_recencies_callback_t {
         interesting_children_callback_t *cb;
@@ -139,7 +105,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         }
     };
 
-#if SLICE_ALT
     void filter_interesting_children(alt_buf_parent_t parent,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
@@ -162,33 +127,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         }
         cb->no_more_interesting_children();
     }
-#else
-    void filter_interesting_children(transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
-        assert_thread();
-        annoying_t *fsm = new annoying_t;
-        int num_block_ids = ids_source->num_block_ids();
-        fsm->block_ids.init(num_block_ids);
-        for (int i = 0; i < num_block_ids; ++i) {
-            const btree_key_t *left, *right;
-            block_id_t id;
-            ids_source->get_block_id_and_bounding_interval(i, &id, &left, &right);
-            if (overlaps(left, right, key_range_.left, key_range_.right)) {
-                fsm->block_ids[i] = id;
-            } else {
-               fsm->block_ids[i] = NULL_BLOCK_ID;
-            }
-        }
-
-        cond_t done_cond;
-        fsm->cb = cb;
-        fsm->since_when = since_when_;
-        fsm->recencies.init(num_block_ids);
-        fsm->done_cond = &done_cond;
-
-        txn->get_subtree_recencies(fsm->block_ids.data(), num_block_ids, fsm->recencies.data(), fsm);
-        done_cond.wait();
-    }
-#endif
 
     // Checks if (x_left, x_right] intersects [y_left, y_right).  If
     // it returns false, the intersection may be non-empty.
@@ -233,15 +171,8 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
                                 btree_slice_t *slice, const key_range_t& key_range,
                                 repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback,
-#if !SLICE_ALT
-                                transaction_t *txn,
-#endif
                                 superblock_t *superblock,
-#if SLICE_ALT
                                 alt_buf_lock_t *sindex_block,
-#else
-                                buf_lock_t *sindex_block,
-#endif
                                 parallel_traversal_progress_t *p,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
@@ -249,18 +180,10 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
     rassert(coro_t::self());
 
     std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
     get_secondary_indexes(sindex_block, &sindexes);
-#else
-    get_secondary_indexes(txn, sindex_block, &sindexes);
-#endif
     callback->on_sindexes(sindexes, interruptor);
 
     backfill_traversal_helper_t helper(callback, since_when, sizer, key_range);
     helper.progress = p;
-#if SLICE_ALT
     btree_parallel_traversal(superblock, slice, &helper, interruptor);
-#else
-    btree_parallel_traversal(txn, superblock, slice, &helper, interruptor);
-#endif
 }
