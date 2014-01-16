@@ -14,7 +14,6 @@
 
 #include "btree/erase_range.hpp"
 #include "btree/secondary_operations.hpp"
-#include "btree/slice.hpp"  // RSI: For SLICE_ALT
 #include "buffer_cache/mirrored/config.hpp"  // TODO: Move to buffer_cache/config.hpp or something.
 #include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
@@ -124,11 +123,7 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-#if SLICE_ALT
     void lock_sindex_queue(alt::alt_buf_lock_t *sindex_block, mutex_t::acq_t *acq);
-#else
-    void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
-#endif
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -151,66 +146,28 @@ public:
 
     progress_completion_fraction_t get_progress(uuid_u id);
 
-#if SLICE_ALT
+    // RSI: This used to take an interruptor.  Wouldn't it be neat for this to be
+    // interruptible?
     void acquire_sindex_block_for_read(
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id)
         THROWS_ONLY(interrupted_exc_t);
-#else
-    void acquire_sindex_block_for_read(
-            read_token_pair_t *token_pair,
-            transaction_t *txn,
-            scoped_ptr_t<buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
     void acquire_sindex_block_for_write(
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<alt::alt_buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id)
         THROWS_ONLY(interrupted_exc_t);
-#else
-    void acquire_sindex_block_for_write(
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            scoped_ptr_t<buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id,
-            signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
+    // RSI: This used to take an interruptor.  Probably for some stupid reason.
     MUST_USE bool add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         alt::alt_buf_lock_t *sindex_block)
     THROWS_ONLY(interrupted_exc_t);
-#else
-    MUST_USE bool add_sindex(
-        write_token_pair_t *token_pair,
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        transaction_t *txn,
-        superblock_t *super_block,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
 
-    MUST_USE bool add_sindex(
-        write_token_pair_t *token_pair,
-        const std::string &id,
-        const secondary_index_t::opaque_definition_t &definition,
-        transaction_t *txn,
-        superblock_t *super_block,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
-
-#if SLICE_ALT
+    // RSI: Is interruptor actually used?
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
         alt::alt_buf_lock_t *sindex_block,
@@ -219,47 +176,18 @@ public:
         std::set<std::string> *created_sindexes_out,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
-#else
-    void set_sindexes(
-        write_token_pair_t *token_pair,
-        const std::map<std::string, secondary_index_t> &sindexes,
-        transaction_t *txn,
-        superblock_t *superblock,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        std::set<std::string> *created_sindexes_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
     bool mark_index_up_to_date(
         const std::string &id,
         alt::alt_buf_lock_t *sindex_block)
     THROWS_NOTHING;
-#else
-    bool mark_index_up_to_date(
-        const std::string &id,
-        transaction_t *txn,
-        buf_lock_t *sindex_block)
-    THROWS_NOTHING;
-#endif
 
-#if SLICE_ALT
     bool mark_index_up_to_date(
         uuid_u id,
         alt::alt_buf_lock_t *sindex_block)
     THROWS_NOTHING;
-#else
-    bool mark_index_up_to_date(
-        uuid_u id,
-        transaction_t *txn,
-        buf_lock_t *sindex_block)
-    THROWS_NOTHING;
-#endif
 
-#if SLICE_ALT
+    // RSI: Is interruptor actually used?
     bool drop_sindex(
         const std::string &id,
         alt::alt_buf_lock_t *sindex_block,
@@ -267,106 +195,46 @@ public:
         value_deleter_t *deleter,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
-#else
-    bool drop_sindex(
-        write_token_pair_t *token_pair,
-        const std::string &id,
-        transaction_t *txn,
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
 
     // RSI: drop_all_sindexes is unused.
-#if SLICE_ALT
     void drop_all_sindexes(
         superblock_t *super_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
-#else
-    void drop_all_sindexes(
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
     // RSI: This should release the superblock internally after getting its
     // sindex_block (so that sindex_list_t and sindex_status_t, the queries which use
     // this, don't block other queries).  It would be nice in general if we supported
     // passing the superblock_t in some way by rvalue reference.
+    // RSI: This used to take an interruptor.
     void get_sindexes(
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out)
     THROWS_ONLY(interrupted_exc_t);
-#else
-    void get_sindexes(
-        read_token_pair_t *token_pair,
-        transaction_t *txn,
-        superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
     void get_sindexes(
         alt::alt_buf_lock_t *sindex_block,
         std::map<std::string, secondary_index_t> *sindexes_out)
     THROWS_NOTHING;
-#else
-    void get_sindexes(
-        buf_lock_t *sindex_block,
-        transaction_t *txn,
-        std::map<std::string, secondary_index_t> *sindexes_out)
-    THROWS_NOTHING;
-#endif
 
-#if SLICE_ALT
+    // RSI: This used to take an interruptor.
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
             block_id_t sindex_block_id,
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out) // Optional, may be NULL
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
-#else
-    MUST_USE bool acquire_sindex_superblock_for_read(
-            const std::string &id,
-            block_id_t sindex_block_id,
-            read_token_pair_t *token_pair,
-            transaction_t *txn,
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            std::vector<char> *opaque_definition_out, // Optional, may be NULL
-            signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
-#endif
+        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
-#if SLICE_ALT
+    // RSI: This used to take an interruptor.
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             block_id_t sindex_block_id,
             alt::alt_buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
-#else
-    MUST_USE bool acquire_sindex_superblock_for_write(
-            const std::string &id,
-            block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-            signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
-#endif
+        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
     struct sindex_access_t {
         sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
@@ -382,127 +250,52 @@ public:
 
     typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
 
-#if SLICE_ALT
+    // RSI: This used to take an interruptor.
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
             alt::alt_buf_parent_t parent,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
-#else
-    void acquire_all_sindex_superblocks_for_write(
-            block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out,
-            signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
-#endif
+        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
-#if SLICE_ALT
     void acquire_all_sindex_superblocks_for_write(
             alt::alt_buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
-#else
-    void acquire_all_sindex_superblocks_for_write(
-            buf_lock_t *sindex_block,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
-#endif
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
-#if !SLICE_ALT
-    void acquire_post_constructed_sindex_superblocks_for_write(
-            block_id_t sindex_block_id,
-            write_token_pair_t *token_pair,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out,
-            signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-#endif
-
-#if SLICE_ALT
     void acquire_post_constructed_sindex_superblocks_for_write(
             alt::alt_buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING;
-#else
-    void acquire_post_constructed_sindex_superblocks_for_write(
-            buf_lock_t *sindex_block,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_NOTHING;
-#endif
 
-#if SLICE_ALT
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             alt::alt_buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
-#else
-    bool acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
-            buf_lock_t *sindex_block,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
-#endif
 
-#if SLICE_ALT
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             alt::alt_buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
-#else
-    bool acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
-            buf_lock_t *sindex_block,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t);
-#endif
 
     btree_slice_t *get_sindex_slice(std::string id) {
         return &(secondary_index_slices.at(id));
     }
 
-#if SLICE_ALT
     virtual void protocol_read(const typename protocol_t::read_t &read,
                                typename protocol_t::read_response_t *response,
                                btree_slice_t *btree,
                                superblock_t *superblock,
                                signal_t *interruptor) = 0;
-#else
-    virtual void protocol_read(const typename protocol_t::read_t &read,
-                               typename protocol_t::read_response_t *response,
-                               btree_slice_t *btree,
-                               transaction_t *txn,
-                               superblock_t *superblock,
-                               read_token_pair_t *token_pair,
-                               signal_t *interruptor) = 0;
-#endif
 
-#if SLICE_ALT
     virtual void protocol_write(const typename protocol_t::write_t &write,
                                 typename protocol_t::write_response_t *response,
                                 transition_timestamp_t timestamp,
                                 btree_slice_t *btree,
                                 scoped_ptr_t<superblock_t> *superblock,
                                 signal_t *interruptor) = 0;
-#else
-    virtual void protocol_write(const typename protocol_t::write_t &write,
-                                typename protocol_t::write_response_t *response,
-                                transition_timestamp_t timestamp,
-                                btree_slice_t *btree,
-                                transaction_t *txn,
-                                scoped_ptr_t<superblock_t> *superblock,
-                                write_token_pair_t *token_pair,
-                                signal_t *interruptor) = 0;
-#endif
 
-#if SLICE_ALT
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                         superblock_t *superblock,
@@ -511,49 +304,22 @@ public:
                                         typename protocol_t::backfill_progress_t *progress,
                                         signal_t *interruptor)
                                         THROWS_ONLY(interrupted_exc_t) = 0;
-#else
-    virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
-                                        chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
-                                        superblock_t *superblock,
-                                        buf_lock_t *sindex_block,
-                                        btree_slice_t *btree,
-                                        transaction_t *txn,
-                                        typename protocol_t::backfill_progress_t *progress,
-                                        signal_t *interruptor)
-                                        THROWS_ONLY(interrupted_exc_t) = 0;
-#endif
 
     virtual void protocol_receive_backfill(btree_slice_t *btree,
-#if !SLICE_ALT
-                                           transaction_t *txn,
-#endif
                                            superblock_t *superblock,
-#if !SLICE_ALT
-                                           write_token_pair_t *token_pair,
-#endif
                                            signal_t *interruptor,
                                            const typename protocol_t::backfill_chunk_t &chunk) = 0;
 
     virtual void protocol_reset_data(const typename protocol_t::region_t& subregion,
                                      btree_slice_t *btree,
-#if !SLICE_ALT
-                                     transaction_t *txn,
-#endif
                                      superblock_t *superblock,
-#if !SLICE_ALT
-                                     write_token_pair_t *token_pair,
-#endif
                                      signal_t *interruptor) = 0;
 
-#if SLICE_ALT
     void get_metainfo_internal(alt::alt_buf_lock_t *sb_buf,
                                region_map_t<protocol_t, binary_blob_t> *out)
         const THROWS_NOTHING;
-#else
-    void get_metainfo_internal(transaction_t* txn, buf_lock_t *sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING;
-#endif
 
-#if SLICE_ALT
+    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_read(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             scoped_ptr_t<alt::alt_txn_t> *txn_out,
@@ -561,34 +327,16 @@ public:
             signal_t *interruptor,
             bool use_snapshot)
             THROWS_ONLY(interrupted_exc_t);
-#else
-    void acquire_superblock_for_read(
-            access_t access,
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<transaction_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor,
-            bool use_snapshot)
-            THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
+    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_backfill(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             scoped_ptr_t<alt::alt_txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
-#else
-    void acquire_superblock_for_backfill(
-            object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<transaction_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
+    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_write(
             repli_timestamp_t timestamp,
             int expected_change_count,
@@ -598,19 +346,8 @@ public:
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
-#else
-    void acquire_superblock_for_write(
-            repli_timestamp_t timestamp,
-            int expected_change_count,
-            write_durability_t durability,
-            write_token_pair_t *token_pair,
-            scoped_ptr_t<transaction_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-#endif
 
-#if SLICE_ALT
+    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_write(
             alt::alt_access_t superblock_access,  // RSI: redundant
             repli_timestamp_t timestamp,
@@ -621,22 +358,9 @@ public:
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
-#else
-    void acquire_superblock_for_write(
-            access_t txn_access,
-            access_t superblock_access,
-            repli_timestamp_t timestamp,
-            int expected_change_count,
-            write_durability_t durability,
-            write_token_pair_t *token_pair,
-            scoped_ptr_t<transaction_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-#endif
 
 private:
-#if SLICE_ALT
+    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_write(
             alt::alt_access_t superblock_access,  // RSI: redundant
             repli_timestamp_t timestamp,
@@ -647,45 +371,23 @@ private:
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
-#else
-    void acquire_superblock_for_write(
-            access_t txn_access,
-            access_t superblock_access,
-            repli_timestamp_t timestamp,
-            int expected_change_count,
-            write_durability_t durability,
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            scoped_ptr_t<transaction_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-#endif
 
 public:
     void check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
-#if !SLICE_ALT
-        transaction_t *txn,
-#endif
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
     metainfo_t check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-#if !SLICE_ALT
-        transaction_t *txn,
-#endif
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
-#if SLICE_ALT
+    // RSI: Seriously?  Why is this function const?
     void update_metainfo(const metainfo_t &old_metainfo,
                          const metainfo_t &new_metainfo,
-                         real_superblock_t *superbloc) const THROWS_NOTHING;
-#else
-    void update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superbloc) const THROWS_NOTHING;
-#endif
+                         real_superblock_t *superblock) const THROWS_NOTHING;
 
     mirrored_cache_config_t cache_dynamic_config;
     order_source_t order_source;
@@ -696,11 +398,7 @@ public:
     perfmon_collection_t perfmon_collection;
     // Mind the constructor ordering. We must destruct the cache and btree
     // before we destruct perfmon_collection
-#if SLICE_ALT
     scoped_ptr_t<alt::alt_cache_t> cache;
-#else
-    scoped_ptr_t<cache_t> cache;
-#endif
     scoped_ptr_t<btree_slice_t> btree;
     io_backender_t *io_backender_;
     base_path_t base_path_;
