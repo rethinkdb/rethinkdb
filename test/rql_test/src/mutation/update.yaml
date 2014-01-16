@@ -159,6 +159,12 @@ tests:
     - cd: tbl2.update({'foo':{'bar':2}})
       ot: ({'deleted':0.0,'replaced':99,'unchanged':1,'errors':0.0,'skipped':0.0,'inserted':0.0})
 
+    - cd: tbl2.update({'foo':r.literal({'bar':2})})
+      ot: ({'deleted':0.0,'replaced':0,'unchanged':100,'errors':0.0,'skipped':0.0,'inserted':0.0})
+
+    - rb: tbl2.update{|row| {'foo':r.literal({'bar':2})}}
+      ot: ({'deleted':0.0,'replaced':0,'unchanged':100,'errors':0.0,'skipped':0.0,'inserted':0.0})
+
     - cd: tbl2.order_by('id').nth(0)
       ot: ({'id':0,'foo':{'bar':2}})
 

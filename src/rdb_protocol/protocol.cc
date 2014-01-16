@@ -402,7 +402,9 @@ rdb_protocol_t::context_t::context_t()
     cross_thread_namespace_watchables(get_num_threads()),
     cross_thread_database_watchables(get_num_threads()),
     directory_read_manager(NULL),
-    signals(get_num_threads())
+    signals(get_num_threads()),
+    ql_stats_membership(&get_global_perfmon_collection(), &ql_stats_collection, "query_language"),
+    ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 { }
 
 rdb_protocol_t::context_t::context_t(
@@ -414,7 +416,8 @@ rdb_protocol_t::context_t::context_t(
         _auth_metadata,
     directory_read_manager_t<cluster_directory_metadata_t>
         *_directory_read_manager,
-    machine_id_t _machine_id)
+    machine_id_t _machine_id,
+    perfmon_collection_t *global_stats)
     : extproc_pool(_extproc_pool), ns_repo(_ns_repo),
       cross_thread_namespace_watchables(get_num_threads()),
       cross_thread_database_watchables(get_num_threads()),
@@ -422,7 +425,9 @@ rdb_protocol_t::context_t::context_t(
       auth_metadata(_auth_metadata),
       directory_read_manager(_directory_read_manager),
       signals(get_num_threads()),
-      machine_id(_machine_id)
+      machine_id(_machine_id),
+      ql_stats_membership(global_stats, &ql_stats_collection, "query_language"),
+      ql_ops_running_membership(&ql_stats_collection, &ql_ops_running, "ops_running")
 {
     for (int thread = 0; thread < get_num_threads(); ++thread) {
         cross_thread_namespace_watchables[thread].init(new cross_thread_watchable_variable_t<cow_ptr_t<namespaces_semilattice_metadata_t<rdb_protocol_t> > >(
@@ -1494,7 +1499,7 @@ public:
         : env(_env), f(wf.compile_wire_func()), return_vals(_return_vals) { }
     counted_t<const ql::datum_t> replace(
         const counted_t<const ql::datum_t> &d, size_t) const {
-        return f->call(env, d)->as_datum();
+        return f->call(env, d, ql::LITERAL_OK)->as_datum();
     }
     bool should_return_vals() const { return return_vals; }
 private:

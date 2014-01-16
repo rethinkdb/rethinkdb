@@ -239,7 +239,8 @@ struct rdb_protocol_t {
                       auth_semilattice_metadata_t> > _auth_metadata,
                   directory_read_manager_t<
                       cluster_directory_metadata_t> *_directory_read_manager,
-                  uuid_u _machine_id);
+                  uuid_u _machine_id,
+                  perfmon_collection_t *global_stats);
         ~context_t();
 
         extproc_pool_t *extproc_pool;
@@ -262,6 +263,11 @@ struct rdb_protocol_t {
         cond_t interruptor;
         scoped_array_t<scoped_ptr_t<cross_thread_signal_t> > signals;
         uuid_u machine_id;
+
+        perfmon_collection_t ql_stats_collection;
+        perfmon_membership_t ql_stats_membership;
+        perfmon_counter_t ql_ops_running;
+        perfmon_membership_t ql_ops_running_membership;
     };
 
     struct point_read_response_t {
