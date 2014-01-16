@@ -19,7 +19,6 @@ Bug fix update.
 * Speed up count queries (#1733)
 * Fix a bug with thread-local storage that caused a segfault on certain platforms (#1731)
 * `get` of a non-existent document followed by `replace` now works as documented (#1570)
-* `r.literal` now works inside lambdas (#1839)
 
 --
 
