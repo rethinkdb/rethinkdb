@@ -924,7 +924,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     return true;
 }
 
-#if SLICE_ALT
+// RSI: This function used to take an interruptor.
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
@@ -932,35 +932,17 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         alt_buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-#else
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
-        const std::string &id,
-        block_id_t sindex_block_id,
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        scoped_ptr_t<real_superblock_t> *sindex_sb_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-#endif
     assert_thread();
 
     /* Get the sindex block. */
-#if SLICE_ALT
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    // RSI: This callee used to take the interruptor.
+    // RSI: Does the callee do anything other than constructing the alt_buf_lock_t?
     acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
-#else
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
-#endif
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-#if SLICE_ALT
     if (!::get_secondary_index(sindex_block.get(), id, &sindex)) {
-#else
-    if (!::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
-#endif
         return false;
     }
 
@@ -969,14 +951,10 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     }
 
 
-#if SLICE_ALT
     alt_buf_lock_t superblock_lock(sindex_block.get(), sindex.superblock,
                                    alt_access_t::write);
+    sindex_block->reset_buf_lock();
     sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
-#else
-    buf_lock_t superblock_lock(txn, sindex.superblock, rwi_write);
-    sindex_sb_out->init(new real_superblock_t(&superblock_lock));
-#endif
     return true;
 }
 
