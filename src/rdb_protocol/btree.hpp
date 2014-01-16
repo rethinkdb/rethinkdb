@@ -81,9 +81,6 @@ class rdb_modification_report_cb_t;
 void rdb_get(
     const store_key_t &key,
     btree_slice_t *slice,
-#if !SLICE_ALT
-    transaction_t *txn,
-#endif
     superblock_t *superblock,
     point_read_response_t *response,
     profile::trace_t *trace);
@@ -96,26 +93,14 @@ enum return_vals_t {
 struct btree_info_t {
     btree_info_t(btree_slice_t *_slice,
                  repli_timestamp_t _timestamp,
-#if !SLICE_ALT
-                 transaction_t *_txn,
-#endif
                  const std::string *_primary_key)
         : slice(_slice), timestamp(_timestamp),
-#if !SLICE_ALT
-          txn(_txn),
-#endif
           primary_key(_primary_key) {
         guarantee(slice != NULL);
-#if !SLICE_ALT
-        guarantee(txn != NULL);
-#endif
         guarantee(primary_key != NULL);
     }
     btree_slice_t *const slice;
     const repli_timestamp_t timestamp;
-#if !SLICE_ALT
-    transaction_t *const txn;
-#endif
     const std::string *primary_key;
 };
 
@@ -154,7 +139,6 @@ batched_replace_response_t rdb_batched_replace(
     rdb_modification_report_cb_t *sindex_cb,
     profile::trace_t *trace);
 
-#if SLICE_ALT
 void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
              bool overwrite,
              btree_slice_t *slice, repli_timestamp_t timestamp,
@@ -162,15 +146,6 @@ void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
              point_write_response_t *response,
              rdb_modification_info_t *mod_info,
              profile::trace_t *trace);
-#else
-void rdb_set(const store_key_t &key, counted_t<const ql::datum_t> data,
-             bool overwrite,
-             btree_slice_t *slice, repli_timestamp_t timestamp,
-             transaction_t *txn, superblock_t *superblock,
-             point_write_response_t *response,
-             rdb_modification_info_t *mod_info,
-             profile::trace_t *trace);
-#endif
 
 class rdb_backfill_callback_t {
 public:
@@ -192,66 +167,36 @@ protected:
 };
 
 
-#if SLICE_ALT
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
                   superblock_t *superblock,
                   alt::alt_buf_lock_t *sindex_block,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
-#else
-void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
-        repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
-        transaction_t *txn, superblock_t *superblock,
-        buf_lock_t *sindex_block,
-        parallel_traversal_progress_t *p, signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t);
-#endif
 
 
-#if SLICE_ALT
 void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
                 timestamp, superblock_t *superblock,
                 point_delete_response_t *response,
                 rdb_modification_info_t *mod_info,
                 profile::trace_t *trace);
-#else
-void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
-        timestamp, transaction_t *txn, superblock_t *superblock,
-        point_delete_response_t *response,
-        rdb_modification_info_t *mod_info,
-        profile::trace_t *trace);
-#endif
 
 /* A deleter that doesn't actually delete the values. Needed for secondary
  * indexes which only have references. */
 class rdb_value_non_deleter_t : public value_deleter_t {
-#if SLICE_ALT
     void delete_value(alt::alt_buf_parent_t parent, void *value);
-#else
-    void delete_value(transaction_t *_txn, void *_value);
-#endif
 };
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &keys,
-#if !SLICE_ALT
-                     transaction_t *txn,
-#endif
-#if SLICE_ALT
                      alt::alt_buf_lock_t *sindex_block,
-#endif
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
-#if !SLICE_ALT
-                     write_token_pair_t *token_pair,
-#endif
                      signal_t *interruptor);
 
 /* RGETS */
 size_t estimate_rget_response_size(const counted_t<const ql::datum_t> &datum);
 
-#if SLICE_ALT
 void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     superblock_t *superblock,
                     ql::env_t *ql_env, const ql::batchspec_t &batchspec,
@@ -259,23 +204,11 @@ void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
                     const boost::optional<rdb_protocol_details::terminal_t> &terminal,
                     sorting_t sorting,
                     rget_read_response_t *response);
-#else
-void rdb_rget_slice(btree_slice_t *slice, const key_range_t &range,
-                    transaction_t *txn, superblock_t *superblock,
-                    ql::env_t *ql_env, const ql::batchspec_t &batchspec,
-                    const rdb_protocol_details::transform_t &transform,
-                    const boost::optional<rdb_protocol_details::terminal_t> &terminal,
-                    sorting_t sorting,
-                    rget_read_response_t *response);
-#endif
 
 void rdb_rget_secondary_slice(
     btree_slice_t *slice,
     const datum_range_t &datum_range,
     const rdb_protocol_t::region_t &sindex_region,
-#if !SLICE_ALT
-    transaction_t *txn,
-#endif
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
@@ -287,15 +220,10 @@ void rdb_rget_secondary_slice(
     sindex_multi_bool_t sindex_multi,
     rget_read_response_t *response);
 
-#if SLICE_ALT
 void rdb_distribution_get(btree_slice_t *slice, int max_depth,
                           const store_key_t &left_key,
                           superblock_t *superblock,
                           distribution_read_response_t *response);
-#else
-void rdb_distribution_get(btree_slice_t *slice, int max_depth, const store_key_t &left_key,
-                          transaction_t *txn, superblock_t *superblock, distribution_read_response_t *response);
-#endif
 
 /* Secondary Indexes */
 
@@ -337,16 +265,10 @@ typedef boost::variant<rdb_modification_report_t,
  * modify the secondary while they perform an operation. */
 class rdb_modification_report_cb_t {
 public:
-#if SLICE_ALT
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store,
             alt::alt_buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
-#else
-    rdb_modification_report_cb_t(
-            btree_store_t<rdb_protocol_t> *store, write_token_pair_t *token_pair,
-            transaction_t *txn, block_id_t sindex_block, auto_drainer_t::lock_t lock);
-#endif
 
     void on_mod_report(const rdb_modification_report_t &mod_report);
 
@@ -356,41 +278,21 @@ private:
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
     btree_store_t<rdb_protocol_t> *store_;
-#if !SLICE_ALT
-    write_token_pair_t *token_pair_;
-    transaction_t *txn_;
-    block_id_t sindex_block_id_;
-#endif
-#if SLICE_ALT
     alt::alt_buf_lock_t *sindex_block_;
-#endif
 
     /* Fields initialized by calls to on_mod_report */
-#if !SLICE_ALT
-    scoped_ptr_t<buf_lock_t> sindex_block_;
-#endif
     btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;
 };
 
-#if SLICE_ALT
 void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
         alt::alt_txn_t *txn);
 
-#else
-void rdb_update_sindexes(
-        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification,
-        transaction_t *txn);
-#endif
 
 void rdb_erase_range_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_erase_range_report_t *erase_range,
-#if !SLICE_ALT
-        transaction_t *txn,
-#endif
         signal_t *interruptor);
 
 void post_construct_secondary_indexes(
@@ -400,21 +302,11 @@ void post_construct_secondary_indexes(
     THROWS_ONLY(interrupted_exc_t);
 
 class rdb_value_deleter_t : public value_deleter_t {
-#if SLICE_ALT
 friend void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification, alt::alt_txn_t *txn);
-#else
-friend void rdb_update_sindexes(
-        const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification, transaction_t *txn);
-#endif
 
-#if SLICE_ALT
     void delete_value(alt::alt_buf_parent_t parent, void *_value);
-#else
-    void delete_value(transaction_t *_txn, void *_value);
-#endif
 };
 
 
