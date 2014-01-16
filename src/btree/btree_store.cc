@@ -8,14 +8,12 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
-#if SLICE_ALT
 using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_parent_t;
 using alt::alt_cache_t;
 using alt::alt_create_t;
 using alt::alt_txn_t;
-#endif
 
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
         std::string sindex_name)
@@ -80,38 +78,20 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         read_token_pair_t token_pair;
         new_read_token_pair(&token_pair);
 
-#if SLICE_ALT
         scoped_ptr_t<alt_txn_t> txn;
-#else
-        scoped_ptr_t<transaction_t> txn;
-#endif
         scoped_ptr_t<real_superblock_t> superblock;
-#if SLICE_ALT
         acquire_superblock_for_read(&token_pair.main_read_token, &txn,
                                     &superblock, &dummy_interruptor, false);
-#else
-        acquire_superblock_for_read(rwi_read, &token_pair.main_read_token, &txn,
-                                    &superblock, &dummy_interruptor, false);
-#endif
 
-#if SLICE_ALT
+        // RSI: It would be cool if acquire_sindex_block_for_read was interruptible
+        // (it used to take an interruptor, I don't know what for).
         scoped_ptr_t<alt_buf_lock_t> sindex_block;
         acquire_sindex_block_for_read(superblock->expose_buf(),
                                       &sindex_block,
                                       superblock->get_sindex_block_id());
-#else
-        scoped_ptr_t<buf_lock_t> sindex_block;
-        acquire_sindex_block_for_read(&token_pair, txn.get(), &sindex_block,
-                                      superblock->get_sindex_block_id(),
-                                      &dummy_interruptor);
-#endif
 
         std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
         get_secondary_indexes(sindex_block.get(), &sindexes);
-#else
-        get_secondary_indexes(txn.get(), sindex_block.get(), &sindexes);
-#endif
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             secondary_index_slices.insert(it->first,
@@ -140,35 +120,18 @@ void btree_store_t<protocol_t>::read(
     // debugf_t eex("%p read (%p)", this, response);
 
     assert_thread();
-#if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
-#else
-    scoped_ptr_t<transaction_t> txn;
-#endif
     scoped_ptr_t<real_superblock_t> superblock;
 
-#if SLICE_ALT
     acquire_superblock_for_read(&token_pair->main_read_token, &txn, &superblock,
                                 interruptor,
                                 read.use_snapshot());
-#else
-    acquire_superblock_for_read(rwi_read, &token_pair->main_read_token, &txn, &superblock, interruptor,
-                                read.use_snapshot());
-#endif
     // debugf("%p read (%p) acq superblock\n", this, response);
 
-#if SLICE_ALT
     DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock.get());)
-#else
-    DEBUG_ONLY(check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn.get(), superblock.get());)
-#endif
     // debugf("%p read (%p) checked metainfo\n", this, response);
 
-#if SLICE_ALT
     protocol_read(read, response, btree.get(), superblock.get(), interruptor);
-#else
-    protocol_read(read, response, btree.get(), txn.get(), superblock.get(), token_pair, interruptor);
-#endif
 }
 
 template <class protocol_t>
