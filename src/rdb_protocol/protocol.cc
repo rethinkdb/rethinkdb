@@ -1348,11 +1348,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = point_read_response_t();
         point_read_response_t *res =
             boost::get<point_read_response_t>(&response->response);
-#if SLICE_ALT
         rdb_get(get.key, btree, superblock, res, ql_env.trace.get_or_null());
-#else
-        rdb_get(get.key, btree, txn, superblock, res, ql_env.trace.get_or_null());
-#endif
     }
 
     void operator()(const rget_read_t &rget) {
@@ -1366,33 +1362,19 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         if (!rget.sindex) {
             // Normal rget
-#if SLICE_ALT
             rdb_rget_slice(btree, rget.region.inner, superblock,
                            &ql_env, rget.batchspec, rget.transform, rget.terminal,
                            rget.sorting, res);
-#else
-            rdb_rget_slice(btree, rget.region.inner, txn, superblock,
-                           &ql_env, rget.batchspec, rget.transform, rget.terminal,
-                           rget.sorting, res);
-#endif
         } else {
             scoped_ptr_t<real_superblock_t> sindex_sb;
             std::vector<char> sindex_mapping_data;
 
             try {
-#if SLICE_ALT
                 bool found = store->acquire_sindex_superblock_for_read(
                         rget.sindex->id,
                         superblock->get_sindex_block_id(),
                         superblock->expose_buf(),
                         &sindex_sb, &sindex_mapping_data);
-#else
-                bool found = store->acquire_sindex_superblock_for_read(
-                        rget.sindex->id,
-                        superblock->get_sindex_block_id(),
-                        token_pair, txn,
-                        &sindex_sb, &sindex_mapping_data, &interruptor);
-#endif
                 if (!found) {
                     res->result = ql::datum_exc_t(
                         ql::base_exc_t::GENERIC,
@@ -1425,9 +1407,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_rget_secondary_slice(
                 store->get_sindex_slice(rget.sindex->id),
                 rget.sindex->original_range, rget.sindex->region,
-#if !SLICE_ALT
-                txn,
-#endif
                 sindex_sb.get(), &ql_env, rget.batchspec, rget.transform,
                 rget.terminal, rget.region.inner, rget.sorting,
                 sindex_mapping, multi_bool, res);
@@ -1438,9 +1417,6 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response->response = distribution_read_response_t();
         distribution_read_response_t *res = boost::get<distribution_read_response_t>(&response->response);
         rdb_distribution_get(btree, dg.max_depth, dg.region.inner.left,
-#if !SLICE_ALT
-                             txn,
-#endif
                              superblock, res);
         for (std::map<store_key_t, int64_t>::iterator it = res->key_counts.begin(); it != res->key_counts.end(); ) {
             if (!dg.region.inner.contains_key(store_key_t(it->first))) {
@@ -1465,11 +1441,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         sindex_list_response_t *res = &boost::get<sindex_list_response_t>(response->response);
 
         std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
         store->get_sindexes(superblock, &sindexes);
-#else
-        store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
-#endif
 
         res->sindexes.reserve(sindexes.size());
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -1482,11 +1454,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         auto res = &boost::get<sindex_status_response_t>(response->response);
 
         std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
         store->get_sindexes(superblock, &sindexes);
-#else
-        store->get_sindexes(token_pair, txn, superblock, &sindexes, &interruptor);
-#endif
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             if (std_contains(sindex_status.sindexes, it->first) ||
@@ -1511,13 +1479,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
     rdb_read_visitor_t(btree_slice_t *_btree,
                        btree_store_t<rdb_protocol_t> *_store,
-#if !SLICE_ALT
-                       transaction_t *_txn,
-#endif
                        superblock_t *_superblock,
-#if !SLICE_ALT
-                       read_token_pair_t *_token_pair,
-#endif
                        rdb_protocol_t::context_t *ctx,
                        read_response_t *_response,
                        profile_bool_t profile,
@@ -1525,13 +1487,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         response(_response),
         btree(_btree),
         store(_store),
-#if !SLICE_ALT
-        txn(_txn),
-#endif
         superblock(_superblock),
-#if !SLICE_ALT
-        token_pair(_token_pair),
-#endif
         interruptor(_interruptor, ctx->signals[get_thread_id().threadnum].get()),
         ql_env(ctx->extproc_pool,
                ctx->ns_repo,
@@ -1562,13 +1518,8 @@ private:
     read_response_t *response;
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
-#if !SLICE_ALT
-    transaction_t *txn;
-#endif
     superblock_t *superblock;
-#if !SLICE_ALT
-    read_token_pair_t *token_pair;
-#endif
+    // RSI: Does interruptor actually get used?
     wait_any_t interruptor;
     ql::env_t ql_env;
 
@@ -1578,23 +1529,11 @@ private:
 void store_t::protocol_read(const read_t &read,
                             read_response_t *response,
                             btree_slice_t *btree,
-#if !SLICE_ALT
-                            transaction_t *txn,
-#endif
                             superblock_t *superblock,
-#if !SLICE_ALT
-                            read_token_pair_t *token_pair,
-#endif
                             signal_t *interruptor) {
     rdb_read_visitor_t v(
         btree, this,
-#if !SLICE_ALT
-        txn,
-#endif
         superblock,
-#if !SLICE_ALT
-        token_pair,
-#endif
         ctx, response, read.profile, interruptor);
     {
         profile::starter_t start_write("Perform read on shard.", v.get_env()->trace);
