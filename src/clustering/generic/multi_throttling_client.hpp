@@ -53,13 +53,7 @@ private:
 
     void on_give_tickets(int count);
 
-    void pump_free_tickets();
-
     void on_reclaim_tickets(int count);
-
-    /* Relinquishes as many tickets as possible considering `free_tickets`, up to a
-       maximum of `to_relinquish`. */
-    void try_to_relinquish_tickets();
 
     void relinquish_tickets_blocking(int count, auto_drainer_t::lock_t keepalive);
 
@@ -68,7 +62,6 @@ private:
     promise_t<server_business_card_t> intro_promise;
 
     int free_tickets;
-    int to_relinquish;
     intrusive_list_t<ticket_acq_t> ticket_queue;
 
     auto_drainer_t drainer;
