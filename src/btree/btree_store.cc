@@ -590,7 +590,6 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
     return true;
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::drop_all_sindexes(
         superblock_t *super_block,
@@ -630,48 +629,6 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
         secondary_index_slices.erase(it->first);
     }
 }
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::drop_all_sindexes(
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    /* First get the sindex block. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
-    /* Remove reference in the super block */
-    std::map<std::string, secondary_index_t> sindexes;
-    get_secondary_indexes(txn, sindex_block.get(), &sindexes);
-    delete_all_secondary_indexes(txn, sindex_block.get());
-    sindex_block->release(); //So others may proceed
-
-    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        /* Make sure we have a record of the slice. */
-        guarantee(std_contains(secondary_index_slices, it->first));
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
-
-        {
-            buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
-            real_superblock_t sindex_superblock(&sindex_superblock_lock);
-            erase_all(sizer, sindex_slice,
-                      deleter, txn, &sindex_superblock, interruptor);
-        }
-
-        secondary_index_slices.erase(it->first);
-
-        {
-            buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
-            sindex_superblock_lock.mark_deleted();
-        }
-    }
-}
-#endif
 
 // RSI: This used to take an interruptor.
 template <class protocol_t>
