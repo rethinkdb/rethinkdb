@@ -35,18 +35,6 @@ void btree_slice_t::create(block_id_t superblock_id,
     // getting the block id.
     alt_buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
 
-    // RSI: Figure out whether we should
-    // superblock.touch_recency(repli_timestamp_t::distance_past).  How exactly
-    // should that work?
-
-    // (We should already be setting the recency to distant_past because the txn was
-    // constructed that way...)
-#if !SLICE_ALT
-    // Initialize the replication time barrier to 0 so that if we are a slave,
-    // we will begin by pulling ALL updates from master.
-    superblock.touch_recency(repli_timestamp_t::distant_past);
-#endif
-
     alt::alt_buf_write_t sb_write(&superblock);
     auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());
     bzero(sb, parent.cache()->get_block_size().value());
