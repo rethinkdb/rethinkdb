@@ -229,17 +229,17 @@ private:
                 batchspec_t batchspec
                     = batchspec_t::user(batch_type_t::TERMINAL, env->env);
                 {
-                    profile::sampler_t sampler("Coercing to array.", env->env->trace);
+                    profile::sampler_t sampler("Coercing to object.", env->env->trace);
                     while (auto pair = ds->next(env->env, batchspec)) {
                         std::string key = pair->get(0)->as_str();
                         counted_t<const datum_t> keyval = pair->get(1);
                         bool b = obj.add(key, keyval);
                         rcheck(!b, base_exc_t::GENERIC,
-                               strprintf("Duplicate key %s in coerced object.  "
-                                         "(got %s and %s as values)",
+                               strprintf("Duplicate key `%s` in coerced object.  "
+                                         "(got `%s` and `%s` as values)",
                                          key.c_str(),
-                                         obj->get(key)->print().c_str(),
-                                         keyval->print().c_str()));
+                                         obj->get(key)->trunc_print().c_str(),
+                                         keyval->trunc_print().c_str()));
                         sampler.new_sample();
                     }
                 }

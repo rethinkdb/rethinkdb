@@ -553,6 +553,10 @@ class Keys extends RDBOp
     tt: "KEYS"
     mt: 'keys'
 
+class Object_ extends RDBOp
+    tt: "OBJECT"
+    mt: 'object'
+
 class Pluck extends RDBOp
     tt: "PLUCK"
     mt: 'pluck'
@@ -1027,6 +1031,8 @@ rethinkdb.september = new (class extends RDBOp then tt: 'SEPTEMBER')()
 rethinkdb.october = new (class extends RDBOp then tt: 'OCTOBER')()
 rethinkdb.november = new (class extends RDBOp then tt: 'NOVEMBER')()
 rethinkdb.december = new (class extends RDBOp then tt: 'DECEMBER')()
+
+rethinkdb.object = varar 0, null, (args...) -> new Object_ {}, args...
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb
