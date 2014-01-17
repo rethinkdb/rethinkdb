@@ -43,6 +43,15 @@ public:
         : page_txn_t(cache, repli_timestamp_t::distant_past, preceding_txn) { }
 };
 
+class test_cache_t : public page_cache_t {
+public:
+    test_cache_t(serializer_t *serializer, alt::alt_memory_tracker_t *tracker)
+        : page_cache_t(serializer, alt::alt_cache_config_t(), tracker) { }
+    test_cache_t(serializer_t *serializer, alt::alt_memory_tracker_t *tracker,
+                 uint64_t memory_limit)
+        : page_cache_t(serializer, alt::alt_cache_config_t(), tracker, memory_limit) { }
+};
+
 void run_Control() {
     mock_ser_t ser;
 }
@@ -53,7 +62,7 @@ TEST(PageTest, Control) {
 
 void run_CreateDestroy() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
 }
 
 TEST(PageTest, CreateDestroy) {
@@ -63,7 +72,7 @@ TEST(PageTest, CreateDestroy) {
 void run_OneTxn() {
     mock_ser_t mock;
     {
-        page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+        test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
         {
             test_txn_t txn(&page_cache);
         }
@@ -76,7 +85,7 @@ TEST(PageTest, OneTxn) {
 
 void run_TwoIndependentTxn() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     test_txn_t txn1(&page_cache);
     test_txn_t txn2(&page_cache);
 }
@@ -87,7 +96,7 @@ TEST(PageTest, TwoIndependentTxn) {
 
 void run_TwoIndependentTxnSwitch() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
     test_txn_t txn2(&page_cache);
     txn1.reset();
@@ -99,7 +108,7 @@ TEST(PageTest, TwoIndependentTxnSwitch) {
 
 void run_TwoSequentialTxnSwitch() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
     test_txn_t txn2(&page_cache, txn1.get());
     txn1.reset();
@@ -111,7 +120,7 @@ TEST(PageTest, TwoSequentialTxnSwitch) {
 
 void run_OneReadAcq() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     test_txn_t txn(&page_cache);
     current_page_acq_t acq(&txn, 0, alt_access_t::read);
     // Do nothing with the acq.
@@ -123,7 +132,7 @@ TEST(PageTest, OneReadAcq) {
 
 void run_OneWriteAcq() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     test_txn_t txn(&page_cache);
     current_page_acq_t acq(&txn, 0, alt_access_t::write);
     // Do nothing with the acq.
@@ -135,7 +144,7 @@ TEST(PageTest, OneWriteAcq) {
 
 void run_OneWriteAcqWait() {
     mock_ser_t mock;
-    page_cache_t page_cache(mock.ser.get(), mock.tracker.get());
+    test_cache_t page_cache(mock.ser.get(), mock.tracker.get());
     test_txn_t txn(&page_cache);
     current_page_acq_t acq(&txn, alt_create_t::create);
     page_acq_t page_acq;
@@ -162,7 +171,7 @@ public:
 
     void run() {
         {
-            page_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
+            test_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
             auto_drainer_t drain;
             c = &cache;
 
@@ -207,7 +216,7 @@ public:
         c = NULL;
 
         {
-            page_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
+            test_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
             auto_drainer_t drain;
             c = &cache;
             coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn14,
@@ -218,7 +227,7 @@ public:
         c = NULL;
 
         {
-            page_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
+            test_cache_t cache(mock.ser.get(), mock.tracker.get(), memory_limit);
             c = &cache;
             test_txn_t txn(c);
 
@@ -922,7 +931,7 @@ private:
     const uint64_t memory_limit;
 
     mock_ser_t mock;
-    page_cache_t *c;
+    test_cache_t *c;
 
     // The block ids for the blocks we call b[0] through b[16].  Note that b[i]
     // usually equals [i], but the last time I checked, that's not true for 11, 15,

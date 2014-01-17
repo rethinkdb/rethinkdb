@@ -17,6 +17,7 @@ class serializer_t;
 namespace alt {
 
 class alt_buf_lock_t;
+class alt_cache_config_t;
 class alt_snapshot_node_t;
 
 class alt_memory_tracker_t : public memory_tracker_t {
@@ -34,7 +35,8 @@ private:
 
 class alt_cache_t : public home_thread_mixin_t {
 public:
-    explicit alt_cache_t(serializer_t *serializer);
+    explicit alt_cache_t(serializer_t *serializer,
+                         const alt_cache_config_t &dynamic_config);
     ~alt_cache_t();
 
     block_size_t max_block_size() const;
@@ -124,6 +126,7 @@ public:
     alt_access_t access() const { return access_; }
 
     void set_account(alt_cache_account_t *cache_account);
+
 private:
     static void destroy_inner_txn(alt_inner_txn_t *inner,
                                   alt_cache_t *cache,

@@ -57,7 +57,7 @@ void run_metainfo_test() {
 
     cache_t::create(&serializer);
 
-    alt_cache_t cache(&serializer);
+    alt_cache_t cache(&serializer, alt_cache_config_t());
 
     btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
     std::map<std::string, std::string> mirror;

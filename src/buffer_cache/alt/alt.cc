@@ -35,9 +35,9 @@ void alt_memory_tracker_t::end_txn(int64_t saved_expected_change_count) {
 }
 
 
-alt_cache_t::alt_cache_t(serializer_t *serializer)
+alt_cache_t::alt_cache_t(serializer_t *serializer, const alt_cache_config_t &config)
     : tracker_(),
-      page_cache_(serializer, &tracker_),
+      page_cache_(serializer, config, &tracker_),
       drainer_(make_scoped<auto_drainer_t>()) { }
 
 alt_cache_t::~alt_cache_t() {

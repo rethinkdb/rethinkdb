@@ -6,6 +6,7 @@
 #include <vector>
 #include <set>
 
+#include "buffer_cache/alt/config.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "containers/backindex_bag.hpp"
@@ -501,6 +502,7 @@ class page_cache_t : public home_thread_mixin_t {
 public:
     // RSI: Remove default parameter of memory_limit?
     explicit page_cache_t(serializer_t *serializer,
+                          const alt_cache_config_t &config,
                           memory_tracker_t *tracker,
                           uint64_t memory_limit = GIGABYTE);
     ~page_cache_t();
@@ -571,6 +573,8 @@ private:
     friend class current_page_t;
     serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
+
+    const alt_cache_config_t dynamic_config_;
 
     // RSI: Some of these things need postfix underscores.
 

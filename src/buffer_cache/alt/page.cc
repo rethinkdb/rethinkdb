@@ -17,17 +17,19 @@
 namespace alt {
 
 page_cache_t::page_cache_t(serializer_t *serializer,
+                           const alt_cache_config_t &config,
                            memory_tracker_t *tracker,
                            uint64_t memory_limit)
-    : serializer_(serializer),
+    : dynamic_config_(config),
+      serializer_(serializer),
       free_list_(serializer),
       evicter_(tracker, memory_limit),
       drainer_(make_scoped<auto_drainer_t>()) {
     {
         on_thread_t thread_switcher(serializer->home_thread());
         // RSI: Maybe these values should come from some sort of dynamic config.
-        reads_io_account.init(serializer->make_io_account(CACHE_READS_IO_PRIORITY));
-        writes_io_account.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
+        reads_io_account.init(serializer->make_io_account(config.io_priority_reads));
+        writes_io_account.init(serializer->make_io_account(config.io_priority_writes));
         index_write_sink.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
@@ -119,9 +121,9 @@ void page_cache_t::create_cache_account(int priority,
     // same priority as all the non-accounted transactions together. Not sure if this
     // makes sense.
 
-    // Be aware of rounding errors... (what can be do against those? probably just setting the default io_priority_reads high enough)
-    // RSI: CACHE_READS_IO_PRIORITY is the same value as used in reads_io_account.
-    int io_priority = std::max(1, CACHE_READS_IO_PRIORITY * priority / 100);
+    // Be aware of rounding errors... (what can be do against those? probably just
+    // setting the default io_priority_reads high enough)
+    int io_priority = std::max(1, dynamic_config_.io_priority_reads * priority / 100);
 
     // TODO: This is a heuristic. While it might not be evil, it's not really optimal
     // either.

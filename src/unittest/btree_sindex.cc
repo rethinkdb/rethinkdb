@@ -32,7 +32,7 @@ void run_sindex_low_level_operations_test() {
 
     cache_t::create(&serializer);
 
-    alt_cache_t cache(&serializer);
+    alt_cache_t cache(&serializer, alt_cache_config_t());
 
     //Passing in blank metainfo. We don't need metainfo for this unittest.
     btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());

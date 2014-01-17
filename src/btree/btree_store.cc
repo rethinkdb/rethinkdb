@@ -3,6 +3,7 @@
 
 #include "btree/operations.hpp"
 #include "btree/secondary_operations.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "serializer/config.hpp"
@@ -12,6 +13,7 @@ using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_parent_t;
 using alt::alt_cache_t;
+using alt::alt_cache_config_t;
 using alt::alt_create_t;
 using alt::alt_txn_t;
 
@@ -47,13 +49,17 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     }
 
     // TODO: Don't specify cache dynamic config here.
-    // RSI: Remove or replace cache_dynamic_config.
-    cache_dynamic_config.max_size = cache_target;
-    cache_dynamic_config.max_dirty_size = cache_target / 2;
 #if SLICE_ALT
-    cache.init(new alt_cache_t(serializer));
+    (void)cache_target;  // RSI: The callee wanted us to use cache_target.  That's
+                         // going to be resolved with issue 97.
+    cache.init(new alt_cache_t(serializer, alt_cache_config_t()));
 #else
-    cache.init(new cache_t(serializer, cache_dynamic_config, &perfmon_collection));
+    {
+        mirrored_cache_config_t cache_dynamic_config;
+        cache_dynamic_config.max_size = cache_target;
+        cache_dynamic_config.max_dirty_size = cache_target / 2;
+        cache.init(new cache_t(serializer, cache_dynamic_config, &perfmon_collection));
+    }
 #endif
 
     if (create) {

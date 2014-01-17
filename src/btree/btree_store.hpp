@@ -389,7 +389,6 @@ public:
                          const metainfo_t &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
 
-    mirrored_cache_config_t cache_dynamic_config;
     order_source_t order_source;
 
     fifo_enforcer_source_t main_token_source, sindex_token_source;
