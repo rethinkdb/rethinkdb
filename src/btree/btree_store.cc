@@ -751,50 +751,16 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
             sindex_sbs_out);
 }
 
-#if !SLICE_ALT
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
-        block_id_t sindex_block_id,
-        write_token_pair_t *token_pair,
-        transaction_t *txn,
-        sindex_access_vector_t *sindex_sbs_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, sindex_block_id, interruptor);
-
-    acquire_post_constructed_sindex_superblocks_for_write(
-            sindex_block.get(),
-            txn,
-            sindex_sbs_out);
-}
-#endif
-
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
         alt_buf_lock_t *sindex_block,
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING {
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_write(
-        buf_lock_t *sindex_block,
-        transaction_t *txn,
-        sindex_access_vector_t *sindex_sbs_out)
-    THROWS_NOTHING {
-#endif
     assert_thread();
     std::set<std::string> sindexes_to_acquire;
     std::map<std::string, secondary_index_t> sindexes;
     // debugf("acquire_post... about to get_secondary_indexes\n");
-#if SLICE_ALT
     ::get_secondary_indexes(sindex_block, &sindexes);
-#else
-    ::get_secondary_indexes(txn, sindex_block, &sindexes);
-#endif
 
     // debugf("acquire_post... building map\n");
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -804,42 +770,22 @@ void btree_store_t<protocol_t>::acquire_post_constructed_sindex_superblocks_for_
     }
 
     // debugf("acquire_post... about to acquire_sindex_superblocks_for_write\n");
-#if SLICE_ALT
     acquire_sindex_superblocks_for_write(
             sindexes_to_acquire, sindex_block,
             sindex_sbs_out);
-#else
-    acquire_sindex_superblocks_for_write(
-            sindexes_to_acquire, sindex_block,
-            txn, sindex_sbs_out);
-#endif
     // debugf("acquire_post... done.\n");
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
             alt_buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
-#else
-template <class protocol_t>
-bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
-            buf_lock_t *sindex_block,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
-#endif
     assert_thread();
 
     std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
     ::get_secondary_indexes(sindex_block, &sindexes);
-#else
-    ::get_secondary_indexes(txn, sindex_block, &sindexes);
-#endif
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (sindexes_to_acquire && !std_contains(*sindexes_to_acquire, it->first)) {
@@ -850,50 +796,28 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
         sindex_slice->assert_thread();
 
-#if SLICE_ALT
         alt_buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, alt_access_t::write);
 
         sindex_sbs_out->push_back(new
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
                     real_superblock_t(std::move(superblock_lock))));
-#else
-        buf_lock_t superblock_lock(txn, it->second.superblock, rwi_write);
-
-        sindex_sbs_out->push_back(new
-                sindex_access_t(get_sindex_slice(it->first), it->second, new
-                    real_superblock_t(&superblock_lock)));
-#endif
     }
 
     //return's true if we got all of the sindexes requested.
     return sindex_sbs_out->size() == sindexes_to_acquire->size();
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             alt_buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t) {
-#else
-template <class protocol_t>
-bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
-            buf_lock_t *sindex_block,
-            transaction_t *txn,
-            sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
-#endif
     assert_thread();
 
     std::map<std::string, secondary_index_t> sindexes;
-#if SLICE_ALT
     ::get_secondary_indexes(sindex_block, &sindexes);
-#else
-    ::get_secondary_indexes(txn, sindex_block, &sindexes);
-#endif
 
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
         if (sindexes_to_acquire && !std_contains(*sindexes_to_acquire, it->second.id)) {
@@ -904,20 +828,12 @@ bool btree_store_t<protocol_t>::acquire_sindex_superblocks_for_write(
         btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
         sindex_slice->assert_thread();
 
-#if SLICE_ALT
         alt_buf_lock_t superblock_lock(
                 sindex_block, it->second.superblock, alt_access_t::write);
 
         sindex_sbs_out->push_back(new
                 sindex_access_t(get_sindex_slice(it->first), it->second, new
                     real_superblock_t(std::move(superblock_lock))));
-#else
-        buf_lock_t superblock_lock(txn, it->second.superblock, rwi_write);
-
-        sindex_sbs_out->push_back(new
-                sindex_access_t(get_sindex_slice(it->first), it->second, new
-                    real_superblock_t(&superblock_lock)));
-#endif
     }
 
     //return's true if we got all of the sindexes requested.
@@ -928,37 +844,22 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::check_and_update_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const metainfo_t &new_metainfo,
-#if !SLICE_ALT
-        transaction_t *txn,
-#endif
         real_superblock_t *superblock) const
         THROWS_NOTHING {
     assert_thread();
-#if SLICE_ALT
     metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) superblock);
     update_metainfo(old_metainfo, new_metainfo, superblock);
-#else
-    metainfo_t old_metainfo = check_metainfo(DEBUG_ONLY(metainfo_checker, ) txn, superblock);
-    update_metainfo(old_metainfo, new_metainfo, txn, superblock);
-#endif
 }
 
 template <class protocol_t>
 typename btree_store_t<protocol_t>::metainfo_t
 btree_store_t<protocol_t>::check_metainfo(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
-#if !SLICE_ALT
-        transaction_t *txn,
-#endif
         real_superblock_t *superblock) const
         THROWS_NOTHING {
     assert_thread();
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
-#if SLICE_ALT
     get_metainfo_internal(superblock->get(), &old_metainfo);
-#else
-    get_metainfo_internal(txn, superblock->get(), &old_metainfo);
-#endif
 #ifndef NDEBUG
     metainfo_checker.check_metainfo(old_metainfo.mask(metainfo_checker.get_domain()));
 #endif
