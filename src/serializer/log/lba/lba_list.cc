@@ -135,13 +135,13 @@ bool lba_list_t::start_existing(file_t *file, metablock_mixin_t *last_metablock,
 }
 
 block_id_t lba_list_t::end_block_id() {
-    rassert(state == state_ready);
+    rassert(state == state_ready || state == state_gc_shutting_down);
 
     return in_memory_index.end_block_id();
 }
 
 index_block_info_t lba_list_t::get_block_info(block_id_t block) {
-    rassert(state == state_ready);
+    rassert(state == state_ready || state == state_gc_shutting_down);
     return in_memory_index.get_block_info(block);
 }
 
@@ -164,7 +164,7 @@ repli_timestamp_t lba_list_t::get_block_recency(block_id_t block) {
 void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
                                 flagged_off64_t offset, uint32_t ser_block_size,
                                 file_account_t *io_account, extent_transaction_t *txn) {
-    rassert(state == state_ready);
+    rassert(state == state_ready || state == state_gc_shutting_down);
 
     in_memory_index.set_block_info(block, recency, offset, ser_block_size);
 
@@ -258,7 +258,7 @@ public:
 };
 
 void lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
-    rassert(state == state_ready);
+    rassert(state == state_ready || state == state_gc_shutting_down);
 
     lba_syncer_t *syncer = new lba_syncer_t(this, io_account);
     if (syncer->done) {
