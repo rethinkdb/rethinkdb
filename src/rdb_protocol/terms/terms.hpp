@@ -78,14 +78,12 @@ counted_t<term_t> make_json_term(compile_env_t *env, const protob_t<const Term> 
 counted_t<term_t> make_match_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // case.cc
-counted_t<term_t> make_upcase_term(
-    compile_env_t *env, const protob_t<const Term> &term);
-counted_t<term_t> make_downcase_term(
-    compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_upcase_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_downcase_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // obj.cc
 counted_t<term_t> make_keys_term(compile_env_t *env, const protob_t<const Term> &term);
-counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_object_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // obj_or_seq.cc
 counted_t<term_t> make_pluck_term(compile_env_t *env, const protob_t<const Term> &term);
@@ -93,6 +91,7 @@ counted_t<term_t> make_without_term(compile_env_t *env, const protob_t<const Ter
 counted_t<term_t> make_literal_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_merge_term(compile_env_t *env, const protob_t<const Term> &term);
 counted_t<term_t> make_has_fields_term(compile_env_t *env, const protob_t<const Term> &term);
+counted_t<term_t> make_get_field_term(compile_env_t *env, const protob_t<const Term> &term);
 
 // pred.cc
 counted_t<term_t> make_predicate_term(compile_env_t *env, const protob_t<const Term> &term);

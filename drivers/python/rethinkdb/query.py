@@ -168,3 +168,6 @@ def literal(val=()):
         return Literal(val)
     else:
         return Literal()
+
+def object(*args):
+    return Object(*args)
