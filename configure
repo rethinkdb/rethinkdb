@@ -18,7 +18,7 @@ init () {
 
     please_fetch_list='handlebars coffee lessc browserify proto2js'
 
-    required_libs="protobuf v8 termcap"
+    required_libs="protobuf v8 termcap z"
     other_libs="unwind tcmalloc_minimal"
     all_libs="$required_libs $other_libs"
     support_libs="unwind tcmalloc_minimal v8 protobuf"
