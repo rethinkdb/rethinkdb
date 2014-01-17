@@ -9,10 +9,12 @@
 
 namespace alt {
 
-// RSI: Put a page_cache_config_t inside of this for organizational purposes.
-class alt_cache_config_t {
+// RSI: Maybe get rid of this file, just put these in page.hpp and alt.hpp,
+// respectively.
+
+class page_cache_config_t {
 public:
-    alt_cache_config_t()
+    page_cache_config_t()
         : io_priority_reads(CACHE_READS_IO_PRIORITY),
           io_priority_writes(CACHE_WRITES_IO_PRIORITY) { }
 
@@ -20,6 +22,12 @@ public:
     int32_t io_priority_writes;
 
     RDB_MAKE_ME_SERIALIZABLE_2(io_priority_reads, io_priority_writes);
+};
+
+class alt_cache_config_t {
+public:
+    page_cache_config_t page_config;
+    RDB_MAKE_ME_SERIALIZABLE_1(page_config);
 };
 
 }  // namespace alt

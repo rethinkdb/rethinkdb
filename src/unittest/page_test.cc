@@ -18,6 +18,7 @@ using alt::current_page_acq_t;
 using alt::current_page_t;
 using alt::page_acq_t;
 using alt::page_cache_t;
+using alt::page_cache_config_t;
 using alt::page_t;
 using alt::page_txn_t;
 
@@ -46,10 +47,10 @@ public:
 class test_cache_t : public page_cache_t {
 public:
     test_cache_t(serializer_t *serializer, alt::alt_memory_tracker_t *tracker)
-        : page_cache_t(serializer, alt::alt_cache_config_t(), tracker) { }
+        : page_cache_t(serializer, page_cache_config_t(), tracker) { }
     test_cache_t(serializer_t *serializer, alt::alt_memory_tracker_t *tracker,
                  uint64_t memory_limit)
-        : page_cache_t(serializer, alt::alt_cache_config_t(), tracker, memory_limit) { }
+        : page_cache_t(serializer, page_cache_config_t(), tracker, memory_limit) { }
 };
 
 void run_Control() {

@@ -502,7 +502,7 @@ class page_cache_t : public home_thread_mixin_t {
 public:
     // RSI: Remove default parameter of memory_limit?
     explicit page_cache_t(serializer_t *serializer,
-                          const alt_cache_config_t &config,
+                          const page_cache_config_t &config,
                           memory_tracker_t *tracker,
                           uint64_t memory_limit = GIGABYTE);
     ~page_cache_t();
@@ -574,7 +574,7 @@ private:
     serializer_t *serializer() { return serializer_; }
     free_list_t *free_list() { return &free_list_; }
 
-    const alt_cache_config_t dynamic_config_;
+    const page_cache_config_t dynamic_config_;
 
     // RSI: Some of these things need postfix underscores.
 
