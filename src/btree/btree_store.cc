@@ -438,7 +438,6 @@ bool btree_store_t<protocol_t>::add_sindex(
     }
 }
 
-#if SLICE_ALT
 // RSI: There's no reason why this should work with detached sindexes.  Make this
 // just take the alt_buf_parent_t.
 void clear_sindex(
@@ -466,9 +465,7 @@ void clear_sindex(
         sindex_superblock_lock.mark_deleted();
     }
 }
-#endif
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
@@ -527,79 +524,6 @@ void btree_store_t<protocol_t>::set_sindexes(
         }
     }
 }
-
-#endif
-
-#if !SLICE_ALT
-template <class protocol_t>
-void btree_store_t<protocol_t>::set_sindexes(
-        write_token_pair_t *token_pair,
-        const std::map<std::string, secondary_index_t> &sindexes,
-        transaction_t *txn,
-        superblock_t *superblock,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        std::set<std::string> *created_sindexes_out,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    /* Get the sindex block which we will need to modify. */
-    acquire_sindex_block_for_write(token_pair, txn, sindex_block_out, superblock->get_sindex_block_id(), interruptor);
-
-    std::map<std::string, secondary_index_t> existing_sindexes;
-    ::get_secondary_indexes(txn, sindex_block_out->get(), &existing_sindexes);
-
-    for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
-        if (!std_contains(sindexes, it->first)) {
-            delete_secondary_index(txn, sindex_block_out->get(), it->first);
-
-            guarantee(std_contains(secondary_index_slices, it->first));
-            btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
-
-            {
-                buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
-                real_superblock_t sindex_superblock(&sindex_superblock_lock);
-
-                erase_all(sizer, sindex_slice,
-                          deleter, txn, &sindex_superblock,
-                          interruptor);
-            }
-
-            secondary_index_slices.erase(it->first);
-
-            {
-                buf_lock_t sindex_superblock_lock(txn, it->second.superblock, rwi_write);
-                sindex_superblock_lock.mark_deleted();
-            }
-        }
-    }
-
-    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        if (!std_contains(existing_sindexes, it->first)) {
-            secondary_index_t sindex(it->second);
-            {
-                buf_lock_t sindex_superblock(txn);
-                sindex.superblock = sindex_superblock.get_block_id();
-                /* The buf lock is destroyed here which is important becase it allows
-                 * us to reacquire later when we make a btree_store. */
-            }
-
-            btree_slice_t::create(txn->get_cache(), sindex.superblock, txn,
-                    std::vector<char>(), std::vector<char>());
-            std::string id = it->first;
-            secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, it->first));
-
-            sindex.post_construction_complete = false;
-
-            ::set_secondary_index(txn, sindex_block_out->get(), it->first, sindex);
-
-            created_sindexes_out->insert(it->first);
-        }
-    }
-}
-#endif
 
 template <class protocol_t>
 bool btree_store_t<protocol_t>::mark_index_up_to_date(const std::string &id,
