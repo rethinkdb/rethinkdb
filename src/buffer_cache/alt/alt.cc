@@ -145,7 +145,6 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache,
       durability_(durability),
       saved_expected_change_count_(expected_change_count) {
     cache->assert_thread();
-    guarantee(txn_timestamp != repli_timestamp_t::invalid);
     cache->tracker_.begin_txn_or_throttle(expected_change_count);
     inner_.init(new alt_inner_txn_t(cache,
                                     txn_timestamp,
