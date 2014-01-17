@@ -363,9 +363,11 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
         prev_version.subsequent() : prev_version;
 
     if (acq->access_ == alt_access_t::read) {
-        rassert(acq->the_txn_->this_txn_recency_ == repli_timestamp_t::invalid);
+        rassert(acq->the_txn_ == NULL);
         acq->recency_ = prev_recency;
     } else {
+        // RSI: What if the_txn_->this_txn_recency_ is non-monotonic with respect to
+        // previous acqs?
         rassert(acq->the_txn_ != NULL);
         acq->recency_ = acq->the_txn_->this_txn_recency_;
     }
