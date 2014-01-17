@@ -557,7 +557,6 @@ bool btree_store_t<protocol_t>::mark_index_up_to_date(uuid_u id,
     return found;
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
         const std::string &id,
@@ -590,53 +589,6 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
     }
     return true;
 }
-#else
-template <class protocol_t>
-MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
-        write_token_pair_t *token_pair,
-        const std::string &id,
-        transaction_t *txn,
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    /* First get the sindex block. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(token_pair, txn, &sindex_block, super_block->get_sindex_block_id(), interruptor);
-
-    /* Remove reference in the super block */
-    secondary_index_t sindex;
-    if (!::get_secondary_index(txn, sindex_block.get(), id, &sindex)) {
-        return false;
-    } else {
-        delete_secondary_index(txn, sindex_block.get(), id);
-        sindex_block->release(); //So others may proceed
-
-        /* Make sure we have a record of the slice. */
-        guarantee(std_contains(secondary_index_slices, id));
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(id));
-
-        {
-            buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
-            real_superblock_t sindex_superblock(&sindex_superblock_lock);
-
-            erase_all(sizer, sindex_slice,
-                      deleter, txn, &sindex_superblock, interruptor);
-        }
-
-        secondary_index_slices.erase(id);
-
-        {
-            buf_lock_t sindex_superblock_lock(txn, sindex.superblock, rwi_write);
-            sindex_superblock_lock.mark_deleted();
-        }
-    }
-    return true;
-}
-#endif
 
 #if SLICE_ALT
 template <class protocol_t>
