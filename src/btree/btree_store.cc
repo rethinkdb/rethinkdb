@@ -966,7 +966,6 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_read(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
@@ -975,18 +974,6 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
         signal_t *interruptor,
         bool use_snapshot)
         THROWS_ONLY(interrupted_exc_t) {
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_superblock_for_read(
-        access_t access,
-        object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-        scoped_ptr_t<transaction_t> *txn_out,
-        scoped_ptr_t<real_superblock_t> *sb_out,
-        signal_t *interruptor,
-        bool use_snapshot)
-        THROWS_ONLY(interrupted_exc_t) {
-#endif
-
     assert_thread();
     btree->assert_thread();
 
@@ -998,23 +985,14 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
 
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
-#if SLICE_ALT
     get_btree_superblock_and_txn_for_reading(
         btree.get(), order_token, cache_snapshotted, sb_out, txn_out);
-#else
-    get_btree_superblock_and_txn_for_reading(
-        btree.get(), access, order_token, cache_snapshotted, sb_out, txn_out);
-#endif
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-#if SLICE_ALT
         scoped_ptr_t<alt_txn_t> *txn_out,
-#else
-        scoped_ptr_t<transaction_t> *txn_out,
-#endif
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -1037,63 +1015,30 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         int expected_change_count,
         const write_durability_t durability,
         write_token_pair_t *token_pair,
-#if SLICE_ALT
         scoped_ptr_t<alt_txn_t> *txn_out,
-#else
-        scoped_ptr_t<transaction_t> *txn_out,
-#endif
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-
-#if SLICE_ALT
     acquire_superblock_for_write(alt_access_t::write, timestamp,
                                  expected_change_count, durability,
                                  token_pair, txn_out, sb_out, interruptor);
-#else
-    acquire_superblock_for_write(rwi_write, rwi_write, timestamp, expected_change_count, durability,
-            token_pair, txn_out, sb_out, interruptor);
-#endif
 }
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_write(
-#if SLICE_ALT
         alt_access_t superblock_access,
-#else
-        access_t txn_access,
-        access_t superblock_access,
-#endif
         repli_timestamp_t timestamp,
         int expected_change_count,
         const write_durability_t durability,
         write_token_pair_t *token_pair,
-#if SLICE_ALT
         scoped_ptr_t<alt_txn_t> *txn_out,
-#else
-        scoped_ptr_t<transaction_t> *txn_out,
-#endif
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-
-#if SLICE_ALT
     acquire_superblock_for_write(superblock_access, timestamp,
                                  expected_change_count, durability,
                                  &token_pair->main_write_token, txn_out, sb_out,
                                  interruptor);
-#else
-    acquire_superblock_for_write(txn_access, superblock_access, timestamp, expected_change_count, durability,
-            &token_pair->main_write_token, txn_out, sb_out, interruptor);
-#endif
-
-#if !SLICE_ALT
-    // SRH: Do whatever (*txn_out)->set_token_pair does.
-    // JD: No need to worry about this, it was done as a hack so that we could
-    // assert that the sindex_token was used. It's all going away with the new
-    // cache though.
-    (*txn_out)->set_token_pair(token_pair);
-#endif
 }
 
 template <class protocol_t>
