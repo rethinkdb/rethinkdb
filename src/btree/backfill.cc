@@ -117,6 +117,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             ids_source->get_block_id_and_bounding_interval(i, &id, &left, &right);
             if (overlaps(left, right, key_range_.left, key_range_.right)) {
                 // RSI: Acquire the lock with some "don't-load-the-page directive".
+                // RSI: We ignore recency.  What does this even do?
                 repli_timestamp_t recency;
                 {
                     alt_buf_lock_t lock(parent, id, alt_access_t::read);
