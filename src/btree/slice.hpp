@@ -94,7 +94,9 @@ public:
 #else
     cache_t *cache() { return cache_; }
 #endif
-#if !SLICE_ALT
+#if SLICE_ALT
+    alt::alt_cache_account_t *get_backfill_account() { return backfill_account.get(); }
+#else
     cache_account_t *get_backfill_account() { return backfill_account.get(); }
 #endif
 
@@ -113,7 +115,10 @@ private:
 
     block_id_t superblock_id_;
 
-#if !SLICE_ALT
+#if SLICE_ALT
+    // Cache account to be used when backfilling.
+    scoped_ptr_t<alt::alt_cache_account_t> backfill_account;
+#else
     // Cache account to be used when backfilling.
     scoped_ptr_t<cache_account_t> backfill_account;
 #endif
