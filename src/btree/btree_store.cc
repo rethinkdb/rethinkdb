@@ -866,29 +866,19 @@ btree_store_t<protocol_t>::check_metainfo(
     return old_metainfo;
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo,
                                                 const metainfo_t &new_metainfo,
                                                 real_superblock_t *superblock)
     const THROWS_NOTHING {
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo, const metainfo_t &new_metainfo, transaction_t *txn, real_superblock_t *superblock) const THROWS_NOTHING {
-#endif
     assert_thread();
     region_map_t<protocol_t, binary_blob_t> updated_metadata = old_metainfo;
     updated_metadata.update(new_metainfo);
 
     rassert(updated_metadata.get_domain() == protocol_t::region_t::universe());
 
-#if SLICE_ALT
     alt_buf_lock_t *sb_buf = superblock->get();
     clear_superblock_metainfo(sb_buf);
-#else
-    buf_lock_t *sb_buf = superblock->get();
-    clear_superblock_metainfo(txn, sb_buf);
-#endif
 
     for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator i = updated_metadata.begin(); i != updated_metadata.end(); ++i) {
         vector_stream_t key;
@@ -900,11 +890,7 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo, 
         std::vector<char> value(static_cast<const char*>(i->second.data()),
                                 static_cast<const char*>(i->second.data()) + i->second.size());
 
-#if SLICE_ALT
         set_superblock_metainfo(sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
-#else
-        set_superblock_metainfo(txn, sb_buf, key.vector(), value); // FIXME: this is not efficient either, see how value is created
-#endif
     }
 }
 
@@ -916,7 +902,6 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
     // debugf_t eex("%p do_get_metainfo", this);
 
     assert_thread();
-#if SLICE_ALT
     scoped_ptr_t<alt_txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(token,
@@ -925,33 +910,17 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
                                 false /* RSI: christ */);
 
     get_metainfo_internal(superblock->get(), out);
-#else
-    scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_read(rwi_read, token, &txn, &superblock, interruptor, false);
-
-    get_metainfo_internal(txn.get(), superblock->get(), out);
-#endif
 }
 
-#if SLICE_ALT
 template <class protocol_t>
 void btree_store_t<protocol_t>::
 get_metainfo_internal(alt_buf_lock_t *sb_buf,
                       region_map_t<protocol_t, binary_blob_t> *out)
     const THROWS_NOTHING {
-#else
-template <class protocol_t>
-void btree_store_t<protocol_t>::get_metainfo_internal(transaction_t *txn, buf_lock_t *sb_buf, region_map_t<protocol_t, binary_blob_t> *out) const THROWS_NOTHING {
-#endif
     assert_thread();
     std::vector<std::pair<std::vector<char>, std::vector<char> > > kv_pairs;
-#if SLICE_ALT
     // TODO: this is inefficient, cut out the middleman (vector)
     get_superblock_metainfo(sb_buf, &kv_pairs);
-#else
-    get_superblock_metainfo(txn, sb_buf, &kv_pairs);   // FIXME: this is inefficient, cut out the middleman (vector)
-#endif
 
     std::vector<std::pair<typename protocol_t::region_t, binary_blob_t> > result;
     for (std::vector<std::pair<std::vector<char>, std::vector<char> > >::iterator i = kv_pairs.begin(); i != kv_pairs.end(); ++i) {
@@ -980,7 +949,6 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
 
     assert_thread();
 
-#if SLICE_ALT
     // RSI: Are there other places where we give up and use repli_timestamp_t::invalid?
     scoped_ptr_t<alt_txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
@@ -992,27 +960,10 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                  &txn,
                                  &superblock,
                                  interruptor);
-#else
-    scoped_ptr_t<transaction_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(rwi_write, rwi_write,
-                                 repli_timestamp_t::invalid,
-                                 1,
-                                 write_durability_t::HARD,
-                                 token,
-                                 &txn,
-                                 &superblock,
-                                 interruptor);
-#endif
 
     region_map_t<protocol_t, binary_blob_t> old_metainfo;
-#if SLICE_ALT
     get_metainfo_internal(superblock->get(), &old_metainfo);
     update_metainfo(old_metainfo, new_metainfo, superblock.get());
-#else
-    get_metainfo_internal(txn.get(), superblock->get(), &old_metainfo);
-    update_metainfo(old_metainfo, new_metainfo, txn.get(), superblock.get());
-#endif
 }
 
 #if SLICE_ALT
