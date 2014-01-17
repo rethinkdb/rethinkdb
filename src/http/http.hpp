@@ -115,6 +115,8 @@ public:
     void add_last_modified(int);
 };
 
+bool maybe_gzip_response(const http_req_t &req, http_res_t *res);
+
 http_res_t http_error_res(const std::string &content,
                           http_status_code_t rescode = HTTP_BAD_REQUEST);
 
