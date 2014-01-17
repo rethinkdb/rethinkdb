@@ -185,9 +185,13 @@ $(V8_SRC_DIR):
 	$P MAKE v8 dependencies
 	$(EXTERN_MAKE) -C $(V8_SRC_DIR) dependencies $(SUPPORT_LOG_REDIRECT)
 
+	( cd $(TC_SRC_DIR) && \
+          find v8 -type f -exec sed -e 's_^#!/usr/bin/env python$$_&2_; s_^#!/usr/bin/python$$_&2_' -i {} \; && \
+          sed 's/\bpython\b/python2/' -i v8/Makefile v8/build/gyp/gyp ) $(SUPPORT_LOG_REDIRECT)
+
 $(V8_INT_LIB): $(V8_INT_DIR)
 	$P MAKE v8
-	$(EXTERN_MAKE) -C $(V8_INT_DIR) native CXXFLAGS=-Wno-array-bounds $(SUPPORT_LOG_REDIRECT)
+	$(EXTERN_MAKE) -C $(V8_INT_DIR) native CXXFLAGS='-Wno-error' $(SUPPORT_LOG_REDIRECT)
 	$P AR $@
 	find $(V8_INT_DIR) -iname "*.o" | grep -v '\/preparser_lib\/' | xargs ar cqs $(V8_INT_LIB);
 
