@@ -439,6 +439,8 @@ bool btree_store_t<protocol_t>::add_sindex(
 }
 
 #if SLICE_ALT
+// RSI: There's no reason why this should work with detached sindexes.  Make this
+// just take the alt_buf_parent_t.
 void clear_sindex(
         alt_txn_t *txn, block_id_t superblock_id,
         btree_slice_t *slice, value_sizer_t<void> *sizer,
@@ -482,6 +484,8 @@ void btree_store_t<protocol_t>::set_sindexes(
 
     // RSI: This is kind of malperformant because we call clear_sindex while holding
     // on to sindex_block.
+
+    // RSI: This is malperformant because we don't parallelize this stuff.
 
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
         if (!std_contains(sindexes, it->first)) {
