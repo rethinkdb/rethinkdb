@@ -673,6 +673,8 @@ MUST_USE bool btree_store_t<protocol_t>::add_sindex(
 #endif
 
 #if SLICE_ALT
+// RSI: There's no reason why this should work with detached sindexes.  Make this
+// just take the alt_buf_parent_t.
 void clear_sindex(
         alt_txn_t *txn, block_id_t superblock_id,
         btree_slice_t *slice, value_sizer_t<void> *sizer,
