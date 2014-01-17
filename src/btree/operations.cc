@@ -592,8 +592,8 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_to
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
                                    alt_read_access_t::read);
     txn_out->init(txn);
-    // RSI: Support the use of this account, if applicable.
-    // txn->set_account(slice->get_backfill_account());
+    // RSI: Does using a backfill account needlessly slow other operations down?
+    txn->set_account(slice->get_backfill_account());
 
     get_btree_superblock(txn, alt_access_t::read, got_superblock_out);
     // RSI: This is bad -- we want to backfill, we don't want to snapshot from the

@@ -14,6 +14,7 @@
 
 namespace alt {
 class alt_buf_parent_t;
+class alt_cache_account_t;
 class alt_cache_t;
 }
 class backfill_callback_t;
@@ -77,10 +78,7 @@ public:
     ~btree_slice_t();
 
     alt::alt_cache_t *cache() { return cache_; }
-    // RSI: Add get_backfill_account.
-#if !SLICE_ALT
-    cache_account_t *get_backfill_account() { return backfill_account.get(); }
-#endif
+    alt::alt_cache_account_t *get_backfill_account() { return backfill_account.get(); }
 
     order_checkpoint_t pre_begin_txn_checkpoint_;
 
@@ -93,11 +91,8 @@ private:
 
     block_id_t superblock_id_;
 
-    // RSI: Add backfill_account.
-#if !SLICE_ALT
     // Cache account to be used when backfilling.
-    scoped_ptr_t<cache_account_t> backfill_account;
-#endif
+    scoped_ptr_t<alt::alt_cache_account_t> backfill_account;
 
     DISABLE_COPYING(btree_slice_t);
 };

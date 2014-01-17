@@ -1429,10 +1429,11 @@ void post_construct_secondary_indexes(
     // The superblock must be released before txn (`btree_parallel_traversal`
     // usually already takes care of that).
     // The txn must be destructed before the cache_account.
-    scoped_ptr_t<cache_account_t> cache_account;
 #if SLICE_ALT
+    scoped_ptr_t<alt_cache_account_t> cache_account;
     scoped_ptr_t<alt_txn_t> txn;
 #else
+    scoped_ptr_t<cache_account_t> cache_account;
     scoped_ptr_t<transaction_t> txn;
 #endif
     scoped_ptr_t<real_superblock_t> superblock;
@@ -1447,11 +1448,10 @@ void post_construct_secondary_indexes(
         interruptor,
         true /* USE_SNAPSHOT */);
 
-    // RSI: Have the alt cache support this.
-#if !SLICE_ALT
-    txn->get_cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY, &cache_account);
+    // RSI: Is this high(?) priority why making an sindex slows stuff down a lot?
+    txn->cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY,
+                                       &cache_account);
     txn->set_account(cache_account.get());
-#endif
 
 #if SLICE_ALT
     btree_parallel_traversal(superblock.get(),

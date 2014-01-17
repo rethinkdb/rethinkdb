@@ -58,12 +58,7 @@ btree_slice_t::btree_slice_t(alt_cache_t *c, perfmon_collection_t *parent,
     : stats(parent, identifier),
       cache_(c),
       superblock_id_(_superblock_id) {
-#if SLICE_ALT
-    // RSI: Implement create_cache_account or something (fix read/write throttling
-    // too, thanks.)
-#else
     cache()->create_cache_account(BACKFILL_CACHE_PRIORITY, &backfill_account);
-#endif
 
     pre_begin_txn_checkpoint_.set_tagappend("pre_begin_txn");
 }
