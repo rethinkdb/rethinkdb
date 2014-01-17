@@ -500,11 +500,9 @@ private:
 
 class page_cache_t : public home_thread_mixin_t {
 public:
-    // RSI: Remove default parameter of memory_limit?
     explicit page_cache_t(serializer_t *serializer,
                           const page_cache_config_t &config,
-                          memory_tracker_t *tracker,
-                          uint64_t memory_limit = GIGABYTE);
+                          memory_tracker_t *tracker);
     ~page_cache_t();
     current_page_t *page_for_block_id(block_id_t block_id);
     current_page_t *page_for_new_block_id(block_id_t *block_id_out);

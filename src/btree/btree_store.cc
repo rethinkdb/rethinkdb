@@ -49,10 +49,13 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     }
 
     // TODO: Don't specify cache dynamic config here.
+    // RSI: ^^ Then where?
 #if SLICE_ALT
-    (void)cache_target;  // RSI: The callee wanted us to use cache_target.  That's
-                         // going to be resolved with issue 97.
-    cache.init(new alt_cache_t(serializer, alt_cache_config_t()));
+    {
+        alt_cache_config_t config;
+        config.page_config.memory_limit = cache_target;
+        cache.init(new alt_cache_t(serializer, config));
+    }
 #else
     {
         mirrored_cache_config_t cache_dynamic_config;

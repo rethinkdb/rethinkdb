@@ -50,7 +50,14 @@ public:
         : page_cache_t(serializer, page_cache_config_t(), tracker) { }
     test_cache_t(serializer_t *serializer, alt::alt_memory_tracker_t *tracker,
                  uint64_t memory_limit)
-        : page_cache_t(serializer, page_cache_config_t(), tracker, memory_limit) { }
+        : page_cache_t(serializer, make_config(memory_limit), tracker) { }
+
+private:
+    static page_cache_config_t make_config(uint64_t memory_limit) {
+        page_cache_config_t ret;
+        ret.memory_limit = memory_limit;
+        return ret;
+    }
 };
 
 void run_Control() {

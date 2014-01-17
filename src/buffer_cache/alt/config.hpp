@@ -16,12 +16,14 @@ class page_cache_config_t {
 public:
     page_cache_config_t()
         : io_priority_reads(CACHE_READS_IO_PRIORITY),
-          io_priority_writes(CACHE_WRITES_IO_PRIORITY) { }
+          io_priority_writes(CACHE_WRITES_IO_PRIORITY),
+          memory_limit(GIGABYTE) { }
 
     int32_t io_priority_reads;
     int32_t io_priority_writes;
+    uint64_t memory_limit;
 
-    RDB_MAKE_ME_SERIALIZABLE_2(io_priority_reads, io_priority_writes);
+    RDB_MAKE_ME_SERIALIZABLE_3(io_priority_reads, io_priority_writes, memory_limit);
 };
 
 class alt_cache_config_t {

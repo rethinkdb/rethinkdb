@@ -18,12 +18,11 @@ namespace alt {
 
 page_cache_t::page_cache_t(serializer_t *serializer,
                            const page_cache_config_t &config,
-                           memory_tracker_t *tracker,
-                           uint64_t memory_limit)
+                           memory_tracker_t *tracker)
     : dynamic_config_(config),
       serializer_(serializer),
       free_list_(serializer),
-      evicter_(tracker, memory_limit),
+      evicter_(tracker, config.memory_limit),
       drainer_(make_scoped<auto_drainer_t>()) {
     {
         on_thread_t thread_switcher(serializer->home_thread());

@@ -18,6 +18,7 @@ using alt::alt_access_t;
 using alt::alt_buf_lock_t;
 using alt::alt_buf_parent_t;
 using alt::alt_buf_write_t;
+using alt::alt_cache_config_t;
 using alt::alt_cache_t;
 using alt::alt_create_t;
 using alt::alt_txn_t;
@@ -45,11 +46,11 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     file_opener.unlink_serializer_file();
 
 #if DBQ_USE_ALT_CACHE
-    // RSI: Before, we configured the max_size to be 1MB and the max_dirty_size to be
-    // 512KB.  Now, we don't -- but there's definitely some sort of max size
-    // configuratin hard-coded in the alt cache.  Use it.
-
-    // RSI: Is this actually necessary?  (What?  Is what actually necessary?)
+    alt_cache_config_t cache_dynamic_config;
+    cache_dynamic_config.page_config.memory_limit = MEGABYTE;
+    cache.init(new alt_cache_t(serializer.get(), cache_dynamic_config));
+    // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
+    // RSI: Is this actually necessary?
     alt_txn_t txn(cache.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
     alt_buf_lock_t block(&txn, SUPERBLOCK_ID, alt_create_t::create);
