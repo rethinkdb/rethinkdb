@@ -188,6 +188,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
         case Term::ISO8601:
@@ -350,6 +351,7 @@ private:
         case Term::DEFAULT:
         case Term::CONTAINS:
         case Term::KEYS:
+        case Term::OBJECT:
         case Term::WITH_FIELDS:
         case Term::JSON:
         case Term::ISO8601:

@@ -309,6 +309,8 @@ message Term {
                          // | Sequence, STRING -> Sequence
         // Return an array containing the keys of the object.
         KEYS = 94; // OBJECT -> ARRAY
+        // Creates an object
+        OBJECT = 143; // STRING, DATUM, ... -> OBJECT
         // Check whether an object contains all the specified fields,
         // or filters a sequence so that all objects inside of it
         // contain all the specified fields.
