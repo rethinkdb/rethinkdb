@@ -717,6 +717,8 @@ void btree_store_t<protocol_t>::set_sindexes(
     // RSI: This is kind of malperformant because we call clear_sindex while holding
     // on to sindex_block.
 
+    // RSI: This is malperformant because we don't parallelize this stuff.
+
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
         if (!std_contains(sindexes, it->first)) {
             delete_secondary_index(sindex_block, it->first);
