@@ -485,6 +485,18 @@ private:
     DISABLE_COPYING(evicter_t);
 };
 
+class alt_cache_account_t {
+public:
+    ~alt_cache_account_t();
+private:
+    friend class page_cache_t;
+    alt_cache_account_t(threadnum_t thread, file_account_t *io_account);
+    // RSI: I have having this thread_ variable, and it looks like the file_account_t already worries about going to the right thread anyway.
+    threadnum_t thread_;
+    file_account_t *io_account_;
+    DISABLE_COPYING(alt_cache_account_t);
+};
+
 class page_cache_t : public home_thread_mixin_t {
 public:
     // RSI: Remove default parameter of memory_limit?
@@ -502,6 +514,8 @@ public:
     size_t evictable_page_memory() const;
 
     block_size_t max_block_size() const;
+
+    void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
     current_page_t *internal_page_for_new_chosen(block_id_t block_id);
@@ -627,7 +641,7 @@ public:
 
     page_cache_t *page_cache() const { return page_cache_; }
 
-
+    void set_account(alt_cache_account_t *cache_account);
 private:
     // page cache has access to all of this type's innards, including fields.
     friend class page_cache_t;
@@ -654,6 +668,9 @@ private:
     page_cache_t *page_cache_;
 
     repli_timestamp_t this_txn_recency_;
+
+    // RSI: This is ugh-ish and the design is borrowed from the mirrored cache.
+    alt_cache_account_t *cache_account_;
 
     // The transactions that must be committed before or at the same time as this
     // transaction.  RSI: Are all these transactions those that still need to be

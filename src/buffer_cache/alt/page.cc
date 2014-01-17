@@ -25,6 +25,7 @@ page_cache_t::page_cache_t(serializer_t *serializer,
       drainer_(make_scoped<auto_drainer_t>()) {
     {
         on_thread_t thread_switcher(serializer->home_thread());
+        // RSI: Maybe these values should come from some sort of dynamic config.
         reads_io_account.init(serializer->make_io_account(CACHE_READS_IO_PRIORITY));
         writes_io_account.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
         index_write_sink.init(new fifo_enforcer_sink_t);
@@ -111,6 +112,32 @@ block_size_t page_cache_t::max_block_size() const {
     assert_thread();
     return serializer_->get_block_size();
 }
+
+void page_cache_t::create_cache_account(int priority,
+                                        scoped_ptr_t<alt_cache_account_t> *out) {
+    // We assume that a priority of 100 means that the transaction should have the
+    // same priority as all the non-accounted transactions together. Not sure if this
+    // makes sense.
+
+    // Be aware of rounding errors... (what can be do against those? probably just setting the default io_priority_reads high enough)
+    // RSI: CACHE_READS_IO_PRIORITY is the same value as used in reads_io_account.
+    int io_priority = std::max(1, CACHE_READS_IO_PRIORITY * priority / 100);
+
+    // TODO: This is a heuristic. While it might not be evil, it's not really optimal
+    // either.
+    int outstanding_requests_limit = std::max(1, 16 * priority / 100);
+
+    file_account_t *io_account;
+    {
+        // RSI: We shouldn't have to switch to the serializer home thread.
+        on_thread_t thread_switcher(serializer_->home_thread());
+        io_account = serializer_->make_io_account(io_priority,
+                                                  outstanding_requests_limit);
+    }
+
+    out->init(new alt_cache_account_t(serializer_->home_thread(), io_account));
+}
+
 
 struct current_page_help_t {
     current_page_help_t(block_id_t _block_id, page_cache_t *_page_cache)
@@ -990,6 +1017,18 @@ page_txn_t::~page_txn_t() {
     pagef("in ~page_txn_t, waiting for flush cond\n");
     flush_complete_cond_.wait();
     pagef("in ~page_txn_t, flush cond complete\n");
+}
+
+void page_txn_t::set_account(alt_cache_account_t *cache_account) {
+    // There's nothing intrinsically wrong with trying to set an already-set cache
+    // account, but setting it twice probably means you should have some interface
+    // where you push and pop cache accounts.
+    guarantee(cache_account_ == NULL, "Tried to set already-set cache account.");
+    cache_account_ = cache_account;
+
+    // RSI: We don't actually _use_ cache_account -- right now read operations don't
+    // have a page_txn_t kept around, you see.
+    (void)cache_account_;
 }
 
 void page_txn_t::add_acquirer(current_page_acq_t *acq) {

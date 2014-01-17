@@ -2,6 +2,7 @@
 
 #include <stack>
 
+#include "arch/types.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/auto_drainer.hpp"
 
@@ -46,6 +47,12 @@ alt_cache_t::~alt_cache_t() {
 block_size_t alt_cache_t::max_block_size() const {
     return page_cache_.max_block_size();
 }
+
+void alt_cache_t::create_cache_account(int priority,
+                                       scoped_ptr_t<alt_cache_account_t> *out) {
+    page_cache_.create_cache_account(priority, out);
+}
+
 
 alt_snapshot_node_t *
 alt_cache_t::matching_snapshot_node_or_null(block_id_t block_id,
@@ -119,6 +126,14 @@ alt_inner_txn_t::~alt_inner_txn_t() {
     // RSI: Do anything?
 }
 
+alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
+    : thread_(thread), io_account_(io_account) { }
+
+alt_cache_account_t::~alt_cache_account_t() {
+    on_thread_t thread_switcher(thread_);
+    delete io_account_;
+}
+
 alt_txn_t::alt_txn_t(alt_cache_t *cache,
                      UNUSED alt_read_access_t read_access,
                      alt_txn_t *preceding_txn)
@@ -174,6 +189,11 @@ alt_txn_t::~alt_txn_t() {
                                      cache->drainer_->lock());
     }
 }
+
+void alt_txn_t::set_account(alt_cache_account_t *cache_account) {
+    inner_->page_txn()->set_account(cache_account);
+}
+
 
 alt_snapshot_node_t::alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq)
     : current_page_acq_(std::move(acq)), ref_count_(0) { }

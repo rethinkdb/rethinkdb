@@ -41,6 +41,13 @@ public:
     // RSI: Remove this.
     block_size_t get_block_size() const { return max_block_size(); }
 
+    // These todos come from the mirrored cache.  The real problem is that whole
+    // cache account / priority thing is just one ghetto hack amidst a dozen other
+    // throttling systems.  TODO: Come up with a consistent priority scheme,
+    // i.e. define a "default" priority etc.  TODO: As soon as we can support it, we
+    // might consider supporting a mem_cap paremeter.
+    void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
+
 private:
     friend class alt_txn_t;  // for drainer_->lock()
     friend class alt_inner_txn_t;  // for &page_cache_
@@ -115,6 +122,8 @@ public:
     alt_cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
     alt_access_t access() const { return access_; }
+
+    void set_account(alt_cache_account_t *cache_account);
 private:
     static void destroy_inner_txn(alt_inner_txn_t *inner,
                                   alt_cache_t *cache,
@@ -127,6 +136,7 @@ private:
     const write_durability_t durability_;
     const int64_t saved_expected_change_count_;  // RSI: A fugly relationship with
                                                  // the tracker.
+
     scoped_ptr_t<alt_inner_txn_t> inner_;
     DISABLE_COPYING(alt_txn_t);
 };
