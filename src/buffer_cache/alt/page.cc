@@ -363,11 +363,19 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
         prev_version.subsequent() : prev_version;
 
     if (acq->access_ == alt_access_t::read) {
-        rassert(acq->the_txn_->this_txn_recency_ == repli_timestamp_t::invalid);
+        rassert(acq->the_txn_ == NULL);
         acq->recency_ = prev_recency;
     } else {
         rassert(acq->the_txn_ != NULL);
-        acq->recency_ = acq->the_txn_->this_txn_recency_;
+        // RSI: We pass invalid timestamps for some set_metainfo calls and such.
+        // Shouldn't we never pass invalid timestamps?  It would be simpler.
+        if (acq->the_txn_->this_txn_recency_ == repli_timestamp_t::invalid) {
+            acq->recency_ = prev_recency;
+        } else {
+            // RSI: What if the_txn_->this_txn_recency_ is non-monotonic with respect to
+            // previous acqs?
+            acq->recency_ = acq->the_txn_->this_txn_recency_;
+        }
     }
 
     acquirers_.push_back(acq);

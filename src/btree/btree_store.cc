@@ -981,6 +981,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
     assert_thread();
 
 #if SLICE_ALT
+    // RSI: Are there other places where we give up and use repli_timestamp_t::invalid?
     scoped_ptr_t<alt_txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(alt_access_t::write,
