@@ -1043,21 +1043,12 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_write(
-#if SLICE_ALT
         alt_access_t superblock_access,
-#else
-        access_t txn_access,
-        access_t superblock_access,
-#endif
         repli_timestamp_t timestamp,
         int expected_change_count,
         write_durability_t durability,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-#if SLICE_ALT
         scoped_ptr_t<alt_txn_t> *txn_out,
-#else
-        scoped_ptr_t<transaction_t> *txn_out,
-#endif
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -1071,13 +1062,9 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
     order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
-#if SLICE_ALT
     get_btree_superblock_and_txn(btree.get(), superblock_access,
                                  expected_change_count, timestamp, order_token,
                                  durability, sb_out, txn_out);
-#else
-    get_btree_superblock_and_txn(btree.get(), txn_access, superblock_access, expected_change_count, timestamp, order_token, durability, sb_out, txn_out);
-#endif
 }
 
 /* store_view_t interface */
