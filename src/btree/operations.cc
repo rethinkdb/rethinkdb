@@ -583,7 +583,6 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
     get_btree_superblock(txn, superblock_access, got_superblock_out);
 }
 
-#if SLICE_ALT
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<alt_txn_t> *txn_out) {
@@ -601,21 +600,6 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_to
     // subtree underneath the root node.
     (*got_superblock_out)->get()->snapshot_subtree();
 }
-#else
-void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
-                                                  scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<transaction_t> *txn_out) {
-    slice->assert_thread();
-    transaction_t *txn = new transaction_t(slice->cache(), rwi_read_sync,
-                                           slice->pre_begin_txn_checkpoint_.check_through(token));
-    txn_out->init(txn);
-    txn->set_account(slice->get_backfill_account());
-
-    txn->snapshot();
-
-    get_btree_superblock(txn, rwi_read_sync, got_superblock_out);
-}
-#endif
 
 // RSI: This function is possibly stupid: it's nonsensical to talk about the entire
 // cache being snapshotted -- we want some subtree to be snapshotted, at least.
