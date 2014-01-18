@@ -5,23 +5,19 @@
 #include <string.h>
 
 #ifndef NDEBUG
-#include <stack>   /* the data structure, not the run-time concept */
+#include <stack>
 #endif
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/context_switching.hpp"
-#include "arch/runtime/thread_pool.hpp"
+#include "arch/runtime/coro_profiler.hpp"
 #include "arch/runtime/runtime.hpp"
+#include "arch/runtime/thread_pool.hpp"
 #include "config/args.hpp"
 #include "do_on_thread.hpp"
-#include "thread_local.hpp"
-
 #include "perfmon/perfmon.hpp"
-#include "utils.hpp"
 #include "rethinkdb_backtrace.hpp"
-#include "arch/runtime/coro_profiler.hpp"
+#include "thread_local.hpp"
+#include "utils.hpp"
 
 size_t coro_stack_size = COROUTINE_STACK_SIZE; //Default, setable by command-line parameter
 
