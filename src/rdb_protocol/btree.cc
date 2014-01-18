@@ -1212,32 +1212,15 @@ public:
           interrupt_myself_(interrupt_myself), interruptor_(interruptor)
     { }
 
-#if SLICE_ALT
     void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
-#else
-    void process_a_leaf(transaction_t *txn, buf_lock_t *leaf_node_buf,
-                        const btree_key_t *, const btree_key_t *,
-                        signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
-#endif
         write_token_pair_t token_pair;
         store_->new_write_token_pair(&token_pair);
 
-#if SLICE_ALT
         // RSI: FML
         scoped_ptr_t<alt_txn_t> wtxn;
-#else
-        scoped_ptr_t<transaction_t> wtxn;
-#endif
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
-
-#if !SLICE_ALT
-        // If we get interrupted, post-construction will happen later, no need to
-        //  guarantee that we touch the sindex tree now
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
-            destroyer(&token_pair.sindex_write_token);
-#endif
 
         try {
             scoped_ptr_t<real_superblock_t> superblock;
@@ -1245,17 +1228,20 @@ public:
             // We want soft durability because having a partially constructed secondary index is
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
-#if SLICE_ALT
             store_->acquire_superblock_for_write(
                     alt_access_t::write,
                     repli_timestamp_t::distant_past,
-                    2,
+                    2,  // RSI: This is not the right value.
                     write_durability_t::SOFT,
                     &token_pair,
                     &wtxn,
                     &superblock,
                     interruptor_);
-#else
+            // RSI: We used to have this comment.  We no longer do that (and we no
+            // longer want to do that).  How is performance affected?  We shouldn't
+            // have stuff blocking on the superblock (generally) anyway, right?
+
+
             // While we need wtxn to be a write transaction (thus calling
             // `acquire_superblock_for_write`), we only need a read lock
             // on the superblock (which is why we pass in `rwi_read`).
@@ -1265,55 +1251,27 @@ public:
             // the way down. However in this special case this is already
             // guaranteed by the token_pair that all secondary index operations
             // use, so we can safely acquire it with `rwi_read` instead.
-            store_->acquire_superblock_for_write(
-                rwi_write,
-                rwi_read,
-                repli_timestamp_t::distant_past,
-                2,
-                write_durability_t::SOFT,
-                &token_pair,
-                &wtxn,
-                &superblock,
-                interruptor_);
-#endif
+
+            // RSI: ^^ remove the above outdated comment left for reference for the
+            // previous RSI comment.
 
             // Synchronization is guaranteed through the token_pair.
             // Let's get the information we need from the superblock and then
             // release it immediately.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
-#if !SLICE_ALT
-            superblock->release();
-#endif
 
-#if SLICE_ALT
             scoped_ptr_t<alt_buf_lock_t> sindex_block;
-#else
-            scoped_ptr_t<buf_lock_t> sindex_block;
-#endif
 
-#if SLICE_ALT
             store_->acquire_sindex_block_for_write(
                 superblock->expose_buf(),
                 &sindex_block,
                 sindex_block_id);
-#else
-            store_->acquire_sindex_block_for_write(
-                &token_pair,
-                wtxn.get(),
-                &sindex_block,
-                sindex_block_id,
-                interruptor_);
-#endif
-#if SLICE_ALT
+
             superblock.reset();
-#endif
 
             store_->acquire_sindex_superblocks_for_write(
                     sindexes_to_post_construct_,
                     sindex_block.get(),
-#if !SLICE_ALT
-                    wtxn.get(),
-#endif
                     &sindexes);
 
             if (sindexes.empty()) {
@@ -1324,13 +1282,9 @@ public:
             return;
         }
 
-#if SLICE_ALT
         alt_buf_read_t leaf_read(leaf_node_buf);
         const leaf_node_t *leaf_node
             = static_cast<const leaf_node_t *>(leaf_read.get_data_read());
-#else
-        const leaf_node_t *leaf_node = static_cast<const leaf_node_t *>(leaf_node_buf->get_data_read());
-#endif
 
         for (auto it = leaf::begin(*leaf_node); it != leaf::end(*leaf_node); ++it) {
             store_->btree->stats.pm_keys_read.record();
@@ -1343,52 +1297,41 @@ public:
             store_key_t pk(key);
             rdb_modification_report_t mod_report(pk);
             const rdb_value_t *rdb_value = static_cast<const rdb_value_t *>(value);
-#if SLICE_ALT
             const block_size_t block_size = leaf_node_buf->cache()->get_block_size();
-#else
-            const block_size_t block_size = txn->get_cache()->get_block_size();
-#endif
-#if SLICE_ALT
-            mod_report.info.added = std::make_pair(get_data(rdb_value, alt_buf_parent_t(leaf_node_buf)),
+            mod_report.info.added
+                = std::make_pair(
+                    get_data(rdb_value, alt_buf_parent_t(leaf_node_buf)),
                     std::vector<char>(rdb_value->value_ref(),
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
-#else
-            mod_report.info.added = std::make_pair(get_data(rdb_value, txn),
-                    std::vector<char>(rdb_value->value_ref(),
-                        rdb_value->value_ref() + rdb_value->inline_size(block_size)));
-#endif
 
             rdb_update_sindexes(sindexes, &mod_report, wtxn.get());
             coro_t::yield();
         }
     }
 
-#if SLICE_ALT
     void postprocess_internal_node(alt_buf_lock_t *) { }
-#else
-    void postprocess_internal_node(buf_lock_t *) { }
-#endif
 
-#if SLICE_ALT
     void filter_interesting_children(alt_buf_parent_t,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
-#else
-    void filter_interesting_children(UNUSED transaction_t *txn, ranged_block_ids_t *ids_source, interesting_children_callback_t *cb) {
-#endif
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {
             cb->receive_interesting_child(i);
         }
         cb->no_more_interesting_children();
     }
 
-#if SLICE_ALT
+    // RSI: Parallel traversal should release the superblock, right?  That way we can
+    // get at the sindexes.
+
+    // RSI: Instead of wtxn we should just have one (write) transaction, pre-visit
+    // the sindex block, traverse the main subtree (snapshottedly) without releasing
+    // the superblock, instead of this two-transaction business.  We could get
+    // everything done in one write transaction?  But having big write transactions
+    // is bad for some reason (if it actually touches the superblock).  Think about
+    // that, make sindexes better, and talk to other people about known sindex
+    // problems.
     alt_access_t btree_superblock_mode() { return alt_access_t::read; }
     alt_access_t btree_node_mode() { return alt_access_t::read; }
-#else
-    access_t btree_superblock_mode() { return rwi_read; }
-    access_t btree_node_mode() { return rwi_read; }
-#endif
 
     btree_store_t<rdb_protocol_t> *store_;
     const std::set<uuid_u> &sindexes_to_post_construct_;
@@ -1429,19 +1372,11 @@ void post_construct_secondary_indexes(
     // The superblock must be released before txn (`btree_parallel_traversal`
     // usually already takes care of that).
     // The txn must be destructed before the cache_account.
-#if SLICE_ALT
     scoped_ptr_t<alt_cache_account_t> cache_account;
     scoped_ptr_t<alt_txn_t> txn;
-#else
-    scoped_ptr_t<cache_account_t> cache_account;
-    scoped_ptr_t<transaction_t> txn;
-#endif
     scoped_ptr_t<real_superblock_t> superblock;
 
     store->acquire_superblock_for_read(
-#if !SLICE_ALT
-        rwi_read,
-#endif
         &read_token,
         &txn,
         &superblock,
@@ -1453,11 +1388,6 @@ void post_construct_secondary_indexes(
                                        &cache_account);
     txn->set_account(cache_account.get());
 
-#if SLICE_ALT
     btree_parallel_traversal(superblock.get(),
                              store->btree.get(), &helper, &wait_any);
-#else
-    btree_parallel_traversal(txn.get(), superblock.get(),
-            store->btree.get(), &helper, &wait_any);
-#endif
 }
