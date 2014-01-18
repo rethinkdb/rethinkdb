@@ -191,7 +191,7 @@ private:
                 total_tickets / fair_fraction_denom);
         int qps_tickets = total_tickets - fair_tickets;
         int total_qps = 0;
-        for (client_t *c = clients.head(); c; c = clients.next(c)) {
+        for (client_t *c = clients.head(); c != NULL; c = clients.next(c)) {
             total_qps += c->estimate_qps();
         }
         if (clients.size() == 0) {
@@ -202,7 +202,7 @@ private:
             tickets will be distributed, but that's OK. */
             total_qps = 1;
         }
-        for (client_t *c = clients.head(); c; c = clients.next(c)) {
+        for (client_t *c = clients.head(); c != NULL; c = clients.next(c)) {
             /* This math isn't exact, but it's OK if the target tickets of all
             the clients don't add up to `total_tickets`. */
             c->set_target_tickets(fair_tickets / clients.size() +
@@ -259,7 +259,7 @@ private:
                They get priority in tickets. This prevents starvation. */
             std::vector<client_t *> critical_clients;
             critical_clients.reserve(clients.size());
-            for (client_t *c = clients.head(); c; c = clients.next(c)) {
+            for (client_t *c = clients.head(); c != NULL; c = clients.next(c)) {
                 if (c->get_current_tickets() < min_reasonable_tickets
                     && c->get_current_tickets() < c->get_target_tickets()) {
                     critical_clients.push_back(c);
@@ -289,7 +289,7 @@ private:
                difference is less than `min_chunk_size`, don't send any tickets at all
                to avoid flooding the network with many small ticket updates. */
             priority_queue_t<std::pair<int, client_t *> > needy_clients;
-            for (client_t *c = clients.head(); c; c = clients.next(c)) {
+            for (client_t *c = clients.head(); c != NULL; c = clients.next(c)) {
                 int need_size = c->get_target_tickets()
                         - c->get_current_tickets()
                         - tickets_to_give[c];
