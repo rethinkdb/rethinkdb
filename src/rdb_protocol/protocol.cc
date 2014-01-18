@@ -256,19 +256,8 @@ void post_construct_and_drain_queue(
             write_token_pair_t token_pair;
             store->new_write_token_pair(&token_pair);
 
-#if SLICE_ALT
             scoped_ptr_t<alt_txn_t> queue_txn;
-#else
-            scoped_ptr_t<transaction_t> queue_txn;
-#endif
             scoped_ptr_t<real_superblock_t> queue_superblock;
-
-#if !SLICE_ALT
-            // If we get interrupted, post-construction will happen later, no need to
-            //  guarantee that we touch the sindex tree now
-            object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
-                destroyer(&token_pair.sindex_write_token);
-#endif
 
             // We don't need hard durability here, because a secondary index just gets rebuilt
             // if the server dies while it's partially constructed.
@@ -285,41 +274,20 @@ void post_construct_and_drain_queue(
             // Let's get the information we need from the superblock and then
             // release it immediately.
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
-#if !SLICE_ALT
-            queue_superblock->release();
-#endif
 
-#if SLICE_ALT
             scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
-#else
-            scoped_ptr_t<buf_lock_t> queue_sindex_block;
-#endif
 
-#if SLICE_ALT
             store->acquire_sindex_block_for_write(
                 queue_superblock->expose_buf(),
                 &queue_sindex_block,
                 sindex_block_id);
-#else
-            store->acquire_sindex_block_for_write(
-                &token_pair,
-                queue_txn.get(),
-                &queue_sindex_block,
-                sindex_block_id,
-                lock.get_drain_signal());
-#endif
 
-#if SLICE_ALT
             queue_superblock->release();
-#endif
 
             sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
                     sindexes_to_bring_up_to_date,
                     queue_sindex_block.get(),
-#if !SLICE_ALT
-                    queue_txn.get(),
-#endif
                     &sindexes);
 
             if (sindexes.empty()) {
@@ -345,11 +313,7 @@ void post_construct_and_drain_queue(
             if (mod_queue->size() == 0) {
                 for (auto it = sindexes_to_bring_up_to_date.begin();
                      it != sindexes_to_bring_up_to_date.end(); ++it) {
-#if SLICE_ALT
                     store->mark_index_up_to_date(*it, queue_sindex_block.get());
-#else
-                    store->mark_index_up_to_date(*it, queue_txn.get(), queue_sindex_block.get());
-#endif
                 }
                 store->deregister_sindex_queue(mod_queue.get(), &acq);
                 return;
@@ -371,19 +335,8 @@ void post_construct_and_drain_queue(
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
 
-#if SLICE_ALT
         scoped_ptr_t<alt_txn_t> queue_txn;
-#else
-        scoped_ptr_t<transaction_t> queue_txn;
-#endif
         scoped_ptr_t<real_superblock_t> queue_superblock;
-
-#if !SLICE_ALT
-        // If we get interrupted, post-construction will happen later, no need to
-        //  guarantee that we touch the sindex tree now
-        object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t
-            destroyer(&token_pair.sindex_write_token);
-#endif
 
         store->acquire_superblock_for_write(
             repli_timestamp_t::distant_past,
@@ -398,32 +351,14 @@ void post_construct_and_drain_queue(
         // Let's get the information we need from the superblock and then
         // release it immediately.
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
-#if !SLICE_ALT
-        queue_superblock->release();
-#endif
 
-#if SLICE_ALT
         scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
-#else
-        scoped_ptr_t<buf_lock_t> queue_sindex_block;
-#endif
-#if SLICE_ALT
         store->acquire_sindex_block_for_write(
             queue_superblock->expose_buf(),
             &queue_sindex_block,
             sindex_block_id);
-#else
-        store->acquire_sindex_block_for_write(
-            &token_pair,
-            queue_txn.get(),
-            &queue_sindex_block,
-            sindex_block_id,
-            lock.get_drain_signal());
-#endif
 
-#if SLICE_ALT
         queue_superblock->release();
-#endif
 
         mutex_t::acq_t acq;
         store->lock_sindex_queue(queue_sindex_block.get(), &acq);
