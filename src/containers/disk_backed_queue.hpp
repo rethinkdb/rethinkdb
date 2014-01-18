@@ -2,31 +2,26 @@
 #ifndef CONTAINERS_DISK_BACKED_QUEUE_HPP_
 #define CONTAINERS_DISK_BACKED_QUEUE_HPP_
 
+// RSI: Rename to DBQ_MAX_REF_SIZE or something.
 #define MAX_REF_SIZE 251
 
 #include <string>
 #include <vector>
 
-#define DBQ_USE_ALT_CACHE 1
-
 #include "buffer_cache/serialize_onto_blob.hpp"
-#if !DBQ_USE_ALT_CACHE
-#include "buffer_cache/types.hpp"
-#endif
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/mutex.hpp"
+#include "containers/buffer_group.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
-#if DBQ_USE_ALT_CACHE
 namespace alt {
 class alt_cache_t;
 class alt_txn_t;
 }
-#endif
-class const_buffer_group_t;
+
 class io_backender_t;
 class perfmon_collection_t;
 
@@ -68,13 +63,8 @@ public:
     int64_t size();
 
 private:
-#if DBQ_USE_ALT_CACHE
     void add_block_to_head(alt::alt_txn_t *txn);
     void remove_block_from_tail(alt::alt_txn_t *txn);
-#else
-    void add_block_to_head(transaction_t *txn);
-    void remove_block_from_tail(transaction_t *txn);
-#endif
 
     mutex_t mutex;
 
@@ -90,11 +80,7 @@ private:
     // The end we pop from.
     block_id_t tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
-#if DBQ_USE_ALT_CACHE
     scoped_ptr_t<alt::alt_cache_t> cache;
-#else
-    scoped_ptr_t<cache_t> cache;
-#endif
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };
