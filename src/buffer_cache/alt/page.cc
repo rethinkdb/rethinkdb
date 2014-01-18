@@ -959,6 +959,7 @@ page_txn_t::page_txn_t(page_cache_t *page_cache,
                        page_txn_t *preceding_txn_or_null)
     : page_cache_(page_cache),
       this_txn_recency_(txn_recency),
+      cache_account_(NULL),
       began_waiting_for_flush_(false),
       spawned_flush_(false) {
     if (preceding_txn_or_null != NULL) {
