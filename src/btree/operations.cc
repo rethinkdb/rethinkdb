@@ -470,34 +470,66 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                                 alt_buf_lock_t *last_buf,
                                 superblock_t *sb,
                                 const btree_key_t *key) {
-    alt_buf_read_t buf_read(buf);
-    const node_t *const node = static_cast<const node_t *>(buf_read.get_data_read());
-    if (!last_buf->empty() && node::is_underfull(sizer, node)) { // The root node is never underfull.
-
-        alt_buf_read_t last_buf_read(last_buf);
-        const internal_node_t *const parent_node = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
-
+    bool node_is_underfull;
+    {
+        if (last_buf->empty()) {
+            // The root node is never underfull.
+            node_is_underfull = false;
+        } else {
+            alt_buf_read_t buf_read(buf);
+            const node_t *const node = static_cast<const node_t *>(buf_read.get_data_read());
+            node_is_underfull = node::is_underfull(sizer, node);
+        }
+    }
+    if (node_is_underfull) {
         // Acquire a sibling to merge or level with.
         store_key_t key_in_middle;
         block_id_t sib_node_id;
-        int nodecmp_node_with_sib = internal_node::sibling(parent_node, key, &sib_node_id, &key_in_middle);
+        int nodecmp_node_with_sib;
+
+        {
+            alt_buf_read_t last_buf_read(last_buf);
+            const internal_node_t *parent_node
+                = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
+            nodecmp_node_with_sib = internal_node::sibling(parent_node, key,
+                                                           &sib_node_id,
+                                                           &key_in_middle);
+        }
 
         // Now decide whether to merge or level.
         alt_buf_lock_t sib_buf(last_buf, sib_node_id, alt_access_t::write);
-        alt_buf_read_t sib_buf_read(&sib_buf);
-        const node_t *sib_node
-            = static_cast<const node_t *>(sib_buf_read.get_data_read());
+
+        bool node_is_mergable;
+        {
+            alt_buf_read_t sib_buf_read(&sib_buf);
+            const node_t *sib_node
+                = static_cast<const node_t *>(sib_buf_read.get_data_read());
 
 #ifndef NDEBUG
-        node::validate(sizer, sib_node);
+            node::validate(sizer, sib_node);
 #endif
 
-        if (node::is_mergable(sizer, node, sib_node, parent_node)) { // Merge.
+            alt_buf_read_t buf_read(buf);
+            const node_t *const node
+                = static_cast<const node_t *>(buf_read.get_data_read());
+            alt_buf_read_t last_buf_read(last_buf);
+            const internal_node_t *parent_node
+                = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
 
-            if (nodecmp_node_with_sib < 0) { // Nodes must be passed to merge in ascending order.
+            node_is_mergable = node::is_mergable(sizer, node, sib_node, parent_node);
+        }
+
+        if (node_is_mergable) {
+            // Merge.
+
+            // Nodes must be passed to merge in ascending order.
+            if (nodecmp_node_with_sib < 0) {
                 {
                     alt_buf_write_t buf_write(buf);
                     alt_buf_write_t sib_buf_write(&sib_buf);
+                    alt_buf_read_t last_buf_read(last_buf);
+                    const internal_node_t *parent_node
+                        = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
                     node::merge(sizer,
                                 static_cast<node_t *>(buf_write.get_data_write()),
                                 static_cast<node_t *>(sib_buf_write.get_data_write()),
@@ -509,6 +541,9 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 {
                     alt_buf_write_t sib_buf_write(&sib_buf);
                     alt_buf_write_t buf_write(buf);
+                    alt_buf_read_t last_buf_read(last_buf);
+                    const internal_node_t *parent_node
+                        = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
                     node::merge(sizer,
                                 static_cast<node_t *>(sib_buf_write.get_data_write()),
                                 static_cast<node_t *>(buf_write.get_data_write()),
@@ -519,7 +554,15 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
 
             sib_buf.reset_buf_lock();
 
-            if (!internal_node::is_singleton(parent_node)) {
+            bool parent_is_singleton;
+            {
+                alt_buf_read_t last_buf_read(last_buf);
+                const internal_node_t *parent_node
+                    = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
+                parent_is_singleton = internal_node::is_singleton(parent_node);
+            }
+
+            if (!parent_is_singleton) {
                 alt_buf_write_t last_buf_write(last_buf);
                 internal_node::remove(sizer->block_size(),
                                       static_cast<internal_node_t *>(last_buf_write.get_data_write()),
@@ -531,7 +574,8 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 last_buf->mark_deleted();
                 insert_root(buf->get_block_id(), sb);
             }
-        } else { // Level
+        } else {
+            // Level.
             store_key_t replacement_key_buffer;
             btree_key_t *replacement_key = replacement_key_buffer.btree_key();
 
@@ -539,6 +583,9 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
             {
                 alt_buf_write_t buf_write(buf);
                 alt_buf_write_t sib_buf_write(&sib_buf);
+                alt_buf_read_t last_buf_read(last_buf);
+                const internal_node_t *parent_node
+                    = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
                 leveled
                     = node::level(sizer, nodecmp_node_with_sib,
                                   static_cast<node_t *>(buf_write.get_data_write()),
