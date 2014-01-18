@@ -18,6 +18,7 @@ namespace alt {
 
 class alt_buf_lock_t;
 class alt_cache_config_t;
+class alt_cache_stats_t;
 class alt_snapshot_node_t;
 
 class alt_memory_tracker_t : public memory_tracker_t {
@@ -64,6 +65,8 @@ private:
                                                         block_version_t block_version);
     void add_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
     void remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node);
+
+    scoped_ptr_t<alt_cache_stats_t> stats_;
 
     // tracker_ is used for throttling (which can cause the alt_txn_t constructor to
     // block).  RSI: The throttling interface is bad (maybe) because it's worried
