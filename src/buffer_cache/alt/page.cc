@@ -57,6 +57,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     }
 
     if (current_pages_[block_id] == NULL) {
+        // RSI: Find some way to assert that the block isn't being created here.
         current_pages_[block_id] = new current_page_t();
     } else {
         rassert(!current_pages_[block_id]->is_deleted());
@@ -76,11 +77,15 @@ current_page_t *page_cache_t::page_for_new_block_id(block_id_t *block_id_out) {
 current_page_t *page_cache_t::page_for_new_chosen_block_id(block_id_t block_id) {
     assert_thread();
     // Tell the free list this block id is taken.
+    // RSI: Make sure that the free_list_ checks that the chosen block id is actually
+    // free for the taking.
     free_list_.acquire_chosen_block_id(block_id);
     return internal_page_for_new_chosen(block_id);
 }
 
 current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) {
+    // RSI: Make this actually assert that the existing block id is definitely
+    // deleted in the serializer.
     assert_thread();
     if (current_pages_.size() <= block_id) {
         current_pages_.resize(block_id + 1, NULL);

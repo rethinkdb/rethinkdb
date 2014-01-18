@@ -56,7 +56,6 @@ void alt_cache_t::create_cache_account(int priority,
     page_cache_.create_cache_account(priority, out);
 }
 
-
 alt_snapshot_node_t *
 alt_cache_t::matching_snapshot_node_or_null(block_id_t block_id,
                                             block_version_t block_version) {
