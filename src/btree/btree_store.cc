@@ -54,7 +54,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     {
         alt_cache_config_t config;
         config.page_config.memory_limit = cache_target;
-        cache.init(new alt_cache_t(serializer, config));
+        cache.init(new alt_cache_t(serializer, config, &perfmon_collection));
     }
 #else
     {

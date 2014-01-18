@@ -36,7 +36,8 @@ private:
 class alt_cache_t : public home_thread_mixin_t {
 public:
     explicit alt_cache_t(serializer_t *serializer,
-                         const alt_cache_config_t &dynamic_config);
+                         const alt_cache_config_t &dynamic_config,
+                         perfmon_collection_t *perfmon_collection);
     ~alt_cache_t();
 
     block_size_t max_block_size() const;

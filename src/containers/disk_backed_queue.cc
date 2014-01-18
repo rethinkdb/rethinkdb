@@ -48,7 +48,8 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
 #if DBQ_USE_ALT_CACHE
     alt_cache_config_t cache_dynamic_config;
     cache_dynamic_config.page_config.memory_limit = MEGABYTE;
-    cache.init(new alt_cache_t(serializer.get(), cache_dynamic_config));
+    cache.init(new alt_cache_t(serializer.get(), cache_dynamic_config,
+                               &perfmon_collection));
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
     // RSI: Is this actually necessary?
     alt_txn_t txn(cache.get(), write_durability_t::HARD,
