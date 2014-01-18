@@ -701,7 +701,10 @@ std::string uname_msr() {
     static const std::string unknown = "unknown operating system\n";
     FILE *out = popen("uname -msr", "r");
     if (!out) return unknown;
-    if (!fgets(buf, sizeof(buf), out)) return unknown;
+    if (!fgets(buf, sizeof(buf), out)) {
+        pclose(out);    
+        return unknown;
+    }
     pclose(out);
     return buf;
 }
