@@ -50,20 +50,11 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 
     // TODO: Don't specify cache dynamic config here.
     // RSI: ^^ Then where?
-#if SLICE_ALT
     {
         alt_cache_config_t config;
         config.page_config.memory_limit = cache_target;
         cache.init(new alt_cache_t(serializer, config, &perfmon_collection));
     }
-#else
-    {
-        mirrored_cache_config_t cache_dynamic_config;
-        cache_dynamic_config.max_size = cache_target;
-        cache_dynamic_config.max_dirty_size = cache_target / 2;
-        cache.init(new cache_t(serializer, cache_dynamic_config, &perfmon_collection));
-    }
-#endif
 
     if (create) {
         vector_stream_t key;
