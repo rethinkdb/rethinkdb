@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-#define SLICE_ALT 1
-
 #include "buffer_cache/types.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "containers/scoped.hpp"
