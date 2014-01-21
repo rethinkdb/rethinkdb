@@ -496,7 +496,7 @@ void do_a_subtree_traversal(traversal_state_t *state, int level,
     acquire_a_node(state, level, parent, block_id, acq_start_cb, fsm);
 }
 
-// This releases its buf_lock_t parameter.
+// This releases its alt_buf_lock_t parameter.
 void process_a_internal_node(traversal_state_t *state,
                              scoped_ptr_t<alt_buf_lock_t> *buf,
                              int level,
@@ -518,7 +518,7 @@ void process_a_internal_node(traversal_state_t *state,
                       level + 1, ids_source);
 }
 
-// This releases its buf_lock_t parameter.
+// This releases its alt_buf_lock_t parameter.
 void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<alt_buf_lock_t> *buf,
         int level, const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null) {

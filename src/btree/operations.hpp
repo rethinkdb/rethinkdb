@@ -206,7 +206,7 @@ private:
     char *value_ptr;
 };
 
-// RSI: Have this return the buf_lock_t.
+// RSI: Have this return the alt_buf_lock_t.
 void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
               alt::alt_buf_lock_t *buf_out);
 
