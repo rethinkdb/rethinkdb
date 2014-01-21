@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_ERASE_RANGE_HPP_
 #define BTREE_ERASE_RANGE_HPP_
 

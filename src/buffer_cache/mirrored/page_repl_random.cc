@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "buffer_cache/mirrored/page_repl_random.hpp"
 
 #include "buffer_cache/mirrored/mirrored.hpp"

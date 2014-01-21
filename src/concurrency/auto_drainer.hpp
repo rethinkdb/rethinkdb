@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CONCURRENCY_AUTO_DRAINER_HPP_
 #define CONCURRENCY_AUTO_DRAINER_HPP_
 

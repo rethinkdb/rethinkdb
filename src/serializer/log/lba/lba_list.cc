@@ -1,4 +1,4 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/lba/lba_list.hpp"
 
 #include "utils.hpp"
