@@ -1,6 +1,7 @@
 #ifndef BUFFER_CACHE_ALT_ALT_HPP_
 #define BUFFER_CACHE_ALT_ALT_HPP_
 
+#include <map>
 #include <vector>
 #include <utility>
 
@@ -153,7 +154,7 @@ private:
 // alt_cache_t::snapshot_nodes_by_block_id_.)
 class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
 public:
-    alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
+    explicit alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
     ~alt_snapshot_node_t();
 
 private:
