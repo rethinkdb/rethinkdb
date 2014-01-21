@@ -1,10 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "http/http.hpp"
 
-#include <re2/re2.h>
 #include <zlib.h>
 
 #include <exception>
+
+#include <re2/re2.h>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
