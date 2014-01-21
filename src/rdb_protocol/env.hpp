@@ -123,6 +123,11 @@ public:
         if (interruptor->is_pulsed()) throw interrupted_exc_t();
     }
 
+    static const uint32_t EVALS_BEFORE_YIELD = 256;
+    uint32_t evals_since_yield;
+
+    // Will yield after EVALS_BEFORE_YIELD calls
+    void maybe_yield();
 
     // Returns js_runner, but first calls js_runner->begin() if it hasn't
     // already been called.
