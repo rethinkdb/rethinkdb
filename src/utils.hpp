@@ -220,7 +220,6 @@ MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_re
 std::string strprintf(const char *format, ...) __attribute__((format (printf, 1, 2)));
 std::string vstrprintf(const char *format, va_list ap) __attribute__((format (printf, 1, 0)));
 
-// RSI: Remove this.
 struct debugf_t {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
