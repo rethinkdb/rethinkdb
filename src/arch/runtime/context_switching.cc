@@ -1,6 +1,7 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "arch/runtime/context_switching.hpp"
 
+#include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -12,6 +13,10 @@
 #include <valgrind/valgrind.h>
 #endif
 
+#include "arch/runtime/thread_pool.hpp"
+#include "arch/runtime/coroutines.hpp"
+#include "arch/io/concurrency.hpp"
+#include "containers/scoped.hpp"
 #include "errors.hpp"
 #include "utils.hpp"
 
@@ -271,11 +276,7 @@ asm(
 
 /* Threaded version of context_switching */
 
-#include <pthread.h>
-#include "arch/runtime/thread_pool.hpp"
-#include "arch/runtime/coroutines.hpp"
-#include "arch/io/concurrency.hpp"
-#include "containers/scoped.hpp"
+
 
 static system_mutex_t virtual_thread_mutexes[MAX_THREADS];
 
