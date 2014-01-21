@@ -1482,14 +1482,16 @@ MUST_USE bool split_db_table(const std::string &db_table, std::string *db_name_o
 void run_backup_script(const std::string& script_name, char * const arguments[]) {
     int res = execvp(script_name.c_str(), arguments);
     if (res == -1) {
-        fprintf(stderr,
-                "Error when launching %s: %s\n"
-                "The %s command depends on the RethinkDB Python driver, which must be installed.\n"
-                "Instructions for installing the RethinkDB Python driver are available here:\n"
-                "http://www.rethinkdb.com/docs/install-drivers/python/\n",
-                script_name.c_str(),
-                errno_string(get_errno()).c_str(),
+
+        fprintf(stderr, "Error when launching '%s': %s\n",
+                script_name.c_str(), errno_string(get_errno()).c_str());
+        fprintf(stderr, "The %s command depends on the RethinkDB Python driver, which must be installed.\n",
                 script_name.c_str());
+        fprintf(stderr, "If the Python driver is already installed, make sure that the PATH environment variable\n"
+                "includes the location of the backup scripts, and that the current user has permission to\n"
+                "access and run the scripts.\n"
+                "Instructions for installing the RethinkDB Python driver are available here:\n"
+                "http://www.rethinkdb.com/docs/install-drivers/python/\n");
     }
 }
 
