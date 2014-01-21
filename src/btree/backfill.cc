@@ -58,10 +58,9 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             alt_buf_parent_t parent;
             key_range_t range;
             signal_t *interruptor;
-        } x
-              // RSI: fix this formatting
-            ((alt_buf_parent_t(leaf_node_buf)))
-              ;
+        };
+
+        our_cb_t x((alt_buf_parent_t(leaf_node_buf)));
         x.cb = callback_;
         x.range = clipped_range;
         x.interruptor = interruptor;
