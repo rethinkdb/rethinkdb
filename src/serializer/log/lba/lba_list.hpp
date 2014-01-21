@@ -5,7 +5,7 @@
 #include <functional>
 
 #include "concurrency/signal.hpp"
-#include "concurrency/cond_var.hpp"
+#include "concurrency/auto_drainer.hpp"
 #include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/extent_manager.hpp"
@@ -82,11 +82,9 @@ public:
     void shutdown();
 
 private:
-    bool shutdown_now();
-
     // Whether we are currently garbage-collecting a shard.
     bool gc_active[LBA_SHARD_FACTOR];
-    cond_t on_gc_shutdown;
+    scoped_ptr_t<auto_drainer_t> gc_drainer;
 
     write_metablock_fun_t write_metablock_fun;
 
@@ -119,7 +117,7 @@ private:
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
 
     // Garbage-collect the given shard
-    void gc(int lba_shard);
+    void gc(int lba_shard, auto_drainer_t::lock_t gc_drainer_lock);
 
     bool is_any_gc_active() const;
 

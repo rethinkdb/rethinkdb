@@ -15,7 +15,7 @@
 
 lba_list_t::lba_list_t(extent_manager_t *em,
         const lba_list_t::write_metablock_fun_t &_write_metablock_fun)
-    : write_metablock_fun(_write_metablock_fun),
+    : gc_drainer(new auto_drainer_t), write_metablock_fun(_write_metablock_fun),
       extent_manager(em), state(state_unstarted), inline_lba_entries_count(0)
 {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
@@ -275,13 +275,14 @@ void lba_list_t::consider_gc() {
         if (we_want_to_gc(i)) {
             rassert(!gc_active[i]);
             gc_active[i] = true;
-            coro_t *gc_coro = coro_t::spawn_sometime(std::bind(&lba_list_t::gc, this, i));
+            coro_t *gc_coro = coro_t::spawn_sometime(std::bind(&lba_list_t::gc,
+                    this, i, auto_drainer_t::lock_t(gc_drainer.get())));
             gc_coro->set_priority(CORO_PRIORITY_LBA_GC);
         }
     }
 }
 
-void lba_list_t::gc(int lba_shard) {
+void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     ++extent_manager->stats->pm_serializer_lba_gcs;
 
     // Start a transaction
@@ -365,12 +366,7 @@ void lba_list_t::gc(int lba_shard) {
         extent_manager->commit_transaction(&*txn);
     }
 
-    // If we are trying to shut down, but were waiting on this GC pass to finish,
-    // shut down now.
     gc_active[lba_shard] = false;
-    if (state == lba_list_t::state_gc_shutting_down && !is_any_gc_active()) {
-        on_gc_shutdown.pulse();
-    }
 }
 
 bool lba_list_t::is_any_gc_active() const {
@@ -426,10 +422,8 @@ void lba_list_t::shutdown_gc() {
 
     state = state_gc_shutting_down;
 
-    if (is_any_gc_active()) {
-        // Wait for the GC to finish
-        on_gc_shutdown.wait_lazily_unordered();
-    }
+    // Wait for active GC coroutines to finish
+    gc_drainer.reset();
 }
 
 void lba_list_t::shutdown() {
