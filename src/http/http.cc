@@ -1,10 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "http/http.hpp"
 
-#include <exception>
-
 #include <re2/re2.h>
 #include <zlib.h>
+
+#include <exception>
 
 #include "errors.hpp"
 #include <boost/bind.hpp>
@@ -14,7 +14,7 @@
 #include "logger.hpp"
 #include "utils.hpp"
 
-static const char *resource_parts_sep_char = "/";
+static const char *const resource_parts_sep_char = "/";
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
 
 http_req_t::resource_t::resource_t() {
