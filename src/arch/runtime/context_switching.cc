@@ -269,7 +269,7 @@ asm(
 
 
 
-/* ____ Threaded version of context_switching ____ */
+/* Threaded version of context_switching */
 
 #include <pthread.h>
 #include "arch/runtime/thread_pool.hpp"
