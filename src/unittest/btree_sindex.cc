@@ -5,7 +5,7 @@
 #include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/blob.hpp"
+#include "buffer_cache/alt/alt_blob.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -30,10 +30,10 @@ void run_sindex_low_level_operations_test() {
         &file_opener,
         &get_global_perfmon_collection());
 
-    cache_t::create(&serializer);
-
     alt_cache_t cache(&serializer, alt_cache_config_t(),
                       &get_global_perfmon_collection());
+
+    // RSI: We used to call cache_t::create before.
 
     //Passing in blank metainfo. We don't need metainfo for this unittest.
     btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());

@@ -9,13 +9,7 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
-using alt::alt_access_t;
-using alt::alt_buf_lock_t;
-using alt::alt_buf_parent_t;
-using alt::alt_cache_t;
-using alt::alt_cache_config_t;
-using alt::alt_create_t;
-using alt::alt_txn_t;
+using namespace alt;  // RSI
 
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
         std::string sindex_name)
@@ -43,11 +37,6 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
 {
-    // debugf("btree_store_t constructor\n");
-    if (create) {
-        cache_t::create(serializer);
-    }
-
     // TODO: Don't specify cache dynamic config here.
     // RSI: ^^ Then where?
     {
@@ -57,6 +46,18 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     }
 
     if (create) {
+        {
+            // RSI: Here (and elsewhere) we emulate the old cache_t::create behavior.
+            // Shouldn't btree_slice_t::create handle this?  It basically does,
+            // actually.
+            alt_txn_t superblock_creation(cache.get(), write_durability_t::HARD,
+                                          repli_timestamp_t::distant_past, 1);
+            alt_buf_lock_t superblock(&superblock_creation, SUPERBLOCK_ID,
+                                      alt_create_t::create);
+            alt_buf_write_t write(&superblock);
+            memset(write.get_data_write(), 0, cache->max_block_size().value());
+        }
+
         vector_stream_t key;
         write_message_t msg;
         typename protocol_t::region_t kr = protocol_t::region_t::universe();

@@ -31,7 +31,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
 
         alt::blob_t b(leaf.cache()->get_block_size(),
                       (*value)->value_ref(), alt::blob::btree_maxreflen);
-        rassert(50 <= blob::btree_maxreflen);
+        rassert(50 <= alt::blob::btree_maxreflen);
         if (b.valuesize() < 50) {
             buffer_group_t buffergroup;
             alt::blob_acq_t acqs;

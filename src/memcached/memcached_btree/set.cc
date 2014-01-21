@@ -79,12 +79,12 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
                 metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime);
             }
             memcpy(tmp->value_ref(), (*value)->value_ref(),
-                   blob::ref_size(block_size, (*value)->value_ref(),
-                                  blob::btree_maxreflen));
+                   alt::blob::ref_size(block_size, (*value)->value_ref(),
+                                       alt::blob::btree_maxreflen));
             *value = std::move(tmp);
         }
 
-        alt::blob_t b(block_size, (*value)->value_ref(), blob::btree_maxreflen);
+        alt::blob_t b(block_size, (*value)->value_ref(), alt::blob::btree_maxreflen);
 
         b.append_region(leaf, data->size());
         buffer_group_t bg;

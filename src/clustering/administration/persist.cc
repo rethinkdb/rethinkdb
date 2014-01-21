@@ -122,14 +122,20 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
         throw file_in_use_exc_t();
     }
 
-    if (create) {
-        cache_t::create(serializer.get());
-    }
-
     cache_dynamic_config.page_config.memory_limit = MEGABYTE;
     cache.init(new alt_cache_t(serializer.get(), cache_dynamic_config, perfmon_parent));
+
+    if (create) {
+        object_buffer_t<alt_txn_t> txn;
+        get_write_transaction(&txn);
+        alt_buf_lock_t superblock(txn.get(), SUPERBLOCK_ID, alt_create_t::create);
+        alt_buf_write_t sb_write(&superblock);
+        void *sb_data = sb_write.get_data_write(cache->max_block_size().value());
+        memset(sb_data, 0, cache->max_block_size().value());
+    }
 }
 
+// RSI: These functions could be static.
 template <class metadata_t>
 void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<alt_txn_t> *txn_out) {
     txn_out->create(cache.get(),

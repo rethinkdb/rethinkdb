@@ -1,9 +1,9 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_MEMCACHED_BTREE_VALUE_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_VALUE_HPP_
 
 #include "errors.hpp"
-#include "buffer_cache/blob.hpp"
+#include "buffer_cache/alt/alt_blob.hpp"
 
 
 // Note: The metadata values are stored in the order
@@ -49,11 +49,13 @@ struct memcached_value_t {
 public:
     int inline_size(block_size_t bs) const {
         int msize = metadata_size(metadata_flags);
-        return offsetof(memcached_value_t, contents) + msize + blob::ref_size(bs, contents + msize, blob::btree_maxreflen);
+        return offsetof(memcached_value_t, contents) + msize +
+            alt::blob::ref_size(bs, contents + msize, alt::blob::btree_maxreflen);
     }
 
     int64_t value_size() const {
-        return blob::value_size(contents + metadata_size(metadata_flags), blob::btree_maxreflen);
+        return alt::blob::value_size(contents + metadata_size(metadata_flags),
+                                     alt::blob::btree_maxreflen);
     }
 
     const char *value_ref() const { return contents + metadata_size(metadata_flags); }

@@ -6,7 +6,6 @@
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
-#include "buffer_cache/mirrored/config.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/pb_utils.hpp"

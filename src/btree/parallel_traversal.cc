@@ -1,12 +1,8 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/parallel_traversal.hpp"
-
-#include "errors.hpp"
-#include <boost/bind.hpp>
 
 #include "arch/runtime/runtime.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"

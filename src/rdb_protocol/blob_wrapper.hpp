@@ -6,7 +6,6 @@
 
 #include "btree/btree_store.hpp"
 #include "buffer_cache/alt/alt_blob.hpp"
-#include "buffer_cache/blob.hpp"
 
 /* This class wraps a blob_t but hides some of its methods. We do this because
  * due to storing multiple references to blobs in btrees there are methods that

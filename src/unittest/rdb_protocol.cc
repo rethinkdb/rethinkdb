@@ -2,7 +2,6 @@
 #include "errors.hpp"
 #include <boost/make_shared.hpp>
 
-#include "buffer_cache/buffer_cache.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/iterators.hpp"
 #include "extproc/extproc_pool.hpp"

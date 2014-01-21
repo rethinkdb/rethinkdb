@@ -1,8 +1,10 @@
-// Copyright 2010-2012 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/memcached_btree/value.hpp"
 
 #include <string.h>
 #include <time.h>
+
+#include "buffer_cache/alt/alt_blob.hpp"
 
 int metadata_size(metadata_flags_t mf) {
     return ((mf.flags & MEMCACHED_FLAGS) ? sizeof(mcflags_t) : 0)
@@ -74,7 +76,8 @@ bool btree_value_fits(block_size_t block_size, int data_length, const memcached_
         return false;
     }
 
-    return blob::ref_fits(block_size, data_length - (1 + msize), value->value_ref(), blob::btree_maxreflen);
+    return alt::blob::ref_fits(block_size, data_length - (1 + msize),
+                               value->value_ref(), alt::blob::btree_maxreflen);
 }
 
 bool memcached_value_t::expired(exptime_t effective_time) const {

@@ -1,11 +1,11 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/operations.hpp"
 
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/slice.hpp"
-#include "buffer_cache/buffer_cache.hpp"
+#include "buffer_cache/alt/alt.hpp"
 #include "concurrency/promise.hpp"
 #include "rdb_protocol/profile.hpp"
 

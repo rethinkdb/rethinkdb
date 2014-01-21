@@ -55,10 +55,11 @@ void run_metainfo_test() {
         &file_opener,
         &get_global_perfmon_collection());
 
-    cache_t::create(&serializer);
-
     alt_cache_t cache(&serializer, alt_cache_config_t(),
                       &get_global_perfmon_collection());
+
+    // RSI: We removed the call to cache_t::create, let's see if stuff works.  It
+    // should since we call btree_slice_t::create, which zeros the block.
 
     btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
     std::map<std::string, std::string> mirror;
