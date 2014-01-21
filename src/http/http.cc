@@ -1,18 +1,21 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "http/http.hpp"
 
+#include <zlib.h>
+
 #include <exception>
 
-#include "utils.hpp"
+#include <re2/re2.h>
+
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
-#include <zlib.h>
-#include <re2/re2.h>
 
 #include "arch/io/network.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
-static const char *resource_parts_sep_char = "/";
+static const char *const resource_parts_sep_char = "/";
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
 
 http_req_t::resource_t::resource_t() {
@@ -226,9 +229,12 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
 
     // GCC 4.6 bug requires us to do it this way rather than initialize to boost::none
     // http://gcc.gnu.org/bugzilla/show_bug.cgi?id=47679
-    boost::optional<double> gzip_q = 0.0; gzip_q.reset();
-    boost::optional<double> identity_q = 0.0; identity_q.reset();
-    boost::optional<double> star_q = 0.0; star_q.reset();
+    boost::optional<double> gzip_q = 0.0;
+    gzip_q.reset();
+    boost::optional<double> identity_q = 0.0;
+    identity_q.reset();
+    boost::optional<double> star_q = 0.0;
+    star_q.reset();
 
     // We only care about three potential encoding qvalues: 'gzip', 'identity', and '*'
     for (auto it = encodings.begin(); it != encodings.end(); ++it) {
