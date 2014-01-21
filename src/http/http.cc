@@ -3,14 +3,16 @@
 
 #include <exception>
 
-#include "utils.hpp"
+#include <re2/re2.h>
+#include <zlib.h>
+
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
-#include <zlib.h>
-#include <re2/re2.h>
 
 #include "arch/io/network.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
 static const char *resource_parts_sep_char = "/";
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
