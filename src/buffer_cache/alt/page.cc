@@ -10,6 +10,10 @@
 
 // RSI: Have good assertions about nobody trying to acquire a block that is deleted.
 
+// RSI: Regarding above, there was a change recently that helped support trying to
+// acquire a block that is deleted (for write mode) which would then create the
+// block.  How about we remove this (serializer_filestream_t is fixed).
+
 // RSI: temporary debugging macro
 // #define pagef debugf
 #define pagef(...) do { } while (0)

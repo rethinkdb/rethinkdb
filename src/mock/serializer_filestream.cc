@@ -124,7 +124,12 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         alt_buf_lock_t block;
         alt_buf_lock_t *b = &z;
         if (block_id > 0) {
-            block = alt_buf_lock_t(&z, block_id, alt_access_t::write);
+            if (offset % block_size == 0) {
+                block = alt_buf_lock_t(&z, block_id, alt_access_t::write);
+            } else {
+                block = alt_buf_lock_t(alt_buf_parent_t(&z), block_id,
+                                       alt_create_t::create);
+            }
             b = &block;
         }
 

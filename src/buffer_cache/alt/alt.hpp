@@ -190,6 +190,8 @@ public:
     // these, though, or get rid of some.  (Make alt_access_t include create, and
     // separate it from page_access_t?)
 
+    // RSI: Change these comments, they're not all nonblocking constructors.
+
     // Nonblocking constructor.
     alt_buf_lock_t(alt_buf_parent_t parent,
                    block_id_t block_id,
@@ -197,6 +199,12 @@ public:
 
     // Nonblocking constructor, creates a new block with a specified block id.
     alt_buf_lock_t(alt_txn_t *txn,
+                   block_id_t block_id,
+                   alt_create_t create);
+
+    // Nonblocking constructor, creates a new block with a specified id (used by the
+    // serializer file write stream).
+    alt_buf_lock_t(alt_buf_parent_t parent,
                    block_id_t block_id,
                    alt_create_t create);
 

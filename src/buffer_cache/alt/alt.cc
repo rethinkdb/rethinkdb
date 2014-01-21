@@ -365,6 +365,46 @@ alt_buf_lock_t::alt_buf_lock_t(alt_txn_t *txn,
 #endif
 }
 
+// RSI: So much duplicated code all over these constructors.
+alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
+                               block_id_t block_id,
+                               UNUSED alt_create_t create)
+    : txn_(parent.txn()),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0),
+      was_destroyed_(false) {
+    alt_buf_lock_t::wait_for_parent(parent, alt_access_t::write);
+
+    // Makes sure nothing funny can happen in current_page_acq_t constructor.
+    // Otherwise, we'd need to make choosing a block id a separate function, and call
+    // create_empty_child_snapshot_nodes before constructing the current_page_acq_t.
+    // RSI: Probably we should do that anyway.
+    ASSERT_FINITE_CORO_WAITING;
+
+    current_page_acq_.init(new current_page_acq_t(txn_->page_txn(),
+                                                  block_id,
+                                                  alt_access_t::write,
+                                                  true));
+
+    if (parent.lock_or_null_ != NULL) {
+        create_empty_child_snapshot_nodes(txn_->cache(),
+                                          parent.lock_or_null_->current_page_acq()->block_version(),
+                                          parent.lock_or_null_->block_id(),
+                                          current_page_acq_->block_id());
+#if ALT_DEBUG
+        debugf("%p: alt_buf_lock_t %p create %lu (as child of %lu)\n",
+               cache(), this, block_id(), parent.lock_or_null_->block_id());
+#endif
+    } else {
+#if ALT_DEBUG
+        debugf("%p: alt_buf_lock_t %p create %lu (no parent)\n",
+               cache(), this, block_id());
+#endif
+    }
+
+}
+
 void alt_buf_lock_t::mark_deleted() {
 #if ALT_DEBUG
     debugf("%p: alt_buf_lock_t %p delete %lu\n", cache(), this, block_id());
@@ -457,7 +497,6 @@ alt_buf_lock_t::alt_buf_lock_t(alt_buf_parent_t parent,
                cache(), this, block_id());
 #endif
     }
-
 }
 
 alt_buf_lock_t::alt_buf_lock_t(alt_buf_lock_t *parent,
