@@ -4,12 +4,17 @@
 
 #include <string>
 
-#include "buffer_cache/mirrored/config.hpp"
+#include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/scoped.hpp"
 #include "rpc/semilattice/view.hpp"
 #include "serializer/types.hpp"
+
+namespace alt {
+class alt_cache_t;
+class alt_txn_t;
+}
 
 template <class> class branch_history_manager_t;
 class io_backender_t;
@@ -34,11 +39,9 @@ public:
     virtual void update_metadata(const metadata_t &metadata) = 0;
 
 protected:
-    void get_write_transaction(object_buffer_t<transaction_t> *txn_out,
-                               const std::string &info);
+    void get_write_transaction(object_buffer_t<alt::alt_txn_t> *txn_out);
 
-    void get_read_transaction(object_buffer_t<transaction_t> *txn_out,
-                              const std::string &info);
+    void get_read_transaction(object_buffer_t<alt::alt_txn_t> *txn_out);
 
     block_size_t get_cache_block_size() const;
 
@@ -47,10 +50,9 @@ private:
     void construct_serializer_and_cache(bool create, serializer_file_opener_t *file_opener,
                                         perfmon_collection_t *perfmon_parent);
 
-    order_source_t cache_order_source;  // order_token_t::ignore?
     scoped_ptr_t<standard_serializer_t> serializer;
-    scoped_ptr_t<cache_t> cache;
-    mirrored_cache_config_t cache_dynamic_config;
+    scoped_ptr_t<alt::alt_cache_t> cache;
+    alt::alt_cache_config_t cache_dynamic_config;
 };
 
 
