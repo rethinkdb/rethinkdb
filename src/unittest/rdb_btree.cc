@@ -17,9 +17,7 @@
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/minidriver.hpp"
 
-// RSI: This used to be 1000.  We made it 100 because right now we don't support soft
-// durability and that makes the test be slow.
-#define TOTAL_KEYS_TO_INSERT 100
+#define TOTAL_KEYS_TO_INSERT 1000
 #define MAX_RETRIES_FOR_SINDEX_POSTCONSTRUCT 5
 
 #pragma GCC diagnostic ignored "-Wshadow"
