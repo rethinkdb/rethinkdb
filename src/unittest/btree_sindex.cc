@@ -133,8 +133,7 @@ void run_sindex_btree_store_api_test() {
             &io_backender,
             base_path_t("."));
 
-    // RSI: Rename all interuptor.
-    cond_t dummy_interuptor;
+    cond_t dummy_interruptor;
 
     std::set<std::string> created_sindexs;
 
@@ -150,7 +149,7 @@ void run_sindex_btree_store_api_test() {
 
             store.acquire_superblock_for_write(repli_timestamp_t::invalid,
                     1, write_durability_t::SOFT, &token_pair,
-                    &txn, &super_block, &dummy_interuptor);
+                    &txn, &super_block, &dummy_interruptor);
 
             scoped_ptr_t<alt_buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(super_block->expose_buf(),
@@ -171,7 +170,7 @@ void run_sindex_btree_store_api_test() {
 
             store.acquire_superblock_for_write(repli_timestamp_t::invalid,
                                                1, write_durability_t::SOFT, &token_pair,
-                                               &txn, &super_block, &dummy_interuptor);
+                                               &txn, &super_block, &dummy_interruptor);
 
             scoped_ptr_t<alt_buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(
@@ -192,7 +191,7 @@ void run_sindex_btree_store_api_test() {
             store.acquire_superblock_for_write(
                     repli_timestamp_t::invalid, 1, write_durability_t::SOFT,
                     &token_pair, &txn, &super_block,
-                    &dummy_interuptor);
+                    &dummy_interruptor);
 
             scoped_ptr_t<real_superblock_t> sindex_super_block;
 
@@ -225,7 +224,7 @@ void run_sindex_btree_store_api_test() {
 
             store.acquire_superblock_for_read(
                     &token_pair.main_read_token, &txn, &main_sb,
-                    &dummy_interuptor, true);
+                    &dummy_interruptor, true);
 
             store_key_t key("foo");
 
@@ -254,7 +253,7 @@ void run_sindex_btree_store_api_test() {
 
         store.acquire_superblock_for_write(repli_timestamp_t::invalid,
                                            1, write_durability_t::SOFT, &token_pair,
-                                           &txn, &super_block, &dummy_interuptor);
+                                           &txn, &super_block, &dummy_interruptor);
 
         value_sizer_t<rdb_value_t> sizer(store.cache->get_block_size());
 
@@ -265,7 +264,7 @@ void run_sindex_btree_store_api_test() {
                 &sindex_block, super_block->get_sindex_block_id());
 
         store.drop_sindex(
-                *it, sindex_block.get(), &sizer, &deleter, &dummy_interuptor);
+                *it, sindex_block.get(), &sizer, &deleter, &dummy_interruptor);
     }
 }
 

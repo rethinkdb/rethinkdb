@@ -120,7 +120,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
 
 void drop_sindex(btree_store_t<rdb_protocol_t> *store,
                  const std::string &sindex_id) {
-    cond_t dummy_interuptor;
+    cond_t dummy_interruptor;
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
@@ -129,7 +129,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
 
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
                                         1, write_durability_t::SOFT, &token_pair,
-                                        &txn, &super_block, &dummy_interuptor);
+                                        &txn, &super_block, &dummy_interruptor);
 
     value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
     rdb_value_deleter_t deleter;
@@ -143,7 +143,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
             sindex_block.get(),
             &sizer,
             &deleter,
-            &dummy_interuptor);
+            &dummy_interruptor);
 }
 
 void bring_sindexes_up_to_date(
@@ -478,7 +478,7 @@ void run_sindex_interruption_via_drop_test() {
             &io_backender,
             base_path_t("."));
 
-    cond_t dummy_interuptor;
+    cond_t dummy_interruptor;
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, &store);
 
@@ -523,7 +523,7 @@ void run_sindex_interruption_via_store_delete() {
             &io_backender,
             base_path_t(".")));
 
-    cond_t dummy_interuptor;
+    cond_t dummy_interruptor;
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());
 
