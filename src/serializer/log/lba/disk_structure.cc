@@ -88,7 +88,7 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
 std::set<lba_disk_extent_t *> lba_disk_structure_t::get_inactive_extents() const {
     std::set<lba_disk_extent_t *> result;
     for (lba_disk_extent_t *e = extents_in_superblock.head();
-         e; e = extents_in_superblock.next(e)) {
+         e != NULL; e = extents_in_superblock.next(e)) {
         result.insert(e);
     }
     return result;
@@ -132,7 +132,7 @@ void lba_disk_structure_t::write_superblock(file_account_t *io_account,
     memcpy(new_superblock->magic, lba_super_magic, LBA_SUPER_MAGIC_SIZE);
     int i = 0;
     for (lba_disk_extent_t *e = extents_in_superblock.head();
-         e; e = extents_in_superblock.next(e)) {
+         e != NULL; e = extents_in_superblock.next(e)) {
         new_superblock->entries[i].offset = e->data->extent_ref.offset();
         new_superblock->entries[i].lba_entries_count = e->count;
         i++;
@@ -182,7 +182,8 @@ void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb)
     } else {
         if (last_extent) last_extent->sync(io_account, writer);
         if (superblock_extent) superblock_extent->sync(writer);
-        for (lba_disk_extent_t *e = extents_in_superblock.head(); e; e = extents_in_superblock.next(e)) {
+        for (lba_disk_extent_t *e = extents_in_superblock.head();
+             e != NULL; e = extents_in_superblock.next(e)) {
             e->sync(io_account, writer);
         }
     }
@@ -260,7 +261,8 @@ struct reader_t
     reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index, lba_disk_structure_t::read_callback_t *cb)
         : ds(_ds), index(_index), rcb(cb)
     {
-        for (lba_disk_extent_t *e = ds->extents_in_superblock.head(); e; e = ds->extents_in_superblock.next(e)) {
+        for (lba_disk_extent_t *e = ds->extents_in_superblock.head();
+             e != NULL; e = ds->extents_in_superblock.next(e)) {
             new extent_reader_t(this, e);
         }
         if (ds->last_extent) new extent_reader_t(this, ds->last_extent);
