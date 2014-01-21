@@ -304,7 +304,7 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     // Update the body size in the headers
     for (auto it = res->header_lines.begin(); it != res->header_lines.end(); ++it) {
         if (it->key == "Content-Length") {
-            it->val = strprintf("%zu", zstream.total_out);
+            it->val = strprintf("%lu", zstream.total_out);
             break;
         }
     }
