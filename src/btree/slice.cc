@@ -33,6 +33,7 @@ void btree_slice_t::create(block_id_t superblock_id,
                            const std::vector<char> &metainfo_value) {
     // The superblock was already created by cache_t::create or by creating it and
     // getting the block id.
+    // RSI: Make this be the thing that creates the block.
     alt_buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
 
     alt::alt_buf_write_t sb_write(&superblock);

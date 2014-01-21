@@ -33,7 +33,13 @@ void run_sindex_low_level_operations_test() {
     alt_cache_t cache(&serializer, alt_cache_config_t(),
                       &get_global_perfmon_collection());
 
-    // RSI: We used to call cache_t::create before.
+    {
+        alt_txn_t txn(&cache, write_durability_t::HARD, repli_timestamp_t::invalid,
+                      1);
+        alt_buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        alt_buf_write_t sb_write(&superblock);
+        memset(sb_write.get_data_write(), 0, cache.max_block_size().value());
+    }
 
     //Passing in blank metainfo. We don't need metainfo for this unittest.
     btree_slice_t::create(&cache, std::vector<char>(), std::vector<char>());
