@@ -315,7 +315,7 @@ public:
         guarantee(lock != NULL);
         guarantee(!lock->empty());
     }
-    // RSI: Replace this constructor with a create_dangerously static method.
+
     explicit buf_parent_t(txn_t *txn)
         : txn_(txn), lock_or_null_(NULL) {
         rassert(txn != NULL);
