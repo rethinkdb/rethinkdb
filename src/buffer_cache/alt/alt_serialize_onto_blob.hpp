@@ -3,10 +3,18 @@
 
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
-#include "buffer_cache/serialize_onto_blob.hpp"  // RSI.  (for
-                                                 // deserialize_from_group)
 #include "containers/archive/archive.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
+
+
+template <class T>
+void deserialize_from_group(const const_buffer_group_t *group, T *value_out) {
+    buffer_group_read_stream_t stream(group);
+    archive_result_t res = deserialize(&stream, value_out);
+    guarantee_deserialization(res, "T (from a buffer group)");
+    guarantee(stream.entire_stream_consumed(),
+              "Corrupted value in storage (deserialization terminated early).");
+};
 
 void write_onto_blob(buf_parent_t parent, blob_t *blob,
                      const write_message_t &wm);

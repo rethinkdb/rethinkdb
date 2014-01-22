@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "buffer_cache/serialize_onto_blob.hpp"
+#include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/mutex.hpp"
 #include "containers/buffer_group.hpp"
