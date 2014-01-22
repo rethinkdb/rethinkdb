@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "buffer_cache/types.hpp"
-#include "concurrency/fifo_checker.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
@@ -75,8 +74,6 @@ public:
 
     alt_cache_t *cache() { return cache_; }
     alt_cache_account_t *get_backfill_account() { return backfill_account.get(); }
-
-    order_checkpoint_t pre_begin_txn_checkpoint_;
 
     btree_stats_t stats;
 

@@ -979,9 +979,6 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_read").with_read_mode();
-    order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
-
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
     get_btree_superblock_and_txn_for_reading(
@@ -1001,9 +998,6 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
 
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
-
-    order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_backfill");
-    order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
     get_btree_superblock_and_txn_for_backfilling(btree.get(), sb_out, txn_out);
 }
@@ -1057,9 +1051,6 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
 
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
-
-    order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_write");
-    order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
     get_btree_superblock_and_txn(btree.get(), superblock_access,
                                  expected_change_count, timestamp,

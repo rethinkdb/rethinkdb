@@ -388,8 +388,6 @@ public:
                          const metainfo_t &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
 
-    order_source_t order_source;
-
     fifo_enforcer_source_t main_token_source, sindex_token_source;
     fifo_enforcer_sink_t main_token_sink, sindex_token_sink;
 

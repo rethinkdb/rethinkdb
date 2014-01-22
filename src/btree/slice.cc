@@ -53,8 +53,6 @@ btree_slice_t::btree_slice_t(alt_cache_t *c, perfmon_collection_t *parent,
       cache_(c),
       superblock_id_(_superblock_id) {
     cache()->create_cache_account(BACKFILL_CACHE_PRIORITY, &backfill_account);
-
-    pre_begin_txn_checkpoint_.set_tagappend("pre_begin_txn");
 }
 
 btree_slice_t::~btree_slice_t() { }
