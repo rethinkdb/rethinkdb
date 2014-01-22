@@ -2,9 +2,6 @@
 #ifndef CONTAINERS_DISK_BACKED_QUEUE_HPP_
 #define CONTAINERS_DISK_BACKED_QUEUE_HPP_
 
-// RSI: Rename to DBQ_MAX_REF_SIZE or something.
-#define MAX_REF_SIZE 251
-
 #include <string>
 #include <vector>
 

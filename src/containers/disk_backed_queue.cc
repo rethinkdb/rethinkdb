@@ -7,6 +7,9 @@
 #include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
 #include "serializer/config.hpp"
 
+
+#define DBQ_MAX_REF_SIZE 251
+
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
                                                            const serializer_filepath_t &filename,
                                                            perfmon_collection_t *stats_parent)
@@ -58,10 +61,10 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     auto write = make_scoped<buf_write_t>(_head.get());
     queue_block_t *head = static_cast<queue_block_t *>(write->get_data_write());
 
-    char buffer[MAX_REF_SIZE];
-    memset(buffer, 0, MAX_REF_SIZE);
+    char buffer[DBQ_MAX_REF_SIZE];
+    memset(buffer, 0, DBQ_MAX_REF_SIZE);
 
-    blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
+    blob_t blob(cache->max_block_size(), buffer, DBQ_MAX_REF_SIZE);
 
     write_onto_blob(buf_parent_t(_head.get()), &blob, wm);
 
@@ -88,7 +91,7 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     guarantee(size() != 0);
     mutex_t::acq_t mutex_acq(&mutex);
 
-    char buffer[MAX_REF_SIZE];
+    char buffer[DBQ_MAX_REF_SIZE];
     // No need for hard durability with an unlinked dbq file.
     txn_t txn(cache.get(), write_durability_t::SOFT, repli_timestamp_t::distant_past, 2);
 
@@ -100,10 +103,10 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
 
     /* Grab the data from the blob and delete it. */
 
-    memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->max_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
+    memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->max_block_size(), tail->data + tail->live_data_offset, DBQ_MAX_REF_SIZE));
     std::vector<char> data_vec;
 
-    blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
+    blob_t blob(cache->max_block_size(), buffer, DBQ_MAX_REF_SIZE);
     {
         blob_acq_t acq_group;
         buffer_group_t blob_group;
