@@ -752,6 +752,7 @@ public:
                 first_value.reset();
             }
 
+            rassert(!first_value.references_parent());
             keyvalue.reset();
 
             waiter.wait_interruptible();

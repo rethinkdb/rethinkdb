@@ -317,14 +317,20 @@ public:
     }
     // RSI: Replace this constructor with a create_dangerously static method.
     explicit alt_buf_parent_t(alt_txn_t *txn)
-        : txn_(txn), lock_or_null_(NULL) { }
+        : txn_(txn), lock_or_null_(NULL) {
+        rassert(txn != NULL);
+    }
+
+    bool empty() const {
+        return txn_ == NULL;
+    }
 
     alt_txn_t *txn() const {
-        guarantee(txn_ != NULL);
+        guarantee(!empty());
         return txn_;
     }
     alt_cache_t *cache() const {
-        guarantee(txn_ != NULL);
+        guarantee(!empty());
         return txn_->cache();
     }
 

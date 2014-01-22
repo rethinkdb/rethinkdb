@@ -31,7 +31,6 @@ counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
                                       alt_buf_parent_t parent);
 
 class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee_t> {
-    // RSI: Make sure callers/constructors get the lifetime of the buf parent right.
     lazy_json_pointee_t(const rdb_value_t *_rdb_value, alt_buf_parent_t _parent)
         : rdb_value(_rdb_value), parent(_parent) {
         guarantee(rdb_value != NULL);
@@ -64,6 +63,7 @@ public:
         : pointee(new lazy_json_pointee_t(rdb_value, parent)) { }
 
     const counted_t<const ql::datum_t> &get() const;
+    bool references_parent() const;
     void reset();
 
 private:

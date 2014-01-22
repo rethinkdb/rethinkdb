@@ -32,6 +32,10 @@ const counted_t<const ql::datum_t> &lazy_json_t::get() const {
     return pointee->ptr;
 }
 
+bool lazy_json_t::references_parent() const {
+    return pointee.has() && !pointee->parent.empty();
+}
+
 void lazy_json_t::reset() {
     pointee.reset();
 }
