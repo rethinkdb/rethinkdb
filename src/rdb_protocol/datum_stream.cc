@@ -793,7 +793,7 @@ indexed_sort_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batc
             }
             std::sort(data.begin(), data.end(),
                       std::bind(lt_cmp, env, &sampler,
-                                std::placeholders::_1, std::placeholders::_2));
+                                ph::_1, ph::_2));
         }
         for (; index < data.size() && !batcher.should_send_batch(); ++index) {
             batcher.note_el(data[index]);

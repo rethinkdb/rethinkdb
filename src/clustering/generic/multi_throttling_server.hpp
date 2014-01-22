@@ -58,9 +58,9 @@ private:
             drainer(new auto_drainer_t),
 
             request_mailbox(new mailbox_t<void(request_type)>(parent->mailbox_manager,
-                std::bind(&client_t::on_request, this, std::placeholders::_1))),
+                std::bind(&client_t::on_request, this, ph::_1))),
             relinquish_tickets_mailbox(new mailbox_t<void(int)>(parent->mailbox_manager,
-                std::bind(&client_t::on_relinquish_tickets, this, std::placeholders::_1)))
+                std::bind(&client_t::on_relinquish_tickets, this, ph::_1)))
         {
             send(parent->mailbox_manager, client_bc.intro_addr,
                  server_business_card_t(request_mailbox->get_address(),

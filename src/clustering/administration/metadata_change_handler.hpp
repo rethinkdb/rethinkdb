@@ -23,7 +23,7 @@ public:
                               const boost::shared_ptr<semilattice_readwrite_view_t<metadata_t> > &_metadata) :
         mailbox_manager(_mailbox_manager),
         request_mailbox(mailbox_manager,
-                        std::bind(&metadata_change_handler_t<metadata_t>::remote_change_request, this, std::placeholders::_1)),
+                        std::bind(&metadata_change_handler_t<metadata_t>::remote_change_request, this, ph::_1)),
         metadata_view(_metadata)
     { }
 
@@ -60,7 +60,7 @@ public:
             cond_t done;
             ack_mailbox_t ack_mailbox(mailbox_manager,
                                       std::bind(&metadata_change_handler_t::metadata_change_request_t::handle_ack,
-                                                this, &done, std::placeholders::_1, std::placeholders::_2));
+                                                this, &done, ph::_1, ph::_2));
 
             send(mailbox_manager, _request_mailbox, ack_mailbox.get_address());
             disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), _request_mailbox.get_peer());
@@ -87,7 +87,7 @@ public:
             promise_t<bool> result_promise;
             result_mailbox_t result_mailbox(mailbox_manager,
                                             std::bind(&promise_t<bool>::pulse,
-                                                      &result_promise, std::placeholders::_1));
+                                                      &result_promise, ph::_1));
 
             send(mailbox_manager, commit_mailbox_address, true, metadata, result_mailbox.get_address());
             disconnect_watcher_t dc_watcher(mailbox_manager->get_connectivity_service(), commit_mailbox_address.get_peer());
@@ -137,7 +137,7 @@ private:
         cond_t commit_done;
         commit_mailbox_t commit_mailbox(mailbox_manager,
                                         std::bind(&metadata_change_handler_t<metadata_t>::handle_commit,
-                                                  this, &commit_done, &invalid_condition, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                                                  this, &commit_done, &invalid_condition, ph::_1, ph::_2, ph::_3));
 
         coro_invalid_conditions.insert(&invalid_condition);
 
