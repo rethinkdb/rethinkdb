@@ -239,8 +239,7 @@ public:
                 it != controller->incomplete_writes.end(); it++) {
 
             coro_t::spawn_sometime(boost::bind(&broadcaster_t::background_write, controller,
-                                               this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), fifo_source.enter_write()));
-            // RSI: order_source unused?
+                                               this, auto_drainer_t::lock_t(&drainer), incomplete_write_ref_t(*it), order_source.check_in("dispatchee_t"), fifo_source.enter_write()));
         }
     }
 
@@ -459,10 +458,10 @@ void broadcaster_t<protocol_t>::spawn_write(const typename protocol_t::write_t &
             }
 
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_writeread, this,
-                it->first, it->second, write_ref, fifo_enforcer_token, durability));
+                it->first, it->second, write_ref, order_token, fifo_enforcer_token, durability));
         } else {
             it->first->background_write_queue.push(boost::bind(&broadcaster_t::background_write, this,
-                it->first, it->second, write_ref, fifo_enforcer_token));
+                it->first, it->second, write_ref, order_token, fifo_enforcer_token));
         }
     }
 }
@@ -507,7 +506,7 @@ void broadcaster_t<protocol_t>::get_all_readable_dispatchees(
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, fifo_enforcer_write_token_t token) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, UNUSED order_token_t order_token /* RSI */, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
         listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
                                    write_ref.get()->write, write_ref.get()->timestamp, token,
@@ -518,7 +517,7 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, fifo_enforcer_write_token_t token, const write_durability_t durability) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, UNUSED order_token_t order_token /* RSI */, fifo_enforcer_write_token_t token, const write_durability_t durability) THROWS_NOTHING {
     try {
         cond_t response_cond;
         typename protocol_t::write_response_t response;

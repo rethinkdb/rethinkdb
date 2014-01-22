@@ -116,11 +116,11 @@ private:
 
     void background_write(
         dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
-        incomplete_write_ref_t write_ref,
+        incomplete_write_ref_t write_ref, order_token_t order_token,
         fifo_enforcer_write_token_t token) THROWS_NOTHING;
     void background_writeread(
         dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock,
-        incomplete_write_ref_t write_ref,
+        incomplete_write_ref_t write_ref, order_token_t order_token,
         fifo_enforcer_write_token_t token, write_durability_t durability) THROWS_NOTHING;
     void end_write(boost::shared_ptr<incomplete_write_t> write) THROWS_NOTHING;
 
