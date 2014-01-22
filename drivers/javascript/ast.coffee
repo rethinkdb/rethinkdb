@@ -32,6 +32,17 @@ funcWrap = (val) ->
 
     return val
 
+hasImplicit = (args) ->
+    # args is an array of (strings and arrays)
+    # We recurse to look for `r.row` which is an implicit var
+    if Array.isArray(args)
+        for arg in args
+            if hasImplicit(arg) is true
+                return true
+    else if args is 'r.row'
+        return true
+    return false
+
 # AST classes
 
 class TermBase
@@ -777,7 +788,10 @@ class Func extends RDBOp
         return super(optargs, argsArr, body)
 
     compose: (args) ->
-        ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
+        if hasImplicit(args[1])
+            [args[1]]
+        else
+            ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
 
 class Asc extends RDBOp
     tt: "ASC"
