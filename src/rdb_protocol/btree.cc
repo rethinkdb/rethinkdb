@@ -22,17 +22,6 @@
 
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
-template<class Value>
-void find_keyvalue_location_for_write(
-    const btree_loc_info_t &info,
-    keyvalue_location_t<Value> *kv_loc_out,
-    profile::trace_t *trace,
-    promise_t<superblock_t *> *pass_back_superblock) {
-    find_keyvalue_location_for_write(
-        info.superblock, info.key->btree_key(), kv_loc_out,
-        &info.btree->slice->stats, trace, pass_back_superblock);
-}
-
 const rdb_value_t *value_sizer_t<rdb_value_t>::as_rdb(const void *p) {
     return reinterpret_cast<const rdb_value_t *>(p);
 }
@@ -176,8 +165,11 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     ql::datum_ptr_t resp(ql::datum_t::R_OBJECT);
     try {
         keyvalue_location_t<rdb_value_t> kv_location;
-        find_keyvalue_location_for_write(info, &kv_location,
-            trace, superblock_promise);
+        find_keyvalue_location_for_write(info.superblock, info.key->btree_key(),
+                                         &kv_location,
+                                         &info.btree->slice->stats,
+                                         trace,
+                                         superblock_promise);
 
         bool started_empty, ended_empty;
         counted_t<const ql::datum_t> old_val;
