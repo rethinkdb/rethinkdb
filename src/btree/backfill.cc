@@ -172,11 +172,13 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
                                 superblock_t *superblock,
                                 alt_buf_lock_t *sindex_block,
                                 parallel_traversal_progress_t *p,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t) {
-    //Start things off easy with a coro assertion.
+                                signal_t *interruptor)
+        THROWS_ONLY(interrupted_exc_t) {
     rassert(coro_t::self());
 
+    // RSI: Investigate secondary index backfill logic.  Do we backfill information
+    // about the current state of secondary indexes?  Is it possible that we could
+    // have inconsistent sindexing?
     std::map<std::string, secondary_index_t> sindexes;
     get_secondary_indexes(sindex_block, &sindexes);
     callback->on_sindexes(sindexes, interruptor);

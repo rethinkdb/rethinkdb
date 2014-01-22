@@ -1783,12 +1783,12 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
     progress->add_constituent(&p_owned);
     repli_timestamp_t timestamp = regions[i].second.to_repli_timestamp();
     try {
-        // RSI: Does interruptor _really_ get used by rdb_backfill?
         rdb_backfill(btree, regions[i].first.inner, timestamp, callback,
                      superblock, sindex_block, p, interruptor);
     } catch (const interrupted_exc_t &) {
         /* do nothing; `protocol_send_backfill()` will notice that interruptor
         has been pulsed */
+        // RSI: Then why does this function declare itself to throw interrupted_exc_t?
     }
 }
 
