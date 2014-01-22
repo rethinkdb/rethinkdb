@@ -8,8 +8,6 @@
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
-using namespace alt;  // RSI
-
 /*
  * Possible rget designs:
  * 1. Depth-first search through the B-tree, then iterating through leaves (and maintaining a stack

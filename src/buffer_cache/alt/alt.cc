@@ -12,8 +12,6 @@
 
 // RSI: Add ASSERT_FINITE_CORO_WAITING or ASSERT_NO_CORO_WAITING wherever we can.
 
-namespace alt {
-
 alt_memory_tracker_t::alt_memory_tracker_t()
     : semaphore_(200) { }
 alt_memory_tracker_t::~alt_memory_tracker_t() { }
@@ -711,5 +709,3 @@ void *alt_buf_write_t::get_data_write() {
     return get_data_write(lock_->cache()->max_block_size().value());
 }
 
-
-}  // namespace alt

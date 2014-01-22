@@ -11,8 +11,6 @@
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "serializer/config.hpp"
 
-using namespace alt;  // RSI
-
 namespace metadata_persistence {
 
 struct auth_metadata_superblock_t {
@@ -57,7 +55,7 @@ static void write_blob(alt_buf_parent_t parent, char *ref, int maxreflen,
         str.append(p->data, p->size);
     }
     guarantee(str.size() == slen);
-    alt::blob_t blob(parent.cache()->get_block_size(), ref, maxreflen);
+    blob_t blob(parent.cache()->get_block_size(), ref, maxreflen);
     blob.clear(parent);
     blob.append_region(parent, str.size());
     blob.write_from_string(str, parent, 0);
@@ -67,9 +65,9 @@ static void write_blob(alt_buf_parent_t parent, char *ref, int maxreflen,
 template<class T>
 static void read_blob(alt_buf_parent_t parent, const char *ref, int maxreflen,
                       T *value_out) {
-    alt::blob_t blob(parent.cache()->get_block_size(),
+    blob_t blob(parent.cache()->get_block_size(),
                      const_cast<char *>(ref), maxreflen);
-    alt::blob_acq_t acq_group;
+    blob_acq_t acq_group;
     buffer_group_t group;
     blob.expose_all(parent, alt_access_t::read, &group, &acq_group);
     buffer_group_read_stream_t ss(const_view(&group));

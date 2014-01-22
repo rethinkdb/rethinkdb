@@ -4,8 +4,6 @@
 #include "btree/operations.hpp"
 #include "rdb_protocol/profile.hpp"
 
-using namespace alt;  // RSI
-
 /* Returns `true` if we reached the end of the subtree or range, and `false` if
 `cb->handle_value()` returned `false`. */
 bool btree_depth_first_traversal(btree_slice_t *slice,

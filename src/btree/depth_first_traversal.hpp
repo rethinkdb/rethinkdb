@@ -11,12 +11,12 @@ class superblock_t;
 
 namespace profile { class trace_t; }
 
-class counted_buf_lock_t : public alt::alt_buf_lock_t,
+class counted_buf_lock_t : public alt_buf_lock_t,
                            public single_threaded_countable_t<counted_buf_lock_t> {
 public:
     template <class... Args>
     explicit counted_buf_lock_t(Args &&... args)
-        : alt::alt_buf_lock_t(std::forward<Args>(args)...) { }
+        : alt_buf_lock_t(std::forward<Args>(args)...) { }
 };
 
 // A btree leaf key/value pair that also owns a reference to the alt_buf_lock_t that
@@ -46,9 +46,9 @@ public:
         guarantee(buf_.has());
         return value_;
     }
-    alt::alt_buf_parent_t expose_buf() {
+    alt_buf_parent_t expose_buf() {
         guarantee(buf_.has());
-        return alt::alt_buf_parent_t(buf_.get());
+        return alt_buf_parent_t(buf_.get());
     }
 
     // Releases the hold on the alt_buf_lock_t, after which key(), value(), and

@@ -8,8 +8,6 @@
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
-using namespace alt;  // RSI
-
 namespace unittest {
 
 static const int expected_cache_block_size = 4080;
@@ -38,7 +36,7 @@ public:
         ASSERT_EQ(expecteds_size, blob_.valuesize());
 
         buffer_group_t bg;
-        alt::blob_acq_t bacq;
+        blob_acq_t bacq;
         blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::read, offset, size,
                             &bg, &bacq);
 
@@ -95,7 +93,7 @@ public:
 
         {
             buffer_group_t bg;
-            alt::blob_acq_t bacq;
+            blob_acq_t bacq;
             blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::write,
                                 expected_.size(), n, &bg, &bacq);
 
@@ -122,7 +120,7 @@ public:
 
         {
             buffer_group_t bg;
-            alt::blob_acq_t bacq;
+            blob_acq_t bacq;
             blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::write, 0, n,
                                 &bg, &bacq);
 
@@ -173,7 +171,7 @@ public:
 private:
     std::string expected_;
     scoped_array_t<char> buf_;
-    alt::blob_t blob_;
+    blob_t blob_;
 };
 
 void small_value_test(alt_cache_t *cache) {
@@ -372,12 +370,12 @@ void combinations_test(alt_cache_t *cache) {
 
 void run_tests(alt_cache_t *cache) {
     // The tests above hard-code constants related to these numbers.
-    EXPECT_EQ(251, alt::blob::btree_maxreflen);
+    EXPECT_EQ(251, blob::btree_maxreflen);
     EXPECT_EQ(4u, sizeof(block_magic_t));
     const int size_sans_magic = expected_cache_block_size - sizeof(block_magic_t);
-    EXPECT_EQ(size_sans_magic, alt::blob::stepsize(cache->get_block_size(), 1));
+    EXPECT_EQ(size_sans_magic, blob::stepsize(cache->get_block_size(), 1));
     EXPECT_EQ(size_sans_magic * (size_sans_magic / static_cast<int>(sizeof(block_id_t))),
-              alt::blob::stepsize(cache->get_block_size(), 2));
+              blob::stepsize(cache->get_block_size(), 2));
 
     small_value_test(cache);
     small_value_boundary_test(cache);

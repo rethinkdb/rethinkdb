@@ -12,20 +12,10 @@
 
 namespace unittest {
 
-using alt::alt_access_t;
-using alt::alt_create_t;
-using alt::current_page_acq_t;
-using alt::current_page_t;
-using alt::page_acq_t;
-using alt::page_cache_t;
-using alt::page_cache_config_t;
-using alt::page_t;
-using alt::page_txn_t;
-
 struct mock_ser_t {
     mock_file_opener_t opener;
     scoped_ptr_t<standard_serializer_t> ser;
-    scoped_ptr_t<alt::alt_memory_tracker_t> tracker;
+    scoped_ptr_t<alt_memory_tracker_t> tracker;
 
     mock_ser_t()
         : opener() {
@@ -34,7 +24,7 @@ struct mock_ser_t {
         ser = make_scoped<standard_serializer_t>(log_serializer_t::dynamic_config_t(),
                                                  &opener,
                                                  &get_global_perfmon_collection());
-        tracker = make_scoped<alt::alt_memory_tracker_t>();
+        tracker = make_scoped<alt_memory_tracker_t>();
     }
 };
 
@@ -46,9 +36,9 @@ public:
 
 class test_cache_t : public page_cache_t {
 public:
-    test_cache_t(serializer_t *serializer, alt::alt_memory_tracker_t *tracker)
+    test_cache_t(serializer_t *serializer, alt_memory_tracker_t *tracker)
         : page_cache_t(serializer, page_cache_config_t(), tracker) { }
-    test_cache_t(serializer_t *serializer, alt::alt_memory_tracker_t *tracker,
+    test_cache_t(serializer_t *serializer, alt_memory_tracker_t *tracker,
                  uint64_t memory_limit)
         : page_cache_t(serializer, make_config(memory_limit), tracker) { }
 

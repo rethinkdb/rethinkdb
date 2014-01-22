@@ -8,8 +8,6 @@
 // conform to some aspects of the interface of the mirrored cache, putting off until
 // later whether certain configuration options may be removed.
 
-namespace alt {
-
 // RSI: Maybe get rid of this file, just put these in page.hpp and alt.hpp,
 // respectively.
 
@@ -32,7 +30,5 @@ public:
     page_cache_config_t page_config;
     RDB_MAKE_ME_SERIALIZABLE_1(page_config);
 };
-
-}  // namespace alt
 
 #endif  // BUFFER_CACHE_ALT_CONFIG_HPP_

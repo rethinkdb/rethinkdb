@@ -76,8 +76,8 @@ bool btree_value_fits(block_size_t block_size, int data_length, const memcached_
         return false;
     }
 
-    return alt::blob::ref_fits(block_size, data_length - (1 + msize),
-                               value->value_ref(), alt::blob::btree_maxreflen);
+    return blob::ref_fits(block_size, data_length - (1 + msize),
+                               value->value_ref(), blob::btree_maxreflen);
 }
 
 bool memcached_value_t::expired(exptime_t effective_time) const {

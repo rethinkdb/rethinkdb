@@ -21,7 +21,7 @@ struct memcached_get_cas_oper_t : public memcached_modify_oper_t, public home_th
     memcached_get_cas_oper_t(cas_t _proposed_cas, promise_t<get_result_t> *_res)
         : proposed_cas(_proposed_cas), res(_res) { }
 
-    bool operate(alt::alt_buf_parent_t leaf,
+    bool operate(alt_buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         if (!value->has()) {
             // If not found, there's nothing to do.

@@ -11,11 +11,11 @@ struct rdb_value_t {
 
 public:
     int inline_size(block_size_t bs) const {
-        return alt::blob::ref_size(bs, contents, alt::blob::btree_maxreflen);
+        return blob::ref_size(bs, contents, blob::btree_maxreflen);
     }
 
     int64_t value_size() const {
-        return alt::blob::value_size(contents, alt::blob::btree_maxreflen);
+        return blob::value_size(contents, blob::btree_maxreflen);
     }
 
     const char *value_ref() const {
@@ -28,11 +28,11 @@ public:
 };
 
 counted_t<const ql::datum_t> get_data(const rdb_value_t *value,
-                                      alt::alt_buf_parent_t parent);
+                                      alt_buf_parent_t parent);
 
 class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee_t> {
     // RSI: Make sure callers/constructors get the lifetime of the buf parent right.
-    lazy_json_pointee_t(const rdb_value_t *_rdb_value, alt::alt_buf_parent_t _parent)
+    lazy_json_pointee_t(const rdb_value_t *_rdb_value, alt_buf_parent_t _parent)
         : rdb_value(_rdb_value), parent(_parent) {
         guarantee(rdb_value != NULL);
     }
@@ -50,7 +50,7 @@ class lazy_json_pointee_t : public single_threaded_countable_t<lazy_json_pointee
     // A pointer to the rdb value buffer in the leaf node (or perhaps a copy), and
     // the transaction with which to load it.  Non-NULL only if ptr is empty.
     const rdb_value_t *rdb_value;
-    alt::alt_buf_parent_t parent;
+    alt_buf_parent_t parent;
 
     DISABLE_COPYING(lazy_json_pointee_t);
 };
@@ -60,7 +60,7 @@ public:
     explicit lazy_json_t(const counted_t<const ql::datum_t> &ptr)
         : pointee(new lazy_json_pointee_t(ptr)) { }
 
-    lazy_json_t(const rdb_value_t *rdb_value, alt::alt_buf_parent_t parent)
+    lazy_json_t(const rdb_value_t *rdb_value, alt_buf_parent_t parent)
         : pointee(new lazy_json_pointee_t(rdb_value, parent)) { }
 
     const counted_t<const ql::datum_t> &get() const;

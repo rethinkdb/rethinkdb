@@ -7,9 +7,7 @@
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 
-namespace alt {
 class alt_cache_t;
-}
 class serializer_t;
 
 namespace mock {
@@ -27,7 +25,7 @@ public:
 
 private:
     // In this cache, no blocks have parents.
-    scoped_ptr_t<alt::alt_cache_t> cache_;
+    scoped_ptr_t<alt_cache_t> cache_;
     int64_t known_size_;
     int64_t position_;
 
@@ -44,7 +42,7 @@ public:
 
 private:
     // In this cache, every block (except block zero) has block zero as its parent.
-    scoped_ptr_t<alt::alt_cache_t> cache_;
+    scoped_ptr_t<alt_cache_t> cache_;
     int64_t size_;
 
     DISABLE_COPYING(serializer_file_write_stream_t);

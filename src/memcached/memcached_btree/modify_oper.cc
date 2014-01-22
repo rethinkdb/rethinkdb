@@ -25,14 +25,14 @@ void run_memcached_modify_oper(memcached_modify_oper_t *oper, btree_slice_t *sli
     // If the value's expired, delete it.
     if (expired) {
         rassert(!kv_location.buf.empty());
-        alt::blob_t b(slice->cache()->get_block_size(),
-                      the_value->value_ref(), alt::blob::btree_maxreflen);
-        b.clear(alt::alt_buf_parent_t(&kv_location.buf));
+        blob_t b(slice->cache()->get_block_size(),
+                      the_value->value_ref(), blob::btree_maxreflen);
+        b.clear(alt_buf_parent_t(&kv_location.buf));
         the_value.reset();
     }
 
     rassert(!kv_location.buf.empty());
-    bool update_needed = oper->operate(alt::alt_buf_parent_t(&kv_location.buf),
+    bool update_needed = oper->operate(alt_buf_parent_t(&kv_location.buf),
                                        &the_value);
     update_needed = update_needed || expired;
 

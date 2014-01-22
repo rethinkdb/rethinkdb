@@ -17,7 +17,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         : increment(_increment), delta(_delta)
     { }
 
-    bool operate(alt::alt_buf_parent_t leaf,
+    bool operate(alt_buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         // If the key didn't exist before, we fail.
         if (!value->has()) {
@@ -29,13 +29,13 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         bool valid;
         uint64_t number;
 
-        alt::blob_t b(leaf.cache()->get_block_size(),
-                      (*value)->value_ref(), alt::blob::btree_maxreflen);
-        rassert(50 <= alt::blob::btree_maxreflen);
+        blob_t b(leaf.cache()->get_block_size(),
+                      (*value)->value_ref(), blob::btree_maxreflen);
+        rassert(50 <= blob::btree_maxreflen);
         if (b.valuesize() < 50) {
             buffer_group_t buffergroup;
-            alt::blob_acq_t acqs;
-            b.expose_region(leaf, alt::alt_access_t::read,
+            blob_acq_t acqs;
+            b.expose_region(leaf, alt_access_t::read,
                             0, b.valuesize(), &buffergroup, &acqs);
             rassert(buffergroup.num_buffers() == 1);
 
@@ -79,8 +79,8 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         b.clear(leaf);
         b.append_region(leaf, tmp.size());
         buffer_group_t group;
-        alt::blob_acq_t acqs;
-        b.expose_region(leaf, alt::alt_access_t::write,
+        blob_acq_t acqs;
+        b.expose_region(leaf, alt_access_t::write,
                         0, b.valuesize(), &group, &acqs);
         rassert(group.num_buffers() == 1);
         rassert(group.get_buffer(0).size == tmp.size(), "expecting %zd == %d", group.get_buffer(0).size, tmp.size());

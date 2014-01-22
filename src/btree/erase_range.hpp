@@ -6,9 +6,7 @@
 #include "btree/node.hpp"
 #include "buffer_cache/types.hpp"
 
-namespace alt {
 class alt_buf_parent_t;
-}
 class btree_slice_t;
 struct store_key_t;
 struct btree_key_t;
@@ -36,7 +34,7 @@ struct always_true_key_tester_t : public key_tester_t {
 class value_deleter_t {
 public:
     value_deleter_t() { }
-    virtual void delete_value(alt::alt_buf_parent_t leaf_node, void *value) = 0;
+    virtual void delete_value(alt_buf_parent_t leaf_node, void *value) = 0;
 
 protected:
     virtual ~value_deleter_t() { }

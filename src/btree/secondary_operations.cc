@@ -8,8 +8,6 @@
 #include "containers/archive/vector_stream.hpp"
 #include "protocol_api.hpp"
 
-using namespace alt;  // RSI
-
 RDB_IMPL_ME_SERIALIZABLE_4(secondary_index_t, superblock, opaque_definition,
                            post_construction_complete, id);
 
@@ -19,7 +17,7 @@ void get_secondary_indexes_internal(alt_buf_lock_t *sindex_block,
     const btree_sindex_block_t *data
         = static_cast<const btree_sindex_block_t *>(read.get_data_read());
 
-    alt::blob_t sindex_blob(sindex_block->cache()->get_block_size(),
+    blob_t sindex_blob(sindex_block->cache()->get_block_size(),
                             const_cast<char *>(data->sindex_blob),
                             btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
 
@@ -32,7 +30,7 @@ void set_secondary_indexes_internal(alt_buf_lock_t *sindex_block,
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
 
-    alt::blob_t sindex_blob(sindex_block->cache()->get_block_size(),
+    blob_t sindex_blob(sindex_block->cache()->get_block_size(),
                             data->sindex_blob,
                             btree_sindex_block_t::SINDEX_BLOB_MAXREFLEN);
     serialize_onto_blob(alt_buf_parent_t(sindex_block), &sindex_blob, sindexes);

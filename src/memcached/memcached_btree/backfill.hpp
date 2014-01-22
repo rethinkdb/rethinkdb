@@ -7,10 +7,7 @@
 #include "repli_timestamp.hpp"
 #include "memcached/queries.hpp"
 
-namespace alt {
 class alt_buf_lock_t;
-}
-
 class btree_slice_t;
 class parallel_traversal_progress_t;
 class printf_buffer_t;
@@ -58,7 +55,7 @@ void memcached_backfill(btree_slice_t *slice,
                         repli_timestamp_t since_when,
                         backfill_callback_t *callback,
                         superblock_t *superblock,
-                        alt::alt_buf_lock_t *sindex_block,
+                        alt_buf_lock_t *sindex_block,
                         parallel_traversal_progress_t *p,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 

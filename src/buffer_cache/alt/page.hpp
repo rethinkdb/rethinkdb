@@ -20,8 +20,6 @@ class file_account_t;
 
 // RSI: Maybe use home_thread_mixin_debug_only_t.
 
-namespace alt {
-
 class current_page_acq_t;
 class page_acq_t;
 class page_cache_t;
@@ -772,8 +770,5 @@ private:
 };
 
 
-
-
-}  // namespace alt
 
 #endif  // BUFFER_CACHE_ALT_PAGE_HPP_

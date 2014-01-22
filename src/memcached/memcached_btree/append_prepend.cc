@@ -13,7 +13,7 @@ struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
         : data(_data), append(_append)
     { }
 
-    bool operate(alt::alt_buf_parent_t leaf,
+    bool operate(alt_buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         if (!value->has()) {
             result = apr_not_found;
@@ -26,19 +26,19 @@ struct memcached_append_prepend_oper_t : public memcached_modify_oper_t {
             return false;
         }
 
-        alt::blob_t b(leaf.cache()->get_block_size(),
-                      (*value)->value_ref(), alt::blob::btree_maxreflen);
+        blob_t b(leaf.cache()->get_block_size(),
+                      (*value)->value_ref(), blob::btree_maxreflen);
         buffer_group_t buffer_group;
-        alt::blob_acq_t acqs;
+        blob_acq_t acqs;
 
         size_t old_size = b.valuesize();
         if (append) {
             b.append_region(leaf, data->size());
-            b.expose_region(leaf, alt::alt_access_t::write,
+            b.expose_region(leaf, alt_access_t::write,
                             old_size, data->size(), &buffer_group, &acqs);
         } else {
             b.prepend_region(leaf, data->size());
-            b.expose_region(leaf, alt::alt_access_t::write,
+            b.expose_region(leaf, alt_access_t::write,
                             0, data->size(), &buffer_group, &acqs);
         }
 

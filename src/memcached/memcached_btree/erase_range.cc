@@ -7,8 +7,6 @@
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
-using namespace alt;  // RSI
-
 void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
                            bool left_key_supplied,
                            const store_key_t& left_key_exclusive,
@@ -21,9 +19,9 @@ void memcached_erase_range(btree_slice_t *slice, key_tester_t *tester,
 
     struct : public value_deleter_t {
         void delete_value(alt_buf_parent_t leaf_node, void *value) {
-            alt::blob_t blob(leaf_node.cache()->get_block_size(),
+            blob_t blob(leaf_node.cache()->get_block_size(),
                              static_cast<memcached_value_t *>(value)->value_ref(),
-                             alt::blob::btree_maxreflen);
+                             blob::btree_maxreflen);
             blob.clear(leaf_node);
         }
     } deleter;

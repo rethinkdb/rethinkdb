@@ -15,11 +15,9 @@
 #include "concurrency/signal.hpp"
 #include "containers/scoped.hpp"
 
-namespace alt {
 enum class alt_access_t;
 class alt_buf_lock_t;
 class alt_buf_parent_t;
-}
 struct btree_superblock_t;
 class traversal_state_t;
 class parent_releaser_t;
@@ -114,24 +112,24 @@ struct btree_traversal_helper_t {
     //still traversing the tree at the time this is called. Also notice that
     //this value may be null if the stat block has not been allocated yet and
     //this traversal is read only (which prohibits us from allocating it)
-    virtual void read_stat_block(alt::alt_buf_lock_t *) { }
+    virtual void read_stat_block(alt_buf_lock_t *) { }
 
     // This is free to call mark_deleted.
-    virtual void process_a_leaf(alt::alt_buf_lock_t *leaf_node_buf,
+    virtual void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
                                 const btree_key_t *left_exclusive_or_null,
                                 const btree_key_t *right_inclusive_or_null,
                                 signal_t *interruptor,
                                 int *population_change_out) THROWS_ONLY(interrupted_exc_t) = 0;
 
-    virtual void postprocess_internal_node(alt::alt_buf_lock_t *internal_node_buf) = 0;
+    virtual void postprocess_internal_node(alt_buf_lock_t *internal_node_buf) = 0;
 
     virtual void filter_interesting_children(
-            alt::alt_buf_parent_t parent,
+            alt_buf_parent_t parent,
             ranged_block_ids_t *ids_source,
             interesting_children_callback_t *cb) = 0;
 
-    virtual alt::alt_access_t btree_superblock_mode() = 0;
-    virtual alt::alt_access_t btree_node_mode() = 0;
+    virtual alt_access_t btree_superblock_mode() = 0;
+    virtual alt_access_t btree_node_mode() = 0;
 
 
     virtual ~btree_traversal_helper_t() { }

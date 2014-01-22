@@ -9,8 +9,6 @@
 #include "concurrency/coro_pool.hpp"
 #include "concurrency/queue/unlimited_fifo.hpp"
 
-using namespace alt;  // RSI
-
 // By the way, this code all sucks, the design of this code sucks, and the entire
 // premise upon which this code was designed was retarded.
 //

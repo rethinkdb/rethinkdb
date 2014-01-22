@@ -53,8 +53,6 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 
  */
 
-namespace alt {
-
 enum class alt_access_t;
 class alt_buf_lock_t;
 class alt_buf_parent_t;
@@ -168,7 +166,7 @@ public:
 
     // Detaches the blob's subtree from the root node (see
     // alt_buf_lock_t::detach_child).
-    void detach_subtree(alt::alt_buf_lock_t *root);
+    void detach_subtree(alt_buf_lock_t *root);
 
     // Acquires internal buffers and copies pointers to internal
     // buffers to the buffer_group_t, initializing acq_group_out so
@@ -176,7 +174,7 @@ public:
     // must not be destroyed until the buffers are finished being
     // used.  If you want to expose the region in a _readonly_
     // fashion, use a const_cast!  I am so sorry.
-    void expose_region(alt::alt_buf_parent_t root,
+    void expose_region(alt_buf_parent_t root,
                        alt_access_t mode, int64_t offset,
                        int64_t size, buffer_group_t *buffer_group_out,
                        blob_acq_t *acq_group_out);
@@ -185,25 +183,25 @@ public:
                     blob_acq_t *acq_group_out);
 
     // Appends size bytes of garbage data to the blob.
-    void append_region(alt::alt_buf_parent_t root, int64_t size);
+    void append_region(alt_buf_parent_t root, int64_t size);
 
     // Prepends size bytes of garbage data to the blob.
-    void prepend_region(alt::alt_buf_parent_t root, int64_t size);
+    void prepend_region(alt_buf_parent_t root, int64_t size);
 
     // Removes size bytes of data from the end of the blob.  size must
     // be <= valuesize().
-    void unappend_region(alt::alt_buf_parent_t root, int64_t size);
+    void unappend_region(alt_buf_parent_t root, int64_t size);
 
     // Removes size bytes of data from the beginning of the blob.
     // size must be <= valuesize().
-    void unprepend_region(alt::alt_buf_parent_t root, int64_t size);
+    void unprepend_region(alt_buf_parent_t root, int64_t size);
 
     // Empties the blob, making its valuesize() be zero.  Equivalent
     // to unappend_region(txn, valuesize()) or unprepend_region(txn,
     // valuesize()).  In particular, you can be sure that the blob
     // holds no internal blocks, once it has been cleared.
     // RSI: Should this just take a alt_txn_t?  Detach-then-clear?
-    void clear(alt::alt_buf_parent_t root);
+    void clear(alt_buf_parent_t root);
 
     // Writes over the portion of the blob, starting at offset, with
     // the contents of the string val. Caller is responsible for making
@@ -212,21 +210,21 @@ public:
                            int64_t offset);
 
 private:
-    bool traverse_to_dimensions(alt::alt_buf_parent_t parent, int levels,
+    bool traverse_to_dimensions(alt_buf_parent_t parent, int levels,
                                 int64_t old_offset, int64_t old_size,
                                 int64_t new_offset, int64_t new_size,
                                 blob::traverse_helper_t *helper);
-    bool allocate_to_dimensions(alt::alt_buf_parent_t parent, int levels,
+    bool allocate_to_dimensions(alt_buf_parent_t parent, int levels,
                                 int64_t new_offset, int64_t new_size);
-    bool shift_at_least(alt::alt_buf_parent_t parent, int levels, int64_t min_shift);
-    void consider_big_shift(alt::alt_buf_parent_t parent, int levels,
+    bool shift_at_least(alt_buf_parent_t parent, int levels, int64_t min_shift);
+    void consider_big_shift(alt_buf_parent_t parent, int levels,
                             int64_t *min_shift);
-    void consider_small_shift(alt::alt_buf_parent_t parent, int levels,
+    void consider_small_shift(alt_buf_parent_t parent, int levels,
                               int64_t *min_shift);
-    void deallocate_to_dimensions(alt::alt_buf_parent_t parent, int levels,
+    void deallocate_to_dimensions(alt_buf_parent_t parent, int levels,
                                   int64_t new_offset, int64_t new_size);
-    int add_level(alt::alt_buf_parent_t parent, int levels);
-    bool remove_level(alt::alt_buf_parent_t parent, int *levels_ref);
+    int add_level(alt_buf_parent_t parent, int levels);
+    bool remove_level(alt_buf_parent_t parent, int *levels_ref);
 
     char *ref_;
     int maxreflen_;
@@ -234,7 +232,5 @@ private:
     DISABLE_COPYING(blob_t);
 };
 
-
-}  // namespace alt
 
 #endif  // BUFFER_CACHE_ALT_ALT_BLOB_HPP_

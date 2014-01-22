@@ -1,13 +1,13 @@
 #include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
 
-void write_onto_blob(alt::alt_buf_parent_t parent, alt::blob_t *blob,
+void write_onto_blob(alt_buf_parent_t parent, blob_t *blob,
                      const write_message_t &wm) {
     blob->clear(parent);
     blob->append_region(parent, wm.size());
 
-    alt::blob_acq_t acq;
+    blob_acq_t acq;
     buffer_group_t group;
-    blob->expose_all(parent, alt::alt_access_t::write, &group, &acq);
+    blob->expose_all(parent, alt_access_t::write, &group, &acq);
 
     buffer_group_write_stream_t stream(&group);
     int res = send_write_message(&stream, &wm);

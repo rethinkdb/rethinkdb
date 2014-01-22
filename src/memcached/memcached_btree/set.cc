@@ -19,7 +19,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
     ~memcached_set_oper_t() { }
 
-    bool operate(alt::alt_buf_parent_t leaf,
+    bool operate(alt_buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         const block_size_t block_size = leaf.cache()->get_block_size();
         // We may be instructed to abort, depending on the old value.
@@ -58,9 +58,9 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
         // Whatever the case, shrink the old value.
         {
-            alt::blob_t b(block_size,
+            blob_t b(block_size,
                           (*value)->value_ref(),
-                          alt::blob::btree_maxreflen);
+                          blob::btree_maxreflen);
             b.clear(leaf);
         }
 
@@ -79,19 +79,19 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
                 metadata_write(&tmp->metadata_flags, tmp->contents, mcflags, exptime);
             }
             memcpy(tmp->value_ref(), (*value)->value_ref(),
-                   alt::blob::ref_size(block_size, (*value)->value_ref(),
-                                       alt::blob::btree_maxreflen));
+                   blob::ref_size(block_size, (*value)->value_ref(),
+                                       blob::btree_maxreflen));
             *value = std::move(tmp);
         }
 
-        alt::blob_t b(block_size, (*value)->value_ref(), alt::blob::btree_maxreflen);
+        blob_t b(block_size, (*value)->value_ref(), blob::btree_maxreflen);
 
         b.append_region(leaf, data->size());
         buffer_group_t bg;
         // RSI: We shouldn't have to do the scoped_ptr thing here, let blob_acq_t
         // have a reset method.
-        scoped_ptr_t<alt::blob_acq_t> acq(new alt::blob_acq_t);
-        b.expose_region(leaf, alt::alt_access_t::write,
+        scoped_ptr_t<blob_acq_t> acq(new blob_acq_t);
+        b.expose_region(leaf, alt_access_t::write,
                         0, data->size(), &bg, acq.get());
 
         try {

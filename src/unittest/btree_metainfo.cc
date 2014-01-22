@@ -6,8 +6,6 @@
 #include "unittest/unittest_utils.hpp"
 #include "serializer/config.hpp"
 
-using namespace alt;  // RSI
-
 namespace unittest {
 
 static const bool print_log_messages = false;

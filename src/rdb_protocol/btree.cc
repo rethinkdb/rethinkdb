@@ -20,8 +20,6 @@
 #include "rdb_protocol/lazy_json.hpp"
 #include "rdb_protocol/transform_visitors.hpp"
 
-using namespace alt;  // RSI
-
 value_sizer_t<rdb_value_t>::value_sizer_t(block_size_t bs) : block_size_(bs) { }
 
 template<class Value>
@@ -48,7 +46,7 @@ bool value_sizer_t<rdb_value_t>::fits(const void *value, int length_available) c
 }
 
 int value_sizer_t<rdb_value_t>::max_possible_size() const {
-    return alt::blob::btree_maxreflen;
+    return blob::btree_maxreflen;
 }
 
 block_magic_t value_sizer_t<rdb_value_t>::leaf_magic() {
@@ -63,8 +61,8 @@ block_magic_t value_sizer_t<rdb_value_t>::btree_leaf_magic() const {
 block_size_t value_sizer_t<rdb_value_t>::block_size() const { return block_size_; }
 
 bool btree_value_fits(block_size_t bs, int data_length, const rdb_value_t *value) {
-    return alt::blob::ref_fits(bs, data_length, value->value_ref(),
-                               alt::blob::btree_maxreflen);
+    return blob::ref_fits(bs, data_length, value->value_ref(),
+                               blob::btree_maxreflen);
 }
 
 void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
@@ -96,8 +94,8 @@ void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
         // As noted above, we can be sure that buf is valid.
         block_size_t block_size = kv_location->buf.cache()->get_block_size();
         {
-            alt::blob_t blob(block_size, kv_location->value->value_ref(),
-                             alt::blob::btree_maxreflen);
+            blob_t blob(block_size, kv_location->value->value_ref(),
+                             blob::btree_maxreflen);
             blob.detach_subtree(&kv_location->buf);
         }
         mod_info_out->deleted.second.assign(kv_location->value->value_ref(),
@@ -116,12 +114,12 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                      counted_t<const ql::datum_t> data,
                      repli_timestamp_t timestamp,
                      rdb_modification_info_t *mod_info_out) {
-    scoped_malloc_t<rdb_value_t> new_value(alt::blob::btree_maxreflen);
-    memset(new_value.get(), 0, alt::blob::btree_maxreflen);
+    scoped_malloc_t<rdb_value_t> new_value(blob::btree_maxreflen);
+    memset(new_value.get(), 0, blob::btree_maxreflen);
 
     const block_size_t block_size = kv_location->buf.cache()->get_block_size();
     {
-        alt::blob_t blob(block_size, new_value->value_ref(), alt::blob::btree_maxreflen);
+        blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
         serialize_onto_blob(alt_buf_parent_t(&kv_location->buf), &blob, data);
     }
 
@@ -134,8 +132,8 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     if (kv_location->value.has() && mod_info_out) {
         guarantee(mod_info_out->deleted.second.empty());
         {
-            alt::blob_t blob(block_size, kv_location->value->value_ref(),
-                             alt::blob::btree_maxreflen);
+            blob_t blob(block_size, kv_location->value->value_ref(),
+                             blob::btree_maxreflen);
             blob.detach_subtree(&kv_location->buf);
         }
         mod_info_out->deleted.second.assign(
@@ -493,7 +491,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 void rdb_value_deleter_t::delete_value(alt_buf_parent_t parent, void *value) {
     rdb_blob_wrapper_t blob(parent.cache()->get_block_size(),
                             static_cast<rdb_value_t *>(value)->value_ref(),
-                            alt::blob::btree_maxreflen);
+                            blob::btree_maxreflen);
     blob.clear(parent);
 }
 
@@ -1181,8 +1179,8 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
      * deleted blob if it exists. */
     std::vector<char> ref_cpy(modification->info.deleted.second);
     if (modification->info.deleted.first) {
-        ref_cpy.insert(ref_cpy.end(), alt::blob::btree_maxreflen - ref_cpy.size(), 0);
-        guarantee(ref_cpy.size() == static_cast<size_t>(alt::blob::btree_maxreflen));
+        ref_cpy.insert(ref_cpy.end(), blob::btree_maxreflen - ref_cpy.size(), 0);
+        guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
 
         rdb_value_deleter_t deleter;
         deleter.delete_value(alt_buf_parent_t(txn), ref_cpy.data());

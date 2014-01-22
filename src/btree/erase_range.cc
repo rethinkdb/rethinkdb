@@ -8,11 +8,6 @@
 #include "btree/slice.hpp"
 #include "concurrency/fifo_checker.hpp"
 
-using alt::alt_access_t;
-using alt::alt_buf_lock_t;
-using alt::alt_buf_parent_t;
-using alt::alt_buf_write_t;
-
 class erase_range_helper_t : public btree_traversal_helper_t {
 public:
     erase_range_helper_t(value_sizer_t<void> *sizer, key_tester_t *tester,

@@ -19,16 +19,16 @@ public:
      * the methods to do this are normally not present due to shared
      * references. */
     rdb_blob_wrapper_t(block_size_t block_size, char *ref, int maxreflen,
-                       alt::alt_buf_parent_t parent, const std::string &data);
+                       alt_buf_parent_t parent, const std::string &data);
 
     int refsize(block_size_t block_size) const;
 
     int64_t valuesize() const;
 
     /* This function only works in read mode. */
-    void expose_all(alt::alt_buf_parent_t parent, alt::alt_access_t mode,
+    void expose_all(alt_buf_parent_t parent, alt_access_t mode,
                     buffer_group_t *buffer_group_out,
-                    alt::blob_acq_t *acq_group_out);
+                    blob_acq_t *acq_group_out);
 
 private:
     friend class rdb_value_deleter_t;
@@ -37,9 +37,9 @@ private:
      * that you have to explicitly white list places where it occurs. If you're
      * not 100% sure it's safe to call clear from a certain location don't
      * friend it. */
-    void clear(alt::alt_buf_parent_t parent);
+    void clear(alt_buf_parent_t parent);
 
-    alt::blob_t internal;
+    blob_t internal;
 };
 
 #endif  // RDB_PROTOCOL_BLOB_WRAPPER_HPP_

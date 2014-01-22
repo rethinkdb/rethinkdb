@@ -7,15 +7,6 @@
 #include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
 #include "serializer/config.hpp"
 
-using alt::alt_access_t;
-using alt::alt_buf_lock_t;
-using alt::alt_buf_parent_t;
-using alt::alt_buf_write_t;
-using alt::alt_cache_config_t;
-using alt::alt_cache_t;
-using alt::alt_create_t;
-using alt::alt_txn_t;
-
 internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_backender,
                                                            const serializer_filepath_t &filename,
                                                            perfmon_collection_t *stats_parent)
@@ -74,7 +65,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
     char buffer[MAX_REF_SIZE];
     memset(buffer, 0, MAX_REF_SIZE);
 
-    alt::blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
+    blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
 
     write_onto_blob(alt_buf_parent_t(_head.get()), &blob, wm);
 
@@ -116,12 +107,12 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
 
     /* Grab the data from the blob and delete it. */
 
-    memcpy(buffer, tail->data + tail->live_data_offset, alt::blob::ref_size(cache->max_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
+    memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->max_block_size(), tail->data + tail->live_data_offset, MAX_REF_SIZE));
     std::vector<char> data_vec;
 
-    alt::blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
+    blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
     {
-        alt::blob_acq_t acq_group;
+        blob_acq_t acq_group;
         buffer_group_t blob_group;
         blob.expose_all(alt_buf_parent_t(_tail.get()), alt_access_t::read,
                         &blob_group, &acq_group);

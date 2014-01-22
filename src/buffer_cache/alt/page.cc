@@ -18,8 +18,6 @@
 // #define pagef debugf
 #define pagef(...) do { } while (0)
 
-namespace alt {
-
 page_cache_t::page_cache_t(serializer_t *serializer,
                            const page_cache_config_t &config,
                            memory_tracker_t *tracker)
@@ -1670,6 +1668,4 @@ void evicter_t::inform_tracker() const {
     tracker_->inform_memory_change(in_memory_size(),
                                    memory_limit_);
 }
-
-}  // namespace alt
 

@@ -10,11 +10,9 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
-namespace alt {
+class alt_cache_t;
 class alt_buf_parent_t;
 class alt_cache_account_t;
-class alt_cache_t;
-}
 class backfill_callback_t;
 class key_tester_t;
 
@@ -55,7 +53,7 @@ public:
     // Initializes a cache for use with btrees (by creating the superblock in block
     // SUPERBLOCK_ID), setting the initial value of the metainfo (with a single
     // key/value pair).
-    static void create(alt::alt_cache_t *cache,
+    static void create(alt_cache_t *cache,
                        const std::vector<char> &metainfo_key,
                        const std::vector<char> &metainfo_value);
 
@@ -63,20 +61,20 @@ public:
     // Creates a btree_slice_t on a cache with data in it putting the
     // superblock at the specified location
     static void create(block_id_t superblock_id,
-                       alt::alt_buf_parent_t parent,
+                       alt_buf_parent_t parent,
                        const std::vector<char> &metainfo_key,
                        const std::vector<char> &metainfo_value);
 
     // Blocks
-    btree_slice_t(alt::alt_cache_t *cache, perfmon_collection_t *parent,
+    btree_slice_t(alt_cache_t *cache, perfmon_collection_t *parent,
                   const std::string &identifier,
                   block_id_t superblock_id = SUPERBLOCK_ID);
 
     // Blocks
     ~btree_slice_t();
 
-    alt::alt_cache_t *cache() { return cache_; }
-    alt::alt_cache_account_t *get_backfill_account() { return backfill_account.get(); }
+    alt_cache_t *cache() { return cache_; }
+    alt_cache_account_t *get_backfill_account() { return backfill_account.get(); }
 
     order_checkpoint_t pre_begin_txn_checkpoint_;
 
@@ -85,12 +83,12 @@ public:
     block_id_t get_superblock_id();
 
 private:
-    alt::alt_cache_t *cache_;
+    alt_cache_t *cache_;
 
     block_id_t superblock_id_;
 
     // Cache account to be used when backfilling.
-    scoped_ptr_t<alt::alt_cache_account_t> backfill_account;
+    scoped_ptr_t<alt_cache_account_t> backfill_account;
 
     DISABLE_COPYING(btree_slice_t);
 };

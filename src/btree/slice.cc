@@ -11,13 +11,6 @@
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
-using alt::alt_access_t;
-using alt::alt_buf_lock_t;
-using alt::alt_buf_parent_t;
-using alt::alt_cache_t;
-using alt::alt_create_t;
-using alt::alt_txn_t;
-
 void btree_slice_t::create(alt_cache_t *cache,
                            const std::vector<char> &metainfo_key,
                            const std::vector<char> &metainfo_value) {
@@ -36,7 +29,7 @@ void btree_slice_t::create(block_id_t superblock_id,
     // RSI: Make this be the thing that creates the block.
     alt_buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
 
-    alt::alt_buf_write_t sb_write(&superblock);
+    alt_buf_write_t sb_write(&superblock);
     auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());
     bzero(sb, parent.cache()->get_block_size().value());
 
@@ -48,7 +41,7 @@ void btree_slice_t::create(block_id_t superblock_id,
 
     set_superblock_metainfo(&superblock, metainfo_key, metainfo_value);
 
-    alt::alt_buf_lock_t sindex_block(&superblock, alt_create_t::create);
+    alt_buf_lock_t sindex_block(&superblock, alt_create_t::create);
     initialize_secondary_indexes(&sindex_block);
     sb->sindex_block = sindex_block.get_block_id();
 }

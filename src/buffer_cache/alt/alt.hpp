@@ -15,8 +15,6 @@
 
 class serializer_t;
 
-namespace alt {
-
 class alt_buf_lock_t;
 class alt_cache_config_t;
 class alt_cache_stats_t;
@@ -371,7 +369,5 @@ private:
     DISABLE_COPYING(alt_buf_write_t);
 };
 
-
-}  // namespace alt
 
 #endif  // BUFFER_CACHE_ALT_ALT_HPP_

@@ -4,8 +4,6 @@
 
 #include "perfmon/perfmon.hpp"
 
-namespace alt {
-
 class alt_cache_stats_t {
 public:
     explicit alt_cache_stats_t(perfmon_collection_t *parent);
@@ -20,7 +18,5 @@ public:
     perfmon_multi_membership_t cache_collection_membership;
 };
 
-
-}  // namespace alt
 
 #endif  // BUFFER_CACHE_ALT_STATS_HPP_

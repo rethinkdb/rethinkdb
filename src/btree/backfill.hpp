@@ -9,10 +9,8 @@
 #include "containers/uuid.hpp"
 #include "utils.hpp"
 
-namespace alt {
 class alt_buf_parent_t;
 class alt_buf_lock_t;
-}
 class btree_slice_t;
 struct btree_key_t;
 struct key_range_t;
@@ -28,7 +26,7 @@ class agnostic_backfill_callback_t {
 public:
     virtual void on_delete_range(const key_range_t &range, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_deletion(const btree_key_t *key, repli_timestamp_t recency, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
-    virtual void on_pair(alt::alt_buf_parent_t leaf_node, repli_timestamp_t recency,
+    virtual void on_pair(alt_buf_parent_t leaf_node, repli_timestamp_t recency,
                          const btree_key_t *key, const void *value,
                          signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
     virtual void on_sindexes(const std::map<std::string, secondary_index_t> &sindexes, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
@@ -45,7 +43,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
                                 repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback,
                                 superblock_t *superblock,
-                                alt::alt_buf_lock_t *sindex_block,
+                                alt_buf_lock_t *sindex_block,
                                 parallel_traversal_progress_t *p,
                                 signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);

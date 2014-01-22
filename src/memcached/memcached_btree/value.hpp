@@ -50,12 +50,12 @@ public:
     int inline_size(block_size_t bs) const {
         int msize = metadata_size(metadata_flags);
         return offsetof(memcached_value_t, contents) + msize +
-            alt::blob::ref_size(bs, contents + msize, alt::blob::btree_maxreflen);
+            blob::ref_size(bs, contents + msize, blob::btree_maxreflen);
     }
 
     int64_t value_size() const {
-        return alt::blob::value_size(contents + metadata_size(metadata_flags),
-                                     alt::blob::btree_maxreflen);
+        return blob::value_size(contents + metadata_size(metadata_flags),
+                                     blob::btree_maxreflen);
     }
 
     const char *value_ref() const { return contents + metadata_size(metadata_flags); }

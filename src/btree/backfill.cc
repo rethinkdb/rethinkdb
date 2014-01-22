@@ -16,8 +16,6 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "protocol_api.hpp"
 
-using namespace alt;  // RSI
-
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
     void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
                         const btree_key_t *left_exclusive_or_null,

@@ -8,11 +8,11 @@
 #include "containers/archive/archive.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 
-void write_onto_blob(alt::alt_buf_parent_t parent, alt::blob_t *blob,
+void write_onto_blob(alt_buf_parent_t parent, blob_t *blob,
                      const write_message_t &wm);
 
 template <class T>
-void serialize_onto_blob(alt::alt_buf_parent_t parent, alt::blob_t *blob,
+void serialize_onto_blob(alt_buf_parent_t parent, blob_t *blob,
                          const T &value) {
     // We still make an unnecessary copy: serializing to a write_message_t instead of
     // directly onto the stream.  (However, don't be so sure it would be more
@@ -25,11 +25,11 @@ void serialize_onto_blob(alt::alt_buf_parent_t parent, alt::blob_t *blob,
 }
 
 template <class T>
-void deserialize_from_blob(alt::alt_buf_parent_t parent, alt::blob_t *blob,
+void deserialize_from_blob(alt_buf_parent_t parent, blob_t *blob,
                            T *value_out) {
     buffer_group_t group;
-    alt::blob_acq_t acq;
-    blob->expose_all(parent, alt::alt_access_t::read, &group, &acq);
+    blob_acq_t acq;
+    blob->expose_all(parent, alt_access_t::read, &group, &acq);
     deserialize_from_group(const_view(&group), value_out);
 }
 

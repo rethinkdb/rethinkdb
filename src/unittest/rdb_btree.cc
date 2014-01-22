@@ -21,8 +21,6 @@
 
 #pragma GCC diagnostic ignored "-Wshadow"
 
-using namespace alt;  // RSI
-
 namespace unittest {
 
 void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
@@ -51,7 +49,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
                 static_cast<profile::trace_t *>(NULL));
 
         {
-            scoped_ptr_t<alt::alt_buf_lock_t> sindex_block;
+            scoped_ptr_t<alt_buf_lock_t> sindex_block;
 
             store->acquire_sindex_block_for_write(
                     superblock->expose_buf(), &sindex_block, sindex_block_id);

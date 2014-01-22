@@ -11,8 +11,6 @@
 #include "rdb_protocol/protocol.hpp"
 #include "serializer/config.hpp"
 
-using namespace alt;  // RSI
-
 namespace unittest {
 
 void run_sindex_low_level_operations_test() {

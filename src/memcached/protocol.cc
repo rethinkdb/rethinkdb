@@ -30,8 +30,6 @@
 
 #include "btree/keys.hpp"
 
-using namespace alt;  // RSI
-
 typedef memcached_protocol_t::store_t store_t;
 typedef memcached_protocol_t::region_t region_t;
 

@@ -10,10 +10,6 @@
 #include "memcached/memcached_btree/node.hpp"
 #include "memcached/memcached_btree/value.hpp"
 
-
-using alt::alt_buf_lock_t;
-using alt::alt_buf_parent_t;
-
 class agnostic_memcached_backfill_callback_t : public agnostic_backfill_callback_t {
 public:
     agnostic_memcached_backfill_callback_t(backfill_callback_t *cb, const key_range_t &kr) : cb_(cb), kr_(kr) { }

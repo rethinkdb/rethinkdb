@@ -13,8 +13,6 @@
 #include "containers/scoped.hpp"
 #include "serializer/types.hpp"
 
-namespace alt {
-
 blob_acq_t::~blob_acq_t() {
     for (auto it = reads_.begin(); it != reads_.end(); ++it) {
         delete *it;
@@ -287,7 +285,7 @@ int64_t blob_t::valuesize() const {
     return blob::value_size(ref_, maxreflen_);
 }
 
-void blob_t::detach_subtree(alt::alt_buf_lock_t *root) {
+void blob_t::detach_subtree(alt_buf_lock_t *root) {
     if (blob::is_small(ref_, maxreflen_)) {
         return;
     }
@@ -952,4 +950,3 @@ bool blob_t::remove_level(alt_buf_parent_t parent, int *levels_ref) {
 }
 
 
-}  // namespace alt

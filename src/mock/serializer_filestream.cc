@@ -5,8 +5,6 @@
 #include "perfmon/core.hpp"
 #include "serializer/serializer.hpp"
 
-using namespace alt;  // RSI
-
 namespace mock {
 
 // Maybe we should have just used a blob for this.

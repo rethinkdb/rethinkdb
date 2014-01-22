@@ -14,13 +14,13 @@ struct memcached_delete_oper_t : public memcached_modify_oper_t {
     bool dont_put_in_delete_queue;
     btree_slice_t *slice;
 
-    bool operate(alt::alt_buf_parent_t leaf,
+    bool operate(alt_buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         if (value->has()) {
             result = dr_deleted;
             {
-                alt::blob_t b(leaf.cache()->get_block_size(),
-                              (*value)->value_ref(), alt::blob::btree_maxreflen);
+                blob_t b(leaf.cache()->get_block_size(),
+                              (*value)->value_ref(), blob::btree_maxreflen);
                 b.clear(leaf);
             }
             value->reset();

@@ -10,15 +10,6 @@
 #include "buffer_cache/alt/alt_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
-using alt::alt_access_t;
-using alt::alt_buf_lock_t;
-using alt::alt_buf_parent_t;
-using alt::alt_buf_read_t;
-using alt::alt_buf_write_t;
-using alt::alt_create_t;
-using alt::alt_read_access_t;
-using alt::alt_txn_t;
-
 real_superblock_t::real_superblock_t(alt_buf_lock_t &&sb_buf)
     : sb_buf_(std::move(sb_buf)) {}
 
@@ -138,11 +129,11 @@ bool get_superblock_metainfo(alt_buf_lock_t *superblock,
             = static_cast<const btree_superblock_t *>(read.get_data_read());
 
         // The const cast is okay because we access the data with alt_access_t::read.
-        alt::blob_t blob(superblock->cache()->get_block_size(),
+        blob_t blob(superblock->cache()->get_block_size(),
                          const_cast<char *>(data->metainfo_blob),
                          btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
-        alt::blob_acq_t acq;
+        blob_acq_t acq;
         buffer_group_t group;
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read, &group, &acq);
 
@@ -178,10 +169,10 @@ void get_superblock_metainfo(
 
         // The const cast is okay because we access the data with alt_access_t::read
         // and don't write to the blob.
-        alt::blob_t blob(superblock->cache()->get_block_size(),
+        blob_t blob(superblock->cache()->get_block_size(),
                          const_cast<char *>(data->metainfo_blob),
                          btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-        alt::blob_acq_t acq;
+        blob_acq_t acq;
         buffer_group_t group;
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
@@ -209,13 +200,13 @@ void set_superblock_metainfo(alt_buf_lock_t *superblock,
     btree_superblock_t *data
         = static_cast<btree_superblock_t *>(write.get_data_write());
 
-    alt::blob_t blob(superblock->cache()->get_block_size(),
+    blob_t blob(superblock->cache()->get_block_size(),
                      data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
 
     {
-        alt::blob_acq_t acq;
+        blob_acq_t acq;
         buffer_group_t group;
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
@@ -263,7 +254,7 @@ void set_superblock_metainfo(alt_buf_lock_t *superblock,
     blob.append_region(alt_buf_parent_t(superblock), metainfo.size());
 
     {
-        alt::blob_acq_t acq;
+        blob_acq_t acq;
         buffer_group_t write_group;
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::write,
                         &write_group, &acq);
@@ -281,13 +272,13 @@ void delete_superblock_metainfo(alt_buf_lock_t *superblock,
     btree_superblock_t *const data
         = static_cast<btree_superblock_t *>(write.get_data_write());
 
-    alt::blob_t blob(superblock->cache()->get_block_size(),
+    blob_t blob(superblock->cache()->get_block_size(),
                      data->metainfo_blob, btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
 
     std::vector<char> metainfo;
 
     {
-        alt::blob_acq_t acq;
+        blob_acq_t acq;
         buffer_group_t group;
         blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
@@ -318,7 +309,7 @@ void delete_superblock_metainfo(alt_buf_lock_t *superblock,
         blob.append_region(alt_buf_parent_t(superblock), metainfo.size());
 
         {
-            alt::blob_acq_t acq;
+            blob_acq_t acq;
             buffer_group_t write_group;
             blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::write,
                             &write_group, &acq);
@@ -334,7 +325,7 @@ void delete_superblock_metainfo(alt_buf_lock_t *superblock,
 void clear_superblock_metainfo(alt_buf_lock_t *superblock) {
     alt_buf_write_t write(superblock);
     auto data = static_cast<btree_superblock_t *>(write.get_data_write());
-    alt::blob_t blob(superblock->cache()->get_block_size(),
+    blob_t blob(superblock->cache()->get_block_size(),
                      data->metainfo_blob,
                      btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
     blob.clear(alt_buf_parent_t(superblock));

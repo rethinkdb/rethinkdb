@@ -9,8 +9,6 @@
 #include "serializer/config.hpp"
 #include "stl_utils.hpp"
 
-using namespace alt;  // RSI
-
 sindex_not_post_constructed_exc_t::sindex_not_post_constructed_exc_t(
         std::string sindex_name)
     : info(strprintf("Sindex: %s was accessed before it was finished post constructing.",
@@ -470,7 +468,7 @@ void clear_sindex(
 template <class protocol_t>
 void btree_store_t<protocol_t>::set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
-        alt::alt_buf_lock_t *sindex_block,
+        alt_buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         std::set<std::string> *created_sindexes_out,

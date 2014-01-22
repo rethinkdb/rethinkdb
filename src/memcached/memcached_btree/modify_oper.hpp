@@ -5,7 +5,7 @@
 #include "containers/scoped.hpp"
 #include "memcached/memcached_btree/node.hpp"
 
-namespace alt { class alt_buf_parent_t; }
+class alt_buf_parent_t;
 
 class btree_slice_t;
 
@@ -24,7 +24,7 @@ public:
     // value to NULL would mean to delete the key-value pair (but if
     // you do so make sure to wipe out the blob, too).  The return
     // value is true if the leaf node needs to be updated.
-    virtual MUST_USE bool operate(alt::alt_buf_parent_t leaf,
+    virtual MUST_USE bool operate(alt_buf_parent_t leaf,
                                   scoped_malloc_t<memcached_value_t> *value) = 0;
 
 

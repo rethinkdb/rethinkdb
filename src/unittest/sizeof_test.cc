@@ -4,8 +4,6 @@
 #include "buffer_cache/alt/alt.hpp"
 #include "serializer/config.hpp"
 
-using namespace alt;  // RSI
-
 namespace unittest {
 
 TEST(SizeofTest, Sizes) {

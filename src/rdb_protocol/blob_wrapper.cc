@@ -3,8 +3,6 @@
 
 #include "buffer_cache/alt/alt.hpp"
 
-using namespace alt;  // RSI
-
 rdb_blob_wrapper_t::rdb_blob_wrapper_t(block_size_t block_size, char *ref,
                                        int maxreflen)
     : internal(block_size, ref, maxreflen) { }
@@ -36,7 +34,7 @@ int64_t rdb_blob_wrapper_t::valuesize() const {
 void rdb_blob_wrapper_t::expose_all(
         alt_buf_parent_t parent, alt_access_t mode,
         buffer_group_t *buffer_group_out,
-        alt::blob_acq_t *acq_group_out) {
+        blob_acq_t *acq_group_out) {
     guarantee(mode == alt_access_t::read,
         "Other blocks might be referencing this blob, it's invalid to modify it in place.");
     internal.expose_all(parent, mode, buffer_group_out, acq_group_out);

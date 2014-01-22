@@ -48,8 +48,8 @@ void find_keyvalue_location_for_write(
     // RSI: Make sure we do the logic smart here -- don't needlessly hold both
     // buffers.  (This finds the keyvalue for _write_ so that probably won't really
     // happen.)
-    alt::alt_buf_lock_t last_buf;
-    alt::alt_buf_lock_t buf;
+    alt_buf_lock_t last_buf;
+    alt_buf_lock_t buf;
     {
         profile::starter_t starter("Acquiring block for write.\n", trace);
         get_root(&sizer, superblock, &buf);
@@ -58,7 +58,7 @@ void find_keyvalue_location_for_write(
     // Walk down the tree to the leaf.
     for (;;) {
         {
-            alt::alt_buf_read_t read(&buf);
+            alt_buf_read_t read(&buf);
             if (!node::is_internal(static_cast<const node_t *>(read.get_data_read()))) {
                 break;
             }
@@ -98,7 +98,7 @@ void find_keyvalue_location_for_write(
         // Look up and acquire the next node.
         block_id_t node_id;
         {
-            alt::alt_buf_read_t read(&buf);
+            alt_buf_read_t read(&buf);
             auto node = static_cast<const internal_node_t *>(read.get_data_read());
             node_id = internal_node::lookup(node, key);
         }
@@ -106,7 +106,7 @@ void find_keyvalue_location_for_write(
 
         {
             profile::starter_t starter("Acquiring block for write.\n", trace);
-            alt::alt_buf_lock_t tmp(&buf, node_id, alt::alt_access_t::write);
+            alt_buf_lock_t tmp(&buf, node_id, alt_access_t::write);
             last_buf = std::move(buf);
             buf = std::move(tmp);
         }
@@ -116,7 +116,7 @@ void find_keyvalue_location_for_write(
         scoped_malloc_t<Value> tmp(sizer.max_possible_size());
 
         // We've gone down the tree and gotten to a leaf. Now look up the key.
-        alt::alt_buf_read_t read(&buf);
+        alt_buf_read_t read(&buf);
         auto node = static_cast<const leaf_node_t *>(read.get_data_read());
         bool key_found = leaf::lookup(&sizer, node, key, tmp.get());
 
@@ -148,32 +148,32 @@ void find_keyvalue_location_for_read(
         return;
     }
 
-    alt::alt_buf_lock_t buf;
+    alt_buf_lock_t buf;
     {
         profile::starter_t starter("Acquire a block for read.", trace);
-        alt::alt_buf_lock_t tmp(superblock->expose_buf(), root_id,
-                                alt::alt_access_t::read);
+        alt_buf_lock_t tmp(superblock->expose_buf(), root_id,
+                                alt_access_t::read);
         superblock->release();
         buf = std::move(tmp);
     }
 
 #ifndef NDEBUG
     {
-        alt::alt_buf_read_t read(&buf);
+        alt_buf_read_t read(&buf);
         node::validate(&sizer, static_cast<const node_t *>(read.get_data_read()));
     }
 #endif  // NDEBUG
 
     for (;;) {
         {
-            alt::alt_buf_read_t read(&buf);
+            alt_buf_read_t read(&buf);
             if (!node::is_internal(static_cast<const node_t *>(read.get_data_read()))) {
                 break;
             }
         }
         block_id_t node_id;
         {
-            alt::alt_buf_read_t read(&buf);
+            alt_buf_read_t read(&buf);
             const internal_node_t *node
                 = static_cast<const internal_node_t *>(read.get_data_read());
             node_id = internal_node::lookup(node, key);
@@ -182,14 +182,14 @@ void find_keyvalue_location_for_read(
 
         {
             profile::starter_t starter("Acquire a block for read.", trace);
-            alt::alt_buf_lock_t tmp(&buf, node_id, alt::alt_access_t::read);
+            alt_buf_lock_t tmp(&buf, node_id, alt_access_t::read);
             buf.reset_buf_lock();
             buf = std::move(tmp);
         }
 
 #ifndef NDEBUG
         {
-            alt::alt_buf_read_t read(&buf);
+            alt_buf_read_t read(&buf);
             node::validate(&sizer, static_cast<const node_t *>(read.get_data_read()));
         }
 #endif  // NDEBUG
@@ -199,7 +199,7 @@ void find_keyvalue_location_for_read(
     scoped_malloc_t<Value> value(sizer.max_possible_size());
     bool value_found;
     {
-        alt::alt_buf_read_t read(&buf);
+        alt_buf_read_t read(&buf);
         const leaf_node_t *leaf
             = static_cast<const leaf_node_t *>(read.get_data_read());
         value_found = leaf::lookup(&sizer, leaf, key, value.get());
@@ -239,7 +239,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
 
         {
 #ifndef NDEBUG
-            alt::alt_buf_read_t read(&kv_loc->buf);
+            alt_buf_read_t read(&kv_loc->buf);
             auto leaf_node = static_cast<const leaf_node_t *>(read.get_data_read());
             rassert(!leaf::is_full(&sizer, leaf_node, key, kv_loc->value.get()));
 #endif
@@ -252,7 +252,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
         }
 
         {
-            alt::alt_buf_write_t write(&kv_loc->buf);
+            alt_buf_write_t write(&kv_loc->buf);
             auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
             leaf::insert(&sizer,
                          leaf_node,
@@ -269,7 +269,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
             if (expired == expired_t::NO) {
                 rassert(tstamp != repli_timestamp_t::invalid, "Deletes need a valid timestamp now.");
                 {
-                    alt::alt_buf_write_t write(&kv_loc->buf);
+                    alt_buf_write_t write(&kv_loc->buf);
                     auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
                     leaf::remove(&sizer,
                                  leaf_node,
@@ -283,7 +283,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
                 // TODO: Oh god oh god get rid of "expired".
                 // Expirations do an erase, not a delete.
                 {
-                    alt::alt_buf_write_t write(&kv_loc->buf);
+                    alt_buf_write_t write(&kv_loc->buf);
                     auto leaf_node = static_cast<leaf_node_t *>(write.get_data_write());
                     leaf::erase_presence(&sizer,
                                          leaf_node,
@@ -307,9 +307,9 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
     // RSI: Should we _actually_ pass kv_loc->buf as the parent?
     // RSI: This was opened with some buffer_cache_order_mode_ignore flag.
     // RSI: See parallel_traversal.cc for another use of the stat block.
-    alt::alt_buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block,
-                                   alt::alt_access_t::write);
-    alt::alt_buf_write_t stat_block_write(&stat_block);
+    alt_buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block,
+                                   alt_access_t::write);
+    alt_buf_write_t stat_block_write(&stat_block);
     auto stat_block_buf
         = static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
     stat_block_buf->population += population_change;

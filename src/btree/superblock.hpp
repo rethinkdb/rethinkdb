@@ -42,7 +42,7 @@ public:
         sub_superblock->set_stat_block_id(new_stat_block);
     }
 
-    alt::alt_buf_parent_t expose_buf() {
+    alt_buf_parent_t expose_buf() {
         return sub_superblock->expose_buf();
     }
 
