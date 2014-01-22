@@ -4,14 +4,12 @@
 #include "clustering/immediate_consistency/branch/multistore.hpp"
 #include "clustering/reactor/reactor.hpp"
 #include "serializer/config.hpp"
-#include "serializer/debug_wrapper.hpp"
 #include "serializer/translator.hpp"
 #include "serializer/merger.hpp"
 #include "utils.hpp"
 
 // RSI: Get rid of this.
 #define USE_MERGER_SERIALIZER 1
-#define USE_DEBUG_SERIALIZER 0
 
 /* This object serves mostly as a container for arguments to the
  * do_construct_existing_store function because we hit the boost::bind argument
@@ -139,9 +137,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
                 ser = make_scoped<merger_serializer_t>(std::move(ser),
                                                        MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
 #endif
-#if USE_DEBUG_SERIALIZER
-                ser = make_scoped<debug_serializer_t>(std::move(ser));
-#endif
                 serializer = std::move(ser);
             }
 
@@ -170,9 +165,6 @@ file_based_svs_by_namespace_t<protocol_t>::get_svs(
 #if USE_MERGER_SERIALIZER
                 ser = make_scoped<merger_serializer_t>(std::move(ser),
                                                        MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
-#endif
-#if USE_DEBUG_SERIALIZER
-                ser = make_scoped<debug_serializer_t>(std::move(ser));
 #endif
                 serializer = std::move(ser);
             }

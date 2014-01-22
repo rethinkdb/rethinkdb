@@ -220,21 +220,6 @@ MUST_USE bool strtou64_strict(const std::string &str, int base, uint64_t *out_re
 std::string strprintf(const char *format, ...) __attribute__((format (printf, 1, 2)));
 std::string vstrprintf(const char *format, va_list ap) __attribute__((format (printf, 1, 0)));
 
-struct debugf_t {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-#pragma GCC diagnostic ignored "-Wformat-security"
-    template <class... Args>
-    explicit debugf_t(Args... args) : msg(strprintf(args...)) {
-        debugf("%s enter\n", msg.c_str());
-    }
-#pragma GCC diagnostic pop
-    ~debugf_t() {
-        debugf("%s exit\n", msg.c_str());
-    }
-    std::string msg;
-};
-
 
 // formatted time:
 // yyyy-mm-ddThh:mm:ss.nnnnnnnnn   (29 characters)
