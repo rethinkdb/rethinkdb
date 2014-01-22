@@ -7,7 +7,7 @@
 
 #include "btree/slice.hpp"
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
 real_superblock_t::real_superblock_t(buf_lock_t &&sb_buf)

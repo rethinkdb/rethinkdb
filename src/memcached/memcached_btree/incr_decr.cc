@@ -4,7 +4,7 @@
 #include <inttypes.h>
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/printf_buffer.hpp"
 #include "containers/scoped.hpp"

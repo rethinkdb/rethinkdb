@@ -3,7 +3,7 @@
 
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "buffer_cache/alt/alt_serialize_onto_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "protocol_api.hpp"

@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef BUFFER_CACHE_ALT_ALT_BLOB_HPP_
-#define BUFFER_CACHE_ALT_ALT_BLOB_HPP_
+#ifndef BUFFER_CACHE_ALT_BLOB_HPP_
+#define BUFFER_CACHE_ALT_BLOB_HPP_
 
 #include <stdint.h>
 #include <stddef.h>
@@ -234,4 +234,4 @@ private:
 };
 
 
-#endif  // BUFFER_CACHE_ALT_ALT_BLOB_HPP_
+#endif  // BUFFER_CACHE_ALT_BLOB_HPP_

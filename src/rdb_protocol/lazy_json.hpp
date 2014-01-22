@@ -3,7 +3,7 @@
 #define RDB_PROTOCOL_LAZY_JSON_HPP_
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "rdb_protocol/datum.hpp"
 
 struct rdb_value_t {

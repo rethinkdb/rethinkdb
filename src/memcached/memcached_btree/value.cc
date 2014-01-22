@@ -4,7 +4,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 
 int metadata_size(metadata_flags_t mf) {
     return ((mf.flags & MEMCACHED_FLAGS) ? sizeof(mcflags_t) : 0)

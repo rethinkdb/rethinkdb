@@ -2,7 +2,7 @@
 #include "memcached/memcached_btree/set.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/data_buffer.hpp"
 #include "memcached/memcached_btree/modify_oper.hpp"

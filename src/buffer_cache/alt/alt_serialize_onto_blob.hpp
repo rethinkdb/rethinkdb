@@ -2,7 +2,7 @@
 #define BUFFER_CACHE_ALT_ALT_SERIALIZE_ONTO_BLOB_HPP_
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "buffer_cache/serialize_onto_blob.hpp"  // RSI.  (for
                                                  // deserialize_from_group)
 #include "containers/archive/archive.hpp"

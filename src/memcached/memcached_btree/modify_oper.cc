@@ -2,7 +2,7 @@
 #include "memcached/memcached_btree/modify_oper.hpp"
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/alt/alt_blob.hpp"
+#include "buffer_cache/alt/blob.hpp"
 #include "btree/internal_node.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
