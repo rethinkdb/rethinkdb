@@ -27,6 +27,7 @@ public:
     void read(const typename protocol_t::read_t &read,
               typename protocol_t::read_response_t *response,
               DEBUG_VAR state_timestamp_t expected_timestamp,
+              UNUSED order_token_t order_token,  // RSI
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         read_token_pair_t token_pair;
         store->new_read_token_pair(&token_pair);
@@ -50,6 +51,7 @@ public:
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
+        // RSI: bs_outdated_read_source unused?
         return store->read(DEBUG_ONLY(metainfo_checker, ) read, response,
                            &token_pair,
                            interruptor);
@@ -57,7 +59,8 @@ public:
 
     void write(const typename protocol_t::write_t &write,
                typename protocol_t::write_response_t *response,
-               transition_timestamp_t transition_timestamp) THROWS_NOTHING {
+               transition_timestamp_t transition_timestamp,
+               UNUSED order_token_t order_token /* RSI */) THROWS_NOTHING {
         cond_t non_interruptor;
 
 #ifndef NDEBUG
@@ -75,13 +78,16 @@ public:
             &token_pair, &non_interruptor);
     }
 
+    order_source_t bs_outdated_read_source;
+
     store_view_t<protocol_t> *store;
 };
 
 template<class protocol_t>
-class dummy_timestamper_t {
+struct dummy_timestamper_t {
+
 public:
-    explicit dummy_timestamper_t(dummy_performer_t<protocol_t> *n)
+    dummy_timestamper_t(dummy_performer_t<protocol_t> *n, UNUSED order_source_t *order_source /* RSI */)
         : next(n), current_timestamp(state_timestamp_t::zero()) {
         cond_t interruptor;
 
@@ -100,14 +106,14 @@ public:
 
     void read(const typename protocol_t::read_t &read, typename protocol_t::read_response_t *response, order_token_t otok, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         order_sink.check_out(otok);
-        next->read(read, response, current_timestamp, interruptor);
+        next->read(read, response, current_timestamp, otok, interruptor);
     }
 
     void write(const typename protocol_t::write_t &write, typename protocol_t::write_response_t *response, order_token_t otok) THROWS_NOTHING {
         order_sink.check_out(otok);
         transition_timestamp_t transition_timestamp = transition_timestamp_t::starting_from(current_timestamp);
         current_timestamp = transition_timestamp.timestamp_after();
-        next->write(write, response, transition_timestamp);
+        next->write(write, response, transition_timestamp, otok);
     }
 
 private:
@@ -200,9 +206,9 @@ private:
 template<class protocol_t>
 class dummy_namespace_interface_t : public namespace_interface_t<protocol_t> {
 public:
-    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t> shards,
-                                store_view_t<protocol_t> **stores,
-                                typename protocol_t::context_t *_ctx)
+    dummy_namespace_interface_t(std::vector<typename protocol_t::region_t>
+            shards, store_view_t<protocol_t> **stores, order_source_t
+            *order_source, typename protocol_t::context_t *_ctx)
         : ctx(_ctx)
     {
         /* Make sure shards are non-overlapping and stuff */
@@ -225,6 +231,7 @@ public:
 
                 region_map_t<protocol_t, binary_blob_t> metadata;
                 stores[i]->do_get_metainfo(&read_token, &interruptor, &metadata);
+                // RSI: order_source unused?
 
                 rassert(metadata.get_domain() == shards[i]);
                 for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
@@ -247,7 +254,7 @@ public:
 
             dummy_performer_t<protocol_t> *performer = new dummy_performer_t<protocol_t>(stores[i]);
             performers.push_back(performer);
-            dummy_timestamper_t<protocol_t> *timestamper = new dummy_timestamper_t<protocol_t>(performer);
+            dummy_timestamper_t<protocol_t> *timestamper = new dummy_timestamper_t<protocol_t>(performer, order_source);
             timestampers.push_back(timestamper);
             shards_of_this_db.push_back(typename dummy_sharder_t<protocol_t>::shard_t(timestamper, performer, shards[i]));
         }

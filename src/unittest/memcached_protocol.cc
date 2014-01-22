@@ -62,8 +62,8 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
 
     /* Set up namespace interface */
     memcached_protocol_t::context_t ctx;
-    dummy_namespace_interface_t<memcached_protocol_t> nsi(shards, stores.c_array(),
-                                                          &ctx);
+    dummy_namespace_interface_t<memcached_protocol_t> nsi(shards,
+            stores.c_array(), &order_source, &ctx);
 
     fun(&nsi, &order_source);
 }

@@ -50,7 +50,7 @@ void run_with_broadcaster(
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
 
     /* Set up a broadcaster and initial listener */
-    test_store_t<dummy_protocol_t> initial_store(&io_backender, static_cast<dummy_protocol_t::context_t *>(NULL));
+    test_store_t<dummy_protocol_t> initial_store(&io_backender, &order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
 
     scoped_ptr_t<broadcaster_t<dummy_protocol_t> > broadcaster(
@@ -213,7 +213,7 @@ void run_backfill_test(io_backender_t *io_backender,
     nap(100);
 
     /* Set up a second mirror */
-    test_store_t<dummy_protocol_t> store2(io_backender, static_cast<dummy_protocol_t::context_t *>(NULL));
+    test_store_t<dummy_protocol_t> store2(io_backender, order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
         base_path_t("."),
@@ -278,7 +278,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
     nap(100);
 
     /* Set up a second mirror */
-    test_store_t<dummy_protocol_t> store2(io_backender, static_cast<dummy_protocol_t::context_t *>(NULL));
+    test_store_t<dummy_protocol_t> store2(io_backender, order_source, static_cast<dummy_protocol_t::context_t *>(NULL));
     dummy_protocol_t::region_t subregion('a', 'm');
     cond_t interruptor;
     listener_t<dummy_protocol_t> listener2(
