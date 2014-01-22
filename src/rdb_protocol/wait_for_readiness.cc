@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/wait_for_readiness.hpp"
 
 #include "errors.hpp"

@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_HPP_
 

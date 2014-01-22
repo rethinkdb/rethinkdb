@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef BTREE_SECONDARY_OPERATIONS_HPP_
 #define BTREE_SECONDARY_OPERATIONS_HPP_
 

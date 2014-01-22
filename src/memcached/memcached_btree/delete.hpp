@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #ifndef MEMCACHED_MEMCACHED_BTREE_DELETE_HPP_
 #define MEMCACHED_MEMCACHED_BTREE_DELETE_HPP_
 

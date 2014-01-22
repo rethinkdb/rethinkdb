@@ -1,4 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #define __STDC_LIMIT_MACROS
 #define __STDC_FORMAT_MACROS
 
