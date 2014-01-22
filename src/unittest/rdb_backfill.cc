@@ -73,7 +73,6 @@ void run_with_broadcaster(
             &branch_history_manager,
             &initial_store.store,
             &get_global_perfmon_collection(),
-            &order_source,
             &interruptor));
 
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > > > broadcaster_business_card_watchable_variable(boost::optional<boost::optional<broadcaster_business_card_t<rdb_protocol_t> > >(boost::optional<broadcaster_business_card_t<rdb_protocol_t> >(broadcaster->get_business_card())));

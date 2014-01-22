@@ -66,7 +66,6 @@ public:
             branch_history_manager_t<protocol_t> *bhm,
             store_view_t<protocol_t> *initial_svs,
             perfmon_collection_t *parent_perfmon_collection,
-            order_source_t *order_source,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
     void read(

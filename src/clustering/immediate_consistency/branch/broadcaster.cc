@@ -37,7 +37,6 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
         branch_history_manager_t<protocol_t> *bhm,
         store_view_t<protocol_t> *initial_svs,
         perfmon_collection_t *parent_perfmon_collection,
-        UNUSED order_source_t *order_source /* RSI */,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : broadcaster_collection(),
       broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster"),
