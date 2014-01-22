@@ -210,9 +210,7 @@ buf_lock_t::buf_lock_t()
     : txn_(NULL),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-}
+      access_ref_count_(0) { }
 
 #if ALT_DEBUG
 const char *show(alt_access_t access) {
@@ -314,8 +312,7 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
+      access_ref_count_(0) {
     buf_lock_t::wait_for_parent(parent, access);
     if (parent.lock_or_null_ != NULL && parent.lock_or_null_->snapshot_node_ != NULL) {
         buf_lock_t *parent_lock = parent.lock_or_null_;
@@ -355,8 +352,7 @@ buf_lock_t::buf_lock_t(txn_t *txn,
       current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
                                                alt_access_t::write, true)),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
+      access_ref_count_(0) {
     guarantee(is_subordinate(txn_->access(), alt_access_t::write));
 #if ALT_DEBUG
     debugf("%p: buf_lock_t %p create %lu\n", cache(), this, block_id);
@@ -370,8 +366,7 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
+      access_ref_count_(0) {
     buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -431,8 +426,7 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
+      access_ref_count_(0) {
     // This implementation should be identical to the buf_parent_t version of
     // this constructor.  (Unfortunately, we support compilers that lack full C++11
     // support.)
@@ -467,8 +461,7 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
+      access_ref_count_(0) {
     buf_lock_t::wait_for_parent(parent, alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -502,8 +495,7 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
-      access_ref_count_(0),
-      was_destroyed_(false) {
+      access_ref_count_(0) {
     buf_lock_t::wait_for_parent(buf_parent_t(parent), alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
@@ -526,8 +518,6 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
 }
 
 buf_lock_t::~buf_lock_t() {
-    guarantee(!was_destroyed_);
-    was_destroyed_ = true;
 #if ALT_DEBUG
     if (txn_ != NULL) {
         debugf("%p: buf_lock_t %p destroy %lu\n", cache(), this, block_id());
@@ -552,9 +542,7 @@ buf_lock_t::buf_lock_t(buf_lock_t &&movee)
     : txn_(movee.txn_),
       current_page_acq_(std::move(movee.current_page_acq_)),
       snapshot_node_(movee.snapshot_node_),
-      access_ref_count_(0),
-      was_destroyed_(false) {
-    guarantee(!movee.was_destroyed_);
+      access_ref_count_(0) {
     guarantee(movee.access_ref_count_ == 0);
     movee.txn_ = NULL;
     movee.current_page_acq_.reset();
@@ -562,8 +550,6 @@ buf_lock_t::buf_lock_t(buf_lock_t &&movee)
 }
 
 buf_lock_t &buf_lock_t::operator=(buf_lock_t &&movee) {
-    guarantee(!movee.was_destroyed_);
-    guarantee(!was_destroyed_);
     guarantee(access_ref_count_ == 0);
     buf_lock_t tmp(std::move(movee));
     swap(tmp);
@@ -571,8 +557,6 @@ buf_lock_t &buf_lock_t::operator=(buf_lock_t &&movee) {
 }
 
 void buf_lock_t::swap(buf_lock_t &other) {
-    guarantee(!was_destroyed_);
-    guarantee(!other.was_destroyed_);
     guarantee(access_ref_count_ == 0);
     guarantee(other.access_ref_count_ == 0);
     std::swap(txn_, other.txn_);
@@ -581,7 +565,6 @@ void buf_lock_t::swap(buf_lock_t &other) {
 }
 
 void buf_lock_t::reset_buf_lock() {
-    guarantee(!was_destroyed_);
     buf_lock_t tmp;
     swap(tmp);
 }
@@ -591,7 +574,6 @@ void buf_lock_t::snapshot_subtree() {
 #if ALT_DEBUG
     debugf("%p: buf_lock_t %p snapshot %lu\n", cache(), this, block_id());
 #endif
-    guarantee(!was_destroyed_);
     // RSI: Can this be ASSERT_NO_CORO_WAITING?
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
