@@ -355,8 +355,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         buf_parent_t parent,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        block_id_t sindex_block_id)
-    THROWS_ONLY(interrupted_exc_t) {
+        block_id_t sindex_block_id) {
 
     /* Finally acquire the block. */
     sindex_block_out->init(new buf_lock_t(parent, sindex_block_id,
@@ -367,8 +366,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         buf_parent_t parent,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
-        block_id_t sindex_block_id)
-    THROWS_ONLY(interrupted_exc_t) {  // RSI: This no longer throws an interrupted_exc_t.
+        block_id_t sindex_block_id) {
 
     /* Finally acquire the block. */
     sindex_block_out->init(new buf_lock_t(parent, sindex_block_id, alt_access_t::write));

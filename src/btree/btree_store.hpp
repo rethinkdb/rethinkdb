@@ -145,19 +145,15 @@ public:
 
     progress_completion_fraction_t get_progress(uuid_u id);
 
-    // RSI: This used to take an interruptor.  Wouldn't it be neat for this to be
-    // interruptible?
     void acquire_sindex_block_for_read(
             buf_parent_t parent,
             scoped_ptr_t<buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id)
-        THROWS_ONLY(interrupted_exc_t);
+            block_id_t sindex_block_id);
 
     void acquire_sindex_block_for_write(
             buf_parent_t parent,
             scoped_ptr_t<buf_lock_t> *sindex_block_out,
-            block_id_t sindex_block_id)
-        THROWS_ONLY(interrupted_exc_t);
+            block_id_t sindex_block_id);
 
     // RSI: This used to take an interruptor.  Probably for some stupid reason.
     MUST_USE bool add_sindex(
