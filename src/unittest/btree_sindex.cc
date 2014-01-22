@@ -154,14 +154,11 @@ void run_sindex_btree_store_api_test() {
                     1, write_durability_t::SOFT, &token_pair,
                     &txn, &super_block, &dummy_interruptor);
 
-            scoped_ptr_t<buf_lock_t> sindex_block;
-            store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                    &sindex_block, super_block->get_sindex_block_id());
+            buf_lock_t sindex_block
+                = store.acquire_sindex_block_for_write(super_block->expose_buf(),
+                                                       super_block->get_sindex_block_id());
 
-            UNUSED bool b = store.add_sindex(
-                id,
-                std::vector<char>(),
-                sindex_block.get());
+            UNUSED bool b = store.add_sindex(id, std::vector<char>(), &sindex_block);
         }
 
         {
@@ -175,12 +172,12 @@ void run_sindex_btree_store_api_test() {
                                                1, write_durability_t::SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interruptor);
 
-            scoped_ptr_t<buf_lock_t> sindex_block;
-            store.acquire_sindex_block_for_write(
-                    super_block->expose_buf(), &sindex_block,
+            buf_lock_t sindex_block
+                = store.acquire_sindex_block_for_write(
+                    super_block->expose_buf(),
                     super_block->get_sindex_block_id());
 
-            store.mark_index_up_to_date(id, sindex_block.get());
+            store.mark_index_up_to_date(id, &sindex_block);
         }
 
         {
@@ -262,12 +259,12 @@ void run_sindex_btree_store_api_test() {
 
         rdb_value_deleter_t deleter;
 
-        scoped_ptr_t<buf_lock_t> sindex_block;
-        store.acquire_sindex_block_for_write(super_block->expose_buf(),
-                &sindex_block, super_block->get_sindex_block_id());
+        buf_lock_t sindex_block
+            = store.acquire_sindex_block_for_write(super_block->expose_buf(),
+                                                   super_block->get_sindex_block_id());
 
         store.drop_sindex(
-                *it, sindex_block.get(), &sizer, &deleter, &dummy_interruptor);
+                *it, &sindex_block, &sizer, &deleter, &dummy_interruptor);
     }
 }
 

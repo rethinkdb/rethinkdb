@@ -273,19 +273,16 @@ void post_construct_and_drain_queue(
             // release it immediately.
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-            scoped_ptr_t<buf_lock_t> queue_sindex_block;
-
-            store->acquire_sindex_block_for_write(
-                queue_superblock->expose_buf(),
-                &queue_sindex_block,
-                sindex_block_id);
+            buf_lock_t queue_sindex_block
+                = store->acquire_sindex_block_for_write(queue_superblock->expose_buf(),
+                                                        sindex_block_id);
 
             queue_superblock->release();
 
             sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
                     sindexes_to_bring_up_to_date,
-                    queue_sindex_block.get(),
+                    &queue_sindex_block,
                     &sindexes);
 
             if (sindexes.empty()) {
@@ -293,7 +290,7 @@ void post_construct_and_drain_queue(
             }
 
             mutex_t::acq_t acq;
-            store->lock_sindex_queue(queue_sindex_block.get(), &acq);
+            store->lock_sindex_queue(&queue_sindex_block, &acq);
 
             while (mod_queue->size() >= previous_size &&
                    mod_queue->size() > 0) {
@@ -311,7 +308,7 @@ void post_construct_and_drain_queue(
             if (mod_queue->size() == 0) {
                 for (auto it = sindexes_to_bring_up_to_date.begin();
                      it != sindexes_to_bring_up_to_date.end(); ++it) {
-                    store->mark_index_up_to_date(*it, queue_sindex_block.get());
+                    store->mark_index_up_to_date(*it, &queue_sindex_block);
                 }
                 store->deregister_sindex_queue(mod_queue.get(), &acq);
                 return;
@@ -350,16 +347,14 @@ void post_construct_and_drain_queue(
         // release it immediately.
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-        scoped_ptr_t<buf_lock_t> queue_sindex_block;
-        store->acquire_sindex_block_for_write(
-            queue_superblock->expose_buf(),
-            &queue_sindex_block,
-            sindex_block_id);
+        buf_lock_t queue_sindex_block
+            = store->acquire_sindex_block_for_write(queue_superblock->expose_buf(),
+                                                    sindex_block_id);
 
         queue_superblock->release();
 
         mutex_t::acq_t acq;
-        store->lock_sindex_queue(queue_sindex_block.get(), &acq);
+        store->lock_sindex_queue(&queue_sindex_block, &acq);
         store->deregister_sindex_queue(mod_queue.get(), &acq);
     }
 }
@@ -1248,15 +1243,14 @@ store_t::store_t(serializer_t *serializer,
     acquire_superblock_for_read(&token_pair.main_read_token, &txn,
                                 &superblock, &dummy_interruptor, false);
 
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_read(superblock->expose_buf(),
-                                  &sindex_block,
-                                  superblock->get_sindex_block_id());
+    buf_lock_t sindex_block
+        = acquire_sindex_block_for_read(superblock->expose_buf(),
+                                        superblock->get_sindex_block_id());
 
     superblock.reset();
 
     std::map<std::string, secondary_index_t> sindexes;
-    get_secondary_indexes(sindex_block.get(), &sindexes);
+    get_secondary_indexes(&sindex_block, &sindexes);
 
     std::set<std::string> sindexes_to_update;
     for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
@@ -1267,7 +1261,7 @@ store_t::store_t(serializer_t *serializer,
 
     if (!sindexes_to_update.empty()) {
         rdb_protocol_details::bring_sindexes_up_to_date(sindexes_to_update, this,
-                                                        sindex_block.get());
+                                                        &sindex_block);
     }
 }
 
@@ -1524,7 +1518,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_replace_t &br) {
         ql_env.global_optargs.init_optargs(br.optargs);
         rdb_modification_report_cb_t sindex_cb(
-            store, sindex_block.get(),
+            store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
         func_replacer_t replacer(&ql_env, br.f, br.return_vals);
         response->response =
@@ -1538,7 +1532,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const batched_insert_t &bi) {
         rdb_modification_report_cb_t sindex_cb(
             store,
-            sindex_block.get(),
+            &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
         datum_replacer_t replacer(&bi.inserts, bi.upsert, bi.pkey, bi.return_vals);
         std::vector<store_key_t> keys;
@@ -1592,13 +1586,13 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         res.success = store->add_sindex(
             c.id,
             stream.vector(),
-            sindex_block.get());
+            &sindex_block);
 
         if (res.success) {
             std::set<std::string> sindexes;
             sindexes.insert(c.id);
             rdb_protocol_details::bring_sindexes_up_to_date(
-                sindexes, store, sindex_block.get());
+                sindexes, store, &sindex_block);
         }
 
         response->response = res;
@@ -1610,7 +1604,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
         rdb_value_deleter_t deleter;
 
         res.success = store->drop_sindex(d.id,
-                                         sindex_block.get(),
+                                         &sindex_block,
                                          &sizer,
                                          &deleter,
                                          &interruptor);
@@ -1647,8 +1641,9 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
                &interruptor,
                ctx->machine_id,
                ql::protob_t<Query>()) {
-        store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
-                &sindex_block, (*superblock)->get_sindex_block_id());
+        sindex_block =
+            store->acquire_sindex_block_for_write((*superblock)->expose_buf(),
+                                                  (*superblock)->get_sindex_block_id());
     }
 
     ql::env_t *get_env() {
@@ -1666,14 +1661,14 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 private:
     void update_sindexes(const rdb_modification_report_t *mod_report) {
         mutex_t::acq_t acq;
-        store->lock_sindex_queue(sindex_block.get(), &acq);
+        store->lock_sindex_queue(&sindex_block, &acq);
 
         write_message_t wm;
         wm << rdb_sindex_change_t(*mod_report);
         store->sindex_queue_push(wm, &acq);
 
         sindex_access_vector_t sindexes;
-        store->acquire_post_constructed_sindex_superblocks_for_write(sindex_block.get(),
+        store->acquire_post_constructed_sindex_superblocks_for_write(&sindex_block,
                                                                      &sindexes);
         rdb_update_sindexes(sindexes, mod_report, txn);
     }
@@ -1686,7 +1681,7 @@ private:
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     ql::env_t ql_env;
-    scoped_ptr_t<buf_lock_t> sindex_block;
+    buf_lock_t sindex_block;
 
     DISABLE_COPYING(rdb_write_visitor_t);
 };
@@ -1825,13 +1820,12 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         store(_store), btree(_btree), txn(_txn), superblock(_superblock),
         interruptor(_interruptor),
         sindex_block_id(superblock->get_sindex_block_id()) {
-        store->acquire_sindex_block_for_write(
-            superblock->expose_buf(),
-            &sindex_block,
-            sindex_block_id);
+        sindex_block =
+            store->acquire_sindex_block_for_write(superblock->expose_buf(),
+                                                  sindex_block_id);
     }
 
-    void operator()(const backfill_chunk_t::delete_key_t& delete_key) const {
+    void operator()(const backfill_chunk_t::delete_key_t& delete_key) {
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
@@ -1841,15 +1835,15 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         update_sindexes(&mod_report);
     }
 
-    void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
+    void operator()(const backfill_chunk_t::delete_range_t& delete_range) {
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(btree, &tester, delete_range.range.inner,
-                        sindex_block.get(),
+                        &sindex_block,
                         superblock, store,
                         interruptor);
     }
 
-    void operator()(const backfill_chunk_t::key_value_pair_t& kv) const {
+    void operator()(const backfill_chunk_t::key_value_pair_t& kv) {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
         rdb_modification_report_t mod_report(bf_atom.key);
@@ -1861,29 +1855,29 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         update_sindexes(&mod_report);
     }
 
-    void operator()(const backfill_chunk_t::sindexes_t &s) const {
+    void operator()(const backfill_chunk_t::sindexes_t &s) {
         value_sizer_t<rdb_value_t> sizer(txn->cache()->get_block_size());
         rdb_value_non_deleter_t deleter;
         std::set<std::string> created_sindexes;
-        store->set_sindexes(s.sindexes, sindex_block.get(), &sizer, &deleter,
+        store->set_sindexes(s.sindexes, &sindex_block, &sizer, &deleter,
                             &created_sindexes, interruptor);
 
         if (!created_sindexes.empty()) {
             sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
                     created_sindexes,
-                    sindex_block.get(),
+                    &sindex_block,
                     &sindexes);
 
             rdb_protocol_details::bring_sindexes_up_to_date(created_sindexes, store,
-                                                            sindex_block.get());
+                                                            &sindex_block);
         }
     }
 
 private:
-    void update_sindexes(rdb_modification_report_t *mod_report) const {
+    void update_sindexes(rdb_modification_report_t *mod_report) {
         mutex_t::acq_t acq;
-        store->lock_sindex_queue(sindex_block.get(), &acq);
+        store->lock_sindex_queue(&sindex_block, &acq);
 
         write_message_t wm;
         wm << rdb_sindex_change_t(*mod_report);
@@ -1891,7 +1885,7 @@ private:
 
         sindex_access_vector_t sindexes;
         store->acquire_post_constructed_sindex_superblocks_for_write(
-                sindex_block.get(), &sindexes);
+                &sindex_block, &sindexes);
         rdb_update_sindexes(sindexes, mod_report, txn);
     }
 
@@ -1901,8 +1895,10 @@ private:
     superblock_t *superblock;
     // RSI: Is interruptor still ignored?
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
-    block_id_t sindex_block_id;
-    scoped_ptr_t<buf_lock_t> sindex_block;
+    block_id_t sindex_block_id;  // RSI: Is this used?
+    buf_lock_t sindex_block;
+
+    DISABLE_COPYING(rdb_receive_backfill_visitor_t);
 };
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
@@ -1910,11 +1906,11 @@ void store_t::protocol_receive_backfill(btree_slice_t *btree,
                                         signal_t *interruptor,
                                         const backfill_chunk_t &chunk) {
     with_priority_t p(CORO_PRIORITY_BACKFILL_RECEIVER);
-    boost::apply_visitor(rdb_receive_backfill_visitor_t(this, btree,
-                                                        superblock->expose_buf().txn(),
-                                                        superblock,
-                                                        interruptor),
-                         chunk.val);
+    rdb_receive_backfill_visitor_t v(this, btree,
+                                     superblock->expose_buf().txn(),
+                                     superblock,
+                                     interruptor);
+    boost::apply_visitor(v, chunk.val);
 }
 
 void store_t::protocol_reset_data(const region_t& subregion,
@@ -1926,12 +1922,11 @@ void store_t::protocol_reset_data(const region_t& subregion,
     rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(superblock->expose_buf(),
-                                   &sindex_block,
-                                   superblock->get_sindex_block_id());
+    buf_lock_t sindex_block
+        = acquire_sindex_block_for_write(superblock->expose_buf(),
+                                         superblock->get_sindex_block_id());
     rdb_erase_range(btree, &key_tester, subregion.inner,
-                    sindex_block.get(),
+                    &sindex_block,
                     superblock, this,
                     interruptor);
 }

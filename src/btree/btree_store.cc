@@ -84,13 +84,12 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
 
         // RSI: It would be cool if acquire_sindex_block_for_read was interruptible
         // (it used to take an interruptor, I don't know what for).
-        scoped_ptr_t<buf_lock_t> sindex_block;
-        acquire_sindex_block_for_read(superblock->expose_buf(),
-                                      &sindex_block,
-                                      superblock->get_sindex_block_id());
+        buf_lock_t sindex_block
+            = acquire_sindex_block_for_read(superblock->expose_buf(),
+                                            superblock->get_sindex_block_id());
 
         std::map<std::string, secondary_index_t> sindexes;
-        get_secondary_indexes(sindex_block.get(), &sindexes);
+        get_secondary_indexes(&sindex_block, &sindexes);
 
         for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
             secondary_index_slices.insert(it->first,
@@ -174,16 +173,15 @@ bool btree_store_t<protocol_t>::send_backfill(
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_backfill(&token_pair->main_read_token, &txn, &superblock, interruptor);
 
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    // RSI: This used to be interruptible (to some degree).
-    acquire_sindex_block_for_read(superblock->expose_buf(),
-                                  &sindex_block, superblock->get_sindex_block_id());
+    buf_lock_t sindex_block
+        = acquire_sindex_block_for_read(superblock->expose_buf(),
+                                        superblock->get_sindex_block_id());
 
     region_map_t<protocol_t, binary_blob_t> unmasked_metainfo;
     get_metainfo_internal(superblock->get(), &unmasked_metainfo);
     region_map_t<protocol_t, binary_blob_t> metainfo = unmasked_metainfo.mask(start_point.get_domain());
     if (send_backfill_cb->should_backfill(metainfo)) {
-        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), sindex_block.get(), btree.get(), progress, interruptor);
+        protocol_send_backfill(start_point, send_backfill_cb, superblock.get(), &sindex_block, btree.get(), progress, interruptor);
         return true;
     }
     return false;
@@ -351,25 +349,20 @@ progress_completion_fraction_t btree_store_t<protocol_t>::get_progress(uuid_u id
     }
 }
 
+// RSI: If we're going to have these functions at all, we could just pass the
+// real_superblock_t directly.
 template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
+buf_lock_t btree_store_t<protocol_t>::acquire_sindex_block_for_read(
         buf_parent_t parent,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id) {
-
-    /* Finally acquire the block. */
-    sindex_block_out->init(new buf_lock_t(parent, sindex_block_id,
-                                              alt_access_t::read));
+    return buf_lock_t(parent, sindex_block_id, alt_access_t::read);
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
+buf_lock_t btree_store_t<protocol_t>::acquire_sindex_block_for_write(
         buf_parent_t parent,
-        scoped_ptr_t<buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id) {
-
-    /* Finally acquire the block. */
-    sindex_block_out->init(new buf_lock_t(parent, sindex_block_id, alt_access_t::write));
+    return buf_lock_t(parent, sindex_block_id, alt_access_t::write);
 }
 
 template <class region_map_t>
@@ -578,12 +571,11 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out) {
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_read(super_block->expose_buf(),
-                                  &sindex_block,
-                                  super_block->get_sindex_block_id());
+    buf_lock_t sindex_block
+        = acquire_sindex_block_for_read(super_block->expose_buf(),
+                                        super_block->get_sindex_block_id());
 
-    return get_secondary_indexes(sindex_block.get(), sindexes_out);
+    return get_secondary_indexes(&sindex_block, sindexes_out);
 }
 
 template <class protocol_t>
@@ -606,12 +598,12 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
     assert_thread();
 
     /* Acquire the sindex block. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_read(parent, &sindex_block, sindex_block_id);
+    buf_lock_t sindex_block
+        = acquire_sindex_block_for_read(parent, sindex_block_id);
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-    if (!::get_secondary_index(sindex_block.get(), id, &sindex)) {
+    if (!::get_secondary_index(&sindex_block, id, &sindex)) {
         return false;
     }
 
@@ -623,9 +615,8 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         throw sindex_not_post_constructed_exc_t(id);
     }
 
-    buf_lock_t superblock_lock(sindex_block.get(), sindex.superblock,
-                                   alt_access_t::read);
-    sindex_block->reset_buf_lock();
+    buf_lock_t superblock_lock(&sindex_block, sindex.superblock, alt_access_t::read);
+    sindex_block.reset_buf_lock();
     sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
     return true;
 }
@@ -641,13 +632,12 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     assert_thread();
 
     /* Get the sindex block. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
     // RSI: Does the callee do anything other than constructing the buf_lock_t?
-    acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
+    buf_lock_t sindex_block = acquire_sindex_block_for_write(parent, sindex_block_id);
 
     /* Figure out what the superblock for this index is. */
     secondary_index_t sindex;
-    if (!::get_secondary_index(sindex_block.get(), id, &sindex)) {
+    if (!::get_secondary_index(&sindex_block, id, &sindex)) {
         return false;
     }
 
@@ -656,9 +646,9 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     }
 
 
-    buf_lock_t superblock_lock(sindex_block.get(), sindex.superblock,
+    buf_lock_t superblock_lock(&sindex_block, sindex.superblock,
                                alt_access_t::write);
-    sindex_block->reset_buf_lock();
+    sindex_block.reset_buf_lock();
     sindex_sb_out->init(new real_superblock_t(std::move(superblock_lock)));
     return true;
 }
@@ -673,10 +663,9 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
     assert_thread();
 
     /* Get the sindex block. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(parent, &sindex_block, sindex_block_id);
+    buf_lock_t sindex_block = acquire_sindex_block_for_write(parent, sindex_block_id);
 
-    acquire_all_sindex_superblocks_for_write(sindex_block.get(), sindex_sbs_out);
+    acquire_all_sindex_superblocks_for_write(&sindex_block, sindex_sbs_out);
 }
 
 template <class protocol_t>

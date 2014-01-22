@@ -1240,18 +1240,15 @@ public:
             // release it immediately.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
-            scoped_ptr_t<buf_lock_t> sindex_block;
-
-            store_->acquire_sindex_block_for_write(
-                superblock->expose_buf(),
-                &sindex_block,
-                sindex_block_id);
+            buf_lock_t sindex_block
+                = store_->acquire_sindex_block_for_write(superblock->expose_buf(),
+                                                         sindex_block_id);
 
             superblock.reset();
 
             store_->acquire_sindex_superblocks_for_write(
                     sindexes_to_post_construct_,
-                    sindex_block.get(),
+                    &sindex_block,
                     &sindexes);
 
             if (sindexes.empty()) {
