@@ -7,6 +7,7 @@
 #include <set>
 
 #include "buffer_cache/alt/config.hpp"
+#include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "containers/backindex_bag.hpp"
@@ -26,7 +27,6 @@ class page_cache_t;
 class page_txn_t;
 
 
-enum class alt_access_t { read, write };
 enum class alt_read_access_t { read };
 enum class alt_create_t { create };
 

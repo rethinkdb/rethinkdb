@@ -8,6 +8,9 @@
 #include "containers/archive/archive.hpp"
 #include "serializer/types.hpp"
 
+enum class alt_access_t { read, write };
+
+// RSI: This comment is out of date, and maybe some of these types are.
 // This file gets all the types used by both caches -- the non-alt_cache_t- and
 // non-mc_cache_t-specific types.
 
