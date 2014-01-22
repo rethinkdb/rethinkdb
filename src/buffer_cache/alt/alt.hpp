@@ -188,38 +188,46 @@ public:
     // these, though, or get rid of some.  (Make alt_access_t include create, and
     // separate it from page_access_t?)
 
-    // RSI: Change these comments, they're not all nonblocking constructors.
+    // alt_buf_parent_t is a type that either points at a buf_lock_t (its parent) or
+    // merely at a txn_t (e.g. for acquiring the superblock, which has no parent).
+    // If acquiring the child for read, the constructor will wait for the parent to
+    // be acquired for read.  Similarly, if acquiring the child for write, the
+    // constructor will wait for the parent to be acquired for write.  Once the
+    // constructor returns, you are "in line" for the block, meaning you'll acquire
+    // it in the same order relative other agents as you did when acquiring the same
+    // parent.  (Of course, readers can intermingle.)
 
-    // Nonblocking constructor.
+    // These constructors will _not_ yield the coroutine _if_ the parent is already
+    // {access}-acquired.
+
+    // Acquires an existing block for read or write access.
     buf_lock_t(buf_parent_t parent,
                block_id_t block_id,
                alt_access_t access);
 
-    // Nonblocking constructor, creates a new block with a specified block id.
+    // Creates a new block with a specified block id, one that doesn't have a parent.
     buf_lock_t(txn_t *txn,
                block_id_t block_id,
                alt_create_t create);
 
-    // Nonblocking constructor, creates a new block with a specified id (used by the
-    // serializer file write stream).
+    // Creates a new block with a specified block id as the child of a parent (if it's
+    // not just a txn_t *).
     buf_lock_t(buf_parent_t parent,
                block_id_t block_id,
                alt_create_t create);
 
-    // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
-    // pulsed.  In either case, returns before the block is acquired, but after we're
-    // _in line_ for the block.
+    // Acquires an existing block given the parent.
     buf_lock_t(buf_lock_t *parent,
                block_id_t block_id,
                alt_access_t access);
 
-    // Nonblocking constructor that acquires a block with a new block id.  `access`
-    // must be `write`.
+    // Creates a block, a new child of the given parent.  It gets assigned a block id
+    // from one of the unused block id's.
     buf_lock_t(buf_parent_t parent,
                alt_create_t create);
 
-    // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
-    // pulsed.  Allocates a block with a new block id.  `access` must be `write`.
+    // Creates a block, a new child of the given parent.  It gets assigned a block id
+    // from one of the unused block id's.
     buf_lock_t(buf_lock_t *parent,
                alt_create_t create);
 
