@@ -21,44 +21,6 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(write_durability_t, int8_t,
                                       write_durability_t::HARD);
 
 
-enum buffer_cache_order_mode_t {
-    buffer_cache_order_mode_check,
-    buffer_cache_order_mode_ignore
-};
-
-struct eviction_priority_t {
-    int priority;
-};
-
-const eviction_priority_t INITIAL_ROOT_EVICTION_PRIORITY = { 100 };
-const eviction_priority_t DEFAULT_EVICTION_PRIORITY = { INT_MAX / 2 };
-// TODO: Get rid of FAKE_EVICTION_PRIORITY.  It's just the default
-// eviction priority, with the connotation the code using is is doing
-// something stupid and needs to be fixed.
-const eviction_priority_t FAKE_EVICTION_PRIORITY = { INT_MAX / 2 };
-
-const eviction_priority_t ZERO_EVICTION_PRIORITY = { 0 };
-
-inline eviction_priority_t incr_priority(eviction_priority_t p) {
-    eviction_priority_t ret;
-    ret.priority = p.priority + (p.priority < DEFAULT_EVICTION_PRIORITY.priority);
-    return ret;
-}
-
-inline eviction_priority_t decr_priority(eviction_priority_t p) {
-    eviction_priority_t ret;
-    ret.priority = p.priority - (p.priority > 0);
-    return ret;
-}
-
-inline bool operator==(eviction_priority_t x, eviction_priority_t y) {
-    return x.priority == y.priority;
-}
-
-inline bool operator<(eviction_priority_t x, eviction_priority_t y) {
-    return x.priority < y.priority;
-}
-
 typedef uint32_t block_magic_comparison_t;
 
 struct block_magic_t {
@@ -84,6 +46,7 @@ struct block_magic_t {
 void debug_print(printf_buffer_t *buf, block_magic_t magic);
 
 // HEY: put this somewhere else.
+// RSI: Remove this disgusting thing, we have a new cache.
 class get_subtree_recencies_callback_t {
 public:
     virtual void got_subtree_recencies() = 0;
