@@ -112,6 +112,7 @@ void btree_store_t<protocol_t>::read(
         DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
         const typename protocol_t::read_t &read,
         typename protocol_t::read_response_t *response,
+        UNUSED order_token_t order_token,  // TODO
         read_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -140,6 +141,7 @@ void btree_store_t<protocol_t>::write(
         typename protocol_t::write_response_t *response,
         const write_durability_t durability,
         transition_timestamp_t timestamp,
+        UNUSED order_token_t order_token,  // TODO
         write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -892,7 +894,8 @@ void btree_store_t<protocol_t>::update_metainfo(const metainfo_t &old_metainfo,
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::do_get_metainfo(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token,  // TODO
+                                                object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                                 signal_t *interruptor,
                                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
     // debugf_t eex("%p do_get_metainfo", this);
@@ -938,6 +941,7 @@ get_metainfo_internal(alt_buf_lock_t *sb_buf,
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
+                                             UNUSED order_token_t order_token,  // TODO
                                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     // debugf_t eex("%p set_metainfo", this);

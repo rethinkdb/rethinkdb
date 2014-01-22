@@ -176,8 +176,7 @@ void reactor_t<protocol_t>::be_secondary(typename protocol_t::region_t region, s
                 svs->new_read_token(&read_token);
 
                 region_map_t<protocol_t, binary_blob_t> metainfo_blob;
-                // RSI: order_source unused?
-                svs->do_get_metainfo(&read_token, &ct_interruptor, &metainfo_blob);
+                svs->do_get_metainfo(order_source.check_in("reactor_t::be_secondary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
 
                 direct_reader_t<protocol_t> direct_reader(mailbox_manager, svs);
 

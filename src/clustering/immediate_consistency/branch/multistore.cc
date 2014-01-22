@@ -103,7 +103,7 @@ void multistore_ptr_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer
 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
-                                                     UNUSED order_token_t order_token,  // RSI
+                                                     order_token_t order_token,
                                                      const scoped_array_t<switch_read_token_t> *internal_tokens,
                                                      signal_t *interruptor,
                                                      region_map_t<protocol_t, binary_blob_t> *updatee,
@@ -120,7 +120,7 @@ void multistore_ptr_t<protocol_t>::do_get_a_metainfo(int i,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> store_token;
             switch_inner_read_token(i, internal_tokens->data()[i].token, &ct_interruptor, &store_token);
 
-            store_views_[i]->do_get_metainfo(&store_token, &ct_interruptor, &metainfo);
+            store_views_[i]->do_get_metainfo(order_token, &store_token, &ct_interruptor, &metainfo);
         }
 
         // updatee->update doesn't block so the mutex is redundant, who cares.
@@ -181,7 +181,7 @@ typename protocol_t::region_t multistore_ptr_t<protocol_t>::get_a_region(int i) 
 template <class protocol_t>
 void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
                                                      const region_map_t<protocol_t, binary_blob_t> &new_metainfo,
-                                                     UNUSED order_token_t order_token,  // RSI
+                                                     order_token_t order_token,
                                                      const scoped_array_t<fifo_enforcer_write_token_t> &internal_tokens,
                                                      signal_t *interruptor) {
 
@@ -195,8 +195,7 @@ void multistore_ptr_t<protocol_t>::do_set_a_metainfo(int i,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> store_token;
         switch_inner_write_token(i, internal_tokens[i], &ct_interruptor, &store_token);
 
-        store_views_[i]->set_metainfo(new_metainfo.mask(get_a_region(i)),
-                                      &store_token, &ct_interruptor);
+        store_views_[i]->set_metainfo(new_metainfo.mask(get_a_region(i)), order_token, &store_token, &ct_interruptor);
 
     } catch (const interrupted_exc_t& exc) {
         // do nothing

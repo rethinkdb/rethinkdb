@@ -290,7 +290,7 @@ bool check_that_we_see_our_broadcaster(const boost::optional<boost::optional<bro
 
 template <class protocol_t>
 bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *directory_entry,
-                                                        UNUSED order_source_t *order_source,  // RSI
+                                                        order_source_t *order_source,
                                                         const typename protocol_t::region_t &region,
                                                         store_view_t<protocol_t> *svs,
                                                         const clone_ptr_t<watchable_t<blueprint_t<protocol_t> > > &blueprint,
@@ -303,7 +303,7 @@ bool reactor_t<protocol_t>::attempt_backfill_from_peers(directory_entry_t *direc
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
     region_map_t<protocol_t, binary_blob_t> metainfo_blob;
-    svs->do_get_metainfo(&read_token, &ct_interruptor, &metainfo_blob);
+    svs->do_get_metainfo(order_source->check_in("reactor_t::be_primary").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
 
     on_thread_t th2(this->home_thread());
 
@@ -403,7 +403,7 @@ void reactor_t<protocol_t>::be_primary(typename protocol_t::region_t region, sto
         //Tell everyone that we're looking to become the primary
         directory_entry_t directory_entry(this, region);
 
-        order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore  // RSI
+        order_source_t order_source(svs->home_thread());  // TODO: order_token_t::ignore
 
         /* Tell everyone watching our directory entry what we're up to. */
         directory_echo_version_t version_to_wait_on = directory_entry.set(typename reactor_business_card_t<protocol_t>::primary_when_safe_t());

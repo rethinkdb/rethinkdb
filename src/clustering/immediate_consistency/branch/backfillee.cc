@@ -164,7 +164,7 @@ void backfillee(
     order_source_t order_source;
 
     region_map_t<protocol_t, binary_blob_t> start_point_blob;
-    svs->do_get_metainfo(&read_token, interruptor, &start_point_blob);
+    svs->do_get_metainfo(order_source.check_in("backfillee(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
     region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
 
     start_point = start_point.mask(region);
@@ -313,6 +313,7 @@ void backfillee(
             region_map_transform<protocol_t, version_range_t, binary_blob_t>(
                 region_map_t<protocol_t, version_range_t>(span_parts.begin(), span_parts.end()),
                 &binary_blob_t::make<version_range_t>),
+            order_source.check_in("backfillee(B)"),
             &write_token,
             interruptor);
 
@@ -342,9 +343,9 @@ void backfillee(
     svs->set_metainfo(
         region_map_transform<protocol_t, version_range_t, binary_blob_t>(end_point_cond.wait().first,
                                                                          &binary_blob_t::make<version_range_t>),
+        order_source.check_in("backfillee(C)"),
         &write_token,
         interruptor);
-    // RSI: order_source unused?
 }
 
 

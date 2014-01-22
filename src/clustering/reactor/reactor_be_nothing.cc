@@ -79,8 +79,7 @@ void reactor_t<protocol_t>::be_nothing(typename protocol_t::region_t region,
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
             svs->new_read_token(&read_token);
             region_map_t<protocol_t, binary_blob_t> metainfo_blob;
-            // RSI: Is order_source used?
-            svs->do_get_metainfo(&read_token, &ct_interruptor, &metainfo_blob);
+            svs->do_get_metainfo(order_source.check_in("be_nothing").with_read_mode(), &read_token, &ct_interruptor, &metainfo_blob);
 
             on_thread_t th2(this->home_thread());
             branch_history_t<protocol_t> branch_history;

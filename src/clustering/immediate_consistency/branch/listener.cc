@@ -61,7 +61,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                    backfill_session_id_t backfill_session_id,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
-                                   UNUSED order_source_t *order_source /* RSI */)
+                                   order_source_t *order_source)
         THROWS_ONLY(interrupted_exc_t, backfiller_lost_exc_t, broadcaster_lost_exc_t) :
 
     mailbox_manager_(mm),
@@ -113,8 +113,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
     region_map_t<protocol_t, binary_blob_t> start_point_blob;
-    // RSI: order_source unused?
-    svs_->do_get_metainfo(&read_token, interruptor, &start_point_blob);
+    svs_->do_get_metainfo(order_source->check_in("listener_t(A)").with_read_mode(), &read_token, interruptor, &start_point_blob);
     region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
 
     {
@@ -173,7 +172,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
     svs_->new_read_token(&read_token2);
 
     region_map_t<protocol_t, binary_blob_t> backfill_end_point_blob;
-    svs_->do_get_metainfo(&read_token2, interruptor, &backfill_end_point_blob);
+    svs_->do_get_metainfo(order_source->check_in("listener_t(B)").with_read_mode(), &read_token2, interruptor, &backfill_end_point_blob);
 
     region_map_t<protocol_t, version_range_t> backfill_end_point = to_version_range_map(backfill_end_point_blob);
 
@@ -235,7 +234,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
                                    broadcaster_t<protocol_t> *broadcaster,
                                    perfmon_collection_t *backfill_stats_parent,
                                    signal_t *interruptor,
-                                   UNUSED order_source_t *order_source /* RSI */) THROWS_ONLY(interrupted_exc_t) :
+                                   DEBUG_VAR order_source_t *order_source) THROWS_ONLY(interrupted_exc_t) :
     mailbox_manager_(mm),
     svs_(broadcaster->release_bootstrap_svs_for_listener()),
     branch_id_(broadcaster->get_branch_id()),
@@ -279,8 +278,7 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs_->new_read_token(&read_token);
     region_map_t<protocol_t, binary_blob_t> initial_metainfo_blob;
-    // RSI: order_source unused?
-    svs_->do_get_metainfo(&read_token, interruptor, &initial_metainfo_blob);
+    svs_->do_get_metainfo(order_source->check_in("listener_t(C)").with_read_mode(), &read_token, interruptor, &initial_metainfo_blob);
     region_map_t<protocol_t, version_range_t> initial_metainfo = to_version_range_map(initial_metainfo_blob);
 #endif
 
@@ -470,9 +468,9 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         &response,
         write_durability_t::SOFT,
         qe.transition_timestamp,
+        qe.order_token,
         &write_token_pair,
         interruptor);
-    // RSI: Remove write_queue_entry_t::order_token.
 }
 
 template <class protocol_t>
@@ -496,7 +494,7 @@ void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &wr
 template <class protocol_t>
 void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
-                                               UNUSED order_token_t order_token,  // RSI
+        order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
         const write_durability_t durability,
@@ -541,6 +539,7 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
                     &response,
                     durability,
                     transition_timestamp,
+                    order_token,
                     &write_token_pair,
                     keepalive.get_drain_signal());
 
@@ -575,7 +574,7 @@ void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
 template <class protocol_t>
 void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &read,
         state_timestamp_t expected_timestamp,
-        UNUSED order_token_t order_token,  // RSI
+        order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
@@ -611,6 +610,7 @@ void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &rea
             DEBUG_ONLY(metainfo_checker, )
             read,
             &response,
+            order_token,
             &read_token_pair,
             keepalive.get_drain_signal());
 

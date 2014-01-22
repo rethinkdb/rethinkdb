@@ -27,7 +27,7 @@ public:
     void read(const typename protocol_t::read_t &read,
               typename protocol_t::read_response_t *response,
               DEBUG_VAR state_timestamp_t expected_timestamp,
-              UNUSED order_token_t order_token,  // RSI
+              order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         read_token_pair_t token_pair;
         store->new_read_token_pair(&token_pair);
@@ -37,7 +37,7 @@ public:
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, &token_pair, interruptor);
+        return store->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, &token_pair, interruptor);
     }
 
     void read_outdated(const typename protocol_t::read_t &read,
@@ -51,8 +51,8 @@ public:
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        // RSI: bs_outdated_read_source unused?
         return store->read(DEBUG_ONLY(metainfo_checker, ) read, response,
+                           bs_outdated_read_source.check_in("dummy_performer_t::read_outdated").with_read_mode(),
                            &token_pair,
                            interruptor);
     }
@@ -60,7 +60,7 @@ public:
     void write(const typename protocol_t::write_t &write,
                typename protocol_t::write_response_t *response,
                transition_timestamp_t transition_timestamp,
-               UNUSED order_token_t order_token /* RSI */) THROWS_NOTHING {
+               order_token_t order_token) THROWS_NOTHING {
         cond_t non_interruptor;
 
 #ifndef NDEBUG
@@ -74,8 +74,7 @@ public:
         store->write(
             DEBUG_ONLY(metainfo_checker, )
             region_map_t<protocol_t, binary_blob_t>(store->get_region(), binary_blob_t(transition_timestamp.timestamp_after())),
-            write, response, write_durability_t::SOFT, transition_timestamp,
-            &token_pair, &non_interruptor);
+            write, response, write_durability_t::SOFT, transition_timestamp, order_token, &token_pair, &non_interruptor);
     }
 
     order_source_t bs_outdated_read_source;
@@ -87,7 +86,7 @@ template<class protocol_t>
 struct dummy_timestamper_t {
 
 public:
-    dummy_timestamper_t(dummy_performer_t<protocol_t> *n, UNUSED order_source_t *order_source /* RSI */)
+    dummy_timestamper_t(dummy_performer_t<protocol_t> *n, order_source_t *order_source)
         : next(n), current_timestamp(state_timestamp_t::zero()) {
         cond_t interruptor;
 
@@ -95,7 +94,8 @@ public:
         next->store->new_read_token(&read_token);
 
         region_map_t<protocol_t, binary_blob_t> metainfo;
-        next->store->do_get_metainfo(&read_token, &interruptor, &metainfo);
+        next->store->do_get_metainfo(order_source->check_in("dummy_timestamper_t").with_read_mode(),
+                                     &read_token, &interruptor, &metainfo);
 
         for (typename region_map_t<protocol_t, binary_blob_t>::iterator it  = metainfo.begin();
                                                                         it != metainfo.end();
@@ -230,8 +230,8 @@ public:
                 stores[i]->new_read_token(&read_token);
 
                 region_map_t<protocol_t, binary_blob_t> metadata;
-                stores[i]->do_get_metainfo(&read_token, &interruptor, &metadata);
-                // RSI: order_source unused?
+                stores[i]->do_get_metainfo(order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (do_get_metainfo)").with_read_mode(),
+                                           &read_token, &interruptor, &metadata);
 
                 rassert(metadata.get_domain() == shards[i]);
                 for (typename region_map_t<protocol_t, binary_blob_t>::const_iterator it  = metadata.begin();
@@ -248,6 +248,7 @@ public:
                         region_map_t<protocol_t, state_timestamp_t>(shards[i], state_timestamp_t::zero()),
                         &binary_blob_t::make<state_timestamp_t>
                         ),
+                    order_source->check_in("dummy_namespace_interface_t::dummy_namespace_interface_t (set_metainfo)"),
                     &write_token,
                     &interruptor);
             }
