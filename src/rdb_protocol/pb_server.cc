@@ -47,8 +47,13 @@ namespace ql {
 
 class scoped_ops_running_stat_t {
 public:
-    scoped_ops_running_stat_t(perfmon_counter_t *_counter) : counter(_counter) { ++(*counter); }
-    ~scoped_ops_running_stat_t() { --(*counter); }
+    explicit scoped_ops_running_stat_t(perfmon_counter_t *_counter)
+        : counter(_counter) {
+        ++(*counter);
+    }
+    ~scoped_ops_running_stat_t() {
+        --(*counter);
+    }
 private:
     perfmon_counter_t *counter;
     DISABLE_COPYING(scoped_ops_running_stat_t);

@@ -1,16 +1,21 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "http/http.hpp"
 
+#include <zlib.h>
+
 #include <exception>
 
-#include "utils.hpp"
+#include <re2/re2.h>
+
+#include "errors.hpp"
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "arch/io/network.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
-static const char *resource_parts_sep_char = "/";
+static const char *const resource_parts_sep_char = "/";
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
 
 http_req_t::resource_t::resource_t() {
@@ -175,6 +180,145 @@ void http_res_t::set_body(const std::string& content_type, const std::string& co
     body = content;
 }
 
+bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
+    // Don't bother zipping anything less than 0.5k
+    size_t body_size = res->body.size();
+    if (body_size < 512) {
+        return false;
+    }
+
+    // See the specification for the "Accept-Encoding" header line here:
+    // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.3
+    // We do not implement the entire standard, that is, we will always fallback to
+    // the 'identity' encoding if anything fails, even if 'identity' has a qvalue of 0
+    boost::optional<std::string> supported_encoding = req.find_header_line("accept-encoding");
+    if (!supported_encoding || supported_encoding.get().empty()) {
+        return false;
+    }
+
+    std::map<std::string, std::string> encodings;
+
+    // Regular expression to match an encoding/qvalue pair
+    // This is actually a pretty simple regex, but with a bunch of \s* to account for random whitespace.
+    // Here is a rundown of each of the pieces while ignoring the gratuitous \s* parts:
+    //  ^ - This anchors the regex at the start of the string.  Since the regex is applied
+    //      incrementally using FindAndConsume, each iteration should be at the start.
+    //  ([\w-]+|\*) - This matches the encoding string, e.g. 'gzip' or 'identity'.  We allow
+    //      all alphanumeric characters plus '-', although the rules don't specify the
+    //      available character set.  Alternatively, the encoding string could just be '*'.
+    //  (?:;q=([0-9]+(?:\.[0-9]+)?))? - This matches to q-value of the encoding, e.g. ';q=0.5'.
+    //      As you can see, this group is optional, and may be either a whole positive integer,
+    //      or a positive decimal value.
+    //  (?:,|$) - this matches the end of the item in the encodings string, which could
+    //      be the next comma or the end of the string.  We consume the comma so that the
+    //      next iteration will start at the beginning of the remaining string.
+    {
+        RE2 re2_parser("^\\s*([\\w-]+|\\*)\\s*(?:;\\s*q\\s*=\\s*([0-9]+(?:\\.[0-9]+)?)\\s*)?(?:,|$)");
+        re2::StringPiece encodings_re2(supported_encoding.get());
+        std::string name;
+        std::string qvalue;
+        while (RE2::FindAndConsume(&encodings_re2, re2_parser, &name, &qvalue)) {
+            encodings.insert(std::make_pair(name, qvalue));
+        }
+
+        if (encodings_re2.length() != 0) {
+            // The entire string was not consumed, meaning something does not match, default to plain-text
+            return false;
+        }
+    }
+
+    // GCC 4.6 bug requires us to do it this way rather than initialize to boost::none
+    // http://gcc.gnu.org/bugzilla/show_bug.cgi?id=47679
+    boost::optional<double> gzip_q = 0.0;
+    gzip_q.reset();
+    boost::optional<double> identity_q = 0.0;
+    identity_q.reset();
+    boost::optional<double> star_q = 0.0;
+    star_q.reset();
+
+    // We only care about three potential encoding qvalues: 'gzip', 'identity', and '*'
+    for (auto it = encodings.begin(); it != encodings.end(); ++it) {
+        double val = 1.0;
+        if (it->second.length() != 0) {
+            val = strtod(it->second.c_str(), NULL);
+            if (errno == ERANGE) { return false; }
+        }
+
+        if (it->first == "gzip") {
+            gzip_q = val;
+        } else if (it->first == "identity") {
+            identity_q = val;
+        } else if (it->first == "*") {
+            star_q = val;
+        }
+    }
+
+    if (gzip_q) {
+        if (gzip_q.get() == 0.0 ||
+            (identity_q && identity_q.get() > gzip_q.get()) ||
+            (star_q && star_q.get() > gzip_q.get())) {
+            return false;
+        }
+    } else if (star_q) {
+        if (star_q.get() == 0.0 ||
+            (identity_q && identity_q.get() > star_q.get())) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    // Gzip is supported and preferred, gzip the body of the result
+    scoped_array_t<char> out_buffer(body_size);
+
+    z_stream zstream;
+    zstream.zalloc = Z_NULL;
+    zstream.zfree = Z_NULL;
+    zstream.opaque = Z_NULL;
+    zstream.avail_in = body_size;
+    zstream.avail_out = body_size;
+    zstream.next_in = reinterpret_cast<unsigned char*>(const_cast<char *>(res->body.data()));
+    zstream.next_out = reinterpret_cast<unsigned char*>(out_buffer.data());
+    zstream.total_in = 0;
+    zstream.total_out = 0;
+    zstream.data_type = Z_ASCII;
+
+    // See http://www.zlib.net/manual.html for descriptions of these functions
+    int zres = deflateInit2(&zstream,
+                            Z_DEFAULT_COMPRESSION,
+                            Z_DEFLATED,
+                            31, // windowBits = default (15) plus 16 to use gzip encoding
+                            8, // memLevel = default (8)
+                            Z_DEFAULT_STRATEGY);
+    if (zres != Z_OK) {
+        return false;
+    }
+
+    zres = deflate(&zstream, Z_FINISH);
+    if (zres != Z_STREAM_END) {
+        return false;
+    }
+
+    zres = deflateEnd(&zstream);
+    if (zres != Z_OK) {
+        return false;
+    }
+
+    // Would be nice if we could do this without copying
+    res->body.assign(out_buffer.data(), zstream.total_out);
+
+    // Update the body size in the headers
+    for (auto it = res->header_lines.begin(); it != res->header_lines.end(); ++it) {
+        if (it->key == "Content-Length") {
+            it->val = strprintf("%lu", zstream.total_out);
+            break;
+        }
+    }
+
+    res->add_header_line("Content-Encoding", "gzip");
+    return true;
+}
+
 http_res_t http_error_res(const std::string &content, http_status_code_t rescode) {
     return http_res_t(rescode, "application/text", content);
 }
@@ -306,6 +450,7 @@ void http_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &nconn
             /* TODO pass interruptor */
             http_res_t res = application->handle(req);
             res.version = req.version;
+            maybe_gzip_response(req, &res);
             write_http_msg(conn.get(), res, keepalive.get_drain_signal());
         } else {
             // Write error
