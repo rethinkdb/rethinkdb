@@ -43,8 +43,8 @@ void prep_serializer(
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
 
-    // RSI: two uses of ser->max_block_size() below to refer to buf's size here.
-    bzero(c, ser->max_block_size().value());
+    const block_size_t config_block_size = ser->max_block_size();
+    memset(c, 0, config_block_size.value());
     c->magic = multiplexer_config_block_t::expected_magic;
     c->creation_timestamp = creation_timestamp;
     c->n_files = serializers.size();
@@ -52,7 +52,7 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = serializer_block_write(ser, buf.get(), ser->max_block_size(),
+    op.token = serializer_block_write(ser, buf.get(), config_block_size,
                                       CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
