@@ -1818,11 +1818,10 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                    superblock_t *_superblock,
                                    signal_t *_interruptor) :
         store(_store), btree(_btree), txn(_txn), superblock(_superblock),
-        interruptor(_interruptor),
-        sindex_block_id(superblock->get_sindex_block_id()) {
+        interruptor(_interruptor) {
         sindex_block =
             store->acquire_sindex_block_for_write(superblock->expose_buf(),
-                                                  sindex_block_id);
+                                                  superblock->get_sindex_block_id());
     }
 
     void operator()(const backfill_chunk_t::delete_key_t& delete_key) {
@@ -1895,7 +1894,6 @@ private:
     superblock_t *superblock;
     // RSI: Is interruptor still ignored?
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
-    block_id_t sindex_block_id;  // RSI: Is this used?
     buf_lock_t sindex_block;
 
     DISABLE_COPYING(rdb_receive_backfill_visitor_t);
