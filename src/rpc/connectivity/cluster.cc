@@ -4,7 +4,6 @@
 #include <netinet/in.h>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/optional.hpp>
 
 #include "arch/io/network.hpp"
@@ -760,7 +759,7 @@ void connectivity_cluster_t::run_t::handle(
             if (routing_table.find(it->first) == routing_table.end()) {
                 // `it->first` is the ID of a peer that our peer is connected
                 //  to, but we aren't connected to.
-                coro_t::spawn_now_dangerously(boost::bind(
+                coro_t::spawn_now_dangerously(std::bind(
                     &connectivity_cluster_t::run_t::join_blocking, this,
                     peer_address_t(it->second), // This is where we resolve the peer's ip addresses
                     boost::optional<peer_id_t>(it->first),
