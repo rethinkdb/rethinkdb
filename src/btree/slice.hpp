@@ -16,9 +16,6 @@ class backfill_callback_t;
 class key_tester_t;
 
 
-// RSI: Why is this 2 << 16?  (and not 1 << 16?)
-const unsigned int STARTING_ROOT_EVICTION_PRIORITY = 2 << 16;
-
 class btree_stats_t {
 public:
     explicit btree_stats_t(perfmon_collection_t *parent, const std::string &identifier)
