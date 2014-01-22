@@ -15,7 +15,7 @@
 
 class serializer_t;
 
-class alt_buf_lock_t;
+class buf_lock_t;
 class alt_cache_config_t;
 class alt_cache_stats_t;
 class alt_snapshot_node_t;
@@ -57,8 +57,8 @@ private:
     friend class alt_buf_read_t;  // for &page_cache_
     friend class alt_buf_write_t;  // for &page_cache_
 
-    friend class alt_buf_lock_t;  // for latest_snapshot_node and
-                                  // push_latest_snapshot_node
+    friend class buf_lock_t;  // for latest_snapshot_node and
+                              // push_latest_snapshot_node
 
     alt_snapshot_node_t *matching_snapshot_node_or_null(block_id_t block_id,
                                                         block_version_t block_version);
@@ -158,7 +158,7 @@ public:
 private:
     // RSI: Should this really use friends?  Does this type need to be visible in the
     // header?
-    friend class alt_buf_lock_t;
+    friend class buf_lock_t;
     friend class alt_cache_t;
 
     // This is never null (and is always a current_page_acq_t that has had
@@ -169,7 +169,7 @@ private:
     // A NULL pointer associated with a block id indicates that the block is deleted.
     std::map<block_id_t, alt_snapshot_node_t *> children_;
 
-    // The number of alt_buf_lock_t's referring to this node, plus the number of
+    // The number of buf_lock_t's referring to this node, plus the number of
     // alt_snapshot_node_t's referring to this node (via its children_ vector).
     int64_t ref_count_;
 
@@ -179,9 +179,9 @@ private:
 
 class alt_buf_parent_t;
 
-class alt_buf_lock_t {
+class buf_lock_t {
 public:
-    alt_buf_lock_t();
+    buf_lock_t();
 
     // RSI: These constructors definitely duplicate one another.  Too bad one
     // constructor can't call another (in GCC 4.4).  Maybe we could still dedup
@@ -191,44 +191,44 @@ public:
     // RSI: Change these comments, they're not all nonblocking constructors.
 
     // Nonblocking constructor.
-    alt_buf_lock_t(alt_buf_parent_t parent,
-                   block_id_t block_id,
-                   alt_access_t access);
+    buf_lock_t(alt_buf_parent_t parent,
+               block_id_t block_id,
+               alt_access_t access);
 
     // Nonblocking constructor, creates a new block with a specified block id.
-    alt_buf_lock_t(alt_txn_t *txn,
-                   block_id_t block_id,
-                   alt_create_t create);
+    buf_lock_t(alt_txn_t *txn,
+               block_id_t block_id,
+               alt_create_t create);
 
     // Nonblocking constructor, creates a new block with a specified id (used by the
     // serializer file write stream).
-    alt_buf_lock_t(alt_buf_parent_t parent,
-                   block_id_t block_id,
-                   alt_create_t create);
+    buf_lock_t(alt_buf_parent_t parent,
+               block_id_t block_id,
+               alt_create_t create);
 
     // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
     // pulsed.  In either case, returns before the block is acquired, but after we're
     // _in line_ for the block.
-    alt_buf_lock_t(alt_buf_lock_t *parent,
-                   block_id_t block_id,
-                   alt_access_t access);
+    buf_lock_t(buf_lock_t *parent,
+               block_id_t block_id,
+               alt_access_t access);
 
     // Nonblocking constructor that acquires a block with a new block id.  `access`
     // must be `write`.
-    alt_buf_lock_t(alt_buf_parent_t parent,
-                   alt_create_t create);
+    buf_lock_t(alt_buf_parent_t parent,
+               alt_create_t create);
 
     // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
     // pulsed.  Allocates a block with a new block id.  `access` must be `write`.
-    alt_buf_lock_t(alt_buf_lock_t *parent,
-                   alt_create_t create);
+    buf_lock_t(buf_lock_t *parent,
+               alt_create_t create);
 
-    ~alt_buf_lock_t();
+    ~buf_lock_t();
 
-    alt_buf_lock_t(alt_buf_lock_t &&movee);
-    alt_buf_lock_t &operator=(alt_buf_lock_t &&movee);
+    buf_lock_t(buf_lock_t &&movee);
+    buf_lock_t &operator=(buf_lock_t &&movee);
 
-    void swap(alt_buf_lock_t &other);
+    void swap(buf_lock_t &other);
     void reset_buf_lock();
     bool empty() const {
         return txn_ == NULL;
@@ -302,7 +302,7 @@ private:
     // RSI: We should get rid of this variable.
     bool was_destroyed_;
 
-    DISABLE_COPYING(alt_buf_lock_t);
+    DISABLE_COPYING(buf_lock_t);
 };
 
 
@@ -310,7 +310,7 @@ class alt_buf_parent_t {
 public:
     alt_buf_parent_t() : txn_(NULL), lock_or_null_(NULL) { }
 
-    explicit alt_buf_parent_t(alt_buf_lock_t *lock)
+    explicit alt_buf_parent_t(buf_lock_t *lock)
         : txn_(lock->txn()), lock_or_null_(lock) {
         guarantee(lock != NULL);
         guarantee(!lock->empty());
@@ -335,14 +335,14 @@ public:
     }
 
 private:
-    friend class alt_buf_lock_t;
+    friend class buf_lock_t;
     alt_txn_t *txn_;
-    alt_buf_lock_t *lock_or_null_;
+    buf_lock_t *lock_or_null_;
 };
 
 class alt_buf_read_t {
 public:
-    explicit alt_buf_read_t(alt_buf_lock_t *lock);
+    explicit alt_buf_read_t(buf_lock_t *lock);
     ~alt_buf_read_t();
 
     const void *get_data_read(uint32_t *block_size_out);
@@ -353,7 +353,7 @@ public:
     }
 
 private:
-    alt_buf_lock_t *lock_;
+    buf_lock_t *lock_;
     page_acq_t page_acq_;
 
     DISABLE_COPYING(alt_buf_read_t);
@@ -361,7 +361,7 @@ private:
 
 class alt_buf_write_t {
 public:
-    explicit alt_buf_write_t(alt_buf_lock_t *lock);
+    explicit alt_buf_write_t(buf_lock_t *lock);
     ~alt_buf_write_t();
 
     void *get_data_write(uint32_t block_size);
@@ -369,7 +369,7 @@ public:
     void *get_data_write();
 
 private:
-    alt_buf_lock_t *lock_;
+    buf_lock_t *lock_;
     page_acq_t page_acq_;
 
     DISABLE_COPYING(alt_buf_write_t);

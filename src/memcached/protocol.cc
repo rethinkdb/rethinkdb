@@ -584,7 +584,7 @@ void call_memcached_backfill(
         int i, btree_slice_t *btree,
         const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
         memcached_backfill_callback_t *callback, superblock_t *superblock,
-        alt_buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         memcached_protocol_t::backfill_progress_t *progress,
         signal_t *interruptor) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
@@ -604,7 +604,7 @@ void call_memcached_backfill(
 void store_t::protocol_send_backfill(const region_map_t<memcached_protocol_t, state_timestamp_t> &start_point,
                                      chunk_fun_callback_t<memcached_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
-                                     alt_buf_lock_t *sindex_block,
+                                     buf_lock_t *sindex_block,
                                      btree_slice_t *btree,
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)

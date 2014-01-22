@@ -34,7 +34,7 @@ void run_sindex_low_level_operations_test() {
     {
         alt_txn_t txn(&cache, write_durability_t::HARD, repli_timestamp_t::invalid,
                       1);
-        alt_buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         alt_buf_write_t sb_write(&superblock);
         memset(sb_write.get_data_write(), 0, cache.max_block_size().value());
     }
@@ -57,9 +57,9 @@ void run_sindex_low_level_operations_test() {
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
 
-        alt_buf_lock_t sindex_block(superblock->expose_buf(),
-                                    superblock->get_sindex_block_id(),
-                                    alt_access_t::write);
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                alt_access_t::write);
 
         initialize_secondary_indexes(&sindex_block);
     }
@@ -82,9 +82,9 @@ void run_sindex_low_level_operations_test() {
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
-        alt_buf_lock_t sindex_block(superblock->expose_buf(),
-                                    superblock->get_sindex_block_id(),
-                                    alt_access_t::write);
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                alt_access_t::write);
 
         set_secondary_index(&sindex_block, id, s);
     }
@@ -97,9 +97,9 @@ void run_sindex_low_level_operations_test() {
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
-        alt_buf_lock_t sindex_block(superblock->expose_buf(),
-                                    superblock->get_sindex_block_id(),
-                                    alt_access_t::write);
+        buf_lock_t sindex_block(superblock->expose_buf(),
+                                superblock->get_sindex_block_id(),
+                                alt_access_t::write);
 
         std::map<std::string, secondary_index_t> sindexes;
         get_secondary_indexes(&sindex_block, &sindexes);
@@ -155,7 +155,7 @@ void run_sindex_btree_store_api_test() {
                     1, write_durability_t::SOFT, &token_pair,
                     &txn, &super_block, &dummy_interruptor);
 
-            scoped_ptr_t<alt_buf_lock_t> sindex_block;
+            scoped_ptr_t<buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(super_block->expose_buf(),
                     &sindex_block, super_block->get_sindex_block_id());
 
@@ -176,7 +176,7 @@ void run_sindex_btree_store_api_test() {
                                                1, write_durability_t::SOFT, &token_pair,
                                                &txn, &super_block, &dummy_interruptor);
 
-            scoped_ptr_t<alt_buf_lock_t> sindex_block;
+            scoped_ptr_t<buf_lock_t> sindex_block;
             store.acquire_sindex_block_for_write(
                     super_block->expose_buf(), &sindex_block,
                     super_block->get_sindex_block_id());
@@ -263,7 +263,7 @@ void run_sindex_btree_store_api_test() {
 
         rdb_value_deleter_t deleter;
 
-        scoped_ptr_t<alt_buf_lock_t> sindex_block;
+        scoped_ptr_t<buf_lock_t> sindex_block;
         store.acquire_sindex_block_for_write(super_block->expose_buf(),
                 &sindex_block, super_block->get_sindex_block_id());
 

@@ -27,7 +27,7 @@ void btree_slice_t::create(block_id_t superblock_id,
     // The superblock was already created by cache_t::create or by creating it and
     // getting the block id.
     // RSI: Make this be the thing that creates the block.
-    alt_buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
+    buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
 
     alt_buf_write_t sb_write(&superblock);
     auto sb = static_cast<btree_superblock_t *>(sb_write.get_data_write());
@@ -41,7 +41,7 @@ void btree_slice_t::create(block_id_t superblock_id,
 
     set_superblock_metainfo(&superblock, metainfo_key, metainfo_value);
 
-    alt_buf_lock_t sindex_block(&superblock, alt_create_t::create);
+    buf_lock_t sindex_block(&superblock, alt_create_t::create);
     initialize_secondary_indexes(&sindex_block);
     sb->sindex_block = sindex_block.get_block_id();
 }

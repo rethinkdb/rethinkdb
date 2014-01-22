@@ -59,7 +59,7 @@ void run_metainfo_test() {
     {
         alt_txn_t txn(&cache, write_durability_t::HARD, repli_timestamp_t::invalid,
                       1);
-        alt_buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+        buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
         alt_buf_write_t sb_write(&superblock);
         memset(sb_write.get_data_write(), 0, cache.max_block_size().value());
     }
@@ -83,7 +83,7 @@ void run_metainfo_test() {
                                      repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
-        alt_buf_lock_t *sb_buf = superblock->get();
+        buf_lock_t *sb_buf = superblock->get();
 
         int op = random() % 100;
         if (op == 0) {

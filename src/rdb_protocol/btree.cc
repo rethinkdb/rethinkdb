@@ -437,7 +437,7 @@ public:
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
                   superblock_t *superblock,
-                  alt_buf_lock_t *sindex_block,
+                  buf_lock_t *sindex_block,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t) {
     agnostic_rdb_backfill_callback_t agnostic_cb(callback, key_range, slice);
@@ -537,7 +537,7 @@ void spawn_sindex_erase_ranges(
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &key_range,
-                     alt_buf_lock_t *sindex_block,
+                     buf_lock_t *sindex_block,
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
                      signal_t *interruptor) {
@@ -1005,7 +1005,7 @@ RDB_IMPL_ME_SERIALIZABLE_1(rdb_erase_range_report_t, range_to_erase);
 
 rdb_modification_report_cb_t::rdb_modification_report_cb_t(
         btree_store_t<rdb_protocol_t> *store,
-        alt_buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         auto_drainer_t::lock_t lock)
     : lock_(lock), store_(store),
       sindex_block_(sindex_block) {
@@ -1192,7 +1192,7 @@ public:
           interrupt_myself_(interrupt_myself), interruptor_(interruptor)
     { }
 
-    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
         write_token_pair_t token_pair;
@@ -1240,7 +1240,7 @@ public:
             // release it immediately.
             block_id_t sindex_block_id = superblock->get_sindex_block_id();
 
-            scoped_ptr_t<alt_buf_lock_t> sindex_block;
+            scoped_ptr_t<buf_lock_t> sindex_block;
 
             store_->acquire_sindex_block_for_write(
                 superblock->expose_buf(),
@@ -1289,7 +1289,7 @@ public:
         }
     }
 
-    void postprocess_internal_node(alt_buf_lock_t *) { }
+    void postprocess_internal_node(buf_lock_t *) { }
 
     void filter_interesting_children(alt_buf_parent_t,
                                      ranged_block_ids_t *ids_source,

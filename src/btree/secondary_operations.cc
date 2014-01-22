@@ -11,7 +11,7 @@
 RDB_IMPL_ME_SERIALIZABLE_4(secondary_index_t, superblock, opaque_definition,
                            post_construction_complete, id);
 
-void get_secondary_indexes_internal(alt_buf_lock_t *sindex_block,
+void get_secondary_indexes_internal(buf_lock_t *sindex_block,
                                     std::map<std::string, secondary_index_t> *sindexes_out) {
     alt_buf_read_t read(sindex_block);
     const btree_sindex_block_t *data
@@ -24,7 +24,7 @@ void get_secondary_indexes_internal(alt_buf_lock_t *sindex_block,
     deserialize_from_blob(alt_buf_parent_t(sindex_block), &sindex_blob, sindexes_out);
 }
 
-void set_secondary_indexes_internal(alt_buf_lock_t *sindex_block,
+void set_secondary_indexes_internal(buf_lock_t *sindex_block,
                                     const std::map<std::string, secondary_index_t> &sindexes) {
     alt_buf_write_t write(sindex_block);
     btree_sindex_block_t *data
@@ -36,7 +36,7 @@ void set_secondary_indexes_internal(alt_buf_lock_t *sindex_block,
     serialize_onto_blob(alt_buf_parent_t(sindex_block), &sindex_blob, sindexes);
 }
 
-void initialize_secondary_indexes(alt_buf_lock_t *sindex_block) {
+void initialize_secondary_indexes(buf_lock_t *sindex_block) {
     alt_buf_write_t write(sindex_block);
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
@@ -47,7 +47,7 @@ void initialize_secondary_indexes(alt_buf_lock_t *sindex_block) {
                                    std::map<std::string, secondary_index_t>());
 }
 
-bool get_secondary_index(alt_buf_lock_t *sindex_block, const std::string &id,
+bool get_secondary_index(buf_lock_t *sindex_block, const std::string &id,
                          secondary_index_t *sindex_out) {
     std::map<std::string, secondary_index_t> sindex_map;
 
@@ -62,7 +62,7 @@ bool get_secondary_index(alt_buf_lock_t *sindex_block, const std::string &id,
     }
 }
 
-bool get_secondary_index(alt_buf_lock_t *sindex_block, uuid_u id,
+bool get_secondary_index(buf_lock_t *sindex_block, uuid_u id,
                          secondary_index_t *sindex_out) {
     std::map<std::string, secondary_index_t> sindex_map;
 
@@ -76,12 +76,12 @@ bool get_secondary_index(alt_buf_lock_t *sindex_block, uuid_u id,
     return false;
 }
 
-void get_secondary_indexes(alt_buf_lock_t *sindex_block,
+void get_secondary_indexes(buf_lock_t *sindex_block,
                            std::map<std::string, secondary_index_t> *sindexes_out) {
     get_secondary_indexes_internal(sindex_block, sindexes_out);
 }
 
-void set_secondary_index(alt_buf_lock_t *sindex_block, const std::string &id,
+void set_secondary_index(buf_lock_t *sindex_block, const std::string &id,
                          const secondary_index_t &sindex) {
     std::map<std::string, secondary_index_t> sindex_map;
     get_secondary_indexes_internal(sindex_block, &sindex_map);
@@ -91,7 +91,7 @@ void set_secondary_index(alt_buf_lock_t *sindex_block, const std::string &id,
     set_secondary_indexes_internal(sindex_block, sindex_map);
 }
 
-void set_secondary_index(alt_buf_lock_t *sindex_block, uuid_u id,
+void set_secondary_index(buf_lock_t *sindex_block, uuid_u id,
                          const secondary_index_t &sindex) {
     std::map<std::string, secondary_index_t> sindex_map;
     get_secondary_indexes_internal(sindex_block, &sindex_map);
@@ -105,7 +105,7 @@ void set_secondary_index(alt_buf_lock_t *sindex_block, uuid_u id,
     set_secondary_indexes_internal(sindex_block, sindex_map);
 }
 
-bool delete_secondary_index(alt_buf_lock_t *sindex_block, const std::string &id) {
+bool delete_secondary_index(buf_lock_t *sindex_block, const std::string &id) {
     std::map<std::string, secondary_index_t> sindex_map;
     get_secondary_indexes_internal(sindex_block, &sindex_map);
 
@@ -117,7 +117,7 @@ bool delete_secondary_index(alt_buf_lock_t *sindex_block, const std::string &id)
     }
 }
 
-void delete_all_secondary_indexes(alt_buf_lock_t *sindex_block) {
+void delete_all_secondary_indexes(buf_lock_t *sindex_block) {
     set_secondary_indexes_internal(sindex_block,
                                    std::map<std::string, secondary_index_t>());
 }

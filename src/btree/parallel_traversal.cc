@@ -244,16 +244,16 @@ void do_a_subtree_traversal(traversal_state_t *state, int level,
                             lock_in_line_callback_t *acq_start_cb);
 
 void process_a_leaf_node(traversal_state_t *state,
-                         scoped_ptr_t<alt_buf_lock_t> *buf, int level,
+                         scoped_ptr_t<buf_lock_t> *buf, int level,
                          const btree_key_t *left_exclusive_or_null,
                          const btree_key_t *right_inclusive_or_null);
 void process_a_internal_node(traversal_state_t *state,
-                             scoped_ptr_t<alt_buf_lock_t> *buf, int level,
+                             scoped_ptr_t<buf_lock_t> *buf, int level,
                              const btree_key_t *left_exclusive_or_null,
                              const btree_key_t *right_inclusive_or_null);
 
 struct node_ready_callback_t {
-    virtual void on_node_ready(scoped_ptr_t<alt_buf_lock_t> *buf) = 0;
+    virtual void on_node_ready(scoped_ptr_t<buf_lock_t> *buf) = 0;
     virtual void on_cancel() = 0;
 protected:
     virtual ~node_ready_callback_t() { }
@@ -273,10 +273,10 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
     void you_may_acquire() {
         rassert(coro_t::self());
 
-        auto block = make_scoped<alt_buf_lock_t>(parent,
-                                                 block_id,
-                                                 state->helper->btree_node_mode());
-        // RSI: Before, we passed buffer_cache_order_mode_check to the alt_buf_lock_t
+        auto block = make_scoped<buf_lock_t>(parent,
+                                             block_id,
+                                             state->helper->btree_node_mode());
+        // RSI: Before, we passed buffer_cache_order_mode_check to the buf_lock_t
         // constructor.
         acq_start_cb->on_in_line();  // RSI: this is dumb.
 
@@ -328,7 +328,7 @@ protected:
 };
 
 struct internal_node_releaser_t : public parent_releaser_t {
-    scoped_ptr_t<alt_buf_lock_t> buf_;
+    scoped_ptr_t<buf_lock_t> buf_;
     traversal_state_t *state_;
     alt_buf_parent_t expose_parent() {
         return alt_buf_parent_t(buf_.get());
@@ -337,7 +337,7 @@ struct internal_node_releaser_t : public parent_releaser_t {
         state_->helper->postprocess_internal_node(buf_.get());
         delete this;
     }
-    internal_node_releaser_t(scoped_ptr_t<alt_buf_lock_t> *buf,
+    internal_node_releaser_t(scoped_ptr_t<buf_lock_t> *buf,
                              traversal_state_t *state) : state_(state) {
         buf_.init(buf->release());  // RSI
     }
@@ -363,8 +363,8 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
     if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
         // RSI: We passed buffer_cache_order_mode_ignore before.
-        alt_buf_lock_t stat_block(superblock->expose_buf(),
-                                  state.stat_block, alt_access_t::read);
+        buf_lock_t stat_block(superblock->expose_buf(),
+                              state.stat_block, alt_access_t::read);
         helper->read_stat_block(&stat_block);
     } else {
         helper->read_stat_block(NULL);
@@ -432,7 +432,7 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
     store_key_t right_inclusive;
     bool right_unbounded;
 
-    void on_node_ready(scoped_ptr_t<alt_buf_lock_t> *buf) {
+    void on_node_ready(scoped_ptr_t<buf_lock_t> *buf) {
         rassert(coro_t::self());
         bool is_leaf;
         {
@@ -490,9 +490,9 @@ void do_a_subtree_traversal(traversal_state_t *state, int level,
     acquire_a_node(state, level, parent, block_id, acq_start_cb, fsm);
 }
 
-// This releases its alt_buf_lock_t parameter.
+// This releases its buf_lock_t parameter.
 void process_a_internal_node(traversal_state_t *state,
-                             scoped_ptr_t<alt_buf_lock_t> *buf,
+                             scoped_ptr_t<buf_lock_t> *buf,
                              int level,
                              const btree_key_t *left_exclusive_or_null,
                              const btree_key_t *right_inclusive_or_null) {
@@ -512,8 +512,8 @@ void process_a_internal_node(traversal_state_t *state,
                       level + 1, ids_source);
 }
 
-// This releases its alt_buf_lock_t parameter.
-void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<alt_buf_lock_t> *buf,
+// This releases its buf_lock_t parameter.
+void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf,
         int level, const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null) {
     // TODO: The below comment is wrong because we acquire the stat block
@@ -539,7 +539,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<alt_buf_lock_t> 
         // RSI: See operations.tcc for another use of the stat block.
         // RSI: having buf as the parent doesn't really make sense. The stat block
         // doesn't really have a parent.
-        alt_buf_lock_t stat_block(buf->get(), state->stat_block, alt_access_t::write);
+        buf_lock_t stat_block(buf->get(), state->stat_block, alt_access_t::write);
         alt_buf_write_t stat_block_write(&stat_block);
         auto stat_block_buf =
             static_cast<btree_statblock_t *>(stat_block_write.get_data_write());

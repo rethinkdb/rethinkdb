@@ -48,8 +48,8 @@ void find_keyvalue_location_for_write(
     // RSI: Make sure we do the logic smart here -- don't needlessly hold both
     // buffers.  (This finds the keyvalue for _write_ so that probably won't really
     // happen.)
-    alt_buf_lock_t last_buf;
-    alt_buf_lock_t buf;
+    buf_lock_t last_buf;
+    buf_lock_t buf;
     {
         profile::starter_t starter("Acquiring block for write.\n", trace);
         get_root(&sizer, superblock, &buf);
@@ -106,7 +106,7 @@ void find_keyvalue_location_for_write(
 
         {
             profile::starter_t starter("Acquiring block for write.\n", trace);
-            alt_buf_lock_t tmp(&buf, node_id, alt_access_t::write);
+            buf_lock_t tmp(&buf, node_id, alt_access_t::write);
             last_buf = std::move(buf);
             buf = std::move(tmp);
         }
@@ -148,11 +148,10 @@ void find_keyvalue_location_for_read(
         return;
     }
 
-    alt_buf_lock_t buf;
+    buf_lock_t buf;
     {
         profile::starter_t starter("Acquire a block for read.", trace);
-        alt_buf_lock_t tmp(superblock->expose_buf(), root_id,
-                                alt_access_t::read);
+        buf_lock_t tmp(superblock->expose_buf(), root_id, alt_access_t::read);
         superblock->release();
         buf = std::move(tmp);
     }
@@ -182,7 +181,7 @@ void find_keyvalue_location_for_read(
 
         {
             profile::starter_t starter("Acquire a block for read.", trace);
-            alt_buf_lock_t tmp(&buf, node_id, alt_access_t::read);
+            buf_lock_t tmp(&buf, node_id, alt_access_t::read);
             buf.reset_buf_lock();
             buf = std::move(tmp);
         }
@@ -307,8 +306,7 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
     // RSI: Should we _actually_ pass kv_loc->buf as the parent?
     // RSI: This was opened with some buffer_cache_order_mode_ignore flag.
     // RSI: See parallel_traversal.cc for another use of the stat block.
-    alt_buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block,
-                                   alt_access_t::write);
+    buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block, alt_access_t::write);
     alt_buf_write_t stat_block_write(&stat_block);
     auto stat_block_buf
         = static_cast<btree_statblock_t *>(stat_block_write.get_data_write());

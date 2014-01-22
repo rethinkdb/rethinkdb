@@ -122,7 +122,7 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
-    void lock_sindex_queue(alt_buf_lock_t *sindex_block, mutex_t::acq_t *acq);
+    void lock_sindex_queue(buf_lock_t *sindex_block, mutex_t::acq_t *acq);
 
     void register_sindex_queue(
             internal_disk_backed_queue_t *disk_backed_queue,
@@ -149,13 +149,13 @@ public:
     // interruptible?
     void acquire_sindex_block_for_read(
             alt_buf_parent_t parent,
-            scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
+            scoped_ptr_t<buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id)
         THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_block_for_write(
             alt_buf_parent_t parent,
-            scoped_ptr_t<alt_buf_lock_t> *sindex_block_out,
+            scoped_ptr_t<buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -163,13 +163,13 @@ public:
     MUST_USE bool add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        alt_buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block)
     THROWS_ONLY(interrupted_exc_t);
 
     // RSI: Is interruptor actually used?
     void set_sindexes(
         const std::map<std::string, secondary_index_t> &sindexes,
-        alt_buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         std::set<std::string> *created_sindexes_out,
@@ -178,18 +178,18 @@ public:
 
     bool mark_index_up_to_date(
         const std::string &id,
-        alt_buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
     bool mark_index_up_to_date(
         uuid_u id,
-        alt_buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block)
     THROWS_NOTHING;
 
     // RSI: Is interruptor actually used?
     bool drop_sindex(
         const std::string &id,
-        alt_buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         value_sizer_t<void> *sizer,
         value_deleter_t *deleter,
         signal_t *interruptor)
@@ -214,7 +214,7 @@ public:
     THROWS_ONLY(interrupted_exc_t);
 
     void get_sindexes(
-        alt_buf_lock_t *sindex_block,
+        buf_lock_t *sindex_block,
         std::map<std::string, secondary_index_t> *sindexes_out)
     THROWS_NOTHING;
 
@@ -257,24 +257,24 @@ public:
         THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
     void acquire_all_sindex_superblocks_for_write(
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
         THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     void acquire_post_constructed_sindex_superblocks_for_write(
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_NOTHING;
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<std::string> > sindexes_to_acquire, //none means acquire all sindexes
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     bool acquire_sindex_superblocks_for_write(
             boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
@@ -298,7 +298,7 @@ public:
     virtual void protocol_send_backfill(const region_map_t<protocol_t, state_timestamp_t> &start_point,
                                         chunk_fun_callback_t<protocol_t> *chunk_fun_cb,
                                         superblock_t *superblock,
-                                        alt_buf_lock_t *sindex_block,
+                                        buf_lock_t *sindex_block,
                                         btree_slice_t *btree,
                                         typename protocol_t::backfill_progress_t *progress,
                                         signal_t *interruptor)
@@ -314,7 +314,7 @@ public:
                                      superblock_t *superblock,
                                      signal_t *interruptor) = 0;
 
-    void get_metainfo_internal(alt_buf_lock_t *sb_buf,
+    void get_metainfo_internal(buf_lock_t *sb_buf,
                                region_map_t<protocol_t, binary_blob_t> *out)
         const THROWS_NOTHING;
 

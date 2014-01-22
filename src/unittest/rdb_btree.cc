@@ -49,7 +49,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
                 static_cast<profile::trace_t *>(NULL));
 
         {
-            scoped_ptr_t<alt_buf_lock_t> sindex_block;
+            scoped_ptr_t<buf_lock_t> sindex_block;
 
             store->acquire_sindex_block_for_write(
                     superblock->expose_buf(), &sindex_block, sindex_block_id);
@@ -104,7 +104,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     int res = send_write_message(&stream, &wm);
     guarantee(res == 0);
 
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    scoped_ptr_t<buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(super_block->expose_buf(),
                                           &sindex_block,
                                           super_block->get_sindex_block_id());
@@ -131,7 +131,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     value_sizer_t<rdb_value_t> sizer(store->cache->get_block_size());
     rdb_value_deleter_t deleter;
 
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    scoped_ptr_t<buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(super_block->expose_buf(),
                                           &sindex_block,
                                           super_block->get_sindex_block_id());
@@ -155,7 +155,7 @@ void bring_sindexes_up_to_date(
                                         1, write_durability_t::SOFT,
                                         &token_pair, &txn, &super_block, &dummy_interruptor);
 
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    scoped_ptr_t<buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(
             super_block->expose_buf(),
             &sindex_block,
@@ -182,7 +182,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
         1, write_durability_t::SOFT,
         &token_pair, &txn, &super_block, &dummy_interruptor);
 
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    scoped_ptr_t<buf_lock_t> sindex_block;
     store->acquire_sindex_block_for_write(
             super_block->expose_buf(),
             &sindex_block,
@@ -430,7 +430,7 @@ void run_erase_range_test() {
 
         const hash_region_t<key_range_t> test_range = hash_region_t<key_range_t>::universe();
         rdb_protocol_details::range_key_tester_t tester(&test_range);
-        scoped_ptr_t<alt_buf_lock_t> sindex_block;
+        scoped_ptr_t<buf_lock_t> sindex_block;
         store.acquire_sindex_block_for_write(
             super_block->expose_buf(),
             &sindex_block,

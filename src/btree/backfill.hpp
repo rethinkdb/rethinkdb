@@ -10,7 +10,7 @@
 #include "utils.hpp"
 
 class alt_buf_parent_t;
-class alt_buf_lock_t;
+class buf_lock_t;
 class btree_slice_t;
 struct btree_key_t;
 struct key_range_t;
@@ -43,7 +43,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
                                 repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback,
                                 superblock_t *superblock,
-                                alt_buf_lock_t *sindex_block,
+                                buf_lock_t *sindex_block,
                                 parallel_traversal_progress_t *p,
                                 signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);

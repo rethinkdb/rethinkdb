@@ -170,7 +170,7 @@ protected:
 void rdb_backfill(btree_slice_t *slice, const key_range_t& key_range,
                   repli_timestamp_t since_when, rdb_backfill_callback_t *callback,
                   superblock_t *superblock,
-                  alt_buf_lock_t *sindex_block,
+                  buf_lock_t *sindex_block,
                   parallel_traversal_progress_t *p, signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
@@ -189,7 +189,7 @@ class rdb_value_non_deleter_t : public value_deleter_t {
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
                      const key_range_t &keys,
-                     alt_buf_lock_t *sindex_block,
+                     buf_lock_t *sindex_block,
                      superblock_t *superblock,
                      btree_store_t<rdb_protocol_t> *store,
                      signal_t *interruptor);
@@ -267,7 +267,7 @@ class rdb_modification_report_cb_t {
 public:
     rdb_modification_report_cb_t(
             btree_store_t<rdb_protocol_t> *store,
-            alt_buf_lock_t *sindex_block,
+            buf_lock_t *sindex_block,
             auto_drainer_t::lock_t lock);
 
     void on_mod_report(const rdb_modification_report_t &mod_report);
@@ -278,7 +278,7 @@ private:
     /* Fields initialized by the constructor. */
     auto_drainer_t::lock_t lock_;
     btree_store_t<rdb_protocol_t> *store_;
-    alt_buf_lock_t *sindex_block_;
+    buf_lock_t *sindex_block_;
 
     /* Fields initialized by calls to on_mod_report */
     btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes_;

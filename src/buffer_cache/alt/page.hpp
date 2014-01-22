@@ -295,7 +295,7 @@ private:
 class current_page_acq_t : public intrusive_list_node_t<current_page_acq_t>,
                            public home_thread_mixin_t {
 public:
-    // RSI: Right now we support a default constructor but alt_buf_lock_t actually
+    // RSI: Right now we support a default constructor but buf_lock_t actually
     // uses a scoped pointer now, because getting this type to be swappable was too
     // hard.  Make this type be swappable or remove the default constructor.  (Remove
     // the page_cache_ != NULL check in the destructor we remove the default

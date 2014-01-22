@@ -55,7 +55,7 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
  */
 
 enum class alt_access_t;
-class alt_buf_lock_t;
+class buf_lock_t;
 class alt_buf_parent_t;
 class alt_buf_read_t;
 class alt_buf_write_t;
@@ -66,18 +66,18 @@ public:
     blob_acq_t() { }
     ~blob_acq_t();
 
-    void add_buf(alt_buf_lock_t *buf, alt_buf_write_t *write) {
+    void add_buf(buf_lock_t *buf, alt_buf_write_t *write) {
         bufs_.push_back(buf);
         writes_.push_back(write);
     }
 
-    void add_buf(alt_buf_lock_t *buf, alt_buf_read_t *read) {
+    void add_buf(buf_lock_t *buf, alt_buf_read_t *read) {
         bufs_.push_back(buf);
         reads_.push_back(read);
     }
 
 private:
-    std::vector<alt_buf_lock_t *> bufs_;
+    std::vector<buf_lock_t *> bufs_;
     // One of writes_ or reads_ will be empty.
     std::vector<alt_buf_write_t *> writes_;
     std::vector<alt_buf_read_t *> reads_;
@@ -166,8 +166,8 @@ public:
     int64_t valuesize() const;
 
     // Detaches the blob's subtree from the root node (see
-    // alt_buf_lock_t::detach_child).
-    void detach_subtree(alt_buf_lock_t *root);
+    // buf_lock_t::detach_child).
+    void detach_subtree(buf_lock_t *root);
 
     // Acquires internal buffers and copies pointers to internal
     // buffers to the buffer_group_t, initializing acq_group_out so

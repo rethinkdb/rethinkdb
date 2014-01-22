@@ -17,7 +17,7 @@
 #include "protocol_api.hpp"
 
 struct backfill_traversal_helper_t : public btree_traversal_helper_t, public home_thread_mixin_debug_only_t {
-    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *left_exclusive_or_null,
                         const btree_key_t *right_inclusive_or_null,
                         signal_t *interruptor,
@@ -66,7 +66,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         leaf::dump_entries_since_time(sizer_, data, since_when_, leaf_node_buf->get_recency(), &x);
     }
 
-    void postprocess_internal_node(UNUSED alt_buf_lock_t *internal_node_buf) {
+    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
         assert_thread();
         // do nothing
     }
@@ -117,7 +117,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
                 // RSI: We ignore recency.  What does this even do?
                 repli_timestamp_t recency;
                 {
-                    alt_buf_lock_t lock(parent, id, alt_access_t::read);
+                    buf_lock_t lock(parent, id, alt_access_t::read);
                     recency = lock.get_recency();
                 }
                 cb->receive_interesting_child(i);
@@ -170,7 +170,7 @@ void do_agnostic_btree_backfill(value_sizer_t<void> *sizer,
                                 repli_timestamp_t since_when,
                                 agnostic_backfill_callback_t *callback,
                                 superblock_t *superblock,
-                                alt_buf_lock_t *sindex_block,
+                                buf_lock_t *sindex_block,
                                 parallel_traversal_progress_t *p,
                                 signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {

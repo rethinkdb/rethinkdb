@@ -126,7 +126,7 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
     if (create) {
         object_buffer_t<alt_txn_t> txn;
         get_write_transaction(&txn);
-        alt_buf_lock_t superblock(txn.get(), SUPERBLOCK_ID, alt_create_t::create);
+        buf_lock_t superblock(txn.get(), SUPERBLOCK_ID, alt_create_t::create);
         alt_buf_write_t sb_write(&superblock);
         void *sb_data = sb_write.get_data_write(cache->max_block_size().value());
         memset(sb_data, 0, cache->max_block_size().value());
@@ -162,8 +162,8 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
     persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename, perfmon_parent, true) {
     object_buffer_t<alt_txn_t> txn;
     get_write_transaction(&txn);
-    alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                              alt_access_t::write);
+    buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                          alt_access_t::write);
     alt_buf_write_t sb_write(&superblock);
     auth_metadata_superblock_t *sb
         = static_cast<auth_metadata_superblock_t *>(sb_write.get_data_write());
@@ -183,8 +183,8 @@ auth_persistent_file_t::~auth_persistent_file_t() {
 auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
     object_buffer_t<alt_txn_t> txn;
     get_read_transaction(&txn);
-    alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                              alt_access_t::read);
+    buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                          alt_access_t::read);
     alt_buf_read_t sb_read(&superblock);
     const auth_metadata_superblock_t *sb
         = static_cast<const auth_metadata_superblock_t *>(sb_read.get_data_read());
@@ -201,8 +201,8 @@ void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &
     // they?
     object_buffer_t<alt_txn_t> txn;
     get_write_transaction(&txn);
-    alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                              alt_access_t::write);
+    buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                          alt_access_t::write);
     alt_buf_write_t sb_write(&superblock);
 
     auth_metadata_superblock_t *sb
@@ -227,8 +227,8 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
 
     object_buffer_t<alt_txn_t> txn;
     get_write_transaction(&txn);
-    alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                              alt_access_t::write);
+    buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                          alt_access_t::write);
     alt_buf_write_t sb_write(&superblock);
     cluster_metadata_superblock_t *sb
         = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());
@@ -263,8 +263,8 @@ cluster_persistent_file_t::~cluster_persistent_file_t() {
 cluster_semilattice_metadata_t cluster_persistent_file_t::read_metadata() {
     object_buffer_t<alt_txn_t> txn;
     get_read_transaction(&txn);
-    alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                              alt_access_t::read);
+    buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                          alt_access_t::read);
     alt_buf_read_t sb_read(&superblock);
 
     const cluster_metadata_superblock_t *sb
@@ -278,8 +278,8 @@ cluster_semilattice_metadata_t cluster_persistent_file_t::read_metadata() {
 void cluster_persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
     object_buffer_t<alt_txn_t> txn;
     get_write_transaction(&txn);
-    alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                              alt_access_t::write);
+    buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                          alt_access_t::write);
     alt_buf_write_t sb_write(&superblock);
     cluster_metadata_superblock_t *sb
         = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());
@@ -290,8 +290,8 @@ void cluster_persistent_file_t::update_metadata(const cluster_semilattice_metada
 machine_id_t cluster_persistent_file_t::read_machine_id() {
     object_buffer_t<alt_txn_t> txn;
     get_read_transaction(&txn);
-    alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                              alt_access_t::read);
+    buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                          alt_access_t::read);
     alt_buf_read_t sb_read(&superblock);
     const cluster_metadata_superblock_t *sb
         = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
@@ -311,8 +311,8 @@ public:
         if (!create) {
             object_buffer_t<alt_txn_t> txn;
             parent->get_read_transaction(&txn);
-            alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                                      alt_access_t::read);
+            buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                                  alt_access_t::read);
             alt_buf_read_t sb_read(&superblock);
             const cluster_metadata_superblock_t *sb
                 = static_cast<const cluster_metadata_superblock_t *>(sb_read.get_data_read());
@@ -386,8 +386,8 @@ private:
     void flush(UNUSED signal_t *interruptor) {
         object_buffer_t<alt_txn_t> txn;
         parent->get_write_transaction(&txn);
-        alt_buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
-                                  alt_access_t::write);
+        buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
+                              alt_access_t::write);
         alt_buf_write_t sb_write(&superblock);
         cluster_metadata_superblock_t *sb
             = static_cast<cluster_metadata_superblock_t *>(sb_write.get_data_write());

@@ -10,7 +10,7 @@
 #include "buffer_cache/alt/alt_blob.hpp"
 #include "containers/archive/vector_stream.hpp"
 
-real_superblock_t::real_superblock_t(alt_buf_lock_t &&sb_buf)
+real_superblock_t::real_superblock_t(buf_lock_t &&sb_buf)
     : sb_buf_(std::move(sb_buf)) {}
 
 void real_superblock_t::release() {
@@ -118,7 +118,7 @@ void superblock_metainfo_iterator_t::operator++() {
     }
 }
 
-bool get_superblock_metainfo(alt_buf_lock_t *superblock,
+bool get_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
                              std::vector<char> *value_out) {
     std::vector<char> metainfo;
@@ -159,7 +159,7 @@ bool get_superblock_metainfo(alt_buf_lock_t *superblock,
 }
 
 void get_superblock_metainfo(
-        alt_buf_lock_t *superblock,
+        buf_lock_t *superblock,
         std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
     std::vector<char> metainfo;
     {
@@ -193,7 +193,7 @@ void get_superblock_metainfo(
     }
 }
 
-void set_superblock_metainfo(alt_buf_lock_t *superblock,
+void set_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
                              const std::vector<char> &value) {
     alt_buf_write_t write(superblock);
@@ -266,7 +266,7 @@ void set_superblock_metainfo(alt_buf_lock_t *superblock,
     }
 }
 
-void delete_superblock_metainfo(alt_buf_lock_t *superblock,
+void delete_superblock_metainfo(buf_lock_t *superblock,
                                 const std::vector<char> &key) {
     alt_buf_write_t write(superblock);
     btree_superblock_t *const data
@@ -322,7 +322,7 @@ void delete_superblock_metainfo(alt_buf_lock_t *superblock,
     }
 }
 
-void clear_superblock_metainfo(alt_buf_lock_t *superblock) {
+void clear_superblock_metainfo(buf_lock_t *superblock) {
     alt_buf_write_t write(superblock);
     auto data = static_cast<btree_superblock_t *>(write.get_data_write());
     blob_t blob(superblock->cache()->get_block_size(),
@@ -340,7 +340,7 @@ void ensure_stat_block(superblock_t *sb) {
 
     if (node_id == NULL_BLOCK_ID) {
         //Create a block
-        alt_buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
+        buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
         alt_buf_write_t write(&temp_lock);
         //Make the stat block be the default constructed statblock
         *static_cast<btree_statblock_t *>(write.get_data_write())
@@ -350,17 +350,17 @@ void ensure_stat_block(superblock_t *sb) {
 }
 
 void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
-              alt_buf_lock_t *buf_out) {
+              buf_lock_t *buf_out) {
     guarantee(buf_out->empty());
 
     const block_id_t node_id = sb->get_root_block_id();
 
     if (node_id != NULL_BLOCK_ID) {
-        alt_buf_lock_t temp_lock(sb->expose_buf(), node_id,
-                                 alt_access_t::write);
+        buf_lock_t temp_lock(sb->expose_buf(), node_id,
+                             alt_access_t::write);
         buf_out->swap(temp_lock);
     } else {
-        alt_buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
+        buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
         {
             alt_buf_write_t write(&temp_lock);
             leaf::init(sizer, static_cast<leaf_node_t *>(write.get_data_write()));
@@ -374,8 +374,8 @@ void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
 // value that will be inserted; if it's an internal node, provide NULL (we
 // split internal nodes proactively).
 void check_and_handle_split(value_sizer_t<void> *sizer,
-                            alt_buf_lock_t *buf,
-                            alt_buf_lock_t *last_buf,
+                            buf_lock_t *buf,
+                            buf_lock_t *last_buf,
                             superblock_t *sb,
                             const btree_key_t *key, void *new_value) {
     {
@@ -400,10 +400,8 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
     // RSI: Assert that one of last_buf and sb is valid.
-    alt_buf_lock_t rbuf(last_buf->empty()
-                        ? sb->expose_buf()
-                        : alt_buf_parent_t(last_buf),
-                        alt_create_t::create);
+    buf_lock_t rbuf(last_buf->empty() ? sb->expose_buf() : alt_buf_parent_t(last_buf),
+                    alt_create_t::create);
     store_key_t median_buffer;
     btree_key_t *median = median_buffer.btree_key();
 
@@ -422,7 +420,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
         // RSI: Make sure that this root insertion logic is actually correct!  Will
         // snapshotting handle it??  Could something skip?  Probably OK because this
         // is a write transaction and we hold the superblock...
-        alt_buf_lock_t temp_buf(sb->expose_buf(), alt_create_t::create);
+        buf_lock_t temp_buf(sb->expose_buf(), alt_create_t::create);
         last_buf->swap(temp_buf);
         {
             alt_buf_write_t last_write(last_buf);
@@ -457,8 +455,8 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
 
 // Merge or level the node if necessary.
 void check_and_handle_underfull(value_sizer_t<void> *sizer,
-                                alt_buf_lock_t *buf,
-                                alt_buf_lock_t *last_buf,
+                                buf_lock_t *buf,
+                                buf_lock_t *last_buf,
                                 superblock_t *sb,
                                 const btree_key_t *key) {
     bool node_is_underfull;
@@ -488,7 +486,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
         }
 
         // Now decide whether to merge or level.
-        alt_buf_lock_t sib_buf(last_buf, sib_node_id, alt_access_t::write);
+        buf_lock_t sib_buf(last_buf, sib_node_id, alt_access_t::write);
 
         bool node_is_mergable;
         {
@@ -596,7 +594,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
 
 void get_btree_superblock(alt_txn_t *txn, alt_access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out) {
-    alt_buf_lock_t tmp_buf(alt_buf_parent_t(txn), SUPERBLOCK_ID, access);
+    buf_lock_t tmp_buf(alt_buf_parent_t(txn), SUPERBLOCK_ID, access);
     scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
     *got_superblock_out = std::move(tmp_sb);
 }

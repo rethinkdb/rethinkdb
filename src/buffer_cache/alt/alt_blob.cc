@@ -285,7 +285,7 @@ int64_t blob_t::valuesize() const {
     return blob::value_size(ref_, maxreflen_);
 }
 
-void blob_t::detach_subtree(alt_buf_lock_t *root) {
+void blob_t::detach_subtree(buf_lock_t *root) {
     if (blob::is_small(ref_, maxreflen_)) {
         return;
     }
@@ -305,7 +305,7 @@ void blob_t::detach_subtree(alt_buf_lock_t *root) {
 }
 
 union temporary_acq_tree_node_t {
-    alt_buf_lock_t *buf;
+    buf_lock_t *buf;
     temporary_acq_tree_node_t *child;
 };
 
@@ -368,7 +368,7 @@ struct region_tree_filler_t {
 
     void operator()(int i) const {
         if (levels > 1) {
-            alt_buf_lock_t lock(parent, block_ids[lo + i], mode);
+            buf_lock_t lock(parent, block_ids[lo + i], mode);
             alt_buf_read_t buf_read(&lock);
             // RSI: Use this block size for an assertion or something.
             uint32_t unused_block_size;
@@ -381,7 +381,7 @@ struct region_tree_filler_t {
                                                             suboffset, subsize,
                                                             sub_ids);
         } else {
-            nodes[i].buf = new alt_buf_lock_t(parent, block_ids[lo + i], mode);
+            nodes[i].buf = new buf_lock_t(parent, block_ids[lo + i], mode);
         }
     }
 };
@@ -430,7 +430,7 @@ void expose_tree_from_block_ids(alt_buf_parent_t parent, alt_access_t mode,
             rassert(0 < subsize && subsize <= blob::leaf_size(parent.cache()->max_block_size()));
             rassert(0 <= suboffset && suboffset + subsize <= blob::leaf_size(parent.cache()->max_block_size()));
 
-            alt_buf_lock_t *buf = tree[i].buf;
+            buf_lock_t *buf = tree[i].buf;
             void *leaf_buf;
             if (mode == alt_access_t::read) {
                 alt_buf_read_t *buf_read = new alt_buf_read_t(buf);
@@ -606,8 +606,8 @@ namespace blob {
 
 struct traverse_helper_t {
     virtual void preprocess(alt_buf_parent_t parent, int levels,
-                            alt_buf_lock_t *lock_out, block_id_t *block_id) = 0;
-    virtual void postprocess(alt_buf_lock_t *lock) = 0;
+                            buf_lock_t *lock_out, block_id_t *block_id) = 0;
+    virtual void postprocess(buf_lock_t *lock) = 0;
     virtual ~traverse_helper_t() { }
 };
 
@@ -627,7 +627,7 @@ void traverse_index(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
 
     if (sub_old_size > 0) {
         if (levels > 1) {
-            alt_buf_lock_t lock(parent, block_ids[index], alt_access_t::write);
+            buf_lock_t lock(parent, block_ids[index], alt_access_t::write);
             alt_buf_write_t write(&lock);
             void *b = write.get_data_write();
 
@@ -639,7 +639,7 @@ void traverse_index(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
         }
 
     } else {
-        alt_buf_lock_t lock;
+        buf_lock_t lock;
         helper->preprocess(parent, levels, &lock, &block_ids[index]);
 
         if (levels > 1) {
@@ -727,8 +727,8 @@ bool blob_t::traverse_to_dimensions(alt_buf_parent_t parent, int levels,
 
 struct allocate_helper_t : public blob::traverse_helper_t {
     void preprocess(alt_buf_parent_t parent, int levels,
-                    alt_buf_lock_t *lock_out, block_id_t *block_id) {
-        alt_buf_lock_t temp_lock(parent, alt_create_t::create);
+                    buf_lock_t *lock_out, block_id_t *block_id) {
+        buf_lock_t temp_lock(parent, alt_create_t::create);
         lock_out->swap(temp_lock);
         *block_id = lock_out->block_id();
         alt_buf_write_t lock_write(lock_out);
@@ -739,7 +739,7 @@ struct allocate_helper_t : public blob::traverse_helper_t {
             *reinterpret_cast<block_magic_t *>(b) = blob::internal_node_magic;
         }
     }
-    void postprocess(UNUSED alt_buf_lock_t *lock) { }
+    void postprocess(UNUSED buf_lock_t *lock) { }
 };
 
 bool blob_t::allocate_to_dimensions(alt_buf_parent_t parent, int levels,
@@ -752,12 +752,12 @@ bool blob_t::allocate_to_dimensions(alt_buf_parent_t parent, int levels,
 
 struct deallocate_helper_t : public blob::traverse_helper_t {
     void preprocess(alt_buf_parent_t parent, UNUSED int levels,
-                    alt_buf_lock_t *lock_out, block_id_t *block_id) {
-        alt_buf_lock_t tmp(parent, *block_id, alt_access_t::write);
+                    buf_lock_t *lock_out, block_id_t *block_id) {
+        buf_lock_t tmp(parent, *block_id, alt_access_t::write);
         lock_out->swap(tmp);
     }
 
-    void postprocess(alt_buf_lock_t *lock) {
+    void postprocess(buf_lock_t *lock) {
         lock->mark_deleted();
     }
 };
@@ -837,7 +837,7 @@ void blob_t::consider_small_shift(alt_buf_parent_t parent, int levels,
         if (practical_end_offset + min_conceivable_shift <= step) {
             if (practical_offset < step && practical_end_offset <= 2 * step) {
                 block_id_t *ids = blob::block_ids(ref_, maxreflen_);
-                alt_buf_lock_t lobuf(parent, ids[0], alt_access_t::write);
+                buf_lock_t lobuf(parent, ids[0], alt_access_t::write);
                 alt_buf_write_t lobuf_write(&lobuf);
 
                 int64_t physical_shift = (min_conceivable_shift / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
@@ -849,7 +849,7 @@ void blob_t::consider_small_shift(alt_buf_parent_t parent, int levels,
                 memmove(data + physical_offset + physical_shift, data + physical_offset, low_copycount);
 
                 if (physical_end_offset > blob::leaf_size(block_size)) {
-                    alt_buf_lock_t hibuf(parent, ids[1], alt_access_t::write);
+                    buf_lock_t hibuf(parent, ids[1], alt_access_t::write);
                     {
                         alt_buf_read_t hibuf_read(&hibuf);
                         // RSI: Use the block size for an assertion or something.
@@ -873,7 +873,7 @@ void blob_t::consider_small_shift(alt_buf_parent_t parent, int levels,
 
 // Always returns levels + 1.
 int blob_t::add_level(alt_buf_parent_t parent, int levels) {
-    alt_buf_lock_t lock(parent, alt_create_t::create);
+    buf_lock_t lock(parent, alt_create_t::create);
     alt_buf_write_t lock_write(&lock);
     void *b = lock_write.get_data_write();
     if (levels == 0) {
@@ -922,8 +922,8 @@ bool blob_t::remove_level(alt_buf_parent_t parent, int *levels_ref) {
     rassert(!(bigoffset == end_offset && end_offset == blob::stepsize(parent.cache()->max_block_size(), levels)));
     if (!(bigoffset == end_offset && end_offset == 0)) {
 
-        alt_buf_lock_t lock(parent, blob::block_ids(ref_, maxreflen_)[0],
-                            alt_access_t::write);
+        buf_lock_t lock(parent, blob::block_ids(ref_, maxreflen_)[0],
+                        alt_access_t::write);
         if (levels == 1) {
             // We should tried shifting before removing a level.
             rassert(bigoffset == 0);

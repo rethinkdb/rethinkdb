@@ -165,7 +165,7 @@ void post_construct_and_drain_queue(
 void bring_sindexes_up_to_date(
         const std::set<std::string> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        alt_buf_lock_t *sindex_block)
+        buf_lock_t *sindex_block)
     THROWS_NOTHING
 {
     with_priority_t p(CORO_PRIORITY_SINDEX_CONSTRUCTION);
@@ -273,7 +273,7 @@ void post_construct_and_drain_queue(
             // release it immediately.
             block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-            scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
+            scoped_ptr_t<buf_lock_t> queue_sindex_block;
 
             store->acquire_sindex_block_for_write(
                 queue_superblock->expose_buf(),
@@ -350,7 +350,7 @@ void post_construct_and_drain_queue(
         // release it immediately.
         block_id_t sindex_block_id = queue_superblock->get_sindex_block_id();
 
-        scoped_ptr_t<alt_buf_lock_t> queue_sindex_block;
+        scoped_ptr_t<buf_lock_t> queue_sindex_block;
         store->acquire_sindex_block_for_write(
             queue_superblock->expose_buf(),
             &queue_sindex_block,
@@ -1248,7 +1248,7 @@ store_t::store_t(serializer_t *serializer,
     acquire_superblock_for_read(&token_pair.main_read_token, &txn,
                                 &superblock, &dummy_interruptor, false);
 
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_read(superblock->expose_buf(),
                                   &sindex_block,
                                   superblock->get_sindex_block_id());
@@ -1686,7 +1686,7 @@ private:
     repli_timestamp_t timestamp;
     wait_any_t interruptor;
     ql::env_t ql_env;
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    scoped_ptr_t<buf_lock_t> sindex_block;
 
     DISABLE_COPYING(rdb_write_visitor_t);
 };
@@ -1775,7 +1775,7 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
                        const std::vector<std::pair<region_t, state_timestamp_t> > &regions,
                        rdb_backfill_callback_t *callback,
                        superblock_t *superblock,
-                       alt_buf_lock_t *sindex_block,
+                       buf_lock_t *sindex_block,
                        backfill_progress_t *progress,
                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
@@ -1795,7 +1795,7 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
 void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_timestamp_t> &start_point,
                                      chunk_fun_callback_t<rdb_protocol_t> *chunk_fun_cb,
                                      superblock_t *superblock,
-                                     alt_buf_lock_t *sindex_block,
+                                     buf_lock_t *sindex_block,
                                      btree_slice_t *btree,
                                      backfill_progress_t *progress,
                                      signal_t *interruptor)
@@ -1902,7 +1902,7 @@ private:
     // RSI: Is interruptor still ignored?
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.
     block_id_t sindex_block_id;
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    scoped_ptr_t<buf_lock_t> sindex_block;
 };
 
 void store_t::protocol_receive_backfill(btree_slice_t *btree,
@@ -1926,7 +1926,7 @@ void store_t::protocol_reset_data(const region_t& subregion,
     rdb_value_deleter_t deleter;
 
     always_true_key_tester_t key_tester;
-    scoped_ptr_t<alt_buf_lock_t> sindex_block;
+    scoped_ptr_t<buf_lock_t> sindex_block;
     acquire_sindex_block_for_write(superblock->expose_buf(),
                                    &sindex_block,
                                    superblock->get_sindex_block_id());

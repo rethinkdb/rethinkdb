@@ -19,7 +19,7 @@ public:
           right_inclusive_or_null_(right_inclusive_or_null)
     { }
 
-    void process_a_leaf(alt_buf_lock_t *leaf_node_buf,
+    void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *l_excl,
                         const btree_key_t *r_incl,
                         signal_t *,
@@ -57,7 +57,7 @@ public:
         *population_change_out = -static_cast<int>(keys_to_delete.size());
     }
 
-    void postprocess_internal_node(UNUSED alt_buf_lock_t *internal_node_buf) {
+    void postprocess_internal_node(UNUSED buf_lock_t *internal_node_buf) {
         // We don't want to do anything here.
     }
 
