@@ -58,9 +58,9 @@ private:
             drainer(new auto_drainer_t),
 
             request_mailbox(new mailbox_t<void(request_type)>(parent->mailbox_manager,
-                boost::bind(&client_t::on_request, this, _1))),
+                std::bind(&client_t::on_request, this, ph::_1))),
             relinquish_tickets_mailbox(new mailbox_t<void(int)>(parent->mailbox_manager,
-                boost::bind(&client_t::on_relinquish_tickets, this, _1)))
+                std::bind(&client_t::on_relinquish_tickets, this, ph::_1)))
         {
             send(parent->mailbox_manager, client_bc.intro_addr,
                  server_business_card_t(request_mailbox->get_address(),
@@ -82,7 +82,7 @@ private:
         void give_tickets(int tickets) {
             ASSERT_FINITE_CORO_WAITING;
             held_tickets += tickets;
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &client_t::give_tickets_blocking, this,
                 tickets,
                 auto_drainer_t::lock_t(drainer.get())));
@@ -90,7 +90,7 @@ private:
 
         void set_target_tickets(int new_target) {
             if (target_tickets > new_target) {
-                coro_t::spawn_sometime(boost::bind(
+                coro_t::spawn_sometime(std::bind(
                     &client_t::reclaim_tickets_blocking, this,
                     target_tickets - new_target,
                     auto_drainer_t::lock_t(drainer.get())));
@@ -117,7 +117,7 @@ private:
             guarantee(held_tickets > 0);
             held_tickets--;
             in_use_tickets++;
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &client_t::perform_request, this,
                 request,
                 auto_drainer_t::lock_t(drainer.get())));

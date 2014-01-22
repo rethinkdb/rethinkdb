@@ -221,7 +221,7 @@ private:
         }
         std::sort(arr.begin(), arr.end(),
                   std::bind(lt_cmp, env->env,
-                            std::placeholders::_1, std::placeholders::_2));
+                            ph::_1, ph::_2));
         std::vector<counted_t<const datum_t> > toret;
         for (auto it = arr.begin(); it != arr.end(); ++it) {
             if (toret.size() == 0 || **it != *toret[toret.size()-1]) {

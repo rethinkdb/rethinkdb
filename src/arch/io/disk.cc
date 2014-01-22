@@ -25,8 +25,6 @@
 #include "do_on_thread.hpp"
 #include "logger.hpp"
 
-using namespace std::placeholders;  // for _1, _2, ...  NOLINT(build/namespaces)
-
 void verify_aligned_file_access(DEBUG_VAR int64_t file_size, DEBUG_VAR int64_t offset,
                                 DEBUG_VAR size_t length,
                                 DEBUG_VAR const scoped_array_t<iovec> &bufs);
@@ -58,17 +56,17 @@ public:
         queue. (The parts below the queue use the `passive_producer_t` interface instead
         of a callback function.) */
         stack_stats.submit_fun = std::bind(&conflict_resolving_diskmgr_t::submit,
-                                           &conflict_resolver, _1);
+                                           &conflict_resolver, ph::_1);
         conflict_resolver.submit_fun = std::bind(&accounting_diskmgr_t::submit,
-                                                 &accounter, _1);
+                                                 &accounter, ph::_1);
 
         /* Hook up everything's `done_fun`. */
-        backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, _1);
-        backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, _1);
+        backend.done_fun = std::bind(&stats_diskmgr_2_t::done, &backend_stats, ph::_1);
+        backend_stats.done_fun = std::bind(&accounting_diskmgr_t::done, &accounter, ph::_1);
         accounter.done_fun = std::bind(&conflict_resolving_diskmgr_t::done,
-                                       &conflict_resolver, _1);
-        conflict_resolver.done_fun = std::bind(&stats_diskmgr_t::done, &stack_stats, _1);
-        stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, _1);
+                                       &conflict_resolver, ph::_1);
+        conflict_resolver.done_fun = std::bind(&stats_diskmgr_t::done, &stack_stats, ph::_1);
+        stack_stats.done_fun = std::bind(&linux_disk_manager_t::done, this, ph::_1);
     }
 
     ~linux_disk_manager_t() {
