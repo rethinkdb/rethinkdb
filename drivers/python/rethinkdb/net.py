@@ -98,7 +98,7 @@ class Connection(object):
         try:
             self.socket = socket.create_connection((self.host, self.port), self.timeout)
         except Exception as err:
-            raise RqlDriverError("Could not connect to %s:%s." % (self.host, self.port))
+            raise RqlDriverError("Could not connect to %s:%s. Error: %s" % (self.host, self.port, err))
 
         self._sock_sendall(struct.pack("<L", p.VersionDummy.V0_2))
         self._sock_sendall(struct.pack("<L", len(self.auth_key)) + str.encode(self.auth_key, 'ascii'))
