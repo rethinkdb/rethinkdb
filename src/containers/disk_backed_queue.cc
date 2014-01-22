@@ -95,39 +95,53 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     // No need for hard durability with an unlinked dbq file.
     txn_t txn(cache.get(), write_durability_t::SOFT, repli_timestamp_t::distant_past, 2);
 
-    auto _tail = make_scoped<buf_lock_t>(buf_parent_t(&txn), tail_block_id,
-                                         alt_access_t::write);
-    auto write = make_scoped<buf_write_t>(_tail.get());
-    queue_block_t *tail = static_cast<queue_block_t *>(write->get_data_write());
-    rassert(tail->data_size != tail->live_data_offset);
+    buf_lock_t _tail(buf_parent_t(&txn), tail_block_id, alt_access_t::write);
+
+    /* Grab the data from the blob and delete it. */
+    {
+        buf_read_t read(&_tail);
+        const queue_block_t *tail
+            = static_cast<const queue_block_t *>(read.get_data_read());
+        rassert(tail->data_size != tail->live_data_offset);
+        memcpy(buffer, tail->data + tail->live_data_offset,
+               blob::ref_size(cache->max_block_size(),
+                              tail->data + tail->live_data_offset,
+                              DBQ_MAX_REF_SIZE));
+    }
 
     /* Grab the data from the blob and delete it. */
 
-    memcpy(buffer, tail->data + tail->live_data_offset, blob::ref_size(cache->max_block_size(), tail->data + tail->live_data_offset, DBQ_MAX_REF_SIZE));
     std::vector<char> data_vec;
 
     blob_t blob(cache->max_block_size(), buffer, DBQ_MAX_REF_SIZE);
     {
         blob_acq_t acq_group;
         buffer_group_t blob_group;
-        blob.expose_all(buf_parent_t(_tail.get()), alt_access_t::read,
+        blob.expose_all(buf_parent_t(&_tail), alt_access_t::read,
                         &blob_group, &acq_group);
 
         viewer->view_buffer_group(const_view(&blob_group));
     }
 
-    /* Record how far along in the blob we are. */
-    tail->live_data_offset += blob.refsize(cache->max_block_size());
+    int32_t data_size;
+    int32_t live_data_offset;
+    {
+        buf_write_t write(&_tail);
+        queue_block_t *tail = static_cast<queue_block_t *>(write.get_data_write());
+        /* Record how far along in the blob we are. */
+        tail->live_data_offset += blob.refsize(cache->max_block_size());
+        data_size = tail->data_size;
+        live_data_offset = tail->live_data_offset;
+    }
 
-    blob.clear(buf_parent_t(_tail.get()));
+    blob.clear(buf_parent_t(&_tail));
 
     queue_size--;
 
+    _tail.reset_buf_lock();
+
     /* If that was the last blob in this block move on to the next one. */
-    if (tail->live_data_offset == tail->data_size) {
-        // RSI: This manual write/_tail resetting is a bit ghetto -- can we clean it up a bit?
-        write.reset();
-        _tail.reset();
+    if (live_data_offset == data_size) {
         remove_block_from_tail(&txn);
     }
 }

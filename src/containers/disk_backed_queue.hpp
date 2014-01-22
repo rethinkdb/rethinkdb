@@ -24,7 +24,7 @@ class perfmon_collection_t;
 
 struct queue_block_t {
     block_id_t next;
-    int data_size, live_data_offset;
+    int32_t data_size, live_data_offset;
     char data[0];
 };
 
