@@ -110,8 +110,8 @@ connectivity_cluster_t::run_t::run_t(connectivity_cluster_t *p,
     connection_to_ourself(this, parent->me, NULL, routing_table[parent->me]),
 
     listener(new tcp_listener_t(cluster_listener_socket.get(),
-                                boost::bind(&connectivity_cluster_t::run_t::on_new_connection,
-                                            this, _1, auto_drainer_t::lock_t(&drainer))))
+                                std::bind(&connectivity_cluster_t::run_t::on_new_connection,
+                                          this, ph::_1, auto_drainer_t::lock_t(&drainer))))
 {
     parent->assert_thread();
 }
