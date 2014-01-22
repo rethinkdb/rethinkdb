@@ -343,7 +343,6 @@ public:
     ~buf_read_t();
 
     const void *get_data_read(uint32_t *block_size_out);
-    // RSI: Remove.
     const void *get_data_read() {
         uint32_t block_size;
         const void *data = get_data_read(&block_size);
