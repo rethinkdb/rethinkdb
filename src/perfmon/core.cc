@@ -134,14 +134,15 @@ bool perfmon_membership_t::splice() {
     return name.length() == 0;
 }
 
-void perfmon_multi_membership_t::init(perfmon_collection_t *collection, ...) {
+void perfmon_multi_membership_t::init(perfmon_collection_t *collection,
+                                      size_t count, ...) {
     va_list args;
-    va_start(args, collection);
+    va_start(args, count);
 
     perfmon_t *perfmon;
     const char *name;
-    // Now go through varargs list until we read NULL
-    while ((perfmon = va_arg(args, perfmon_t *)) != NULL) {
+    for (size_t i = 0; i < count; ++i) {
+        perfmon = va_arg(args, perfmon_t *);
         name = va_arg(args, const char *);
         memberships.push_back(new perfmon_membership_t(collection, perfmon, name));
     }

@@ -98,13 +98,13 @@ public:
                                // This block of (perfmon_t *perfmon, const char
                                // *name, ) is to be repeated as many times as needed.
                                Args... args) {
-        init(collection, args..., NULLPTR);
+        init(collection, sizeof...(Args) / 2, args...);
     }
 
     ~perfmon_multi_membership_t();
 
 private:
-    void init(perfmon_collection_t *collection, ...);
+    void init(perfmon_collection_t *collection, size_t count, ...);
 
     std::vector<perfmon_membership_t *> memberships;
 
