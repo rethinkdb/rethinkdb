@@ -1684,10 +1684,11 @@ private:
     write_response_t *response;
     scoped_ptr_t<superblock_t> *superblock;
     repli_timestamp_t timestamp;
-    // RSI: Is interruptor actually used?
     wait_any_t interruptor;
     ql::env_t ql_env;
     scoped_ptr_t<alt_buf_lock_t> sindex_block;
+
+    DISABLE_COPYING(rdb_write_visitor_t);
 };
 
 void store_t::protocol_write(const write_t &write,
