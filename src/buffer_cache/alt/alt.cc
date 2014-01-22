@@ -10,6 +10,37 @@
 // RSI: get rid of this.
 #define ALT_DEBUG 0
 
+
+// The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
+// given block id, in order by version.  (See
+// cache_t::snapshot_nodes_by_block_id_.)
+class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
+public:
+    explicit alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
+    ~alt_snapshot_node_t();
+
+private:
+    // RSI: Should this really use friends?  Does this type need to be visible in the
+    // header?
+    friend class buf_lock_t;
+    friend class cache_t;
+
+    // This is never null (and is always a current_page_acq_t that has had
+    // declare_snapshotted() called).
+    scoped_ptr_t<current_page_acq_t> current_page_acq_;
+
+    // RSP: std::map memory usage.
+    // A NULL pointer associated with a block id indicates that the block is deleted.
+    std::map<block_id_t, alt_snapshot_node_t *> children_;
+
+    // The number of buf_lock_t's referring to this node, plus the number of
+    // alt_snapshot_node_t's referring to this node (via its children_ vector).
+    int64_t ref_count_;
+
+
+    DISABLE_COPYING(alt_snapshot_node_t);
+};
+
 // RSI: Add ASSERT_FINITE_CORO_WAITING or ASSERT_NO_CORO_WAITING wherever we can.
 
 alt_memory_tracker_t::alt_memory_tracker_t()
