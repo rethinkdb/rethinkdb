@@ -573,45 +573,6 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
     return true;
 }
 
-template <class protocol_t>
-void btree_store_t<protocol_t>::drop_all_sindexes(
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    assert_thread();
-
-    /* First get the sindex block. */
-    scoped_ptr_t<buf_lock_t> sindex_block;
-    acquire_sindex_block_for_write(super_block->expose_buf(),
-                                   &sindex_block,
-                                   super_block->get_sindex_block_id());
-    /* Remove reference in the super block */
-    std::map<std::string, secondary_index_t> sindexes;
-    get_secondary_indexes(sindex_block.get(), &sindexes);
-    delete_all_secondary_indexes(sindex_block.get());
-
-    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        /* After deleting the sindex from the sindex_block we can now detach it
-         * as a child, it's now a parentless block. */
-        sindex_block->detach_child(it->second.superblock);
-    }
-
-    /* We need to save the txn because we are about to release this block. */
-    txn_t *txn = sindex_block->txn();
-    /* Release the sindex block so others may proceed. */
-    sindex_block->reset_buf_lock();
-
-    for (auto it = sindexes.begin(); it != sindexes.end(); ++it) {
-        /* Make sure we have a record of the slice. */
-        guarantee(std_contains(secondary_index_slices, it->first));
-        btree_slice_t *sindex_slice = &(secondary_index_slices.at(it->first));
-        clear_sindex(txn, it->second.superblock,
-                sindex_slice, sizer, deleter, interruptor);
-        secondary_index_slices.erase(it->first);
-    }
-}
 
 // RSI: This used to take an interruptor.
 template <class protocol_t>

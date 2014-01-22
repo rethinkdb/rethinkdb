@@ -189,14 +189,6 @@ public:
         signal_t *interruptor)
     THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: drop_all_sindexes is unused.
-    void drop_all_sindexes(
-        superblock_t *super_block,
-        value_sizer_t<void> *sizer,
-        value_deleter_t *deleter,
-        signal_t *interruptor)
-    THROWS_ONLY(interrupted_exc_t);
-
     // RSI: This should release the superblock internally after getting its
     // sindex_block (so that sindex_list_t and sindex_status_t, the queries which use
     // this, don't block other queries).  It would be nice in general if we supported
