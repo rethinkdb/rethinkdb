@@ -20,7 +20,7 @@ public:
         uuid_u _us);
     virtual ~semilattice_http_app_t();
 
-    http_res_t handle(const http_req_t &);
+    http_res_t handle(const http_req_t &, signal_t *interruptor);
     void get_root(scoped_cJSON_t *json_out);
 
 protected:

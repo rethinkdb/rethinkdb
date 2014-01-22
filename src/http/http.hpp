@@ -148,7 +148,7 @@ private:
 
 class http_app_t {
 public:
-    virtual http_res_t handle(const http_req_t &) = 0;
+    virtual http_res_t handle(const http_req_t &, signal_t *interruptor) = 0;
 protected:
     virtual ~http_app_t() { }
 };

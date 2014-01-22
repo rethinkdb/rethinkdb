@@ -19,7 +19,7 @@ file_http_app_t::file_http_app_t(std::set<std::string> _whitelist, std::string _
     : whitelist(_whitelist), asset_dir(_asset_dir)
 { }
 
-http_res_t file_http_app_t::handle(const http_req_t &req) {
+http_res_t file_http_app_t::handle(const http_req_t &req, signal_t *) {
     if (req.method != GET) {
         /* Method not allowed. */
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);

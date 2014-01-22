@@ -19,7 +19,7 @@ void last_seen_http_app_t::get_root(scoped_cJSON_t *json_out) {
     json_out->reset(json_adapter.render());
 }
 
-http_res_t last_seen_http_app_t::handle(const http_req_t &req) {
+http_res_t last_seen_http_app_t::handle(const http_req_t &req, signal_t *) {
     if (req.method != GET) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }

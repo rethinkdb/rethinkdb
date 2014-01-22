@@ -16,7 +16,7 @@ public:
             const clone_ptr_t<watchable_t<std::map<peer_id_t, log_server_business_card_t> > > &log_mailbox_view,
             const clone_ptr_t<watchable_t<std::map<peer_id_t, machine_id_t> > > &machine_id_translation_table);
 
-    http_res_t handle(const http_req_t &req);
+    http_res_t handle(const http_req_t &req, signal_t *interruptor);
 
 private:
     void fetch_logs(int i,

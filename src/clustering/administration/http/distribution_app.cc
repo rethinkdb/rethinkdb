@@ -23,7 +23,7 @@ distribution_app_t::distribution_app_t(boost::shared_ptr<semilattice_read_view_t
       rdb_ns_repo(_rdb_ns_repo)
 { }
 
-http_res_t distribution_app_t::handle(const http_req_t &req) {
+http_res_t distribution_app_t::handle(const http_req_t &req, signal_t *interruptor) {
     if (req.method != GET) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
@@ -58,14 +58,13 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
 
     if (std_contains(ns_snapshot->namespaces, n_id)) {
         try {
-            cond_t interrupt;
-            namespace_repo_t<memcached_protocol_t>::access_t ns_access(ns_repo, n_id, &interrupt);
+            namespace_repo_t<memcached_protocol_t>::access_t ns_access(ns_repo, n_id, interruptor);
 
             memcached_protocol_t::read_t read(distribution_get_query_t(depth, limit), time(NULL));
             memcached_protocol_t::read_response_t db_res;
             ns_access.get_namespace_if()->read_outdated(read,
                                                         &db_res,
-                                                        &interrupt);
+                                                        interruptor);
 
             scoped_cJSON_t data(render_as_json(&boost::get<distribution_result_t>(db_res.result).key_counts));
             return http_json_res(data.get());
@@ -74,15 +73,14 @@ http_res_t distribution_app_t::handle(const http_req_t &req) {
         }
     } else if (std_contains(rdb_ns_snapshot->namespaces, n_id)) {
         try {
-            cond_t interrupt;
-            namespace_repo_t<rdb_protocol_t>::access_t rdb_ns_access(rdb_ns_repo, n_id, &interrupt);
+            namespace_repo_t<rdb_protocol_t>::access_t rdb_ns_access(rdb_ns_repo, n_id, interruptor);
 
             rdb_protocol_t::distribution_read_t inner_read(depth, limit);
             rdb_protocol_t::read_t read(inner_read, profile_bool_t::DONT_PROFILE);
             rdb_protocol_t::read_response_t db_res;
             rdb_ns_access.get_namespace_if()->read_outdated(read,
                                                             &db_res,
-                                                            &interrupt);
+                                                            interruptor);
 
             scoped_cJSON_t data(render_as_json(&boost::get<rdb_protocol_t::distribution_read_response_t>(db_res.response).key_counts));
             return http_json_res(data.get());

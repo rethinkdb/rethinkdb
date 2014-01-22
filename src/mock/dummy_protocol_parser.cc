@@ -9,7 +9,7 @@ query_http_app_t::query_http_app_t(namespace_interface_t<dummy_protocol_t> * _na
     : namespace_if(_namespace_if)
 { }
 
-http_res_t query_http_app_t::handle(const http_req_t &req) {
+http_res_t query_http_app_t::handle(const http_req_t &req, signal_t *) {
     try {
         switch (req.method) {
             case GET:

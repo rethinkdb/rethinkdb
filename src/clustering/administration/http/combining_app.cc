@@ -7,7 +7,7 @@
 combining_http_app_t::combining_http_app_t(std::map<std::string, http_json_app_t *> _components)
     : components(_components) { }
 
-http_res_t combining_http_app_t::handle(const http_req_t &req) {
+http_res_t combining_http_app_t::handle(const http_req_t &req, signal_t *interruptor) {
     if (req.method != GET && req.method != POST) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
@@ -31,7 +31,7 @@ http_res_t combining_http_app_t::handle(const http_req_t &req) {
                 subreq.body = cJSON_PrintUnformatted(subpost);
                 /* We discard the result of [handle] because it might change
                    when we handle a later request. */
-                it->second->handle(subreq);
+                it->second->handle(subreq, interruptor);
             }
         }
     }

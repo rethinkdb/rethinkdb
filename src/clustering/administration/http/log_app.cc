@@ -42,7 +42,7 @@ static bool scan_timespec(const char *string, struct timespec *out) {
     }
 }
 
-http_res_t log_http_app_t::handle(const http_req_t &req) {
+http_res_t log_http_app_t::handle(const http_req_t &req, signal_t *interruptor) {
     if (req.method != GET) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
@@ -113,13 +113,12 @@ http_res_t log_http_app_t::handle(const http_req_t &req) {
 
     scoped_cJSON_t map_to_fill(cJSON_CreateObject());
 
-    cond_t non_interruptor;
     pmap(peer_ids.size(), boost::bind(
         &log_http_app_t::fetch_logs, this, _1,
         machine_ids, peer_ids,
         max_length, min_timestamp, max_timestamp,
         map_to_fill.get(),
-        &non_interruptor));
+        interruptor));
 
     return http_json_res(map_to_fill.get());
 }

@@ -19,10 +19,9 @@ query_http_app_t::query_http_app_t(const boost::shared_ptr<semilattice_read_view
 { }
 
 query_http_app_t::~query_http_app_t() {
-    on_destruct.pulse();
 }
 
-http_res_t query_http_app_t::handle(const http_req_t &req) {
+http_res_t query_http_app_t::handle(const http_req_t &req, signal_t *interruptor) {
     try {
         switch (req.method) {
         case GET:
@@ -55,14 +54,12 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 rdb_protocol_t::read_response_t read_res;
 
-                try {
-                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_uuid, &on_destruct);
+                {
+                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_uuid, interruptor);
 
                     store_key_t key(*it);
                     read.read = rdb_protocol_t::point_read_t(key);
-                    ns_access.get_namespace_if()->read(read, &read_res, order_source.check_in("dummy parser"), &on_destruct);
-                } catch (const interrupted_exc_t &) {
-                    return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
+                    ns_access.get_namespace_if()->read(read, &read_res, order_source.check_in("dummy parser"), interruptor);
                 }
 
                 http_res_t res;
@@ -115,14 +112,12 @@ http_res_t query_http_app_t::handle(const http_req_t &req) {
 
                 rdb_protocol_t::write_response_t write_res;
 
-                try {
-                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_uuid, &on_destruct);
+                {
+                    namespace_repo_t<rdb_protocol_t>::access_t ns_access(ns_repo, namespace_uuid, interruptor);
 
                     write.write = rdb_protocol_t::point_write_t(key, make_counted<ql::datum_t>(*doc));
 
-                    ns_access.get_namespace_if()->write(write, &write_res, order_source.check_in("rdb parser"), &on_destruct);
-                } catch (const interrupted_exc_t &) {
-                    return http_res_t(HTTP_INTERNAL_SERVER_ERROR);
+                    ns_access.get_namespace_if()->write(write, &write_res, order_source.check_in("rdb parser"), interruptor);
                 }
 
                 return http_res_t(HTTP_NO_CONTENT);

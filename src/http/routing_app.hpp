@@ -13,7 +13,7 @@ public:
 
     void add_route(const std::string& route, http_app_t *server);
 
-    http_res_t handle(const http_req_t &);
+    http_res_t handle(const http_req_t &, signal_t *interruptor);
 
 private:
     std::map<std::string, http_app_t *> subroutes;

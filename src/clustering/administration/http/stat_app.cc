@@ -135,7 +135,7 @@ boost::optional<http_res_t> parse_query_params(
     return boost::none;
 }
 
-http_res_t stat_http_app_t::handle(const http_req_t &req) {
+http_res_t stat_http_app_t::handle(const http_req_t &req, signal_t *interruptor) {
     if (req.method != GET) {
         return http_res_t(HTTP_METHOD_NOT_ALLOWED);
     }
@@ -183,7 +183,7 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
         machine_id_t machine = it->first;
 
         const signal_t * stats_ready = it->second->stats.get_ready_signal();
-        wait_any_t waiter(&timer, stats_ready);
+        wait_any_t waiter(&timer, stats_ready, interruptor);
         waiter.wait();
 
         if (stats_ready->is_pulsed()) {
@@ -191,6 +191,8 @@ http_res_t stat_http_app_t::handle(const http_req_t &req) {
             if (stats.get_map_size() != 0) {
                 body.AddItemToObject(uuid_to_str(machine).c_str(), render_as_json(&stats));
             }
+        } else if (interruptor->is_pulsed()) {
+            throw interrupted_exc_t();
         } else {
             not_replied.push_back(machine);
         }

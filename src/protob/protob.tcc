@@ -242,7 +242,7 @@ void protob_server_t<request_t, response_t, context_t>::send(
 
 template <class request_t, class response_t, class context_t>
 http_res_t protob_server_t<request_t, response_t, context_t>::handle(
-    const http_req_t &req) {
+    const http_req_t &req, signal_t *interruptor) {
     auto_drainer_t::lock_t auto_drainer_lock(&auto_drainer);
     if (req.method == POST &&
         req.resource.as_string().find("close-connection") != std::string::npos) {
@@ -310,8 +310,13 @@ http_res_t protob_server_t<request_t, response_t, context_t>::handle(
                 std::string err = "This HTTP connection not open.";
                 response = on_unparsable_query(request, err);
             } else {
+                // TODO: exception-safe code
                 context_t *ctx = conn->get_ctx();
+                signal_t *old_interruptor = ctx->interruptor;
+                wait_any_t new_interruptor(old_interruptor, interruptor);
+                ctx->interruptor = &new_interruptor;
                 response_needed = f(request, &response, ctx);
+                ctx->interruptor = old_interruptor;
                 if (!response_needed) {
                     return http_res_t(HTTP_BAD_REQUEST, "application/text",
                                       "Noreply writes unsupported over HTTP\n");

@@ -16,7 +16,7 @@ public:
     stat_http_app_t(mailbox_manager_t *_mbox_manager,
                     clone_ptr_t<watchable_t<change_tracking_map_t<peer_id_t, cluster_directory_metadata_t> > >& _directory,
                     boost::shared_ptr<semilattice_readwrite_view_t<cluster_semilattice_metadata_t> >& _semilattice);
-    http_res_t handle(const http_req_t &req);
+    http_res_t handle(const http_req_t &req, signal_t *interruptor);
 
 private:
     typedef std::map<peer_id_t, cluster_directory_metadata_t> peers_to_metadata_t;

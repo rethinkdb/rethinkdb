@@ -37,7 +37,7 @@ void semilattice_http_app_t<metadata_t>::get_root(scoped_cJSON_t *json_out) {
 }
 
 template <class metadata_t>
-http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req) {
+http_res_t semilattice_http_app_t<metadata_t>::handle(const http_req_t &req, signal_t *) {
     try {
         metadata_t metadata = metadata_change_handler->get();
 
