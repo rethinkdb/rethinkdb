@@ -11,7 +11,7 @@
 template <class element_t>
 class segmented_vector_t {
 private:
-    static const size_t ELEMENTS_PER_SEGMENT = 1 << 12;
+    static const size_t ELEMENTS_PER_SEGMENT = 1 << 14;
 
     struct segment_t {
         element_t elements[ELEMENTS_PER_SEGMENT];
