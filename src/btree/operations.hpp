@@ -244,7 +244,6 @@ void insert_root(block_id_t root_id, superblock_t *sb);
 /* Create a stat block for the superblock if it doesn't already have one. */
 void ensure_stat_block(superblock_t *sb);
 
-// RSI: return the scoped_ptr_t.
 void get_btree_superblock(txn_t *txn, alt_access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
