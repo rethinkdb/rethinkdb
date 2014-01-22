@@ -15,7 +15,7 @@
 proc_stats_collector_t::proc_stats_collector_t(perfmon_collection_t *stats) :
     instantaneous_stats_collector(),
     stats_membership(stats,
-        &instantaneous_stats_collector, NULL) {
+        &instantaneous_stats_collector, static_cast<const char *>(NULL)) {
 }
 
 proc_stats_collector_t::instantaneous_stats_collector_t::instantaneous_stats_collector_t() {
