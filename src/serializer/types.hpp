@@ -265,7 +265,8 @@ struct serializer_traits_t<serializer_t> {
     typedef standard_block_token_t block_token_type;
 };
 
-// RSI: What uses this?
+// TODO: This is obsolete because the serializer multiplexer isn't used with multiple
+// files any more.
 typedef int64_t creation_timestamp_t;
 
 
