@@ -49,8 +49,6 @@ public:
     these functions. They can be safely called from any thread. */
 
     virtual scoped_malloc_t<ser_buffer_t> malloc() = 0;
-    // RSI: Does the new cache use clone?
-    virtual scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *) = 0;
 
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */

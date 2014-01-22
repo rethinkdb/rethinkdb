@@ -194,10 +194,6 @@ scoped_malloc_t<ser_buffer_t> translator_serializer_t::malloc() {
     return inner->malloc();
 }
 
-scoped_malloc_t<ser_buffer_t> translator_serializer_t::clone(const ser_buffer_t *data) {
-    return inner->clone(data);
-}
-
 file_account_t *translator_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     return inner->make_io_account(priority, outstanding_requests_limit);
 }

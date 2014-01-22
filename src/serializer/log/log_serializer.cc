@@ -391,14 +391,6 @@ scoped_malloc_t<ser_buffer_t> log_serializer_t::malloc() {
     return buf;
 }
 
-scoped_malloc_t<ser_buffer_t> log_serializer_t::clone(const ser_buffer_t *_data) {
-    scoped_malloc_t<ser_buffer_t> buf(
-        malloc_aligned(static_config.block_size().ser_value(),
-                       DEVICE_BLOCK_SIZE));
-    memcpy(buf.get(), _data, static_config.block_size().ser_value());
-    return buf;
-}
-
 file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_requests_limit) {
     assert_thread();
     rassert(dbfile);

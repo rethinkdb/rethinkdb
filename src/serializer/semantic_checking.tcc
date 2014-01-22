@@ -67,12 +67,6 @@ semantic_checking_serializer_t<inner_serializer_t>::malloc() {
 }
 
 template<class inner_serializer_t>
-scoped_malloc_t<ser_buffer_t>
-semantic_checking_serializer_t<inner_serializer_t>::clone(const ser_buffer_t *data) {
-    return inner_serializer.clone(data);
-}
-
-template<class inner_serializer_t>
 file_account_t *semantic_checking_serializer_t<inner_serializer_t>::make_io_account(int priority, int outstanding_requests_limit) {
     return inner_serializer.make_io_account(priority, outstanding_requests_limit);
 }

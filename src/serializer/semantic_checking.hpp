@@ -50,7 +50,6 @@ public:
     ~semantic_checking_serializer_t();
 
     scoped_malloc_t<ser_buffer_t> malloc();
-    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *data);
 
     using serializer_t::make_io_account;
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);

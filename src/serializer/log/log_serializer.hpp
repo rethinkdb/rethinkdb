@@ -136,7 +136,6 @@ public:
 public:
     /* Implementation of the serializer_t API */
     scoped_malloc_t<ser_buffer_t> malloc();
-    scoped_malloc_t<ser_buffer_t> clone(const ser_buffer_t *);
 
 #ifndef SEMANTIC_SERIALIZER_CHECK
     using serializer_t::make_io_account;
