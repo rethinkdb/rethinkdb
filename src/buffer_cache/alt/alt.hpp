@@ -245,7 +245,6 @@ public:
     // RSI: Remove get_block_id().
     block_id_t get_block_id() const { return block_id(); }
 
-    // RSI: Rename.
     repli_timestamp_t get_recency() const;
 
     alt_access_t access() const {
