@@ -129,7 +129,7 @@ int connectivity_cluster_t::run_t::get_port() {
 
 void connectivity_cluster_t::run_t::join(const peer_address_t &address) THROWS_NOTHING {
     parent->assert_thread();
-    coro_t::spawn_now_dangerously(boost::bind(
+    coro_t::spawn_now_dangerously(std::bind(
         &connectivity_cluster_t::run_t::join_blocking,
         this,
         address,
