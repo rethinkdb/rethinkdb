@@ -382,8 +382,6 @@ bool btree_store_t<protocol_t>::add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
         buf_lock_t *sindex_block) {
-    // RSI: This function can't throw an interrupted_exc_t, can it?
-
     secondary_index_t sindex;
     if (::get_secondary_index(sindex_block, id, &sindex)) {
         return false; // sindex was already created
@@ -593,8 +591,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-    // RSI: This function can't throw the interrupted_exc_t, can it?
+    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
     assert_thread();
 
     /* Acquire the sindex block. */
@@ -627,8 +624,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         block_id_t sindex_block_id,
         buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-    // RSI: This function can't throw the interrupted_exc_t, can it?
+    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
     assert_thread();
 
     /* Get the sindex block. */
@@ -658,8 +654,7 @@ void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
         buf_parent_t parent,
         sindex_access_vector_t *sindex_sbs_out)
-    THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
-    // RSI: This can't throw the interrupted_exc_t, can it?
+    THROWS_ONLY(sindex_not_post_constructed_exc_t) {
     assert_thread();
 
     /* Get the sindex block. */

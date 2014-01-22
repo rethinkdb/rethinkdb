@@ -208,14 +208,14 @@ public:
             buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out) // Optional, may be NULL
-        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             block_id_t sindex_block_id,
             buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out)
-        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     struct sindex_access_t {
         sindex_access_t(btree_slice_t *_btree, secondary_index_t _sindex,
@@ -235,7 +235,7 @@ public:
             block_id_t sindex_block_id,
             buf_parent_t parent,
             sindex_access_vector_t *sindex_sbs_out)
-        THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
+        THROWS_ONLY(sindex_not_post_constructed_exc_t);
 
     void acquire_all_sindex_superblocks_for_write(
             buf_lock_t *sindex_block,
