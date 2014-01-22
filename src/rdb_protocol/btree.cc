@@ -170,13 +170,6 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     kv_location_set(kv_location, *info.key, data,
                     info.btree->timestamp, mod_info_out);
 }
-void kv_location_delete(keyvalue_location_t<rdb_value_t> *kv_location,
-                        const btree_loc_info_t &info,
-                        rdb_modification_info_t *mod_info_out) {
-    // RSI: Just pass timestamp, no `info`?  (Is `info` relatively spurious now?)
-    kv_location_delete(kv_location, *info.key,
-                       info.btree->timestamp, mod_info_out);
-}
 
 batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
@@ -262,7 +255,8 @@ batched_replace_response_t rdb_replace_and_return_superblock(
         } else {
             if (ended_empty) {
                 conflict = resp.add("deleted", make_counted<ql::datum_t>(1.0));
-                kv_location_delete(&kv_location, info, mod_info_out);
+                kv_location_delete(&kv_location, *info.key, info.btree->timestamp,
+                                   mod_info_out);
                 guarantee(!mod_info_out->deleted.second.empty());
                 guarantee(mod_info_out->added.second.empty());
                 mod_info_out->deleted.first = old_val;
