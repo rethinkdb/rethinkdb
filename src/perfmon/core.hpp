@@ -89,18 +89,23 @@ private:
     DISABLE_COPYING(perfmon_membership_t);
 };
 
+
+
 class perfmon_multi_membership_t {
 public:
-    // RSI: Make this take a variadic constructor or something.
+    template <class... Args>
     perfmon_multi_membership_t(perfmon_collection_t *collection,
                                // This block of (perfmon_t *perfmon, const char
-                               // *name, ) is to be repeated as many times as needed,
-                               // and then followed by NULLPTR.
+                               // *name, ) is to be repeated as many times as needed.
+                               Args... args) {
+        init(collection, args..., NULLPTR);
+    }
 
-                               /* perfmon_t *perfmon, const char *name, */
-                               ...);
     ~perfmon_multi_membership_t();
+
 private:
+    void init(perfmon_collection_t *collection, ...);
+
     std::vector<perfmon_membership_t *> memberships;
 
     DISABLE_COPYING(perfmon_multi_membership_t);

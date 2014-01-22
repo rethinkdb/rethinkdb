@@ -134,7 +134,7 @@ bool perfmon_membership_t::splice() {
     return name.length() == 0;
 }
 
-perfmon_multi_membership_t::perfmon_multi_membership_t(perfmon_collection_t *collection, ...) {
+void perfmon_multi_membership_t::init(perfmon_collection_t *collection, ...) {
     va_list args;
     va_start(args, collection);
 

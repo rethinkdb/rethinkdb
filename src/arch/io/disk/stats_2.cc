@@ -21,8 +21,7 @@ stats_diskmgr_2_t::stats_diskmgr_2_t(
     write_sampler(secs_to_ticks(1)),
     stats_membership(stats,
                      &read_sampler, (name + "_read").c_str(),
-                     &write_sampler, (name + "_write").c_str(),
-                     NULLPTR) { }
+                     &write_sampler, (name + "_write").c_str()) { }
 
 
 void stats_diskmgr_2_t::done(pool_diskmgr_t::action_t *p) {

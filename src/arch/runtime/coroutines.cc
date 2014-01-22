@@ -97,8 +97,7 @@ TLS_with_init(coro_globals_t *, cglobals, NULL);
 static perfmon_counter_t pm_active_coroutines, pm_allocated_coroutines;
 static perfmon_multi_membership_t pm_coroutines_membership(&get_global_perfmon_collection(),
     &pm_active_coroutines, "active_coroutines",
-    &pm_allocated_coroutines, "allocated_coroutines",
-    NULLPTR);
+    &pm_allocated_coroutines, "allocated_coroutines");
 
 coro_runtime_t::coro_runtime_t() {
     rassert(!TLS_get_cglobals(), "coro runtime initialized twice on this thread");

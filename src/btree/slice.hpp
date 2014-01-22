@@ -30,8 +30,7 @@ public:
           pm_keys_membership(&btree_collection,
               &pm_keys_read, "keys_read",
               &pm_keys_set, "keys_set",
-              &pm_keys_expired, "keys_expired",
-              NULLPTR)
+              &pm_keys_expired, "keys_expired")
     { }
 
     perfmon_collection_t btree_collection;

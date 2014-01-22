@@ -146,8 +146,7 @@ log_serializer_stats_t::log_serializer_stats_t(perfmon_collection_t *parent)
           &pm_serializer_data_blocks_written, "serializer_data_blocks_written",
           &pm_serializer_old_garbage_block_bytes, "serializer_old_garbage_block_bytes",
           &pm_serializer_old_total_block_bytes, "serializer_old_total_block_bytes",
-          &pm_serializer_lba_gcs, "serializer_lba_gcs",
-          NULLPTR)
+          &pm_serializer_lba_gcs, "serializer_lba_gcs")
 { }
 
 void log_serializer_t::create(serializer_file_opener_t *file_opener, static_config_t static_config) {
