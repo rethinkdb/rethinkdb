@@ -17,7 +17,7 @@
 
 enum class alt_access_t;
 class buf_lock_t;
-class alt_buf_parent_t;
+class buf_parent_t;
 struct btree_superblock_t;
 class traversal_state_t;
 class parent_releaser_t;
@@ -124,7 +124,7 @@ struct btree_traversal_helper_t {
     virtual void postprocess_internal_node(buf_lock_t *internal_node_buf) = 0;
 
     virtual void filter_interesting_children(
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             ranged_block_ids_t *ids_source,
             interesting_children_callback_t *cb) = 0;
 

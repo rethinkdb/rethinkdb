@@ -35,7 +35,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         clipped_range = clipped_range.intersection(key_range_);
 
         struct our_cb_t : public leaf::entry_reception_callback_t {
-            explicit our_cb_t(alt_buf_parent_t _parent) : parent(_parent) { }
+            explicit our_cb_t(buf_parent_t _parent) : parent(_parent) { }
             void lost_deletions() {
                 cb->on_delete_range(range, interruptor);
             }
@@ -53,12 +53,12 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
             }
 
             agnostic_backfill_callback_t *cb;
-            alt_buf_parent_t parent;
+            buf_parent_t parent;
             key_range_t range;
             signal_t *interruptor;
         };
 
-        our_cb_t x((alt_buf_parent_t(leaf_node_buf)));
+        our_cb_t x((buf_parent_t(leaf_node_buf)));
         x.cb = callback_;
         x.range = clipped_range;
         x.interruptor = interruptor;
@@ -102,7 +102,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
         }
     };
 
-    void filter_interesting_children(alt_buf_parent_t parent,
+    void filter_interesting_children(buf_parent_t parent,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         assert_thread();

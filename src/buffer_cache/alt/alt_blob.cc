@@ -40,10 +40,10 @@ int block_ids_offset(int maxreflen) {
 }
 
 temporary_acq_tree_node_t *
-make_tree_from_block_ids(alt_buf_parent_t parent, alt_access_t mode, int levels,
+make_tree_from_block_ids(buf_parent_t parent, alt_access_t mode, int levels,
                          int64_t offset, int64_t size, const block_id_t *block_ids);
 
-void expose_tree_from_block_ids(alt_buf_parent_t parent, alt_access_t mode,
+void expose_tree_from_block_ids(buf_parent_t parent, alt_access_t mode,
                                 int levels, int64_t offset, int64_t size,
                                 temporary_acq_tree_node_t *tree,
                                 buffer_group_t *buffer_group_out,
@@ -309,7 +309,7 @@ union temporary_acq_tree_node_t {
     temporary_acq_tree_node_t *child;
 };
 
-void blob_t::expose_region(alt_buf_parent_t parent, alt_access_t mode,
+void blob_t::expose_region(buf_parent_t parent, alt_access_t mode,
                            int64_t offset, int64_t size,
                            buffer_group_t *buffer_group_out,
                            blob_acq_t *acq_group_out) {
@@ -346,7 +346,7 @@ void blob_t::expose_region(alt_buf_parent_t parent, alt_access_t mode,
     }
 }
 
-void blob_t::expose_all(alt_buf_parent_t parent, alt_access_t mode,
+void blob_t::expose_all(buf_parent_t parent, alt_access_t mode,
                         buffer_group_t *buffer_group_out,
                         blob_acq_t *acq_group_out) {
     expose_region(parent, mode, 0, valuesize(), buffer_group_out, acq_group_out);
@@ -355,10 +355,10 @@ void blob_t::expose_all(alt_buf_parent_t parent, alt_access_t mode,
 namespace blob {
 
 struct region_tree_filler_t {
-    explicit region_tree_filler_t(alt_buf_parent_t _parent)
+    explicit region_tree_filler_t(buf_parent_t _parent)
         : parent(_parent) { }
 
-    alt_buf_parent_t parent;
+    buf_parent_t parent;
     alt_access_t mode;
     int levels;
     int64_t offset, size;
@@ -376,7 +376,7 @@ struct region_tree_filler_t {
 
             int64_t suboffset, subsize;
             shrink(parent.cache()->max_block_size(), levels, offset, size, lo + i, &suboffset, &subsize);
-            nodes[i].child = blob::make_tree_from_block_ids(alt_buf_parent_t(&lock),
+            nodes[i].child = blob::make_tree_from_block_ids(buf_parent_t(&lock),
                                                             mode, levels - 1,
                                                             suboffset, subsize,
                                                             sub_ids);
@@ -387,7 +387,7 @@ struct region_tree_filler_t {
 };
 
 temporary_acq_tree_node_t *
-make_tree_from_block_ids(alt_buf_parent_t parent, alt_access_t mode, int levels,
+make_tree_from_block_ids(buf_parent_t parent, alt_access_t mode, int levels,
                          int64_t offset, int64_t size, const block_id_t *block_ids) {
     rassert(size > 0);
 
@@ -407,7 +407,7 @@ make_tree_from_block_ids(alt_buf_parent_t parent, alt_access_t mode, int levels,
     return filler.nodes;
 }
 
-void expose_tree_from_block_ids(alt_buf_parent_t parent, alt_access_t mode,
+void expose_tree_from_block_ids(buf_parent_t parent, alt_access_t mode,
                                 int levels, int64_t offset, int64_t size,
                                 temporary_acq_tree_node_t *tree,
                                 buffer_group_t *buffer_group_out,
@@ -455,7 +455,7 @@ void expose_tree_from_block_ids(alt_buf_parent_t parent, alt_access_t mode,
 
 }  // namespace blob
 
-void blob_t::append_region(alt_buf_parent_t parent, int64_t size) {
+void blob_t::append_region(buf_parent_t parent, int64_t size) {
     const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
@@ -486,7 +486,7 @@ void blob_t::append_region(alt_buf_parent_t parent, int64_t size) {
     rassert(blob::ref_info(block_size, ref_, maxreflen_).levels == levels);
 }
 
-void blob_t::prepend_region(alt_buf_parent_t parent, int64_t size) {
+void blob_t::prepend_region(buf_parent_t parent, int64_t size) {
     const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
@@ -528,7 +528,7 @@ void blob_t::prepend_region(alt_buf_parent_t parent, int64_t size) {
     rassert(blob::ref_info(block_size, ref_, maxreflen_).levels == levels);
 }
 
-void blob_t::unappend_region(alt_buf_parent_t parent, int64_t size) {
+void blob_t::unappend_region(buf_parent_t parent, int64_t size) {
     const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
@@ -559,7 +559,7 @@ void blob_t::unappend_region(alt_buf_parent_t parent, int64_t size) {
     }
 }
 
-void blob_t::unprepend_region(alt_buf_parent_t parent, int64_t size) {
+void blob_t::unprepend_region(buf_parent_t parent, int64_t size) {
     const block_size_t block_size = parent.cache()->max_block_size();
     int levels = blob::ref_info(block_size, ref_, maxreflen_).levels;
 
@@ -587,12 +587,12 @@ void blob_t::unprepend_region(alt_buf_parent_t parent, int64_t size) {
     }
 }
 
-void blob_t::clear(alt_buf_parent_t parent) {
+void blob_t::clear(buf_parent_t parent) {
     unappend_region(parent, valuesize());
 }
 
 void blob_t::write_from_string(const std::string &val,
-                               alt_buf_parent_t parent, int64_t offset) {
+                               buf_parent_t parent, int64_t offset) {
     buffer_group_t dest;
     blob_acq_t acq;
     expose_region(parent, alt_access_t::write, offset, val.size(), &dest, &acq);
@@ -605,18 +605,18 @@ void blob_t::write_from_string(const std::string &val,
 namespace blob {
 
 struct traverse_helper_t {
-    virtual void preprocess(alt_buf_parent_t parent, int levels,
+    virtual void preprocess(buf_parent_t parent, int levels,
                             buf_lock_t *lock_out, block_id_t *block_id) = 0;
     virtual void postprocess(buf_lock_t *lock) = 0;
     virtual ~traverse_helper_t() { }
 };
 
-void traverse_recursively(alt_buf_parent_t parent, int levels,
+void traverse_recursively(buf_parent_t parent, int levels,
                           block_id_t *block_ids, int64_t old_offset,
                           int64_t old_size, int64_t new_offset, int64_t new_size,
                           traverse_helper_t *helper);
 
-void traverse_index(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
+void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
                     int index, int64_t old_offset, int64_t old_size,
                     int64_t new_offset, int64_t new_size,
                     traverse_helper_t *helper) {
@@ -632,7 +632,7 @@ void traverse_index(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
             void *b = write.get_data_write();
 
             block_id_t *subids = blob::internal_node_block_ids(b);
-            traverse_recursively(alt_buf_parent_t(&lock), levels - 1, subids,
+            traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
                                  sub_old_offset, sub_old_size,
                                  sub_new_offset, sub_new_size,
                                  helper);
@@ -646,7 +646,7 @@ void traverse_index(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
             buf_write_t write(&lock);
             void *b = write.get_data_write();
             block_id_t *subids = blob::internal_node_block_ids(b);
-            traverse_recursively(alt_buf_parent_t(&lock), levels - 1, subids,
+            traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
                                  sub_old_offset, sub_old_size,
                                  sub_new_offset, sub_new_size,
                                  helper);
@@ -656,7 +656,7 @@ void traverse_index(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
     }
 }
 
-void traverse_recursively(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
+void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids,
                           int64_t old_offset, int64_t old_size, int64_t new_offset,
                           int64_t new_size, traverse_helper_t *helper) {
     const block_size_t block_size = parent.cache()->max_block_size();
@@ -704,7 +704,7 @@ void traverse_recursively(alt_buf_parent_t parent, int levels, block_id_t *block
 
 }  // namespace blob
 
-bool blob_t::traverse_to_dimensions(alt_buf_parent_t parent, int levels,
+bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
                                     int64_t old_offset, int64_t old_size,
                                     int64_t new_offset, int64_t new_size,
                                     blob::traverse_helper_t *helper) {
@@ -726,7 +726,7 @@ bool blob_t::traverse_to_dimensions(alt_buf_parent_t parent, int levels,
 }
 
 struct allocate_helper_t : public blob::traverse_helper_t {
-    void preprocess(alt_buf_parent_t parent, int levels,
+    void preprocess(buf_parent_t parent, int levels,
                     buf_lock_t *lock_out, block_id_t *block_id) {
         buf_lock_t temp_lock(parent, alt_create_t::create);
         lock_out->swap(temp_lock);
@@ -742,7 +742,7 @@ struct allocate_helper_t : public blob::traverse_helper_t {
     void postprocess(UNUSED buf_lock_t *lock) { }
 };
 
-bool blob_t::allocate_to_dimensions(alt_buf_parent_t parent, int levels,
+bool blob_t::allocate_to_dimensions(buf_parent_t parent, int levels,
                                     int64_t new_offset, int64_t new_size) {
     allocate_helper_t helper;
     return traverse_to_dimensions(parent, levels,
@@ -751,7 +751,7 @@ bool blob_t::allocate_to_dimensions(alt_buf_parent_t parent, int levels,
 }
 
 struct deallocate_helper_t : public blob::traverse_helper_t {
-    void preprocess(alt_buf_parent_t parent, UNUSED int levels,
+    void preprocess(buf_parent_t parent, UNUSED int levels,
                     buf_lock_t *lock_out, block_id_t *block_id) {
         buf_lock_t tmp(parent, *block_id, alt_access_t::write);
         lock_out->swap(tmp);
@@ -762,7 +762,7 @@ struct deallocate_helper_t : public blob::traverse_helper_t {
     }
 };
 
-void blob_t::deallocate_to_dimensions(alt_buf_parent_t parent, int levels,
+void blob_t::deallocate_to_dimensions(buf_parent_t parent, int levels,
                                       int64_t new_offset, int64_t new_size) {
     deallocate_helper_t helper;
     if (levels == 0) {
@@ -780,7 +780,7 @@ void blob_t::deallocate_to_dimensions(alt_buf_parent_t parent, int levels,
 }
 
 
-bool blob_t::shift_at_least(alt_buf_parent_t parent, int levels, int64_t min_shift) {
+bool blob_t::shift_at_least(buf_parent_t parent, int levels, int64_t min_shift) {
     if (levels == 0) {
         // Can't change offset if there are zero levels.  Deal with it.
         return false;
@@ -793,7 +793,7 @@ bool blob_t::shift_at_least(alt_buf_parent_t parent, int levels, int64_t min_shi
     return shift <= 0;
 }
 
-void blob_t::consider_big_shift(alt_buf_parent_t parent, int levels,
+void blob_t::consider_big_shift(buf_parent_t parent, int levels,
                                 int64_t *min_shift) {
     const block_size_t block_size = parent.cache()->max_block_size();
     int64_t step = blob::stepsize(block_size, levels);
@@ -820,7 +820,7 @@ void blob_t::consider_big_shift(alt_buf_parent_t parent, int levels,
     }
 }
 
-void blob_t::consider_small_shift(alt_buf_parent_t parent, int levels,
+void blob_t::consider_small_shift(buf_parent_t parent, int levels,
                                   int64_t *min_shift) {
     const block_size_t block_size = parent.cache()->max_block_size();
     int64_t step = blob::stepsize(block_size, levels);
@@ -872,7 +872,7 @@ void blob_t::consider_small_shift(alt_buf_parent_t parent, int levels,
 }
 
 // Always returns levels + 1.
-int blob_t::add_level(alt_buf_parent_t parent, int levels) {
+int blob_t::add_level(buf_parent_t parent, int levels) {
     buf_lock_t lock(parent, alt_create_t::create);
     buf_write_t lock_write(&lock);
     void *b = lock_write.get_data_write();
@@ -903,7 +903,7 @@ int blob_t::add_level(alt_buf_parent_t parent, int levels) {
 }
 
 
-bool blob_t::remove_level(alt_buf_parent_t parent, int *levels_ref) {
+bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
     int levels = *levels_ref;
     if (levels == 0) {
         return false;

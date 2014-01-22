@@ -17,7 +17,7 @@ struct memcached_incr_decr_oper_t : public memcached_modify_oper_t {
         : increment(_increment), delta(_delta)
     { }
 
-    bool operate(alt_buf_parent_t leaf,
+    bool operate(buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         // If the key didn't exist before, we fail.
         if (!value->has()) {

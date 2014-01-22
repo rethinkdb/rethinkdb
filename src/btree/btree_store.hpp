@@ -148,13 +148,13 @@ public:
     // RSI: This used to take an interruptor.  Wouldn't it be neat for this to be
     // interruptible?
     void acquire_sindex_block_for_read(
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             scoped_ptr_t<buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id)
         THROWS_ONLY(interrupted_exc_t);
 
     void acquire_sindex_block_for_write(
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             scoped_ptr_t<buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id)
         THROWS_ONLY(interrupted_exc_t);
@@ -222,7 +222,7 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
             block_id_t sindex_block_id,
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out) // Optional, may be NULL
         THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
@@ -231,7 +231,7 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             block_id_t sindex_block_id,
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             scoped_ptr_t<real_superblock_t> *sindex_sb_out)
         THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
@@ -252,7 +252,7 @@ public:
     // RSI: This used to take an interruptor.
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
-            alt_buf_parent_t parent,
+            buf_parent_t parent,
             sindex_access_vector_t *sindex_sbs_out)
         THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 

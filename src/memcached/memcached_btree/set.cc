@@ -19,7 +19,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
     ~memcached_set_oper_t() { }
 
-    bool operate(alt_buf_parent_t leaf,
+    bool operate(buf_parent_t leaf,
                  scoped_malloc_t<memcached_value_t> *value) {
         const block_size_t block_size = leaf.cache()->get_block_size();
         // We may be instructed to abort, depending on the old value.

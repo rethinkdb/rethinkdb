@@ -10,7 +10,7 @@
 #include "perfmon/perfmon.hpp"
 
 class cache_t;
-class alt_buf_parent_t;
+class buf_parent_t;
 class alt_cache_account_t;
 class backfill_callback_t;
 class key_tester_t;
@@ -59,7 +59,7 @@ public:
     // Creates a btree_slice_t on a cache with data in it putting the
     // superblock at the specified location
     static void create(block_id_t superblock_id,
-                       alt_buf_parent_t parent,
+                       buf_parent_t parent,
                        const std::vector<char> &metainfo_key,
                        const std::vector<char> &metainfo_value);
 

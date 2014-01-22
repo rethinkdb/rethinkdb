@@ -49,7 +49,7 @@ public:
         for (size_t i = 0; i < keys_to_delete.size(); ++i) {
             bool found = leaf::lookup(sizer_, node, keys_to_delete[i].btree_key(), value.get());
             guarantee(found);
-            deleter_->delete_value(alt_buf_parent_t(leaf_node_buf), value.get());
+            deleter_->delete_value(buf_parent_t(leaf_node_buf), value.get());
             leaf::erase_presence(sizer_, node, keys_to_delete[i].btree_key(),
                                  key_modification_proof_t::real_proof());
         }
@@ -61,7 +61,7 @@ public:
         // We don't want to do anything here.
     }
 
-    void filter_interesting_children(alt_buf_parent_t,
+    void filter_interesting_children(buf_parent_t,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {

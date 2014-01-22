@@ -8,7 +8,7 @@
 #include "memcached/memcached_btree/value.hpp"
 
 counted_t<data_buffer_t> value_to_data_buffer(const memcached_value_t *value,
-                                              alt_buf_parent_t parent) {
+                                              buf_parent_t parent) {
     parent.cache()->assert_thread();
 
     blob_t blob(parent.cache()->get_block_size(),

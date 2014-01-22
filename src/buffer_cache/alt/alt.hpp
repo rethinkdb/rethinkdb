@@ -177,7 +177,7 @@ private:
     DISABLE_COPYING(alt_snapshot_node_t);
 };
 
-class alt_buf_parent_t;
+class buf_parent_t;
 
 class buf_lock_t {
 public:
@@ -191,7 +191,7 @@ public:
     // RSI: Change these comments, they're not all nonblocking constructors.
 
     // Nonblocking constructor.
-    buf_lock_t(alt_buf_parent_t parent,
+    buf_lock_t(buf_parent_t parent,
                block_id_t block_id,
                alt_access_t access);
 
@@ -202,7 +202,7 @@ public:
 
     // Nonblocking constructor, creates a new block with a specified id (used by the
     // serializer file write stream).
-    buf_lock_t(alt_buf_parent_t parent,
+    buf_lock_t(buf_parent_t parent,
                block_id_t block_id,
                alt_create_t create);
 
@@ -215,7 +215,7 @@ public:
 
     // Nonblocking constructor that acquires a block with a new block id.  `access`
     // must be `write`.
-    buf_lock_t(alt_buf_parent_t parent,
+    buf_lock_t(buf_parent_t parent,
                alt_create_t create);
 
     // Nonblocking constructor, IF parent->{access}_acq_signal() has already been
@@ -268,7 +268,7 @@ public:
     cache_t *cache() const { return txn_->cache(); }
 
 private:
-    static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
+    static void wait_for_parent(buf_parent_t parent, alt_access_t access);
     static alt_snapshot_node_t *
     get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,
@@ -306,17 +306,17 @@ private:
 };
 
 
-class alt_buf_parent_t {
+class buf_parent_t {
 public:
-    alt_buf_parent_t() : txn_(NULL), lock_or_null_(NULL) { }
+    buf_parent_t() : txn_(NULL), lock_or_null_(NULL) { }
 
-    explicit alt_buf_parent_t(buf_lock_t *lock)
+    explicit buf_parent_t(buf_lock_t *lock)
         : txn_(lock->txn()), lock_or_null_(lock) {
         guarantee(lock != NULL);
         guarantee(!lock->empty());
     }
     // RSI: Replace this constructor with a create_dangerously static method.
-    explicit alt_buf_parent_t(txn_t *txn)
+    explicit buf_parent_t(txn_t *txn)
         : txn_(txn), lock_or_null_(NULL) {
         rassert(txn != NULL);
     }

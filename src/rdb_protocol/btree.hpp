@@ -184,7 +184,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice, repli_timestamp_t
 /* A deleter that doesn't actually delete the values. Needed for secondary
  * indexes which only have references. */
 class rdb_value_non_deleter_t : public value_deleter_t {
-    void delete_value(alt_buf_parent_t parent, void *value);
+    void delete_value(buf_parent_t parent, void *value);
 };
 
 void rdb_erase_range(btree_slice_t *slice, key_tester_t *tester,
@@ -306,7 +306,7 @@ friend void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification, txn_t *txn);
 
-    void delete_value(alt_buf_parent_t parent, void *_value);
+    void delete_value(buf_parent_t parent, void *_value);
 };
 
 

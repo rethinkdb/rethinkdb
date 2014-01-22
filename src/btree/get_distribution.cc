@@ -53,7 +53,7 @@ public:
         }
     }
 
-    void filter_interesting_children(alt_buf_parent_t,
+    void filter_interesting_children(buf_parent_t,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         if (ids_source->get_level() < depth_limit) {

@@ -308,7 +308,7 @@ void buf_lock_t::create_empty_child_snapshot_nodes(cache_t *cache,
     }
 }
 
-buf_lock_t::buf_lock_t(alt_buf_parent_t parent,
+buf_lock_t::buf_lock_t(buf_parent_t parent,
                        block_id_t block_id,
                        alt_access_t access)
     : txn_(parent.txn()),
@@ -364,7 +364,7 @@ buf_lock_t::buf_lock_t(txn_t *txn,
 }
 
 // RSI: So much duplicated code all over these constructors.
-buf_lock_t::buf_lock_t(alt_buf_parent_t parent,
+buf_lock_t::buf_lock_t(buf_parent_t parent,
                        block_id_t block_id,
                        UNUSED alt_create_t create)
     : txn_(parent.txn()),
@@ -411,7 +411,7 @@ void buf_lock_t::mark_deleted() {
     current_page_acq()->mark_deleted();
 }
 
-void buf_lock_t::wait_for_parent(alt_buf_parent_t parent, alt_access_t access) {
+void buf_lock_t::wait_for_parent(buf_parent_t parent, alt_access_t access) {
     if (parent.lock_or_null_ != NULL) {
         buf_lock_t *lock = parent.lock_or_null_;
         guarantee(is_subordinate(lock->access(), access));
@@ -433,11 +433,11 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
       snapshot_node_(NULL),
       access_ref_count_(0),
       was_destroyed_(false) {
-    // This implementation should be identical to the alt_buf_parent_t version of
+    // This implementation should be identical to the buf_parent_t version of
     // this constructor.  (Unfortunately, we support compilers that lack full C++11
     // support.)
 
-    buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), access);
+    buf_lock_t::wait_for_parent(buf_parent_t(parent), access);
 
     if (parent->snapshot_node_ != NULL) {
         rassert(!parent->current_page_acq_.has());
@@ -462,7 +462,7 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
 #endif
 }
 
-buf_lock_t::buf_lock_t(alt_buf_parent_t parent,
+buf_lock_t::buf_lock_t(buf_parent_t parent,
                        UNUSED alt_create_t create)
     : txn_(parent.txn()),
       current_page_acq_(),
@@ -504,7 +504,7 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
       snapshot_node_(NULL),
       access_ref_count_(0),
       was_destroyed_(false) {
-    buf_lock_t::wait_for_parent(alt_buf_parent_t(parent), alt_access_t::write);
+    buf_lock_t::wait_for_parent(buf_parent_t(parent), alt_access_t::write);
 
     // Makes sure nothing funny can happen in current_page_acq_t constructor.
     // Otherwise, we'd need to make choosing a block id a separate function, and call

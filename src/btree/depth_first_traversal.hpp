@@ -46,9 +46,9 @@ public:
         guarantee(buf_.has());
         return value_;
     }
-    alt_buf_parent_t expose_buf() {
+    buf_parent_t expose_buf() {
         guarantee(buf_.has());
-        return alt_buf_parent_t(buf_.get());
+        return buf_parent_t(buf_.get());
     }
 
     // Releases the hold on the buf_lock_t, after which key(), value(), and

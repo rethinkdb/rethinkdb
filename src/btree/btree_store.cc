@@ -353,7 +353,7 @@ progress_completion_fraction_t btree_store_t<protocol_t>::get_progress(uuid_u id
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
-        alt_buf_parent_t parent,
+        buf_parent_t parent,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id)
     THROWS_ONLY(interrupted_exc_t) {
@@ -365,7 +365,7 @@ void btree_store_t<protocol_t>::acquire_sindex_block_for_read(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_sindex_block_for_write(
-        alt_buf_parent_t parent,
+        buf_parent_t parent,
         scoped_ptr_t<buf_lock_t> *sindex_block_out,
         block_id_t sindex_block_id)
     THROWS_ONLY(interrupted_exc_t) {  // RSI: This no longer throws an interrupted_exc_t.
@@ -413,7 +413,7 @@ bool btree_store_t<protocol_t>::add_sindex(
          * it... on the other hand this code isn't exactly idiot proof even
          * with that. */
         btree_slice_t::create(sindex.superblock,
-                              alt_buf_parent_t(sindex_block),
+                              buf_parent_t(sindex_block),
                               std::vector<char>(), std::vector<char>());
         secondary_index_slices.insert(
             id, new btree_slice_t(cache.get(), &perfmon_collection, id));
@@ -426,7 +426,7 @@ bool btree_store_t<protocol_t>::add_sindex(
 }
 
 // RSI: There's no reason why this should work with detached sindexes.  Make this
-// just take the alt_buf_parent_t.
+// just take the buf_parent_t.
 void clear_sindex(
         txn_t *txn, block_id_t superblock_id,
         btree_slice_t *slice, value_sizer_t<void> *sizer,
@@ -439,7 +439,7 @@ void clear_sindex(
         /* We pass the txn as a parent, this is because
          * sindex.superblock was detached and thus now has no parent. */
         buf_lock_t sindex_superblock_lock(
-                alt_buf_parent_t(txn), superblock_id, alt_access_t::write);
+                buf_parent_t(txn), superblock_id, alt_access_t::write);
         real_superblock_t sindex_superblock(std::move(sindex_superblock_lock));
 
         erase_all(sizer, slice,
@@ -448,7 +448,7 @@ void clear_sindex(
 
     {
         buf_lock_t sindex_superblock_lock(
-                alt_buf_parent_t(txn), superblock_id, alt_access_t::write);
+                buf_parent_t(txn), superblock_id, alt_access_t::write);
         sindex_superblock_lock.mark_deleted();
     }
 }
@@ -497,7 +497,7 @@ void btree_store_t<protocol_t>::set_sindexes(
             }
 
             btree_slice_t::create(sindex.superblock,
-                                  alt_buf_parent_t(sindex_block),
+                                  buf_parent_t(sindex_block),
                                   std::vector<char>(), std::vector<char>());
             std::string id = it->first;
             secondary_index_slices.insert(id, new btree_slice_t(cache.get(), &perfmon_collection, it->first));
@@ -645,7 +645,7 @@ template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_read(
         const std::string &id,
         block_id_t sindex_block_id,
-        alt_buf_parent_t parent,
+        buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out,
         std::vector<char> *opaque_definition_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
@@ -681,7 +681,7 @@ template <class protocol_t>
 MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
         const std::string &id,
         block_id_t sindex_block_id,
-        alt_buf_parent_t parent,
+        buf_parent_t parent,
         scoped_ptr_t<real_superblock_t> *sindex_sb_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
     // RSI: This function can't throw the interrupted_exc_t, can it?
@@ -713,7 +713,7 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_all_sindex_superblocks_for_write(
         block_id_t sindex_block_id,
-        alt_buf_parent_t parent,
+        buf_parent_t parent,
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t) {
     // RSI: This can't throw the interrupted_exc_t, can it?

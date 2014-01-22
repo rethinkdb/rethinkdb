@@ -238,7 +238,7 @@ void subtrees_traverse(traversal_state_t *state,
                        parent_releaser_t *releaser, int level,
                        const boost::shared_ptr<ranged_block_ids_t>& ids_source);
 void do_a_subtree_traversal(traversal_state_t *state, int level,
-                            alt_buf_parent_t parent, block_id_t block_id,
+                            buf_parent_t parent, block_id_t block_id,
                             btree_key_t *left_exclusive_or_null,
                             btree_key_t *right_inclusive_or_null,
                             lock_in_line_callback_t *acq_start_cb);
@@ -262,13 +262,13 @@ protected:
 struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
     // Not much of an fsm.
     traversal_state_t *state;
-    alt_buf_parent_t parent;
+    buf_parent_t parent;
     int level;
     block_id_t block_id;
     lock_in_line_callback_t *acq_start_cb;
     node_ready_callback_t *node_ready_cb;
 
-    explicit acquire_a_node_fsm_t(alt_buf_parent_t _parent) : parent(_parent) { }
+    explicit acquire_a_node_fsm_t(buf_parent_t _parent) : parent(_parent) { }
 
     void you_may_acquire() {
         rassert(coro_t::self());
@@ -299,7 +299,7 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
 
 
 void acquire_a_node(traversal_state_t *state, int level,
-                    alt_buf_parent_t parent, block_id_t block_id,
+                    buf_parent_t parent, block_id_t block_id,
                     lock_in_line_callback_t *acq_start_cb,
                     node_ready_callback_t *node_ready_cb) {
     rassert(coro_t::self());
@@ -321,7 +321,7 @@ void acquire_a_node(traversal_state_t *state, int level,
 
 class parent_releaser_t {
 public:
-    virtual alt_buf_parent_t expose_parent() = 0;
+    virtual buf_parent_t expose_parent() = 0;
     virtual void release() = 0;
 protected:
     virtual ~parent_releaser_t() { }
@@ -330,8 +330,8 @@ protected:
 struct internal_node_releaser_t : public parent_releaser_t {
     scoped_ptr_t<buf_lock_t> buf_;
     traversal_state_t *state_;
-    alt_buf_parent_t expose_parent() {
-        return alt_buf_parent_t(buf_.get());
+    buf_parent_t expose_parent() {
+        return buf_parent_t(buf_.get());
     }
     virtual void release() {
         state_->helper->postprocess_internal_node(buf_.get());
@@ -381,7 +381,7 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
     struct : public parent_releaser_t {
         superblock_t *superblock;
         bool release_superblock;
-        alt_buf_parent_t expose_parent() {
+        buf_parent_t expose_parent() {
             return superblock->expose_buf();
         }
         void release() {
@@ -466,7 +466,7 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
 };
 
 void do_a_subtree_traversal(traversal_state_t *state, int level,
-                            alt_buf_parent_t parent, block_id_t block_id,
+                            buf_parent_t parent, block_id_t block_id,
                             const btree_key_t *left_exclusive_or_null,
                             const btree_key_t *right_inclusive_or_null,
                             lock_in_line_callback_t *acq_start_cb) {

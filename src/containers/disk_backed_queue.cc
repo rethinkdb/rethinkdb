@@ -53,7 +53,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         add_block_to_head(&txn);
     }
 
-    auto _head = make_scoped<buf_lock_t>(alt_buf_parent_t(&txn), head_block_id,
+    auto _head = make_scoped<buf_lock_t>(buf_parent_t(&txn), head_block_id,
                                          alt_access_t::write);
     auto write = make_scoped<buf_write_t>(_head.get());
     queue_block_t *head = static_cast<queue_block_t *>(write->get_data_write());
@@ -63,7 +63,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
 
     blob_t blob(cache->max_block_size(), buffer, MAX_REF_SIZE);
 
-    write_onto_blob(alt_buf_parent_t(_head.get()), &blob, wm);
+    write_onto_blob(buf_parent_t(_head.get()), &blob, wm);
 
     if (static_cast<size_t>((head->data + head->data_size) - reinterpret_cast<char *>(head)) + blob.refsize(cache->max_block_size()) > cache->max_block_size().value()) {
         // The data won't fit in our current head block, so it's time to make a new one.
@@ -71,7 +71,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         write.reset();
         _head.reset();
         add_block_to_head(&txn);
-        _head.init(new buf_lock_t(alt_buf_parent_t(&txn), head_block_id,
+        _head.init(new buf_lock_t(buf_parent_t(&txn), head_block_id,
                                   alt_access_t::write));
         write.init(new buf_write_t(_head.get()));
         head = static_cast<queue_block_t *>(write->get_data_write());
@@ -92,7 +92,7 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     // No need for hard durability with an unlinked dbq file.
     txn_t txn(cache.get(), write_durability_t::SOFT, repli_timestamp_t::distant_past, 2);
 
-    auto _tail = make_scoped<buf_lock_t>(alt_buf_parent_t(&txn), tail_block_id,
+    auto _tail = make_scoped<buf_lock_t>(buf_parent_t(&txn), tail_block_id,
                                          alt_access_t::write);
     auto write = make_scoped<buf_write_t>(_tail.get());
     queue_block_t *tail = static_cast<queue_block_t *>(write->get_data_write());
@@ -107,7 +107,7 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     {
         blob_acq_t acq_group;
         buffer_group_t blob_group;
-        blob.expose_all(alt_buf_parent_t(_tail.get()), alt_access_t::read,
+        blob.expose_all(buf_parent_t(_tail.get()), alt_access_t::read,
                         &blob_group, &acq_group);
 
         viewer->view_buffer_group(const_view(&blob_group));
@@ -116,7 +116,7 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
     /* Record how far along in the blob we are. */
     tail->live_data_offset += blob.refsize(cache->max_block_size());
 
-    blob.clear(alt_buf_parent_t(_tail.get()));
+    blob.clear(buf_parent_t(_tail.get()));
 
     queue_size--;
 
@@ -138,14 +138,14 @@ int64_t internal_disk_backed_queue_t::size() {
 }
 
 void internal_disk_backed_queue_t::add_block_to_head(txn_t *txn) {
-    buf_lock_t _new_head(alt_buf_parent_t(txn), alt_create_t::create);
+    buf_lock_t _new_head(buf_parent_t(txn), alt_create_t::create);
     buf_write_t write(&_new_head);
     queue_block_t *new_head = static_cast<queue_block_t *>(write.get_data_write());
     if (head_block_id == NULL_BLOCK_ID) {
         rassert(tail_block_id == NULL_BLOCK_ID);
         head_block_id = tail_block_id = _new_head.block_id();
     } else {
-        buf_lock_t _old_head(alt_buf_parent_t(txn), head_block_id,
+        buf_lock_t _old_head(buf_parent_t(txn), head_block_id,
                              alt_access_t::write);
         buf_write_t old_write(&_old_head);
         queue_block_t *old_head
@@ -162,7 +162,7 @@ void internal_disk_backed_queue_t::add_block_to_head(txn_t *txn) {
 
 void internal_disk_backed_queue_t::remove_block_from_tail(txn_t *txn) {
     rassert(tail_block_id != NULL_BLOCK_ID);
-    buf_lock_t _old_tail(alt_buf_parent_t(txn), tail_block_id,
+    buf_lock_t _old_tail(buf_parent_t(txn), tail_block_id,
                          alt_access_t::write);
 
     {

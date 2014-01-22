@@ -37,7 +37,7 @@ public:
 
         buffer_group_t bg;
         blob_acq_t bacq;
-        blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::read, offset, size,
+        blob_.expose_region(buf_parent_t(txn), alt_access_t::read, offset, size,
                             &bg, &bacq);
 
         ASSERT_EQ(size, static_cast<int64_t>(bg.get_size()));
@@ -87,14 +87,14 @@ public:
         SCOPED_TRACE(strprintf("append (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
-        blob_.append_region(alt_buf_parent_t(txn), n);
+        blob_.append_region(buf_parent_t(txn), n);
 
         ASSERT_EQ(static_cast<int64_t>(expected_.size() + n), blob_.valuesize());
 
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::write,
+            blob_.expose_region(buf_parent_t(txn), alt_access_t::write,
                                 expected_.size(), n, &bg, &bacq);
 
             ASSERT_EQ(static_cast<size_t>(n), bg.get_size());
@@ -114,14 +114,14 @@ public:
         SCOPED_TRACE(strprintf("prepend (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
-        blob_.prepend_region(alt_buf_parent_t(txn), n);
+        blob_.prepend_region(buf_parent_t(txn), n);
 
         ASSERT_EQ(static_cast<int64_t>(n + expected_.size()), blob_.valuesize());
 
         {
             buffer_group_t bg;
             blob_acq_t bacq;
-            blob_.expose_region(alt_buf_parent_t(txn), alt_access_t::write, 0, n,
+            blob_.expose_region(buf_parent_t(txn), alt_access_t::write, 0, n,
                                 &bg, &bacq);
 
             ASSERT_EQ(n, static_cast<int64_t>(bg.get_size()));
@@ -141,7 +141,7 @@ public:
         SCOPED_TRACE("unprepend " + strprintf("%" PRIi64, n));
         ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
 
-        blob_.unprepend_region(alt_buf_parent_t(txn), n);
+        blob_.unprepend_region(buf_parent_t(txn), n);
         expected_.erase(0, n);
 
         check(txn);
@@ -151,7 +151,7 @@ public:
         SCOPED_TRACE("unappend " + strprintf("%" PRIi64, n));
         ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
 
-        blob_.unappend_region(alt_buf_parent_t(txn), n);
+        blob_.unappend_region(buf_parent_t(txn), n);
         expected_.erase(expected_.size() - n);
 
         check(txn);
@@ -159,7 +159,7 @@ public:
 
     void clear(txn_t *txn) {
         SCOPED_TRACE("clear");
-        blob_.clear(alt_buf_parent_t(txn));
+        blob_.clear(buf_parent_t(txn));
         expected_.clear();
         check(txn);
     }

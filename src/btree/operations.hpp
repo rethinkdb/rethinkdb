@@ -42,7 +42,7 @@ public:
     virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
     // RSI: Add buf_lock_parent_t or something.
-    virtual alt_buf_parent_t expose_buf() = 0;
+    virtual buf_parent_t expose_buf() = 0;
 
 private:
     DISABLE_COPYING(superblock_t);
@@ -66,7 +66,7 @@ public:
     block_id_t get_sindex_block_id();
     void set_sindex_block_id(block_id_t new_block_id);
 
-    alt_buf_parent_t expose_buf() { return alt_buf_parent_t(&sb_buf_); }
+    buf_parent_t expose_buf() { return buf_parent_t(&sb_buf_); }
 
 private:
     buf_lock_t sb_buf_;

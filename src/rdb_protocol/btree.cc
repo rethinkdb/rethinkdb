@@ -65,7 +65,7 @@ void rdb_get(const store_key_t &store_key, btree_slice_t *slice,
         response->data.reset(new ql::datum_t(ql::datum_t::R_NULL));
     } else {
         response->data = get_data(kv_location.value.get(),
-                                  alt_buf_parent_t(&kv_location.buf));
+                                  buf_parent_t(&kv_location.buf));
     }
 }
 
@@ -109,7 +109,7 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
     const block_size_t block_size = kv_location->buf.cache()->get_block_size();
     {
         blob_t blob(block_size, new_value->value_ref(), blob::btree_maxreflen);
-        serialize_onto_blob(alt_buf_parent_t(&kv_location->buf), &blob, data);
+        serialize_onto_blob(buf_parent_t(&kv_location->buf), &blob, data);
     }
 
     if (mod_info_out) {
@@ -181,7 +181,7 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             // Otherwise pass the entry with this key to the function.
             started_empty = false;
             old_val = get_data(kv_location.value.get(),
-                               alt_buf_parent_t(&kv_location.buf));
+                               buf_parent_t(&kv_location.buf));
             guarantee(old_val->get(primary_key, ql::NOTHROW).has());
         }
         guarantee(old_val.has());
@@ -379,7 +379,7 @@ void rdb_set(const store_key_t &key,
     /* update the modification report */
     if (kv_location.value.has()) {
         mod_info->deleted.first = get_data(kv_location.value.get(),
-                                           alt_buf_parent_t(&kv_location.buf));
+                                           buf_parent_t(&kv_location.buf));
     }
 
     mod_info->added.first = data;
@@ -410,7 +410,7 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(alt_buf_parent_t leaf_node, repli_timestamp_t recency,
+    void on_pair(buf_parent_t leaf_node, repli_timestamp_t recency,
                  const btree_key_t *key, const void *val,
                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
@@ -459,7 +459,7 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
     /* Update the modification report. */
     if (exists) {
         mod_info->deleted.first = get_data(kv_location.value.get(),
-                                           alt_buf_parent_t(&kv_location.buf));
+                                           buf_parent_t(&kv_location.buf));
         kv_location_delete(&kv_location, key, timestamp, mod_info);
     }
     guarantee(!mod_info->deleted.second.empty() && mod_info->added.second.empty());
@@ -469,14 +469,14 @@ void rdb_delete(const store_key_t &key, btree_slice_t *slice,
 // RSI: Ensure that everything calling this function is using it correctly -- and
 // make this function take a txn, I think, because this should only be used to delete
 // a detached blob.
-void rdb_value_deleter_t::delete_value(alt_buf_parent_t parent, void *value) {
+void rdb_value_deleter_t::delete_value(buf_parent_t parent, void *value) {
     rdb_blob_wrapper_t blob(parent.cache()->get_block_size(),
                             static_cast<rdb_value_t *>(value)->value_ref(),
                             blob::btree_maxreflen);
     blob.clear(parent);
 }
 
-void rdb_value_non_deleter_t::delete_value(alt_buf_parent_t, void *) {
+void rdb_value_non_deleter_t::delete_value(buf_parent_t, void *) {
     //RSI should we be detaching blobs in here?
 }
 
@@ -1165,7 +1165,7 @@ void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
         guarantee(ref_cpy.size() == static_cast<size_t>(blob::btree_maxreflen));
 
         rdb_value_deleter_t deleter;
-        deleter.delete_value(alt_buf_parent_t(txn), ref_cpy.data());
+        deleter.delete_value(buf_parent_t(txn), ref_cpy.data());
     }
 }
 
@@ -1280,7 +1280,7 @@ public:
             const block_size_t block_size = leaf_node_buf->cache()->get_block_size();
             mod_report.info.added
                 = std::make_pair(
-                    get_data(rdb_value, alt_buf_parent_t(leaf_node_buf)),
+                    get_data(rdb_value, buf_parent_t(leaf_node_buf)),
                     std::vector<char>(rdb_value->value_ref(),
                         rdb_value->value_ref() + rdb_value->inline_size(block_size)));
 
@@ -1291,7 +1291,7 @@ public:
 
     void postprocess_internal_node(buf_lock_t *) { }
 
-    void filter_interesting_children(alt_buf_parent_t,
+    void filter_interesting_children(buf_parent_t,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
         for (int i = 0, e = ids_source->num_block_ids(); i < e; ++i) {

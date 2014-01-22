@@ -135,7 +135,7 @@ bool get_superblock_metainfo(buf_lock_t *superblock,
 
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read, &group, &acq);
+        blob.expose_all(buf_parent_t(superblock), alt_access_t::read, &group, &acq);
 
         int64_t group_size = group.get_size();
         metainfo.resize(group_size);
@@ -174,7 +174,7 @@ void get_superblock_metainfo(
                          btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
+        blob.expose_all(buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
 
         const int64_t group_size = group.get_size();
@@ -208,7 +208,7 @@ void set_superblock_metainfo(buf_lock_t *superblock,
     {
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
+        blob.expose_all(buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
 
         int64_t group_size = group.get_size();
@@ -220,7 +220,7 @@ void set_superblock_metainfo(buf_lock_t *superblock,
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
-    blob.clear(alt_buf_parent_t(superblock));
+    blob.clear(buf_parent_t(superblock));
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -251,12 +251,12 @@ void set_superblock_metainfo(buf_lock_t *superblock,
         metainfo.insert(metainfo.end(), value.begin(), value.end());
     }
 
-    blob.append_region(alt_buf_parent_t(superblock), metainfo.size());
+    blob.append_region(buf_parent_t(superblock), metainfo.size());
 
     {
         blob_acq_t acq;
         buffer_group_t write_group;
-        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::write,
+        blob.expose_all(buf_parent_t(superblock), alt_access_t::write,
                         &write_group, &acq);
 
         buffer_group_t group_cpy;
@@ -280,7 +280,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
     {
         blob_acq_t acq;
         buffer_group_t group;
-        blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::read,
+        blob.expose_all(buf_parent_t(superblock), alt_access_t::read,
                         &group, &acq);
 
         int64_t group_size = group.get_size();
@@ -292,7 +292,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
         buffer_group_copy_data(&group_cpy, const_view(&group));
     }
 
-    blob.clear(alt_buf_parent_t(superblock));
+    blob.clear(buf_parent_t(superblock));
 
     uint32_t *size;
     char *verybeg, *info_begin, *info_end;
@@ -306,12 +306,12 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
         std::vector<char>::iterator q = metainfo.begin() + (info_end - metainfo.data());
         metainfo.erase(p, q);
 
-        blob.append_region(alt_buf_parent_t(superblock), metainfo.size());
+        blob.append_region(buf_parent_t(superblock), metainfo.size());
 
         {
             blob_acq_t acq;
             buffer_group_t write_group;
-            blob.expose_all(alt_buf_parent_t(superblock), alt_access_t::write,
+            blob.expose_all(buf_parent_t(superblock), alt_access_t::write,
                             &write_group, &acq);
 
             buffer_group_t group_cpy;
@@ -328,7 +328,7 @@ void clear_superblock_metainfo(buf_lock_t *superblock) {
     blob_t blob(superblock->cache()->get_block_size(),
                      data->metainfo_blob,
                      btree_superblock_t::METAINFO_BLOB_MAXREFLEN);
-    blob.clear(alt_buf_parent_t(superblock));
+    blob.clear(buf_parent_t(superblock));
 }
 
 void insert_root(block_id_t root_id, superblock_t* sb) {
@@ -400,7 +400,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
     // RSI: Assert that one of last_buf and sb is valid.
-    buf_lock_t rbuf(last_buf->empty() ? sb->expose_buf() : alt_buf_parent_t(last_buf),
+    buf_lock_t rbuf(last_buf->empty() ? sb->expose_buf() : buf_parent_t(last_buf),
                     alt_create_t::create);
     store_key_t median_buffer;
     btree_key_t *median = median_buffer.btree_key();
@@ -594,7 +594,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
 
 void get_btree_superblock(txn_t *txn, alt_access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out) {
-    buf_lock_t tmp_buf(alt_buf_parent_t(txn), SUPERBLOCK_ID, access);
+    buf_lock_t tmp_buf(buf_parent_t(txn), SUPERBLOCK_ID, access);
     scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
     *got_superblock_out = std::move(tmp_sb);
 }

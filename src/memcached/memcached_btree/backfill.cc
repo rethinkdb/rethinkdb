@@ -24,7 +24,7 @@ public:
         cb_->on_deletion(key, recency, interruptor);
     }
 
-    void on_pair(alt_buf_parent_t parent, repli_timestamp_t recency,
+    void on_pair(buf_parent_t parent, repli_timestamp_t recency,
                  const btree_key_t *key, const void *val,
                  signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         rassert(kr_.contains_key(key->contents, key->size));
