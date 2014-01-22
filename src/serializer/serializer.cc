@@ -164,7 +164,6 @@ counted_t<standard_block_token_t> serializer_block_write(serializer_t *ser, ser_
 
 }
 
-// RSI: Move this to a new file types.cc?
 void debug_print(printf_buffer_t *buf, const buf_write_info_t &info) {
     buf->appendf("bwi{buf=%p, size=%" PRIu32 ", id=%" PRIu64 "}",
                  info.buf, info.block_size.ser_value(), info.block_id);
