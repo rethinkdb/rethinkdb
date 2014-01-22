@@ -163,14 +163,6 @@ void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
                           expired_t::NO, &null_cb);
 }
 
-void kv_location_set(keyvalue_location_t<rdb_value_t> *kv_location,
-                     const btree_loc_info_t &info,
-                     counted_t<const ql::datum_t> data,
-                     rdb_modification_info_t *mod_info_out) {
-    kv_location_set(kv_location, *info.key, data,
-                    info.btree->timestamp, mod_info_out);
-}
-
 batched_replace_response_t rdb_replace_and_return_superblock(
     const btree_loc_info_t &info,
     const btree_point_replacer_t *replacer,
@@ -247,7 +239,8 @@ batched_replace_response_t rdb_replace_and_return_superblock(
             } else {
                 conflict = resp.add("inserted", make_counted<ql::datum_t>(1.0));
                 r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                kv_location_set(&kv_location, info, new_val, mod_info_out);
+                kv_location_set(&kv_location, *info.key, new_val, info.btree->timestamp,
+                                mod_info_out);
                 guarantee(mod_info_out->deleted.second.empty());
                 guarantee(!mod_info_out->added.second.empty());
                 mod_info_out->added.first = new_val;
@@ -269,7 +262,9 @@ batched_replace_response_t rdb_replace_and_return_superblock(
                 } else {
                     conflict = resp.add("replaced", make_counted<ql::datum_t>(1.0));
                     r_sanity_check(new_val->get(primary_key, ql::NOTHROW).has());
-                    kv_location_set(&kv_location, info, new_val, mod_info_out);
+                    kv_location_set(&kv_location, *info.key, new_val,
+                                    info.btree->timestamp,
+                                    mod_info_out);
                     guarantee(!mod_info_out->deleted.second.empty());
                     guarantee(!mod_info_out->added.second.empty());
                     mod_info_out->added.first = new_val;
