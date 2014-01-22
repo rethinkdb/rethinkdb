@@ -73,7 +73,7 @@ public:
 /* Pad a value to the size of one or multiple cache lines to avoid false sharing.
  */
 #define COMPUTE_PADDING_SIZE(value, alignment) \
-        alignment - (((value + alignment - 1) % alignment) + 1)
+    (alignment) - ((((value) + (alignment) - 1) % (alignment)) + 1)
 
 template<typename value_t>
 struct cache_line_padded_t {
