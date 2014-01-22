@@ -202,7 +202,7 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::~entry_
             = ti->connection_map.find(that_->peer);
         guarantee(entry != ti->connection_map.end() && entry->second.first == that_);
         ti->connection_map.erase(that_->peer);
-        ti->publisher.publish(boost::bind(&ping_disconnection_watcher, that_->peer, _1));
+        ti->publisher.publish(std::bind(&ping_disconnection_watcher, that_->peer, ph::_1));
     }
 }
 
