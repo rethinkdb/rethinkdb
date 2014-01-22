@@ -9,6 +9,7 @@
 #include <vector>
 #include <utility>
 
+#include "buffer_cache/types.hpp"
 #include "containers/buffer_group.hpp"
 #include "errors.hpp"
 #include "serializer/types.hpp"
