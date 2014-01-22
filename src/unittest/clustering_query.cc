@@ -45,6 +45,7 @@ static void run_read_write_test() {
                                                 &branch_history_manager,
                                                 &initial_store.store,
                                                 &get_global_perfmon_collection(),
+                                                &order_source,
                                                 &interruptor);
 
     watchable_variable_t<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > broadcaster_metadata_controller(
@@ -135,6 +136,7 @@ static void run_broadcaster_problem_test() {
                                                 &branch_history_manager,
                                                 &initial_store.store,
                                                 &get_global_perfmon_collection(),
+                                                &order_source,
                                                 &interruptor);
 
     watchable_variable_t<boost::optional<boost::optional<broadcaster_business_card_t<dummy_protocol_t> > > > broadcaster_metadata_controller(
