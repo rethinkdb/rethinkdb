@@ -117,7 +117,3 @@ bool delete_secondary_index(buf_lock_t *sindex_block, const std::string &id) {
     }
 }
 
-void delete_all_secondary_indexes(buf_lock_t *sindex_block) {
-    set_secondary_indexes_internal(sindex_block,
-                                   std::map<std::string, secondary_index_t>());
-}

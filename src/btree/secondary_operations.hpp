@@ -82,9 +82,4 @@ void set_secondary_index(buf_lock_t *sindex_block, uuid_u id,
 // to. `drop_sindex` Does both and should be used publicly.
 bool delete_secondary_index(buf_lock_t *sindex_block, const std::string &id);
 
-// XXX note this just drops the enties. It doesn't cleanup the btree that it points
-// to. `drop_all_sindexes` does both and should be used publicly.
-// RSI: Is this used?  drop_all_sindexes is gone.
-void delete_all_secondary_indexes(buf_lock_t *sindex_block);
-
 #endif /* BTREE_SECONDARY_OPERATIONS_HPP_ */
