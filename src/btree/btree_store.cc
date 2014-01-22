@@ -574,7 +574,6 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
 }
 
 
-// RSI: This used to take an interruptor.
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         superblock_t *super_block,
