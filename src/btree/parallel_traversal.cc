@@ -508,7 +508,6 @@ void process_a_internal_node(traversal_state_t *state,
                       level + 1, ids_source);
 }
 
-// This releases its buf_lock_t parameter.
 void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
         int level, const btree_key_t *left_exclusive_or_null,
         const btree_key_t *right_inclusive_or_null) {
@@ -529,23 +528,22 @@ void process_a_leaf_node(traversal_state_t *state, buf_lock_t buf,
 
     if (state->helper->btree_node_mode() != alt_access_t::write) {
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
+        buf.reset_buf_lock();
     } else if (population_change != 0) {
         // RSI: Should we _actually_ pass &buf as the parent?
         // RSI: See operations.tcc for another use of the stat block.
         // RSI: having buf as the parent doesn't really make sense. The stat block
         // doesn't really have a parent.
         buf_lock_t stat_block(&buf, state->stat_block, alt_access_t::write);
+        buf.reset_buf_lock();
         buf_write_t stat_block_write(&stat_block);
         auto stat_block_buf =
             static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
         stat_block_buf->population += population_change;
     } else {
+        buf.reset_buf_lock();
         // Don't acquire the block to not change the value.
     }
-
-    // RSI: I think we could reset this earlier (just after we acquire the
-    // stat_block, I think).  It depends on how we decide to treat stat blocks.
-    buf.reset_buf_lock();
 
     if (state->helper->progress) {
         state->helper->progress->inform(level, parallel_traversal_progress_t::RELEASE, parallel_traversal_progress_t::LEAF);
