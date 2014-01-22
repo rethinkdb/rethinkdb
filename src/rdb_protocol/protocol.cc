@@ -1452,7 +1452,6 @@ private:
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
     superblock_t *superblock;
-    // RSI: Does interruptor actually get used?
     wait_any_t interruptor;
     ql::env_t ql_env;
 
