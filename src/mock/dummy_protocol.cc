@@ -268,15 +268,12 @@ void dummy_protocol_t::store_t::new_write_token_pair(write_token_pair_t *token_p
     token_pair_out->main_write_token.create(&main_token_sink, main_token);
 }
 
-void dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
-                                                object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+void dummy_protocol_t::store_t::do_get_metainfo(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                                 signal_t *interruptor,
                                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(token);
 
     wait_interruptible(token->get(), interruptor);
-
-    order_sink.check_out(order_token);
 
     if (rng.randint(2) == 0) {
         nap(rng.randint(10), interruptor);
@@ -286,7 +283,6 @@ void dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
 }
 
 void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
-                                             order_token_t order_token,
                                              object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
@@ -294,8 +290,6 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
 
     wait_interruptible(token->get(), interruptor);
-
-    order_sink.check_out(order_token);
 
     if (rng.randint(2) == 0) {
         nap(rng.randint(10), interruptor);
@@ -307,7 +301,6 @@ void dummy_protocol_t::store_t::set_metainfo(const metainfo_t &new_metainfo,
 void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
                                      const dummy_protocol_t::read_t &read,
                                      dummy_protocol_t::read_response_t *response,
-                                     order_token_t order_token,
                                      read_token_pair_t *token_pair,
                                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
@@ -317,7 +310,6 @@ void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_p
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t>::destruction_sentinel_t destroyer(&token_pair->main_read_token);
 
         wait_interruptible(token_pair->main_read_token.get(), interruptor);
-        order_sink.check_out(order_token);
 
         // We allow upper_metainfo domain to be smaller than the metainfo domain
 #ifndef NDEBUG
@@ -370,7 +362,6 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
                                       dummy_protocol_t::write_response_t *response,
                                       UNUSED write_durability_t durability,
                                       transition_timestamp_t timestamp,
-                                      order_token_t order_token,
                                       write_token_pair_t *token_pair,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
@@ -382,8 +373,6 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
 
         wait_interruptible(token_pair->main_write_token.get(), interruptor);
-
-        order_sink.check_out(order_token);
 
         // We allow upper_metainfo domain to be smaller than the metainfo domain
         rassert(metainfo_checker.get_domain() == metainfo.mask(metainfo_checker.get_domain()).get_domain());

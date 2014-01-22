@@ -42,11 +42,11 @@ void direct_reader_t<protocol_t>::perform_read(
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, svs->get_region());
 #endif
 
+        // RSI: order_source is unused?
         typename protocol_t::read_response_t response;
         svs->read(DEBUG_ONLY(metainfo_checker, )
                   read,
                   &response,
-                  order_source.check_in("direct_reader_t::perform_read").with_read_mode(),
                   &token_pair,
                   keepalive.get_drain_signal());
 

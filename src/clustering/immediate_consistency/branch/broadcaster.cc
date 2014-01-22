@@ -37,7 +37,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
         branch_history_manager_t<protocol_t> *bhm,
         store_view_t<protocol_t> *initial_svs,
         perfmon_collection_t *parent_perfmon_collection,
-        order_source_t *order_source,
+        UNUSED order_source_t *order_source /* RSI */,
         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t)
     : broadcaster_collection(),
       broadcaster_membership(parent_perfmon_collection, &broadcaster_collection, "broadcaster"),
@@ -56,7 +56,7 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     initial_svs->new_read_token(&read_token);
 
     region_map_t<protocol_t, binary_blob_t> origins_blob;
-    initial_svs->do_get_metainfo(order_source->check_in("broadcaster_t(read)").with_read_mode(), &read_token, interruptor, &origins_blob);
+    initial_svs->do_get_metainfo(&read_token, interruptor, &origins_blob);
 
     region_map_t<protocol_t, version_range_t> origins = to_version_range_map(origins_blob);
 
@@ -97,7 +97,6 @@ broadcaster_t<protocol_t>::broadcaster_t(mailbox_manager_t *mm,
     initial_svs->new_write_token(&write_token);
     initial_svs->set_metainfo(region_map_t<protocol_t, binary_blob_t>(initial_svs->get_region(),
                                                                       binary_blob_t(version_range_t(version_t(branch_id, initial_timestamp)))),
-                              order_source->check_in("broadcaster_t(write)"),
                               &write_token,
                               interruptor);
 

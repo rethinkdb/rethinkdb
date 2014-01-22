@@ -371,8 +371,7 @@ public:
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
     [May block] */
-    virtual void do_get_metainfo(order_token_t order_token,
-                                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+    virtual void do_get_metainfo(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                  signal_t *interruptor,
                                  metainfo_t *out) THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -381,7 +380,6 @@ public:
     [Postcondition] this->get_metainfo() == new_metainfo
     [May block] */
     virtual void set_metainfo(const metainfo_t &new_metainfo,
-                              order_token_t order_token,
                               object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -393,7 +391,6 @@ public:
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_expecter, )
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
-            order_token_t order_token,
             read_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -411,7 +408,6 @@ public:
             typename protocol_t::write_response_t *response,
             write_durability_t durability,
             transition_timestamp_t timestamp,
-            order_token_t order_token,
             write_token_pair_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -533,37 +529,35 @@ public:
         store_view->new_write_token_pair(token_pair_out);
     }
 
-    void do_get_metainfo(order_token_t order_token,
-                         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
+    void do_get_metainfo(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                          signal_t *interruptor,
                          metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         metainfo_t tmp;
-        store_view->do_get_metainfo(order_token, token, interruptor, &tmp);
+        store_view->do_get_metainfo(token, interruptor, &tmp);
         *out = tmp.mask(get_region());
     }
 
     void set_metainfo(const metainfo_t &new_metainfo,
-                      order_token_t order_token,
                       object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
-        store_view->set_metainfo(new_metainfo, order_token, token, interruptor);
+        store_view->set_metainfo(new_metainfo, token, interruptor);
     }
 
     void read(
             DEBUG_ONLY(const metainfo_checker_t<protocol_t>& metainfo_checker, )
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
-            order_token_t order_token,
             read_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
 
-        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response, order_token, token_pair, interruptor);
+        store_view->read(DEBUG_ONLY(metainfo_checker, ) read, response,
+                         token_pair, interruptor);
     }
 
     void write(
@@ -573,7 +567,6 @@ public:
             typename protocol_t::write_response_t *response,
             write_durability_t durability,
             transition_timestamp_t timestamp,
-            order_token_t order_token,
             write_token_pair_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
@@ -581,7 +574,7 @@ public:
         rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
         rassert(region_is_superset(get_region(), new_metainfo.get_domain()));
 
-        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, order_token, token_pair, interruptor);
+        store_view->write(DEBUG_ONLY(metainfo_checker, ) new_metainfo, write, response, durability, timestamp, token_pair, interruptor);
     }
 
     // TODO: Make this take protocol_t::progress_t again (or maybe a
