@@ -160,9 +160,6 @@ void backfillee(
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> read_token;
     svs->new_read_token(&read_token);
 
-    // TODO: This is bs.  order_token_t::ignore.  The svs needs an order checkpoint with its fifo enforcers.
-    order_source_t order_source;
-
     region_map_t<protocol_t, binary_blob_t> start_point_blob;
     svs->do_get_metainfo(&read_token, interruptor, &start_point_blob);
     region_map_t<protocol_t, version_range_t> start_point = to_version_range_map(start_point_blob);
@@ -344,7 +341,6 @@ void backfillee(
                                                                          &binary_blob_t::make<version_range_t>),
         &write_token,
         interruptor);
-    // RSI: order_source unused?
 }
 
 
