@@ -13,10 +13,6 @@
 #include "containers/scoped.hpp"
 #include "serializer/types.hpp"
 
-blob_acq_t::~blob_acq_t() {
-    reset();
-}
-
 template <class T>
 void clear_and_delete(std::vector<T *> *vec) {
     while (!vec->empty()) {
@@ -26,7 +22,7 @@ void clear_and_delete(std::vector<T *> *vec) {
     }
 }
 
-void blob_acq_t::reset() {
+blob_acq_t::~blob_acq_t() {
     clear_and_delete(&reads_);
     clear_and_delete(&writes_);
     clear_and_delete(&bufs_);

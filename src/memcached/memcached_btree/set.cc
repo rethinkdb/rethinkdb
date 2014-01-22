@@ -92,16 +92,7 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
         b.expose_region(leaf, alt_access_t::write,
                         0, data->size(), &bg, &acq);
 
-        try {
-            // RSI: What the fuck is going on here?  How could buffer_group_copy_data
-            // throw an exception?  Fix this.
-            buffer_group_copy_data(&bg, data->buf(), data->size());
-        } catch (...) {
-            // Gotta release ownership of all those bufs first.
-            acq.reset();
-            b.clear(leaf);
-            throw;
-        }
+        buffer_group_copy_data(&bg, data->buf(), data->size());
 
         result = sr_stored;
         return true;
