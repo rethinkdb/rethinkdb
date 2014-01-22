@@ -285,14 +285,14 @@ void connectivity_cluster_t::run_t::join_blocking(
     rate_control.co_lock(peer.ips().size() - 1); // Start with only one coroutine able to run
 
     pmap(peer.ips().size(),
-         boost::bind(&connectivity_cluster_t::run_t::connect_to_peer,
-                     this,
-                     &peer,
-                     _1,
-                     expected_id,
-                     drainer_lock,
-                     &successful_join,
-                     &rate_control));
+         std::bind(&connectivity_cluster_t::run_t::connect_to_peer,
+                   this,
+                   &peer,
+                   ph::_1,
+                   expected_id,
+                   drainer_lock,
+                   &successful_join,
+                   &rate_control));
 
     // All attempts have completed
     {
