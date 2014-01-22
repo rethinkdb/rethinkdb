@@ -339,7 +339,7 @@ void listener_write(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
         const typename protocol_t::write_t &w, transition_timestamp_t ts,
-        UNUSED order_token_t order_token /* RSI */, fifo_enforcer_write_token_t token,
+        fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -365,7 +365,7 @@ void listener_read(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
         const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, state_timestamp_t ts,
-        UNUSED order_token_t order_token /* RSI */, fifo_enforcer_read_token_t token,
+        fifo_enforcer_read_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -506,10 +506,10 @@ void broadcaster_t<protocol_t>::get_all_readable_dispatchees(
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, UNUSED order_token_t order_token /* RSI */, fifo_enforcer_write_token_t token) THROWS_NOTHING {
     try {
         listener_write<protocol_t>(mailbox_manager, mirror->write_mailbox,
-                                   write_ref.get()->write, write_ref.get()->timestamp, order_token, token,
+                                   write_ref.get()->write, write_ref.get()->timestamp, token,
                                    mirror_lock.get_drain_signal());
     } catch (const interrupted_exc_t &) {
         return;
@@ -604,7 +604,7 @@ void broadcaster_t<protocol_t>::single_read(
     try {
         wait_any_t interruptor2(reader_lock.get_drain_signal(), interruptor);
         listener_read<protocol_t>(mailbox_manager, reader->read_mailbox,
-                                  read, response, timestamp, order_token, enforcer_token,
+                                  read, response, timestamp, enforcer_token,
                                   &interruptor2);
     } catch (const interrupted_exc_t &) {
         if (interruptor->is_pulsed()) {
@@ -659,7 +659,7 @@ void broadcaster_t<protocol_t>::all_read(
         for (size_t i = 0; i < readers.size(); ++i) {
             listener_read<protocol_t>(
                 mailbox_manager, readers[i]->read_mailbox, read, &responses[i],
-                timestamp, order_token, enforcer_tokens[i], &interruptor2);
+                timestamp, enforcer_tokens[i], &interruptor2);
 
             /* Notice this is a bit of a hack here, we're passing a default
              * constructed context here to the UNSHARD function. This is
