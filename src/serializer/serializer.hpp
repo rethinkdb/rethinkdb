@@ -82,19 +82,20 @@ public:
 
     /* Returns all recencies, for all block ids of the form first + step * k, for k =
        0, 1, 2, 3, ..., in order by block id.  Non-existant block ids have recency
-       repli_timestamp_t::invalid.  You must never call this after _writing_ a block
-       to this serializer_t instance, because the information you get back could be
-       wrong. */
+       repli_timestamp_t::invalid.  You must only call this before _writing_ a
+       block to this serializer_t instance, because otherwise the information you get
+       back could be wrong. */
     virtual segmented_vector_t<repli_timestamp_t>
     get_all_recencies(block_id_t first, block_id_t step) = 0;
 
-    /* Returns all recencies, indexed by block id. */
+    /* Returns all recencies, indexed by block id.  (See above.) */
     segmented_vector_t<repli_timestamp_t> get_all_recencies() {
         return get_all_recencies(0, 1);
     }
 
-    /* Reads the block's delete bit. */
-    // RSI: Does this actually get used by the new cache?
+    /* Reads the block's delete bit.  You must only call this on startup, before
+       _writing_ a block to this serializer_t instance, because otherwise the
+       information you get back could be wrong. */
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
