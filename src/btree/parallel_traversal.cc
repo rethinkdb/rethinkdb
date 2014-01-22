@@ -276,8 +276,6 @@ struct acquire_a_node_fsm_t : public acquisition_waiter_callback_t {
         auto block = make_scoped<buf_lock_t>(parent,
                                              block_id,
                                              state->helper->btree_node_mode());
-        // RSI: Before, we passed buffer_cache_order_mode_check to the buf_lock_t
-        // constructor.
         acq_start_cb->on_in_line();  // RSI: this is dumb.
 
         node_ready_callback_t *local_cb = node_ready_cb;
