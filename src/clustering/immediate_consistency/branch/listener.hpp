@@ -126,14 +126,15 @@ private:
     class write_queue_entry_t {
     public:
         write_queue_entry_t() { }
-        write_queue_entry_t(const typename protocol_t::write_t &w, transition_timestamp_t tt, fifo_enforcer_write_token_t ft) :
-            write(w), transition_timestamp(tt), fifo_token(ft) { }
+        write_queue_entry_t(const typename protocol_t::write_t &w, transition_timestamp_t tt, order_token_t _order_token, fifo_enforcer_write_token_t ft) :
+            write(w), transition_timestamp(tt), order_token(_order_token), fifo_token(ft) { }
         typename protocol_t::write_t write;
         transition_timestamp_t transition_timestamp;
+        order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
 
         // This is serializable because this gets written to a disk backed queue.
-        RDB_MAKE_ME_SERIALIZABLE_3(write, transition_timestamp, fifo_token);
+        RDB_MAKE_ME_SERIALIZABLE_4(write, order_token, transition_timestamp, fifo_token);
     };
 
     // TODO: This boost optional boost optional crap is ... crap.  This isn't Haskell, this is *real* programming, people.
