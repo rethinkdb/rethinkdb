@@ -86,8 +86,7 @@ void run_with_broadcaster(
                                        &branch_history_manager,
                                        broadcaster.get(),
                                        &get_global_perfmon_collection(),
-                                       &interruptor,
-                                       &order_source));
+                                       &interruptor));
 
     fun(std::make_pair(&io_backender, &cluster),
         &branch_history_manager,
@@ -203,8 +202,7 @@ void run_backfill_test(size_t value_padding_length,
         replier_business_card_variable.get_watchable(),
         generate_uuid(),
         &get_global_perfmon_collection(),
-        &interruptor,
-        order_source);
+        &interruptor);
 
     debugf("listener2 constructed\n");
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
@@ -321,8 +319,7 @@ void run_sindex_backfill_test(std::pair<io_backender_t *, simple_mailbox_cluster
         replier_business_card_variable.get_watchable(),
         generate_uuid(),
         &get_global_perfmon_collection(),
-        &interruptor,
-        order_source);
+        &interruptor);
 
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());
     EXPECT_FALSE(listener2.get_broadcaster_lost_signal()->is_pulsed());

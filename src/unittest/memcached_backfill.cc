@@ -55,8 +55,7 @@ void run_with_broadcaster(
                                              &branch_history_manager,
                                              broadcaster.get(),
                                              &get_global_perfmon_collection(),
-                                             &interruptor,
-                                             &order_source));
+                                             &interruptor));
 
     fun(&io_backender,
         &cluster,
@@ -153,8 +152,7 @@ void run_partial_backfill_test(io_backender_t *io_backender,
         replier_business_card_variable.get_watchable(),
         generate_uuid(),
         &get_global_perfmon_collection(),
-        &interruptor,
-        order_source);
+        &interruptor);
 
     debugf("listener2 constructed\n");
     EXPECT_FALSE((*initial_listener)->get_broadcaster_lost_signal()->is_pulsed());

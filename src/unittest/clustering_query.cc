@@ -59,8 +59,7 @@ static void run_read_write_test() {
         &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
-        &interruptor,
-        &order_source);
+        &interruptor);
 
     replier_t<dummy_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
@@ -151,8 +150,7 @@ static void run_broadcaster_problem_test() {
         &branch_history_manager,
         &broadcaster,
         &get_global_perfmon_collection(),
-        &interruptor,
-        &order_source);
+        &interruptor);
 
     replier_t<dummy_protocol_t> initial_replier(&initial_listener, cluster.get_mailbox_manager(), &branch_history_manager);
 
