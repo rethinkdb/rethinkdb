@@ -331,22 +331,9 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: Does this really use the interruptor?
-    void acquire_superblock_for_write(
-            alt_access_t superblock_access,  // RSI: redundant
-            repli_timestamp_t timestamp,
-            int expected_change_count,
-            write_durability_t durability,
-            write_token_pair_t *token_pair,
-            scoped_ptr_t<txn_t> *txn_out,
-            scoped_ptr_t<real_superblock_t> *sb_out,
-            signal_t *interruptor)
-            THROWS_ONLY(interrupted_exc_t);
-
 private:
     // RSI: Does this really use the interruptor?
     void acquire_superblock_for_write(
-            alt_access_t superblock_access,  // RSI: redundant
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,

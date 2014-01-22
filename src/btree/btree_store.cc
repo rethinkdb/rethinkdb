@@ -876,8 +876,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
     // RSI: Are there other places where we give up and use repli_timestamp_t::invalid?
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(alt_access_t::write,
-                                 repli_timestamp_t::invalid,
+    acquire_superblock_for_write(repli_timestamp_t::invalid,
                                  1,
                                  write_durability_t::HARD,
                                  token,
@@ -937,23 +936,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    acquire_superblock_for_write(alt_access_t::write, timestamp,
-                                 expected_change_count, durability,
-                                 token_pair, txn_out, sb_out, interruptor);
-}
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::acquire_superblock_for_write(
-        alt_access_t superblock_access,
-        repli_timestamp_t timestamp,
-        int expected_change_count,
-        const write_durability_t durability,
-        write_token_pair_t *token_pair,
-        scoped_ptr_t<txn_t> *txn_out,
-        scoped_ptr_t<real_superblock_t> *sb_out,
-        signal_t *interruptor)
-        THROWS_ONLY(interrupted_exc_t) {
-    acquire_superblock_for_write(superblock_access, timestamp,
+    acquire_superblock_for_write(timestamp,
                                  expected_change_count, durability,
                                  &token_pair->main_write_token, txn_out, sb_out,
                                  interruptor);
@@ -961,7 +944,6 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
 
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_write(
-        alt_access_t superblock_access,
         repli_timestamp_t timestamp,
         int expected_change_count,
         write_durability_t durability,
@@ -977,7 +959,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(token);
     wait_interruptible(token->get(), interruptor);
 
-    get_btree_superblock_and_txn(btree.get(), superblock_access,
+    get_btree_superblock_and_txn(btree.get(), alt_access_t::write,
                                  expected_change_count, timestamp,
                                  durability, sb_out, txn_out);
 }

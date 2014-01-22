@@ -1209,7 +1209,6 @@ public:
             // okay -- we wipe it and rebuild it, if it has not been marked completely
             // constructed.
             store_->acquire_superblock_for_write(
-                    alt_access_t::write,
                     repli_timestamp_t::distant_past,
                     2,  // RSI: This is not the right value.
                     write_durability_t::SOFT,
