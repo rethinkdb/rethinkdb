@@ -436,7 +436,7 @@ struct do_a_subtree_traversal_fsm_t : public node_ready_callback_t {
         rassert(coro_t::self());
         bool is_leaf;
         {
-            alt_buf_read_t read(buf->get());
+            buf_read_t read(buf->get());
             const node_t *node = static_cast<const node_t *>(read.get_data_read());
             is_leaf = node::is_leaf(node);
         }
@@ -498,7 +498,7 @@ void process_a_internal_node(traversal_state_t *state,
                              const btree_key_t *right_inclusive_or_null) {
     boost::shared_ptr<ranged_block_ids_t> ids_source;
     {
-        alt_buf_read_t read(buf->get());
+        buf_read_t read(buf->get());
         const internal_node_t *node
             = static_cast<const internal_node_t *>(read.get_data_read());
 
@@ -540,7 +540,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> *buf
         // RSI: having buf as the parent doesn't really make sense. The stat block
         // doesn't really have a parent.
         buf_lock_t stat_block(buf->get(), state->stat_block, alt_access_t::write);
-        alt_buf_write_t stat_block_write(&stat_block);
+        buf_write_t stat_block_write(&stat_block);
         auto stat_block_buf =
             static_cast<btree_statblock_t *>(stat_block_write.get_data_write());
         stat_block_buf->population += population_change;

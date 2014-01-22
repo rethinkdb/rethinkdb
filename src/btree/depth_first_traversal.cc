@@ -43,7 +43,7 @@ bool btree_depth_first_traversal(btree_slice_t *slice,
                                  const key_range_t &range,
                                  depth_first_traversal_callback_t *cb,
                                  direction_t direction) {
-    alt_buf_read_t read(block.get());
+    buf_read_t read(block.get());
     const node_t *node = static_cast<const node_t *>(read.get_data_read());
     if (node::is_internal(node)) {
         const internal_node_t *inode = reinterpret_cast<const internal_node_t *>(node);

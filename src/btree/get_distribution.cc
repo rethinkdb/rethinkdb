@@ -16,7 +16,7 @@ public:
 
     void read_stat_block(buf_lock_t *stat_block) {
         if (stat_block != NULL) {
-            alt_buf_read_t read(stat_block);
+            buf_read_t read(stat_block);
             key_count = static_cast<const btree_statblock_t *>(read.get_data_read())->population;
         } else {
             key_count = 0;
@@ -29,7 +29,7 @@ public:
                         const btree_key_t *,
                         signal_t * /*interruptor*/,
                         int * /*population_change_out*/) THROWS_ONLY(interrupted_exc_t) {
-        alt_buf_read_t read(leaf_node_buf);
+        buf_read_t read(leaf_node_buf);
         const leaf_node_t *node
             = static_cast<const leaf_node_t *>(read.get_data_read());
 
@@ -40,7 +40,7 @@ public:
     }
 
     void postprocess_internal_node(buf_lock_t *internal_node_buf) {
-        alt_buf_read_t read(internal_node_buf);
+        buf_read_t read(internal_node_buf);
         const internal_node_t *node
             = static_cast<const internal_node_t *>(read.get_data_read());
 

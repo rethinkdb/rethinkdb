@@ -24,7 +24,7 @@ public:
                         const btree_key_t *r_incl,
                         signal_t *,
                         int *population_change_out) THROWS_ONLY(interrupted_exc_t) {
-        alt_buf_write_t write(leaf_node_buf);
+        buf_write_t write(leaf_node_buf);
         leaf_node_t *node = static_cast<leaf_node_t *>(write.get_data_write());
 
         std::vector<store_key_t> keys_to_delete;

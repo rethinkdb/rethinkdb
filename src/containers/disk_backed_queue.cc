@@ -36,7 +36,7 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
     alt_txn_t txn(cache.get(), write_durability_t::HARD,
                   repli_timestamp_t::distant_past, 1);
     buf_lock_t block(&txn, SUPERBLOCK_ID, alt_create_t::create);
-    alt_buf_write_t write(&block);
+    buf_write_t write(&block);
     const block_size_t block_size = cache->max_block_size();
     void *buf = write.get_data_write(block_size.value());
     memset(buf, 0, block_size.value());
@@ -59,7 +59,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
 
     auto _head = make_scoped<buf_lock_t>(alt_buf_parent_t(&txn), head_block_id,
                                          alt_access_t::write);
-    auto write = make_scoped<alt_buf_write_t>(_head.get());
+    auto write = make_scoped<buf_write_t>(_head.get());
     queue_block_t *head = static_cast<queue_block_t *>(write->get_data_write());
 
     char buffer[MAX_REF_SIZE];
@@ -77,7 +77,7 @@ void internal_disk_backed_queue_t::push(const write_message_t &wm) {
         add_block_to_head(&txn);
         _head.init(new buf_lock_t(alt_buf_parent_t(&txn), head_block_id,
                                   alt_access_t::write));
-        write.init(new alt_buf_write_t(_head.get()));
+        write.init(new buf_write_t(_head.get()));
         head = static_cast<queue_block_t *>(write->get_data_write());
     }
 
@@ -101,7 +101,7 @@ void internal_disk_backed_queue_t::pop(buffer_group_viewer_t *viewer) {
 
     auto _tail = make_scoped<buf_lock_t>(alt_buf_parent_t(&txn), tail_block_id,
                                          alt_access_t::write);
-    auto write = make_scoped<alt_buf_write_t>(_tail.get());
+    auto write = make_scoped<buf_write_t>(_tail.get());
     queue_block_t *tail = static_cast<queue_block_t *>(write->get_data_write());
     rassert(tail->data_size != tail->live_data_offset);
 
@@ -146,7 +146,7 @@ int64_t internal_disk_backed_queue_t::size() {
 
 void internal_disk_backed_queue_t::add_block_to_head(alt_txn_t *txn) {
     buf_lock_t _new_head(alt_buf_parent_t(txn), alt_create_t::create);
-    alt_buf_write_t write(&_new_head);
+    buf_write_t write(&_new_head);
     queue_block_t *new_head = static_cast<queue_block_t *>(write.get_data_write());
     if (head_block_id == NULL_BLOCK_ID) {
         rassert(tail_block_id == NULL_BLOCK_ID);
@@ -154,7 +154,7 @@ void internal_disk_backed_queue_t::add_block_to_head(alt_txn_t *txn) {
     } else {
         buf_lock_t _old_head(alt_buf_parent_t(txn), head_block_id,
                              alt_access_t::write);
-        alt_buf_write_t old_write(&_old_head);
+        buf_write_t old_write(&_old_head);
         queue_block_t *old_head
             = static_cast<queue_block_t *>(old_write.get_data_write());
         rassert(old_head->next == NULL_BLOCK_ID);
@@ -173,7 +173,7 @@ void internal_disk_backed_queue_t::remove_block_from_tail(alt_txn_t *txn) {
                          alt_access_t::write);
 
     {
-        alt_buf_write_t old_write(&_old_tail);
+        buf_write_t old_write(&_old_tail);
         queue_block_t *old_tail = static_cast<queue_block_t *>(old_write.get_data_write());
 
         if (old_tail->next == NULL_BLOCK_ID) {

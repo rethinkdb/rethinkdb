@@ -369,7 +369,7 @@ struct region_tree_filler_t {
     void operator()(int i) const {
         if (levels > 1) {
             buf_lock_t lock(parent, block_ids[lo + i], mode);
-            alt_buf_read_t buf_read(&lock);
+            buf_read_t buf_read(&lock);
             // RSI: Use this block size for an assertion or something.
             uint32_t unused_block_size;
             const block_id_t *sub_ids = blob::internal_node_block_ids(buf_read.get_data_read(&unused_block_size));
@@ -433,13 +433,13 @@ void expose_tree_from_block_ids(alt_buf_parent_t parent, alt_access_t mode,
             buf_lock_t *buf = tree[i].buf;
             void *leaf_buf;
             if (mode == alt_access_t::read) {
-                alt_buf_read_t *buf_read = new alt_buf_read_t(buf);
+                buf_read_t *buf_read = new buf_read_t(buf);
                 // RSI: Could we use this block size somehow?  An assertion?
                 uint32_t block_size;
                 leaf_buf = const_cast<void *>(buf_read->get_data_read(&block_size));
                 acq_group_out->add_buf(buf, buf_read);
             } else {
-                alt_buf_write_t *buf_write = new alt_buf_write_t(buf);
+                buf_write_t *buf_write = new buf_write_t(buf);
                 leaf_buf = buf_write->get_data_write(suboffset + subsize
                                                      + blob::LEAF_NODE_DATA_OFFSET);
                 acq_group_out->add_buf(buf, buf_write);
@@ -628,7 +628,7 @@ void traverse_index(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
     if (sub_old_size > 0) {
         if (levels > 1) {
             buf_lock_t lock(parent, block_ids[index], alt_access_t::write);
-            alt_buf_write_t write(&lock);
+            buf_write_t write(&lock);
             void *b = write.get_data_write();
 
             block_id_t *subids = blob::internal_node_block_ids(b);
@@ -643,7 +643,7 @@ void traverse_index(alt_buf_parent_t parent, int levels, block_id_t *block_ids,
         helper->preprocess(parent, levels, &lock, &block_ids[index]);
 
         if (levels > 1) {
-            alt_buf_write_t write(&lock);
+            buf_write_t write(&lock);
             void *b = write.get_data_write();
             block_id_t *subids = blob::internal_node_block_ids(b);
             traverse_recursively(alt_buf_parent_t(&lock), levels - 1, subids,
@@ -731,7 +731,7 @@ struct allocate_helper_t : public blob::traverse_helper_t {
         buf_lock_t temp_lock(parent, alt_create_t::create);
         lock_out->swap(temp_lock);
         *block_id = lock_out->block_id();
-        alt_buf_write_t lock_write(lock_out);
+        buf_write_t lock_write(lock_out);
         void *b = lock_write.get_data_write();
         if (levels == 1) {
             *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
@@ -838,7 +838,7 @@ void blob_t::consider_small_shift(alt_buf_parent_t parent, int levels,
             if (practical_offset < step && practical_end_offset <= 2 * step) {
                 block_id_t *ids = blob::block_ids(ref_, maxreflen_);
                 buf_lock_t lobuf(parent, ids[0], alt_access_t::write);
-                alt_buf_write_t lobuf_write(&lobuf);
+                buf_write_t lobuf_write(&lobuf);
 
                 int64_t physical_shift = (min_conceivable_shift / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
                 int64_t physical_offset = (practical_offset / substep) * (levels == 1 ? 1 : sizeof(block_id_t));
@@ -851,7 +851,7 @@ void blob_t::consider_small_shift(alt_buf_parent_t parent, int levels,
                 if (physical_end_offset > blob::leaf_size(block_size)) {
                     buf_lock_t hibuf(parent, ids[1], alt_access_t::write);
                     {
-                        alt_buf_read_t hibuf_read(&hibuf);
+                        buf_read_t hibuf_read(&hibuf);
                         // RSI: Use the block size for an assertion or something.
                         uint32_t this_block_size;
                         const char *data2
@@ -874,7 +874,7 @@ void blob_t::consider_small_shift(alt_buf_parent_t parent, int levels,
 // Always returns levels + 1.
 int blob_t::add_level(alt_buf_parent_t parent, int levels) {
     buf_lock_t lock(parent, alt_create_t::create);
-    alt_buf_write_t lock_write(&lock);
+    buf_write_t lock_write(&lock);
     void *b = lock_write.get_data_write();
     if (levels == 0) {
         *reinterpret_cast<block_magic_t *>(b) = blob::leaf_node_magic;
@@ -928,14 +928,14 @@ bool blob_t::remove_level(alt_buf_parent_t parent, int *levels_ref) {
             // We should tried shifting before removing a level.
             rassert(bigoffset == 0);
 
-            alt_buf_read_t lock_read(&lock);
+            buf_read_t lock_read(&lock);
             // RSI: Use the block size for an assert or something.
             uint32_t unused_block_size;
             const char *b = blob::leaf_node_data(lock_read.get_data_read(&unused_block_size));
             memcpy(blob::small_buffer(ref_, maxreflen_), b, maxreflen_ - blob::big_size_offset(maxreflen_));
             blob::set_small_size(ref_, maxreflen_, bigsize);
         } else {
-            alt_buf_read_t lock_read(&lock);
+            buf_read_t lock_read(&lock);
             // RSI: Use the block size for an assert or something.
             uint32_t unused_block_size;
             const block_id_t *b = blob::internal_node_block_ids(lock_read.get_data_read(&unused_block_size));

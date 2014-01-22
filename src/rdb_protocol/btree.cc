@@ -1262,7 +1262,7 @@ public:
             return;
         }
 
-        alt_buf_read_t leaf_read(leaf_node_buf);
+        buf_read_t leaf_read(leaf_node_buf);
         const leaf_node_t *leaf_node
             = static_cast<const leaf_node_t *>(leaf_read.get_data_read());
 

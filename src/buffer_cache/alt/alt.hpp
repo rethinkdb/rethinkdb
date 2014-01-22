@@ -54,8 +54,8 @@ public:
 private:
     friend class alt_txn_t;  // for drainer_->lock()
     friend class alt_inner_txn_t;  // for &page_cache_
-    friend class alt_buf_read_t;  // for &page_cache_
-    friend class alt_buf_write_t;  // for &page_cache_
+    friend class buf_read_t;  // for &page_cache_
+    friend class buf_write_t;  // for &page_cache_
 
     friend class buf_lock_t;  // for latest_snapshot_node and
                               // push_latest_snapshot_node
@@ -283,8 +283,8 @@ private:
                                             block_id_t child_id);
     current_page_acq_t *current_page_acq() const;
 
-    friend class alt_buf_read_t;  // for get_held_page_for_read, access_ref_count_.
-    friend class alt_buf_write_t;  // for get_held_page_for_write, access_ref_count_.
+    friend class buf_read_t;  // for get_held_page_for_read, access_ref_count_.
+    friend class buf_write_t;  // for get_held_page_for_write, access_ref_count_.
 
     page_t *get_held_page_for_read();
     page_t *get_held_page_for_write();
@@ -340,10 +340,10 @@ private:
     buf_lock_t *lock_or_null_;
 };
 
-class alt_buf_read_t {
+class buf_read_t {
 public:
-    explicit alt_buf_read_t(buf_lock_t *lock);
-    ~alt_buf_read_t();
+    explicit buf_read_t(buf_lock_t *lock);
+    ~buf_read_t();
 
     const void *get_data_read(uint32_t *block_size_out);
     // RSI: Remove.
@@ -356,13 +356,13 @@ private:
     buf_lock_t *lock_;
     page_acq_t page_acq_;
 
-    DISABLE_COPYING(alt_buf_read_t);
+    DISABLE_COPYING(buf_read_t);
 };
 
-class alt_buf_write_t {
+class buf_write_t {
 public:
-    explicit alt_buf_write_t(buf_lock_t *lock);
-    ~alt_buf_write_t();
+    explicit buf_write_t(buf_lock_t *lock);
+    ~buf_write_t();
 
     void *get_data_write(uint32_t block_size);
     // Equivalent to passing the max_block_size.
@@ -372,7 +372,7 @@ private:
     buf_lock_t *lock_;
     page_acq_t page_acq_;
 
-    DISABLE_COPYING(alt_buf_write_t);
+    DISABLE_COPYING(buf_write_t);
 };
 
 

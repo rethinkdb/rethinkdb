@@ -21,7 +21,7 @@ serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *seria
     if (has_block_zero) {
         alt_txn_t txn(cache_.get(), alt_read_access_t::read);
         buf_lock_t bufzero(alt_buf_parent_t(&txn), 0, alt_access_t::read);
-        alt_buf_read_t bufzero_read(&bufzero);
+        buf_read_t bufzero_read(&bufzero);
         const void *data = bufzero_read.get_data_read();
         known_size_ = *static_cast<const int64_t *>(data);
         guarantee(known_size_ >= 0);
@@ -54,7 +54,7 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
 
     alt_txn_t txn(cache_.get(), alt_read_access_t::read);
     buf_lock_t block(alt_buf_parent_t(&txn), block_number, alt_access_t::read);
-    alt_buf_read_t block_read(&block);
+    buf_read_t block_read(&block);
     const char *data = static_cast<const char *>(block_read.get_data_read());
     memcpy(p, data + block_offset, num_copied);
     return num_copied;
@@ -94,7 +94,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
                   1);
 
     buf_lock_t z(&txn, 0, alt_create_t::create);
-    alt_buf_write_t z_write(&z);
+    buf_write_t z_write(&z);
     int64_t *p = static_cast<int64_t *>(z_write.get_data_write());
     *p = 0;
 }
@@ -110,7 +110,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(alt_buf_parent_t(&txn), 0, alt_access_t::write);
     {
-        alt_buf_read_t z_read(&z);
+        buf_read_t z_read(&z);
         const int64_t *size_ptr = static_cast<const int64_t *>(z_read.get_data_read());
         guarantee(*size_ptr == size_);
     }
@@ -136,7 +136,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
         const int64_t num_written = end_block_offset - block_offset;
         guarantee(num_written > 0);
         {
-            alt_buf_write_t b_read(b);
+            buf_write_t b_read(b);
             char *buf = static_cast<char *>(b_read.get_data_write());
             memcpy(buf + block_offset, chp, num_written);
         }
@@ -144,7 +144,7 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     }
     size_ += n;
     {
-        alt_buf_write_t z_write(&z);
+        buf_write_t z_write(&z);
         int64_t *size_ptr = static_cast<int64_t *>(z_write.get_data_write());
         *size_ptr = size_;
     }

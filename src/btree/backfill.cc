@@ -24,7 +24,7 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
                         int * /*population_change_out*/)
         THROWS_ONLY(interrupted_exc_t) {
         assert_thread();
-        alt_buf_read_t read(leaf_node_buf);
+        buf_read_t read(leaf_node_buf);
         const leaf_node_t *data = static_cast<const leaf_node_t *>(read.get_data_read());
 
         key_range_t clipped_range(

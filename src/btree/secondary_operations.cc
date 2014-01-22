@@ -13,7 +13,7 @@ RDB_IMPL_ME_SERIALIZABLE_4(secondary_index_t, superblock, opaque_definition,
 
 void get_secondary_indexes_internal(buf_lock_t *sindex_block,
                                     std::map<std::string, secondary_index_t> *sindexes_out) {
-    alt_buf_read_t read(sindex_block);
+    buf_read_t read(sindex_block);
     const btree_sindex_block_t *data
         = static_cast<const btree_sindex_block_t *>(read.get_data_read());
 
@@ -26,7 +26,7 @@ void get_secondary_indexes_internal(buf_lock_t *sindex_block,
 
 void set_secondary_indexes_internal(buf_lock_t *sindex_block,
                                     const std::map<std::string, secondary_index_t> &sindexes) {
-    alt_buf_write_t write(sindex_block);
+    buf_write_t write(sindex_block);
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
 
@@ -37,7 +37,7 @@ void set_secondary_indexes_internal(buf_lock_t *sindex_block,
 }
 
 void initialize_secondary_indexes(buf_lock_t *sindex_block) {
-    alt_buf_write_t write(sindex_block);
+    buf_write_t write(sindex_block);
     btree_sindex_block_t *data
         = static_cast<btree_sindex_block_t *>(write.get_data_write());
     data->magic = btree_sindex_block_t::expected_magic;

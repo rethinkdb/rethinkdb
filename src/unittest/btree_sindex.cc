@@ -35,7 +35,7 @@ void run_sindex_low_level_operations_test() {
         alt_txn_t txn(&cache, write_durability_t::HARD, repli_timestamp_t::invalid,
                       1);
         buf_lock_t superblock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        alt_buf_write_t sb_write(&superblock);
+        buf_write_t sb_write(&superblock);
         memset(sb_write.get_data_write(), 0, cache.max_block_size().value());
     }
 

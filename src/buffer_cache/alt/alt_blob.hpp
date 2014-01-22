@@ -57,8 +57,8 @@ write_blob_ref_to_something(tmp, blob::ref_size(bs, ref, mrl));
 enum class alt_access_t;
 class buf_lock_t;
 class alt_buf_parent_t;
-class alt_buf_read_t;
-class alt_buf_write_t;
+class buf_read_t;
+class buf_write_t;
 
 // Represents an acquisition of buffers owned by the blob.
 class blob_acq_t {
@@ -66,12 +66,12 @@ public:
     blob_acq_t() { }
     ~blob_acq_t();
 
-    void add_buf(buf_lock_t *buf, alt_buf_write_t *write) {
+    void add_buf(buf_lock_t *buf, buf_write_t *write) {
         bufs_.push_back(buf);
         writes_.push_back(write);
     }
 
-    void add_buf(buf_lock_t *buf, alt_buf_read_t *read) {
+    void add_buf(buf_lock_t *buf, buf_read_t *read) {
         bufs_.push_back(buf);
         reads_.push_back(read);
     }
@@ -79,8 +79,8 @@ public:
 private:
     std::vector<buf_lock_t *> bufs_;
     // One of writes_ or reads_ will be empty.
-    std::vector<alt_buf_write_t *> writes_;
-    std::vector<alt_buf_read_t *> reads_;
+    std::vector<buf_write_t *> writes_;
+    std::vector<buf_read_t *> reads_;
 
     // disable copying
     blob_acq_t(const blob_acq_t&);

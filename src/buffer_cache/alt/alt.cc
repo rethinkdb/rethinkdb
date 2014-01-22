@@ -662,18 +662,18 @@ page_t *buf_lock_t::get_held_page_for_write() {
     return current_page_acq_->current_page_for_write();
 }
 
-alt_buf_read_t::alt_buf_read_t(buf_lock_t *lock)
+buf_read_t::buf_read_t(buf_lock_t *lock)
     : lock_(lock) {
     guarantee(!lock_->empty());
     lock_->access_ref_count_++;
 }
 
-alt_buf_read_t::~alt_buf_read_t() {
+buf_read_t::~buf_read_t() {
     guarantee(!lock_->empty());
     lock_->access_ref_count_--;
 }
 
-const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
+const void *buf_read_t::get_data_read(uint32_t *block_size_out) {
     page_t *page = lock_->get_held_page_for_read();
     if (!page_acq_.has()) {
         page_acq_.init(page, &lock_->cache()->page_cache_);
@@ -683,18 +683,18 @@ const void *alt_buf_read_t::get_data_read(uint32_t *block_size_out) {
     return page_acq_.get_buf_read();
 }
 
-alt_buf_write_t::alt_buf_write_t(buf_lock_t *lock)
+buf_write_t::buf_write_t(buf_lock_t *lock)
     : lock_(lock) {
     guarantee(!lock_->empty());
     lock_->access_ref_count_++;
 }
 
-alt_buf_write_t::~alt_buf_write_t() {
+buf_write_t::~buf_write_t() {
     guarantee(!lock_->empty());
     lock_->access_ref_count_--;
 }
 
-void *alt_buf_write_t::get_data_write(uint32_t block_size) {
+void *buf_write_t::get_data_write(uint32_t block_size) {
     // RSI: Use block_size somehow.
     (void)block_size;
     page_t *page = lock_->get_held_page_for_write();
@@ -705,7 +705,7 @@ void *alt_buf_write_t::get_data_write(uint32_t block_size) {
     return page_acq_.get_buf_write();
 }
 
-void *alt_buf_write_t::get_data_write() {
+void *buf_write_t::get_data_write() {
     return get_data_write(lock_->cache()->max_block_size().value());
 }
 

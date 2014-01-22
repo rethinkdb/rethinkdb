@@ -52,7 +52,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
                                           repli_timestamp_t::distant_past, 1);
             buf_lock_t superblock(&superblock_creation, SUPERBLOCK_ID,
                                   alt_create_t::create);
-            alt_buf_write_t write(&superblock);
+            buf_write_t write(&superblock);
             memset(write.get_data_write(), 0, cache->max_block_size().value());
         }
 

@@ -18,36 +18,36 @@ void real_superblock_t::release() {
 }
 
 block_id_t real_superblock_t::get_root_block_id() {
-    alt_buf_read_t read(&sb_buf_);
+    buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->root_block;
 }
 
 void real_superblock_t::set_root_block_id(const block_id_t new_root_block) {
-    alt_buf_write_t write(&sb_buf_);
+    buf_write_t write(&sb_buf_);
     btree_superblock_t *sb_data
         = static_cast<btree_superblock_t *>(write.get_data_write());
     sb_data->root_block = new_root_block;
 }
 
 block_id_t real_superblock_t::get_stat_block_id() {
-    alt_buf_read_t read(&sb_buf_);
+    buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->stat_block;
 }
 
 void real_superblock_t::set_stat_block_id(const block_id_t new_stat_block) {
-    alt_buf_write_t write(&sb_buf_);
+    buf_write_t write(&sb_buf_);
     btree_superblock_t *sb_data
         = static_cast<btree_superblock_t *>(write.get_data_write());
     sb_data->stat_block = new_stat_block;
 }
 
 block_id_t real_superblock_t::get_sindex_block_id() {
-    alt_buf_read_t read(&sb_buf_);
+    buf_read_t read(&sb_buf_);
     return static_cast<const btree_superblock_t *>(read.get_data_read())->sindex_block;
 }
 
 void real_superblock_t::set_sindex_block_id(const block_id_t new_sindex_block) {
-    alt_buf_write_t write(&sb_buf_);
+    buf_write_t write(&sb_buf_);
     btree_superblock_t *sb_data
         = static_cast<btree_superblock_t *>(write.get_data_write());
     sb_data->sindex_block = new_sindex_block;
@@ -124,7 +124,7 @@ bool get_superblock_metainfo(buf_lock_t *superblock,
     std::vector<char> metainfo;
 
     {
-        alt_buf_read_t read(superblock);
+        buf_read_t read(superblock);
         const btree_superblock_t *data
             = static_cast<const btree_superblock_t *>(read.get_data_read());
 
@@ -163,7 +163,7 @@ void get_superblock_metainfo(
         std::vector<std::pair<std::vector<char>, std::vector<char> > > *kv_pairs_out) {
     std::vector<char> metainfo;
     {
-        alt_buf_read_t read(superblock);
+        buf_read_t read(superblock);
         const btree_superblock_t *data
             = static_cast<const btree_superblock_t *>(read.get_data_read());
 
@@ -196,7 +196,7 @@ void get_superblock_metainfo(
 void set_superblock_metainfo(buf_lock_t *superblock,
                              const std::vector<char> &key,
                              const std::vector<char> &value) {
-    alt_buf_write_t write(superblock);
+    buf_write_t write(superblock);
     btree_superblock_t *data
         = static_cast<btree_superblock_t *>(write.get_data_write());
 
@@ -268,7 +268,7 @@ void set_superblock_metainfo(buf_lock_t *superblock,
 
 void delete_superblock_metainfo(buf_lock_t *superblock,
                                 const std::vector<char> &key) {
-    alt_buf_write_t write(superblock);
+    buf_write_t write(superblock);
     btree_superblock_t *const data
         = static_cast<btree_superblock_t *>(write.get_data_write());
 
@@ -323,7 +323,7 @@ void delete_superblock_metainfo(buf_lock_t *superblock,
 }
 
 void clear_superblock_metainfo(buf_lock_t *superblock) {
-    alt_buf_write_t write(superblock);
+    buf_write_t write(superblock);
     auto data = static_cast<btree_superblock_t *>(write.get_data_write());
     blob_t blob(superblock->cache()->get_block_size(),
                      data->metainfo_blob,
@@ -341,7 +341,7 @@ void ensure_stat_block(superblock_t *sb) {
     if (node_id == NULL_BLOCK_ID) {
         //Create a block
         buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
-        alt_buf_write_t write(&temp_lock);
+        buf_write_t write(&temp_lock);
         //Make the stat block be the default constructed statblock
         *static_cast<btree_statblock_t *>(write.get_data_write())
             = btree_statblock_t();
@@ -362,7 +362,7 @@ void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
     } else {
         buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
         {
-            alt_buf_write_t write(&temp_lock);
+            buf_write_t write(&temp_lock);
             leaf::init(sizer, static_cast<leaf_node_t *>(write.get_data_write()));
         }
         insert_root(temp_lock.block_id(), sb);
@@ -379,7 +379,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
                             superblock_t *sb,
                             const btree_key_t *key, void *new_value) {
     {
-        alt_buf_read_t buf_read(buf);
+        buf_read_t buf_read(buf);
         const node_t *node = static_cast<const node_t *>(buf_read.get_data_read());
 
         // If the node isn't full, we don't need to split, so we're done.
@@ -406,8 +406,8 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
     btree_key_t *median = median_buffer.btree_key();
 
     {
-        alt_buf_write_t buf_write(buf);
-        alt_buf_write_t rbuf_write(&rbuf);
+        buf_write_t buf_write(buf);
+        buf_write_t rbuf_write(&rbuf);
         node::split(sizer,
                     static_cast<node_t *>(buf_write.get_data_write()),
                     static_cast<node_t *>(rbuf_write.get_data_write()),
@@ -423,7 +423,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
         buf_lock_t temp_buf(sb->expose_buf(), alt_create_t::create);
         last_buf->swap(temp_buf);
         {
-            alt_buf_write_t last_write(last_buf);
+            buf_write_t last_write(last_buf);
             internal_node::init(sizer->block_size(),
                                 static_cast<internal_node_t *>(last_write.get_data_write()));
         }
@@ -432,7 +432,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
     }
 
     {
-        alt_buf_write_t last_write(last_buf);
+        buf_write_t last_write(last_buf);
         DEBUG_VAR bool success
             = internal_node::insert(sizer->block_size(),
                                     static_cast<internal_node_t *>(last_write.get_data_write()),
@@ -465,7 +465,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
             // The root node is never underfull.
             node_is_underfull = false;
         } else {
-            alt_buf_read_t buf_read(buf);
+            buf_read_t buf_read(buf);
             const node_t *const node = static_cast<const node_t *>(buf_read.get_data_read());
             node_is_underfull = node::is_underfull(sizer, node);
         }
@@ -477,7 +477,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
         int nodecmp_node_with_sib;
 
         {
-            alt_buf_read_t last_buf_read(last_buf);
+            buf_read_t last_buf_read(last_buf);
             const internal_node_t *parent_node
                 = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
             nodecmp_node_with_sib = internal_node::sibling(parent_node, key,
@@ -490,7 +490,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
 
         bool node_is_mergable;
         {
-            alt_buf_read_t sib_buf_read(&sib_buf);
+            buf_read_t sib_buf_read(&sib_buf);
             const node_t *sib_node
                 = static_cast<const node_t *>(sib_buf_read.get_data_read());
 
@@ -498,10 +498,10 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
             node::validate(sizer, sib_node);
 #endif
 
-            alt_buf_read_t buf_read(buf);
+            buf_read_t buf_read(buf);
             const node_t *const node
                 = static_cast<const node_t *>(buf_read.get_data_read());
-            alt_buf_read_t last_buf_read(last_buf);
+            buf_read_t last_buf_read(last_buf);
             const internal_node_t *parent_node
                 = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
 
@@ -514,9 +514,9 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
             // Nodes must be passed to merge in ascending order.
             if (nodecmp_node_with_sib < 0) {
                 {
-                    alt_buf_write_t buf_write(buf);
-                    alt_buf_write_t sib_buf_write(&sib_buf);
-                    alt_buf_read_t last_buf_read(last_buf);
+                    buf_write_t buf_write(buf);
+                    buf_write_t sib_buf_write(&sib_buf);
+                    buf_read_t last_buf_read(last_buf);
                     const internal_node_t *parent_node
                         = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
                     node::merge(sizer,
@@ -528,9 +528,9 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 buf->swap(sib_buf);
             } else {
                 {
-                    alt_buf_write_t sib_buf_write(&sib_buf);
-                    alt_buf_write_t buf_write(buf);
-                    alt_buf_read_t last_buf_read(last_buf);
+                    buf_write_t sib_buf_write(&sib_buf);
+                    buf_write_t buf_write(buf);
+                    buf_read_t last_buf_read(last_buf);
                     const internal_node_t *parent_node
                         = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
                     node::merge(sizer,
@@ -545,14 +545,14 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
 
             bool parent_is_singleton;
             {
-                alt_buf_read_t last_buf_read(last_buf);
+                buf_read_t last_buf_read(last_buf);
                 const internal_node_t *parent_node
                     = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
                 parent_is_singleton = internal_node::is_singleton(parent_node);
             }
 
             if (!parent_is_singleton) {
-                alt_buf_write_t last_buf_write(last_buf);
+                buf_write_t last_buf_write(last_buf);
                 internal_node::remove(sizer->block_size(),
                                       static_cast<internal_node_t *>(last_buf_write.get_data_write()),
                                       key_in_middle.btree_key());
@@ -570,9 +570,9 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
 
             bool leveled;
             {
-                alt_buf_write_t buf_write(buf);
-                alt_buf_write_t sib_buf_write(&sib_buf);
-                alt_buf_read_t last_buf_read(last_buf);
+                buf_write_t buf_write(buf);
+                buf_write_t sib_buf_write(&sib_buf);
+                buf_read_t last_buf_read(last_buf);
                 const internal_node_t *parent_node
                     = static_cast<const internal_node_t *>(last_buf_read.get_data_read());
                 leveled
@@ -583,7 +583,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
             }
 
             if (leveled) {
-                alt_buf_write_t last_buf_write(last_buf);
+                buf_write_t last_buf_write(last_buf);
                 internal_node::update_key(static_cast<internal_node_t *>(last_buf_write.get_data_write()),
                                           key_in_middle.btree_key(),
                                           replacement_key);
