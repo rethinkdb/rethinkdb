@@ -53,7 +53,7 @@ void run_sindex_low_level_operations_test() {
         scoped_ptr_t<alt_txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
-                                     repli_timestamp_t::invalid, otok,
+                                     repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
 
@@ -79,7 +79,7 @@ void run_sindex_low_level_operations_test() {
         scoped_ptr_t<alt_txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
-                                     repli_timestamp_t::invalid, otok,
+                                     repli_timestamp_t::invalid,
                                      write_durability_t::SOFT,
                                      &superblock, &txn);
         alt_buf_lock_t sindex_block(superblock->expose_buf(),
@@ -95,7 +95,7 @@ void run_sindex_low_level_operations_test() {
         scoped_ptr_t<real_superblock_t> superblock;
         get_btree_superblock_and_txn(&btree, alt_access_t::write, 1,
                                      repli_timestamp_t::invalid,
-                                     otok, write_durability_t::SOFT,
+                                     write_durability_t::SOFT,
                                      &superblock, &txn);
         alt_buf_lock_t sindex_block(superblock->expose_buf(),
                                     superblock->get_sindex_block_id(),

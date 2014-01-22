@@ -19,7 +19,6 @@
 // RSI: This code doesn't use the notion of "parent transaction" at all, and it must.
 
 class btree_slice_t;
-class order_token_t;
 
 template <class> class promise_t;
 
@@ -253,17 +252,15 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   alt_access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
-                                  order_token_t token,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<alt_txn_t> *txn_out);
 
-void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
+void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<alt_txn_t> *txn_out);
 
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
-                                              order_token_t token,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<alt_txn_t> *txn_out);

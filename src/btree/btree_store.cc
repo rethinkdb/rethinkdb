@@ -985,7 +985,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
     cache_snapshotted_t cache_snapshotted =
         use_snapshot ? CACHE_SNAPSHOTTED_YES : CACHE_SNAPSHOTTED_NO;
     get_btree_superblock_and_txn_for_reading(
-        btree.get(), order_token, cache_snapshotted, sb_out, txn_out);
+        btree.get(), cache_snapshotted, sb_out, txn_out);
 }
 
 template <class protocol_t>
@@ -1005,7 +1005,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
     order_token_t order_token = order_source.check_in("btree_store_t<" + protocol_t::protocol_name + ">::acquire_superblock_for_backfill");
     order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
-    get_btree_superblock_and_txn_for_backfilling(btree.get(), order_token, sb_out, txn_out);
+    get_btree_superblock_and_txn_for_backfilling(btree.get(), sb_out, txn_out);
 }
 
 template <class protocol_t>
@@ -1062,7 +1062,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
     order_token = btree->pre_begin_txn_checkpoint_.check_through(order_token);
 
     get_btree_superblock_and_txn(btree.get(), superblock_access,
-                                 expected_change_count, timestamp, order_token,
+                                 expected_change_count, timestamp,
                                  durability, sb_out, txn_out);
 }
 

@@ -605,11 +605,9 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   alt_access_t superblock_access,
                                   int expected_change_count,
                                   repli_timestamp_t tstamp,
-                                  order_token_t token,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                   scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)token;  // RSI: Remove this parameter.
     slice->assert_thread();
 
     // RSI: We should pass a preceding_txn here or something.
@@ -621,10 +619,9 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
     get_btree_superblock(txn, superblock_access, got_superblock_out);
 }
 
-void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_token_t token,
+void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                                   scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)token;  // RSI: Stop using this parameter.
     slice->assert_thread();
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
                                    alt_read_access_t::read);
@@ -642,11 +639,9 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice, order_to
 // RSI: This function is possibly stupid: it's nonsensical to talk about the entire
 // cache being snapshotted -- we want some subtree to be snapshotted, at least.
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
-                                              order_token_t token,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
                                               scoped_ptr_t<alt_txn_t> *txn_out) {
-    (void)token;  // RSI: Get rid of this paremeter.
     slice->assert_thread();
     alt_txn_t *txn = new alt_txn_t(slice->cache(),
                                    alt_read_access_t::read);
