@@ -7,7 +7,6 @@
 #include <limits>
 
 #include "buffer_cache/alt/alt.hpp"
-#include "buffer_cache/general_types.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
 #include "containers/scoped.hpp"

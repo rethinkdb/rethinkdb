@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "buffer_cache/alt/page.hpp"
-#include "buffer_cache/general_types.hpp"
+#include "buffer_cache/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/semaphore.hpp"
 #include "containers/two_level_array.hpp"
