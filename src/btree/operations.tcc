@@ -302,10 +302,10 @@ void apply_keyvalue_change(keyvalue_location_t<Value> *kv_loc,
     check_and_handle_underfull(&sizer, &kv_loc->buf, &kv_loc->last_buf,
                                kv_loc->superblock, key);
 
-    //Modify the stats block
+    // Modify the stats block.
     // RSI: Should we _actually_ pass kv_loc->buf as the parent?
-    // RSI: This was opened with some buffer_cache_order_mode_ignore flag.
-    // RSI: See parallel_traversal.cc for another use of the stat block.
+    // RSI: See parallel_traversal.cc for another use of the stat block -- we do the
+    // same thing there.
     buf_lock_t stat_block(&kv_loc->buf, kv_loc->stat_block, alt_access_t::write);
     buf_write_t stat_block_write(&stat_block);
     auto stat_block_buf
