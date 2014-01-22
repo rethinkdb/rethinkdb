@@ -145,7 +145,6 @@ public:
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb);
     block_id_t max_block_id();
-    repli_timestamp_t get_recency(block_id_t id);
     segmented_vector_t<repli_timestamp_t> get_all_recencies(block_id_t first,
                                                             block_id_t step);
 

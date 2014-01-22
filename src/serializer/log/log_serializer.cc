@@ -719,11 +719,6 @@ bool log_serializer_t::get_delete_bit(block_id_t id) {
     return !offset.has_value();
 }
 
-repli_timestamp_t log_serializer_t::get_recency(block_id_t id) {
-    assert_thread();
-    return lba_index->get_block_recency(id);
-}
-
 segmented_vector_t<repli_timestamp_t>
 log_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
     assert_thread();

@@ -80,14 +80,11 @@ public:
      * created. */
     virtual block_id_t max_block_id() = 0;
 
-    // RSI: Is this obsolete?
-    /* Gets a block's timestamp.  This may return repli_timestamp_t::invalid. */
-    /* You must never call this after _writing_ a block. */
-    virtual repli_timestamp_t get_recency(block_id_t id) = 0;
-
     /* Returns all recencies, for all block ids of the form first + step * k, for k =
        0, 1, 2, 3, ..., in order by block id.  Non-existant block ids have recency
-       repli_timestamp_t::invalid.  You must never call this after _writing_ a block. */
+       repli_timestamp_t::invalid.  You must never call this after _writing_ a block
+       to this serializer_t instance, because the information you get back could be
+       wrong. */
     virtual segmented_vector_t<repli_timestamp_t>
     get_all_recencies(block_id_t first, block_id_t step) = 0;
 

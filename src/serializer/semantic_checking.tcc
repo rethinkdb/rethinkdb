@@ -205,12 +205,10 @@ block_id_t semantic_checking_serializer_t<inner_serializer_t>::
 max_block_id() { return inner_serializer.max_block_id(); }
 
 template<class inner_serializer_t>
-repli_timestamp_t semantic_checking_serializer_t<inner_serializer_t>::
-get_recency(block_id_t id) { return inner_serializer.get_recency(id); }
-
-template<class inner_serializer_t>
 segmented_vector_t<repli_timestamp_t> semantic_checking_serializer_t<inner_serializer_t>::
-get_all_recencies(block_id_t first, block_id_t step) { return inner_serializer.get_all_recencies(first, step); }
+get_all_recencies(block_id_t first, block_id_t step) {
+    return inner_serializer.get_all_recencies(first, step);
+}
 
 template<class inner_serializer_t>
 bool semantic_checking_serializer_t<inner_serializer_t>::

@@ -256,10 +256,6 @@ block_id_t translator_serializer_t::max_block_id() {
     return x;
 }
 
-repli_timestamp_t translator_serializer_t::get_recency(block_id_t id) {
-    return inner->get_recency(translate_block_id(id));
-}
-
 segmented_vector_t<repli_timestamp_t>
 translator_serializer_t::get_all_recencies(block_id_t first, block_id_t step) {
     return inner->get_all_recencies(translate_block_id(first),
