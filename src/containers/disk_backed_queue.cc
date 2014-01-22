@@ -154,8 +154,8 @@ void internal_disk_backed_queue_t::add_block_to_head(txn_t *txn) {
         queue_block_t *old_head
             = static_cast<queue_block_t *>(old_write.get_data_write());
         rassert(old_head->next == NULL_BLOCK_ID);
-        old_head->next = _new_head.get_block_id();
-        head_block_id = _new_head.get_block_id();
+        old_head->next = _new_head.block_id();
+        head_block_id = _new_head.block_id();
     }
 
     new_head->next = NULL_BLOCK_ID;
@@ -173,7 +173,7 @@ void internal_disk_backed_queue_t::remove_block_from_tail(txn_t *txn) {
         queue_block_t *old_tail = static_cast<queue_block_t *>(old_write.get_data_write());
 
         if (old_tail->next == NULL_BLOCK_ID) {
-            rassert(head_block_id == _old_tail.get_block_id());
+            rassert(head_block_id == _old_tail.block_id());
             tail_block_id = head_block_id = NULL_BLOCK_ID;
         } else {
             tail_block_id = old_tail->next;

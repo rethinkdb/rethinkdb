@@ -400,7 +400,7 @@ bool btree_store_t<protocol_t>::add_sindex(
     } else {
         {
             buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
-            sindex.superblock = sindex_superblock.get_block_id();
+            sindex.superblock = sindex_superblock.block_id();
             /* The buf lock is destroyed here which is important becase it allows
              * us to reacquire later when we make a btree_store. */
         }
@@ -491,7 +491,7 @@ void btree_store_t<protocol_t>::set_sindexes(
             secondary_index_t sindex(it->second);
             {
                 buf_lock_t sindex_superblock(sindex_block, alt_create_t::create);
-                sindex.superblock = sindex_superblock.get_block_id();
+                sindex.superblock = sindex_superblock.block_id();
                 /* The buf lock is destroyed here which is important becase it allows
                  * us to reacquire later when we make a btree_store. */
             }

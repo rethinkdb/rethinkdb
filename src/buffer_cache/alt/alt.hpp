@@ -242,8 +242,6 @@ public:
         guarantee(txn_ != NULL);
         return current_page_acq()->block_id();
     }
-    // RSI: Remove get_block_id().
-    block_id_t get_block_id() const { return block_id(); }
 
     repli_timestamp_t get_recency() const;
 

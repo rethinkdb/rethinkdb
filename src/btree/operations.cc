@@ -428,7 +428,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
                                 static_cast<internal_node_t *>(last_write.get_data_write()));
         }
 
-        insert_root(last_buf->get_block_id(), sb);
+        insert_root(last_buf->block_id(), sb);
     }
 
     {
@@ -437,7 +437,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
             = internal_node::insert(sizer->block_size(),
                                     static_cast<internal_node_t *>(last_write.get_data_write()),
                                     median,
-                                    buf->get_block_id(), rbuf.get_block_id());
+                                    buf->block_id(), rbuf.block_id());
         rassert(success, "could not insert internal btree node");
     }
 
@@ -561,7 +561,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
                 // it's the root and our node is its only child). Insert our
                 // node as the new root.
                 last_buf->mark_deleted();
-                insert_root(buf->get_block_id(), sb);
+                insert_root(buf->block_id(), sb);
             }
         } else {
             // Level.

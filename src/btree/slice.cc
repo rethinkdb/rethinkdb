@@ -42,7 +42,7 @@ void btree_slice_t::create(block_id_t superblock_id,
 
     buf_lock_t sindex_block(&superblock, alt_create_t::create);
     initialize_secondary_indexes(&sindex_block);
-    sb->sindex_block = sindex_block.get_block_id();
+    sb->sindex_block = sindex_block.block_id();
 }
 
 btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent,
