@@ -154,12 +154,14 @@ private:
 
     void on_write(const typename protocol_t::write_t &write,
             transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr)
         THROWS_NOTHING;
 
     void enqueue_write(const typename protocol_t::write_t &write,
             transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void()> ack_addr,
             auto_drainer_t::lock_t keepalive)
@@ -173,6 +175,7 @@ private:
 
     void on_writeread(const typename protocol_t::write_t &write,
             transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
             write_durability_t durability)
@@ -180,6 +183,7 @@ private:
 
     void perform_writeread(const typename protocol_t::write_t &write,
             transition_timestamp_t transition_timestamp,
+            order_token_t order_token,
             fifo_enforcer_write_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
             write_durability_t durability,
@@ -188,12 +192,14 @@ private:
 
     void on_read(const typename protocol_t::read_t &read,
             state_timestamp_t expected_timestamp,
+            order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
         THROWS_NOTHING;
 
     void perform_read(const typename protocol_t::read_t &read,
             state_timestamp_t expected_timestamp,
+            order_token_t order_token,
             fifo_enforcer_read_token_t fifo_token,
             mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
             auto_drainer_t::lock_t keepalive)
