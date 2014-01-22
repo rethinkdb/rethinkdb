@@ -578,11 +578,8 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         superblock_t *super_block,
-        std::map<std::string, secondary_index_t> *sindexes_out)
-    THROWS_ONLY(interrupted_exc_t) {
-    // RSI: This function can't throw the interrupted_exc_t, can it?
+        std::map<std::string, secondary_index_t> *sindexes_out) {
     scoped_ptr_t<buf_lock_t> sindex_block;
-    // RSI: This call used to take the interruptor.
     acquire_sindex_block_for_read(super_block->expose_buf(),
                                   &sindex_block,
                                   super_block->get_sindex_block_id());
@@ -593,8 +590,7 @@ void btree_store_t<protocol_t>::get_sindexes(
 template <class protocol_t>
 void btree_store_t<protocol_t>::get_sindexes(
         buf_lock_t *sindex_block,
-        std::map<std::string, secondary_index_t> *sindexes_out)
-    THROWS_NOTHING {
+        std::map<std::string, secondary_index_t> *sindexes_out) {
     return get_secondary_indexes(sindex_block, sindexes_out);
 }
 
