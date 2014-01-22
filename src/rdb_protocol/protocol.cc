@@ -213,7 +213,7 @@ void bring_sindexes_up_to_date(
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
 public:
     apply_sindex_change_visitor_t(const sindex_access_vector_t *sindexes,
-            alt_txn_t *txn,
+            txn_t *txn,
             signal_t *interruptor)
         : sindexes_(sindexes), txn_(txn), interruptor_(interruptor) { }
     void operator()(const rdb_modification_report_t &mod_report) const {
@@ -226,7 +226,7 @@ public:
 
 private:
     const sindex_access_vector_t *sindexes_;
-    alt_txn_t *txn_;
+    txn_t *txn_;
     signal_t *interruptor_;
 };
 
@@ -254,7 +254,7 @@ void post_construct_and_drain_queue(
             write_token_pair_t token_pair;
             store->new_write_token_pair(&token_pair);
 
-            scoped_ptr_t<alt_txn_t> queue_txn;
+            scoped_ptr_t<txn_t> queue_txn;
             scoped_ptr_t<real_superblock_t> queue_superblock;
 
             // We don't need hard durability here, because a secondary index just gets rebuilt
@@ -333,7 +333,7 @@ void post_construct_and_drain_queue(
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
 
-        scoped_ptr_t<alt_txn_t> queue_txn;
+        scoped_ptr_t<txn_t> queue_txn;
         scoped_ptr_t<real_superblock_t> queue_superblock;
 
         store->acquire_superblock_for_write(
@@ -1243,7 +1243,7 @@ store_t::store_t(serializer_t *serializer,
     read_token_pair_t token_pair;
     new_read_token_pair(&token_pair);
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(&token_pair.main_read_token, &txn,
                                 &superblock, &dummy_interruptor, false);
@@ -1625,7 +1625,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
 
     rdb_write_visitor_t(btree_slice_t *_btree,
                         btree_store_t<rdb_protocol_t> *_store,
-                        alt_txn_t *_txn,
+                        txn_t *_txn,
                         scoped_ptr_t<superblock_t> *_superblock,
                         repli_timestamp_t _timestamp,
                         rdb_protocol_t::context_t *ctx,
@@ -1680,7 +1680,7 @@ private:
 
     btree_slice_t *btree;
     btree_store_t<rdb_protocol_t> *store;
-    alt_txn_t *txn;
+    txn_t *txn;
     write_response_t *response;
     scoped_ptr_t<superblock_t> *superblock;
     repli_timestamp_t timestamp;
@@ -1819,7 +1819,7 @@ void store_t::protocol_send_backfill(const region_map_t<rdb_protocol_t, state_ti
 struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
     rdb_receive_backfill_visitor_t(btree_store_t<rdb_protocol_t> *_store,
                                    btree_slice_t *_btree,
-                                   alt_txn_t *_txn,
+                                   txn_t *_txn,
                                    superblock_t *_superblock,
                                    signal_t *_interruptor) :
         store(_store), btree(_btree), txn(_txn), superblock(_superblock),
@@ -1897,7 +1897,7 @@ private:
 
     btree_store_t<rdb_protocol_t> *store;
     btree_slice_t *btree;
-    alt_txn_t *txn;
+    txn_t *txn;
     superblock_t *superblock;
     // RSI: Is interruptor still ignored?
     signal_t *interruptor;  // FIXME: interruptors are not used in btree code, so this one ignored.

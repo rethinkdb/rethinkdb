@@ -27,7 +27,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
     guarantee(start <= finish);
     for (int i = start; i < finish; ++i) {
         cond_t dummy_interruptor;
-        scoped_ptr_t<alt_txn_t> txn;
+        scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         write_token_pair_t token_pair;
         store->new_write_token_pair(&token_pair);
@@ -82,7 +82,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
@@ -121,7 +121,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
 
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
@@ -149,7 +149,7 @@ void bring_sindexes_up_to_date(
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(repli_timestamp_t::invalid,
                                         1, write_durability_t::SOFT,
@@ -175,7 +175,7 @@ void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *s
     write_token_pair_t token_pair;
     store->new_write_token_pair(&token_pair);
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> super_block;
     store->acquire_superblock_for_write(
         repli_timestamp_t::invalid,
@@ -206,7 +206,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         read_token_pair_t token_pair;
         store->new_read_token_pair(&token_pair);
 
-        scoped_ptr_t<alt_txn_t> txn;
+        scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
         store->acquire_superblock_for_read(
@@ -274,7 +274,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
         read_token_pair_t token_pair;
         store->new_read_token_pair(&token_pair);
 
-        scoped_ptr_t<alt_txn_t> txn;
+        scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
 
         store->acquire_superblock_for_read(
@@ -418,7 +418,7 @@ void run_erase_range_test() {
         write_token_pair_t token_pair;
         store.new_write_token_pair(&token_pair);
 
-        scoped_ptr_t<alt_txn_t> txn;
+        scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> super_block;
         store.acquire_superblock_for_write(repli_timestamp_t::invalid,
                                            1,

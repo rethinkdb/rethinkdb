@@ -12,7 +12,7 @@
 #include "serializer/types.hpp"
 
 class cache_t;
-class alt_txn_t;
+class txn_t;
 
 template <class> class branch_history_manager_t;
 class io_backender_t;
@@ -37,9 +37,9 @@ public:
     virtual void update_metadata(const metadata_t &metadata) = 0;
 
 protected:
-    void get_write_transaction(object_buffer_t<alt_txn_t> *txn_out);
+    void get_write_transaction(object_buffer_t<txn_t> *txn_out);
 
-    void get_read_transaction(object_buffer_t<alt_txn_t> *txn_out);
+    void get_read_transaction(object_buffer_t<txn_t> *txn_out);
 
     block_size_t get_cache_block_size() const;
 

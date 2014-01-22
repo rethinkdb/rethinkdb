@@ -124,7 +124,7 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
     cache.init(new cache_t(serializer.get(), cache_dynamic_config, perfmon_parent));
 
     if (create) {
-        object_buffer_t<alt_txn_t> txn;
+        object_buffer_t<txn_t> txn;
         get_write_transaction(&txn);
         buf_lock_t superblock(txn.get(), SUPERBLOCK_ID, alt_create_t::create);
         buf_write_t sb_write(&superblock);
@@ -135,7 +135,7 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
 
 // RSI: These functions could be static.
 template <class metadata_t>
-void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<alt_txn_t> *txn_out) {
+void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<txn_t> *txn_out) {
     txn_out->create(cache.get(),
                     write_durability_t::HARD,
                     repli_timestamp_t::distant_past,
@@ -143,7 +143,7 @@ void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<alt_tx
 }
 
 template <class metadata_t>
-void persistent_file_t<metadata_t>::get_read_transaction(object_buffer_t<alt_txn_t> *txn_out) {
+void persistent_file_t<metadata_t>::get_read_transaction(object_buffer_t<txn_t> *txn_out) {
     txn_out->create(cache.get(),
                     alt_read_access_t::read);
 }
@@ -160,7 +160,7 @@ auth_persistent_file_t::auth_persistent_file_t(io_backender_t *io_backender,
                                                perfmon_collection_t *perfmon_parent,
                                                const auth_semilattice_metadata_t &initial_metadata) :
     persistent_file_t<auth_semilattice_metadata_t>(io_backender, filename, perfmon_parent, true) {
-    object_buffer_t<alt_txn_t> txn;
+    object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                           alt_access_t::write);
@@ -181,7 +181,7 @@ auth_persistent_file_t::~auth_persistent_file_t() {
 }
 
 auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
-    object_buffer_t<alt_txn_t> txn;
+    object_buffer_t<txn_t> txn;
     get_read_transaction(&txn);
     buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                           alt_access_t::read);
@@ -199,7 +199,7 @@ void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &
     // worry about transaction/superblock acquisition ordering, but they don't
     // actually enforce ordering with some kind of mutex or fifo enforcer.  Or do
     // they?
-    object_buffer_t<alt_txn_t> txn;
+    object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                           alt_access_t::write);
@@ -225,7 +225,7 @@ cluster_persistent_file_t::cluster_persistent_file_t(io_backender_t *io_backende
                                                      const cluster_semilattice_metadata_t &initial_metadata) :
     persistent_file_t<cluster_semilattice_metadata_t>(io_backender, filename, perfmon_parent, true) {
 
-    object_buffer_t<alt_txn_t> txn;
+    object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                           alt_access_t::write);
@@ -261,7 +261,7 @@ cluster_persistent_file_t::~cluster_persistent_file_t() {
 }
 
 cluster_semilattice_metadata_t cluster_persistent_file_t::read_metadata() {
-    object_buffer_t<alt_txn_t> txn;
+    object_buffer_t<txn_t> txn;
     get_read_transaction(&txn);
     buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                           alt_access_t::read);
@@ -276,7 +276,7 @@ cluster_semilattice_metadata_t cluster_persistent_file_t::read_metadata() {
 }
 
 void cluster_persistent_file_t::update_metadata(const cluster_semilattice_metadata_t &metadata) {
-    object_buffer_t<alt_txn_t> txn;
+    object_buffer_t<txn_t> txn;
     get_write_transaction(&txn);
     buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                           alt_access_t::write);
@@ -288,7 +288,7 @@ void cluster_persistent_file_t::update_metadata(const cluster_semilattice_metada
 }
 
 machine_id_t cluster_persistent_file_t::read_machine_id() {
-    object_buffer_t<alt_txn_t> txn;
+    object_buffer_t<txn_t> txn;
     get_read_transaction(&txn);
     buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                           alt_access_t::read);
@@ -309,7 +309,7 @@ public:
         /* If we're not creating, we have to load the existing branch history
         database from disk */
         if (!create) {
-            object_buffer_t<alt_txn_t> txn;
+            object_buffer_t<txn_t> txn;
             parent->get_read_transaction(&txn);
             buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                                   alt_access_t::read);
@@ -384,7 +384,7 @@ public:
 
 private:
     void flush(UNUSED signal_t *interruptor) {
-        object_buffer_t<alt_txn_t> txn;
+        object_buffer_t<txn_t> txn;
         parent->get_write_transaction(&txn);
         buf_lock_t superblock(alt_buf_parent_t(txn.get()), SUPERBLOCK_ID,
                               alt_access_t::write);

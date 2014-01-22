@@ -52,7 +52,7 @@ public:
     void create_cache_account(int priority, scoped_ptr_t<alt_cache_account_t> *out);
 
 private:
-    friend class alt_txn_t;  // for drainer_->lock()
+    friend class txn_t;  // for drainer_->lock()
     friend class alt_inner_txn_t;  // for &page_cache_
     friend class buf_read_t;  // for &page_cache_
     friend class buf_write_t;  // for &page_cache_
@@ -67,7 +67,7 @@ private:
 
     scoped_ptr_t<alt_cache_stats_t> stats_;
 
-    // tracker_ is used for throttling (which can cause the alt_txn_t constructor to
+    // tracker_ is used for throttling (which can cause the txn_t constructor to
     // block).  RSI: The throttling interface is bad (maybe) because it's worried
     // about transaction_t's passing one another(?) or maybe the callers are bad with
     // their use of chained mutexes.  Make sure that timestamps don't get mixed up in
@@ -88,7 +88,7 @@ public:
     ~alt_inner_txn_t();
 
 private:
-    friend class alt_txn_t;
+    friend class txn_t;
     alt_inner_txn_t(cache_t *cache,
                     // Unused for read transactions, pass repli_timestamp_t::invalid.
                     repli_timestamp_t txn_recency,
@@ -104,25 +104,25 @@ private:
     DISABLE_COPYING(alt_inner_txn_t);
 };
 
-class alt_txn_t {
+class txn_t {
 public:
     // Constructor for read-only transactions.
     // RSI: Generally speaking I don't think we use preceding_txn -- and should read
     // transactions use preceding_txn at all?
-    explicit alt_txn_t(cache_t *cache,
-                       alt_read_access_t read_access,
-                       alt_txn_t *preceding_txn = NULL);
+    explicit txn_t(cache_t *cache,
+                   alt_read_access_t read_access,
+                   txn_t *preceding_txn = NULL);
 
 
     // RSI: Remove default parameter for expected_change_count.
     // RSI: Generally speaking I don't think we use preceding_txn and we should.
-    alt_txn_t(cache_t *cache,
-              write_durability_t durability,
-              repli_timestamp_t txn_timestamp,
-              int64_t expected_change_count = 2,
-              alt_txn_t *preceding_txn = NULL);
+    txn_t(cache_t *cache,
+          write_durability_t durability,
+          repli_timestamp_t txn_timestamp,
+          int64_t expected_change_count = 2,
+          txn_t *preceding_txn = NULL);
 
-    ~alt_txn_t();
+    ~txn_t();
 
     cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
@@ -144,7 +144,7 @@ private:
                                                  // the tracker.
 
     scoped_ptr_t<alt_inner_txn_t> inner_;
-    DISABLE_COPYING(alt_txn_t);
+    DISABLE_COPYING(txn_t);
 };
 
 // The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
@@ -196,7 +196,7 @@ public:
                alt_access_t access);
 
     // Nonblocking constructor, creates a new block with a specified block id.
-    buf_lock_t(alt_txn_t *txn,
+    buf_lock_t(txn_t *txn,
                block_id_t block_id,
                alt_create_t create);
 
@@ -264,7 +264,7 @@ public:
 
     void mark_deleted();
 
-    alt_txn_t *txn() const { return txn_; }
+    txn_t *txn() const { return txn_; }
     cache_t *cache() const { return txn_->cache(); }
 
 private:
@@ -289,7 +289,7 @@ private:
     page_t *get_held_page_for_read();
     page_t *get_held_page_for_write();
 
-    alt_txn_t *txn_;
+    txn_t *txn_;
 
     scoped_ptr_t<current_page_acq_t> current_page_acq_;
 
@@ -316,7 +316,7 @@ public:
         guarantee(!lock->empty());
     }
     // RSI: Replace this constructor with a create_dangerously static method.
-    explicit alt_buf_parent_t(alt_txn_t *txn)
+    explicit alt_buf_parent_t(txn_t *txn)
         : txn_(txn), lock_or_null_(NULL) {
         rassert(txn != NULL);
     }
@@ -325,7 +325,7 @@ public:
         return txn_ == NULL;
     }
 
-    alt_txn_t *txn() const {
+    txn_t *txn() const {
         guarantee(!empty());
         return txn_;
     }
@@ -336,7 +336,7 @@ public:
 
 private:
     friend class buf_lock_t;
-    alt_txn_t *txn_;
+    txn_t *txn_;
     buf_lock_t *lock_or_null_;
 };
 

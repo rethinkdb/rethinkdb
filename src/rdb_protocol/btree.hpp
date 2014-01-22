@@ -287,7 +287,7 @@ private:
 void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
         const rdb_modification_report_t *modification,
-        alt_txn_t *txn);
+        txn_t *txn);
 
 
 void rdb_erase_range_sindexes(
@@ -304,7 +304,7 @@ void post_construct_secondary_indexes(
 class rdb_value_deleter_t : public value_deleter_t {
 friend void rdb_update_sindexes(
         const btree_store_t<rdb_protocol_t>::sindex_access_vector_t &sindexes,
-        const rdb_modification_report_t *modification, alt_txn_t *txn);
+        const rdb_modification_report_t *modification, txn_t *txn);
 
     void delete_value(alt_buf_parent_t parent, void *_value);
 };

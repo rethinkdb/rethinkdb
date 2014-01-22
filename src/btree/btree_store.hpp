@@ -321,7 +321,7 @@ public:
     // RSI: Does this really use the interruptor?
     void acquire_superblock_for_read(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor,
             bool use_snapshot)
@@ -330,7 +330,7 @@ public:
     // RSI: Does this really use the interruptor?
     void acquire_superblock_for_backfill(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -341,7 +341,7 @@ public:
             int expected_change_count,
             write_durability_t durability,
             write_token_pair_t *token_pair,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -353,7 +353,7 @@ public:
             int expected_change_count,
             write_durability_t durability,
             write_token_pair_t *token_pair,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
@@ -366,7 +366,7 @@ private:
             int expected_change_count,
             write_durability_t durability,
             object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-            scoped_ptr_t<alt_txn_t> *txn_out,
+            scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);

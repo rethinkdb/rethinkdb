@@ -134,9 +134,9 @@ alt_cache_account_t::~alt_cache_account_t() {
     delete io_account_;
 }
 
-alt_txn_t::alt_txn_t(cache_t *cache,
-                     UNUSED alt_read_access_t read_access,
-                     alt_txn_t *preceding_txn)
+txn_t::txn_t(cache_t *cache,
+             UNUSED alt_read_access_t read_access,
+             txn_t *preceding_txn)
     : access_(alt_access_t::read),
       durability_(write_durability_t::SOFT),  // A B.S. value.  RSI: use valgrind_undefined
       saved_expected_change_count_(0) {
@@ -151,11 +151,11 @@ alt_txn_t::alt_txn_t(cache_t *cache,
 
 }
 
-alt_txn_t::alt_txn_t(cache_t *cache,
-                     write_durability_t durability,
-                     repli_timestamp_t txn_timestamp,
-                     int64_t expected_change_count,
-                     alt_txn_t *preceding_txn)
+txn_t::txn_t(cache_t *cache,
+             write_durability_t durability,
+             repli_timestamp_t txn_timestamp,
+             int64_t expected_change_count,
+             txn_t *preceding_txn)
     : access_(alt_access_t::write),
       durability_(durability),
       saved_expected_change_count_(expected_change_count) {
@@ -167,30 +167,30 @@ alt_txn_t::alt_txn_t(cache_t *cache,
                                     : preceding_txn->inner_.get()));
 }
 
-void alt_txn_t::destroy_inner_txn(alt_inner_txn_t *inner, cache_t *cache,
-                                  int64_t saved_expected_change_count,
-                                  auto_drainer_t::lock_t) {
+void txn_t::destroy_inner_txn(alt_inner_txn_t *inner, cache_t *cache,
+                              int64_t saved_expected_change_count,
+                              auto_drainer_t::lock_t) {
     delete inner;
     cache->tracker_.end_txn(saved_expected_change_count);
 }
 
-alt_txn_t::~alt_txn_t() {
+txn_t::~txn_t() {
     cache_t *cache = inner_->cache();
     cache->assert_thread();
     alt_inner_txn_t *inner = inner_.release();
     if (durability_ == write_durability_t::SOFT) {
-        coro_t::spawn_sometime(std::bind(&alt_txn_t::destroy_inner_txn,
+        coro_t::spawn_sometime(std::bind(&txn_t::destroy_inner_txn,
                                          inner,
                                          cache,
                                          saved_expected_change_count_,
                                          cache->drainer_->lock()));
     } else {
-        alt_txn_t::destroy_inner_txn(inner, cache, saved_expected_change_count_,
-                                     cache->drainer_->lock());
+        txn_t::destroy_inner_txn(inner, cache, saved_expected_change_count_,
+                                 cache->drainer_->lock());
     }
 }
 
-void alt_txn_t::set_account(alt_cache_account_t *cache_account) {
+void txn_t::set_account(alt_cache_account_t *cache_account) {
     inner_->page_txn()->set_account(cache_account);
 }
 
@@ -348,7 +348,7 @@ bool is_subordinate(alt_access_t parent, alt_access_t child) {
     return parent == alt_access_t::write || child == alt_access_t::read;
 }
 
-buf_lock_t::buf_lock_t(alt_txn_t *txn,
+buf_lock_t::buf_lock_t(txn_t *txn,
                        block_id_t block_id,
                        UNUSED alt_create_t create)
     : txn_(txn),

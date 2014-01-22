@@ -592,7 +592,7 @@ void check_and_handle_underfull(value_sizer_t<void> *sizer,
     }
 }
 
-void get_btree_superblock(alt_txn_t *txn, alt_access_t access,
+void get_btree_superblock(txn_t *txn, alt_access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out) {
     buf_lock_t tmp_buf(alt_buf_parent_t(txn), SUPERBLOCK_ID, access);
     scoped_ptr_t<real_superblock_t> tmp_sb(new real_superblock_t(std::move(tmp_buf)));
@@ -605,12 +605,11 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<alt_txn_t> *txn_out) {
+                                  scoped_ptr_t<txn_t> *txn_out) {
     slice->assert_thread();
 
     // RSI: We should pass a preceding_txn here or something.
-    alt_txn_t *txn = new alt_txn_t(slice->cache(), durability,
-                                   tstamp, expected_change_count);
+    txn_t *txn = new txn_t(slice->cache(), durability, tstamp, expected_change_count);
 
     txn_out->init(txn);
 
@@ -619,10 +618,9 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
 
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<alt_txn_t> *txn_out) {
+                                                  scoped_ptr_t<txn_t> *txn_out) {
     slice->assert_thread();
-    alt_txn_t *txn = new alt_txn_t(slice->cache(),
-                                   alt_read_access_t::read);
+    txn_t *txn = new txn_t(slice->cache(), alt_read_access_t::read);
     txn_out->init(txn);
     // RSI: Does using a backfill account needlessly slow other operations down?
     txn->set_account(slice->get_backfill_account());
@@ -639,10 +637,9 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<alt_txn_t> *txn_out) {
+                                              scoped_ptr_t<txn_t> *txn_out) {
     slice->assert_thread();
-    alt_txn_t *txn = new alt_txn_t(slice->cache(),
-                                   alt_read_access_t::read);
+    txn_t *txn = new txn_t(slice->cache(), alt_read_access_t::read);
     txn_out->init(txn);
 
     get_btree_superblock(txn, alt_access_t::read, got_superblock_out);

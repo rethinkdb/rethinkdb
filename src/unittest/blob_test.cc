@@ -25,7 +25,7 @@ public:
         : buf_(alloc_emptybuf(maxreflen), maxreflen), blob_(block_size_t::unsafe_make(4096),
                                                             buf_.data(), maxreflen) { }
 
-    void check_region(alt_txn_t *txn, int64_t offset, int64_t size) {
+    void check_region(txn_t *txn, int64_t offset, int64_t size) {
         SCOPED_TRACE("check_region");
         const int64_t expecteds_size = expected_.size();
         ASSERT_LE(0, offset);
@@ -55,7 +55,7 @@ public:
         ASSERT_EQ(e - p_orig, p - p_orig);
     }
 
-    void check_normalization(alt_txn_t *txn) {
+    void check_normalization(txn_t *txn) {
         size_t size = expected_.size();
         uint64_t rs = blob_.refsize(txn->cache()->get_block_size());
         size_t sizesize = buf_.size() <= 255 ? 1 : 2;
@@ -78,12 +78,12 @@ public:
         }
     }
 
-    void check(alt_txn_t *txn) {
+    void check(txn_t *txn) {
         check_region(txn, 0, expected_.size());
         check_normalization(txn);
     }
 
-    void append(alt_txn_t *txn, const std::string &x) {
+    void append(txn_t *txn, const std::string &x) {
         SCOPED_TRACE(strprintf("append (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
@@ -110,7 +110,7 @@ public:
         check(txn);
     }
 
-    void prepend(alt_txn_t *txn, const std::string &x) {
+    void prepend(txn_t *txn, const std::string &x) {
         SCOPED_TRACE(strprintf("prepend (%zu) ", x.size()) + std::string(x.begin(), x.begin() + std::min<size_t>(x.size(), 50)));
         int64_t n = x.size();
 
@@ -137,7 +137,7 @@ public:
         check(txn);
     }
 
-    void unprepend(alt_txn_t *txn, int64_t n) {
+    void unprepend(txn_t *txn, int64_t n) {
         SCOPED_TRACE("unprepend " + strprintf("%" PRIi64, n));
         ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
 
@@ -147,7 +147,7 @@ public:
         check(txn);
     }
 
-    void unappend(alt_txn_t *txn, int64_t n) {
+    void unappend(txn_t *txn, int64_t n) {
         SCOPED_TRACE("unappend " + strprintf("%" PRIi64, n));
         ASSERT_LE(n, static_cast<int64_t>(expected_.size()));
 
@@ -157,7 +157,7 @@ public:
         check(txn);
     }
 
-    void clear(alt_txn_t *txn) {
+    void clear(txn_t *txn) {
         SCOPED_TRACE("clear");
         blob_.clear(alt_buf_parent_t(txn));
         expected_.clear();
@@ -178,7 +178,7 @@ void small_value_test(cache_t *cache) {
     SCOPED_TRACE("small_value_test");
     UNUSED block_size_t block_size = cache->get_block_size();
 
-    alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -211,8 +211,7 @@ void small_value_boundary_test(cache_t *cache) {
     SCOPED_TRACE("small_value_boundary_test");
     block_size_t block_size = cache->get_block_size();
 
-    alt_txn_t txn(cache, write_durability_t::SOFT,
-                  repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -266,7 +265,7 @@ void special_4080_prepend_4081_test(cache_t *cache) {
 
     ASSERT_EQ(static_cast<size_t>(size_after_magic), block_size.value() - sizeof(block_magic_t));
 
-    alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -278,7 +277,7 @@ void special_4080_prepend_4081_test(cache_t *cache) {
 // Regression test - these magic numbers caused failures previously.
 void special_4161600_prepend_12484801_test(cache_t *cache) {
     SCOPED_TRACE("special_4080_prepend_4081_test");
-    alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
     blob_tracker_t tk(251);
 
@@ -298,7 +297,7 @@ struct step_t {
 void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
     UNUSED block_size_t block_size = cache->get_block_size();
 
-    alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
+    txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
     blob_tracker_t tk(251);
 
     char v = 'A';

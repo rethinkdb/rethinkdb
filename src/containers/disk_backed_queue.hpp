@@ -18,7 +18,7 @@
 #include "serializer/types.hpp"
 
 class cache_t;
-class alt_txn_t;
+class txn_t;
 class io_backender_t;
 class perfmon_collection_t;
 
@@ -60,8 +60,8 @@ public:
     int64_t size();
 
 private:
-    void add_block_to_head(alt_txn_t *txn);
-    void remove_block_from_tail(alt_txn_t *txn);
+    void add_block_to_head(txn_t *txn);
+    void remove_block_from_tail(txn_t *txn);
 
     mutex_t mutex;
 

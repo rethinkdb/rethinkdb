@@ -15,7 +15,7 @@ void btree_slice_t::create(cache_t *cache,
                            const std::vector<char> &metainfo_key,
                            const std::vector<char> &metainfo_value) {
 
-    alt_txn_t txn(cache, write_durability_t::HARD, repli_timestamp_t::distant_past, 1);
+    txn_t txn(cache, write_durability_t::HARD, repli_timestamp_t::distant_past, 1);
 
     create(SUPERBLOCK_ID, alt_buf_parent_t(&txn), metainfo_key, metainfo_value);
 }

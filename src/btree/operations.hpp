@@ -245,7 +245,7 @@ void insert_root(block_id_t root_id, superblock_t *sb);
 void ensure_stat_block(superblock_t *sb);
 
 // RSI: return the scoped_ptr_t.
-void get_btree_superblock(alt_txn_t *txn, alt_access_t access,
+void get_btree_superblock(txn_t *txn, alt_access_t access,
                           scoped_ptr_t<real_superblock_t> *got_superblock_out);
 
 void get_btree_superblock_and_txn(btree_slice_t *slice,
@@ -254,16 +254,16 @@ void get_btree_superblock_and_txn(btree_slice_t *slice,
                                   repli_timestamp_t tstamp,
                                   write_durability_t durability,
                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                  scoped_ptr_t<alt_txn_t> *txn_out);
+                                  scoped_ptr_t<txn_t> *txn_out);
 
 void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
                                                   scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                                  scoped_ptr_t<alt_txn_t> *txn_out);
+                                                  scoped_ptr_t<txn_t> *txn_out);
 
 void get_btree_superblock_and_txn_for_reading(btree_slice_t *slice,
                                               cache_snapshotted_t snapshotted,
                                               scoped_ptr_t<real_superblock_t> *got_superblock_out,
-                                              scoped_ptr_t<alt_txn_t> *txn_out);
+                                              scoped_ptr_t<txn_t> *txn_out);
 
 #include "btree/operations.tcc"
 

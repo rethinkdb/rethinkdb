@@ -48,7 +48,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
             // RSI: Here (and elsewhere) we emulate the old cache_t::create behavior.
             // Shouldn't btree_slice_t::create handle this?  It basically does,
             // actually.
-            alt_txn_t superblock_creation(cache.get(), write_durability_t::HARD,
+            txn_t superblock_creation(cache.get(), write_durability_t::HARD,
                                           repli_timestamp_t::distant_past, 1);
             buf_lock_t superblock(&superblock_creation, SUPERBLOCK_ID,
                                   alt_create_t::create);
@@ -77,7 +77,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         read_token_pair_t token_pair;
         new_read_token_pair(&token_pair);
 
-        scoped_ptr_t<alt_txn_t> txn;
+        scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
         acquire_superblock_for_read(&token_pair.main_read_token, &txn,
                                     &superblock, &dummy_interruptor, false);
@@ -117,7 +117,7 @@ void btree_store_t<protocol_t>::read(
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
     acquire_superblock_for_read(&token_pair->main_read_token, &txn, &superblock,
@@ -145,7 +145,7 @@ void btree_store_t<protocol_t>::write(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> real_superblock;
     const int expected_change_count = 2; // FIXME: this is incorrect, but will do for now
     acquire_superblock_for_write(timestamp.to_repli_timestamp(),
@@ -170,7 +170,7 @@ bool btree_store_t<protocol_t>::send_backfill(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_backfill(&token_pair->main_read_token, &txn, &superblock, interruptor);
 
@@ -197,7 +197,7 @@ void btree_store_t<protocol_t>::receive_backfill(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     const int expected_change_count = 1; // FIXME: this is probably not correct
 
@@ -227,7 +227,7 @@ void btree_store_t<protocol_t>::reset_data(
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
     // We're passing 2 for the expected_change_count based on the
@@ -428,7 +428,7 @@ bool btree_store_t<protocol_t>::add_sindex(
 // RSI: There's no reason why this should work with detached sindexes.  Make this
 // just take the alt_buf_parent_t.
 void clear_sindex(
-        alt_txn_t *txn, block_id_t superblock_id,
+        txn_t *txn, block_id_t superblock_id,
         btree_slice_t *slice, value_sizer_t<void> *sizer,
         value_deleter_t *deleter, signal_t *interruptor) {
     /* Notice we're acquire sindex.superblock twice below which seems odd,
@@ -562,7 +562,7 @@ MUST_USE bool btree_store_t<protocol_t>::drop_sindex(
          * a child, it's now a parentless block. */
         sindex_block->detach_child(sindex.superblock);
         /* We need to save the txn because we are about to release this block. */
-        alt_txn_t *txn = sindex_block->txn();
+        txn_t *txn = sindex_block->txn();
         /* Release the sindex block so others may proceed. */
         sindex_block->reset_buf_lock();
 
@@ -602,7 +602,7 @@ void btree_store_t<protocol_t>::drop_all_sindexes(
     }
 
     /* We need to save the txn because we are about to release this block. */
-    alt_txn_t *txn = sindex_block->txn();
+    txn_t *txn = sindex_block->txn();
     /* Release the sindex block so others may proceed. */
     sindex_block->reset_buf_lock();
 
@@ -886,7 +886,7 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
                                                 signal_t *interruptor,
                                                 metainfo_t *out) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_read(token,
                                 &txn, &superblock,
@@ -932,7 +932,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
     assert_thread();
 
     // RSI: Are there other places where we give up and use repli_timestamp_t::invalid?
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(alt_access_t::write,
                                  repli_timestamp_t::invalid,
@@ -951,7 +951,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_read(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-        scoped_ptr_t<alt_txn_t> *txn_out,
+        scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor,
         bool use_snapshot)
@@ -971,7 +971,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_read(
 template <class protocol_t>
 void btree_store_t<protocol_t>::acquire_superblock_for_backfill(
         object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
-        scoped_ptr_t<alt_txn_t> *txn_out,
+        scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -991,7 +991,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         int expected_change_count,
         const write_durability_t durability,
         write_token_pair_t *token_pair,
-        scoped_ptr_t<alt_txn_t> *txn_out,
+        scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -1007,7 +1007,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         int expected_change_count,
         const write_durability_t durability,
         write_token_pair_t *token_pair,
-        scoped_ptr_t<alt_txn_t> *txn_out,
+        scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -1024,7 +1024,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         int expected_change_count,
         write_durability_t durability,
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token,
-        scoped_ptr_t<alt_txn_t> *txn_out,
+        scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {

@@ -1144,7 +1144,7 @@ void rdb_update_single_sindex(
 
 void rdb_update_sindexes(const sindex_access_vector_t &sindexes,
                          const rdb_modification_report_t *modification,
-                         alt_txn_t *txn) {
+                         txn_t *txn) {
     {
         auto_drainer_t drainer;
 
@@ -1199,7 +1199,7 @@ public:
         store_->new_write_token_pair(&token_pair);
 
         // RSI: FML
-        scoped_ptr_t<alt_txn_t> wtxn;
+        scoped_ptr_t<txn_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
 
         try {
@@ -1353,7 +1353,7 @@ void post_construct_secondary_indexes(
     // usually already takes care of that).
     // The txn must be destructed before the cache_account.
     scoped_ptr_t<alt_cache_account_t> cache_account;
-    scoped_ptr_t<alt_txn_t> txn;
+    scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
 
     store->acquire_superblock_for_read(

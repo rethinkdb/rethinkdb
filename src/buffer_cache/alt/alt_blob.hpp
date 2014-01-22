@@ -201,7 +201,7 @@ public:
     // to unappend_region(txn, valuesize()) or unprepend_region(txn,
     // valuesize()).  In particular, you can be sure that the blob
     // holds no internal blocks, once it has been cleared.
-    // RSI: Should this just take a alt_txn_t?  Detach-then-clear?
+    // RSI: Should this just take a txn_t?  Detach-then-clear?
     void clear(alt_buf_parent_t root);
 
     // Writes over the portion of the blob, starting at offset, with

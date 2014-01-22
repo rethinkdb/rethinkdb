@@ -19,7 +19,7 @@ serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *seria
     cache_.init(new cache_t(serializer, alt_cache_config_t(),
                             &get_global_perfmon_collection()));
     if (has_block_zero) {
-        alt_txn_t txn(cache_.get(), alt_read_access_t::read);
+        txn_t txn(cache_.get(), alt_read_access_t::read);
         buf_lock_t bufzero(alt_buf_parent_t(&txn), 0, alt_access_t::read);
         buf_read_t bufzero_read(&bufzero);
         const void *data = bufzero_read.get_data_read();
@@ -52,7 +52,7 @@ MUST_USE int64_t serializer_file_read_stream_t::read(void *p, int64_t n) {
     const int64_t num_copied = end_block_offset - block_offset;
     rassert(num_copied > 0);
 
-    alt_txn_t txn(cache_.get(), alt_read_access_t::read);
+    txn_t txn(cache_.get(), alt_read_access_t::read);
     buf_lock_t block(alt_buf_parent_t(&txn), block_number, alt_access_t::read);
     buf_read_t block_read(&block);
     const char *data = static_cast<const char *>(block_read.get_data_read());
@@ -88,10 +88,7 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
     cache_.init(new cache_t(serializer, alt_cache_config_t(),
                             &get_global_perfmon_collection()));
 
-    alt_txn_t txn(cache_.get(),
-                  write_durability_t::HARD,
-                  repli_timestamp_t::invalid,
-                  1);
+    txn_t txn(cache_.get(), write_durability_t::HARD, repli_timestamp_t::invalid, 1);
 
     buf_lock_t z(&txn, 0, alt_create_t::create);
     buf_write_t z_write(&z);
@@ -105,8 +102,8 @@ MUST_USE int64_t serializer_file_write_stream_t::write(const void *p, int64_t n)
     const char *chp = static_cast<const char *>(p);
     const int block_size = cache_->get_block_size().value();
 
-    alt_txn_t txn(cache_.get(), write_durability_t::HARD, repli_timestamp_t::invalid,
-                  2 + n / block_size);
+    txn_t txn(cache_.get(), write_durability_t::HARD, repli_timestamp_t::invalid,
+              2 + n / block_size);
     // Hold the size block during writes, to lock out other writers.
     buf_lock_t z(alt_buf_parent_t(&txn), 0, alt_access_t::write);
     {
