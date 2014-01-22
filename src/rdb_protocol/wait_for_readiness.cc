@@ -30,8 +30,7 @@ void wait_for_rdb_table_readiness(base_namespace_repo_t<rdb_protocol_t> *ns_repo
     // This read won't succeed, but we care whether it fails with an exception.
     // It must be an rget to make sure that access is available to all shards.
 
-    // RSI: Change back to 10.
-    const int poll_ms = 1000;
+    const int poll_ms = 10;
     const int deleted_check_ms = 4000;
     const int deleted_check_interval = std::max(deleted_check_ms / poll_ms, 1);
     rdb_protocol_t::rget_read_t empty_rget_read(
