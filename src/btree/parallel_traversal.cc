@@ -534,7 +534,6 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> buf,
         rassert(population_change == 0, "A read only operation claims it change the population of a leaf.\n");
     } else if (population_change != 0) {
         // RSI: Should we _actually_ pass buf.get() as the parent?
-        // RSI: This was opened with some buffer_cache_order_mode_ignore flag.
         // RSI: See operations.tcc for another use of the stat block.
         // RSI: having buf as the parent doesn't really make sense. The stat block
         // doesn't really have a parent.
@@ -548,7 +547,7 @@ void process_a_leaf_node(traversal_state_t *state, scoped_ptr_t<buf_lock_t> buf,
     }
 
     // RSI: I think we could reset this earlier (just after we acquire the
-    // stat_block, I think).
+    // stat_block, I think).  It depends on how we decide to treat stat blocks.
     buf.reset();
     if (state->helper->progress) {
         state->helper->progress->inform(level, parallel_traversal_progress_t::RELEASE, parallel_traversal_progress_t::LEAF);
