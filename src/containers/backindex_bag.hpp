@@ -1,8 +1,6 @@
 #ifndef CONTAINERS_BACKINDEX_BAG_HPP_
 #define CONTAINERS_BACKINDEX_BAG_HPP_
 
-#include <limits>
-
 #include "containers/segmented_vector.hpp"
 
 class backindex_bag_index_t {
@@ -18,7 +16,8 @@ private:
     template <class T>
     friend class backindex_bag_t;
 
-    static const size_t NOT_IN_A_BAG = std::numeric_limits<size_t>::max();
+    // RSI: Make this directly specify SIZE_MAX somehow.
+    static const size_t NOT_IN_A_BAG = -1;
 
     // The item's index into a (specific) backindex_bag_t, or NOT_IN_A_BAG if it
     // doesn't belong to the backindex_bag_t.
