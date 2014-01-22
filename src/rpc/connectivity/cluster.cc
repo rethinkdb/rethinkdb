@@ -188,7 +188,7 @@ connectivity_cluster_t::run_t::connection_entry_t::entry_installation_t::entry_i
                                                            std::make_pair(that_, auto_drainer_t::lock_t(&drainer_))));
         guarantee(res.second, "Map entry was not present.");
 
-        ti->publisher.publish(boost::bind(&ping_connection_watcher, that_->peer, _1));
+        ti->publisher.publish(std::bind(&ping_connection_watcher, that_->peer, ph::_1));
     }
 }
 
