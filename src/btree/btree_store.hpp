@@ -194,7 +194,6 @@ public:
     // sindex_block (so that sindex_list_t and sindex_status_t, the queries which use
     // this, don't block other queries).  It would be nice in general if we supported
     // passing the superblock_t in some way by rvalue reference.
-    // RSI: This used to take an interruptor.
     void get_sindexes(
         superblock_t *super_block,
         std::map<std::string, secondary_index_t> *sindexes_out);
@@ -203,7 +202,6 @@ public:
         buf_lock_t *sindex_block,
         std::map<std::string, secondary_index_t> *sindexes_out);
 
-    // RSI: This used to take an interruptor.
     MUST_USE bool acquire_sindex_superblock_for_read(
             const std::string &id,
             block_id_t sindex_block_id,
@@ -212,7 +210,6 @@ public:
             std::vector<char> *opaque_definition_out) // Optional, may be NULL
         THROWS_ONLY(interrupted_exc_t, sindex_not_post_constructed_exc_t);
 
-    // RSI: This used to take an interruptor.
     MUST_USE bool acquire_sindex_superblock_for_write(
             const std::string &id,
             block_id_t sindex_block_id,
@@ -234,7 +231,6 @@ public:
 
     typedef boost::ptr_vector<sindex_access_t> sindex_access_vector_t;
 
-    // RSI: This used to take an interruptor.
     void acquire_all_sindex_superblocks_for_write(
             block_id_t sindex_block_id,
             buf_parent_t parent,
@@ -303,7 +299,6 @@ public:
                                region_map_t<protocol_t, binary_blob_t> *out)
         const THROWS_NOTHING;
 
-    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_read(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             scoped_ptr_t<txn_t> *txn_out,
@@ -312,7 +307,6 @@ public:
             bool use_snapshot)
             THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_backfill(
             object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
             scoped_ptr_t<txn_t> *txn_out,
@@ -320,7 +314,6 @@ public:
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
 
-    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_write(
             repli_timestamp_t timestamp,
             int expected_change_count,
@@ -332,7 +325,6 @@ public:
             THROWS_ONLY(interrupted_exc_t);
 
 private:
-    // RSI: Does this really use the interruptor?
     void acquire_superblock_for_write(
             repli_timestamp_t timestamp,
             int expected_change_count,
@@ -355,7 +347,6 @@ public:
         real_superblock_t *superblock) const
         THROWS_NOTHING;
 
-    // RSI: Seriously?  Why is this function const?
     void update_metainfo(const metainfo_t &old_metainfo,
                          const metainfo_t &new_metainfo,
                          real_superblock_t *superblock) const THROWS_NOTHING;
@@ -375,6 +366,7 @@ public:
     boost::ptr_map<const std::string, btree_slice_t> secondary_index_slices;
 
     std::vector<internal_disk_backed_queue_t *> sindex_queues;
+    // RSI: mutex_t is a horrible type.
     mutex_t sindex_queue_mutex;
     std::map<uuid_u, const parallel_traversal_progress_t *> progress_trackers;
 
