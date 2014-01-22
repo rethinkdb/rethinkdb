@@ -23,9 +23,6 @@ boost::optional<boost::optional<backfiller_business_card_t<dummy_protocol_t> > >
 }   /* anonymous namespace */
 
 void run_backfill_test() {
-
-    order_source_t order_source;
-
     /* Set up two stores */
 
     dummy_protocol_t::region_t region;
@@ -61,7 +58,6 @@ void run_backfill_test() {
                                                           binary_blob_t(version_range_t(version_t(dummy_branch_id, timestamp)))),
             &token,
             &non_interruptor);
-        // RSI: order_source probably unused.
     }
 
     // Insert 10 values into both stores, then another 10 into only `backfiller_store` and not `backfillee_store`
@@ -149,7 +145,6 @@ void run_backfill_test() {
     backfiller_store.new_read_token(&token2);
 
     region_map_t<dummy_protocol_t, binary_blob_t> untransformed_backfiller_metadata;
-    // RSI: order_source unused?
     backfiller_store.do_get_metainfo(&token2, &interruptor, &untransformed_backfiller_metadata);
 
     region_map_t<dummy_protocol_t, version_range_t> backfiller_metadata =

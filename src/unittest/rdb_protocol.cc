@@ -98,7 +98,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     }
 
     /* Set up namespace interface */
-    dummy_namespace_interface_t<rdb_protocol_t> nsi(nsi_shards, stores.c_array(), &order_source, &ctx);
+    dummy_namespace_interface_t<rdb_protocol_t> nsi(nsi_shards, stores.c_array(), &ctx);
 
     fun(&nsi, &order_source);
 }
