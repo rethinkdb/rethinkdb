@@ -11,7 +11,7 @@
 // Run backfilling at a reduced priority
 #define BACKFILL_CACHE_PRIORITY 10
 
-void btree_slice_t::create(alt_cache_t *cache,
+void btree_slice_t::create(cache_t *cache,
                            const std::vector<char> &metainfo_key,
                            const std::vector<char> &metainfo_value) {
 
@@ -24,8 +24,7 @@ void btree_slice_t::create(block_id_t superblock_id,
                            alt_buf_parent_t parent,
                            const std::vector<char> &metainfo_key,
                            const std::vector<char> &metainfo_value) {
-    // The superblock was already created by cache_t::create or by creating it and
-    // getting the block id.
+    // The superblock was already created.
     // RSI: Make this be the thing that creates the block.
     buf_lock_t superblock(parent, superblock_id, alt_access_t::write);
 
@@ -46,7 +45,7 @@ void btree_slice_t::create(block_id_t superblock_id,
     sb->sindex_block = sindex_block.get_block_id();
 }
 
-btree_slice_t::btree_slice_t(alt_cache_t *c, perfmon_collection_t *parent,
+btree_slice_t::btree_slice_t(cache_t *c, perfmon_collection_t *parent,
                              const std::string &identifier,
                              block_id_t _superblock_id)
     : stats(parent, identifier),

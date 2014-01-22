@@ -17,7 +17,7 @@
 #include "perfmon/core.hpp"
 #include "serializer/types.hpp"
 
-class alt_cache_t;
+class cache_t;
 class alt_txn_t;
 class io_backender_t;
 class perfmon_collection_t;
@@ -77,7 +77,7 @@ private:
     // The end we pop from.
     block_id_t tail_block_id;
     scoped_ptr_t<standard_serializer_t> serializer;
-    scoped_ptr_t<alt_cache_t> cache;
+    scoped_ptr_t<cache_t> cache;
 
     DISABLE_COPYING(internal_disk_backed_queue_t);
 };

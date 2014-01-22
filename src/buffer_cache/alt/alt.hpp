@@ -33,12 +33,12 @@ private:
     DISABLE_COPYING(alt_memory_tracker_t);
 };
 
-class alt_cache_t : public home_thread_mixin_t {
+class cache_t : public home_thread_mixin_t {
 public:
-    explicit alt_cache_t(serializer_t *serializer,
-                         const alt_cache_config_t &dynamic_config,
-                         perfmon_collection_t *perfmon_collection);
-    ~alt_cache_t();
+    explicit cache_t(serializer_t *serializer,
+                     const alt_cache_config_t &dynamic_config,
+                     perfmon_collection_t *perfmon_collection);
+    ~cache_t();
 
     block_size_t max_block_size() const;
     // RSI: Remove this.
@@ -79,7 +79,7 @@ private:
 
     scoped_ptr_t<auto_drainer_t> drainer_;
 
-    DISABLE_COPYING(alt_cache_t);
+    DISABLE_COPYING(cache_t);
 };
 
 class alt_inner_txn_t {
@@ -89,16 +89,16 @@ public:
 
 private:
     friend class alt_txn_t;
-    alt_inner_txn_t(alt_cache_t *cache,
+    alt_inner_txn_t(cache_t *cache,
                     // Unused for read transactions, pass repli_timestamp_t::invalid.
                     repli_timestamp_t txn_recency,
                     alt_inner_txn_t *preceding_txn_or_null);
 
-    alt_cache_t *cache() { return cache_; }
+    cache_t *cache() { return cache_; }
 
     page_txn_t *page_txn() { return &page_txn_; }
 
-    alt_cache_t *cache_;
+    cache_t *cache_;
     page_txn_t page_txn_;
 
     DISABLE_COPYING(alt_inner_txn_t);
@@ -109,14 +109,14 @@ public:
     // Constructor for read-only transactions.
     // RSI: Generally speaking I don't think we use preceding_txn -- and should read
     // transactions use preceding_txn at all?
-    explicit alt_txn_t(alt_cache_t *cache,
+    explicit alt_txn_t(cache_t *cache,
                        alt_read_access_t read_access,
                        alt_txn_t *preceding_txn = NULL);
 
 
     // RSI: Remove default parameter for expected_change_count.
     // RSI: Generally speaking I don't think we use preceding_txn and we should.
-    alt_txn_t(alt_cache_t *cache,
+    alt_txn_t(cache_t *cache,
               write_durability_t durability,
               repli_timestamp_t txn_timestamp,
               int64_t expected_change_count = 2,
@@ -124,7 +124,7 @@ public:
 
     ~alt_txn_t();
 
-    alt_cache_t *cache() { return inner_->cache(); }
+    cache_t *cache() { return inner_->cache(); }
     page_txn_t *page_txn() { return inner_->page_txn(); }
     alt_access_t access() const { return access_; }
 
@@ -132,7 +132,7 @@ public:
 
 private:
     static void destroy_inner_txn(alt_inner_txn_t *inner,
-                                  alt_cache_t *cache,
+                                  cache_t *cache,
                                   int64_t saved_expected_change_count,
                                   auto_drainer_t::lock_t);
 
@@ -149,7 +149,7 @@ private:
 
 // The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
 // given block id, in order by version.  (See
-// alt_cache_t::snapshot_nodes_by_block_id_.)
+// cache_t::snapshot_nodes_by_block_id_.)
 class alt_snapshot_node_t : public intrusive_list_node_t<alt_snapshot_node_t> {
 public:
     explicit alt_snapshot_node_t(scoped_ptr_t<current_page_acq_t> &&acq);
@@ -159,7 +159,7 @@ private:
     // RSI: Should this really use friends?  Does this type need to be visible in the
     // header?
     friend class buf_lock_t;
-    friend class alt_cache_t;
+    friend class cache_t;
 
     // This is never null (and is always a current_page_acq_t that has had
     // declare_snapshotted() called).
@@ -265,19 +265,19 @@ public:
     void mark_deleted();
 
     alt_txn_t *txn() const { return txn_; }
-    alt_cache_t *cache() const { return txn_->cache(); }
+    cache_t *cache() const { return txn_->cache(); }
 
 private:
     static void wait_for_parent(alt_buf_parent_t parent, alt_access_t access);
     static alt_snapshot_node_t *
-    get_or_create_child_snapshot_node(alt_cache_t *cache,
+    get_or_create_child_snapshot_node(cache_t *cache,
                                       alt_snapshot_node_t *parent,
                                       block_id_t child_id);
-    static void create_empty_child_snapshot_nodes(alt_cache_t *cache,
+    static void create_empty_child_snapshot_nodes(cache_t *cache,
                                                   block_version_t parent_version,
                                                   block_id_t parent_id,
                                                   block_id_t child_id);
-    static void create_child_snapshot_nodes(alt_cache_t *cache,
+    static void create_child_snapshot_nodes(cache_t *cache,
                                             block_version_t parent_version,
                                             block_id_t parent_id,
                                             block_id_t child_id);
@@ -329,7 +329,7 @@ public:
         guarantee(!empty());
         return txn_;
     }
-    alt_cache_t *cache() const {
+    cache_t *cache() const {
         guarantee(!empty());
         return txn_->cache();
     }

@@ -34,29 +34,29 @@ void alt_memory_tracker_t::end_txn(int64_t saved_expected_change_count) {
 }
 
 // RSI: Use the perfmon_collection.
-alt_cache_t::alt_cache_t(serializer_t *serializer, const alt_cache_config_t &config,
-                         perfmon_collection_t *perfmon_collection)
+cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,
+                 perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
       tracker_(),
       page_cache_(serializer, config.page_config, &tracker_),
       drainer_(make_scoped<auto_drainer_t>()) { }
 
-alt_cache_t::~alt_cache_t() {
+cache_t::~cache_t() {
     drainer_.reset();
 }
 
-block_size_t alt_cache_t::max_block_size() const {
+block_size_t cache_t::max_block_size() const {
     return page_cache_.max_block_size();
 }
 
-void alt_cache_t::create_cache_account(int priority,
-                                       scoped_ptr_t<alt_cache_account_t> *out) {
+void cache_t::create_cache_account(int priority,
+                                   scoped_ptr_t<alt_cache_account_t> *out) {
     page_cache_.create_cache_account(priority, out);
 }
 
 alt_snapshot_node_t *
-alt_cache_t::matching_snapshot_node_or_null(block_id_t block_id,
-                                            block_version_t block_version) {
+cache_t::matching_snapshot_node_or_null(block_id_t block_id,
+                                        block_version_t block_version) {
     intrusive_list_t<alt_snapshot_node_t> *list
         = &snapshot_nodes_by_block_id_[block_id];
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
@@ -67,12 +67,12 @@ alt_cache_t::matching_snapshot_node_or_null(block_id_t block_id,
     return NULL;
 }
 
-void alt_cache_t::add_snapshot_node(block_id_t block_id,
-                                     alt_snapshot_node_t *node) {
+void cache_t::add_snapshot_node(block_id_t block_id,
+                                alt_snapshot_node_t *node) {
     snapshot_nodes_by_block_id_[block_id].push_back(node);
 }
 
-void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {
+void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {
     // In some hypothetical cache data structure (a disk backed queue) we could have
     // a long linked list of snapshot nodes.  So we avoid _recursively_ removing
     // snapshot nodes.
@@ -114,7 +114,7 @@ void alt_cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t 
     }
 }
 
-alt_inner_txn_t::alt_inner_txn_t(alt_cache_t *cache,
+alt_inner_txn_t::alt_inner_txn_t(cache_t *cache,
                                  repli_timestamp_t txn_recency,
                                  alt_inner_txn_t *preceding_txn)
     : cache_(cache),
@@ -134,7 +134,7 @@ alt_cache_account_t::~alt_cache_account_t() {
     delete io_account_;
 }
 
-alt_txn_t::alt_txn_t(alt_cache_t *cache,
+alt_txn_t::alt_txn_t(cache_t *cache,
                      UNUSED alt_read_access_t read_access,
                      alt_txn_t *preceding_txn)
     : access_(alt_access_t::read),
@@ -151,7 +151,7 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache,
 
 }
 
-alt_txn_t::alt_txn_t(alt_cache_t *cache,
+alt_txn_t::alt_txn_t(cache_t *cache,
                      write_durability_t durability,
                      repli_timestamp_t txn_timestamp,
                      int64_t expected_change_count,
@@ -167,7 +167,7 @@ alt_txn_t::alt_txn_t(alt_cache_t *cache,
                                     : preceding_txn->inner_.get()));
 }
 
-void alt_txn_t::destroy_inner_txn(alt_inner_txn_t *inner, alt_cache_t *cache,
+void alt_txn_t::destroy_inner_txn(alt_inner_txn_t *inner, cache_t *cache,
                                   int64_t saved_expected_change_count,
                                   auto_drainer_t::lock_t) {
     delete inner;
@@ -175,7 +175,7 @@ void alt_txn_t::destroy_inner_txn(alt_inner_txn_t *inner, alt_cache_t *cache,
 }
 
 alt_txn_t::~alt_txn_t() {
-    alt_cache_t *cache = inner_->cache();
+    cache_t *cache = inner_->cache();
     cache->assert_thread();
     alt_inner_txn_t *inner = inner_.release();
     if (durability_ == write_durability_t::SOFT) {
@@ -226,9 +226,9 @@ const char *show(alt_access_t access) {
 // transaction that we need to jump ahead of.
 
 alt_snapshot_node_t *
-buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
-                                                  alt_snapshot_node_t *parent,
-                                                  block_id_t child_id) {
+buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
+                                              alt_snapshot_node_t *parent,
+                                              block_id_t child_id) {
     auto it = parent->children_.find(child_id);
     if (it == parent->children_.end()) {
         // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?  First see
@@ -248,10 +248,10 @@ buf_lock_t::get_or_create_child_snapshot_node(alt_cache_t *cache,
     }
 }
 
-void buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
-                                                 block_version_t parent_version,
-                                                 block_id_t parent_id,
-                                                 block_id_t child_id) {
+void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
+                                             block_version_t parent_version,
+                                             block_id_t parent_id,
+                                             block_id_t child_id) {
     // We create at most one child snapshot node.
 
     alt_snapshot_node_t *child = NULL;
@@ -285,10 +285,10 @@ void buf_lock_t::create_child_snapshot_nodes(alt_cache_t *cache,
 }
 
 // Puts markers in the parent saying that no such child exists.
-void buf_lock_t::create_empty_child_snapshot_nodes(alt_cache_t *cache,
-                                                       block_version_t parent_version,
-                                                       block_id_t parent_id,
-                                                       block_id_t child_id) {
+void buf_lock_t::create_empty_child_snapshot_nodes(cache_t *cache,
+                                                   block_version_t parent_version,
+                                                   block_id_t parent_id,
+                                                   block_id_t child_id) {
     intrusive_list_t<alt_snapshot_node_t> *list
         = &cache->snapshot_nodes_by_block_id_[parent_id];
 
@@ -635,9 +635,9 @@ void buf_lock_t::detach_child(block_id_t child_id) {
     guarantee(access() == alt_access_t::write);
 
     buf_lock_t::create_child_snapshot_nodes(cache(),
-                                                current_page_acq()->block_version(),
-                                                block_id(),
-                                                child_id);
+                                            current_page_acq()->block_version(),
+                                            block_id(),
+                                            child_id);
 }
 
 repli_timestamp_t buf_lock_t::get_recency() const {

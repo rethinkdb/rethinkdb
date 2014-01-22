@@ -11,7 +11,7 @@
 #include "rpc/semilattice/view.hpp"
 #include "serializer/types.hpp"
 
-class alt_cache_t;
+class cache_t;
 class alt_txn_t;
 
 template <class> class branch_history_manager_t;
@@ -49,7 +49,7 @@ private:
                                         perfmon_collection_t *perfmon_parent);
 
     scoped_ptr_t<standard_serializer_t> serializer;
-    scoped_ptr_t<alt_cache_t> cache;
+    scoped_ptr_t<cache_t> cache;
     alt_cache_config_t cache_dynamic_config;
 };
 

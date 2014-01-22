@@ -16,8 +16,8 @@ serializer_file_read_stream_t::serializer_file_read_stream_t(serializer_t *seria
         on_thread_t th(serializer->home_thread());
         has_block_zero = !serializer->get_delete_bit(0);
     }
-    cache_.init(new alt_cache_t(serializer, alt_cache_config_t(),
-                                &get_global_perfmon_collection()));
+    cache_.init(new cache_t(serializer, alt_cache_config_t(),
+                            &get_global_perfmon_collection()));
     if (has_block_zero) {
         alt_txn_t txn(cache_.get(), alt_read_access_t::read);
         buf_lock_t bufzero(alt_buf_parent_t(&txn), 0, alt_access_t::read);
@@ -85,8 +85,8 @@ serializer_file_write_stream_t::serializer_file_write_stream_t(serializer_t *ser
     // problematic.)
     delete_contiguous_blocks_from_0(serializer);
 
-    cache_.init(new alt_cache_t(serializer, alt_cache_config_t(),
-                                &get_global_perfmon_collection()));
+    cache_.init(new cache_t(serializer, alt_cache_config_t(),
+                            &get_global_perfmon_collection()));
 
     alt_txn_t txn(cache_.get(),
                   write_durability_t::HARD,

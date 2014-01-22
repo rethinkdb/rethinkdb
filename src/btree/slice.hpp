@@ -9,7 +9,7 @@
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
 
-class alt_cache_t;
+class cache_t;
 class alt_buf_parent_t;
 class alt_cache_account_t;
 class backfill_callback_t;
@@ -51,7 +51,7 @@ public:
     // Initializes a cache for use with btrees (by creating the superblock in block
     // SUPERBLOCK_ID), setting the initial value of the metainfo (with a single
     // key/value pair).
-    static void create(alt_cache_t *cache,
+    static void create(cache_t *cache,
                        const std::vector<char> &metainfo_key,
                        const std::vector<char> &metainfo_value);
 
@@ -64,14 +64,14 @@ public:
                        const std::vector<char> &metainfo_value);
 
     // Blocks
-    btree_slice_t(alt_cache_t *cache, perfmon_collection_t *parent,
+    btree_slice_t(cache_t *cache, perfmon_collection_t *parent,
                   const std::string &identifier,
                   block_id_t superblock_id = SUPERBLOCK_ID);
 
     // Blocks
     ~btree_slice_t();
 
-    alt_cache_t *cache() { return cache_; }
+    cache_t *cache() { return cache_; }
     alt_cache_account_t *get_backfill_account() { return backfill_account.get(); }
 
     btree_stats_t stats;
@@ -79,7 +79,7 @@ public:
     block_id_t get_superblock_id();
 
 private:
-    alt_cache_t *cache_;
+    cache_t *cache_;
 
     block_id_t superblock_id_;
 

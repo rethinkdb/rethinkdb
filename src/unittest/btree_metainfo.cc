@@ -53,8 +53,8 @@ void run_metainfo_test() {
         &file_opener,
         &get_global_perfmon_collection());
 
-    alt_cache_t cache(&serializer, alt_cache_config_t(),
-                      &get_global_perfmon_collection());
+    cache_t cache(&serializer, alt_cache_config_t(),
+                  &get_global_perfmon_collection());
 
     {
         alt_txn_t txn(&cache, write_durability_t::HARD, repli_timestamp_t::invalid,

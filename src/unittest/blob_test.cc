@@ -174,7 +174,7 @@ private:
     blob_t blob_;
 };
 
-void small_value_test(alt_cache_t *cache) {
+void small_value_test(cache_t *cache) {
     SCOPED_TRACE("small_value_test");
     UNUSED block_size_t block_size = cache->get_block_size();
 
@@ -207,7 +207,7 @@ void small_value_test(alt_cache_t *cache) {
     tk.prepend(&txn, "");
 }
 
-void small_value_boundary_test(alt_cache_t *cache) {
+void small_value_boundary_test(cache_t *cache) {
     SCOPED_TRACE("small_value_boundary_test");
     block_size_t block_size = cache->get_block_size();
 
@@ -260,7 +260,7 @@ void small_value_boundary_test(alt_cache_t *cache) {
     ASSERT_EQ(1u, tk.refsize(block_size));
 }
 
-void special_4080_prepend_4081_test(alt_cache_t *cache) {
+void special_4080_prepend_4081_test(cache_t *cache) {
     SCOPED_TRACE("special_4080_prepend_4081_test");
     block_size_t block_size = cache->get_block_size();
 
@@ -276,7 +276,7 @@ void special_4080_prepend_4081_test(alt_cache_t *cache) {
 }
 
 // Regression test - these magic numbers caused failures previously.
-void special_4161600_prepend_12484801_test(alt_cache_t *cache) {
+void special_4161600_prepend_12484801_test(cache_t *cache) {
     SCOPED_TRACE("special_4080_prepend_4081_test");
     alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
 
@@ -295,7 +295,7 @@ struct step_t {
     step_t(int64_t _size, bool _prepend) : size(_size), prepend(_prepend) { }
 };
 
-void general_journey_test(alt_cache_t *cache, const std::vector<step_t>& steps) {
+void general_journey_test(cache_t *cache, const std::vector<step_t>& steps) {
     UNUSED block_size_t block_size = cache->get_block_size();
 
     alt_txn_t txn(cache, write_durability_t::SOFT, repli_timestamp_t::distant_past, 0);
@@ -329,7 +329,7 @@ void general_journey_test(alt_cache_t *cache, const std::vector<step_t>& steps) 
     tk.unappend(&txn, size);
 }
 
-void combinations_test(alt_cache_t *cache) {
+void combinations_test(cache_t *cache) {
     SCOPED_TRACE("combinations_test");
 
     int64_t inline_sz = size_after_magic * ((250 - 1 - 8 - 8) / sizeof(block_id_t));
@@ -368,7 +368,7 @@ void combinations_test(alt_cache_t *cache) {
 }
 
 
-void run_tests(alt_cache_t *cache) {
+void run_tests(cache_t *cache) {
     // The tests above hard-code constants related to these numbers.
     EXPECT_EQ(251, blob::btree_maxreflen);
     EXPECT_EQ(4u, sizeof(block_magic_t));
@@ -394,9 +394,9 @@ void run_blob_test() {
             &file_opener,
             &get_global_perfmon_collection());
 
-    alt_cache_t cache(&log_serializer,
-                      alt_cache_config_t(),
-                      &get_global_perfmon_collection());
+    cache_t cache(&log_serializer,
+                  alt_cache_config_t(),
+                  &get_global_perfmon_collection());
 
     run_tests(&cache);
 }
