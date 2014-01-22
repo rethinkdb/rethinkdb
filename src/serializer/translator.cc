@@ -43,7 +43,8 @@ void prep_serializer(
     multiplexer_config_block_t *c
         = reinterpret_cast<multiplexer_config_block_t *>(buf->cache_data);
 
-    bzero(c, ser->get_block_size().value());
+    // RSI: two uses of ser->max_block_size() below to refer to buf's size here.
+    bzero(c, ser->max_block_size().value());
     c->magic = multiplexer_config_block_t::expected_magic;
     c->creation_timestamp = creation_timestamp;
     c->n_files = serializers.size();
@@ -51,7 +52,7 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = serializer_block_write(ser, buf.get(), ser->get_block_size(),
+    op.token = serializer_block_write(ser, buf.get(), ser->max_block_size(),
                                       CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
     op.recency = repli_timestamp_t::invalid;
     serializer_index_write(ser, op, DEFAULT_DISK_ACCOUNT);
@@ -228,8 +229,8 @@ counted_t<standard_block_token_t> translator_serializer_t::index_read(block_id_t
     return inner->index_read(translate_block_id(block_id));
 }
 
-block_size_t translator_serializer_t::get_block_size()  const {
-    return inner->get_block_size();
+block_size_t translator_serializer_t::max_block_size()  const {
+    return inner->max_block_size();
 }
 
 bool translator_serializer_t::coop_lock_and_check() {

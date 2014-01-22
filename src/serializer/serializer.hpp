@@ -111,8 +111,7 @@ public:
                  iocallback_t *cb) = 0;
 
     /* The size, in bytes, of each serializer block */
-    // RSI: Rename to max_block_size or default_block_size.
-    virtual block_size_t get_block_size() const = 0;
+    virtual block_size_t max_block_size() const = 0;
 
     /* Return true if no other processes have the file locked */
     virtual bool coop_lock_and_check() = 0;

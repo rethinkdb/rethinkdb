@@ -98,7 +98,7 @@ public:
     }
 
     /* The size, in bytes, of each serializer block */
-    block_size_t get_block_size() const { return inner->get_block_size(); }
+    block_size_t max_block_size() const { return inner->max_block_size(); }
 
     /* Return true if no other processes have the file locked */
     bool coop_lock_and_check() { return inner->coop_lock_and_check(); }

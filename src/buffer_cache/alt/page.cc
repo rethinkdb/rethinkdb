@@ -98,17 +98,17 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
 #if !defined(NDEBUG) || defined(VALGRIND)
         // RSI: This should actually _not_ exist -- we are ignoring legitimate errors
         // where we write uninitialized data to disk.
-        memset(buf.get()->cache_data, 0xCD, serializer_->get_block_size().value());
+        memset(buf.get()->cache_data, 0xCD, serializer_->max_block_size().value());
 #endif
 
     set_recency_for_block_id(block_id, repli_timestamp_t::distant_past);
     if (current_pages_[block_id] == NULL) {
         current_pages_[block_id] =
-            new current_page_t(serializer_->get_block_size(),
+            new current_page_t(serializer_->max_block_size(),
                                std::move(buf),
                                this);
     } else {
-        current_pages_[block_id]->make_non_deleted(serializer_->get_block_size(),
+        current_pages_[block_id]->make_non_deleted(serializer_->max_block_size(),
                                                    std::move(buf),
                                                    this);
     }
@@ -118,7 +118,7 @@ current_page_t *page_cache_t::internal_page_for_new_chosen(block_id_t block_id) 
 
 block_size_t page_cache_t::max_block_size() const {
     assert_thread();
-    return serializer_->get_block_size();
+    return serializer_->max_block_size();
 }
 
 void page_cache_t::create_cache_account(int priority,
@@ -492,10 +492,10 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
 #if !defined(NDEBUG) || defined(VALGRIND)
                     // RSI: This should actually _not_ exist -- we are ignoring legitimate errors
                     // where we write uninitialized data to disk.
-                    memset(buf.get()->cache_data, 0xCD, help.page_cache->serializer()->get_block_size().value());
+                    memset(buf.get()->cache_data, 0xCD, help.page_cache->serializer()->max_block_size().value());
 #endif
 
-                    page_.init(new page_t(help.page_cache->serializer()->get_block_size(),
+                    page_.init(new page_t(help.page_cache->serializer()->max_block_size(),
                                           std::move(buf),
                                           help.page_cache),
                                help.page_cache);

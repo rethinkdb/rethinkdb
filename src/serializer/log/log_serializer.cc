@@ -674,8 +674,7 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
     }
 }
 
-// TODO: Make this const.
-block_size_t log_serializer_t::get_block_size() const {
+block_size_t log_serializer_t::max_block_size() const {
     return static_config.block_size();
 }
 
