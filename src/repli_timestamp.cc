@@ -1,5 +1,4 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 #include "containers/printf_buffer.hpp"

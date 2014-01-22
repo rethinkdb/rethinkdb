@@ -1,12 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#define __STDC_FORMAT_MACROS
-#define __STDC_LIMIT_MACROS
 #include "serializer/log/data_block_manager.hpp"
 
 #include <inttypes.h>
 #include <sys/uio.h>
 
-#include "utils.hpp"
+#include "errors.hpp"
 #include <boost/bind.hpp>
 
 #include "arch/arch.hpp"

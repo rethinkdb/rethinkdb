@@ -1,6 +1,4 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
-#define __STDC_FORMAT_MACROS
 #include "rpc/mailbox/mailbox.hpp"
 
 #include <stdint.h>

@@ -1,6 +1,4 @@
-// Copyright 2010-2013 RethinkDB, all rights reserved.
-#define __STDC_LIMIT_MACROS
-
+// Copyright 2010-2014 RethinkDB, all rights reserved.
 #include <stdint.h>
 
 #include "containers/archive/string_stream.hpp"

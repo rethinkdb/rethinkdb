@@ -1,5 +1,3 @@
-#define __STDC_LIMIT_MACROS
-
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "buffer_cache/alt/page.hpp"
