@@ -360,7 +360,6 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
 
     if (state.stat_block != NULL_BLOCK_ID) {
         /* Give the helper a look at the stat block */
-        // RSI: We passed buffer_cache_order_mode_ignore before.
         buf_lock_t stat_block(superblock->expose_buf(),
                               state.stat_block, alt_access_t::read);
         helper->read_stat_block(&stat_block);
@@ -508,7 +507,6 @@ void process_a_internal_node(traversal_state_t *state,
                     left_exclusive_or_null, right_inclusive_or_null, level));
     }
 
-    // RSI: pass buf to this by &&.
     subtrees_traverse(state, new internal_node_releaser_t(std::move(buf), state),
                       level + 1, ids_source);
 }
