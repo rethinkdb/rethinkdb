@@ -388,8 +388,7 @@ template <class protocol_t>
 bool btree_store_t<protocol_t>::add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t) {
+        buf_lock_t *sindex_block) {
     // RSI: This function can't throw an interrupted_exc_t, can it?
 
     secondary_index_t sindex;

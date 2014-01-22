@@ -155,12 +155,10 @@ public:
             scoped_ptr_t<buf_lock_t> *sindex_block_out,
             block_id_t sindex_block_id);
 
-    // RSI: This used to take an interruptor.  Probably for some stupid reason.
     MUST_USE bool add_sindex(
         const std::string &id,
         const secondary_index_t::opaque_definition_t &definition,
-        buf_lock_t *sindex_block)
-    THROWS_ONLY(interrupted_exc_t);
+        buf_lock_t *sindex_block);
 
     // RSI: Is interruptor actually used?
     void set_sindexes(
