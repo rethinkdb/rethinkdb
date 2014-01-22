@@ -802,7 +802,7 @@ class Func extends RDBOp
         return super(optargs, argsArr, body)
 
     compose: (args) ->
-        if hasImplicit(args[1])
+        if hasImplicit(args[1]) is true
             [args[1]]
         else
             ['function(', (Var::compose(arg) for arg in args[0][1...-1]), ') { return ', args[1], '; }']
