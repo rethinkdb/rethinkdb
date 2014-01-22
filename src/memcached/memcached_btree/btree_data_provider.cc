@@ -12,8 +12,8 @@ counted_t<data_buffer_t> value_to_data_buffer(const memcached_value_t *value,
     parent.cache()->assert_thread();
 
     blob_t blob(parent.cache()->get_block_size(),
-                     const_cast<memcached_value_t *>(value)->value_ref(),
-                     blob::btree_maxreflen);
+                const_cast<memcached_value_t *>(value)->value_ref(),
+                blob::btree_maxreflen);
 
     buffer_group_t group;
     blob_acq_t acqs;
