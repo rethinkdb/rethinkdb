@@ -404,7 +404,7 @@ void listener_t<protocol_t>::on_write(const typename protocol_t::write_t &write,
 template <class protocol_t>
 void listener_t<protocol_t>::enqueue_write(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
-        order_token_t order_token,
+        UNUSED order_token_t order_token,  // RSI
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
@@ -416,7 +416,7 @@ void listener_t<protocol_t>::enqueue_write(const typename protocol_t::write_t &w
         fifo_enforcer_sink_t::exit_write_t fifo_exit(&write_queue_entrance_sink_, fifo_token);
         wait_interruptible(&fifo_exit, keepalive.get_drain_signal());
         write_queue_semaphore_.co_lock_interruptible(keepalive.get_drain_signal());
-        write_queue_.push(write_queue_entry_t(write, transition_timestamp, order_token, fifo_token));
+        write_queue_.push(write_queue_entry_t(write, transition_timestamp, fifo_token));
 
         /* Release the semaphore before sending the response, because the
         broadcaster can send us a new write as soon as we send the ack */
@@ -468,7 +468,6 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
         qe.transition_timestamp,
         &write_token_pair,
         interruptor);
-    // RSI: Remove write_queue_entry_t::order_token.
 }
 
 template <class protocol_t>
