@@ -644,7 +644,7 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
                          superblock);
     }
     void operator()(const backfill_chunk_t::delete_range_t& delete_range) const {
-        hash_range_key_tester_t tester(delete_range.range);
+        hash_range_key_tester_t tester(&delete_range.range);
         memcached_erase_range(btree, &tester, delete_range.range.inner,
                               superblock, interruptor);
     }
@@ -659,16 +659,15 @@ struct receive_backfill_visitor_t : public boost::static_visitor<> {
 
 private:
     struct hash_range_key_tester_t : public key_tester_t {
-        explicit hash_range_key_tester_t(const region_t &delete_range)
+        explicit hash_range_key_tester_t(const region_t *delete_range)
             : delete_range_(delete_range) { }
         bool key_should_be_erased(const btree_key_t *key) {
             uint64_t h = hash_region_hasher(key->contents, key->size);
-            return delete_range_.beg <= h && h < delete_range_.end
-                && delete_range_.inner.contains_key(key->contents, key->size);
+            return delete_range_->beg <= h && h < delete_range_->end
+                && delete_range_->inner.contains_key(key->contents, key->size);
         }
 
-        // RSI: fix this const reference bullshit.
-        const region_t &delete_range_;
+        const region_t *delete_range_;
 
     private:
         DISABLE_COPYING(hash_range_key_tester_t);
