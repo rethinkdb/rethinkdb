@@ -145,9 +145,6 @@ public:
 
     progress_completion_fraction_t get_progress(uuid_u id);
 
-    // RSI: These used to be interruptible.  They shouldn't be, because they are
-    // non-blocking (they might wait for the parent though), but the caller could be
-    // modified to check the interruptor.
     MUST_USE buf_lock_t acquire_sindex_block_for_read(
             buf_parent_t parent,
             block_id_t sindex_block_id);
