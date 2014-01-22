@@ -76,6 +76,8 @@ public:
         reads_.push_back(read);
     }
 
+    void reset();
+
 private:
     std::vector<buf_lock_t *> bufs_;
     // One of writes_ or reads_ will be empty.

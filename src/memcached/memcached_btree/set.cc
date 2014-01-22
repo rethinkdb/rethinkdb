@@ -88,11 +88,9 @@ struct memcached_set_oper_t : public memcached_modify_oper_t {
 
         b.append_region(leaf, data->size());
         buffer_group_t bg;
-        // RSI: We shouldn't have to do the scoped_ptr thing here, let blob_acq_t
-        // have a reset method.
-        scoped_ptr_t<blob_acq_t> acq(new blob_acq_t);
+        blob_acq_t acq;
         b.expose_region(leaf, alt_access_t::write,
-                        0, data->size(), &bg, acq.get());
+                        0, data->size(), &bg, &acq);
 
         try {
             // RSI: What the fuck is going on here?  How could buffer_group_copy_data

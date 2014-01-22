@@ -14,15 +14,22 @@
 #include "serializer/types.hpp"
 
 blob_acq_t::~blob_acq_t() {
-    for (auto it = reads_.begin(); it != reads_.end(); ++it) {
-        delete *it;
+    reset();
+}
+
+template <class T>
+void clear_and_delete(std::vector<T *> *vec) {
+    while (!vec->empty()) {
+        T *back = vec->back();
+        vec->pop_back();
+        delete back;
     }
-    for (auto it = writes_.begin(); it != writes_.end(); ++it) {
-        delete *it;
-    }
-    for (auto it = bufs_.begin(); it != bufs_.end(); ++it) {
-        delete *it;
-    }
+}
+
+void blob_acq_t::reset() {
+    clear_and_delete(&reads_);
+    clear_and_delete(&writes_);
+    clear_and_delete(&bufs_);
 }
 
 namespace blob {
