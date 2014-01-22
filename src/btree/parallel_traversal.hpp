@@ -30,7 +30,7 @@ class superblock_t;
 // HEY: Make this an abstract class, have two separate implementation
 // classes for the "forced block id" case and the internal node case.
 // (Hint: I don't really care.)
-class ranged_block_ids_t {
+class ranged_block_ids_t : public single_threaded_countable_t<ranged_block_ids_t> {
 public:
     ranged_block_ids_t(block_size_t bs, const internal_node_t *node,
                        const btree_key_t *left_exclusive_or_null,
@@ -82,7 +82,7 @@ public:
             traversal_state_t *_state,
             parent_releaser_t *_releaser,
             int _level,
-            const boost::shared_ptr<ranged_block_ids_t>& _ids_source)
+            const counted_t<ranged_block_ids_t> &_ids_source)
         : state(_state), releaser(_releaser),
           level(_level), acquisition_countdown(1), ids_source(_ids_source) { }
 
@@ -94,7 +94,7 @@ private:
     parent_releaser_t *releaser;
     int level;
     int acquisition_countdown;
-    boost::shared_ptr<ranged_block_ids_t> ids_source;
+    counted_t<ranged_block_ids_t> ids_source;
 
     DISABLE_COPYING(interesting_children_callback_t);
 };

@@ -236,7 +236,7 @@ private:
 
 void subtrees_traverse(traversal_state_t *state,
                        parent_releaser_t *releaser, int level,
-                       const boost::shared_ptr<ranged_block_ids_t>& ids_source);
+                       const counted_t<ranged_block_ids_t> &ids_source);
 void do_a_subtree_traversal(traversal_state_t *state, int level,
                             buf_parent_t parent, block_id_t block_id,
                             btree_key_t *left_exclusive_or_null,
@@ -396,7 +396,7 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
     } else {
         state.level_count(0) += 1;
         state.acquisition_waiter_stacks.resize(1);
-        boost::shared_ptr<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL, 0));
+        counted_t<ranged_block_ids_t> ids_source(new ranged_block_ids_t(root_id, NULL, NULL, 0));
         subtrees_traverse(&state,
                           &superblock_releaser, 1, ids_source);
         state.wait();
@@ -412,7 +412,7 @@ void btree_parallel_traversal(superblock_t *superblock, btree_slice_t *slice,
 void subtrees_traverse(traversal_state_t *state,
                        parent_releaser_t *releaser,
                        int level,
-                       const boost::shared_ptr<ranged_block_ids_t>& ids_source) {
+                       const counted_t<ranged_block_ids_t>& ids_source) {
     rassert(coro_t::self());
     interesting_children_callback_t *fsm
         = new interesting_children_callback_t(state, releaser, level,
@@ -495,16 +495,15 @@ void process_a_internal_node(traversal_state_t *state,
                              int level,
                              const btree_key_t *left_exclusive_or_null,
                              const btree_key_t *right_inclusive_or_null) {
-    boost::shared_ptr<ranged_block_ids_t> ids_source;
+    counted_t<ranged_block_ids_t> ids_source;
     {
         buf_read_t read(buf.get());
         const internal_node_t *node
             = static_cast<const internal_node_t *>(read.get_data_read());
 
-        // RSI: Why not finally get rid of this boost::shared_ptr.
-        ids_source = boost::shared_ptr<ranged_block_ids_t>(
-                new ranged_block_ids_t(state->slice->cache()->get_block_size(), node,
-                    left_exclusive_or_null, right_inclusive_or_null, level));
+        ids_source = make_counted<ranged_block_ids_t>(
+                    state->slice->cache()->get_block_size(), node,
+                    left_exclusive_or_null, right_inclusive_or_null, level);
     }
 
     subtrees_traverse(state, new internal_node_releaser_t(std::move(buf), state),
