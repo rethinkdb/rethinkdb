@@ -340,7 +340,7 @@ void listener_write(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::write_mailbox_t::address_t &write_mailbox,
         const typename protocol_t::write_t &w, transition_timestamp_t ts,
-        order_token_t order_token, fifo_enforcer_write_token_t token,
+        UNUSED order_token_t order_token /* RSI */, fifo_enforcer_write_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -350,7 +350,7 @@ void listener_write(
         boost::bind(&cond_t::pulse, &ack_cond));
 
     send(mailbox_manager, write_mailbox,
-         w, ts, order_token, token, ack_mailbox.get_address());
+         w, ts, token, ack_mailbox.get_address());
 
     wait_interruptible(&ack_cond, interruptor);
 }
@@ -366,7 +366,7 @@ void listener_read(
         mailbox_manager_t *mailbox_manager,
         const typename listener_business_card_t<protocol_t>::read_mailbox_t::address_t &read_mailbox,
         const typename protocol_t::read_t &r, typename protocol_t::read_response_t *response, state_timestamp_t ts,
-        order_token_t order_token, fifo_enforcer_read_token_t token,
+        UNUSED order_token_t order_token /* RSI */, fifo_enforcer_read_token_t token,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t)
 {
@@ -376,7 +376,7 @@ void listener_read(
         boost::bind(&store_listener_response<typename protocol_t::read_response_t>, response, _1, &resp_cond));
 
     send(mailbox_manager, read_mailbox,
-         r, ts, order_token, token, resp_mailbox.get_address());
+         r, ts, token, resp_mailbox.get_address());
 
     wait_interruptible(&resp_cond, interruptor);
 }
@@ -518,7 +518,7 @@ void broadcaster_t<protocol_t>::background_write(dispatchee_t *mirror, auto_drai
 }
 
 template<class protocol_t>
-void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, order_token_t order_token, fifo_enforcer_write_token_t token, const write_durability_t durability) THROWS_NOTHING {
+void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_drainer_t::lock_t mirror_lock, incomplete_write_ref_t write_ref, UNUSED order_token_t order_token /* RSI */, fifo_enforcer_write_token_t token, const write_durability_t durability) THROWS_NOTHING {
     try {
         cond_t response_cond;
         typename protocol_t::write_response_t response;
@@ -526,7 +526,7 @@ void broadcaster_t<protocol_t>::background_writeread(dispatchee_t *mirror, auto_
             mailbox_manager,
             boost::bind(&store_listener_response<typename protocol_t::write_response_t>, &response, _1, &response_cond));
 
-        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, order_token, token, response_mailbox.get_address(), durability);
+        send(mailbox_manager, mirror->writeread_mailbox, write_ref.get()->write, write_ref.get()->timestamp, token, response_mailbox.get_address(), durability);
 
         wait_interruptible(&response_cond, mirror_lock.get_drain_signal());
 

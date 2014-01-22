@@ -76,11 +76,11 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
+        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4)),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5)),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
+        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4))
 {
     boost::optional<boost::optional<broadcaster_business_card_t<protocol_t> > > business_card =
         broadcaster_metadata->get();
@@ -245,11 +245,11 @@ listener_t<protocol_t>::listener_t(const base_path_t &base_path,
         WRITE_QUEUE_SEMAPHORE_TRICKLE_FRACTION),
     enforce_max_outstanding_writes_from_broadcaster_(MAX_OUTSTANDING_WRITES_FROM_BROADCASTER),
     write_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4, _5)),
+        boost::bind(&listener_t::on_write, this, _1, _2, _3, _4)),
     writeread_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5, _6)),
+        boost::bind(&listener_t::on_writeread, this, _1, _2, _3, _4, _5)),
     read_mailbox_(mailbox_manager_,
-        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4, _5))
+        boost::bind(&listener_t::on_read, this, _1, _2, _3, _4))
 {
     branch_birth_certificate_t<protocol_t> this_branch_history;
     {
@@ -388,23 +388,20 @@ void listener_t<protocol_t>::try_start_receiving_writes(
 template <class protocol_t>
 void listener_t<protocol_t>::on_write(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
-        order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr) THROWS_NOTHING {
     rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
-    order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::enqueue_write, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr,
+        write, transition_timestamp, fifo_token, ack_addr,
         auto_drainer_t::lock_t(&drainer_)));
 }
 
 template <class protocol_t>
 void listener_t<protocol_t>::enqueue_write(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
-        UNUSED order_token_t order_token,  // RSI
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void()> ack_addr,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {
@@ -473,25 +470,23 @@ void listener_t<protocol_t>::perform_enqueued_write(const write_queue_entry_t &q
 template <class protocol_t>
 void listener_t<protocol_t>::on_writeread(const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
-        order_token_t order_token,
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
         write_durability_t durability) THROWS_NOTHING {
     rassert(region_is_superset(our_branch_region_, write.get_region()));
     rassert(!region_is_empty(write.get_region()));
     rassert(region_is_superset(svs_->get_region(), write.get_region()));
-    order_token.assert_write_mode();
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::perform_writeread, this,
-        write, transition_timestamp, order_token, fifo_token, ack_addr, durability,
+        write, transition_timestamp, fifo_token, ack_addr, durability,
         auto_drainer_t::lock_t(&drainer_)));
 }
 
 template <class protocol_t>
-void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_t &write,
+void listener_t<protocol_t>::perform_writeread(
+        const typename protocol_t::write_t &write,
         transition_timestamp_t transition_timestamp,
-                                               UNUSED order_token_t order_token,  // RSI
         fifo_enforcer_write_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::write_response_t)> ack_addr,
         const write_durability_t durability,
@@ -552,25 +547,22 @@ void listener_t<protocol_t>::perform_writeread(const typename protocol_t::write_
 template <class protocol_t>
 void listener_t<protocol_t>::on_read(const typename protocol_t::read_t &read,
         state_timestamp_t expected_timestamp,
-        order_token_t order_token,
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr)
         THROWS_NOTHING {
     rassert(region_is_superset(our_branch_region_, read.get_region()));
     rassert(!region_is_empty(read.get_region()));
     rassert(region_is_superset(svs_->get_region(), read.get_region()));
-    order_token.assert_read_mode();
 
     coro_t::spawn_sometime(boost::bind(
         &listener_t<protocol_t>::perform_read, this,
-        read, expected_timestamp, order_token, fifo_token, ack_addr,
+        read, expected_timestamp, fifo_token, ack_addr,
         auto_drainer_t::lock_t(&drainer_)));
 }
 
 template <class protocol_t>
 void listener_t<protocol_t>::perform_read(const typename protocol_t::read_t &read,
         state_timestamp_t expected_timestamp,
-        UNUSED order_token_t order_token,  // RSI
         fifo_enforcer_read_token_t fifo_token,
         mailbox_addr_t<void(typename protocol_t::read_response_t)> ack_addr,
         auto_drainer_t::lock_t keepalive) THROWS_NOTHING {

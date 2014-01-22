@@ -31,20 +31,17 @@ public:
 
     typedef mailbox_t<void(typename protocol_t::write_t,
                            transition_timestamp_t,
-                           order_token_t,
                            fifo_enforcer_write_token_t,
                            mailbox_addr_t<void()> ack_addr)> write_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::write_t,
                            transition_timestamp_t,
-                           order_token_t,
                            fifo_enforcer_write_token_t,
                            mailbox_addr_t<void(typename protocol_t::write_response_t)>,
                            write_durability_t)> writeread_mailbox_t;
 
     typedef mailbox_t<void(typename protocol_t::read_t,
                            state_timestamp_t,
-                           order_token_t,
                            fifo_enforcer_read_token_t,
                            mailbox_addr_t<void(typename protocol_t::read_response_t)>)> read_mailbox_t;
 
