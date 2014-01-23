@@ -371,9 +371,10 @@ struct region_tree_filler_t {
         if (levels > 1) {
             buf_lock_t lock(parent, block_ids[lo + i], mode);
             buf_read_t buf_read(&lock);
-            // RSI: Use this block size for an assertion or something.
+            // KSI: Use this block size for an assertion or something.
             uint32_t unused_block_size;
-            const block_id_t *sub_ids = blob::internal_node_block_ids(buf_read.get_data_read(&unused_block_size));
+            const block_id_t *sub_ids
+                = blob::internal_node_block_ids(buf_read.get_data_read(&unused_block_size));
 
             int64_t suboffset, subsize;
             shrink(parent.cache()->max_block_size(), levels, offset, size, lo + i, &suboffset, &subsize);
@@ -435,7 +436,7 @@ void expose_tree_from_block_ids(buf_parent_t parent, alt_access_t mode,
             void *leaf_buf;
             if (mode == alt_access_t::read) {
                 buf_read_t *buf_read = new buf_read_t(buf);
-                // RSI: Could we use this block size somehow?  An assertion?
+                // KSI: Could we use this block size somehow?  An assertion?
                 uint32_t block_size;
                 leaf_buf = const_cast<void *>(buf_read->get_data_read(&block_size));
                 acq_group_out->add_buf(buf, buf_read);
@@ -853,7 +854,7 @@ void blob_t::consider_small_shift(buf_parent_t parent, int levels,
                     buf_lock_t hibuf(parent, ids[1], alt_access_t::write);
                     {
                         buf_read_t hibuf_read(&hibuf);
-                        // RSI: Use the block size for an assertion or something.
+                        // KSI: Use the block size for an assertion or something.
                         uint32_t this_block_size;
                         const char *data2
                             = blob::leaf_node_data(hibuf_read.get_data_read(&this_block_size));
@@ -930,14 +931,14 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             rassert(bigoffset == 0);
 
             buf_read_t lock_read(&lock);
-            // RSI: Use the block size for an assert or something.
+            // KSI: Use the block size for an assert or something.
             uint32_t unused_block_size;
             const char *b = blob::leaf_node_data(lock_read.get_data_read(&unused_block_size));
             memcpy(blob::small_buffer(ref_, maxreflen_), b, maxreflen_ - blob::big_size_offset(maxreflen_));
             blob::set_small_size(ref_, maxreflen_, bigsize);
         } else {
             buf_read_t lock_read(&lock);
-            // RSI: Use the block size for an assert or something.
+            // KSI: Use the block size for an assert or something.
             uint32_t unused_block_size;
             const block_id_t *b = blob::internal_node_block_ids(lock_read.get_data_read(&unused_block_size));
             memcpy(blob::block_ids(ref_, maxreflen_), b, maxreflen_ - blob::block_ids_offset(maxreflen_));
