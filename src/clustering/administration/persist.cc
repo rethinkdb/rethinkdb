@@ -133,7 +133,6 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
     }
 }
 
-// RSI: These functions could be static.
 template <class metadata_t>
 void persistent_file_t<metadata_t>::get_write_transaction(object_buffer_t<txn_t> *txn_out) {
     txn_out->create(cache.get(),
@@ -195,7 +194,7 @@ auth_semilattice_metadata_t auth_persistent_file_t::read_metadata() {
 }
 
 void auth_persistent_file_t::update_metadata(const auth_semilattice_metadata_t &metadata) {
-    // RSI: This and other functions here seem sketchy.  They used order tokens to
+    // KSI: This and other functions here seem sketchy.  They used order tokens to
     // worry about transaction/superblock acquisition ordering, but they don't
     // actually enforce ordering with some kind of mutex or fifo enforcer.  Or do
     // they?
