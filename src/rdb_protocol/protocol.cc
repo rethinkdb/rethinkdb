@@ -1772,7 +1772,7 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
                        superblock_t *superblock,
                        buf_lock_t *sindex_block,
                        backfill_progress_t *progress,
-                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+                       signal_t *interruptor) THROWS_NOTHING {
     parallel_traversal_progress_t *p = new parallel_traversal_progress_t;
     scoped_ptr_t<traversal_progress_t> p_owned(p);
     progress->add_constituent(&p_owned);
@@ -1783,7 +1783,6 @@ void call_rdb_backfill(int i, btree_slice_t *btree,
     } catch (const interrupted_exc_t &) {
         /* do nothing; `protocol_send_backfill()` will notice that interruptor
         has been pulsed */
-        // RSI: Then why does this function declare itself to throw interrupted_exc_t?
     }
 }
 
@@ -1824,7 +1823,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                                                   superblock->get_sindex_block_id());
     }
 
-    void operator()(const backfill_chunk_t::delete_key_t& delete_key) {
+    void operator()(const backfill_chunk_t::delete_key_t &delete_key) {
         point_delete_response_t response;
         rdb_modification_report_t mod_report(delete_key.key);
         rdb_delete(delete_key.key, btree, delete_key.recency,
@@ -1834,7 +1833,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
         update_sindexes(&mod_report);
     }
 
-    void operator()(const backfill_chunk_t::delete_range_t& delete_range) {
+    void operator()(const backfill_chunk_t::delete_range_t &delete_range) {
         range_key_tester_t tester(&delete_range.range);
         rdb_erase_range(btree, &tester, delete_range.range.inner,
                         &sindex_block,
@@ -1842,7 +1841,7 @@ struct rdb_receive_backfill_visitor_t : public boost::static_visitor<void> {
                         interruptor);
     }
 
-    void operator()(const backfill_chunk_t::key_value_pair_t& kv) {
+    void operator()(const backfill_chunk_t::key_value_pair_t &kv) {
         const rdb_backfill_atom_t& bf_atom = kv.backfill_atom;
         point_write_response_t response;
         rdb_modification_report_t mod_report(bf_atom.key);
