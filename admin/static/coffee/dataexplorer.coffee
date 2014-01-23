@@ -3467,6 +3467,8 @@ module 'DataExplorerView', ->
             for task in profile
                 if task['duration(ms)']?
                     total_duration += task['duration(ms)']
+                else if task['mean_duration(ms)']?
+                    total_duration += task['mean_duration(ms)']
 
             total_duration
 
