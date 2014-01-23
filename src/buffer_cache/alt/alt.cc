@@ -599,12 +599,10 @@ void buf_lock_t::reset_buf_lock() {
     swap(tmp);
 }
 
-// RSI: Rename this to snapshot_subdag.
-void buf_lock_t::snapshot_subtree() {
+void buf_lock_t::snapshot_subdag() {
 #if ALT_DEBUG
     debugf("%p: buf_lock_t %p snapshot %lu\n", cache(), this, block_id());
 #endif
-    // RSI: Can this be ASSERT_NO_CORO_WAITING?
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     if (snapshot_node_ != NULL) {
