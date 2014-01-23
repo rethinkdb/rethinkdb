@@ -179,7 +179,6 @@ txn_t::txn_t(cache_t *cache,
                                     repli_timestamp_t::invalid,
                                     preceding_txn == NULL ? NULL
                                     : preceding_txn->inner_.get()));
-
 }
 
 txn_t::txn_t(cache_t *cache,
