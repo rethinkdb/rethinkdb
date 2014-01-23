@@ -71,8 +71,8 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
     // Initialize sindex slices
     {
         // Since this is the btree constructor, nothing else should be locking these
-        //  things yet, so this should work fairly quickly and does not need a real
-        //  interruptor
+        // things yet, so this should work fairly quickly and does not need a real
+        // interruptor.
         cond_t dummy_interruptor;
         read_token_pair_t token_pair;
         store_view_t<protocol_t>::new_read_token_pair(&token_pair);
@@ -82,8 +82,6 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         acquire_superblock_for_read(&token_pair.main_read_token, &txn,
                                     &superblock, &dummy_interruptor, false);
 
-        // RSI: It would be cool if acquire_sindex_block_for_read was interruptible
-        // (it used to take an interruptor, I don't know what for).
         buf_lock_t sindex_block
             = acquire_sindex_block_for_read(superblock->expose_buf(),
                                             superblock->get_sindex_block_id());
