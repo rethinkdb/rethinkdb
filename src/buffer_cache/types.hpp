@@ -45,15 +45,6 @@ struct block_magic_t {
 
 void debug_print(printf_buffer_t *buf, block_magic_t magic);
 
-// HEY: put this somewhere else.
-// RSI: Remove this disgusting thing, we have a new cache.
-class get_subtree_recencies_callback_t {
-public:
-    virtual void got_subtree_recencies() = 0;
-protected:
-    virtual ~get_subtree_recencies_callback_t() { }
-};
-
 template <class T> class scoped_malloc_t;
 
 #endif /* BUFFER_CACHE_TYPES_HPP_ */

@@ -1198,7 +1198,7 @@ public:
         write_token_pair_t token_pair;
         store_->new_write_token_pair(&token_pair);
 
-        // RSI: FML
+        // KSI: FML
         scoped_ptr_t<txn_t> wtxn;
         btree_store_t<rdb_protocol_t>::sindex_access_vector_t sindexes;
 
@@ -1210,7 +1210,7 @@ public:
             // constructed.
             store_->acquire_superblock_for_write(
                     repli_timestamp_t::distant_past,
-                    2,  // RSI: This is not the right value.
+                    2,  // KSI: This is not the right value.
                     write_durability_t::SOFT,
                     &token_pair,
                     &wtxn,
@@ -1359,7 +1359,7 @@ void post_construct_secondary_indexes(
         interruptor,
         true /* USE_SNAPSHOT */);
 
-    // RSI: Is this high(?) priority why making an sindex slows stuff down a lot?
+    // KSI: Is this high(?) priority why making an sindex slows stuff down a lot?
     txn->cache()->create_cache_account(SINDEX_POST_CONSTRUCTION_CACHE_PRIORITY,
                                        &cache_account);
     txn->set_account(cache_account.get());

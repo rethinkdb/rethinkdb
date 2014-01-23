@@ -74,34 +74,6 @@ struct backfill_traversal_helper_t : public btree_traversal_helper_t, public hom
     alt_access_t btree_superblock_mode() { return alt_access_t::read; }
     alt_access_t btree_node_mode() { return alt_access_t::read; }
 
-    struct annoying_t : public get_subtree_recencies_callback_t {
-        interesting_children_callback_t *cb;
-        scoped_array_t<block_id_t> block_ids;
-        scoped_array_t<repli_timestamp_t> recencies;
-        repli_timestamp_t since_when;
-        cond_t *done_cond;
-
-        void got_subtree_recencies() {
-            coro_t::spawn_sometime(boost::bind(&annoying_t::do_got_subtree_recencies, this));
-        }
-
-        void do_got_subtree_recencies() {
-            rassert(coro_t::self());
-
-            for (int i = 0, e = block_ids.size(); i < e; ++i) {
-                if (block_ids[i] != NULL_BLOCK_ID && recencies[i] >= since_when) {
-                    cb->receive_interesting_child(i);
-                }
-            }
-
-            interesting_children_callback_t *local_cb = cb;
-            cond_t *local_done_cond = done_cond;
-            delete this;
-            local_cb->no_more_interesting_children();
-            local_done_cond->pulse();
-        }
-    };
-
     void filter_interesting_children(buf_parent_t parent,
                                      ranged_block_ids_t *ids_source,
                                      interesting_children_callback_t *cb) {
