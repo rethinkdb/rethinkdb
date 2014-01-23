@@ -206,7 +206,7 @@ void current_page_acq_t::init(page_txn_t *txn,
 }
 
 void current_page_acq_t::init(page_txn_t *txn,
-                              UNUSED alt_create_t create) {
+                              alt_create_t) {
     txn->page_cache()->assert_thread();
     guarantee(page_cache_ == NULL);
     page_cache_ = txn->page_cache();
@@ -222,7 +222,7 @@ void current_page_acq_t::init(page_txn_t *txn,
 
 void current_page_acq_t::init(page_cache_t *page_cache,
                               block_id_t block_id,
-                              UNUSED alt_read_access_t read) {
+                              alt_read_access_t) {
     page_cache->assert_thread();
     guarantee(page_cache_ == NULL);
     page_cache_ = page_cache;

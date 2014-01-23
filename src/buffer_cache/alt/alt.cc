@@ -167,7 +167,7 @@ alt_cache_account_t::~alt_cache_account_t() {
 }
 
 txn_t::txn_t(cache_t *cache,
-             UNUSED alt_read_access_t read_access,
+             alt_read_access_t,
              txn_t *preceding_txn)
     : access_(alt_access_t::read),
       durability_(valgrind_undefined(write_durability_t::INVALID)),
@@ -383,7 +383,7 @@ bool is_subordinate(alt_access_t parent, alt_access_t child) {
 
 buf_lock_t::buf_lock_t(txn_t *txn,
                        block_id_t block_id,
-                       UNUSED alt_create_t create)
+                       alt_create_t)
     : txn_(txn),
       current_page_acq_(new current_page_acq_t(txn->page_txn(), block_id,
                                                alt_access_t::write, true)),
@@ -398,7 +398,7 @@ buf_lock_t::buf_lock_t(txn_t *txn,
 // RSI: So much duplicated code all over these constructors.
 buf_lock_t::buf_lock_t(buf_parent_t parent,
                        block_id_t block_id,
-                       UNUSED alt_create_t create)
+                       alt_create_t)
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
@@ -496,7 +496,7 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
 }
 
 buf_lock_t::buf_lock_t(buf_parent_t parent,
-                       UNUSED alt_create_t create)
+                       alt_create_t)
     : txn_(parent.txn()),
       current_page_acq_(),
       snapshot_node_(NULL),
@@ -530,7 +530,7 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
 }
 
 buf_lock_t::buf_lock_t(buf_lock_t *parent,
-                       UNUSED alt_create_t create)
+                       alt_create_t)
     : txn_(parent->txn_),
       current_page_acq_(),
       snapshot_node_(NULL),
