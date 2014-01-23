@@ -16,7 +16,6 @@
 #include <boost/optional.hpp>
 
 #include "btree/btree_store.hpp"
-#include "btree/depth_first_traversal.hpp"
 #include "btree/keys.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/cond_var.hpp"
