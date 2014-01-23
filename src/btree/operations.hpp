@@ -41,7 +41,6 @@ public:
     virtual block_id_t get_sindex_block_id() = 0;
     virtual void set_sindex_block_id(block_id_t new_block_id) = 0;
 
-    // RSI: Add buf_lock_parent_t or something.
     virtual buf_parent_t expose_buf() = 0;
 
 private:
@@ -127,8 +126,8 @@ private:
 };
 
 
-// RSI: This type is stupid because the only subclass is
-// null_key_modification_callback_t is null_key_modification_callback_t?
+// KSI: This type is stupid because the only subclass is
+// null_key_modification_callback_t?
 template <class Value>
 class key_modification_callback_t {
 public:
