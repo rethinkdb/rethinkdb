@@ -256,18 +256,6 @@ void dummy_protocol_t::store_t::new_write_token(object_buffer_t<fifo_enforcer_si
     token_out->create(&main_token_sink, token);
 }
 
-void dummy_protocol_t::store_t::new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING {
-    assert_thread();
-    fifo_enforcer_read_token_t main_token = main_token_source.enter_read();
-    token_pair_out->main_read_token.create(&main_token_sink, main_token);
-}
-
-void dummy_protocol_t::store_t::new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING {
-    assert_thread();
-    fifo_enforcer_write_token_t main_token = main_token_source.enter_write();
-    token_pair_out->main_write_token.create(&main_token_sink, main_token);
-}
-
 void dummy_protocol_t::store_t::do_get_metainfo(order_token_t order_token,
                                                 object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                                                 signal_t *interruptor,

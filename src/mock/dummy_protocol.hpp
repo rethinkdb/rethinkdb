@@ -116,9 +116,6 @@ public:
         void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
         void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
 
-        void new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING;
-        void new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING;
-
         void do_get_metainfo(order_token_t order_token,
                              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
                              signal_t *interruptor,

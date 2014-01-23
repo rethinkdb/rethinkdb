@@ -75,7 +75,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         //  interruptor
         cond_t dummy_interruptor;
         read_token_pair_t token_pair;
-        new_read_token_pair(&token_pair);
+        store_view_t<protocol_t>::new_read_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
@@ -972,18 +972,6 @@ void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_si
     assert_thread();
     fifo_enforcer_write_token_t token = main_token_source.enter_write();
     token_out->create(&main_token_sink, token);
-}
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::new_read_token_pair(read_token_pair_t *token_pair_out) {
-    assert_thread();
-    new_read_token(&(token_pair_out->main_read_token));
-}
-
-template <class protocol_t>
-void btree_store_t<protocol_t>::new_write_token_pair(write_token_pair_t *token_pair_out) {
-    assert_thread();
-    new_write_token(&(token_pair_out->main_write_token));
 }
 
 #include "memcached/protocol.hpp"

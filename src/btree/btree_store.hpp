@@ -58,11 +58,6 @@ public:
     void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out);
     void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out);
 
-    /* These functions get tokens for both the main B-Tree and the secondary
-     * structures. */
-    void new_read_token_pair(read_token_pair_t *token_pair_out);
-    void new_write_token_pair(write_token_pair_t *token_pair_out);
-
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
     void do_get_metainfo(
