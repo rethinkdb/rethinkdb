@@ -722,8 +722,6 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
         }
     }
 
-    stats->pm_serializer_data_blocks_written += writes.size();
-
     struct intermediate_cb_t : public iocallback_t {
         virtual void on_io_complete() {
             --ops_remaining;
@@ -799,7 +797,6 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
 
 void data_block_manager_t::destroy_entry(gc_entry_t *entry) {
     rassert(entry != NULL);
-    ++stats->pm_serializer_data_extents_reclaimed;
     entry->destroy();
 }
 
