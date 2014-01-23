@@ -15,14 +15,15 @@ namespace ql {
 durability_requirement_t parse_durability_optarg(counted_t<val_t> arg,
                                                  pb_rcheckable_t *target);
 
-name_string_t get_name(counted_t<val_t> val, const term_t *caller) {
+name_string_t get_name(counted_t<val_t> val, const term_t *caller,
+        const char *type_str) {
     r_sanity_check(val.has());
     std::string raw_name = val->as_str();
     name_string_t name;
     bool assignment_successful = name.assign_value(raw_name);
     rcheck_target(caller, base_exc_t::GENERIC, assignment_successful,
-                  strprintf("Database name `%s` invalid (%s).",
-                            raw_name.c_str(), name_string_t::valid_char_msg));
+                  strprintf("%s name `%s` invalid (%s).",
+                            type_str, raw_name.c_str(), name_string_t::valid_char_msg));
     return name;
 }
 
@@ -90,7 +91,7 @@ public:
     db_term_t(compile_env_t *env, const protob_t<const Term> &term) : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual counted_t<val_t> eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        name_string_t db_name = get_name(arg(env, 0), this);
+        name_string_t db_name = get_name(arg(env, 0), this, "Database");
         uuid_u uuid;
         {
             rethreading_metadata_accessor_t meta(env);
@@ -109,7 +110,7 @@ public:
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        name_string_t db_name = get_name(arg(env, 0), this);
+        name_string_t db_name = get_name(arg(env, 0), this, "Database");
 
         rethreading_metadata_accessor_t meta(env);
 
@@ -162,7 +163,7 @@ private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
         uuid_u dc_id = nil_uuid();
         if (counted_t<val_t> v = optarg(env, "datacenter")) {
-            name_string_t name = get_name(v, this);
+            name_string_t name = get_name(v, this, "Table");
             {
                 rethreading_metadata_accessor_t meta(env);
                 dc_id = meta_get_uuid(&meta.dc_searcher, name,
@@ -191,10 +192,10 @@ private:
             counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
-            tbl_name = get_name(arg(env, 0), this);
+            tbl_name = get_name(arg(env, 0), this, "Table");
         } else {
             db_id = arg(env, 0)->as_db()->id;
-            tbl_name = get_name(arg(env, 1), this);
+            tbl_name = get_name(arg(env, 1), this, "Table");
         }
 
         // Ensure table doesn't already exist.
@@ -259,7 +260,7 @@ public:
         meta_write_op_t(env, term, argspec_t(1)) { }
 private:
     virtual std::string write_eval_impl(scope_env_t *env, UNUSED eval_flags_t flags) {
-        name_string_t db_name = get_name(arg(env, 0), this);
+        name_string_t db_name = get_name(arg(env, 0), this, "Database");
 
         rethreading_metadata_accessor_t meta(env);
 
@@ -312,10 +313,10 @@ private:
             counted_t<val_t> dbv = optarg(env, "db");
             r_sanity_check(dbv);
             db_id = dbv->as_db()->id;
-            tbl_name = get_name(arg(env, 0), this);
+            tbl_name = get_name(arg(env, 0), this, "Table");
         } else {
             db_id = arg(env, 0)->as_db()->id;
-            tbl_name = get_name(arg(env, 1), this);
+            tbl_name = get_name(arg(env, 1), this, "Table");
         }
 
         rethreading_metadata_accessor_t meta(env);
