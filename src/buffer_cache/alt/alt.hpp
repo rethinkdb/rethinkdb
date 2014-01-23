@@ -41,7 +41,7 @@ public:
     ~cache_t();
 
     block_size_t max_block_size() const;
-    // RSI: Remove this.
+    // KSI: Remove this.
     block_size_t get_block_size() const { return max_block_size(); }
 
     // These todos come from the mirrored cache.  The real problem is that whole

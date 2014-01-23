@@ -10,6 +10,11 @@
 // RSI: get rid of this.
 #define ALT_DEBUG 0
 
+// There are very few ASSERT_NO_CORO_WAITING calls (instead we have
+// ASSERT_FINITE_CORO_WAITING) because most of the time we're at the mercy of the
+// page cache, which often may need to load or evict blocks, which may involve a
+// spawn_now call.
+
 
 // The intrusive list of alt_snapshot_node_t contains all the snapshot nodes for a
 // given block id, in order by version.  (See
@@ -20,8 +25,6 @@ public:
     ~alt_snapshot_node_t();
 
 private:
-    // RSI: Should this really use friends?  Does this type need to be visible in the
-    // header?
     friend class buf_lock_t;
     friend class cache_t;
 
@@ -40,8 +43,6 @@ private:
 
     DISABLE_COPYING(alt_snapshot_node_t);
 };
-
-// RSI: Add ASSERT_FINITE_CORO_WAITING or ASSERT_NO_CORO_WAITING wherever we can.
 
 alt_memory_tracker_t::alt_memory_tracker_t()
     : semaphore_(200) { }
@@ -64,7 +65,6 @@ void alt_memory_tracker_t::end_txn(int64_t saved_expected_change_count) {
     semaphore_.unlock(saved_expected_change_count);
 }
 
-// RSI: Use the perfmon_collection.
 cache_t::cache_t(serializer_t *serializer, const alt_cache_config_t &config,
                  perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
@@ -88,6 +88,7 @@ void cache_t::create_cache_account(int priority,
 alt_snapshot_node_t *
 cache_t::matching_snapshot_node_or_null(block_id_t block_id,
                                         block_version_t block_version) {
+    ASSERT_NO_CORO_WAITING;
     intrusive_list_t<alt_snapshot_node_t> *list
         = &snapshot_nodes_by_block_id_[block_id];
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
@@ -100,10 +101,12 @@ cache_t::matching_snapshot_node_or_null(block_id_t block_id,
 
 void cache_t::add_snapshot_node(block_id_t block_id,
                                 alt_snapshot_node_t *node) {
+    ASSERT_NO_CORO_WAITING;
     snapshot_nodes_by_block_id_[block_id].push_back(node);
 }
 
 void cache_t::remove_snapshot_node(block_id_t block_id, alt_snapshot_node_t *node) {
+    ASSERT_FINITE_CORO_WAITING;
     // In some hypothetical cache data structure (a disk backed queue) we could have
     // a long linked list of snapshot nodes.  So we avoid _recursively_ removing
     // snapshot nodes.
@@ -153,9 +156,7 @@ alt_inner_txn_t::alt_inner_txn_t(cache_t *cache,
                 txn_recency,
                 preceding_txn == NULL ? NULL : &preceding_txn->page_txn_) { }
 
-alt_inner_txn_t::~alt_inner_txn_t() {
-    // RSI: Do anything?
-}
+alt_inner_txn_t::~alt_inner_txn_t() { }
 
 alt_cache_account_t::alt_cache_account_t(threadnum_t thread, file_account_t *io_account)
     : thread_(thread), io_account_(io_account) { }
@@ -175,6 +176,7 @@ txn_t::txn_t(cache_t *cache,
     cache->assert_thread();
     // RSI: If I remember correctly the mirrored cache used 1 for some reason.
     cache->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
+    ASSERT_FINITE_CORO_WAITING;
     inner_.init(new alt_inner_txn_t(cache,
                                     repli_timestamp_t::invalid,
                                     preceding_txn == NULL ? NULL
@@ -191,6 +193,7 @@ txn_t::txn_t(cache_t *cache,
       saved_expected_change_count_(expected_change_count) {
     cache->assert_thread();
     cache->tracker_.begin_txn_or_throttle(expected_change_count);
+    ASSERT_FINITE_CORO_WAITING;
     inner_.init(new alt_inner_txn_t(cache,
                                     txn_timestamp,
                                     preceding_txn == NULL ? NULL
@@ -257,6 +260,7 @@ alt_snapshot_node_t *
 buf_lock_t::get_or_create_child_snapshot_node(cache_t *cache,
                                               alt_snapshot_node_t *parent,
                                               block_id_t child_id) {
+    ASSERT_FINITE_CORO_WAITING;
     auto it = parent->children_.find(child_id);
     if (it == parent->children_.end()) {
         // RSI: We could check snapshot_nodes_by_block_id_[child_id] here?  First see
@@ -280,6 +284,7 @@ void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
                                              block_version_t parent_version,
                                              block_id_t parent_id,
                                              block_id_t child_id) {
+    ASSERT_FINITE_CORO_WAITING;
     // We create at most one child snapshot node.
 
     alt_snapshot_node_t *child = NULL;
@@ -288,7 +293,6 @@ void buf_lock_t::create_child_snapshot_nodes(cache_t *cache,
     for (alt_snapshot_node_t *p = list->tail(); p != NULL; p = list->prev(p)) {
         auto it = p->children_.find(child_id);
         if (it != p->children_.end()) {
-            // RSI: Can we kick nodes with children out of this list?
             // Already has a child, continue.
             continue;
         }
@@ -317,6 +321,7 @@ void buf_lock_t::create_empty_child_snapshot_nodes(cache_t *cache,
                                                    block_version_t parent_version,
                                                    block_id_t parent_id,
                                                    block_id_t child_id) {
+    ASSERT_NO_CORO_WAITING;
     intrusive_list_t<alt_snapshot_node_t> *list
         = &cache->snapshot_nodes_by_block_id_[parent_id];
 
@@ -344,6 +349,7 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
       snapshot_node_(NULL),
       access_ref_count_(0) {
     buf_lock_t::wait_for_parent(parent, access);
+    ASSERT_FINITE_CORO_WAITING;
     if (parent.lock_or_null_ != NULL && parent.lock_or_null_->snapshot_node_ != NULL) {
         buf_lock_t *parent_lock = parent.lock_or_null_;
         rassert(!parent_lock->current_page_acq_.has());
@@ -429,6 +435,7 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
 }
 
 void buf_lock_t::mark_deleted() {
+    ASSERT_FINITE_CORO_WAITING;
 #if ALT_DEBUG
     debugf("%p: buf_lock_t %p delete %lu\n", cache(), this, block_id());
 #endif
@@ -462,6 +469,8 @@ buf_lock_t::buf_lock_t(buf_lock_t *parent,
     // support.)
 
     buf_lock_t::wait_for_parent(buf_parent_t(parent), access);
+
+    ASSERT_FINITE_CORO_WAITING;
 
     if (parent->snapshot_node_ != NULL) {
         rassert(!parent->current_page_acq_.has());
@@ -587,6 +596,7 @@ buf_lock_t &buf_lock_t::operator=(buf_lock_t &&movee) {
 }
 
 void buf_lock_t::swap(buf_lock_t &other) {
+    ASSERT_NO_CORO_WAITING;
     guarantee(access_ref_count_ == 0);
     guarantee(other.access_ref_count_ == 0);
     std::swap(txn_, other.txn_);
@@ -595,6 +605,7 @@ void buf_lock_t::swap(buf_lock_t &other) {
 }
 
 void buf_lock_t::reset_buf_lock() {
+    ASSERT_FINITE_CORO_WAITING;
     buf_lock_t tmp;
     swap(tmp);
 }
@@ -632,6 +643,7 @@ void buf_lock_t::snapshot_subdag() {
 }
 
 current_page_acq_t *buf_lock_t::current_page_acq() const {
+    ASSERT_NO_CORO_WAITING;
     guarantee(!empty());
     if (snapshot_node_ != NULL) {
         return snapshot_node_->current_page_acq_.get();
@@ -641,6 +653,7 @@ current_page_acq_t *buf_lock_t::current_page_acq() const {
 }
 
 void buf_lock_t::detach_child(block_id_t child_id) {
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     guarantee(access() == alt_access_t::write);
 
@@ -651,6 +664,7 @@ void buf_lock_t::detach_child(block_id_t child_id) {
 }
 
 repli_timestamp_t buf_lock_t::get_recency() const {
+    ASSERT_NO_CORO_WAITING;
     guarantee(!empty());
     return current_page_acq()->recency();
 }
@@ -660,6 +674,8 @@ page_t *buf_lock_t::get_held_page_for_read() {
     current_page_acq_t *cpa = current_page_acq();
     guarantee(cpa != NULL);
     cpa->read_acq_signal()->wait();
+
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     return cpa->current_page_for_read();
 }
@@ -668,6 +684,8 @@ page_t *buf_lock_t::get_held_page_for_write() {
     guarantee(!empty());
     rassert(snapshot_node_ == NULL);
     current_page_acq_->write_acq_signal()->wait();
+
+    ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     return current_page_acq_->current_page_for_write();
 }
