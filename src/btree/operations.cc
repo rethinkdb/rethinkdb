@@ -409,9 +409,6 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
     // Insert the key that sets the two nodes apart into the parent.
     if (last_buf->empty()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
-        // RSI: Make sure that this root insertion logic is actually correct!  Will
-        // snapshotting handle it??  Could something skip?  Probably OK because this
-        // is a write transaction and we hold the superblock...
         buf_lock_t temp_buf(sb->expose_buf(), alt_create_t::create);
         last_buf->swap(temp_buf);
         {
