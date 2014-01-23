@@ -170,7 +170,7 @@ txn_t::txn_t(cache_t *cache,
              UNUSED alt_read_access_t read_access,
              txn_t *preceding_txn)
     : access_(alt_access_t::read),
-      durability_(write_durability_t::SOFT),  // A B.S. value.  RSI: use valgrind_undefined
+      durability_(valgrind_undefined(write_durability_t::INVALID)),
       saved_expected_change_count_(0) {
     // RSI: We could dedup the constructor body a bit.
     cache->assert_thread();
