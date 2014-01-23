@@ -36,7 +36,7 @@ void find_keyvalue_location_for_write(
 
     keyvalue_location_out->stats = stats;
 
-    // RSI: Make sure we do the logic smart here -- don't needlessly hold both
+    // KSI: Make sure we do the logic smart here -- don't needlessly hold both
     // buffers.  (This finds the keyvalue for _write_ so that probably won't really
     // happen.)
     buf_lock_t last_buf;
