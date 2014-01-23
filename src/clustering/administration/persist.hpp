@@ -4,7 +4,6 @@
 
 #include <string>
 
-#include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "containers/scoped.hpp"
@@ -49,7 +48,6 @@ private:
 
     scoped_ptr_t<standard_serializer_t> serializer;
     scoped_ptr_t<cache_t> cache;
-    alt_cache_config_t cache_dynamic_config;
 };
 
 

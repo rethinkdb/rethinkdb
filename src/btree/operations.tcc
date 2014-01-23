@@ -11,22 +11,13 @@
 
 // TODO: consider B#/B* trees to improve space efficiency
 
-// TODO: perhaps allow memory reclamation due to oversplitting? We can
-// be smart and only use a limited amount of ram for incomplete nodes
-// (doing this efficiently very tricky for high insert
-// workloads). Also, if the serializer is log-structured, we can write
-// only a small part of each node.
-
-// TODO: change rwi_write to rwi_intent followed by rwi_upgrade where
-// relevant.
-
 /* Passing in a pass_back_superblock parameter will cause this function to
  * return the superblock after it's no longer needed (rather than releasing
  * it). Notice the superblock is not guaranteed to be returned until the
  * keyvalue_location_t that's passed in (keyvalue_location_out) is destroyed.
  * This is because it may need to use the superblock for some of its methods.
  * */
-// RSI: It seems like really we should pass the superblock_t via rvalue reference.
+// KSI: It seems like really we should pass the superblock_t via rvalue reference.
 // Is that possible?  (promise_t makes it hard.)
 template <class Value>
 void find_keyvalue_location_for_write(
