@@ -10,10 +10,6 @@
 
 enum class alt_access_t { read, write };
 
-// RSI: This comment is out of date, and maybe some of these types are.
-// This file gets all the types used by both caches -- the non-cache_t- and
-// non-mc_cache_t-specific types.
-
 // write_durability_t::INVALID is an invalid value, notably it can't be serialized.
 enum class write_durability_t { INVALID, SOFT, HARD };
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(write_durability_t, int8_t,
@@ -44,7 +40,5 @@ struct block_magic_t {
 };
 
 void debug_print(printf_buffer_t *buf, block_magic_t magic);
-
-template <class T> class scoped_malloc_t;
 
 #endif /* BUFFER_CACHE_TYPES_HPP_ */
