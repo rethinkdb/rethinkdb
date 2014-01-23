@@ -397,7 +397,6 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
 
     // Allocate a new node to split into, and some temporary memory to keep
     // track of the median key in the split; then actually split.
-    // RSI: Assert that one of last_buf and sb is valid.
     buf_lock_t rbuf(last_buf->empty() ? sb->expose_buf() : buf_parent_t(last_buf),
                     alt_create_t::create);
     store_key_t median_buffer;
@@ -620,7 +619,7 @@ void get_btree_superblock_and_txn_for_backfilling(btree_slice_t *slice,
     slice->assert_thread();
     txn_t *txn = new txn_t(slice->cache(), alt_read_access_t::read);
     txn_out->init(txn);
-    // RSI: Does using a backfill account needlessly slow other operations down?
+    // KSI: Does using a backfill account needlessly slow other operations down?
     txn->set_account(slice->get_backfill_account());
 
     get_btree_superblock(txn, alt_access_t::read, got_superblock_out);

@@ -16,12 +16,12 @@
 
 class buffer_group_t;
 
-// RSI: Port this explanation to alt blobs.
 /* An explanation of blobs.
 
-   If we want to store values larger than 250 bytes, we must split
-   them into large numbers of blocks.  Some kind of tree structure is
-   used.  The blob_t type handles both kinds of values.  Here's how it's used.
+   If we want to store values larger than 250 bytes (or some arbitrary inline value
+   size limit), we must split them into large numbers of blocks.  Some kind of tree
+   structure is used.  The blob_t type handles both kinds of values.  Here's how it's
+   used.
 
 const int mrl = 251;
 std::string x = ...;
@@ -45,6 +45,8 @@ memcpy(tmp, ref, blob::ref_size(bs, ref, mrl));
         buffer_group_t group;
 
         tmp.expose_region(leafnode, rwi_write, old_size, x.size(), &group, &acq);
+        // There are better ways to shovel data into a buffer group if it's not
+        // already in a string -- please avoid excessive copying!
         copy_string_to_buffer_group(&group, x);
     }
 }
@@ -201,7 +203,6 @@ public:
     // to unappend_region(txn, valuesize()) or unprepend_region(txn,
     // valuesize()).  In particular, you can be sure that the blob
     // holds no internal blocks, once it has been cleared.
-    // RSI: Should this just take a txn_t?  Detach-then-clear?
     void clear(buf_parent_t root);
 
     // Writes over the portion of the blob, starting at offset, with
