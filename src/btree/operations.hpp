@@ -204,9 +204,7 @@ private:
     char *value_ptr;
 };
 
-// RSI: Have this return the buf_lock_t.
-void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
-              buf_lock_t *buf_out);
+buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb);
 
 void check_and_handle_split(value_sizer_t<void> *sizer,
                             buf_lock_t *buf,

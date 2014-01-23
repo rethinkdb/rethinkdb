@@ -42,8 +42,11 @@ void find_keyvalue_location_for_write(
     buf_lock_t last_buf;
     buf_lock_t buf;
     {
+        // RSI: We can't acquire the block for write here -- we could, but it would
+        // worsen the performance of the program -- sometimes we only end up using
+        // this block for read.  So the profiling information is not very good.
         profile::starter_t starter("Acquiring block for write.\n", trace);
-        get_root(&sizer, superblock, &buf);
+        buf = get_root(&sizer, superblock);
     }
 
     // Walk down the tree to the leaf.

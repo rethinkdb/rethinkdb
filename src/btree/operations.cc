@@ -347,24 +347,19 @@ void ensure_stat_block(superblock_t *sb) {
     }
 }
 
-void get_root(value_sizer_t<void> *sizer, superblock_t *sb,
-              buf_lock_t *buf_out) {
-    guarantee(buf_out->empty());
-
+buf_lock_t get_root(value_sizer_t<void> *sizer, superblock_t *sb) {
     const block_id_t node_id = sb->get_root_block_id();
 
     if (node_id != NULL_BLOCK_ID) {
-        buf_lock_t temp_lock(sb->expose_buf(), node_id,
-                             alt_access_t::write);
-        buf_out->swap(temp_lock);
+        return buf_lock_t(sb->expose_buf(), node_id, alt_access_t::write);
     } else {
-        buf_lock_t temp_lock(sb->expose_buf(), alt_create_t::create);
+        buf_lock_t lock(sb->expose_buf(), alt_create_t::create);
         {
-            buf_write_t write(&temp_lock);
+            buf_write_t write(&lock);
             leaf::init(sizer, static_cast<leaf_node_t *>(write.get_data_write()));
         }
-        insert_root(temp_lock.block_id(), sb);
-        buf_out->swap(temp_lock);
+        insert_root(lock.block_id(), sb);
+        return lock;
     }
 }
 

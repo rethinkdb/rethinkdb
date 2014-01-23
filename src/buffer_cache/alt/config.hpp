@@ -4,12 +4,9 @@
 
 #include "rpc/serialize_macros.hpp"
 
-// RSI: Maybe this config struct can just go away completely.  For now we have it to
+// KSI: Maybe this config struct can just go away completely.  For now we have it to
 // conform to some aspects of the interface of the mirrored cache, putting off until
 // later whether certain configuration options may be removed.
-
-// RSI: Maybe get rid of this file, just put these in page.hpp and alt.hpp,
-// respectively.
 
 class page_cache_config_t {
 public:
