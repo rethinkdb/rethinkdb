@@ -35,8 +35,6 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
       io_backender_(io_backender), base_path_(base_path),
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
 {
-    // TODO: Don't specify cache dynamic config here.
-    // RSI: ^^ Then where?
     {
         alt_cache_config_t config;
         config.page_config.memory_limit = cache_target;
@@ -347,7 +345,7 @@ progress_completion_fraction_t btree_store_t<protocol_t>::get_progress(uuid_u id
     }
 }
 
-// RSI: If we're going to have these functions at all, we could just pass the
+// KSI: If we're going to have these functions at all, we could just pass the
 // real_superblock_t directly.
 template <class protocol_t>
 buf_lock_t btree_store_t<protocol_t>::acquire_sindex_block_for_read(
@@ -412,7 +410,7 @@ bool btree_store_t<protocol_t>::add_sindex(
 }
 
 // RSI: There's no reason why this should work with detached sindexes.  Make this
-// just take the buf_parent_t.
+// just take the buf_parent_t.  (The reason might be that it's interruptible?)
 void clear_sindex(
         txn_t *txn, block_id_t superblock_id,
         btree_slice_t *slice, value_sizer_t<void> *sizer,
@@ -452,10 +450,10 @@ void btree_store_t<protocol_t>::set_sindexes(
     std::map<std::string, secondary_index_t> existing_sindexes;
     ::get_secondary_indexes(sindex_block, &existing_sindexes);
 
-    // RSI: This is kind of malperformant because we call clear_sindex while holding
+    // KSI: This is kind of malperformant because we call clear_sindex while holding
     // on to sindex_block.
 
-    // RSI: This is malperformant because we don't parallelize this stuff.
+    // KSI: This is malperformant because we don't parallelize this stuff.
 
     for (auto it = existing_sindexes.begin(); it != existing_sindexes.end(); ++it) {
         if (!std_contains(sindexes, it->first)) {
@@ -626,7 +624,6 @@ MUST_USE bool btree_store_t<protocol_t>::acquire_sindex_superblock_for_write(
     assert_thread();
 
     /* Get the sindex block. */
-    // RSI: Does the callee do anything other than constructing the buf_lock_t?
     buf_lock_t sindex_block = acquire_sindex_block_for_write(parent, sindex_block_id);
 
     /* Figure out what the superblock for this index is. */
@@ -826,7 +823,7 @@ void btree_store_t<protocol_t>::do_get_metainfo(UNUSED order_token_t order_token
     acquire_superblock_for_read(token,
                                 &txn, &superblock,
                                 interruptor,
-                                false /* RSI: christ */);
+                                false /* KSI: christ */);
 
     get_metainfo_internal(superblock->get(), out);
 }
@@ -866,7 +863,7 @@ void btree_store_t<protocol_t>::set_metainfo(const metainfo_t &new_metainfo,
                                              signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
 
-    // RSI: Are there other places where we give up and use repli_timestamp_t::invalid?
+    // KSI: Are there other places where we give up and use repli_timestamp_t::invalid?
     scoped_ptr_t<txn_t> txn;
     scoped_ptr_t<real_superblock_t> superblock;
     acquire_superblock_for_write(repli_timestamp_t::invalid,
