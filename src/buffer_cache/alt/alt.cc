@@ -171,16 +171,9 @@ txn_t::txn_t(cache_t *cache,
              txn_t *preceding_txn)
     : access_(alt_access_t::read),
       durability_(valgrind_undefined(write_durability_t::INVALID)),
+      /* RSI: Iirc the mirrored cache used 1 for some reason. */
       saved_expected_change_count_(0) {
-    // RSI: We could dedup the constructor body a bit.
-    cache->assert_thread();
-    // RSI: If I remember correctly the mirrored cache used 1 for some reason.
-    cache->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
-    ASSERT_FINITE_CORO_WAITING;
-    inner_.init(new alt_inner_txn_t(cache,
-                                    repli_timestamp_t::invalid,
-                                    preceding_txn == NULL ? NULL
-                                    : preceding_txn->inner_.get()));
+    help_construct(cache, repli_timestamp_t::invalid, preceding_txn);
 }
 
 txn_t::txn_t(cache_t *cache,
@@ -191,13 +184,18 @@ txn_t::txn_t(cache_t *cache,
     : access_(alt_access_t::write),
       durability_(durability),
       saved_expected_change_count_(expected_change_count) {
+    help_construct(cache, txn_timestamp, preceding_txn);
+}
+
+void txn_t::help_construct(cache_t *cache,
+                           repli_timestamp_t txn_timestamp,
+                           txn_t *preceding_txn) {
     cache->assert_thread();
-    cache->tracker_.begin_txn_or_throttle(expected_change_count);
+    cache->tracker_.begin_txn_or_throttle(saved_expected_change_count_);
     ASSERT_FINITE_CORO_WAITING;
-    inner_.init(new alt_inner_txn_t(cache,
-                                    txn_timestamp,
-                                    preceding_txn == NULL ? NULL
-                                    : preceding_txn->inner_.get()));
+    inner_.init(new alt_inner_txn_t(cache, txn_timestamp,
+                                    preceding_txn == NULL ?
+                                    NULL : preceding_txn->inner_.get()));
 }
 
 void txn_t::destroy_inner_txn(alt_inner_txn_t *inner, cache_t *cache,

@@ -130,6 +130,10 @@ public:
     void set_account(alt_cache_account_t *cache_account);
 
 private:
+    void help_construct(cache_t *cache,
+                        repli_timestamp_t txn_timestamp,
+                        txn_t *preceding_txn);
+
     static void destroy_inner_txn(alt_inner_txn_t *inner,
                                   cache_t *cache,
                                   int64_t saved_expected_change_count,
