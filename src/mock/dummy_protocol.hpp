@@ -116,8 +116,8 @@ public:
         void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) THROWS_NOTHING;
         void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) THROWS_NOTHING;
 
-        void new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING;
-        void new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING;
+        void new_read_token_pair(read_token_t *token_pair_out) THROWS_NOTHING;
+        void new_write_token_pair(write_token_t *token_pair_out) THROWS_NOTHING;
 
         void do_get_metainfo(order_token_t order_token,
                              object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token,
@@ -133,7 +133,7 @@ public:
                   const dummy_protocol_t::read_t &read,
                   dummy_protocol_t::read_response_t *response,
                   order_token_t order_token,
-                  read_token_pair_t *token_pair,
+                  read_token_t *token_pair,
                   signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void write(DEBUG_ONLY(const metainfo_checker_t<dummy_protocol_t>& metainfo_checker, )
@@ -143,22 +143,22 @@ public:
                    write_durability_t durability,
                    transition_timestamp_t timestamp,
                    order_token_t order_token,
-                   write_token_pair_t *token_pair,
+                   write_token_t *token_pair,
                    signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         bool send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
                            send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,
                            traversal_progress_combiner_t *progress,
-                           read_token_pair_t *token_pair,
+                           read_token_t *token_pair,
                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk,
-                              write_token_pair_t *token,
+                              write_token_t *token,
                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 
         void reset_data(const dummy_protocol_t::region_t &subregion,
                         const metainfo_t &new_metainfo,
-                        write_token_pair_t *token_pair,
+                        write_token_t *token_pair,
                         write_durability_t durability,
                         signal_t *interruptor) THROWS_ONLY(interrupted_exc_t);
 

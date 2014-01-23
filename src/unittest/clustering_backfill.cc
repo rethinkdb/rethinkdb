@@ -76,7 +76,7 @@ void run_backfill_test() {
             timestamp = ts.timestamp_after();
 
             cond_t non_interruptor;
-            write_token_pair_t token_pair;
+            write_token_t token_pair;
             backfiller_store.new_write_token_pair(&token_pair);
 
 #ifndef NDEBUG

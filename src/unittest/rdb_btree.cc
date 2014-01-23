@@ -29,7 +29,7 @@ void insert_rows(int start, int finish, btree_store_t<rdb_protocol_t> *store) {
         cond_t dummy_interruptor;
         scoped_ptr_t<txn_t> txn;
         scoped_ptr_t<real_superblock_t> superblock;
-        write_token_pair_t token_pair;
+        write_token_t token_pair;
         store->new_write_token_pair(&token_pair);
         store->acquire_superblock_for_write(
             repli_timestamp_t::invalid,
@@ -78,7 +78,7 @@ void insert_rows_and_pulse_when_done(int start, int finish,
 std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
     cond_t dummy_interruptor;
     std::string sindex_id = uuid_to_str(generate_uuid());
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -116,7 +116,7 @@ std::string create_sindex(btree_store_t<rdb_protocol_t> *store) {
 void drop_sindex(btree_store_t<rdb_protocol_t> *store,
                  const std::string &sindex_id) {
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -143,7 +143,7 @@ void drop_sindex(btree_store_t<rdb_protocol_t> *store,
 void bring_sindexes_up_to_date(
         btree_store_t<rdb_protocol_t> *store, std::string sindex_id) {
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -167,7 +167,7 @@ void bring_sindexes_up_to_date(
 void spawn_writes_and_bring_sindexes_up_to_date(btree_store_t<rdb_protocol_t> *store,
         std::string sindex_id, cond_t *background_inserts_done) {
     cond_t dummy_interruptor;
-    write_token_pair_t token_pair;
+    write_token_t token_pair;
     store->new_write_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;
@@ -196,7 +196,7 @@ void _check_keys_are_present(btree_store_t<rdb_protocol_t> *store,
         std::string sindex_id) {
     cond_t dummy_interruptor;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-        read_token_pair_t token_pair;
+        read_token_t token_pair;
         store->new_read_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;
@@ -264,7 +264,7 @@ void _check_keys_are_NOT_present(btree_store_t<rdb_protocol_t> *store,
     /* Check that we don't have any of the keys (we just deleted them all) */
     cond_t dummy_interruptor;
     for (int i = 0; i < TOTAL_KEYS_TO_INSERT; ++i) {
-        read_token_pair_t token_pair;
+        read_token_t token_pair;
         store->new_read_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;
@@ -408,7 +408,7 @@ void run_erase_range_test() {
 
     {
         /* Now we erase all of the keys we just inserted. */
-        write_token_pair_t token_pair;
+        write_token_t token_pair;
         store.new_write_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;

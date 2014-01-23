@@ -34,7 +34,7 @@ void direct_reader_t<protocol_t>::perform_read(
         const mailbox_addr_t<void(typename protocol_t::read_response_t)> &cont,
         auto_drainer_t::lock_t keepalive) {
     try {
-        read_token_pair_t token_pair;
+        read_token_t token_pair;
         svs->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG

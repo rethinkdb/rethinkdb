@@ -317,20 +317,12 @@ private:
     DISABLE_COPYING(send_backfill_callback_t);
 };
 
-/* [read,write]_token_pair_t provide an exit_[read,write]_t for both the main
- * btree and the secondary btrees both require seperate synchronization because
- * you frequently need to update the secondary btrees based on something that
- * was done in the primary and our locking structure doesn't give us an easy
- * way to make sure that entities acquire the secondary block in the same order
- * they acquire the primary. This could in theory be acquired as 2 seperate
- * objects but this would be twice as much typing and runs the risk that people
- * pass one exit read in to a function that accesses the other. */
-// RSI: read_token_pair_t should go away and we should just pass around a single token.
-struct read_token_pair_t {
+/* [read,write]_token_t hold the lock held when getting in line for the superblock. */
+struct read_token_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
 };
 
-struct write_token_pair_t {
+struct write_token_t {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
 };
 
@@ -365,8 +357,8 @@ public:
     virtual void new_read_token(object_buffer_t<fifo_enforcer_sink_t::exit_read_t> *token_out) = 0;
     virtual void new_write_token(object_buffer_t<fifo_enforcer_sink_t::exit_write_t> *token_out) = 0;
 
-    virtual void new_read_token_pair(read_token_pair_t *token_pair_out) = 0;
-    virtual void new_write_token_pair(write_token_pair_t *token_pair_out) = 0;
+    virtual void new_read_token_pair(read_token_t *token_pair_out) = 0;
+    virtual void new_write_token_pair(write_token_t *token_pair_out) = 0;
 
     /* Gets the metainfo.
     [Postcondition] return_value.get_domain() == view->get_region()
@@ -394,7 +386,7 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            read_token_pair_t *token,
+            read_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -412,7 +404,7 @@ public:
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token,
+            write_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -427,7 +419,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             traversal_progress_combiner_t *progress,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -439,7 +431,7 @@ public:
     */
     virtual void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            write_token_pair_t *token,
+            write_token_t *token,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
 
@@ -450,7 +442,7 @@ public:
     virtual void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) = 0;
@@ -523,12 +515,12 @@ public:
         store_view->new_write_token(token_out);
     }
 
-    void new_read_token_pair(read_token_pair_t *token_pair_out) {
+    void new_read_token_pair(read_token_t *token_pair_out) {
         home_thread_mixin_t::assert_thread();
         store_view->new_read_token_pair(token_pair_out);
     }
 
-    void new_write_token_pair(write_token_pair_t *token_pair_out) {
+    void new_write_token_pair(write_token_t *token_pair_out) {
         home_thread_mixin_t::assert_thread();
         store_view->new_write_token_pair(token_pair_out);
     }
@@ -557,7 +549,7 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
@@ -574,7 +566,7 @@ public:
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
@@ -590,7 +582,7 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             traversal_progress_combiner_t *p,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
@@ -601,7 +593,7 @@ public:
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {
         home_thread_mixin_t::assert_thread();
@@ -611,7 +603,7 @@ public:
     void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             write_durability_t durability,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t) {

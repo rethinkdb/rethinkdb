@@ -251,7 +251,7 @@ void post_construct_and_drain_queue(
 
         int previous_size = mod_queue->size();
         while (!lock.get_drain_signal()->is_pulsed()) {
-            write_token_pair_t token_pair;
+            write_token_t token_pair;
             store->new_write_token_pair(&token_pair);
 
             scoped_ptr_t<txn_t> queue_txn;
@@ -327,7 +327,7 @@ void post_construct_and_drain_queue(
     } else {
         /* The sindexes we were post constructing were all deleted. Time to
          * deregister the queue. */
-        write_token_pair_t token_pair;
+        write_token_t token_pair;
         store->new_write_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> queue_txn;
@@ -1235,7 +1235,7 @@ store_t::store_t(serializer_t *serializer,
     //  the moment (since we are still in the constructor), so things should complete
     //  rather quickly.
     cond_t dummy_interruptor;
-    read_token_pair_t token_pair;
+    read_token_t token_pair;
     new_read_token_pair(&token_pair);
 
     scoped_ptr_t<txn_t> txn;

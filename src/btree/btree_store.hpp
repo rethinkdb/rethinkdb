@@ -60,8 +60,8 @@ public:
 
     /* These functions get tokens for both the main B-Tree and the secondary
      * structures. */
-    void new_read_token_pair(read_token_pair_t *token_pair_out);
-    void new_write_token_pair(write_token_pair_t *token_pair_out);
+    void new_read_token_pair(read_token_t *token_pair_out);
+    void new_write_token_pair(write_token_t *token_pair_out);
 
     typedef region_map_t<protocol_t, binary_blob_t> metainfo_t;
 
@@ -84,7 +84,7 @@ public:
             const typename protocol_t::read_t &read,
             typename protocol_t::read_response_t *response,
             order_token_t order_token,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -96,7 +96,7 @@ public:
             write_durability_t durability,
             transition_timestamp_t timestamp,
             order_token_t order_token,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
@@ -104,20 +104,20 @@ public:
             const region_map_t<protocol_t, state_timestamp_t> &start_point,
             send_backfill_callback_t<protocol_t> *send_backfill_cb,
             typename protocol_t::backfill_progress_t *progress,
-            read_token_pair_t *token_pair,
+            read_token_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void receive_backfill(
             const typename protocol_t::backfill_chunk_t &chunk,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
 
     void reset_data(
             const typename protocol_t::region_t &subregion,
             const metainfo_t &new_metainfo,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             write_durability_t durability,
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t);
@@ -315,7 +315,7 @@ public:
             repli_timestamp_t timestamp,
             int expected_change_count,
             write_durability_t durability,
-            write_token_pair_t *token_pair,
+            write_token_t *token_pair,
             scoped_ptr_t<txn_t> *txn_out,
             scoped_ptr_t<real_superblock_t> *sb_out,
             signal_t *interruptor)

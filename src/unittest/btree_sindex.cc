@@ -144,7 +144,7 @@ void run_sindex_btree_store_api_test() {
         std::string id = uuid_to_str(generate_uuid());
         created_sindexs.insert(id);
         {
-            write_token_pair_t token_pair;
+            write_token_t token_pair;
             store.new_write_token_pair(&token_pair);
 
             scoped_ptr_t<txn_t> txn;
@@ -162,7 +162,7 @@ void run_sindex_btree_store_api_test() {
         }
 
         {
-            write_token_pair_t token_pair;
+            write_token_t token_pair;
             store.new_write_token_pair(&token_pair);
 
             scoped_ptr_t<txn_t> txn;
@@ -182,7 +182,7 @@ void run_sindex_btree_store_api_test() {
 
         {
             //Insert a piece of data in to the btree.
-            write_token_pair_t token_pair;
+            write_token_t token_pair;
             store.new_write_token_pair(&token_pair);
 
             scoped_ptr_t<txn_t> txn;
@@ -215,7 +215,7 @@ void run_sindex_btree_store_api_test() {
 
         {
             //Read that data
-            read_token_pair_t token_pair;
+            read_token_t token_pair;
             store.new_read_token_pair(&token_pair);
 
             scoped_ptr_t<txn_t> txn;
@@ -245,7 +245,7 @@ void run_sindex_btree_store_api_test() {
 
     for (auto it  = created_sindexs.begin(); it != created_sindexs.end(); ++it) {
         /* Drop the sindex */
-        write_token_pair_t token_pair;
+        write_token_t token_pair;
         store.new_write_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;

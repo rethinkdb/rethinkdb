@@ -29,7 +29,7 @@ public:
               DEBUG_VAR state_timestamp_t expected_timestamp,
               order_token_t order_token,
               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        read_token_pair_t token_pair;
+        read_token_t token_pair;
         store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
@@ -43,7 +43,7 @@ public:
     void read_outdated(const typename protocol_t::read_t &read,
                        typename protocol_t::read_response_t *response,
                        signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
-        read_token_pair_t token_pair;
+        read_token_t token_pair;
         store->new_read_token_pair(&token_pair);
 
 #ifndef NDEBUG
@@ -68,7 +68,7 @@ public:
         metainfo_checker_t<protocol_t> metainfo_checker(&metainfo_checker_callback, store->get_region());
 #endif
 
-        write_token_pair_t token_pair;
+        write_token_t token_pair;
         store->new_write_token_pair(&token_pair);
 
         store->write(
