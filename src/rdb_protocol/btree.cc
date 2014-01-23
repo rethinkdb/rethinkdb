@@ -1195,7 +1195,7 @@ public:
     void process_a_leaf(buf_lock_t *leaf_node_buf,
                         const btree_key_t *, const btree_key_t *,
                         signal_t *, int *) THROWS_ONLY(interrupted_exc_t) {
-        write_token_t token_pair;
+        write_token_pair_t token_pair;
         store_->new_write_token_pair(&token_pair);
 
         // RSI: FML

@@ -55,7 +55,7 @@ public:
     { }
 
     void apply_backfill_chunk(fifo_enforcer_write_token_t chunk_token, const typename protocol_t::backfill_chunk_t& chunk, signal_t *interruptor) {
-        write_token_t token_pair;
+        write_token_pair_t token_pair;
         object_buffer_t<fifo_enforcer_sink_t::exit_write_t> write_token;
         svs->new_write_token_pair(&token_pair);
         chunk_queue->finish_write(chunk_token);

@@ -173,7 +173,7 @@ void backfiller_t<protocol_t>::on_backfill(backfill_session_id_t session_id,
         // TODO: Describe this fifo source's purpose a bit.  It's for ordering backfill operations, right?
         fifo_enforcer_source_t fifo_src;
 
-        read_token_t send_backfill_token_pair;
+        read_token_pair_t send_backfill_token_pair;
         svs->new_read_token_pair(&send_backfill_token_pair);
 
         backfiller_send_backfill_callback_t<protocol_t>

@@ -256,13 +256,13 @@ void dummy_protocol_t::store_t::new_write_token(object_buffer_t<fifo_enforcer_si
     token_out->create(&main_token_sink, token);
 }
 
-void dummy_protocol_t::store_t::new_read_token_pair(read_token_t *token_pair_out) THROWS_NOTHING {
+void dummy_protocol_t::store_t::new_read_token_pair(read_token_pair_t *token_pair_out) THROWS_NOTHING {
     assert_thread();
     fifo_enforcer_read_token_t main_token = main_token_source.enter_read();
     token_pair_out->main_read_token.create(&main_token_sink, main_token);
 }
 
-void dummy_protocol_t::store_t::new_write_token_pair(write_token_t *token_pair_out) THROWS_NOTHING {
+void dummy_protocol_t::store_t::new_write_token_pair(write_token_pair_t *token_pair_out) THROWS_NOTHING {
     assert_thread();
     fifo_enforcer_write_token_t main_token = main_token_source.enter_write();
     token_pair_out->main_write_token.create(&main_token_sink, main_token);
@@ -308,7 +308,7 @@ void dummy_protocol_t::store_t::read(DEBUG_ONLY(const metainfo_checker_t<dummy_p
                                      const dummy_protocol_t::read_t &read,
                                      dummy_protocol_t::read_response_t *response,
                                      order_token_t order_token,
-                                     read_token_t *token_pair,
+                                     read_token_pair_t *token_pair,
                                      signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
     rassert(region_is_superset(get_region(), read.get_region()));
@@ -371,7 +371,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
                                       UNUSED write_durability_t durability,
                                       transition_timestamp_t timestamp,
                                       order_token_t order_token,
-                                      write_token_t *token_pair,
+                                      write_token_pair_t *token_pair,
                                       signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
 
     rassert(region_is_superset(get_region(), metainfo_checker.get_domain()));
@@ -409,7 +409,7 @@ void dummy_protocol_t::store_t::write(DEBUG_ONLY(const metainfo_checker_t<dummy_
 bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_t, state_timestamp_t> &start_point,
                                               send_backfill_callback_t<dummy_protocol_t> *send_backfill_cb,
                                               traversal_progress_combiner_t *progress,
-                                              read_token_t *token_pair,
+                                              read_token_pair_t *token_pair,
                                               signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     {
         scoped_ptr_t<traversal_progress_t> progress_owner(new dummy_protocol_t::backfill_progress_t(get_thread_id()));
@@ -454,7 +454,7 @@ bool dummy_protocol_t::store_t::send_backfill(const region_map_t<dummy_protocol_
     }
 }
 
-void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, write_token_t *token_pair, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
+void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfill_chunk_t &chunk, write_token_pair_t *token_pair, signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t>::destruction_sentinel_t destroyer(&token_pair->main_write_token);
 
     rassert(get_region().keys.count(chunk.key) != 0);
@@ -467,7 +467,7 @@ void dummy_protocol_t::store_t::receive_backfill(const dummy_protocol_t::backfil
 
 void dummy_protocol_t::store_t::reset_data(const dummy_protocol_t::region_t &subregion,
                                            const metainfo_t &new_metainfo,
-                                           write_token_t *token_pair,
+                                           write_token_pair_t *token_pair,
                                            UNUSED write_durability_t durability,
                                            signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) {
     rassert(region_is_superset(get_region(), subregion));

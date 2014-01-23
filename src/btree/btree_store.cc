@@ -74,7 +74,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
         //  things yet, so this should work fairly quickly and does not need a real
         //  interruptor
         cond_t dummy_interruptor;
-        read_token_t token_pair;
+        read_token_pair_t token_pair;
         new_read_token_pair(&token_pair);
 
         scoped_ptr_t<txn_t> txn;
@@ -112,7 +112,7 @@ void btree_store_t<protocol_t>::read(
         const typename protocol_t::read_t &read,
         typename protocol_t::read_response_t *response,
         UNUSED order_token_t order_token,  // TODO
-        read_token_t *token_pair,
+        read_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -139,7 +139,7 @@ void btree_store_t<protocol_t>::write(
         const write_durability_t durability,
         transition_timestamp_t timestamp,
         UNUSED order_token_t order_token,  // TODO
-        write_token_t *token_pair,
+        write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -164,7 +164,7 @@ bool btree_store_t<protocol_t>::send_backfill(
         const region_map_t<protocol_t, state_timestamp_t> &start_point,
         send_backfill_callback_t<protocol_t> *send_backfill_cb,
         typename protocol_t::backfill_progress_t *progress,
-        read_token_t *token_pair,
+        read_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -190,7 +190,7 @@ bool btree_store_t<protocol_t>::send_backfill(
 template <class protocol_t>
 void btree_store_t<protocol_t>::receive_backfill(
         const typename protocol_t::backfill_chunk_t &chunk,
-        write_token_t *token_pair,
+        write_token_pair_t *token_pair,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
     assert_thread();
@@ -219,7 +219,7 @@ template <class protocol_t>
 void btree_store_t<protocol_t>::reset_data(
         const typename protocol_t::region_t &subregion,
         const metainfo_t &new_metainfo,
-        write_token_t *token_pair,
+        write_token_pair_t *token_pair,
         const write_durability_t durability,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
@@ -926,7 +926,7 @@ void btree_store_t<protocol_t>::acquire_superblock_for_write(
         repli_timestamp_t timestamp,
         int expected_change_count,
         const write_durability_t durability,
-        write_token_t *token_pair,
+        write_token_pair_t *token_pair,
         scoped_ptr_t<txn_t> *txn_out,
         scoped_ptr_t<real_superblock_t> *sb_out,
         signal_t *interruptor)
@@ -975,13 +975,13 @@ void btree_store_t<protocol_t>::new_write_token(object_buffer_t<fifo_enforcer_si
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::new_read_token_pair(read_token_t *token_pair_out) {
+void btree_store_t<protocol_t>::new_read_token_pair(read_token_pair_t *token_pair_out) {
     assert_thread();
     new_read_token(&(token_pair_out->main_read_token));
 }
 
 template <class protocol_t>
-void btree_store_t<protocol_t>::new_write_token_pair(write_token_t *token_pair_out) {
+void btree_store_t<protocol_t>::new_write_token_pair(write_token_pair_t *token_pair_out) {
     assert_thread();
     new_write_token(&(token_pair_out->main_write_token));
 }
