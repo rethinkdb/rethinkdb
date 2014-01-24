@@ -3,9 +3,6 @@
 
 #include <stdint.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/pmap.hpp"
 #include "logger.hpp"
 
@@ -118,8 +115,8 @@ void mailbox_manager_t::on_message(UNUSED peer_id_t source_peer, string_read_str
         dest_thread = get_thread_id().threadnum;
     }
 
-    coro_t::spawn_now_dangerously(boost::bind(&mailbox_manager_t::mailbox_read_coroutine,
-                                              this, threadnum_t(dest_thread), dest_mailbox_id, stream));
+    coro_t::spawn_now_dangerously(std::bind(&mailbox_manager_t::mailbox_read_coroutine,
+                                            this, threadnum_t(dest_thread), dest_mailbox_id, stream));
 }
 
 void mailbox_manager_t::mailbox_read_coroutine(threadnum_t dest_thread,
