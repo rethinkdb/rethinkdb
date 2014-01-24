@@ -375,6 +375,44 @@ buf_lock_t::buf_lock_t(buf_parent_t parent,
 #endif
 }
 
+buf_lock_t::buf_lock_t(buf_lock_t *parent,
+                       block_id_t block_id,
+                       alt_access_t access)
+    : txn_(parent->txn_),
+      current_page_acq_(),
+      snapshot_node_(NULL),
+      access_ref_count_(0) {
+    // This implementation should be identical to the buf_parent_t version of
+    // this constructor.  (Unfortunately, we support compilers that lack full C++11
+    // support.)
+
+    buf_lock_t::wait_for_parent(buf_parent_t(parent), access);
+
+    ASSERT_FINITE_CORO_WAITING;
+
+    if (parent->snapshot_node_ != NULL) {
+        rassert(!parent->current_page_acq_.has());
+        snapshot_node_
+            = get_or_create_child_snapshot_node(txn_->cache(),
+                                                parent->snapshot_node_, block_id);
+        guarantee(snapshot_node_ != NULL,
+                  "Tried to acquire a deleted block (with read access.");
+        ++snapshot_node_->ref_count_;
+    } else {
+        if (access == alt_access_t::write) {
+            create_child_snapshot_nodes(txn_->cache(),
+                                        parent->current_page_acq()->block_version(),
+                                        parent->block_id(), block_id);
+        }
+        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
+                                                      access));
+    }
+
+#if ALT_DEBUG
+    debugf("%p: buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
+#endif
+}
+
 bool is_subordinate(alt_access_t parent, alt_access_t child) {
     return parent == alt_access_t::write || child == alt_access_t::read;
 }
@@ -452,44 +490,6 @@ void buf_lock_t::wait_for_parent(buf_parent_t parent, alt_access_t access) {
     } else {
         guarantee(is_subordinate(parent.txn()->access(), access));
     }
-}
-
-buf_lock_t::buf_lock_t(buf_lock_t *parent,
-                       block_id_t block_id,
-                       alt_access_t access)
-    : txn_(parent->txn_),
-      current_page_acq_(),
-      snapshot_node_(NULL),
-      access_ref_count_(0) {
-    // This implementation should be identical to the buf_parent_t version of
-    // this constructor.  (Unfortunately, we support compilers that lack full C++11
-    // support.)
-
-    buf_lock_t::wait_for_parent(buf_parent_t(parent), access);
-
-    ASSERT_FINITE_CORO_WAITING;
-
-    if (parent->snapshot_node_ != NULL) {
-        rassert(!parent->current_page_acq_.has());
-        snapshot_node_
-            = get_or_create_child_snapshot_node(txn_->cache(),
-                                                parent->snapshot_node_, block_id);
-        guarantee(snapshot_node_ != NULL,
-                  "Tried to acquire a deleted block (with read access.");
-        ++snapshot_node_->ref_count_;
-    } else {
-        if (access == alt_access_t::write) {
-            create_child_snapshot_nodes(txn_->cache(),
-                                        parent->current_page_acq()->block_version(),
-                                        parent->block_id(), block_id);
-        }
-        current_page_acq_.init(new current_page_acq_t(txn_->page_txn(), block_id,
-                                                      access));
-    }
-
-#if ALT_DEBUG
-    debugf("%p: buf_lock_t %p %s %lu\n", cache(), this, show(access), block_id);
-#endif
 }
 
 void buf_lock_t::help_construct(buf_parent_t parent, alt_create_t) {
