@@ -48,7 +48,7 @@ current_page_t *page_cache_t::page_for_block_id(block_id_t block_id) {
     }
 
     if (current_pages_[block_id] == NULL) {
-        // RSI: This code is never hit by the unit tests.
+        // KSI: This code is never hit by the unit tests.
         rassert(recency_for_block_id(block_id) != repli_timestamp_t::invalid,
                 "expected block %" PR_BLOCK_ID "not to be deleted", block_id);
         current_pages_[block_id] = new current_page_t();
@@ -391,14 +391,11 @@ void current_page_t::add_acquirer(current_page_acq_t *acq) {
         rassert(acq->the_txn_ != NULL);
         // KSI: We pass invalid timestamps for some set_metainfo calls and such.
         // Shouldn't we never pass invalid timestamps?  It would be simpler.
-        if (acq->the_txn_->this_txn_recency_ == repli_timestamp_t::invalid) {
-            acq->recency_ = prev_recency;
-        } else {
-            // RSI: We do this (for now) to play nice with the current stats block
-            // code.  But ideally there would never be an out-of-order recency.
-            acq->recency_ = superceding_recency(prev_recency,
-                                                acq->the_txn_->this_txn_recency_);
-        }
+
+        // KSI: We do this (for now) to play nice with the current stats block
+        // code.  But ideally there would never be an out-of-order recency.
+        acq->recency_ = superceding_recency(prev_recency,
+                                            acq->the_txn_->this_txn_recency_);
     }
 
     acquirers_.push_back(acq);
@@ -456,7 +453,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                                             cur->page_cache());
                 cur->current_page_ = NULL;
                 acquirers_.remove(cur);
-                // RSI: Dedup this with remove_acquirer.
+                // KSI: Dedup this with remove_acquirer.
                 if (is_deleted_) {
                     cur->page_cache()->free_list()->release_block_id(acq->block_id());
                 }
@@ -474,13 +471,14 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq) {
                     // page to a full-sized page.
                     // TODO: We should consider whether we really want this behavior.
 
-                    // RSI: Duplicate memset code.
-                    scoped_malloc_t<ser_buffer_t> buf = help.page_cache->serializer()->malloc();
+                    scoped_malloc_t<ser_buffer_t> buf
+                        = help.page_cache->serializer()->malloc();
 
 #if !defined(NDEBUG) || defined(VALGRIND)
-                    // RSI: This should actually _not_ exist -- we are ignoring legitimate errors
-                    // where we write uninitialized data to disk.
-                    memset(buf.get()->cache_data, 0xCD, help.page_cache->serializer()->max_block_size().value());
+                    // KSI: This should actually _not_ exist -- we are ignoring
+                    // legitimate errors where we write uninitialized data to disk.
+                    memset(buf.get()->cache_data, 0xCD,
+                           help.page_cache->serializer()->max_block_size().value());
 #endif
 
                     page_.init(new page_t(help.page_cache->serializer()->max_block_size(),
@@ -1006,8 +1004,6 @@ page_txn_t::~page_txn_t() {
     // RSI: Do we want to wait for this here?  Or should the page_cache_t be the
     // thing that waits and destroys this object?
 
-    // RSI: Do whatever else is necessary to implement this.
-
     flush_complete_cond_.wait();
 }
 
@@ -1138,8 +1134,8 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                         d.block_id,
                         d.block_version.debug_value());
                 if (jt->second.version < d.block_version) {
-                    // RSI: What if jt->second.tstamp > d.tstamp?
-                    // Should we take the max of both tstamps?  Ugghh.
+                    rassert(d.tstamp ==
+                            superceding_recency(jt->second.tstamp, d.tstamp));
                     jt->second = change;
                 }
             }
@@ -1159,9 +1155,8 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                 // The versions can't be the same for different write operations.
                 rassert(jt->second.version != t.block_version);
                 if (jt->second.version < t.block_version) {
-                    // RSI: What if jt->second.tstamp > t.second?  Just like above,
-                    // with the dirtied_page_t, should we take the max of both
-                    // tstamps?  Ugghh.
+                    rassert(t.tstamp ==
+                            superceding_recency(jt->second.tstamp, t.tstamp));
                     jt->second.tstamp = t.tstamp;
                 }
             }
