@@ -1598,9 +1598,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
     void operator()(const sindex_drop_t &d) {
         sindex_drop_response_t res;
         value_sizer_t<rdb_value_t> sizer(btree->cache()->get_block_size());
-        // RSI: This is wrong, surely.  It actually deletes the blob.  From an
-        // sindex!
-        rdb_value_deleter_t deleter;
+        rdb_value_non_deleter_t deleter;
 
         res.success = store->drop_sindex(d.id,
                                          &sindex_block,
