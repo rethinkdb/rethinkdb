@@ -8,7 +8,13 @@
 #include "do_on_thread.hpp"
 
 void cond_t::pulse() {
-    // KSI: This is such shit.  This behavior is deprecated.
+    // KSI: This old code tried to let you pulse a cond_t from the wrong thread.
+    // Holy cow!  I added an assert thread to fuck you over in debug mode, in case
+    // you ever decide to take advantage of this "feature".
+    //
+    //                                       Love,
+    //                                       @srh
+    assert_thread();
     do_on_thread(home_thread(), boost::bind(&cond_t::do_pulse, this));
 }
 
