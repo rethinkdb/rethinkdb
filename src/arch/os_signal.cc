@@ -3,6 +3,7 @@
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/types.hpp"
+#include "do_on_thread.hpp"
 
 os_signal_cond_t::os_signal_cond_t() :
     source_pid(-1),
@@ -33,5 +34,5 @@ uid_t os_signal_cond_t::get_source_uid() const {
 }
 
 void os_signal_cond_t::on_thread_switch() {
-    pulse();
+    do_on_thread(home_thread(), std::bind(&os_signal_cond_t::pulse, this));
 }
