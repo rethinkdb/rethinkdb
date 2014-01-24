@@ -22,21 +22,17 @@ struct stats_collection_context_t : public home_thread_mixin_t {
 private:
     rwlock_in_line_t lock_sentry;
 public:
-    DEBUG_ONLY(size_t size;)
-    // KSI: Is size even used?  We can put contexts in a scoped_array_t.
-    void **contexts;
+    scoped_array_t<void *> contexts;
 
     stats_collection_context_t(rwlock_t *constituents_lock,
                                const intrusive_list_t<perfmon_membership_t> &constituents) :
         lock_sentry(constituents_lock, access_t::read),
-        DEBUG_ONLY(size(constituents.size()), )
-        contexts(new void *[constituents.size()]) {
+        contexts(new void *[constituents.size()](),
+                 constituents.size()) {
         lock_sentry.read_signal()->wait();
     }
 
-    ~stats_collection_context_t() {
-        delete[] contexts;
-    }
+    ~stats_collection_context_t() { }
 };
 
 perfmon_collection_t::perfmon_collection_t() { }
@@ -51,7 +47,6 @@ void *perfmon_collection_t::begin_stats() {
 
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
-        rassert(i < ctx->size);
         ctx->contexts[i] = p->get()->begin_stats();
     }
     return ctx;
@@ -61,7 +56,6 @@ void perfmon_collection_t::visit_stats(void *_context) {
     stats_collection_context_t *ctx = reinterpret_cast<stats_collection_context_t*>(_context);
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
-        rassert(i < ctx->size);
         p->get()->visit_stats(ctx->contexts[i]);
     }
 }
@@ -73,7 +67,6 @@ scoped_ptr_t<perfmon_result_t> perfmon_collection_t::end_stats(void *_context) {
 
     size_t i = 0;
     for (perfmon_membership_t *p = constituents.head(); p != NULL; p = constituents.next(p), ++i) {
-        rassert(i < ctx->size);
         scoped_ptr_t<perfmon_result_t> stat = p->get()->end_stats(ctx->contexts[i]);
         if (p->splice()) {
             stat->splice_into(map.get());
