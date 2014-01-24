@@ -156,7 +156,7 @@ void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue)
+        internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING;
 
 /* Creates a queue of operations for the sindex, runs a post construction for
@@ -178,7 +178,11 @@ void bring_sindexes_up_to_date(
      * the parallel traversal we do learn about from the mod queue. */
     uuid_u post_construct_id = generate_uuid();
 
-    boost::shared_ptr<internal_disk_backed_queue_t> mod_queue(
+    /* Keep the store alive for as long as mod_queue exists. It uses its io_backender
+     * and perfmon_collection, so that is important. */
+    auto_drainer_t::lock_t store_drainer_acq(&store->drainer);
+
+    scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(
             new internal_disk_backed_queue_t(
                 store->io_backender_,
                 serializer_filepath_t(
@@ -204,10 +208,10 @@ void bring_sindexes_up_to_date(
 
     coro_t::spawn_sometime(boost::bind(
                 &post_construct_and_drain_queue,
-                auto_drainer_t::lock_t(&store->drainer),
+                store_drainer_acq,
                 sindexes_to_bring_up_to_date_uuid,
                 store,
-                mod_queue));
+                mod_queue.release()));
 }
 
 class apply_sindex_change_visitor_t : public boost::static_visitor<> {
@@ -233,17 +237,16 @@ private:
 /* This function is really part of the logic of bring_sindexes_up_to_date
  * however it needs to be in a seperate function so that it can be spawned in a
  * coro. 
- * NOTE: the auto_drainer lock must be in front of the
- * mod_queue shared pointer, because we must not release
- * the drainer lock before the mod_queue is released.
  */
 void post_construct_and_drain_queue(
         auto_drainer_t::lock_t lock,
         const std::set<uuid_u> &sindexes_to_bring_up_to_date,
         btree_store_t<rdb_protocol_t> *store,
-        boost::shared_ptr<internal_disk_backed_queue_t> mod_queue)
+        internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
+    scoped_ptr_t<internal_disk_backed_queue_t>(mod_queue_ptr);
+
     try {
         post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());
 
