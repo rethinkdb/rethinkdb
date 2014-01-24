@@ -244,6 +244,9 @@ void run_create_drop_sindex_test(namespace_interface_t<rdb_protocol_t> *nsi, ord
         }
     }
 
+    // RSI: This is bad-ish, make us not really need this again.
+    nap(1000);
+
     {
         /* Access the data using the secondary index. */
         rdb_protocol_t::read_t read = make_sindex_read(sindex_key_literal, id);
