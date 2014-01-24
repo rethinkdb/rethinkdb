@@ -31,7 +31,12 @@ private:
 // signal pulsed before their write signal.)
 class rwlock_in_line_t : public intrusive_list_node_t<rwlock_in_line_t> {
 public:
+    // The constructor does not block.  Use read_signal() or write_signal() to wait
+    // for acquisition.
     rwlock_in_line_t(rwlock_t *lock, access_t access);
+
+    // This can be called whenever: You may destroy the lock, getting "out of line",
+    // before the lock has been acquired.
     ~rwlock_in_line_t();
 
     const signal_t *read_signal() const { return &read_cond_; }
@@ -48,6 +53,17 @@ private:
     cond_t write_cond_;
 
     DISABLE_COPYING(rwlock_in_line_t);
+};
+
+class rwlock_acq_t : private rwlock_in_line_t {
+public:
+    // Acquires the lock.  The constructor blocks the coroutine, it doesn't return
+    // until the lock is acquired.
+    rwlock_acq_t(rwlock_t *lock, access_t access);
+    ~rwlock_acq_t();
+
+private:
+    DISABLE_COPYING(rwlock_acq_t);
 };
 
 

@@ -20,7 +20,7 @@ perfmon_t::~perfmon_t() {
 
 struct stats_collection_context_t : public home_thread_mixin_t {
 private:
-    rwlock_in_line_t lock_sentry;
+    rwlock_acq_t lock_sentry;
 public:
     scoped_array_t<void *> contexts;
 
@@ -28,9 +28,7 @@ public:
                                const intrusive_list_t<perfmon_membership_t> &constituents) :
         lock_sentry(constituents_lock, access_t::read),
         contexts(new void *[constituents.size()](),
-                 constituents.size()) {
-        lock_sentry.read_signal()->wait();
-    }
+                 constituents.size()) { }
 
     ~stats_collection_context_t() { }
 };
@@ -89,8 +87,7 @@ void perfmon_collection_t::add(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rwlock_in_line_t write_acq(&constituents_access, access_t::write);
-    write_acq.write_signal()->wait();
+    rwlock_acq_t write_acq(&constituents_access, access_t::write);
     constituents.push_back(perfmon);
 }
 
@@ -100,8 +97,7 @@ void perfmon_collection_t::remove(perfmon_membership_t *perfmon) {
         thread_switcher.init(new on_thread_t(home_thread()));
     }
 
-    rwlock_in_line_t write_acq(&constituents_access, access_t::write);
-    write_acq.write_signal()->wait();
+    rwlock_acq_t write_acq(&constituents_access, access_t::write);
     constituents.remove(perfmon);
 }
 

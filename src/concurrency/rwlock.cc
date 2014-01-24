@@ -67,3 +67,14 @@ rwlock_in_line_t::~rwlock_in_line_t() {
     lock_->remove_acq(this);
 }
 
+
+rwlock_acq_t::rwlock_acq_t(rwlock_t *lock, access_t access)
+    : rwlock_in_line_t(lock, access) {
+    if (access == access_t::read) {
+        read_signal()->wait();
+    } else {
+        write_signal()->wait();
+    }
+}
+
+rwlock_acq_t::~rwlock_acq_t() { }
