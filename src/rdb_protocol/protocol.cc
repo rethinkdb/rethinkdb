@@ -246,7 +246,7 @@ void post_construct_and_drain_queue(
         internal_disk_backed_queue_t *mod_queue_ptr)
     THROWS_NOTHING
 {
-    scoped_ptr_t<internal_disk_backed_queue_t>(mod_queue_ptr);
+    scoped_ptr_t<internal_disk_backed_queue_t> mod_queue(mod_queue_ptr);
 
     try {
         post_construct_secondary_indexes(store, sindexes_to_bring_up_to_date, lock.get_drain_signal());
